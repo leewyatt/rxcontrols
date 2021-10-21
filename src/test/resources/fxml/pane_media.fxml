@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_media.css" xmlns="http://javafx.com/javafx/11" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneMediaController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_media.css" xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneMediaController">
    <children>
       <RXTranslationButton id="open-btn" layoutX="23.0" layoutY="17.0" onAction="#openFileAction" prefHeight="36.0" prefWidth="186.0" text="Open Mp3 File">
          <graphic>

@@ -24,10 +24,10 @@
  */
 package com.leewyatt.rxcontrols.controls;
 
+import com.sun.javafx.css.converters.DurationConverter;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.css.*;
-import javafx.css.converter.DurationConverter;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
