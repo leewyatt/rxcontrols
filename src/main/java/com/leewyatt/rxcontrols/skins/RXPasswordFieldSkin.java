@@ -26,13 +26,13 @@ package com.leewyatt.rxcontrols.skins;
 
 import com.leewyatt.rxcontrols.controls.RXPasswordField;
 import com.leewyatt.rxcontrols.enums.DisplayMode;
+import com.sun.javafx.scene.control.skin.TextFieldSkin;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.css.SimpleStyleableStringProperty;
 import javafx.scene.Cursor;
 import javafx.scene.control.TextField;
-import javafx.scene.control.skin.TextFieldSkin;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
