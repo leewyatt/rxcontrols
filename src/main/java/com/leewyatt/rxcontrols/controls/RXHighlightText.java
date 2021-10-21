@@ -25,10 +25,10 @@
 package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.utils.RXResources;
+import com.sun.javafx.css.converters.EnumConverter;
+import com.sun.javafx.css.converters.SizeConverter;
 import javafx.beans.property.*;
 import javafx.css.*;
-import javafx.css.converter.EnumConverter;
-import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.text.TextAlignment;

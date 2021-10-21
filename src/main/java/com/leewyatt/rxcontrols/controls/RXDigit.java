@@ -25,14 +25,14 @@
 package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXDigitSkin;
-// import com.sun.javafx.css.converters.PaintConverter;
+import com.sun.javafx.css.converters.PaintConverter;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.css.*;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.css.converter.PaintConverter;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
