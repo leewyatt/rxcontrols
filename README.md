@@ -6,7 +6,10 @@
 一个javafx的自定义组件库, 密码可见组件, 轮播图组件, 动态按钮组件等, 音频频谱可视化组件,歌词组件 等... <br />
 
  Javafx custom component library, password visible component, carousel component, dynamic button component,spectrum component,lyrics component etc...  <br />
- 
+
+>QQ: 9670453  <br />
+JavaFX QQ群: 518914410 <br/>
+
 Maven dependency
 ```xml
     <repositories>
