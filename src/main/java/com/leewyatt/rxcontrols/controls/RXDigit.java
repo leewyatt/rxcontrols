@@ -25,9 +25,9 @@
 package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXDigitSkin;
-import com.sun.javafx.css.converters.PaintConverter;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.css.*;
+import javafx.css.converter.PaintConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;

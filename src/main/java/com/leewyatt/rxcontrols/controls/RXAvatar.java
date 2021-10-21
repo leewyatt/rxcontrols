@@ -26,7 +26,6 @@ package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXAvatarSkin;
 import com.leewyatt.rxcontrols.utils.RXResources;
-import com.sun.javafx.css.converters.EnumConverter;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -34,6 +33,7 @@ import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
+import javafx.css.converter.EnumConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.image.Image;
