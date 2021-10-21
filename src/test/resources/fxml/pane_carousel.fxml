@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXCarousel?>
+<?import com.leewyatt.rxcontrols.controls.RXToggleButton?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_carousel.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneCarouselController">
+   <children>
+      <RXCarousel fx:id="sceneryCarousel" layoutX="152.0" layoutY="31.0" prefHeight="313.0" prefWidth="600.0" />
+      <VBox alignment="CENTER" layoutX="4.0" layoutY="31.0" prefHeight="315.0" prefWidth="146.0" spacing="6.0" style="-fx-border-color: #e1d1d1;">
+         <children>
+            <CheckBox fx:id="autoPlayBtn" alignment="CENTER" mnemonicParsing="false" prefHeight="21.0" prefWidth="140.0" selected="true" text="自动播放" VBox.vgrow="ALWAYS" />
+            <CheckBox fx:id="autoPause" alignment="CENTER" mnemonicParsing="false" prefHeight="21.0" prefWidth="140.0" selected="true" text="自动暂停" VBox.vgrow="ALWAYS" />
+            <Label prefWidth="140.0" text="动画时间:" VBox.vgrow="ALWAYS" />
+            <Spinner fx:id="animationTimeChoose" prefHeight="30.0" prefWidth="140.0" VBox.vgrow="ALWAYS" />
+            <Label prefWidth="140.0" text="显示时间" VBox.vgrow="ALWAYS" />
+            <Spinner fx:id="showTimeChoose" prefHeight="30.0" prefWidth="140.0" VBox.vgrow="ALWAYS" />
+            <Label prefWidth="140.0" text="箭头显示" VBox.vgrow="ALWAYS" />
+            <ComboBox fx:id="arrowDisplayModeChoose" prefWidth="140.0" VBox.vgrow="ALWAYS" />
+            <Label prefWidth="140.0" text="导航显示" VBox.vgrow="ALWAYS" />
+            <ComboBox fx:id="navDisplayModeChoose" prefWidth="140.0" VBox.vgrow="ALWAYS" />
+         </children>
+      </VBox>
+      <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="3.0" layoutX="4.0" layoutY="345.0" prefHeight="165.0" prefWidth="750.0" style="-fx-border-color: #d1d1d1;" vgap="2.0">
+         <children>
+            <RXToggleButton onAction="#setAppear" prefHeight="30.0" prefWidth="120.0" text="Appear">
+               <toggleGroup>
+                  <ToggleGroup fx:id="animGroup" />
+               </toggleGroup></RXToggleButton>
+            <RXToggleButton onAction="#setAround" prefHeight="30.0" prefWidth="120.0" text="Around" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setBlend" prefHeight="30.0" prefWidth="120.0" text="Blend" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setCircle" prefHeight="30.0" prefWidth="120.0" text="Circle" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setCircleArray" prefHeight="30.0" prefWidth="120.0" text="Circle Array" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setCorner" prefHeight="30.0" prefWidth="120.0" text="Corner" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setCross" prefHeight="30.0" prefWidth="120.0" text="Cross" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setFade" prefHeight="30.0" prefWidth="120.0" selected="true" text="Fade" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setVerFlip" prefHeight="30.0" prefWidth="120.0" text="Ver Flip" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setGaussianBlur" prefHeight="30.0" prefWidth="120.0" text="Gaussian Blur" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHorBox" prefHeight="30.0" prefWidth="120.0" text="Hor Box" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHorFlip" prefHeight="30.0" prefWidth="120.0" text="Hor Flip" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHorMove" prefHeight="30.0" prefWidth="120.0" text="Hor Move" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHorStack" prefHeight="30.0" prefWidth="120.0" text="Hor Stack" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHorBlinds" prefHeight="30.0" prefWidth="120.0" text="Hor Blinds" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setHardPaper" prefHeight="30.0" prefWidth="120.0" text="Hard Paper" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setLinePair" prefHeight="30.0" prefWidth="120.0" text="Line Pair" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setLineSingle" prefHeight="30.0" prefWidth="120.0" text="Line Single" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setMotionBlur" prefHeight="30.0" prefWidth="120.0" text="Motion Blur" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setNone" prefHeight="30.0" prefWidth="120.0" text="None" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setSoftPaper" prefHeight="30.0" prefWidth="120.0" text="Soft Paper" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setRectangle" prefHeight="30.0" prefWidth="120.0" text="Rectangle" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setRotate" prefHeight="30.0" prefWidth="120.0" text="Rotate" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setScaleRotateShape" prefHeight="30.0" prefWidth="120.0" text="Rotate Shape" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setScaleRotate" prefHeight="30.0" prefWidth="120.0" text="Scale Rotate" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setSector" prefHeight="30.0" prefWidth="120.0" text="Sector" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setVerBox" prefHeight="30.0" prefWidth="120.0" text="Ver Box" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setVerBlinds" prefHeight="30.0" prefWidth="120.0" text="Ver Blinds" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setVerStack" prefHeight="30.0" prefWidth="120.0" text="Ver Stack" toggleGroup="$animGroup" />
+            <RXToggleButton onAction="#setVerMove" prefHeight="30.0" prefWidth="120.0" text="Ver Move" toggleGroup="$animGroup" />
+         </children>
+      </FlowPane>
+      <Label layoutX="7.0" layoutY="9.0" prefHeight="0.0" prefWidth="741.0" text="   轮播图组件适合 图片或者 其他节点; 但是推荐保证每页的大和组件大小保持一致,否则部分效果显示不完美" textAlignment="CENTER" />
+   </children>
+</AnchorPane>

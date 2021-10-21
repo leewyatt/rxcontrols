@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXHighlightText?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_highlight_text.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneHighightTextController">
+   <children>
+      <ListView fx:id="listEmail" layoutX="400.0" layoutY="122.0" prefHeight="379.0" prefWidth="310.0" />
+      <RXHighlightText layoutX="59.0" layoutY="14.0" text="" />
+      <Label layoutX="30.0" layoutY="14.0" text="RXHighlightText:高亮文本组件" />
+      <RXHighlightText id="text-poem" keywords="[秋风日月百草其]" layoutX="30.0" layoutY="46.0" lineSpacing="10.0" matchRules="REGEX" prefHeight="279.0" prefWidth="331.0" style="-fx-border-color: #d1d1d1; -fx-border-radius: 15;" text="观沧海&#10;两汉：曹操&#10;东临碣石，以观沧海。&#10;水何澹澹，山岛竦峙。&#10;树木丛生，百草丰茂。&#10;秋风萧瑟，洪波涌起。&#10;日月之行，若出其中；&#10;星汉灿烂，若出其里。&#10;幸甚至哉，歌以咏志。" textAlignment="CENTER">
+         <padding>
+            <Insets top="8.0" />
+         </padding></RXHighlightText>
+      <TextArea editable="false" layoutX="30.0" layoutY="331.0" prefHeight="170.0" prefWidth="331.0" text="/*css样式参考;更简单的写法参考CSS Reference*/&#10;#text-poem .highlight-label{&#10;    -fx-background-color: red;&#10;    -fx-text-fill: white;&#10;}&#10;#text-poem .plain-text{&#10;    -fx-fill:black;&#10;}" />
+      <TextField fx:id="tfKeywords" layoutX="400.0" layoutY="85.0" prefHeight="30.0" prefWidth="230.0" promptText="请输入关键字" />
+      <ComboBox fx:id="rulesComboBox" layoutX="522.0" layoutY="47.0" prefHeight="30.0" prefWidth="188.0" />
+      <Label layoutX="400.0" layoutY="52.0" text="字符串匹配规则" />
+      <Button fx:id="btnClear" layoutX="641.0" layoutY="84.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="68.0" text="清空" />
+   </children>
+</AnchorPane>

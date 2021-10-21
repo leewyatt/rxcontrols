@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXAvatar?>
+<?import com.leewyatt.rxcontrols.controls.RXLineButton?>
+<?import javafx.scene.Cursor?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.effect.Glow?>
+<?import javafx.scene.effect.InnerShadow?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/11" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneAboutController">
+   <children>
+      <AnchorPane layoutX="91.0" layoutY="131.0" prefHeight="320.0" prefWidth="586.0" style="-fx-background-color: #f1f1f1; -fx-background-radius: 15;" AnchorPane.leftAnchor="85.0" AnchorPane.topAnchor="90.0">
+         <children>
+            <Pane prefHeight="250.0" prefWidth="177.0" style="-fx-background-color: #9ddcfa; -fx-background-radius: 15 0 0 15;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <RXAvatar layoutX="39.0" layoutY="88.0">
+                     <image>
+                        <Image url="@../image/avatar.png" />
+                     </image>
+                     <effect>
+                        <InnerShadow color="#1a90ff" />
+                     </effect>
+                  </RXAvatar>
+                  <Label alignment="CENTER" layoutX="33.0" layoutY="215.0" prefHeight="24.0" prefWidth="112.0" style="-fx-background-color: #1f6fb5; -fx-background-radius: 50;" text="LeeWyatt" textFill="WHITE">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                     <effect>
+                        <Glow />
+                     </effect>
+                  </Label>
+               </children>
+            </Pane>
+            <Label layoutX="278.0" layoutY="5.0" text="Welcome">
+               <font>
+                  <Font size="28.0" />
+               </font>
+               <graphic>
+                  <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/hi.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Label>
+            <VBox alignment="CENTER_LEFT" layoutX="201.0" layoutY="43.0">
+               <children>
+                  <Label prefHeight="70.0" prefWidth="328.0" text="Some self used components&#10;- Supports importing them into scenebuilder;&#10;- Support custom CSS style;&#10;&#10;&#10;">
+                     <font>
+                        <Font size="13.0" />
+                     </font>
+                  </Label>
+                  <Label text="Gitee:" />
+                  <RXLineButton fx:id="giteeLink" onAction="#openGitee" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://gitee.com/leewyatt">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></RXLineButton>
+                  <Label text="Github:" />
+                  <RXLineButton fx:id="githubLink" onAction="#openGithub" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://github.com/leewyatt">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></RXLineButton>
+                  <Label layoutX="10.0" layoutY="172.0" text="bilibili" />
+                  <RXLineButton fx:id="bilibiliLink" layoutX="10.0" layoutY="187.0" onAction="#openBilibili" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://space.bilibili.com/397562730">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </RXLineButton>
+                  <Label text="QQ:" />
+                  <RXLineButton onAction="#openQQ" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="9670453">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></RXLineButton>
+                  <Label layoutX="10.0" layoutY="80.0" text="JavaFX交流QQ群:" />
+                  <RXLineButton layoutX="10.0" layoutY="96.0" onAction="#addGroup" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="518914410">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </RXLineButton>
+               </children>
+            </VBox>
+         </children>
+      </AnchorPane>
+   </children>
+</AnchorPane>

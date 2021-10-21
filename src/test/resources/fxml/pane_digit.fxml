@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXDigit?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.effect.InnerShadow?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneDigitController">
+   <children>
+      <BorderPane id="bgPane" fx:id="bgPane" layoutX="156.0" layoutY="137.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="194.0" prefWidth="450.0" stylesheets="@../css/pane_digit.css">
+         <center>
+            <BorderPane id="centerPane" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="114.0" prefWidth="370.0">
+               <top>
+                  <HBox id="dayOfWeek" fx:id="dayOfWeek" alignment="TOP_CENTER" spacing="20.0" BorderPane.alignment="CENTER">
+                     <BorderPane.margin>
+                        <Insets top="14.0" />
+                     </BorderPane.margin>
+                     <children>
+                        <Label text="MOD" />
+                        <Label text="TUE" />
+                        <Label text="WED" />
+                        <Label text="THU" />
+                        <Label text="FRI" />
+                        <Label text="SAT" />
+                        <Label text="SUN" />
+                     </children>
+                  </HBox>
+               </top>
+               <center>
+                  <AnchorPane BorderPane.alignment="CENTER">
+                     <children>
+                        <Label id="ampm" fx:id="ampm" layoutX="22.0" layoutY="48.0" text="PM" textFill="#30373f" AnchorPane.bottomAnchor="23.0" AnchorPane.rightAnchor="316.0">
+                           <font>
+                              <Font size="20.0" />
+                           </font>
+                        </Label>
+                        <HBox alignment="CENTER" layoutX="88.0" layoutY="-2.0" prefHeight="100.0" prefWidth="231.0" spacing="8.0">
+                           <children>
+                              <RXDigit fx:id="t1" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="54.0" prefWidth="30.0" styleClass="digit" />
+                              <RXDigit fx:id="t2" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="54.0" prefWidth="30.0" styleClass="digit" />
+                              <VBox alignment="CENTER" spacing="10.0">
+                                 <children>
+                                    <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#0f1620" height="5.0" strokeType="INSIDE" styleClass="point" width="5.0" />
+                                    <Rectangle arcHeight="5.0" arcWidth="5.0" fill="#0f1620" height="5.0" strokeType="INSIDE" styleClass="point" width="5.0" />
+                                 </children>
+                              </VBox>
+                              <RXDigit fx:id="t3" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="54.0" prefWidth="30.0" styleClass="digit" />
+                              <RXDigit fx:id="t4" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="54.0" prefWidth="30.0" styleClass="digit" />
+                              <RXDigit fx:id="t5" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="27.0" prefWidth="15.0" styleClass="digit">
+                                 <HBox.margin>
+                                    <Insets top="25.0" />
+                                 </HBox.margin>
+                              </RXDigit>
+                              <RXDigit fx:id="t6" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="27.0" prefWidth="15.0" styleClass="digit">
+                                 <HBox.margin>
+                                    <Insets top="25.0" />
+                                 </HBox.margin>
+                              </RXDigit>
+                           </children>
+                        </HBox>
+                     </children>
+                  </AnchorPane>
+               </center>
+               <effect>
+                  <InnerShadow offsetX="1.0" offsetY="1.0" />
+               </effect>
+            </BorderPane>
+         </center>
+         <effect>
+            <DropShadow height="32.0" offsetX="2.0" offsetY="2.0" radius="15.5" width="32.0" />
+         </effect>
+      </BorderPane>
+      <Label layoutX="79.0" layoutY="347.0" text="RXDigit 数字组件. 主要是显示0~9的数字;可以通过修改lightFill 和 darkFill来修改数字的颜色" />
+   </children>
+</AnchorPane>

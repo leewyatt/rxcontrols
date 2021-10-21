@@ -1,0 +1,22 @@
+/*.rx-carousel .nav-pane .nav-bar .nav-button {*/
+/*    -fx-background-color: rgba(99, 207, 241, 0.57);*/
+/*}*/
+
+/*.rx-carousel .nav-pane .nav-bar .nav-button:hover {*/
+/*    -fx-background-color: #ff0000;*/
+/*}*/
+
+/*.rx-carousel .nav-pane .nav-bar .nav-button:selected {*/
+/*    -fx-background-color: rgba(82, 73, 255, 0.75);*/
+/*}*/
+.rx-toggle-button{
+    -fx-background-color: #bce1ff;
+}
+.rx-toggle-button:hover{
+    -fx-background-color: #8ec9f4;
+}
+.rx-toggle-button:selected{
+    -fx-background-color: #5249ff;
+    -fx-text-fill: white;
+    -fx-font-weight: 600;
+}

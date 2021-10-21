@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXPasswordField?>
+<?import com.leewyatt.rxcontrols.controls.RXTextField?>
+<?import com.leewyatt.rxcontrols.controls.RXTranslationButton?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Text?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_field.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneFieldController">
+   <children>
+      <Text id="login-title" layoutX="209.0" layoutY="46.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Welcome Login" />
+      <Label layoutX="189.0" layoutY="139.0" styleClass="label-field" text="Password" />
+      <Label layoutX="189.0" layoutY="88.0" styleClass="label-field" text="UserName" />
+      <RXTextField buttonDisplayMode="SHOW" layoutX="327.0" layoutY="86.0" onClickButton="#deleteText" text="user123" />
+      <RXPasswordField buttonDisplayMode="SHOW" layoutX="327.0" layoutY="137.0" text="userpassword" />
+      <RXTextField fx:id="copyTextField" buttonDisplayMode="SHOW" layoutX="284.0" layoutY="289.0" styleClass="rx-text-field-copy" text="按钮显示" />
+      <RXTextField layoutX="523.0" layoutY="289.0" onClickButton="#openFile" styleClass="rx-text-field-enter" text="按钮获得焦点时显示" />
+      <RXTextField buttonDisplayMode="HIDE" layoutX="40.0" layoutY="289.0" text="按钮隐藏" />
+      <RXTranslationButton layoutX="400.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-radius: 15;" text="Login" translationDir="RIGHT_TO_LEFT">
+         <graphic>
+            <ImageView fitHeight="26.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../image/login.png" />
+               </image>
+            </ImageView>
+         </graphic>
+         <effect>
+            <DropShadow height="10.0" radius="4.5" width="10.0" />
+         </effect>
+      </RXTranslationButton>
+      <RXTranslationButton layoutX="266.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-color: #33dd72; -fx-background-radius: 15;" text="Sign in" translationDir="RIGHT_TO_LEFT">
+         <graphic>
+            <ImageView fitHeight="26.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../image/signin.png" />
+               </image>
+            </ImageView>
+         </graphic>
+         <effect>
+            <DropShadow height="10.0" radius="4.5" width="10.0" />
+         </effect>
+      </RXTranslationButton>
+      <RXPasswordField buttonDisplayMode="SHOW" echochar="\%" layoutX="40.0" layoutY="382.0" text="abcde" />
+      <Label layoutX="44.0" layoutY="252.0" text="按钮显示模式" />
+      <Label layoutX="40.0" layoutY="343.0" text="密码字符的替换" />
+      <RXPasswordField buttonDisplayMode="SHOW" echochar="\@" layoutX="523.0" layoutY="382.0" showPassword="true" text="1232132" />
+      <Label layoutX="522.0" layoutY="348.0" text="密码显示" />
+      <RXPasswordField buttonDisplayMode="SHOW" echochar="#" layoutX="282.0" layoutY="382.0" text="defg123" />
+      <TextArea layoutX="37.0" layoutY="431.0" prefHeight="70.0" prefWidth="686.0" text="RXTextFie 提供带有[复制] [删除] 功能的按钮. 也支持自定义点击按钮后的事件处理; &#10;RXPassword 支持密码的隐藏与显示状态; 并且可以自定义密码隐藏时候的字符;" />
+   </children>
+</AnchorPane>

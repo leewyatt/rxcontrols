@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CSS Reference Guide</title>
+    <style>
+
+        body {
+            margin: 15px;
+            font-size: 20px;
+        }
+
+        h1 {
+            color: #385E76;
+            font-size: 28px;
+        }
+
+        h2 {
+            border-top: 3px dashed #DDD;
+            margin-top: 30px;
+            padding-top: 15px;
+            font-size: 26px;
+            color: #385E76;
+        }
+
+        ul {
+            padding-bottom: 20px;
+            border-bottom: 3px dashed #DDD;
+        }
+
+        h3 {
+            color: rgb(0, 102, 204);
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 25px;
+            font-weight: 700;
+            margin: 30px 0 18px;
+        }
+
+        h4 {
+            font-size: 24px;
+        }
+
+        table {
+            border: 2px solid #9d9d9d;
+            border-collapse: collapse;
+            font-family: Helvetica, Arial, sans-serif;
+            margin: 20px 0px;
+        }
+
+        th {
+            background-color: #dddddd;
+        }
+
+        td, th {
+            border: 1px solid #9d9d9d;
+            padding: 5px 6px;
+            font-size: 16px;
+        }
+
+        .fxClass {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 18px;
+            font-style: italic;
+        }
+
+        li {
+            list-style-type: circle;
+            text-align: left;
+            margin-bottom: 8px;
+        }
+
+        a {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #0066cc;
+            font-size: 20px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<h1>RXControls CSS Reference Guide</h1>
+<h2>Controls</h2>
+<ul>
+    <li><a href="#rxAudioSpectrum">RXAudioSpectrum</a></li>
+    <li><a href="#rxAvatar">RXAvatar</a></li>
+    <li><a href="#rxButtonBase">RXButtonBase</a></li>
+    <li><a href="#rxCarousel">RXCarousel</a></li>
+    <li><a href="#rxDigit">RXDigit</a></li>
+    <li><a href="#rxFillButton">RXFillButton</a></li>
+    <li><a href="#rxHighlightText">RXHighlightText</a></li>
+    <li><a href="#rxLineButton">RXLineButton</a></li>
+    <li><a href="#rxLrcView">RXLrcView</a></li>
+    <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
+    <li><a href="#rxPagination">RXPagination</a></li>
+    <li><a href="#rxPasswordField">RXPasswordField</a></li>
+    <li><a href="#rxSvgView">RXSvgView</a></li>
+    <li><a href="#rxTextField">RXTextField</a></li>
+    <li><a href="#rxToggleButton">RXToggleButton</a></li>
+    <li><a href="#rxTranslationButton">RXTranslationButton</a></li>
+</ul>
+<h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
+<p class="fxClass">Style class: rx-audio-spectrum</p>
+<p>The RXAudioSpectrum control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.bar-box  — HBox<br/>
+&emsp;&emsp;.bar — Region<br/>
+&emsp;&emsp;.data0;.data1;.data2 ... — Region<br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-bar-effect</td>
+        <td>effect</td>
+        <td>null</td>
+    </tr>
+    <tr>
+        <td>-rx-bar-shape</td>
+        <td>shape</td>
+        <td>null</td>
+    </tr>
+    <tr>
+        <td>-rx-crest-pos</td>
+        <td>MIDDLE; LEFT; RIGHT; SIDE; DOUBLE</td>
+        <td>MIDDLE</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxAvatar">RXAvatar</h3>
+<p class="fxClass">Style class: rx-avatar</p>
+<p>The RXAvatar control has all the properties of Control;</p>
+<h4>Substructure</h4>
+group  — Group<br/>
+&emsp;&emsp;image-view — ImageView<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-shape-type</td>
+        <td>CIRCLE,SQUARE,HEXAGON_H,HEXAGON_V</td>
+        <td>CIRCLE</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxButtonBase">RXButtonBase</h3>
+<p>The abstract control has all the properties of Labeled;</p>
+
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-time</td>
+        <td>Duration</td>
+        <td>130ms</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxCarousel">RXCarousel</h3>
+<p class="fxClass">Style class:rx-carousel </p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+content-pane — StackPane<br/>
+effect-pane — Pane<br/>
+nav-pane — Pane<br/>
+&emsp;&emsp;left-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;left-arrow — Region<br/>
+&emsp;&emsp;right-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;right-arrow — Region<br/>
+&emsp;&emsp;nav-bar — FlowPane<br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-hover-pause</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-nav-display</td>
+        <td>SHOW,HIDE,AUTO</td>
+        <td>SHOW</td>
+    </tr>
+    <tr>
+        <td>-rx-arrow-display</td>
+        <td>SHOW,HIDE,AUTO</td>
+        <td>AUTO</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-time</td>
+        <td>Duration</td>
+        <td>600ms</td>
+    </tr>
+    <tr>
+        <td>-rx-show-time</td>
+        <td>Duration</td>
+        <td>3500ms</td>
+    </tr>
+    <tr>
+        <td>-rx-auto-switch</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxFillButton">RXFillButton</h3>
+<p class="fxClass">Style class: rx-fill-button</p>
+<p>The RXFillButton control has all the properties of RXButtonBase;</p>
+<h4>Substructure</h4>
+fill-region  — Region<br/>
+label — Label<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-fill</td>
+        <td>Paint</td>
+        <td>#616dff</td>
+    </tr>
+    <tr>
+        <td>-rx-hover-text-fill</td>
+        <td>Paint</td>
+        <td>white</td>
+    </tr>
+    <tr>
+        <td>-rx-fill-type</td>
+        <td> BOTTOM_TO_TOP,CIRCLE_TO_SIDE,<br>
+            CORNER_TO_CENTER,HOR_TO_MIDDLE,<br/>
+            HOR_TO_SIDE,HOR_ZIGZAG,LEFT_TO_RIGHT,<br/>
+            RIGHT_TO_LEFT,TOP_TO_BOTTOM,<br/>
+            VER_TO_MIDDLE,VER_TO_SIDE,VER_ZIGZAG<br/>
+        </td>
+        <td>LEFT_TO_RIGHT</td>
+    </tr>
+
+    </tbody>
+</table>
+
+<h3 id="rxHighlightText">RXHighlightText</h3>
+<p class="fxClass">Style class: rx-highlight-text</p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+text-flow  — TextFlow<br/>
+&emsp;&emsp;highlight-label — Label<br/>
+&emsp;&emsp;plain-text — Text<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-highlight-color</td>
+        <td>Paint</td>
+        <td>#ffff00</td>
+    </tr>
+    <tr>
+        <td>-rx-highlight-fill</td>
+        <td>Paint</td>
+        <td>#000000</td>
+    </tr>
+    <tr>
+        <td>-rx-plain-fill</td>
+        <td>Paint</td>
+        <td>#000000</td>
+    </tr>
+    <tr>
+        <td>-fx-text-alignment</td>
+        <td>LEFT,CENTER,RIGHT,JUSTIFY</td>
+        <td>LEFT</td>
+    </tr>
+    <tr>
+        <td>-fx-line-spacing</td>
+        <td>double</td>
+        <td>0</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxLineButton">RXLineButton</h3>
+<p class="fxClass">Style class: rx-line-button</p>
+<p>The control has all the properties of RXButtonBase;</p>
+<h4>Substructure</h4>
+line  — Line<br/>
+label — Label<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-line-type</td>
+        <td> EXTEND,RISE</td>
+        <td>EXTEND</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxLrcView">RXLrcView</h3>
+<p class="fxClass">Style class: rx-lrc-view</p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.pane  —  Pane <br>
+&emsp;&emsp;.tip-label  —  Label<br>
+&emsp;&emsp;.lrc-pane  — Pane<br>
+&emsp;&emsp;&emsp;&emsp;.lrc-line  —  LrcLineLabel<br>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>playing</td>
+        <td>applies when playing the current lyrics line </td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-time</td>
+        <td> Duration</td>
+        <td>300ms</td>
+    </tr>
+    <tr>
+        <td>-rx-line-height</td>
+        <td> size</td>
+        <td>25px</td>
+    </tr>
+    <tr>
+        <td>-rx-tip-string</td>
+        <td> String</td>
+        <td>暂无歌词...</td>
+    </tr>
+    <tr>
+        <td>-rx-line-scaling</td>
+        <td> size</td>
+        <td>1.3</td>
+    </tr>
+    </tbody>
+</table>
+<h3 id="rxMediaProgressBar">RXMediaProgressBar</h3>
+<p class="fxClass">Style class: rx-media-progress-bar</p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+content-pane  —  Pane <br>
+&emsp;&emsp;track  —  — StackPane <br>
+&emsp;&emsp;buffer-track  — StackPane <br>
+&emsp;&emsp;current-track  — StackPane <br>
+&emsp;&emsp;thumb  —  — StackPane <br>
+
+<h3 id="rxPagination">RXPagination</h3>
+<p class="fxClass">Style class: rx-pagination</p>
+<p>The control has all the properties of Pagination;</p>
+<h4>Substructure</h4>
+page — StackPane <br>
+pagination-control — StackPane <br>
+&emsp;&emsp;leftArrowButton — Button <br>
+&emsp;&emsp;&emsp;&emsp;leftArrow — StackPane <br>
+&emsp;&emsp;rightArrowButton — Button <br>
+&emsp;&emsp;&emsp;&emsp;rightArrow — StackPane <br>
+&emsp;&emsp;bullet-button — ToggleButton <br>
+&emsp;&emsp;number-button — ToggleButton <br>
+&emsp;&emsp;page-information — Label <br>
+&emsp;&emsp;label-go — Label <br>
+&emsp;&emsp;page-text-field — TextField <br>
+&emsp;&emsp;label-page — Label <br>
+&emsp;&emsp;ok-button — Button <br>
+
+<h3 id="rxPasswordField">RXPasswordField</h3>
+<p class="fxClass">Style class: rx-password-field</p>
+<p>The control has all the properties of PasswordField;</p>
+<h4>Substructure</h4>
+password-field  — PasswordField<br />
+tf-top-pane  — Pane<br/>
+&emsp;&emsp;tf-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;tf-button-shape — Region<br/>
+<br/>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>showing</td>
+        <td>applies when the password is showing</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-echochar</td>
+        <td>String</td>
+        <td>'\u25cf'</td>
+    </tr>
+    <tr>
+        <td>-rx-button-display</td>
+        <td>SHOW,HIDE,AUTO</td>
+        <td>AUTO</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxDigit">RXDigit</h3>
+<p class="fxClass">Style class: rx-digit</p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+digit-shape — Group
+
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-light-fill</td>
+        <td>Paint</td>
+        <td>black</td>
+    </tr>
+    <tr>
+        <td>-rx-dark-fill</td>
+        <td>Paint</td>
+        <td>#dddddd</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxSvgView">RXSVGView</h3>
+<p class="fxClass">Style class: rx-svg-view</p>
+<p>The control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.svg-pane — Pane <br/>
+&emsp;&emsp;.p-id0 ; .p-id1 ; .p-d...  — SVGPath<br/>
+
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-brighten-color</td>
+        <td>Paint</td>
+        <td>black</td>
+    </tr>
+    <tr>
+        <td>-rx-darken-color</td>
+        <td>Paint</td>
+        <td>#dddddd</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxTextField">RXTextField</h3>
+<p class="fxClass">Style class: rx-text-field</p>
+<p>The control has all the properties of TextField;</p>
+<h4>Substructure</h4>
+TextField — text-field<br/>
+tf-top-pane — Pane<br/>
+&emsp;&emsp;tf-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;tf-button-shape — Region<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-button-display</td>
+        <td>SHOW,HIDE,AUTO</td>
+        <td>AUTO</td>
+    </tr>
+
+    </tbody>
+</table>
+
+<h3 id="rxToggleButton">RXToggleButton</h3>
+<p class="fxClass">Style class: rx-toggle-button</p>
+<p>The RXAvatar control has all the properties of ToggleButton;</p>
+
+<h3 id="rxTranslationButton">RXTranslationButton</h3>
+<p>Style class: rx-translation-button</p>
+<p>The control has all the properties of RXButtonBase;</p>
+<h4>Substructure</h4>
+translation-pane — StackPane<br/>
+&emsp;&emsp;non-hover-label — Label<br/>
+&emsp;&emsp;hover-label  — Label<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-translation-dir</td>
+        <td> LEFT_TO_RIGHT,RIGHT_TO_LEFT,<br/>BOTTOM_TO_TOP,TOP_TO_BOTTOM</td>
+        <td>BOTTOM_TO_TOP</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

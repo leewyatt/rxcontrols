@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.leewyatt.rxcontrols.controls.RXFillButton?>
+<?import com.leewyatt.rxcontrols.controls.RXLineButton?>
+<?import com.leewyatt.rxcontrols.controls.RXToggleButton?>
+<?import com.leewyatt.rxcontrols.controls.RXTranslationButton?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_buttons.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="5.0" layoutX="121.0" layoutY="377.0" prefHeight="129.0" prefWidth="631.0" vgap="5.0">
+         <children>
+            <RXFillButton fillType="BOTTOM_TO_TOP" style="-fx-pref-height: 35;" styleClass="btn1" text="Bottom To Top">
+               <effect>
+                  <DropShadow height="5.0" offsetX="1.2" offsetY="1.2" radius="2.0" width="5.0" />
+               </effect></RXFillButton>
+            <RXFillButton fillType="CIRCLE_TO_SIDE" style="-fx-pref-height: 35;" text="Circle" />
+            <RXFillButton fillType="CORNER_TO_CENTER" style="-fx-pref-height: 35;" text="Corner" />
+            <RXFillButton fillType="HOR_TO_MIDDLE" style="-fx-pref-height: 35;" text="Hor To Middle" />
+            <RXFillButton fillType="HOR_TO_SIDE" style="-fx-pref-height: 35;" text="Hor To Side" />
+            <RXFillButton style="-fx-pref-height: 35;" text="Left To Right" />
+            <RXFillButton fillType="TOP_TO_BOTTOM" style="-fx-pref-height: 35;" text="Top To Bottom" />
+            <RXFillButton fillType="HOR_ZIGZAG" style="-fx-pref-height: 35;" styleClass="btn2" text="Hor Zigzag" />
+            <RXFillButton fillType="RIGHT_TO_LEFT" style="-fx-pref-height: 35;" text="Right To Left" />
+            <RXFillButton fillType="VER_TO_MIDDLE" style="-fx-pref-height: 35;" text="Ver To Middle" />
+            <RXFillButton fillType="VER_TO_SIDE" style="-fx-pref-height: 35;" text="Ver To Side" />
+            <RXFillButton fillType="VER_ZIGZAG" style="-fx-pref-height: 35;" text="Ver Zigzag" />
+         </children>
+      </FlowPane>
+      <RXFillButton fillType="CIRCLE_TO_SIDE" layoutX="17.0" layoutY="392.0" prefHeight="100.0" prefWidth="100.0" style="-fx-border-radius: 100;" styleClass="circle-button" text="填充按钮">
+         <effect>
+            <DropShadow />
+         </effect></RXFillButton>
+      <Label layoutX="14.0" layoutY="337.0" prefHeight="40.0" prefWidth="709.0" text="FillButton: 填充色按钮;  如果要拓展填充方式, 可以实现FillAnimation 接口. 然后setFillAnimation即可" />
+      <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="178.0" prefHeight="60.0" prefWidth="728.0" spacing="24.0">
+         <children>
+            <RXLineButton prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line Extend">
+               <graphic>
+                  <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/photo.png" />
+                     </image>
+                  </ImageView>
+               </graphic></RXLineButton>
+            <RXLineButton lineType="RISE" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line    Rise">
+               <graphic>
+                  <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/plus.png" />
+                     </image>
+                  </ImageView>
+               </graphic></RXLineButton>
+            <RXLineButton lineType="RISE" offsetYPro="0.0" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line   Fade">
+               <graphic>
+                  <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/star.png" />
+                     </image>
+                  </ImageView>
+               </graphic></RXLineButton>
+            <RXLineButton lineType="RISE" offsetYPro="-15.0" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line   Down">
+               <graphic>
+                  <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/set.png" />
+                     </image>
+                  </ImageView>
+               </graphic></RXLineButton>
+         </children>
+      </HBox>
+      <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="76.0" prefHeight="48.0" prefWidth="728.0" spacing="50.0">
+         <children>
+            <RXTranslationButton prefHeight="48.0" prefWidth="128.0" style="-fx-background-radius: 5;" text="Setting" translationDir="LEFT_TO_RIGHT">
+               <graphic>
+                  <ImageView fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/setting.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <effect>
+                  <DropShadow height="5.0" radius="2.0" width="5.0" />
+               </effect>
+            </RXTranslationButton>
+            <RXTranslationButton prefHeight="48.0" prefWidth="128.0" styleClass="btnAddress" text="address" translationDir="RIGHT_TO_LEFT">
+               <graphic>
+                  <ImageView fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/address.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <effect>
+                  <DropShadow height="5.0" radius="2.0" width="5.0" />
+               </effect>
+            </RXTranslationButton>
+            <RXTranslationButton prefHeight="48.0" prefWidth="128.0" style="-fx-background-radius: 5; -fx-background-color: green;" text="search">
+               <graphic>
+                  <ImageView fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/search.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <effect>
+                  <DropShadow height="5.0" radius="2.0" width="5.0" />
+               </effect>
+            </RXTranslationButton>
+            <RXTranslationButton prefHeight="48.0" prefWidth="128.0" style="-fx-background-radius: 5; -fx-background-color: #5a5a5a;" text="email" translationDir="TOP_TO_BOTTOM">
+               <graphic>
+                  <ImageView fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../image/email.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+               <effect>
+                  <DropShadow height="5.0" radius="2.0" width="5.0" />
+               </effect>
+            </RXTranslationButton>
+         </children>
+      </HBox>
+      <Label layoutX="21.0" layoutY="32.0" text="Transtion Button: 移动按钮" />
+      <Label layoutX="21.0" layoutY="149.0" text="Line Button: 带线条的按钮" />
+      <HBox layoutX="17.0" layoutY="294.0" prefHeight="30.0" prefWidth="687.0" spacing="60.0">
+         <children>
+            <RXToggleButton prefWidth="120.0" selected="true" text="HOME">
+               <toggleGroup>
+                  <ToggleGroup fx:id="group123" />
+               </toggleGroup>
+            </RXToggleButton>
+            <RXToggleButton prefWidth="120.0" text="Setting" toggleGroup="$group123" />
+            <RXToggleButton prefWidth="120.0" text="address" toggleGroup="$group123" />
+            <RXToggleButton prefWidth="120.0" text="aboud" toggleGroup="$group123" />
+         </children>
+      </HBox>
+      <Label layoutX="21.0" layoutY="256.0" text="Toggle Button : 具有单选按钮效果的ToggleButton" />
+   </children>
+</AnchorPane>

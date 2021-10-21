@@ -1,0 +1,13 @@
+/*#text-poem .highlight-label{*/
+/*    -fx-background-color: red;*/
+/*    -fx-text-fill: white;*/
+/*}*/
+/*#text-poem .plain-text{*/
+/*    -fx-fill:black;*/
+/*}*/
+
+#text-poem {
+    -rx-highlight-fill:white;
+    -rx-highlight-color:red;
+    -rx-plain-fill:black;
+}

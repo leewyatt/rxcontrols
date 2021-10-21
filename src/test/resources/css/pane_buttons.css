@@ -1,0 +1,36 @@
+.rx-translation-button{
+    -fx-text-fill: white;
+    -fx-font-size: 22;
+}
+
+.rx-fill-button{
+    -fx-border-color: #9daaff;
+}
+.circle-button{
+    -fx-border-radius: 50;
+    -fx-background-radius:50;
+    -fx-background-color: #fff2ce;
+}
+.circle-button .fill-region{
+    -fx-background-color: #92ceff;
+    -fx-background-radius: 50;
+}
+
+.btn1{
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-background-color: white;
+    -rx-fill-text-paint: #fff770
+}
+.btn1 .fill-region{
+    -fx-background-radius: 15;
+    -fx-background-color: #b98eff;
+}
+.btnAddress{
+    -fx-background-color:red;
+    -fx-background-radius: 5;
+}
+.btnAddress .hover-label{
+    -fx-background-color: #ab99ff;
+    -fx-background-radius: 5;
+}

@@ -1,0 +1,12 @@
+.spectrum {
+    -rx-bar-shape:"M46.6,38.6h-4v-1.2h4V38.6z";
+}
+
+.spectrum .bar-box {
+    -fx-spacing: 1px;
+}
+
+.spectrum .bar-box .bar {
+    -fx-scale-shape: false;
+    -fx-background-color: #1d50ff;
+}
