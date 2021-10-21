@@ -23,7 +23,7 @@ Maven dependency
         <dependency>
             <groupId>com.github.leewyatt</groupId>
             <artifactId>rxcontrols</artifactId>
-            <version>8.0.0-alpha</version>
+            <version>11.0.0-alpha</version>
         </dependency>
     </dependencies>
 ```
