@@ -8,7 +8,7 @@
 
  Javafx custom component library, password visible component, carousel component, dynamic button component,spectrum component,lyrics component etc...  <br />
 
->QQ: **9670453**  <br />
+>QQ:  **9670453**  <br />
 JavaFX QQ群: **518914410** <br/>
 
 Maven dependency
