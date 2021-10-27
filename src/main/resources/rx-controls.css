@@ -42,10 +42,10 @@
 
 
 /* avatar css */
-.rx-avatar {
-    -fx-pref-width: 100px;
-    -fx-pref-height: 100px;
-}
+/*.rx-avatar {*/
+/*    -fx-pref-width: 100px;*/
+/*    -fx-pref-height: 100px;*/
+/*}*/
 
 /* carousel css*/
 .rx-carousel {
