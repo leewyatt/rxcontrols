@@ -26,11 +26,11 @@ package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXTranslationButtonSkin;
 import com.leewyatt.rxcontrols.utils.RXResources;
+import com.sun.javafx.css.converters.EnumConverter;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
-import javafx.css.converter.EnumConverter;
 import javafx.scene.control.Label;
 import javafx.scene.control.Skin;
 
