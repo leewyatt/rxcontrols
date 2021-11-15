@@ -156,6 +156,8 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         control.addEventHandler(MouseEvent.MOUSE_DRAGGED, mouseDraggedHandler);
         //鼠标释放
         control.addEventHandler(MouseEvent.MOUSE_RELEASED, mouseReleasedHandler);
+        //行高改变时
+        control.lineHeightProperty().addListener(invalidationListener);
     }
 
     private final EventHandler<MouseEvent> mousePressedHandler = event -> startDragY = event.getY() - lrcPane.getLayoutY();
