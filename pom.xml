@@ -12,7 +12,7 @@
 
     <groupId>com.github.leewyatt</groupId>
     <artifactId>rxcontrols</artifactId>
-    <version>8.0.1</version>
+    <version>8.0.2</version>
     <packaging>jar</packaging>
     <build>
         <plugins>

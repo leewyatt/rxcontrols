@@ -216,7 +216,7 @@ public class RXLrcView extends Control {
 
     public final DoubleProperty lineHeightProperty() {
         if (lineHeight == null) {
-            lineHeight = new StyleableDoubleProperty() {
+            lineHeight = new StyleableDoubleProperty(DEFAULT_LINE_HEIGHT) {
                 @Override
                 public Object getBean() {
                     return this;
