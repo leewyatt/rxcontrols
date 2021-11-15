@@ -24,6 +24,7 @@ Maven dependency
         <dependency>
             <groupId>com.github.leewyatt</groupId>
             <artifactId>rxcontrols</artifactId>
+            <!-- 11.x.y -->
             <version>11.0.0-alpha</version>
         </dependency>
     </dependencies>
