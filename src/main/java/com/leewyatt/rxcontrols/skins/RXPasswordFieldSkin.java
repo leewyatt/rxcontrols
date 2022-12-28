@@ -149,7 +149,7 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
 
     public final SimpleStyleableStringProperty echocharProperty() {
         if (echochar == null) {
-            echochar = new SimpleStyleableStringProperty(RXPasswordField.StyleableProperties.ECHOCHAR, "enchochar",
+            echochar = new SimpleStyleableStringProperty(RXPasswordField.StyleableProperties.ECHOCHAR, this,"enchochar",
                     String.valueOf(BULLET));
         }
         return this.echochar;
