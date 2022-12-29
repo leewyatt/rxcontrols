@@ -214,7 +214,7 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         }*/
         // 添加底层容器到组件里
         rootPane.getChildren().addAll(contentPane, effectPane, navigationPane);
-        rootPane.backgroundProperty().bind(control.backgroundProperty());
+        //rootPane.backgroundProperty().bind(control.backgroundProperty());
 
 
         getChildren().setAll(rootPane);
@@ -664,7 +664,6 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         for (RXToggleButton button : getNavButtons()) {
             button.textProperty().unbind();
         }
-        contentPane.backgroundProperty().unbind();
         rootPane.minWidthProperty().unbind();
         rootPane.prefWidthProperty().unbind();
         rootPane.minHeightProperty().unbind();
