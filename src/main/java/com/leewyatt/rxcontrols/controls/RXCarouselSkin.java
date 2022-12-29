@@ -44,7 +44,6 @@ import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.SubScene;
 import javafx.scene.control.SkinBase;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
@@ -215,7 +214,7 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         }*/
         // 添加底层容器到组件里
         rootPane.getChildren().addAll(contentPane, effectPane, navigationPane);
-        rootPane.backgroundProperty().bind(control.backgroundProperty());
+        //rootPane.backgroundProperty().bind(control.backgroundProperty());
 
         //subScene = new SubScene(contentPane, dbw.get(), dbh.get(), false, SceneAntialiasing.BALANCED);
         //subScene.getStyleClass().add("carousel-subscene");
@@ -672,9 +671,6 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         for (RXToggleButton button : getNavButtons()) {
             button.textProperty().unbind();
         }
-        contentPane.backgroundProperty().unbind();
-        contentPane.prefWidthProperty().unbind();
-        contentPane.prefHeightProperty().unbind();
         rootPane.minWidthProperty().unbind();
         rootPane.prefWidthProperty().unbind();
         rootPane.minHeightProperty().unbind();
@@ -702,12 +698,4 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         super.dispose();
     }
 
-    /**
-     * 移除SubScene, 要向轮播图有3D效果,请自行给Scene添加透视相机 PerspectiveCamera
-     * @return null
-     */
-    @Deprecated
-    public SubScene getSubScene() {
-        return null;
-    }
 }
