@@ -11,6 +11,19 @@
 >QQ:  **9670453**  <br />
 JavaFX QQ群: **518914410** <br/>
 
+主要变化:
+    RXCarousel 去掉SubScene (css name: .carousel-subscene)
+    考虑到一个界面可能有多个轮播图,避免层级过多;
+    如果想要部分的专场效果,有3D的感觉, 那么可以在Scene里设置;
+Main changes: 
+    RXCarousel removes SubScene (css name: .carousel-subscene) 
+    Considering that an interface may have multiple carousels to avoid too many layers; 
+    if you want some special effects and a 3D feeling, Need to set a perspective camera for setting the main scene graph;
+```java
+scene.setCamera(new PerspectiveCamera()); 
+```
+
+
 Maven dependency
 ```xml
     <repositories>
@@ -25,7 +38,7 @@ Maven dependency
             <groupId>com.github.leewyatt</groupId>
             <artifactId>rxcontrols</artifactId>
             <!-- 11.x.y -->
-            <version>11.0.2</version>
+            <version>11.0.3</version>
         </dependency>
     </dependencies>
 ```

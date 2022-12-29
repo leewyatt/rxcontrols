@@ -27,6 +27,7 @@ package app.ui;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -42,6 +43,7 @@ public class MainTest extends Application {
         Scene scene = new Scene(root);
         scene.setFill(Color.TRANSPARENT);
         scene.setUserData(this.getHostServices());
+        scene.setCamera(new PerspectiveCamera());
         primaryStage.setScene(scene);
         primaryStage.initStyle(StageStyle.TRANSPARENT);
         primaryStage.setTitle("MainTest Window");

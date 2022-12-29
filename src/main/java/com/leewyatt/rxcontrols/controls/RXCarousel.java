@@ -486,8 +486,16 @@ public class RXCarousel extends Control {
         return skin.getNavButtons();
     }
 
+    /**
+     * 之前使用SubScene 然后添加透视相机, 有3D的效果
+     * 但是考虑到一个页面,或者一个界面可能有多个轮播图,所以取消了SubScene
+     * 可以自行根据需要跟Scene一个透视相机, 或者自己创建一个SubScene 添加透视相机, 来实现;
+     * 避免了多个SubScene
+     * @return null
+     */
+    @Deprecated
     public SubScene getSubScene() {
-        return skin.getSubScene();
+        return null;
     }
 
     /**
