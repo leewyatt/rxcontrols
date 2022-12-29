@@ -44,9 +44,6 @@ import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.SceneAntialiasing;
-import javafx.scene.SubScene;
 import javafx.scene.control.SkinBase;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
@@ -76,10 +73,7 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
 
     private RXCarousel control;
     private ObservableList<RXCarouselPane> paneList;
-    /**
-     * 子场景图
-     */
-    private final SubScene subScene;
+
     /**
      * 场景图上的根节点(包含内容面板,效果面板,遮挡面板,导航面板)
      */
@@ -204,9 +198,7 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
 
         navigationPane.getChildren().setAll(leftButton, rightButton, navBar);
         // 裁剪容器(避免显示的部分超出容器的范围)
-        //SubScene 已经实现了裁剪的效果
-//        clipRegion(control);
-//        clipRegion(rootPane);
+        clipRegion(rootPane);
 
         // 绑定宽高
         DoubleProperty dbw = control.prefWidthProperty();
@@ -221,13 +213,9 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
             clipRegion(pane);
         }*/
         // 添加底层容器到组件里
-        subScene = new SubScene(contentPane, dbw.get(), dbh.get(), false, SceneAntialiasing.BALANCED);
-        subScene.getStyleClass().add("carousel-subscene");
-        rootPane.getChildren().addAll(subScene, effectPane, navigationPane);
-        contentPane.backgroundProperty().bind(control.backgroundProperty());
-        subScene.widthProperty().bind(control.prefWidthProperty());
-        subScene.heightProperty().bind(control.prefHeightProperty());
-        subScene.setCamera(new PerspectiveCamera());
+        rootPane.getChildren().addAll(contentPane, effectPane, navigationPane);
+        rootPane.backgroundProperty().bind(control.backgroundProperty());
+
 
         getChildren().setAll(rootPane);
         getSkinnable().requestLayout();
@@ -677,8 +665,6 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
             button.textProperty().unbind();
         }
         contentPane.backgroundProperty().unbind();
-        subScene.widthProperty().unbind();
-        subScene.heightProperty().unbind();
         rootPane.minWidthProperty().unbind();
         rootPane.prefWidthProperty().unbind();
         rootPane.minHeightProperty().unbind();
@@ -706,7 +692,4 @@ public class RXCarouselSkin extends SkinBase<RXCarousel> {
         super.dispose();
     }
 
-    public SubScene getSubScene() {
-        return subScene;
-    }
 }

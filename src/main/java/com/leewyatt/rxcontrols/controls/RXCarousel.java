@@ -36,7 +36,6 @@ import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.*;
-import javafx.scene.SubScene;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.util.Duration;
@@ -486,9 +485,6 @@ public class RXCarousel extends Control {
         return skin.getNavButtons();
     }
 
-    public SubScene getSubScene() {
-        return skin.getSubScene();
-    }
 
     /**
      * 翻转方向/运动方向
