@@ -6,4 +6,5 @@
 *.iml
 out
 gen
-/target/
+target/
+/devdoc/
