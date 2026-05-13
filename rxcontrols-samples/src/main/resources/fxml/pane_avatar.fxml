@@ -27,7 +27,7 @@
                   <DropShadow />
                </effect>
             </RXAvatar>
-            <RXAvatar prefHeight="87.0" prefWidth="100.0" shapeType="HEXAGON_H">
+            <RXAvatar text="RX" prefHeight="87.0" prefWidth="100.0">
                <image>
                   <Image url="@../scenery/3.png" />
                </image>
@@ -35,7 +35,7 @@
                   <DropShadow />
                </effect>
             </RXAvatar>
-            <RXAvatar prefHeight="100.0" prefWidth="100.0" shapeType="HEXAGON_V">
+            <RXAvatar text="LW" prefHeight="100.0" prefWidth="100.0" shapeType="SQUARE">
                <image>
                   <Image url="@../scenery/4.png" />
                </image>
