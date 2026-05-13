@@ -12,6 +12,14 @@
     <name>rxcontrols-parent</name>
     <description>JavaFX custom controls library — parent module.</description>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <modules>
         <module>rxcontrols</module>
         <module>rxcontrols-samples</module>
