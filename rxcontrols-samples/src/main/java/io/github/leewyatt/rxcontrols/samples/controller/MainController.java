@@ -132,7 +132,7 @@ public class MainController {
             ImagePane imagePane = new ImagePane(image);
             return imagePane;
         });
-        demoCarousel.setNavigatorDisplayMode(DisplayMode.SHOW);
+        demoCarousel.setArrowDisplayMode(DisplayMode.SHOW);
         demoCarousel.setAnimationDuration(Duration.seconds(2));
         demoCarousel.setAutoPlayInterval(Duration.seconds(1));
         demoCarousel.setHoverPause(false);
@@ -142,12 +142,11 @@ public class MainController {
                 new AnimRandomTiles(), new AnimPeel(),  new AnimGallery(), new AnimCurtain(), new AnimCube4(),
                 new AnimDissolve(), new AnimShatter(), new AnimRipple(5), new AnimCube(), new AnimBox(), new AnimLouver()));
 
-
         Rectangle rect = new Rectangle();
         rect.widthProperty().bind(demoCarousel.widthProperty());
         rect.heightProperty().bind(demoCarousel.heightProperty());
-        rect.setArcWidth(30);
-        rect.setArcHeight(30);
+        rect.setArcWidth(50);
+        rect.setArcHeight(50);
         demoCarousel.setClip(rect);
 
         StackPane carouselContainer = new StackPane(demoCarousel);
