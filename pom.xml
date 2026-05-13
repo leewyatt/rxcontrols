@@ -14,7 +14,7 @@
 
     <modules>
         <module>rxcontrols</module>
-        <module>rxcontrols-sample</module>
+        <module>rxcontrols-samples</module>
     </modules>
 
     <properties>

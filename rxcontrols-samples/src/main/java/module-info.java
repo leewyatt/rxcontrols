@@ -1,4 +1,4 @@
-module rxcontrols.sample {
+module rxcontrols.samples {
     requires rxcontrols;
 
     requires javafx.controls;

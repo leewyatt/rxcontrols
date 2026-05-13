@@ -10,10 +10,10 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>rxcontrols-sample</artifactId>
+    <artifactId>rxcontrols-samples</artifactId>
     <packaging>jar</packaging>
 
-    <name>rxcontrols-sample</name>
+    <name>rxcontrols-samples</name>
     <description>Demo application for rxcontrols. Not published to Maven Central.</description>
 
     <properties>
@@ -49,7 +49,7 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>rxcontrols.sample/app.AppMain</mainClass>
+                    <mainClass>rxcontrols.samples/app.AppMain</mainClass>
                 </configuration>
             </plugin>
         </plugins>
