@@ -13,7 +13,7 @@ import javafx.scene.shape.Rectangle;
 /**
  * A pane that displays an {@link Image} with configurable display modes.
  *
- * <p>This is a convenience container for use with {@link RXCarousel}. Since it
+ * <p>This is a convenience container for use with {@link io.github.leewyatt.rxcontrols.RXCarousel;}. Since it
  * extends {@link StackPane}, additional child nodes (titles, descriptions,
  * buttons, etc.) can be layered on top of the image.</p>
  *

@@ -3,43 +3,49 @@ package io.github.leewyatt.rxcontrols.samples.controller;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.carousel.ImagePane;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimBlinds;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimBox;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube4;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimCurtain;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimDissolve;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimFlip;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimGallery;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimIris;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimLouver;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimNone;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimPeel;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimRandomTiles;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimRipple;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimSelector;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimShatter;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlide;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimZoom;
 import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Label;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Window;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 public class MainController {
@@ -82,9 +88,9 @@ public class MainController {
 
     @FXML
     void initialize() {
-        mainCarousel.setAnimation(new AnimNone());
+        mainCarousel.setAnimation(new AnimFlip());
         mainCarousel.setArrowDisplayMode(DisplayMode.HIDE);
-        mainCarousel.setNavigatorDisplayMode(DisplayMode.HIDE);
+        mainCarousel.setNavigator(null);
         mainCarousel.setAutoPlay(false);
         mainCarousel.setHoverPause(false);
         mainCarousel.setPageCount(PAGE_FXML.length);
@@ -96,7 +102,7 @@ public class MainController {
             }
             int index = navGroup.getToggles().indexOf(nv);
             if (index >= 0 && index < mainCarousel.getPageCount()) {
-                mainCarousel.goToPage(index, false);
+                mainCarousel.goToPage(index);
             }
         });
     }
@@ -121,43 +127,32 @@ public class MainController {
         RXCarousel demoCarousel = new RXCarousel();
         demoCarousel.setPageCount(CAROUSEL_DEMO_IMAGE_COUNT);
         demoCarousel.setPageFactory(index -> {
-            Image image = new Image(getClass().getResourceAsStream(
-                    CAROUSEL_DEMO_IMAGES + (index + 1) + ".png"));
-            return new ImagePane(image);
+            Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream(
+                    CAROUSEL_DEMO_IMAGES + (index + 1) + ".png")));
+            ImagePane imagePane = new ImagePane(image);
+            return imagePane;
         });
-        demoCarousel.setAnimation(new AnimSlide());
+        demoCarousel.setNavigatorDisplayMode(DisplayMode.SHOW);
+        demoCarousel.setAnimationDuration(Duration.seconds(2));
+        demoCarousel.setAutoPlayInterval(Duration.seconds(1));
+        demoCarousel.setHoverPause(false);
+        demoCarousel.setAutoPlay(true);
 
-        Map<String, CarouselAnimation> animations = buildDemoAnimations();
-        ChoiceBox<String> animationBox = new ChoiceBox<>();
-        animationBox.getItems().addAll(animations.keySet());
-        animationBox.getSelectionModel().select("Slide");
-        animationBox.setOnAction(e ->
-                demoCarousel.setAnimation(animations.get(animationBox.getValue())));
+        demoCarousel.setAnimation(AnimSelector.random(
+                new AnimRandomTiles(), new AnimPeel(),  new AnimGallery(), new AnimCurtain(), new AnimCube4(),
+                new AnimDissolve(), new AnimShatter(), new AnimRipple(5), new AnimCube(), new AnimBox(), new AnimLouver()));
 
-        Label pageLabel = new Label();
-        pageLabel.textProperty().bind(Bindings.createStringBinding(
-                () -> "Page " + (demoCarousel.getSelectedIndex() + 1) + " / " + demoCarousel.getPageCount(),
-                demoCarousel.selectedIndexProperty(), demoCarousel.pageCountProperty()));
 
-        Button prevBtn = new Button("Previous");
-        prevBtn.setOnAction(e -> demoCarousel.previous());
-        Button nextBtn = new Button("Next");
-        nextBtn.setOnAction(e -> demoCarousel.next());
+        Rectangle rect = new Rectangle();
+        rect.widthProperty().bind(demoCarousel.widthProperty());
+        rect.heightProperty().bind(demoCarousel.heightProperty());
+        rect.setArcWidth(30);
+        rect.setArcHeight(30);
+        demoCarousel.setClip(rect);
 
-        HBox controls = new HBox(10,
-                new Label("Animation:"), animationBox,
-                prevBtn, nextBtn,
-                pageLabel);
-        controls.setAlignment(Pos.CENTER_LEFT);
-        controls.setPadding(new Insets(8, 12, 8, 12));
-
-        BorderPane root = new BorderPane();
-        root.setTop(controls);
         StackPane carouselContainer = new StackPane(demoCarousel);
-        carouselContainer.setPadding(new Insets(0, 12, 12, 12));
-        VBox.setVgrow(carouselContainer, Priority.ALWAYS);
-        root.setCenter(carouselContainer);
-        return root;
+        carouselContainer.setStyle("-fx-padding: 80px 50px;");
+        return carouselContainer;
     }
 
     private Map<String, CarouselAnimation> buildDemoAnimations() {
