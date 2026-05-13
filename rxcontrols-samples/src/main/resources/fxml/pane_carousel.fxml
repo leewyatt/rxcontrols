@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.leewyatt.rxcontrols.controls.RXCarousel?>
-<?import com.leewyatt.rxcontrols.controls.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.controls.RXCarousel?>
+<?import io.github.leewyatt.rxcontrols.controls.RXToggleButton?>
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_carousel.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="app.controller.PaneCarouselController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_carousel.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.controller.PaneCarouselController">
    <children>
       <RXCarousel fx:id="sceneryCarousel" layoutX="152.0" layoutY="31.0" prefHeight="313.0" prefWidth="600.0" />
       <VBox alignment="CENTER" layoutX="4.0" layoutY="31.0" prefHeight="315.0" prefWidth="146.0" spacing="6.0" style="-fx-border-color: #e1d1d1;">

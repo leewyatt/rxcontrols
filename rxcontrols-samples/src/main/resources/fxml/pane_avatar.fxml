@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.leewyatt.rxcontrols.controls.RXAvatar?>
+<?import io.github.leewyatt.rxcontrols.controls.RXAvatar?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.image.Image?>

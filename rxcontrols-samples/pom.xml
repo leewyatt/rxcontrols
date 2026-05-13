@@ -49,7 +49,7 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>rxcontrols.samples/app.AppMain</mainClass>
+                    <mainClass>rxcontrols.samples/io.github.leewyatt.rxcontrols.samples.MainApp</mainClass>
                 </configuration>
             </plugin>
         </plugins>

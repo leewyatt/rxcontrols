@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.leewyatt.rxcontrols.controls.RXSVGView?>
+<?import io.github.leewyatt.rxcontrols.controls.RXSVGView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.AnchorPane?>
 

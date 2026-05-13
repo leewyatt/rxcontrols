@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.leewyatt.rxcontrols.controls.RXFillButton?>
-<?import com.leewyatt.rxcontrols.controls.RXLineButton?>
-<?import com.leewyatt.rxcontrols.controls.RXToggleButton?>
-<?import com.leewyatt.rxcontrols.controls.RXTranslationButton?>
+<?import io.github.leewyatt.rxcontrols.controls.RXFillButton?>
+<?import io.github.leewyatt.rxcontrols.controls.RXLineButton?>
+<?import io.github.leewyatt.rxcontrols.controls.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.controls.RXTranslationButton?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.effect.DropShadow?>

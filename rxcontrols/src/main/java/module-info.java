@@ -26,14 +26,14 @@ module rxcontrols {
     requires javafx.controls;
     requires java.xml;
 
-    exports com.leewyatt.rxcontrols.animation.carousel;
-    exports com.leewyatt.rxcontrols.animation.fillbutton;
-    exports com.leewyatt.rxcontrols.animation.lineButton;
-    exports com.leewyatt.rxcontrols.controls;
-    exports com.leewyatt.rxcontrols.enums;
-    exports com.leewyatt.rxcontrols.event;
-    exports com.leewyatt.rxcontrols.pane;
-    exports com.leewyatt.rxcontrols.pojo;
-    exports com.leewyatt.rxcontrols.skins;
-    exports com.leewyatt.rxcontrols.utils;
+    exports io.github.leewyatt.rxcontrols.animation.carousel;
+    exports io.github.leewyatt.rxcontrols.animation.fillbutton;
+    exports io.github.leewyatt.rxcontrols.animation.lineButton;
+    exports io.github.leewyatt.rxcontrols.controls;
+    exports io.github.leewyatt.rxcontrols.enums;
+    exports io.github.leewyatt.rxcontrols.event;
+    exports io.github.leewyatt.rxcontrols.pane;
+    exports io.github.leewyatt.rxcontrols.pojo;
+    exports io.github.leewyatt.rxcontrols.skins;
+    exports io.github.leewyatt.rxcontrols.utils;
 }

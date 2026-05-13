@@ -6,7 +6,6 @@ module rxcontrols.samples {
     requires javafx.web;
     requires javafx.media;
 
-    opens app to javafx.graphics;
-    opens app.ui to javafx.graphics, javafx.fxml;
-    opens app.controller to javafx.fxml;
+    opens io.github.leewyatt.rxcontrols.samples to javafx.graphics;
+    opens io.github.leewyatt.rxcontrols.samples.controller to javafx.fxml;
 }
