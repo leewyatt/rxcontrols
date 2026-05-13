@@ -38,9 +38,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * <p>
  * 下次更新思考: 支持更多的形状

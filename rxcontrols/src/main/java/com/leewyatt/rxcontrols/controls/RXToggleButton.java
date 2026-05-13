@@ -27,9 +27,6 @@ package com.leewyatt.rxcontrols.controls;
 import javafx.scene.control.ToggleButton;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 此组件: 行为上类似于RadioButton: 点击一次是选择,点击第二次依然是选择,不会取消
  * 外观上类似于普通的ToggleButton: 没有了单选按钮前面的圆点,避免了写很多的css去屏蔽圆点

@@ -25,9 +25,6 @@
 package com.leewyatt.rxcontrols.enums;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 早期版本轮播图允许不同尺寸的图片放入同一个轮播组件里; 按照指定的缩放方式进行缩放
  * 节点缩放类型: (参考安卓的图片缩放模式)

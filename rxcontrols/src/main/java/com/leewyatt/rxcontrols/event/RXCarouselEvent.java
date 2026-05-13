@@ -28,9 +28,6 @@ import javafx.event.Event;
 import javafx.event.EventType;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 自定义事件,主要在进行轮播图动画的时候,在需要的地方 fireEvent 即可调用
  * 比如正在播放视频的页面,当CLOSED 事件发生时, 那么可以监听关闭事件,然后对MediaPlayer进行一个关闭操作

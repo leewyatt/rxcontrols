@@ -35,9 +35,6 @@ import javafx.util.Duration;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * <p>
  * 轮播图效果: 仿3D效果实现左 [中] 右 的轮播
  * 虽然是3D的SubScene,但是主要使用的是 TranslateTransition 的x轴实现左右位移+缩放动画 ;

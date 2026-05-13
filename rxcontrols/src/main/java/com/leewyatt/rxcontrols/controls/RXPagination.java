@@ -29,9 +29,6 @@ import javafx.scene.control.Pagination;
 import javafx.scene.control.Skin;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 分页组件 带输入页码直接 跳转的按钮
  */

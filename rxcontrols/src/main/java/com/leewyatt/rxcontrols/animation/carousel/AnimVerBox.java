@@ -35,9 +35,6 @@ import javafx.util.Duration;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * 轮播图效果: 盒子垂直方向的翻动
  * 主要通过调整PerspectiveTransform的四个顶点的值来模拟3D效果
  */ 

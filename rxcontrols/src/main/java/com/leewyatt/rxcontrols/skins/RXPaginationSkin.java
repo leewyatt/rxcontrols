@@ -34,9 +34,6 @@ import javafx.scene.control.skin.PaginationSkin;
 import javafx.scene.layout.HBox;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  *
  */

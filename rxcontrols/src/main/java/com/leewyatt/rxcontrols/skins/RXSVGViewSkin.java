@@ -38,9 +38,6 @@ import com.leewyatt.rxcontrols.pojo.PathInfo;
 import java.util.ArrayList;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public class RXSVGViewSkin extends SkinBase<RXSVGView> {
     private Pane pane;

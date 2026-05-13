@@ -39,7 +39,6 @@ import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
 /**
- * @author LeeWyatt
  * <p>
  * 多媒体进度条组件的皮肤
  */

@@ -38,9 +38,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public class FillAnimVerToMiddle implements FillAnimation {
     private Rectangle rectClip1;

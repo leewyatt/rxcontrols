@@ -28,9 +28,6 @@ import javafx.application.Application;
 import app.ui.MainTest;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * JavaFXQQ群: 518914410
  */
 public class AppMain {
     public static void main(String[] args) {

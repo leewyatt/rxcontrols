@@ -35,9 +35,6 @@ import java.util.List;
 
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * 轮播图效果: 垂直层叠切换
  */
 public class AnimVerStack extends CarouselAnimationBase {

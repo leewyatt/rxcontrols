@@ -36,9 +36,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.shape.Circle;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public class FillAnimCircleToSide implements FillAnimation{
     private Circle circleClip;

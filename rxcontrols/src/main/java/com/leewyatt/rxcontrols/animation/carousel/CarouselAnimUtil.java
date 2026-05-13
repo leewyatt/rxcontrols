@@ -40,9 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 工具方法
  */

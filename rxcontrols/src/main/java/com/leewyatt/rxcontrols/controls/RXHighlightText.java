@@ -37,9 +37,6 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 关键字高亮文本: 支持正则表达式匹配,或者 普通文本进行匹配
  */

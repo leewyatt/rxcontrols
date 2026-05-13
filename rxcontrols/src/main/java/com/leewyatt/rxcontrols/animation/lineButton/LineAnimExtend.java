@@ -35,9 +35,6 @@ import javafx.scene.shape.Line;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 效果: 从中心向两边伸展
  */

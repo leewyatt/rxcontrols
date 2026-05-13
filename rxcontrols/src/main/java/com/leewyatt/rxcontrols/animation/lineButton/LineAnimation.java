@@ -27,9 +27,6 @@ package com.leewyatt.rxcontrols.animation.lineButton;
 import com.leewyatt.rxcontrols.skins.RXLineButtonSkin;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public interface LineAnimation {
     /**

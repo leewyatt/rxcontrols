@@ -32,9 +32,6 @@ import javafx.scene.Scene;
 import java.util.stream.Collectors;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  */
 public class StyleUtil {

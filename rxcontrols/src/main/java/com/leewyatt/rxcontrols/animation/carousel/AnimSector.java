@@ -36,9 +36,6 @@ import javafx.util.Duration;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * 轮播图效果: 扇形
  */
 public class AnimSector extends CarouselAnimationBase {

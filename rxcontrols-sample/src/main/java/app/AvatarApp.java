@@ -28,9 +28,6 @@ import javafx.application.Application;
 import app.ui.TestAvatar;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * JavaFXQQ群: 518914410
  */
 public class AvatarApp {
     public static void main(String[] args) {

@@ -31,9 +31,6 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * SVG组件. 可以显示多条路径, 已经分别填充颜色
  *

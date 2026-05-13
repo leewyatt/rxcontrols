@@ -34,9 +34,6 @@ import javafx.animation.Timeline;
 import javafx.scene.shape.Line;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 效果: 线条上升下降
  */

@@ -39,10 +39,7 @@ import javafx.scene.shape.Shape;
 import java.util.Arrays;
 
 /**
- * @author LeeWyatt
  *
- * QQ: 9670453
- * QQ群: 518914410
  * 音频组件的皮肤
  */
 public class RXAudioSpectrumSkin extends SkinBase<RXAudioSpectrum> {

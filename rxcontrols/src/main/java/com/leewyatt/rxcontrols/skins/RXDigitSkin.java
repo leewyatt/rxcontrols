@@ -33,9 +33,6 @@ import javafx.scene.control.SkinBase;
 import javafx.scene.shape.Polygon;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 数字组件的皮肤
  */

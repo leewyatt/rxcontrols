@@ -39,9 +39,6 @@ import javafx.util.Pair;
 import java.util.ArrayList;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  */
 public class RXHighlightTextSkin extends SkinBase<RXHighlightText> {

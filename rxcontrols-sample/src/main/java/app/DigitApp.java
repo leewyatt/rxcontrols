@@ -28,9 +28,6 @@ import javafx.application.Application;
 import app.ui.TestDigit;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * JavaFXQQ群: 518914410
  */
 public class DigitApp {
     public static void main(String[] args) {

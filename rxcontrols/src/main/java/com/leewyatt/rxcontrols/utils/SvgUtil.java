@@ -39,9 +39,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  */
 public class SvgUtil {

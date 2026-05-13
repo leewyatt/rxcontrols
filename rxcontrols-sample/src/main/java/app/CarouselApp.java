@@ -28,9 +28,6 @@ import javafx.application.Application;
 import app.ui.TestCarousel;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * JavaFXQQ群: 518914410
  */
 public class CarouselApp {
     public static void main(String[] args) {

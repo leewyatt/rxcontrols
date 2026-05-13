@@ -61,9 +61,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Callable;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * !!!  是否回归前一版本, 用Timeline 替代 Timer? 纠结思考下....
  * Timer 在 阿里java手册里 推荐使用ScheduledExecutorService代替Timer吧

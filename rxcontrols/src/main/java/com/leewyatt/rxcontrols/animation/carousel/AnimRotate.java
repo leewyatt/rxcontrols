@@ -35,9 +35,6 @@ import javafx.util.Duration;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public class AnimRotate extends CarouselAnimationBase {
     private final Timeline animation;

@@ -43,9 +43,6 @@ import java.util.List;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * <p>
  * 轮播图效果: 硬纸板翻页效果
  *

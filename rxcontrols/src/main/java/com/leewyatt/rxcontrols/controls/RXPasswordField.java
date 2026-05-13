@@ -42,9 +42,6 @@ import java.util.List;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 密码组件:
  * 可以隐藏显示密码

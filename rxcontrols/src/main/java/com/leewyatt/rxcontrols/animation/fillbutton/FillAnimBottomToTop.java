@@ -35,9 +35,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  */
 public class FillAnimBottomToTop implements FillAnimation {
     private Rectangle rectClip;

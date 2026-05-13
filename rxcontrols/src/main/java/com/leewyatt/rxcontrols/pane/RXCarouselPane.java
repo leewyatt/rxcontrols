@@ -34,9 +34,6 @@ import javafx.scene.layout.BorderPane;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  *
  * 继承自BorderPane

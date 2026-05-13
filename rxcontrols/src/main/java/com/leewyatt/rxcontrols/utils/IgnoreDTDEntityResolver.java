@@ -34,9 +34,6 @@ import java.io.IOException;
 
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  */
 public class IgnoreDTDEntityResolver implements EntityResolver {

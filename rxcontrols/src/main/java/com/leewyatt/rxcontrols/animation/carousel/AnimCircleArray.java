@@ -44,9 +44,6 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 轮播图效果: 随机多个圆形 逐渐显示
  */

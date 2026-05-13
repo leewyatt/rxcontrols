@@ -49,9 +49,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  * <p>
  * 歌词组件的皮肤
  */

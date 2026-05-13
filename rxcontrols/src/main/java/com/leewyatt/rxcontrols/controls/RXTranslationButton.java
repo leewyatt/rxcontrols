@@ -39,9 +39,6 @@ import java.util.List;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 有用两个Label的按钮,鼠标移动上去会显示hoverLabel,移除会显示nonHoverLabel
  *

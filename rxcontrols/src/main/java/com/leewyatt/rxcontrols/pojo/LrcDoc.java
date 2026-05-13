@@ -31,9 +31,6 @@ import java.util.Objects;
 
 /**
  *
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  *
  * LRC的格式参考如下:

@@ -29,9 +29,6 @@ import javafx.event.EventTarget;
 import javafx.event.EventType;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 主要是为了和 ActionEvent 进行区分!
  * 比如文本框按回车键就会触发ActionEvent;

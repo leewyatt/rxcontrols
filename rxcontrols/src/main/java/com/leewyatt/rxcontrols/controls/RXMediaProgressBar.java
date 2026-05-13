@@ -32,9 +32,6 @@ import javafx.scene.control.Skin;
 import javafx.util.Duration;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * 多媒体(音频,视频)进度条
  * 有底层轨道, 缓冲轨道, 播放进度轨道

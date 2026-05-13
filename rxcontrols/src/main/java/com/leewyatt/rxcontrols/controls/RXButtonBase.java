@@ -39,9 +39,6 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @author LeeWyatt
- * QQ: 9670453
- * QQ群: 518914410
  *
  * FillButton, LineButton等的基类
  *
