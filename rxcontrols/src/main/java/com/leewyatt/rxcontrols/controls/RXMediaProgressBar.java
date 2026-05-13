@@ -24,7 +24,6 @@
  */
 package com.leewyatt.rxcontrols.controls;
 
-import com.leewyatt.rxcontrols.utils.RXResources;
 import com.leewyatt.rxcontrols.skins.RXMediaProgressBarSkin;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -48,7 +47,7 @@ public class RXMediaProgressBar extends Control {
     /**
      * 默认外观css
      */
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXMediaProgressBar.class.getResource("/rx-controls.css")
             .toExternalForm();
 
 

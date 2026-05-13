@@ -28,7 +28,6 @@ import com.leewyatt.rxcontrols.animation.lineButton.LineAnimExtend;
 import com.leewyatt.rxcontrols.animation.lineButton.LineAnimRise;
 import com.leewyatt.rxcontrols.animation.lineButton.LineAnimation;
 import com.leewyatt.rxcontrols.skins.RXLineButtonSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -58,7 +57,7 @@ public class RXLineButton extends RXButtonBase {
     private SimpleDoubleProperty spacing;
     private SimpleDoubleProperty offsetYPro;
 
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXLineButton.class.getResource("/rx-controls.css")
             .toExternalForm();
 
     public RXLineButton() {

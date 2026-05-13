@@ -27,7 +27,6 @@ package com.leewyatt.rxcontrols.controls;
 import com.leewyatt.rxcontrols.enums.DisplayMode;
 import com.leewyatt.rxcontrols.event.RXActionEvent;
 import com.leewyatt.rxcontrols.skins.RXTextFieldSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.css.CssMetaData;
@@ -53,7 +52,7 @@ import java.util.List;
 public class RXTextField extends TextField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-text-field";
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXTextField.class.getResource("/rx-controls.css")
             .toExternalForm();
 
 

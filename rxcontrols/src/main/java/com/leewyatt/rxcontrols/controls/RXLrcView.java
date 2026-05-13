@@ -26,7 +26,6 @@ package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.pojo.LrcDoc;
 import com.leewyatt.rxcontrols.skins.RXLrcViewSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -59,7 +58,7 @@ public class RXLrcView extends Control {
     /**
      * 默认外观css
      */
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXLrcView.class.getResource("/rx-controls.css")
             .toExternalForm();
     /**
      * 默认的翻页动画时间

@@ -26,7 +26,6 @@ package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.enums.DisplayMode;
 import com.leewyatt.rxcontrols.skins.RXPasswordFieldSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.*;
@@ -53,7 +52,7 @@ import java.util.List;
  */
 public class RXPasswordField extends PasswordField {
     private StyleableObjectProperty<DisplayMode> buttonDisplayMode;
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXPasswordField.class.getResource("/rx-controls.css")
             .toExternalForm();
     private static final String DEFAULT_STYLE_CLASS = "rx-password-field";
     /**

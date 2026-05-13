@@ -25,7 +25,6 @@
 package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXAudioSpectrumSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -62,7 +61,7 @@ public class RXAudioSpectrum extends Control {
     /**
      * 默认外观css
      */
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXAudioSpectrum.class.getResource("/rx-controls.css")
             .toExternalForm();
 
     /**

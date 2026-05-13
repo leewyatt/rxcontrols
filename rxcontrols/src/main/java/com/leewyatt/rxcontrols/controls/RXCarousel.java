@@ -28,7 +28,6 @@ import com.leewyatt.rxcontrols.animation.carousel.AnimHorMove;
 import com.leewyatt.rxcontrols.animation.carousel.CarouselAnimation;
 import com.leewyatt.rxcontrols.enums.DisplayMode;
 import com.leewyatt.rxcontrols.pane.RXCarouselPane;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -70,7 +69,7 @@ public class RXCarousel extends Control {
     /**
      * 默认外观css
      */
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = RXCarousel.class.getResource("/rx-controls.css")
             .toExternalForm();
     /**
      * 需要显示的项目

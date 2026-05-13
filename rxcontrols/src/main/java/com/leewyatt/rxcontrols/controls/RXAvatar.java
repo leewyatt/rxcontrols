@@ -25,7 +25,6 @@
 package com.leewyatt.rxcontrols.controls;
 
 import com.leewyatt.rxcontrols.skins.RXAvatarSkin;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -51,7 +50,7 @@ import java.util.List;
  */
 public class RXAvatar extends Control {
     private static final String DEFAULT_STYLE_CLASS = "rx-avatar";
-    private static final String USER_AGENT_STYLESHEET = RXResources.load("/rx-controls.css").toExternalForm();
+    private static final String USER_AGENT_STYLESHEET = RXAvatar.class.getResource("/rx-controls.css").toExternalForm();
     private final int DEFAULT_SIZE = 100;
 
     private ObjectProperty<Image> image;

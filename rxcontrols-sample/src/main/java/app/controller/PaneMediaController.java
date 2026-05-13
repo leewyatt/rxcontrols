@@ -28,7 +28,6 @@ import com.leewyatt.rxcontrols.controls.RXAudioSpectrum;
 import com.leewyatt.rxcontrols.controls.RXLrcView;
 import com.leewyatt.rxcontrols.controls.RXMediaProgressBar;
 import com.leewyatt.rxcontrols.pojo.LrcDoc;
-import com.leewyatt.rxcontrols.utils.RXResources;
 import com.leewyatt.rxcontrols.utils.StyleUtil;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -162,12 +161,12 @@ public class PaneMediaController {
 
         //实现切换样式功能
         String[] styleSheets = {
-                RXResources.load("/css/spectrum_01.css").toExternalForm(),
-                RXResources.load("/css/spectrum_02.css").toExternalForm(),
-                RXResources.load("/css/spectrum_03.css").toExternalForm(),
-                RXResources.load("/css/spectrum_04.css").toExternalForm(),
-                RXResources.load("/css/spectrum_05.css").toExternalForm(),
-                RXResources.load("/css/spectrum_06.css").toExternalForm()
+                PaneMediaController.class.getResource("/css/spectrum_01.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum_02.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum_03.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum_04.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum_05.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum_06.css").toExternalForm()
                 };
         BoxBlur barEffect = new BoxBlur(2.5,2.5,1);
         Shape shape = new Polygon(5,0,0,5,15,10,15,10);
