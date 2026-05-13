@@ -24,8 +24,8 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXLineButton;
-import io.github.leewyatt.rxcontrols.controls.RXLineButton.LineType;
+import io.github.leewyatt.rxcontrols.RXLineButton;
+import io.github.leewyatt.rxcontrols.RXLineButton.LineType;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;

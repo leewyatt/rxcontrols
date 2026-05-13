@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXPagination;
+import io.github.leewyatt.rxcontrols.RXPagination;
 import javafx.collections.ListChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

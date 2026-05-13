@@ -25,7 +25,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.animation.fillbutton.FillAnimation;
-import io.github.leewyatt.rxcontrols.controls.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXFillButton;
 import javafx.animation.Animation;
 import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;

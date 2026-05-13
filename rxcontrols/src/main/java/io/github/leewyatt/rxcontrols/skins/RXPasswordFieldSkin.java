@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXPasswordField;
+import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleBooleanProperty;

@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples.controller;
 
-import io.github.leewyatt.rxcontrols.controls.RXTextField;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.event.RXActionEvent;
 import javafx.fxml.FXML;
 import javafx.stage.FileChooser;

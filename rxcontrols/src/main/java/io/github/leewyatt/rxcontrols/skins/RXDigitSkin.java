@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXDigit;
+import io.github.leewyatt.rxcontrols.RXDigit;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;

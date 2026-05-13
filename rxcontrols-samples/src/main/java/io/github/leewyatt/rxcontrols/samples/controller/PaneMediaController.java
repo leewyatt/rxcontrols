@@ -24,9 +24,9 @@
  */
 package io.github.leewyatt.rxcontrols.samples.controller;
 
-import io.github.leewyatt.rxcontrols.controls.RXAudioSpectrum;
-import io.github.leewyatt.rxcontrols.controls.RXLrcView;
-import io.github.leewyatt.rxcontrols.controls.RXMediaProgressBar;
+import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
+import io.github.leewyatt.rxcontrols.RXLrcView;
+import io.github.leewyatt.rxcontrols.RXMediaProgressBar;
 import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
 import io.github.leewyatt.rxcontrols.utils.StyleUtil;
 import javafx.event.ActionEvent;

@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXDigit;
+import io.github.leewyatt.rxcontrols.RXDigit;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;

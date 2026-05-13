@@ -5,7 +5,13 @@ module rxcontrols.samples {
     requires javafx.fxml;
     requires javafx.web;
     requires javafx.media;
+    requires javafx.swing;
+    requires java.desktop;
+
+    exports io.github.leewyatt.rxcontrols.samples.carousel;
+    exports io.github.leewyatt.rxcontrols.samples.carousel.control;
 
     opens io.github.leewyatt.rxcontrols.samples to javafx.graphics;
     opens io.github.leewyatt.rxcontrols.samples.controller to javafx.fxml;
+    opens io.github.leewyatt.rxcontrols.samples.carousel to javafx.graphics;
 }

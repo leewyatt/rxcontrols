@@ -24,8 +24,8 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXHighlightText;
-import io.github.leewyatt.rxcontrols.controls.RXHighlightText.MatchRules;
+import io.github.leewyatt.rxcontrols.RXHighlightText;
+import io.github.leewyatt.rxcontrols.RXHighlightText.MatchRules;
 
 import javafx.application.Application;
 import javafx.collections.FXCollections;

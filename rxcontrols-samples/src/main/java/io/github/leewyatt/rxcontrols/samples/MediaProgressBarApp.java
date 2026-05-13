@@ -24,9 +24,9 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXAudioSpectrum;
-import io.github.leewyatt.rxcontrols.controls.RXAudioSpectrum.CrestPos;
-import io.github.leewyatt.rxcontrols.controls.RXMediaProgressBar;
+import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
+import io.github.leewyatt.rxcontrols.RXAudioSpectrum.CrestPos;
+import io.github.leewyatt.rxcontrols.RXMediaProgressBar;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;

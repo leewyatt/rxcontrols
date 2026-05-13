@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXAudioSpectrum;
+import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ArrayChangeListener;
 import javafx.collections.ObservableFloatArray;

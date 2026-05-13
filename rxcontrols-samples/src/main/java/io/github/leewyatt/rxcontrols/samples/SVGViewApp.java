@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXSVGView;
+import io.github.leewyatt.rxcontrols.RXSVGView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.FlowPane;

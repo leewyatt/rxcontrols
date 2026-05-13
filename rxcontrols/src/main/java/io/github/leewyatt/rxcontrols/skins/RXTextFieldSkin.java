@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXTextField;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.event.RXActionEvent;
 import javafx.beans.value.ChangeListener;

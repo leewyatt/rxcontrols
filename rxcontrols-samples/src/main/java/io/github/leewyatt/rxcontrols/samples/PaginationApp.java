@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXPagination;
+import io.github.leewyatt.rxcontrols.RXPagination;
 import javafx.application.Application;
 import javafx.scene.Node;
 import javafx.scene.Scene;

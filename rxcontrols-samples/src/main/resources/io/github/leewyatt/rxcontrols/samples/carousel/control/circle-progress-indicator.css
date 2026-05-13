@@ -1,0 +1,19 @@
+.circle-progress-indicator {
+    -fx-pref-width: 23px;
+    -fx-pref-height: 23px;
+}
+
+.circle-progress-indicator .track-circle {
+    -fx-stroke: #e0e0e0;
+    -fx-stroke-width: 2px;
+}
+
+.circle-progress-indicator .progress-arc {
+    -fx-stroke: #1e88e5;
+    -fx-stroke-width: 2px;
+}
+
+.circle-progress-indicator .progress-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #424242;
+}

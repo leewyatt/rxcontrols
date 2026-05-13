@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXTranslationButton;
+import io.github.leewyatt.rxcontrols.RXTranslationButton;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;

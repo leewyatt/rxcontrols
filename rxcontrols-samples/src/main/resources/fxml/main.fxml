@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import io.github.leewyatt.rxcontrols.controls.RXCarousel?>
-<?import io.github.leewyatt.rxcontrols.controls.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.RXCarousel?>
+<?import io.github.leewyatt.rxcontrols.RXToggleButton?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
@@ -45,7 +45,7 @@
             </VBox>
          </left>
          <center>
-            <RXCarousel fx:id="mainCarousel" arrowDisplayMode="HIDE" autoSwitch="false" hoverPause="false" navDisplayMode="HIDE" prefHeight="511.0" prefWidth="761.0" styleClass="main-pane" BorderPane.alignment="CENTER" />
+            <RXCarousel fx:id="mainCarousel" prefHeight="511.0" prefWidth="761.0" styleClass="main-pane" BorderPane.alignment="CENTER" />
          </center>
          <top>
             <HBox fx:id="topBar" alignment="CENTER_LEFT" prefHeight="88.0" prefWidth="998.0" BorderPane.alignment="CENTER">

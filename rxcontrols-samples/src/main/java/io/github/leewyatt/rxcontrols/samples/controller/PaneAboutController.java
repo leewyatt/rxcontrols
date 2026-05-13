@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples.controller;
 
-import io.github.leewyatt.rxcontrols.controls.RXLineButton;
+import io.github.leewyatt.rxcontrols.RXLineButton;
 import javafx.application.HostServices;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

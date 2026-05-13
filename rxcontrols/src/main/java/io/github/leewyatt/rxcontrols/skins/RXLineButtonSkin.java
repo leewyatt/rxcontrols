@@ -25,7 +25,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.animation.lineButton.LineAnimation;
-import io.github.leewyatt.rxcontrols.controls.RXLineButton;
+import io.github.leewyatt.rxcontrols.RXLineButton;
 import javafx.animation.Animation;
 import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;

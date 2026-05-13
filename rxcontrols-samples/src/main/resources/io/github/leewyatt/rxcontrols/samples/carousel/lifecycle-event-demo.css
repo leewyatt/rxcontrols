@@ -1,0 +1,61 @@
+/* ===== Page background ===== */
+.page-title {
+    -fx-font-size: 42;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 6, 0, 0, 2);
+}
+
+/* ===== Animated subtitle ===== */
+.page-subtitle {
+    -fx-font-size: 15;
+    -fx-text-fill: white;
+    -fx-background-color: rgba(0,0,0,0.45);
+    -fx-background-radius: 16;
+    -fx-padding: 6 16;
+}
+
+/* ===== Status indicator ===== */
+.status-label {
+    -fx-font-size: 13;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(0,0,0,0.4);
+    -fx-background-radius: 6;
+    -fx-padding: 4 10;
+    -fx-graphic-text-gap: 6;
+}
+
+.status-dot {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-max-width: 10;
+    -fx-max-height: 10;
+    -fx-background-radius: 5;
+}
+
+.status-cached .status-dot {
+    -fx-background-color: #3498DB;
+}
+
+.status-opening .status-dot {
+    -fx-background-color: #F1C40F;
+}
+
+.status-opened .status-dot {
+    -fx-background-color: #2ECC71;
+}
+
+.status-closing .status-dot {
+    -fx-background-color: #E67E22;
+}
+
+.status-closed .status-dot {
+    -fx-background-color: #95A5A6;
+}
+
+/* ===== Root ===== */
+.root-pane {
+    -fx-background-color: #1a1a2e;
+    -fx-padding: 20;
+}

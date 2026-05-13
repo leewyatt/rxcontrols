@@ -24,8 +24,8 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXFillButton;
-import io.github.leewyatt.rxcontrols.controls.RXFillButton.FillType;
+import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXFillButton.FillType;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;

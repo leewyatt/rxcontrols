@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import io.github.leewyatt.rxcontrols.controls.RXPasswordField?>
-<?import io.github.leewyatt.rxcontrols.controls.RXTextField?>
-<?import io.github.leewyatt.rxcontrols.controls.RXTranslationButton?>
+<?import io.github.leewyatt.rxcontrols.RXPasswordField?>
+<?import io.github.leewyatt.rxcontrols.RXTextField?>
+<?import io.github.leewyatt.rxcontrols.RXTranslationButton?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.effect.DropShadow?>

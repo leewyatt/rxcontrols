@@ -1,46 +1,48 @@
-## RXControls 
+## RXControls
 
-- RXControls Version 8.x.y need javafx8
-- RXControls Version 11.x.y need javafx11+
+一个 JavaFX 自定义控件库:密码可见控件、轮播图(`RXCarousel`)、动态按钮、音频频谱可视化、歌词组件等。
 
+JavaFX custom controls library: password-visible field, carousel (`RXCarousel`), animated buttons, audio spectrum, lyrics view, and more.
 
-一个javafx的自定义组件库, 密码可见组件, 轮播图组件, 动态按钮组件等, 音频频谱可视化组件,歌词组件 等... <br />
+要求 JavaFX 17+ / Java 17+。
 
- Javafx custom component library, password visible component, carousel component, dynamic button component,spectrum component,lyrics component etc...  <br />
+### Carousel(`RXCarousel`)
 
->QQ:  **9670453**  <br />
-JavaFX QQ群: **518914410** <br/>
+`RXCarousel` 是从 [CarouselFX](https://github.com/dlsc-software-consulting-gmbh/CarouselFX) 合并而来的页面轮播控件,支持:
 
-主要变化:
-    RXCarousel 去掉SubScene (css name: .carousel-subscene)
-    考虑到一个界面可能有多个轮播图,避免层级过多;
-    如果想要部分的专场效果,有3D的感觉, 那么可以在Scene里设置;
-Main changes: 
-    RXCarousel removes SubScene (css name: .carousel-subscene) 
-    Considering that an interface may have multiple carousels to avoid too many layers; 
-    if you want some special effects and a 3D feeling, Need to set a perspective camera for setting the main scene graph;
+- 80+ 切换动画(`carousel.animation` 包)
+- 基于 `pageFactory + pageCount` 的懒加载页面模型
+- 可替换的 `CarouselNavigator`(默认实现 `DefaultNavigator`)
+- `PageLifecycleEvent` 页面生命周期事件、`cacheDistance` 缓存控制、`autoPlayProgress` 进度回读
+- `ImagePane` 图片页快捷容器
+
+最简用法:
+
 ```java
-scene.setCamera(new PerspectiveCamera()); 
+RXCarousel carousel = new RXCarousel();
+carousel.setPages(page1, page2, page3);
 ```
 
+完整 API 参考:`devdoc/carousel-resources/carousel-doc/`。
+独立 demo:`rxcontrols-samples` 模块下 `samples/carousel/` 包(`SimpleDemo`、`CarouselShowcase` 等 9 个 `Application`)。
 
-Maven dependency
+### Maven dependency
+
 ```xml
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.github.leewyatt</groupId>
-            <artifactId>rxcontrols</artifactId>
-            <!-- 11.x.y -->
-            <version>11.0.3</version>
-        </dependency>
-    </dependencies>
+<dependencies>
+    <dependency>
+        <groupId>com.github.leewyatt</groupId>
+        <artifactId>rxcontrols</artifactId>
+        <version>1.0.0</version>
+    </dependency>
+</dependencies>
 ```
 
 - Carousel & FillButton inspired by [Gleidson28](https://github.com/Gleidson28)

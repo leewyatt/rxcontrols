@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.samples.controller;
 
-import io.github.leewyatt.rxcontrols.controls.RXDigit;
+import io.github.leewyatt.rxcontrols.RXDigit;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;

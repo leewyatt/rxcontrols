@@ -1,0 +1,104 @@
+/*
+ * ============================================================
+ *  DefaultNavigator stylesheet
+ *  Independent component — styles work regardless of parent.
+ *
+ *  Scene-graph structure:
+ *
+ *  .carousel-navigator
+ *   +-- > .dot-indicator > .dot
+ *   +-- > .compact-navigator
+ *        +-- > .prev-button > .arrow
+ *        +-- > .fraction-label
+ *        +-- > .next-button > .arrow
+ * ============================================================
+ */
+
+.carousel-navigator {
+    -fx-padding: 5 10;
+}
+
+/* ---- Dot indicator ---- */
+
+.carousel-navigator > .dot-indicator {
+    -fx-spacing: 6;
+    -fx-alignment: center;
+    -fx-padding: 4;
+}
+
+.carousel-navigator > .dot-indicator > .dot {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-max-width: 8;
+    -fx-max-height: 8;
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 50;
+    -fx-cursor: hand;
+}
+
+.carousel-navigator > .dot-indicator > .dot:selected {
+    -fx-background-color: white;
+}
+
+/* ---- Compact navigator ---- */
+
+.carousel-navigator > .compact-navigator {
+    -fx-alignment: center;
+    -fx-spacing: 6;
+}
+
+.carousel-navigator > .compact-navigator > .fraction-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button,
+.carousel-navigator > .compact-navigator > .next-button {
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-background-radius: 50;
+    -fx-min-width: 24;
+    -fx-min-height: 24;
+    -fx-max-width: 24;
+    -fx-max-height: 24;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-content-display: graphic-only;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:hover,
+.carousel-navigator > .compact-navigator > .next-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:focused,
+.carousel-navigator > .compact-navigator > .next-button:focused {
+    -fx-background-color: rgba(0, 0, 0, 0.4);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:pressed,
+.carousel-navigator > .compact-navigator > .next-button:pressed {
+    -fx-background-color: rgba(0, 0, 0, 0.6);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button > .arrow,
+.carousel-navigator > .compact-navigator > .next-button > .arrow {
+    -fx-background-color: white;
+    -fx-min-width: 6;
+    -fx-min-height: 6;
+    -fx-max-width: 6;
+    -fx-max-height: 6;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button > .arrow {
+    -fx-shape: "M 10 0 L 0 5 L 10 10 Z";
+}
+
+.carousel-navigator > .compact-navigator > .next-button > .arrow {
+    -fx-shape: "M 0 0 L 10 5 L 0 10 Z";
+}

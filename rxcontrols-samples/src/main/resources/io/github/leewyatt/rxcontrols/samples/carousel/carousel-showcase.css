@@ -1,0 +1,46 @@
+/* Title bar */
+.showcase-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 16;
+    -fx-text-fill: #333333;
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 4;
+    -fx-alignment: center;
+    -fx-padding: 8;
+}
+
+/* Section card */
+.showcase-section {
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 4;
+    -fx-background-color: #f8f8f8;
+    -fx-background-radius: 4;
+}
+
+.showcase-section-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 13;
+    -fx-background-color: #d0d0d0;
+    -fx-background-radius: 4 4 0 0;
+    -fx-padding: 4 8;
+}
+
+/* Page indicator label */
+.showcase-page-label {
+    -fx-text-fill: #333333;
+    -fx-font-size: 13;
+    -fx-font-weight: bold;
+}
+
+/* Animation buttons */
+.anim-button {
+    -fx-padding: 3 8;
+    -fx-background-radius: 3;
+}
+
+/* Color page label */
+.color-page-label {
+    -fx-font-size: 36;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}

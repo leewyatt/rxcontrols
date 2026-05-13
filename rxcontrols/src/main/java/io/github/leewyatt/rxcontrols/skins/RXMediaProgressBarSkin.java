@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXMediaProgressBar;
+import io.github.leewyatt.rxcontrols.RXMediaProgressBar;
 import javafx.beans.binding.NumberBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;

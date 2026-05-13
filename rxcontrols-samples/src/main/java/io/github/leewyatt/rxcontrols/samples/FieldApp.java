@@ -24,8 +24,8 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXPasswordField;
-import io.github.leewyatt.rxcontrols.controls.RXTextField;
+import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.application.Application;
 import javafx.scene.Scene;

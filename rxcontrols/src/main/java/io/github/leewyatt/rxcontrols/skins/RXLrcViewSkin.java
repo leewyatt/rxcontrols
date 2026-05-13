@@ -24,7 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.controls.RXLrcView;
+import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
 import io.github.leewyatt.rxcontrols.pojo.LrcLine;
 import io.github.leewyatt.rxcontrols.utils.UIUtil;

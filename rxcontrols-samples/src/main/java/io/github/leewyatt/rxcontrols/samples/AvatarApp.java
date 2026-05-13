@@ -24,8 +24,8 @@
  */
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.controls.RXAvatar;
-import io.github.leewyatt.rxcontrols.controls.RXAvatar.Type;
+import io.github.leewyatt.rxcontrols.RXAvatar;
+import io.github.leewyatt.rxcontrols.RXAvatar.Type;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;

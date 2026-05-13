@@ -1,0 +1,237 @@
+/* ===== Sidebar ===== */
+.app-sidebar {
+    -fx-background-color: #2C3E50;
+    -fx-pref-width: 72;
+    -fx-padding: 8;
+}
+
+.app-nav-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-pref-height: 60;
+}
+
+.app-nav-button:selected {
+    -fx-background-color: #34495E;
+}
+
+.app-nav-button .label {
+    -fx-text-fill: white;
+    -fx-font-size: 10;
+}
+
+/* ===== Nav Icons (Region + -fx-shape) ===== */
+.nav-icon-home,
+.nav-icon-messages,
+.nav-icon-settings {
+    -fx-pref-width: 20;
+    -fx-pref-height: 20;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-max-width: 20;
+    -fx-max-height: 20;
+    -fx-background-color: white;
+    -fx-scale-shape: true;
+}
+
+.nav-icon-home {
+    -fx-shape: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z";
+}
+
+.nav-icon-messages {
+    -fx-shape: "M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z";
+}
+
+.nav-icon-settings {
+    -fx-shape: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58-1.97-3.4-2.39.96c-.5-.38-1.06-.7-1.66-.93L14.74 4h-3.94l-.4 2.11c-.6.23-1.15.55-1.66.93l-2.39-.96-1.97 3.4 2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58 1.97 3.4 2.39-.96c.5.38 1.06.7 1.66.93l.4 2.11h3.94l.4-2.11c.6-.23 1.15-.55 1.66-.93l2.39.96 1.97-3.4-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z";
+}
+
+/* ===== Banner ===== */
+.banner-title {
+    -fx-font-size: 22;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 4, 0, 0, 1);
+}
+
+.banner-subtitle {
+    -fx-font-size: 13;
+    -fx-text-fill: rgba(255, 255, 255, 0.9);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 3, 0, 0, 1);
+}
+
+.banner-overlay {
+    /*-fx-background-color: linear-gradient(to top, rgba(0,0,0,0.5), transparent);*/
+    -fx-padding: 20 15 10 15;
+}
+
+/* ===== Home page ===== */
+.home-front {
+    -fx-background-color: #ECF0F1;
+    -fx-spacing: 10px;
+}
+
+.home-welcome-title {
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.home-welcome-desc {
+    -fx-font-size: 13;
+    -fx-text-fill: #666666;
+    -fx-line-spacing: 2;
+}
+
+.home-welcome-box {
+    -fx-spacing: 6px;
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 4, 0, 0, 1);
+    -fx-padding: 20 30;
+    -fx-background-insets: 0 15 12 15;
+}
+
+.feature-button {
+    -fx-text-fill: white;
+    -fx-font-size: 13;
+    -fx-font-weight: bold;
+    -fx-background-color: #34495E;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-pref-height: 36;
+}
+
+.feature-button:hover {
+    -fx-background-color: #2C3E50;
+}
+
+/* ===== Feature sub-pages ===== */
+.feature-page {
+    -fx-background-color: #F8F9FA;
+}
+
+.feature-icon {
+    -fx-pref-width: 36;
+    -fx-pref-height: 36;
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-max-width: 36;
+    -fx-max-height: 36;
+    -fx-background-color: #3498DB;
+    -fx-scale-shape: true;
+}
+
+/* Dashboard: grid/dashboard icon */
+.feature-icon-dashboard {
+    -fx-shape: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z";
+}
+
+/* Analytics: bar chart icon */
+.feature-icon-analytics {
+    -fx-shape: "M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z";
+}
+
+/* Reports: document icon */
+.feature-icon-reports {
+    -fx-shape: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z";
+}
+
+/* Messages: chat bubble icon */
+.feature-icon-messages {
+    -fx-shape: "M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z";
+}
+
+.feature-title {
+    -fx-font-size: 24;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.feature-anim-tag {
+    -fx-font-size: 12;
+    -fx-text-fill: #999999;
+    -fx-font-style: italic;
+}
+
+.feature-desc {
+    -fx-font-size: 14;
+    -fx-text-fill: #555555;
+    -fx-padding: 8 0 0 0;
+}
+
+.feature-back-btn {
+    -fx-font-size: 13;
+    -fx-background-color: #34495E;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-padding: 8 20;
+}
+
+.feature-back-btn:hover {
+    -fx-background-color: #2C3E50;
+}
+
+/* ===== Messages page ===== */
+.messages-page {
+    -fx-background-color: #F5F5F5;
+}
+
+.messages-page-title {
+    -fx-font-size: 18;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+    -fx-padding: 12;
+}
+
+.messages-scroll {
+    -fx-background: #F5F5F5;
+    -fx-background-color: transparent;
+}
+
+.msg-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0, 0, 1);
+}
+
+.msg-avatar {
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-max-width: 36;
+    -fx-max-height: 36;
+    -fx-background-radius: 18;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+}
+
+.msg-title {
+    -fx-font-size: 14;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.msg-body {
+    -fx-font-size: 12;
+    -fx-text-fill: #666666;
+}
+
+/* ===== Settings page ===== */
+.settings-page {
+    -fx-background-color: #FAFAFA;
+}
+
+.settings-title {
+    -fx-font-size: 24;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.settings-info {
+    -fx-font-size: 14;
+    -fx-text-fill: #666666;
+}
