@@ -91,13 +91,19 @@ public class RXAvatar extends Control {
 
     // ==================== Pseudo-classes ====================
 
-    /** Active when the avatar is displaying the image. */
+    /**
+     * Active when the avatar is displaying the image.
+     */
     private static final PseudoClass SHOWING_IMAGE_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-image");
 
-    /** Active when the avatar is displaying the fallback text. */
+    /**
+     * Active when the avatar is displaying the fallback text.
+     */
     private static final PseudoClass SHOWING_TEXT_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-text");
 
-    /** Active when neither image nor text is available, so the default icon is shown. */
+    /**
+     * Active when neither image nor text is available, so the default icon is shown.
+     */
     private static final PseudoClass SHOWING_DEFAULT_ICON_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-default-icon");
 
     private Image currentImage;
