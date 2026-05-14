@@ -250,8 +250,8 @@ public class RXAvatar extends Control {
 
     /**
      * The text to display when the image is unavailable (typically user
-     * initials such as {@code "LW"}). Styled via the {@code .text} CSS
-     * selector inside the avatar.
+     * initials such as {@code "LW"}). Styled via the {@code .text-wrapper}
+     * CSS selector inside the avatar.
      *
      * @return the text property
      */

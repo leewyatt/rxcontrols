@@ -26,11 +26,13 @@ import javafx.scene.shape.Rectangle;
  */
 public class RXAvatarSkin extends SkinBase<RXAvatar> {
 
+    private static final double DEFAULT_PREF_SIZE = 100;
+
     private final ImageView imageView;
-    private final Group imageGroup;
-    private final StackPane textPane;
+    private final Group imageWrapper;
+    private final StackPane textWrapper;
     private final Label textLabel;
-    private final StackPane defaultIconPane;
+    private final StackPane defaultIconWrapper;
     private final Region defaultIcon;
 
     // Only one node is visible at a time, so a single pair of clip shapes suffices.
@@ -52,28 +54,27 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         imageView.setSmooth(true);
         imageView.setPreserveRatio(false);
 
-        // Group wraps the clipped ImageView so that effect (e.g. DropShadow)
+        // The Group wraps the clipped ImageView so that effects (e.g. DropShadow)
         // applied on the Group follows the clipped shape, not the full rectangle.
-        imageGroup = new Group(imageView);
-        imageGroup.getStyleClass().add("image-group");
+        imageWrapper = new Group(imageView);
+        imageWrapper.getStyleClass().add("image-wrapper");
 
         clipRect = new Rectangle();
         clipCircle = new Circle();
 
         textLabel = new Label();
         textLabel.textProperty().bind(control.textProperty());
-        textPane = new StackPane(textLabel);
-        textPane.getStyleClass().add("text");
+        textWrapper = new StackPane(textLabel);
+        textWrapper.getStyleClass().add("text-wrapper");
 
         defaultIcon = new Region();
         defaultIcon.getStyleClass().add("default-icon");
         defaultIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         defaultIcon.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        defaultIconPane = new StackPane(defaultIcon);
-        defaultIconPane.getStyleClass().add("default-icon-pane");
-        defaultIconPane.setMouseTransparent(true);
+        defaultIconWrapper = new StackPane(defaultIcon);
+        defaultIconWrapper.getStyleClass().add("default-icon-wrapper");
 
-        getChildren().addAll(defaultIconPane, textPane, imageGroup);
+        getChildren().addAll(defaultIconWrapper, textWrapper, imageWrapper);
 
         control.imageProperty().addListener(imageListener);
         control.displayStateProperty().addListener(displayStateListener);
@@ -103,22 +104,22 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         boolean showText = state == DisplayState.TEXT;
         boolean showIcon = state == DisplayState.EMPTY;
 
-        imageGroup.setVisible(showImage);
-        imageGroup.setManaged(showImage);
-        textPane.setVisible(showText);
-        textPane.setManaged(showText);
-        defaultIconPane.setVisible(showIcon);
-        defaultIconPane.setManaged(showIcon);
+        imageWrapper.setVisible(showImage);
+        imageWrapper.setManaged(showImage);
+        textWrapper.setVisible(showText);
+        textWrapper.setManaged(showText);
+        defaultIconWrapper.setVisible(showIcon);
+        defaultIconWrapper.setManaged(showIcon);
 
         // Clear clip from hidden nodes
         if (!showImage) {
             imageView.setClip(null);
         }
         if (!showText) {
-            textPane.setClip(null);
+            textWrapper.setClip(null);
         }
         if (!showIcon) {
-            defaultIconPane.setClip(null);
+            defaultIconWrapper.setClip(null);
         }
     }
 
@@ -134,15 +135,15 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         double arcW = getSkinnable().getArcWidth();
         double arcH = getSkinnable().getArcHeight();
 
-        if (imageGroup.isVisible()) {
+        if (imageWrapper.isVisible()) {
             layoutImage(cx, cy, size);
             applyClip(imageView, size, type, arcW, arcH);
-        } else if (textPane.isVisible()) {
-            textPane.resizeRelocate(cx, cy, size, size);
-            applyClip(textPane, size, type, arcW, arcH);
-        } else if (defaultIconPane.isVisible()) {
-            defaultIconPane.resizeRelocate(cx, cy, size, size);
-            applyClip(defaultIconPane, size, type, arcW, arcH);
+        } else if (textWrapper.isVisible()) {
+            textWrapper.resizeRelocate(cx, cy, size, size);
+            applyClip(textWrapper, size, type, arcW, arcH);
+        } else if (defaultIconWrapper.isVisible()) {
+            defaultIconWrapper.resizeRelocate(cx, cy, size, size);
+            applyClip(defaultIconWrapper, size, type, arcW, arcH);
         }
     }
 
@@ -172,7 +173,7 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
             imageView.setViewport(null);
             imageView.setFitWidth(0);
             imageView.setFitHeight(0);
-            imageGroup.relocate(x, y);
+            imageWrapper.relocate(x, y);
             return;
         }
 
@@ -187,19 +188,19 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         imageView.setFitWidth(size);
         imageView.setFitHeight(size);
 
-        imageGroup.relocate(x, y);
+        imageWrapper.relocate(x, y);
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + 100 + rightInset;
+        return leftInset + DEFAULT_PREF_SIZE + rightInset;
     }
 
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + 100 + bottomInset;
+        return topInset + DEFAULT_PREF_SIZE + bottomInset;
     }
 
     @Override
@@ -243,8 +244,8 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         imageView.setImage(null);
         imageView.setClip(null);
         imageView.setViewport(null);
-        textPane.setClip(null);
-        defaultIconPane.setClip(null);
+        textWrapper.setClip(null);
+        defaultIconWrapper.setClip(null);
 
         super.dispose();
     }

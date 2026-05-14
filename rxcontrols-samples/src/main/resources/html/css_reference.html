@@ -136,8 +136,12 @@
 <p class="fxClass">Style class: rx-avatar</p>
 <p>The RXAvatar control has all the properties of Control;</p>
 <h4>Substructure</h4>
-group  — Group<br/>
-&emsp;&emsp;image-view — ImageView<br/><br/>
+.image-wrapper  — Group<br/>
+&emsp;&emsp;.image-view — ImageView<br/>
+.text-wrapper — StackPane<br/>
+&emsp;&emsp;.label — Label<br/>
+.default-icon-wrapper — StackPane<br/>
+&emsp;&emsp;.default-icon — Region<br/><br/>
 <table>
     <thead>
     <tr>
@@ -149,8 +153,18 @@ group  — Group<br/>
     <tbody>
     <tr>
         <td>-rx-shape-type</td>
-        <td>CIRCLE,SQUARE,HEXAGON_H,HEXAGON_V</td>
+        <td>CIRCLE,SQUARE</td>
         <td>CIRCLE</td>
+    </tr>
+    <tr>
+        <td>-rx-arc-width</td>
+        <td>size</td>
+        <td>10</td>
+    </tr>
+    <tr>
+        <td>-rx-arc-height</td>
+        <td>size</td>
+        <td>10</td>
     </tr>
     </tbody>
 </table>

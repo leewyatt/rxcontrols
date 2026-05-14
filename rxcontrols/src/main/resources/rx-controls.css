@@ -45,27 +45,27 @@
 .rx-avatar {
 }
 
-.rx-avatar > .image-group {
+.rx-avatar > .image-wrapper {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 8, 0, 0, 0);
 }
 
-.rx-avatar > .default-icon-pane {
+.rx-avatar > .default-icon-wrapper {
     -fx-background-color: #e0e0e0;
 }
 
-.rx-avatar > .default-icon-pane > .default-icon {
+.rx-avatar > .default-icon-wrapper > .default-icon {
     -fx-background-color: white;
     -fx-shape: 'M12,12c2.21,0,4-1.79,4-4s-1.79-4-4-4-4,1.79-4,4,1.79,4,4,4zm0,2c-2.67,0-8,1.34-8,4v2h16v-2c0-2.66-5.33-4-8-4z';
     -fx-pref-width: 24px;
     -fx-pref-height: 24px;
 }
 
-.rx-avatar > .text {
+.rx-avatar > .text-wrapper {
     -fx-background-color: #5c6bc0;
     -fx-alignment: center;
 }
 
-.rx-avatar > .text > .label {
+.rx-avatar > .text-wrapper > .label {
     -fx-font-weight: bold;
     -fx-text-fill: white;
 }
