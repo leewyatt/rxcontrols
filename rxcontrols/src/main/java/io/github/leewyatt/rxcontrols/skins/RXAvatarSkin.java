@@ -5,9 +5,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.DisplayState;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import javafx.beans.InvalidationListener;
-import javafx.geometry.HPos;
 import javafx.geometry.Rectangle2D;
-import javafx.geometry.VPos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -69,6 +67,8 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
 
         defaultIcon = new Region();
         defaultIcon.getStyleClass().add("default-icon");
+        defaultIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        defaultIcon.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         defaultIconPane = new StackPane(defaultIcon);
         defaultIconPane.getStyleClass().add("default-icon-pane");
         defaultIconPane.setMouseTransparent(true);
@@ -138,10 +138,10 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
             layoutImage(cx, cy, size);
             applyClip(imageView, size, type, arcW, arcH);
         } else if (textPane.isVisible()) {
-            layoutInArea(textPane, cx, cy, size, size, -1, HPos.CENTER, VPos.CENTER);
+            textPane.resizeRelocate(cx, cy, size, size);
             applyClip(textPane, size, type, arcW, arcH);
         } else if (defaultIconPane.isVisible()) {
-            layoutInArea(defaultIconPane, cx, cy, size, size, -1, HPos.CENTER, VPos.CENTER);
+            defaultIconPane.resizeRelocate(cx, cy, size, size);
             applyClip(defaultIconPane, size, type, arcW, arcH);
         }
     }
