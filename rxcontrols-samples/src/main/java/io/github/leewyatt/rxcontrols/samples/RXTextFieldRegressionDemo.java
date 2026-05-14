@@ -139,11 +139,21 @@ public class RXTextFieldRegressionDemo extends Application {
             field.setLeft(reusable);
         });
 
+        Button clear = new Button("setLeft(null)");
+        clear.setOnAction(event -> field.setLeft(null));
+
+        Button restore = new Button("setLeft(restore)");
+        restore.setOnAction(event -> field.setLeft(reusable));
+
         Button move = new Button("move left/right");
         move.setOnAction(event -> {
-            field.setRight(reusable);
-            field.setLeft(reusable);
-            field.setRight(null);
+            if (field.getLeft() == reusable) {
+                field.setLeft(null);
+                field.setRight(reusable);
+            } else {
+                field.setRight(null);
+                field.setLeft(reusable);
+            }
         });
 
         Button replaceSkin = new Button("setSkin(null) -> new skin");
@@ -152,7 +162,7 @@ public class RXTextFieldRegressionDemo extends Application {
             field.setSkin(new RXTextFieldSkin(field));
         });
 
-        HBox row = new HBox(8, field, toggle, move, replaceSkin);
+        HBox row = new HBox(8, field, toggle, clear, restore, move, replaceSkin);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
     }

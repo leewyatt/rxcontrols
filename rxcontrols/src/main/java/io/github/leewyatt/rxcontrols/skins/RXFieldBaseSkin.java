@@ -44,6 +44,11 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     private final ChangeListener<Node> leftListener = (obs, oldVal, newVal) -> updateChildren();
     private final ChangeListener<Node> rightListener = (obs, oldVal, newVal) -> updateChildren();
+    private final ChangeListener<Boolean> wrapperNeedsLayoutListener = (obs, oldVal, newVal) -> {
+        if (Boolean.TRUE.equals(newVal)) {
+            getSkinnable().requestLayout();
+        }
+    };
 
     public RXFieldBaseSkin(TextField control,
                            ObservableValue<Node> effectiveLeft,
@@ -81,19 +86,32 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         control.pseudoClassStateChanged(SHOWING_LEFT_NODE, newLeft != null);
         control.pseudoClassStateChanged(SHOWING_RIGHT_NODE, newRight != null);
         control.pseudoClassStateChanged(SHOWING_NO_SIDE_NODES, newLeft == null && newRight == null);
+        // Removing an unmanaged child (releaseWrapper above) does not invalidate
+        // the skin's layout on its own, so the text node would stay at its
+        // previous left offset until something else triggered a layout pass.
+        control.requestLayout();
     }
 
     private StackPane createWrapper(Node content, Pos alignment, String styleClass) {
         StackPane wrapper = new StackPane(content);
+        // Unmanaged: we size/position it manually in layoutChildren. The
+        // downside is that the wrapper's requestLayout() does not walk up to
+        // the skin — see needsLayoutProperty listener below for the bridge.
         wrapper.setManaged(false);
         wrapper.setAlignment(alignment);
         wrapper.getStyleClass().add(styleClass);
+        // CSS pseudo-class changes on the wrapper (e.g. :hover bumping padding)
+        // flip its needsLayout flag. Without this bridge the skin would not
+        // re-run layoutChildren and the wrapper's outer bounds would stay
+        // stale until something else invalidated the control.
+        wrapper.needsLayoutProperty().addListener(wrapperNeedsLayoutListener);
         getChildren().add(wrapper);
         return wrapper;
     }
 
     private StackPane releaseWrapper(StackPane wrapper) {
         if (wrapper != null) {
+            wrapper.needsLayoutProperty().removeListener(wrapperNeedsLayoutListener);
             wrapper.getChildren().clear();
             getChildren().remove(wrapper);
         }
