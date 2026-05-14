@@ -13,7 +13,7 @@ import javafx.util.Duration;
 
 import java.util.Random;
 
-public class DigitApp extends Application {
+public class RXDigitDemo extends Application {
     private int num = 0;
 
     @Override
@@ -22,7 +22,7 @@ public class DigitApp extends Application {
         RXDigit digit = new RXDigit(num);
         root.setCenter(digit);
         primaryStage.setScene(new Scene(root, 500, 350));
-        primaryStage.setTitle("数字");
+        primaryStage.setTitle("RXDigit Demo");
         primaryStage.show();
         Random random = new Random();
         Timeline tl = new Timeline(new KeyFrame(Duration.millis(500), event -> {

@@ -9,7 +9,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 
-public class TranslationButtonApp extends Application {
+public class RXTranslationButtonDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
@@ -23,7 +23,7 @@ public class TranslationButtonApp extends Application {
         button.setGraphic(imageView);
         root.setCenter(button);
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("TranslationButtonApp Window");
+        primaryStage.setTitle("RXTranslationButton Demo");
         primaryStage.show();
 
         /**

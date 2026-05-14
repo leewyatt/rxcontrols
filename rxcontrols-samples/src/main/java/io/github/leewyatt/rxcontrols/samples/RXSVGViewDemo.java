@@ -10,7 +10,7 @@ import javafx.stage.Stage;
 
 import java.util.Random;
 
-public class SVGViewApp extends Application {
+public class RXSVGViewDemo extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {

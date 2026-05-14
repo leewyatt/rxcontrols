@@ -14,7 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
-public class HighlightTextApp extends Application {
+public class RXHighlightTextDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
@@ -38,7 +38,7 @@ public class HighlightTextApp extends Application {
         root.getChildren().add(hBox);
         root.getChildren().add(text);
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("高亮文本");
+        primaryStage.setTitle("RXHighlightText Demo");
         primaryStage.show();
 
     }

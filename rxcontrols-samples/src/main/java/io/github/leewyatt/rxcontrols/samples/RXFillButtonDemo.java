@@ -7,7 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
-public class FillButtonApp extends Application {
+public class RXFillButtonDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
@@ -28,7 +28,7 @@ public class FillButtonApp extends Application {
 
         root.setCenter(button);
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("FillButtonApp Window");
+        primaryStage.setTitle("RXFillButton Demo");
         primaryStage.show();
 
     }

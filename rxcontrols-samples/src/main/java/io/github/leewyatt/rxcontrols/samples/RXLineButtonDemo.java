@@ -9,7 +9,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-public class LineButtonApp extends Application {
+public class RXLineButtonDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
@@ -53,7 +53,7 @@ public class LineButtonApp extends Application {
 
         root.getChildren().addAll(button1,button2,button3,button4);
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("线条按钮/文本");
+        primaryStage.setTitle("RXLineButton Demo");
         primaryStage.show();
     }
 

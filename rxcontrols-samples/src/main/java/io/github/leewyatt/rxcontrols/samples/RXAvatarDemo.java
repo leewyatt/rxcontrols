@@ -24,7 +24,7 @@ import javafx.stage.Stage;
 /**
  * Sample application demonstrating {@link RXAvatar}.
  */
-public class AvatarApp extends Application {
+public class RXAvatarDemo extends Application {
 
     private static final String[] IMAGE_PATHS = {
             "/scenery/1.png", "/scenery/2.png", "/scenery/3.png", "/scenery/4.png"
@@ -34,7 +34,7 @@ public class AvatarApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Image image = new Image(AvatarApp.class.getResource("/scenery/2.png").toExternalForm());
+        Image image = new Image(RXAvatarDemo.class.getResource("/scenery/2.png").toExternalForm());
         avatar = new RXAvatar(image);
 
         BorderPane root = new BorderPane();
@@ -42,7 +42,7 @@ public class AvatarApp extends Application {
         root.setRight(createControlPane());
 
         Scene scene = new Scene(root, 700, 380);
-        scene.getStylesheets().add(getClass().getResource("avatar-app.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("rx-avatar-demo.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXAvatar Demo");
         primaryStage.show();
@@ -71,7 +71,7 @@ public class AvatarApp extends Application {
                 avatar.setImage(null);
             } else {
                 int index = Integer.parseInt(newVal.replace("Image ", "")) - 1;
-                avatar.setImage(new Image(AvatarApp.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
+                avatar.setImage(new Image(RXAvatarDemo.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
             }
         });
 

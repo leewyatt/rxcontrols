@@ -23,7 +23,7 @@ import javafx.stage.Stage;
 /**
  * Sample application demonstrating {@link RXImageView}.
  */
-public class ImageViewApp extends Application {
+public class RXImageViewDemo extends Application {
 
     private static final String[] IMAGE_PATHS = {
             "/scenery/1.png", "/scenery/2.png", "/scenery/3.png", "/scenery/4.png"
@@ -33,7 +33,7 @@ public class ImageViewApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Image image = new Image(ImageViewApp.class.getResource("/scenery/2.png").toExternalForm());
+        Image image = new Image(RXImageViewDemo.class.getResource("/scenery/2.png").toExternalForm());
         imageView = new RXImageView(image);
 
         BorderPane root = new BorderPane();
@@ -41,7 +41,7 @@ public class ImageViewApp extends Application {
         root.setRight(createControlPane());
 
         Scene scene = new Scene(root, 700, 380);
-        scene.getStylesheets().add(getClass().getResource("image-view-app.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("rx-image-view-demo.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXImageView Demo");
         primaryStage.show();
@@ -71,7 +71,7 @@ public class ImageViewApp extends Application {
             } else {
                 int index = Integer.parseInt(newVal.replace("Image ", "")) - 1;
                 imageView.setImage(new Image(
-                        ImageViewApp.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
+                        RXImageViewDemo.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
             }
         });
 

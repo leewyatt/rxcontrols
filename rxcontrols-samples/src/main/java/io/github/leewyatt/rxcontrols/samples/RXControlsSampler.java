@@ -11,7 +11,11 @@ import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
-public class MainApp extends Application {
+/**
+ * Aggregated launcher for the RXControls sampler — loads the FXML-based
+ * showcase that hosts all individual control demos.
+ */
+public class RXControlsSampler extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
@@ -22,7 +26,7 @@ public class MainApp extends Application {
         scene.setCamera(new PerspectiveCamera());
         primaryStage.setScene(scene);
         primaryStage.initStyle(StageStyle.TRANSPARENT);
-        primaryStage.setTitle("MainApp Window");
+        primaryStage.setTitle("RXControls Sampler");
         primaryStage.show();
     }
 

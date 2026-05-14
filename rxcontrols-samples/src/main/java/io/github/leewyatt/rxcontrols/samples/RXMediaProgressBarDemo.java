@@ -21,7 +21,7 @@ import java.io.File;
 /**
  *
  */
-public class MediaProgressBarApp extends Application {
+public class RXMediaProgressBarDemo extends Application {
     MediaView mv = new MediaView();
 
     @Override
@@ -188,7 +188,7 @@ public class MediaProgressBarApp extends Application {
         scene.getStylesheets().add(getClass().getResource("/css/test_bar.css").toExternalForm());
 
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Cache TestProgressBar Window");
+        primaryStage.setTitle("RXMediaProgressBar Demo");
         primaryStage.show();
     }
 

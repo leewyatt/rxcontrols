@@ -9,7 +9,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
-public class PaginationApp extends Application {
+public class RXPaginationDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -26,7 +26,7 @@ public class PaginationApp extends Application {
         });
         root.setCenter(pn);
         primaryStage.setScene(new Scene(root,500,380));
-        primaryStage.setTitle("分页组件");
+        primaryStage.setTitle("RXPagination Demo");
         primaryStage.show();
     }
     public static void main(String[] args){
