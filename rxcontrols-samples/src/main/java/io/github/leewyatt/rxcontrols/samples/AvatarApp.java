@@ -4,8 +4,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -31,61 +30,35 @@ public class AvatarApp extends Application {
             "/scenery/1.png", "/scenery/2.png", "/scenery/3.png", "/scenery/4.png"
     };
 
+    private RXAvatar avatar;
+
     @Override
     public void start(Stage primaryStage) {
         Image image = new Image(AvatarApp.class.getResource("/scenery/2.png").toExternalForm());
-        RXAvatar avatar = new RXAvatar(image);
+        avatar = new RXAvatar(image);
 
-        StackPane displayPane = new StackPane(avatar);
-        displayPane.setPadding(new Insets(20));
-        displayPane.setStyle("-fx-background-color: white;");
+        BorderPane root = new BorderPane();
+        root.setCenter(createContentPane());
+        root.setRight(createControlPane());
 
+        Scene scene = new Scene(root, 700, 380);
+        scene.getStylesheets().add(getClass().getResource("avatar-app.css").toExternalForm());
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("RXAvatar Demo");
+        primaryStage.show();
+    }
+
+    private Node createContentPane() {
+        StackPane pane = new StackPane(avatar);
+        pane.getStyleClass().add("content-pane");
+        return pane;
+    }
+
+    private Node createControlPane() {
         Label title = new Label("RXAvatar");
-        title.setStyle("-fx-font-size: 18; -fx-font-weight: bold;");
+        title.getStyleClass().add("title-label");
 
-        ComboBox<ShapeType> shapeTypeBox = new ComboBox<>();
-        shapeTypeBox.getItems().addAll(ShapeType.values());
-        shapeTypeBox.valueProperty().bindBidirectional(avatar.shapeTypeProperty());
-        shapeTypeBox.setMaxWidth(Double.MAX_VALUE);
-
-        Slider sizeSlider = new Slider(20, 200, 100);
-        sizeSlider.setMaxWidth(Double.MAX_VALUE);
-        avatar.prefWidthProperty().bind(sizeSlider.valueProperty());
-        avatar.prefHeightProperty().bind(sizeSlider.valueProperty());
-        Label sizeValue = new Label();
-        sizeValue.textProperty().bind(Bindings.format("%.0f", sizeSlider.valueProperty()));
-        sizeValue.setMinWidth(30);
-
-        Label arcWidthLabel = new Label("Arc Width");
-        Slider arcWidthSlider = new Slider(0, 100, 10);
-        arcWidthSlider.setMaxWidth(Double.MAX_VALUE);
-        arcWidthSlider.valueProperty().bindBidirectional(avatar.arcWidthProperty());
-        Label arcWidthValue = new Label();
-        arcWidthValue.textProperty().bind(Bindings.format("%.0f", arcWidthSlider.valueProperty()));
-        arcWidthValue.setMinWidth(30);
-
-        Label arcHeightLabel = new Label("Arc Height");
-        Slider arcHeightSlider = new Slider(0, 100, 10);
-        arcHeightSlider.setMaxWidth(Double.MAX_VALUE);
-        arcHeightSlider.valueProperty().bindBidirectional(avatar.arcHeightProperty());
-        Label arcHeightValue = new Label();
-        arcHeightValue.textProperty().bind(Bindings.format("%.0f", arcHeightSlider.valueProperty()));
-        arcHeightValue.setMinWidth(30);
-
-        arcWidthLabel.visibleProperty().bind(avatar.shapeTypeProperty().isEqualTo(ShapeType.SQUARE));
-        arcWidthSlider.visibleProperty().bind(arcWidthLabel.visibleProperty());
-        arcWidthValue.visibleProperty().bind(arcWidthLabel.visibleProperty());
-        arcHeightLabel.visibleProperty().bind(arcWidthLabel.visibleProperty());
-        arcHeightSlider.visibleProperty().bind(arcWidthLabel.visibleProperty());
-        arcHeightValue.visibleProperty().bind(arcWidthLabel.visibleProperty());
-
-        arcWidthLabel.managedProperty().bind(arcWidthLabel.visibleProperty());
-        arcWidthSlider.managedProperty().bind(arcWidthSlider.visibleProperty());
-        arcWidthValue.managedProperty().bind(arcWidthValue.visibleProperty());
-        arcHeightLabel.managedProperty().bind(arcHeightLabel.visibleProperty());
-        arcHeightSlider.managedProperty().bind(arcHeightSlider.visibleProperty());
-        arcHeightValue.managedProperty().bind(arcHeightValue.visibleProperty());
-
+        // ==================== Image ====================
         ComboBox<String> imageBox = new ComboBox<>();
         imageBox.getItems().add("None");
         for (int i = 0; i < IMAGE_PATHS.length; i++) {
@@ -102,14 +75,55 @@ public class AvatarApp extends Application {
             }
         });
 
+        // ==================== Text ====================
         TextField textField = new TextField();
         textField.setPromptText("e.g. LW");
         textField.setMaxWidth(Double.MAX_VALUE);
         avatar.textProperty().bind(textField.textProperty());
 
+        // ==================== Shape Type ====================
+        ComboBox<ShapeType> shapeTypeBox = new ComboBox<>();
+        shapeTypeBox.getItems().addAll(ShapeType.values());
+        shapeTypeBox.valueProperty().bindBidirectional(avatar.shapeTypeProperty());
+        shapeTypeBox.setMaxWidth(Double.MAX_VALUE);
+
+        // ==================== Size ====================
+        Slider sizeSlider = new Slider(20, 200, 100);
+        sizeSlider.setMaxWidth(Double.MAX_VALUE);
+        avatar.prefWidthProperty().bind(sizeSlider.valueProperty());
+        avatar.prefHeightProperty().bind(sizeSlider.valueProperty());
+        Label sizeValue = createValueLabel(sizeSlider);
+
+        // ==================== Arc Width / Height ====================
+        Label arcWidthLabel = new Label("Arc Width");
+        Slider arcWidthSlider = new Slider(0, 100, 10);
+        arcWidthSlider.setMaxWidth(Double.MAX_VALUE);
+        arcWidthSlider.valueProperty().bindBidirectional(avatar.arcWidthProperty());
+        Label arcWidthValue = createValueLabel(arcWidthSlider);
+
+        Label arcHeightLabel = new Label("Arc Height");
+        Slider arcHeightSlider = new Slider(0, 100, 10);
+        arcHeightSlider.setMaxWidth(Double.MAX_VALUE);
+        arcHeightSlider.valueProperty().bindBidirectional(avatar.arcHeightProperty());
+        Label arcHeightValue = createValueLabel(arcHeightSlider);
+
+        arcWidthLabel.visibleProperty().bind(avatar.shapeTypeProperty().isEqualTo(ShapeType.SQUARE));
+        arcWidthSlider.visibleProperty().bind(arcWidthLabel.visibleProperty());
+        arcWidthValue.visibleProperty().bind(arcWidthLabel.visibleProperty());
+        arcHeightLabel.visibleProperty().bind(arcWidthLabel.visibleProperty());
+        arcHeightSlider.visibleProperty().bind(arcWidthLabel.visibleProperty());
+        arcHeightValue.visibleProperty().bind(arcWidthLabel.visibleProperty());
+
+        arcWidthLabel.managedProperty().bind(arcWidthLabel.visibleProperty());
+        arcWidthSlider.managedProperty().bind(arcWidthSlider.visibleProperty());
+        arcWidthValue.managedProperty().bind(arcWidthValue.visibleProperty());
+        arcHeightLabel.managedProperty().bind(arcHeightLabel.visibleProperty());
+        arcHeightSlider.managedProperty().bind(arcHeightSlider.visibleProperty());
+        arcHeightValue.managedProperty().bind(arcHeightValue.visibleProperty());
+
+        // ==================== Grid ====================
         GridPane grid = new GridPane();
-        grid.setHgap(8);
-        grid.setVgap(10);
+        grid.getStyleClass().add("control-grid");
 
         ColumnConstraints labelCol = new ColumnConstraints();
         ColumnConstraints controlCol = new ColumnConstraints();
@@ -134,40 +148,32 @@ public class AvatarApp extends Application {
         grid.add(shapeTypeBox, 1, row, 2, 1);
 
         row++;
-        grid.add(new Label("Width / Height"), 0, row);
-        grid.add(sizeSlider, 1, row);
-        grid.add(sizeValue, 2, row);
+        grid.addRow(row, new Label("Width / Height"), sizeSlider, sizeValue);
 
         row++;
-        grid.add(arcWidthLabel, 0, row);
-        grid.add(arcWidthSlider, 1, row);
-        grid.add(arcWidthValue, 2, row);
+        grid.addRow(row, arcWidthLabel, arcWidthSlider, arcWidthValue);
 
         row++;
-        grid.add(arcHeightLabel, 0, row);
-        grid.add(arcHeightSlider, 1, row);
-        grid.add(arcHeightValue, 2, row);
+        grid.addRow(row, arcHeightLabel, arcHeightSlider, arcHeightValue);
 
+        // ==================== Tips & Layout ====================
         Label tips = new Label("Display priority: Image > Text > Default Icon");
         tips.setWrapText(true);
-        tips.setStyle("-fx-text-fill: #888; -fx-font-size: 12;");
+        tips.getStyleClass().add("tips-label");
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        VBox controlPanel = new VBox(15, title, new Separator(), grid, spacer, new Separator(), tips);
-        controlPanel.setAlignment(Pos.TOP_LEFT);
-        controlPanel.setPadding(new Insets(15));
-        controlPanel.setStyle("-fx-border-color: #e0e0e0; -fx-border-width: 0 0 0 1;");
-        controlPanel.setPrefWidth(300);
+        VBox panel = new VBox(title, new Separator(), grid, spacer, new Separator(), tips);
+        panel.getStyleClass().add("control-pane");
+        return panel;
+    }
 
-        BorderPane root = new BorderPane();
-        root.setCenter(displayPane);
-        root.setRight(controlPanel);
-
-        primaryStage.setScene(new Scene(root, 700, 380));
-        primaryStage.setTitle("RXAvatar Demo");
-        primaryStage.show();
+    private Label createValueLabel(Slider slider) {
+        Label label = new Label();
+        label.textProperty().bind(Bindings.format("%.0f", slider.valueProperty()));
+        label.getStyleClass().add("value-label");
+        return label;
     }
 
     public static void main(String[] args) {
