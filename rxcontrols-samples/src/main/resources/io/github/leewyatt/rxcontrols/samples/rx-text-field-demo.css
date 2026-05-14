@@ -1,0 +1,25 @@
+.rx-text-field {
+    -fx-padding: 6 10;
+    -fx-background-color: white;
+    -fx-border-color: #d0d4dc;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.rx-text-field:focused {
+    -fx-border-color: #4c8bff;
+}
+
+.rx-text-field > .left-wrapper {
+    -fx-padding: 0 8 0 0;
+}
+
+.rx-text-field > .right-wrapper {
+    -fx-padding: 0 0 0 4;
+}
+
+.rx-text-field > .right-wrapper .button {
+    -fx-font-size: 11;
+    -fx-padding: 2 6;
+    -fx-cursor: hand;
+}

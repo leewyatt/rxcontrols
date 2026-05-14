@@ -1,0 +1,48 @@
+/* Regression demo for ControlsFX issue #705 in RXFieldBaseSkin.
+ *
+ * Three TextField-like rows share the same exaggerated padding (24 16) so
+ * the 24px top/bottom padding region is visible (yellow) inside the red
+ * outer border. After the fix, all three rows should look vertically aligned:
+ * the colored .left-wrapper / .right-wrapper rectangles must leave the same
+ * 24px yellow band at the top and bottom that [1] and [2] do.
+ *
+ * Regression signal: if [3]'s blue / pink wrapper rectangles span the entire
+ * red border vertically (cover the yellow padding band), the y/h pass-through
+ * fix in RXFieldBaseSkin.layoutChildren has regressed.
+ */
+
+.reference,
+.bug-demo {
+    -fx-padding: 24 16;
+    -fx-background-color: #fff8d4;          /* yellow padding region */
+    -fx-border-color: red;
+    -fx-border-width: 1;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-font-size: 13;
+}
+
+/* Highlight wrapper bounds so we can see where the skin actually lays them out.
+ * After the fix the colored boxes should span only the inner (content) region
+ * and leave the yellow padding band visible at the top and bottom.
+ */
+.bug-demo > .left-wrapper {
+    -fx-background-color: rgba(0, 128, 255, 0.45);
+}
+
+.bug-demo > .right-wrapper {
+    -fx-background-color: rgba(255, 0, 128, 0.45);
+}
+
+.bug-demo > .right-wrapper .button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 0 4;
+}
+
+.hint {
+    -fx-font-family: "monospace";
+    -fx-text-fill: #444;
+    -fx-padding: 6 0 0 0;
+}

@@ -1,26 +1,23 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.event.RXActionEvent;
 import io.github.leewyatt.rxcontrols.skins.RXTextFieldSkin;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ObjectPropertyBase;
-import javafx.css.CssMetaData;
-import javafx.css.Styleable;
-import javafx.css.StyleableObjectProperty;
-import javafx.css.StyleableProperty;
-import javafx.css.converter.EnumConverter;
-import javafx.event.EventHandler;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
- *
- * 带按钮的文本框
+ * Text-field control with optional {@code left} and {@code right} slots for
+ * user-supplied nodes (icons, buttons, HBoxes, etc.). Behaves as a plain
+ * {@link TextField} when both slots are unset.
+ * <p>
+ * The control intentionally does not bundle a default action button or any
+ * "clear" / "reveal" affordance — callers compose those with
+ * {@link #setLeft(Node)} / {@link #setRight(Node)}.
+ * <p>
+ * The same {@link Node} instance must not be assigned to both slots at the
+ * same time — a JavaFX {@link Node} can only have one parent.
  */
 public class RXTextField extends TextField {
 
@@ -28,11 +25,8 @@ public class RXTextField extends TextField {
     private static final String USER_AGENT_STYLESHEET = RXTextField.class.getResource("/rx-controls.css")
             .toExternalForm();
 
-
-
     public RXTextField() {
-        super();
-        getStyleClass().add(DEFAULT_STYLE_CLASS);
+        this(null);
     }
 
     public RXTextField(String text) {
@@ -40,119 +34,55 @@ public class RXTextField extends TextField {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
-
     @Override
     public String getUserAgentStylesheet() {
         return USER_AGENT_STYLESHEET;
     }
-
-    /**
-     * 当点击了自带的按钮后的事件处理
-     * 这里使用的是RXActionEvent ,因为如果使用ActionEvent ,那么会和TextField自带的事件重合
-     */
-    private final ObjectProperty<EventHandler<RXActionEvent>> onClickButtonProperty =
-            new ObjectPropertyBase<EventHandler<RXActionEvent>>() {
-
-                @Override
-                protected void invalidated() {
-                    setEventHandler(RXActionEvent.RXACTION, get());
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXTextField.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "onAction";
-                }
-            };
-
-    public ObjectProperty<EventHandler<RXActionEvent>> onClickButtonProperty() {
-        return onClickButtonProperty;
-    }
-
-    public EventHandler<RXActionEvent> getOnClickButton() {
-        return onClickButtonProperty.get();
-    }
-
-    public void setOnClickButton(EventHandler<RXActionEvent> value) {
-        onClickButtonProperty.set(value);
-    }
-
-
 
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXTextFieldSkin(this);
     }
 
-    private StyleableObjectProperty<DisplayMode> buttonDisplayMode;
+    // ==================== left ====================
 
-    private static class StyleableProperties {
-        // 按钮显示
-        private static final CssMetaData<RXTextField, DisplayMode> BUTTON_DISPLAY_MODE = new CssMetaData<RXTextField, DisplayMode>(
-                "-rx-button-display", new EnumConverter<DisplayMode>(DisplayMode.class), DisplayMode.AUTO) {
-            @Override
-            public boolean isSettable(RXTextField control) {
-                return control.buttonDisplayMode == null || !control.buttonDisplayMode.isBound();
-            }
+    private final ObjectProperty<Node> left = new SimpleObjectProperty<>(this, "left");
 
-            @Override
-            public StyleableProperty<DisplayMode> getStyleableProperty(RXTextField control) {
-                return control.buttonDisplayModeProperty();
-            }
-        };
-
-        // 创建一个CSS样式的表
-        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
-
-        static {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(TextField.getClassCssMetaData());
-            Collections.addAll(styleables, BUTTON_DISPLAY_MODE);
-            STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-
+    /**
+     * Node rendered inside the field, before the text area.
+     *
+     * @return the left-slot property
+     */
+    public final ObjectProperty<Node> leftProperty() {
+        return left;
     }
 
-    @Override
-    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
-        return getClassCssMetaData();
+    public final Node getLeft() {
+        return left.get();
     }
 
-    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
-        return RXTextField.StyleableProperties.STYLEABLES;
+    public final void setLeft(Node value) {
+        left.set(value);
     }
 
-    public final StyleableObjectProperty<DisplayMode> buttonDisplayModeProperty() {
-        if (buttonDisplayMode == null) {
-            buttonDisplayMode = new StyleableObjectProperty<DisplayMode>(DisplayMode.AUTO) {
+    // ==================== right ====================
 
-                @Override
-                public CssMetaData<? extends Styleable, DisplayMode> getCssMetaData() {
-                    return RXTextField.StyleableProperties.BUTTON_DISPLAY_MODE;
-                }
+    private final ObjectProperty<Node> right = new SimpleObjectProperty<>(this, "right");
 
-                @Override
-                public Object getBean() {
-                    return RXTextField.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "buttonDisplayMode";
-                }
-            };
-        }
-        return this.buttonDisplayMode;
+    /**
+     * Node rendered inside the field, after the text area.
+     *
+     * @return the right-slot property
+     */
+    public final ObjectProperty<Node> rightProperty() {
+        return right;
     }
 
-    public final DisplayMode getButtonDisplayMode() {
-        return buttonDisplayMode==null?DisplayMode.AUTO :buttonDisplayMode.get();
+    public final Node getRight() {
+        return right.get();
     }
 
-    public final void setButtonDisplayMode(final DisplayMode buttonDisplayMode) {
-        this.buttonDisplayModeProperty().set(buttonDisplayMode);
+    public final void setRight(Node value) {
+        right.set(value);
     }
 }

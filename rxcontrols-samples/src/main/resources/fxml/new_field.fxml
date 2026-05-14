@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import io.github.leewyatt.rxcontrols.RXTextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.shape.SVGPath?>
+
+<VBox spacing="14" style="-fx-padding: 24; -fx-background-color: white;" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.controller.NewFieldController">
+    <Label text="Search field — left icon only" />
+    <RXTextField fx:id="searchField" prefWidth="360" promptText="Search...">
+        <left>
+            <SVGPath content="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.012 1.012 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z">
+                <fill>
+                    <Color red="0.42" green="0.45" blue="0.49" />
+                </fill>
+            </SVGPath>
+        </left>
+    </RXTextField>
+
+    <Label text="Combined — left icon + right HBox of two buttons" />
+    <RXTextField fx:id="combinedField" prefWidth="360" promptText="Type and hit ↵">
+        <left>
+            <SVGPath content="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.012 1.012 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z">
+                <fill>
+                    <Color red="0.42" green="0.45" blue="0.49" />
+                </fill>
+            </SVGPath>
+        </left>
+        <right>
+            <HBox spacing="4">
+                <Button text="✕" onAction="#clear" focusTraversable="false" />
+                <Button text="↵" onAction="#submit" focusTraversable="false" />
+            </HBox>
+        </right>
+    </RXTextField>
+</VBox>

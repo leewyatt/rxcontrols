@@ -93,9 +93,10 @@
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
-    <li><a href="#rxPasswordField">RXPasswordField</a></li>
+    <li><a href="#rxPasswordField">OldRXPasswordField (deprecated)</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
+    <li><a href="#oldRxTextField">OldRXTextField (deprecated)</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
     <li><a href="#rxTranslationButton">RXTranslationButton</a></li>
 </ul>
@@ -486,9 +487,9 @@ pagination-control — StackPane <br>
 &emsp;&emsp;label-page — Label <br>
 &emsp;&emsp;ok-button — Button <br>
 
-<h3 id="rxPasswordField">RXPasswordField</h3>
-<p class="fxClass">Style class: rx-password-field</p>
-<p>The control has all the properties of PasswordField;</p>
+<h3 id="rxPasswordField">OldRXPasswordField (deprecated)</h3>
+<p class="fxClass">Style class: old-rx-password-field</p>
+<p>The control has all the properties of PasswordField. A follow-up PR will introduce the rxcontrols-namespace replacement; for now this old version is the only password-field control in the library.</p>
 <h4>Substructure</h4>
 password-field  — PasswordField<br />
 tf-top-pane  — Pane<br/>
@@ -592,7 +593,40 @@ digit-shape — Group
 
 <h3 id="rxTextField">RXTextField</h3>
 <p class="fxClass">Style class: rx-text-field</p>
-<p>The control has all the properties of TextField;</p>
+<p>A base text-field control that adds left and right slots for user-supplied nodes. It does not bundle any built-in buttons or actions — set <code>left</code> / <code>right</code> with any Node (Label, Button, HBox, etc.).</p>
+<h4>Substructure</h4>
+.rx-text-field — extends TextField<br/>
+&emsp;&emsp;.left-wrapper — StackPane (present only when left is set)<br/>
+&emsp;&emsp;.right-wrapper — StackPane (present only when right is set)<br/><br/>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>showing-left-node</td>
+        <td>applies when the left node is non-null</td>
+    </tr>
+    <tr>
+        <td>showing-right-node</td>
+        <td>applies when the right node is non-null</td>
+    </tr>
+    <tr>
+        <td>showing-no-side-nodes</td>
+        <td>applies when both left and right are null (mutually exclusive with the two above)</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p>RXTextField does not expose any custom <code>-rx-*</code> CSS property. Use direct selectors on the substructure (e.g. <code>.rx-text-field &gt; .left-wrapper { -fx-padding: 0 4 0 0; }</code>) for layout tuning.</p>
+
+<h3 id="oldRxTextField">OldRXTextField (deprecated)</h3>
+<p class="fxClass">Style class: old-rx-text-field</p>
+<p>Deprecated; preserved for migration/reference. Has all the properties of TextField plus a built-in trailing action button.</p>
 <h4>Substructure</h4>
 TextField — text-field<br/>
 tf-top-pane — Pane<br/>

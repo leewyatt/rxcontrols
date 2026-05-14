@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.skins.RXPasswordFieldSkin;
+import io.github.leewyatt.rxcontrols.skins.OldRXPasswordFieldSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.*;
@@ -17,22 +17,18 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- *
- *
- * 密码组件:
- * 可以隐藏显示密码
- * 可以修改密码的小圆点
+ * Deprecated; preserved as a historical implementation for migration/reference.
+ * No direct rxcontrols replacement is introduced in this round — use JavaFX
+ * {@link javafx.scene.control.PasswordField} or wait for a follow-up PR that
+ * introduces a successor in the rxcontrols namespace.
  */
-public class RXPasswordField extends PasswordField {
+@Deprecated
+public class OldRXPasswordField extends PasswordField {
     private StyleableObjectProperty<DisplayMode> buttonDisplayMode;
-    private static final String USER_AGENT_STYLESHEET = RXPasswordField.class.getResource("/rx-controls.css")
+    private static final String USER_AGENT_STYLESHEET = OldRXPasswordField.class.getResource("/rx-controls.css")
             .toExternalForm();
-    private static final String DEFAULT_STYLE_CLASS = "rx-password-field";
-    /**
-     * 获取皮肤(目的是为了对showPassword进行控制: maskText 方法里需要使用showPasswordProperty,
-     * 如果把showPasswordProperty给Control , 那么maskText 会抛出空指针,因为刚开始的时候Control为空
-     */
-    protected RXPasswordFieldSkin skin;
+    private static final String DEFAULT_STYLE_CLASS = "old-rx-password-field";
+    protected OldRXPasswordFieldSkin skin;
 
     public final SimpleBooleanProperty showPasswordProperty() {
         return skin.showPasswordProperty();
@@ -46,9 +42,9 @@ public class RXPasswordField extends PasswordField {
         skin.showPasswordProperty().set(showPassword);
     }
 
-    public RXPasswordField() {
+    public OldRXPasswordField() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        skin = new RXPasswordFieldSkin(this);
+        skin = new OldRXPasswordFieldSkin(this);
         setAccessibleRole(AccessibleRole.PASSWORD_FIELD);
         showingProperty().addListener(
                 (observable, oldValue, newValue) -> pseudoClassStateChanged(SHOWING_PSEUDO_CLASS, newValue));
@@ -60,7 +56,7 @@ public class RXPasswordField extends PasswordField {
         return USER_AGENT_STYLESHEET;
     }
 
-    public RXPasswordField(String txt) {
+    public OldRXPasswordField(String txt) {
         this();
         setText(txt);
     }
@@ -70,16 +66,10 @@ public class RXPasswordField extends PasswordField {
         return skin;
     }
 
-    /**
-     * 空实现, 不能剪切
-     */
     @Override
     public void cut() {
     }
 
-    /**
-     * 空实现,不能赋值
-     */
     @Override
     public void copy() {
     }
@@ -93,7 +83,6 @@ public class RXPasswordField extends PasswordField {
                 return super.queryAccessibleAttribute(attribute, parameters);
         }
     }
-
 
     public final SimpleStyleableStringProperty echocharProperty() {
         return skin.echocharProperty();
@@ -118,7 +107,7 @@ public class RXPasswordField extends PasswordField {
 
                 @Override
                 public Object getBean() {
-                    return RXPasswordField.this;
+                    return OldRXPasswordField.this;
                 }
 
                 @Override
@@ -131,43 +120,41 @@ public class RXPasswordField extends PasswordField {
     }
 
     public final DisplayMode getButtonDisplayMode() {
-        return buttonDisplayMode==null?DisplayMode.AUTO :buttonDisplayMode.get();
+        return buttonDisplayMode == null ? DisplayMode.AUTO : buttonDisplayMode.get();
     }
 
     public final void setButtonDisplayMode(final DisplayMode buttonDisplayMode) {
         this.buttonDisplayModeProperty().set(buttonDisplayMode);
     }
 
-    // 样式
     public static class StyleableProperties {
-        public static final CssMetaData<RXPasswordField, String> ECHOCHAR = new CssMetaData<RXPasswordField, String>(
-                "-rx-echochar", StringConverter.getInstance(), String.valueOf(RXPasswordFieldSkin.BULLET)) {
+        public static final CssMetaData<OldRXPasswordField, String> ECHOCHAR = new CssMetaData<OldRXPasswordField, String>(
+                "-rx-echochar", StringConverter.getInstance(), String.valueOf(OldRXPasswordFieldSkin.BULLET)) {
 
             @Override
-            public StyleableProperty<String> getStyleableProperty(RXPasswordField control) {
+            public StyleableProperty<String> getStyleableProperty(OldRXPasswordField control) {
                 return control.echocharProperty();
             }
 
             @Override
-            public boolean isSettable(RXPasswordField control) {
+            public boolean isSettable(OldRXPasswordField control) {
                 return control.echocharProperty() == null || !control.echocharProperty().isBound();
             }
         };
-        // 按钮显示
-        private static final CssMetaData<RXPasswordField, DisplayMode> BUTTON_DISPLAY_MODE = new CssMetaData<RXPasswordField, DisplayMode>(
+
+        private static final CssMetaData<OldRXPasswordField, DisplayMode> BUTTON_DISPLAY_MODE = new CssMetaData<OldRXPasswordField, DisplayMode>(
                 "-rx-button-display", new EnumConverter<DisplayMode>(DisplayMode.class), DisplayMode.AUTO) {
             @Override
-            public boolean isSettable(RXPasswordField control) {
+            public boolean isSettable(OldRXPasswordField control) {
                 return control.buttonDisplayMode == null || !control.buttonDisplayMode.isBound();
             }
 
             @Override
-            public StyleableProperty<DisplayMode> getStyleableProperty(RXPasswordField control) {
+            public StyleableProperty<DisplayMode> getStyleableProperty(OldRXPasswordField control) {
                 return control.buttonDisplayModeProperty();
             }
         };
 
-        // 创建一个CSS样式的表
         protected static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {

@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.OldRXPasswordField;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -14,24 +14,16 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
-
 /**
- *
+ * Deprecated historical skin for {@link OldRXPasswordField}. Not intended for new code.
  */
-public class RXPasswordFieldSkin extends TextFieldSkin {
-    /**
-     * 默认的小圆点
-     */
-    public static final char BULLET = '\u25cf';
-    /**
-     * 加密用的字符(取字符串第一个字符); 用于替代默认的小圆点
-     */
+@Deprecated
+public class OldRXPasswordFieldSkin extends TextFieldSkin {
+    public static final char BULLET = '●';
+
     private SimpleStyleableStringProperty echochar;
-    /**
-     * 是否显示密码为明文
-     */
     private SimpleBooleanProperty showPassword;
-    private RXPasswordField control;
+    private OldRXPasswordField control;
     private StackPane btn;
     private ChangeListener<DisplayMode> displayModeChangeListener = (ob, ov, nv) -> {
         setButtonStatus(nv);
@@ -54,10 +46,9 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
 
     InvalidationListener updateListener = ob -> {
         control.setText(control.getText());
-        //control.setShowing(showPasswordProperty().get());
     };
 
-    public RXPasswordFieldSkin(RXPasswordField control) {
+    public OldRXPasswordFieldSkin(OldRXPasswordField control) {
         super(control);
         this.control = control;
         showPasswordProperty().addListener(updateListener);
@@ -68,7 +59,6 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
         btn = new StackPane();
         btn.getStyleClass().add("tf-button");
         btn.setMinSize(16, 16);
-        //btn.setMaxSize(16, 16);
         Region region = new Region();
         region.getStyleClass().add("tf-button-shape");
         btn.getChildren().addAll(region);
@@ -88,7 +78,6 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
             }
         });
         control.buttonDisplayModeProperty().addListener(displayModeChangeListener);
-
     }
 
     private void setButtonStatus(DisplayMode displayMode) {
@@ -99,7 +88,6 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
             btn.visibleProperty().unbind();
             btn.setVisible(false);
         } else if (displayMode == DisplayMode.AUTO) {
-            // btn.setVisible(false);
             btn.visibleProperty().bind(control.focusedProperty());
         }
     }
@@ -122,7 +110,7 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
 
     public final SimpleStyleableStringProperty echocharProperty() {
         if (echochar == null) {
-            echochar = new SimpleStyleableStringProperty(RXPasswordField.StyleableProperties.ECHOCHAR, this,"enchochar",
+            echochar = new SimpleStyleableStringProperty(OldRXPasswordField.StyleableProperties.ECHOCHAR, this, "enchochar",
                     String.valueOf(BULLET));
         }
         return this.echochar;
@@ -141,13 +129,12 @@ public class RXPasswordFieldSkin extends TextFieldSkin {
         control.buttonDisplayModeProperty().removeListener(displayModeChangeListener);
         showPasswordProperty().removeListener(updateListener);
         echocharProperty().removeListener(updateListener);
-        
+
         btn.visibleProperty().unbind();
         btn.layoutXProperty().unbind();
         btn.layoutYProperty().unbind();
-        
+
         getChildren().clear();
         super.dispose();
     }
-
 }

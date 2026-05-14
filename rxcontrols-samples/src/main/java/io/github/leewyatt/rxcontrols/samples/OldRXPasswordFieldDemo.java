@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples;
 
-import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.OldRXPasswordField;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -8,13 +8,13 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Sample application demonstrating {@link RXPasswordField}.
+ * Sample application demonstrating {@link OldRXPasswordField}.
  */
-public class RXPasswordFieldDemo extends Application {
+public class OldRXPasswordFieldDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXPasswordField passwordField = new RXPasswordField("123456abc");
+        OldRXPasswordField passwordField = new OldRXPasswordField("123456abc");
         passwordField.setMaxWidth(160);
         passwordField.setEchochar("&");
         passwordField.setButtonDisplayMode(DisplayMode.AUTO);
@@ -22,7 +22,7 @@ public class RXPasswordFieldDemo extends Application {
 
         VBox root = new VBox(passwordField);
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("RXPasswordField Demo");
+        primaryStage.setTitle("OldRXPasswordField Demo");
         primaryStage.show();
     }
 
