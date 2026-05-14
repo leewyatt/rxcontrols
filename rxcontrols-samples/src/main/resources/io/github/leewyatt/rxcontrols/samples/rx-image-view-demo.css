@@ -1,6 +1,6 @@
 .content-pane {
     -fx-background-color: white;
-    -fx-padding: 20;
+    -fx-padding: 15px;
 }
 
 .control-pane {
@@ -25,8 +25,4 @@
 .tips-label {
     -fx-text-fill: #888;
     -fx-font-size: 12;
-}
-
-.value-label {
-    -fx-min-width: 30;
 }
