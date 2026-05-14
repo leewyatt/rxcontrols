@@ -50,6 +50,7 @@ import javafx.scene.image.Image;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 /**
  * An avatar control that displays an image clipped to a shape.
  *
@@ -504,9 +505,13 @@ public class RXAvatar extends Control {
      * The shape types available for clipping the avatar image.
      */
     public enum ShapeType {
-        /** Circular clip. */
+        /**
+         * Circular clip.
+         */
         CIRCLE,
-        /** Rectangular clip with optional rounded corners. */
+        /**
+         * Rectangular clip with optional rounded corners.
+         */
         SQUARE
     }
 
@@ -514,11 +519,17 @@ public class RXAvatar extends Control {
      * The visual display states of the avatar.
      */
     public enum DisplayState {
-        /** Displaying the image. */
+        /**
+         * Displaying the image.
+         */
         IMAGE,
-        /** Displaying the fallback text. */
+        /**
+         * Displaying the fallback text.
+         */
         TEXT,
-        /** Neither image nor text is available; showing the default icon. */
+        /**
+         * Neither image nor text is available; showing the default icon.
+         */
         EMPTY
     }
 }
