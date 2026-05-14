@@ -88,6 +88,7 @@
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
     <li><a href="#rxHighlightText">RXHighlightText</a></li>
+    <li><a href="#rxImageView">RXImageView</a></li>
     <li><a href="#rxLineButton">RXLineButton</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
@@ -349,6 +350,18 @@ text-flow  — TextFlow<br/>
     </tr>
     </tbody>
 </table>
+
+<h3 id="rxImageView">RXImageView</h3>
+<p class="fxClass">Style class: rx-image-view</p>
+<p>The RXImageView control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.image-group  — Group<br/>
+&emsp;&emsp;.image-view — ImageView (built-in)<br/><br/>
+<p>The clipping shape is supplied via the inherited <code>-fx-shape</code> property
+    from Region; predefined SVG paths are exposed as constants on
+    <code>RXImageView</code> (e.g. <code>SHAPE_CIRCLE</code>, <code>SHAPE_HEXAGON</code>,
+    <code>SHAPE_SHIELD</code>). The image is cover-fit scaled to fill the control
+    bounds; overflow is cropped.</p>
 
 <h3 id="rxLineButton">RXLineButton</h3>
 <p class="fxClass">Style class: rx-line-button</p>

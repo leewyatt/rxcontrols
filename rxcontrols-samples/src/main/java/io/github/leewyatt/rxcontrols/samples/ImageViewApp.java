@@ -1,0 +1,184 @@
+package io.github.leewyatt.rxcontrols.samples;
+
+import io.github.leewyatt.rxcontrols.RXImageView;
+import javafx.application.Application;
+import javafx.beans.binding.Bindings;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Slider;
+import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.SVGPath;
+import javafx.stage.Stage;
+
+/**
+ * Sample application demonstrating {@link RXImageView}.
+ */
+public class ImageViewApp extends Application {
+
+    private static final String[] IMAGE_PATHS = {
+            "/scenery/1.png", "/scenery/2.png", "/scenery/3.png", "/scenery/4.png"
+    };
+
+    private RXImageView imageView;
+
+    @Override
+    public void start(Stage primaryStage) {
+        Image image = new Image(ImageViewApp.class.getResource("/scenery/2.png").toExternalForm());
+        imageView = new RXImageView(image);
+
+        BorderPane root = new BorderPane();
+        root.setCenter(createContentPane());
+        root.setRight(createControlPane());
+
+        Scene scene = new Scene(root, 700, 380);
+        scene.getStylesheets().add(getClass().getResource("image-view-app.css").toExternalForm());
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("RXImageView Demo");
+        primaryStage.show();
+    }
+
+    private Node createContentPane() {
+        StackPane pane = new StackPane(imageView);
+        pane.getStyleClass().add("content-pane");
+        return pane;
+    }
+
+    private Node createControlPane() {
+        Label title = new Label("RXImageView");
+        title.getStyleClass().add("title-label");
+
+        // ==================== Image ====================
+        ComboBox<String> imageBox = new ComboBox<>();
+        imageBox.getItems().add("None");
+        for (int i = 0; i < IMAGE_PATHS.length; i++) {
+            imageBox.getItems().add("Image " + (i + 1));
+        }
+        imageBox.setValue("Image 2");
+        imageBox.setMaxWidth(Double.MAX_VALUE);
+        imageBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if ("None".equals(newVal)) {
+                imageView.setImage(null);
+            } else {
+                int index = Integer.parseInt(newVal.replace("Image ", "")) - 1;
+                imageView.setImage(new Image(
+                        ImageViewApp.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
+            }
+        });
+
+        // ==================== Shape ====================
+        ComboBox<String> shapeBox = new ComboBox<>();
+        shapeBox.getItems().addAll("None", "Circle", "Hexagon", "Diamond", "Star", "Rounded Rect",
+                "Heart", "Cross", "Octagon", "Shield", "Drop");
+        shapeBox.setMaxWidth(Double.MAX_VALUE);
+        shapeBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            String svgContent = shapeNameToSvg(newVal);
+            if (svgContent == null) {
+                imageView.setShape(null);
+            } else {
+                SVGPath svgPath = new SVGPath();
+                svgPath.setContent(svgContent);
+                imageView.setShape(svgPath);
+            }
+        });
+        shapeBox.getSelectionModel().select("Shield");
+
+        // ==================== Width / Height ====================
+        Slider widthSlider = new Slider(20, 300, 100);
+        widthSlider.setMaxWidth(Double.MAX_VALUE);
+        imageView.prefWidthProperty().bind(widthSlider.valueProperty());
+        Label widthValue = createValueLabel(widthSlider);
+
+        Slider heightSlider = new Slider(20, 300, 100);
+        heightSlider.setMaxWidth(Double.MAX_VALUE);
+        imageView.prefHeightProperty().bind(heightSlider.valueProperty());
+        Label heightValue = createValueLabel(heightSlider);
+
+        // ==================== Grid ====================
+        GridPane grid = new GridPane();
+        grid.getStyleClass().add("control-grid");
+
+        ColumnConstraints labelCol = new ColumnConstraints();
+        ColumnConstraints controlCol = new ColumnConstraints();
+        controlCol.setHgrow(Priority.ALWAYS);
+        controlCol.setFillWidth(true);
+        ColumnConstraints valueCol = new ColumnConstraints();
+        grid.getColumnConstraints().addAll(labelCol, controlCol, valueCol);
+
+        int row = 0;
+        grid.add(new Label("Image"), 0, row);
+        grid.add(imageBox, 1, row, 2, 1);
+
+        row++;
+        grid.add(new Label("Shape"), 0, row);
+        grid.add(shapeBox, 1, row, 2, 1);
+
+        row++;
+        grid.add(new Separator(), 0, row, 3, 1);
+
+        row++;
+        grid.addRow(row, new Label("Width"), widthSlider, widthValue);
+
+        row++;
+        grid.addRow(row, new Label("Height"), heightSlider, heightValue);
+
+        // ==================== Tips & Layout ====================
+        Label tips = new Label("Cover-fit: image fills the shape area, preserving aspect ratio, cropping overflow.");
+        tips.setWrapText(true);
+        tips.getStyleClass().add("tips-label");
+
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+
+        VBox panel = new VBox(title, new Separator(), grid, spacer, new Separator(), tips);
+        panel.getStyleClass().add("control-pane");
+        return panel;
+    }
+
+    private Label createValueLabel(Slider slider) {
+        Label label = new Label();
+        label.textProperty().bind(Bindings.format("%.0f", slider.valueProperty()));
+        label.getStyleClass().add("value-label");
+        return label;
+    }
+
+    private String shapeNameToSvg(String name) {
+        switch (name) {
+            case "Circle":
+                return RXImageView.SHAPE_CIRCLE;
+            case "Hexagon":
+                return RXImageView.SHAPE_HEXAGON;
+            case "Diamond":
+                return RXImageView.SHAPE_DIAMOND;
+            case "Star":
+                return RXImageView.SHAPE_STAR;
+            case "Rounded Rect":
+                return RXImageView.SHAPE_ROUNDED_RECT;
+            case "Heart":
+                return RXImageView.SHAPE_HEART;
+            case "Cross":
+                return RXImageView.SHAPE_CROSS;
+            case "Octagon":
+                return RXImageView.SHAPE_OCTAGON;
+            case "Shield":
+                return RXImageView.SHAPE_SHIELD;
+            case "Drop":
+                return RXImageView.SHAPE_DROP;
+            default:
+                return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
