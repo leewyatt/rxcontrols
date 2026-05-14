@@ -23,35 +23,25 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A general-purpose image view that scales its image with cover-fit and
- * optionally clips it to an arbitrary SVG path.
+ * An image view that scales its image with cover-fit and optionally clips
+ * it to an arbitrary SVG path.
  *
- * <p>The image is scaled to fill the entire control area while preserving its
- * aspect ratio; any overflow is cropped. When {@link #clipSvgPathProperty()
- * clipSvgPath} is set, the visible region is clipped to the given SVG path
- * (defined in a 0-100 coordinate space, scaled and centered to fit the
- * control bounds). A path that fails to parse or has degenerate geometry is
- * treated as no clip.</p>
+ * <p>Cover-fit: image fills the control bounds while preserving aspect ratio;
+ * overflow is cropped. Clipping is controlled by {@link #clipSvgPathProperty()
+ * clipSvgPath}. When the image is {@code null}, fails to load, or its metadata
+ * is unavailable, the control renders nothing — there is no built-in
+ * placeholder.</p>
  *
- * <p>When the image is {@code null}, fails to load, or its metadata has not
- * yet been parsed, the control renders nothing (no placeholder). Users who
- * need a placeholder should overlay one in a parent container.</p>
- *
- * <p>Predefined SVG path constants are provided for common shapes:</p>
- * <ul>
- *   <li>{@link #SHAPE_CIRCLE}, {@link #SHAPE_HEXAGON}, {@link #SHAPE_DIAMOND}</li>
- *   <li>{@link #SHAPE_STAR}, {@link #SHAPE_ROUNDED_RECT}, {@link #SHAPE_HEART}</li>
- *   <li>{@link #SHAPE_CROSS}, {@link #SHAPE_OCTAGON}, {@link #SHAPE_SHIELD}, {@link #SHAPE_DROP}</li>
- * </ul>
+ * <p>Predefined SVG path constants for common shapes: {@link #SHAPE_CIRCLE},
+ * {@link #SHAPE_HEXAGON}, {@link #SHAPE_DIAMOND}, {@link #SHAPE_STAR},
+ * {@link #SHAPE_ROUNDED_RECT}, {@link #SHAPE_HEART}, {@link #SHAPE_CROSS},
+ * {@link #SHAPE_OCTAGON}, {@link #SHAPE_SHIELD}, {@link #SHAPE_DROP}.</p>
  *
  * <pre>{@code
- * // Basic usage — rectangular, no clipping
  * RXImageView view = new RXImageView(image);
- *
- * // Hexagon clipping via built-in constant
  * view.setClipSvgPath(RXImageView.SHAPE_HEXAGON);
  *
- * // Arbitrary shape via CSS
+ * // Or via CSS:
  * // .my-image { -fx-clip-svg-path: "M50,0 L100,50 L50,100 L0,50 Z"; }
  * }</pre>
  */
@@ -124,8 +114,6 @@ public class RXImageView extends Region {
     public static final String SHAPE_DROP =
             "M50,0 Q80,40 80,60 A30,30 0 1,1 20,60 Q20,40 50,0 Z";
 
-    // ==================== Internal Nodes ====================
-
     private final ImageView internalImageView;
 
     // ==================== Image State ====================
@@ -133,27 +121,18 @@ public class RXImageView extends Region {
     private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image");
 
     /**
-     * The Image currently being tracked for metadata readiness. Held
-     * separately from {@link #image} so that on image change the previous
-     * Image's widthProperty listener can be detached using the old reference.
+     * Image currently tracked for metadata readiness.
      */
     private Image trackedImage;
 
     /**
-     * Weak wrapper actually registered on Image.widthProperty(). Declared
-     * before {@link #metadataReadyListener} so the listener lambda's
-     * simple-name reference to it is a legal backward reference per
-     * JLS 8.3.3. Non-final due to JLS definite-assignment rules — it is
-     * initialized exactly once, in the constructor.
+     * Weak wrapper around {@link #metadataReadyListener}; registered on
+     * the tracked image's widthProperty.
      */
     private WeakInvalidationListener weakMetadataReadyListener;
 
     /**
-     * Strong-held real listener. {@link #weakMetadataReadyListener} forwards
-     * to this one. Keeping a strong reference here ensures the wrapper's
-     * referent is not GC'd while the RXImageView is reachable; once
-     * RXImageView becomes unreachable the wrapper detects the cleared
-     * referent and removes itself from Image.widthProperty() automatically.
+     * Strong-held listener, weakly wrapped for registration.
      */
     private final InvalidationListener metadataReadyListener = obs -> {
         Image img = trackedImage;
@@ -175,16 +154,12 @@ public class RXImageView extends Region {
     };
 
     /**
-     * Cached clip node — rebuilt only when {@link #clipSvgPath} changes;
-     * layout-time only updates scale/translate. {@code null} means "no clip"
-     * (path is null/empty or has degenerate geometry).
+     * Cached clip node, or {@code null} when clipping is disabled.
      */
     private SVGPath cachedClip;
 
     /**
-     * Native bounds of {@link #cachedClip} in its 0-100 coordinate space,
-     * captured once at cache-build time to avoid re-querying
-     * {@link SVGPath#getLayoutBounds()} on every layout pass.
+     * Native bounds of {@link #cachedClip}, captured at cache-build time.
      */
     private double cachedClipBoundsMinX;
     private double cachedClipBoundsMinY;
@@ -228,14 +203,10 @@ public class RXImageView extends Region {
         setImage(image);
     }
 
-    // ==================== User Agent Stylesheet ====================
-
     @Override
     public String getUserAgentStylesheet() {
         return USER_AGENT_STYLESHEET;
     }
-
-    // ==================== Image API ====================
 
     /**
      * The image to display.
@@ -264,13 +235,10 @@ public class RXImageView extends Region {
         image.set(value);
     }
 
-    // ==================== ClipSvgPath API ====================
-
     /**
-     * The SVG path string used to clip the rendered image, defined in a 0-100
-     * coordinate space; scaled and centered to fit the control bounds.
-     * A {@code null} or empty value disables clipping; a path with degenerate
-     * geometry (zero bounds) is also treated as no clip.
+     * SVG path used to clip the rendered image, in 0-100 coordinate space;
+     * scaled and centered to the control bounds. A {@code null}, empty,
+     * or degenerate path disables clipping.
      *
      * @return the clipSvgPath property
      */
@@ -290,14 +258,11 @@ public class RXImageView extends Region {
     /**
      * Sets the SVG path string used to clip the rendered image.
      *
-     * @param value the SVG path content (0-100 coordinate space),
-     *              or {@code null} to disable clipping
+     * @param value the SVG path content, or {@code null} to disable clipping
      */
     public final void setClipSvgPath(String value) {
         clipSvgPath.set(value);
     }
-
-    // ==================== State Updates ====================
 
     private void onImageChanged() {
         Image newImage = image.get();
@@ -335,8 +300,6 @@ public class RXImageView extends Region {
         cachedClipBoundsWidth = bw;
         cachedClipBoundsHeight = bh;
     }
-
-    // ==================== Layout ====================
 
     @Override
     protected void layoutChildren() {
