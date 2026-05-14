@@ -92,13 +92,13 @@ public class RXAvatar extends Control {
     // ==================== Pseudo-classes ====================
 
     /** Active when the avatar is displaying the image. */
-    private static final PseudoClass IMAGE_PSEUDO_CLASS = PseudoClass.getPseudoClass("image");
+    private static final PseudoClass SHOWING_IMAGE_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-image");
 
     /** Active when the avatar is displaying the fallback text. */
-    private static final PseudoClass TEXT_PSEUDO_CLASS = PseudoClass.getPseudoClass("text");
+    private static final PseudoClass SHOWING_TEXT_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-text");
 
-    /** Active when neither image nor text is available. */
-    private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
+    /** Active when neither image nor text is available, so the default icon is shown. */
+    private static final PseudoClass SHOWING_DEFAULT_ICON_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing-default-icon");
 
     private Image currentImage;
 
@@ -206,9 +206,9 @@ public class RXAvatar extends Control {
         }
 
         displayState.set(state);
-        pseudoClassStateChanged(IMAGE_PSEUDO_CLASS, state == DisplayState.IMAGE);
-        pseudoClassStateChanged(TEXT_PSEUDO_CLASS, state == DisplayState.TEXT);
-        pseudoClassStateChanged(EMPTY_PSEUDO_CLASS, state == DisplayState.EMPTY);
+        pseudoClassStateChanged(SHOWING_IMAGE_PSEUDO_CLASS, state == DisplayState.IMAGE);
+        pseudoClassStateChanged(SHOWING_TEXT_PSEUDO_CLASS, state == DisplayState.TEXT);
+        pseudoClassStateChanged(SHOWING_DEFAULT_ICON_PSEUDO_CLASS, state == DisplayState.EMPTY);
     }
 
     // ==================== Image ====================
