@@ -17,7 +17,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 
 /**
@@ -25,8 +24,16 @@ import javafx.stage.Stage;
  */
 public class RXImageViewDemo extends Application {
 
+    private static final String OPTION_NONE = "None";
+    private static final String IMAGE_LABEL_PREFIX = "Image ";
+
     private static final String[] IMAGE_PATHS = {
             "/scenery/1.png", "/scenery/2.png", "/scenery/3.png", "/scenery/4.png"
+    };
+
+    private static final String[] SHAPE_NAMES = {
+            OPTION_NONE, "Circle", "Hexagon", "Diamond", "Star", "Rounded Rect",
+            "Heart", "Cross", "Octagon", "Shield", "Drop"
     };
 
     private RXImageView imageView;
@@ -59,17 +66,17 @@ public class RXImageViewDemo extends Application {
 
         // ==================== Image ====================
         ComboBox<String> imageBox = new ComboBox<>();
-        imageBox.getItems().add("None");
+        imageBox.getItems().add(OPTION_NONE);
         for (int i = 0; i < IMAGE_PATHS.length; i++) {
-            imageBox.getItems().add("Image " + (i + 1));
+            imageBox.getItems().add(IMAGE_LABEL_PREFIX + (i + 1));
         }
-        imageBox.setValue("Image 2");
+        imageBox.setValue(IMAGE_LABEL_PREFIX + "2");
         imageBox.setMaxWidth(Double.MAX_VALUE);
-        imageBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if ("None".equals(newVal)) {
+        imageBox.getSelectionModel().selectedIndexProperty().addListener((obs, oldIdx, newIdx) -> {
+            int index = newIdx.intValue() - 1;
+            if (index < 0 || index >= IMAGE_PATHS.length) {
                 imageView.setImage(null);
             } else {
-                int index = Integer.parseInt(newVal.replace("Image ", "")) - 1;
                 imageView.setImage(new Image(
                         RXImageViewDemo.class.getResource(IMAGE_PATHS[index]).toExternalForm()));
             }
@@ -77,18 +84,10 @@ public class RXImageViewDemo extends Application {
 
         // ==================== Shape ====================
         ComboBox<String> shapeBox = new ComboBox<>();
-        shapeBox.getItems().addAll("None", "Circle", "Hexagon", "Diamond", "Star", "Rounded Rect",
-                "Heart", "Cross", "Octagon", "Shield", "Drop");
+        shapeBox.getItems().addAll(SHAPE_NAMES);
         shapeBox.setMaxWidth(Double.MAX_VALUE);
         shapeBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            String svgContent = shapeNameToSvg(newVal);
-            if (svgContent == null) {
-                imageView.setShape(null);
-            } else {
-                SVGPath svgPath = new SVGPath();
-                svgPath.setContent(svgContent);
-                imageView.setShape(svgPath);
-            }
+            imageView.setClipSvgPath(shapeNameToSvg(newVal));
         });
         shapeBox.getSelectionModel().select("Shield");
 
@@ -152,6 +151,9 @@ public class RXImageViewDemo extends Application {
     }
 
     private String shapeNameToSvg(String name) {
+        if (name == null) {
+            return null;
+        }
         switch (name) {
             case "Circle":
                 return RXImageView.SHAPE_CIRCLE;

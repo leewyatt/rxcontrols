@@ -1,54 +1,66 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.skins.RXImageViewSkin;
-
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.scene.control.Control;
-import javafx.scene.control.Skin;
+import javafx.css.CssMetaData;
+import javafx.css.SimpleStyleableStringProperty;
+import javafx.css.Styleable;
+import javafx.css.StyleableProperty;
+import javafx.css.StyleableStringProperty;
+import javafx.css.converter.StringConverter;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Region;
+import javafx.scene.shape.SVGPath;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * A general-purpose image display control that clips the image to an arbitrary
- * shape with cover-fit scaling.
+ * A general-purpose image view that scales its image with cover-fit and
+ * optionally clips it to an arbitrary SVG path.
  *
  * <p>The image is scaled to fill the entire control area while preserving its
- * aspect ratio; any overflow is cropped. The clipping shape is defined by
- * the inherited {@link #shapeProperty()} from {@link javafx.scene.layout.Region}.</p>
+ * aspect ratio; any overflow is cropped. When {@link #clipSvgPathProperty()
+ * clipSvgPath} is set, the visible region is clipped to the given SVG path
+ * (defined in a 0-100 coordinate space, scaled and centered to fit the
+ * control bounds). A path that fails to parse or has degenerate geometry is
+ * treated as no clip.</p>
  *
- * <p>When no shape is set, the image is displayed as a full rectangle with no
- * clipping (equivalent to a standard {@code ImageView} with cover-fit).</p>
+ * <p>When the image is {@code null}, fails to load, or its metadata has not
+ * yet been parsed, the control renders nothing (no placeholder). Users who
+ * need a placeholder should overlay one in a parent container.</p>
  *
  * <p>Predefined SVG path constants are provided for common shapes:</p>
  * <ul>
- *   <li>{@link #SHAPE_CIRCLE}</li>
- *   <li>{@link #SHAPE_HEXAGON}</li>
- *   <li>{@link #SHAPE_DIAMOND}</li>
- *   <li>{@link #SHAPE_STAR}</li>
- *   <li>{@link #SHAPE_ROUNDED_RECT}</li>
+ *   <li>{@link #SHAPE_CIRCLE}, {@link #SHAPE_HEXAGON}, {@link #SHAPE_DIAMOND}</li>
+ *   <li>{@link #SHAPE_STAR}, {@link #SHAPE_ROUNDED_RECT}, {@link #SHAPE_HEART}</li>
+ *   <li>{@link #SHAPE_CROSS}, {@link #SHAPE_OCTAGON}, {@link #SHAPE_SHIELD}, {@link #SHAPE_DROP}</li>
  * </ul>
  *
  * <pre>{@code
  * // Basic usage — rectangular, no clipping
  * RXImageView view = new RXImageView(image);
  *
- * // Hexagon clipping via constant
- * SVGPath hexagon = new SVGPath();
- * hexagon.setContent(RXImageView.SHAPE_HEXAGON);
- * view.setShape(hexagon);
+ * // Hexagon clipping via built-in constant
+ * view.setClipSvgPath(RXImageView.SHAPE_HEXAGON);
  *
  * // Arbitrary shape via CSS
- * // .my-image { -fx-shape: "M50,0 L100,50 L50,100 L0,50 Z"; }
+ * // .my-image { -fx-clip-svg-path: "M50,0 L100,50 L50,100 L0,50 Z"; }
  * }</pre>
  */
-public class RXImageView extends Control {
+public class RXImageView extends Region {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-image-view";
     private static final String USER_AGENT_STYLESHEET =
             RXImageView.class.getResource("/rx-controls.css").toExternalForm();
+    private static final double DEFAULT_SIZE = 100;
 
     // ==================== Shape Constants ====================
 
@@ -112,13 +124,72 @@ public class RXImageView extends Control {
     public static final String SHAPE_DROP =
             "M50,0 Q80,40 80,60 A30,30 0 1,1 20,60 Q20,40 50,0 Z";
 
-    // ==================== Image Tracking ====================
+    // ==================== Internal Nodes ====================
 
-    private Image currentImage;
+    private final ImageView internalImageView;
 
-    private final InvalidationListener imageProgressListener = obs -> requestLayout();
-    private final WeakInvalidationListener weakImageProgressListener =
-            new WeakInvalidationListener(imageProgressListener);
+    // ==================== Image State ====================
+
+    private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image");
+
+    /**
+     * The Image currently being tracked for metadata readiness. Held
+     * separately from {@link #image} so that on image change the previous
+     * Image's widthProperty listener can be detached using the old reference.
+     */
+    private Image trackedImage;
+
+    /**
+     * Weak wrapper actually registered on Image.widthProperty(). Declared
+     * before {@link #metadataReadyListener} so the listener lambda's
+     * simple-name reference to it is a legal backward reference per
+     * JLS 8.3.3. Non-final due to JLS definite-assignment rules — it is
+     * initialized exactly once, in the constructor.
+     */
+    private WeakInvalidationListener weakMetadataReadyListener;
+
+    /**
+     * Strong-held real listener. {@link #weakMetadataReadyListener} forwards
+     * to this one. Keeping a strong reference here ensures the wrapper's
+     * referent is not GC'd while the RXImageView is reachable; once
+     * RXImageView becomes unreachable the wrapper detects the cleared
+     * referent and removes itself from Image.widthProperty() automatically.
+     */
+    private final InvalidationListener metadataReadyListener = obs -> {
+        Image img = trackedImage;
+        if (img != null && img.getWidth() > 0) {
+            img.widthProperty().removeListener(weakMetadataReadyListener);
+            requestLayout();
+        }
+    };
+
+    // ==================== Clip State ====================
+
+    private final StyleableStringProperty clipSvgPath = new SimpleStyleableStringProperty(
+            StyleableProperties.CLIP_SVG_PATH, this, "clipSvgPath", null) {
+        @Override
+        protected void invalidated() {
+            rebuildClipCache();
+            requestLayout();
+        }
+    };
+
+    /**
+     * Cached clip node — rebuilt only when {@link #clipSvgPath} changes;
+     * layout-time only updates scale/translate. {@code null} means "no clip"
+     * (path is null/empty or has degenerate geometry).
+     */
+    private SVGPath cachedClip;
+
+    /**
+     * Native bounds of {@link #cachedClip} in its 0-100 coordinate space,
+     * captured once at cache-build time to avoid re-querying
+     * {@link SVGPath#getLayoutBounds()} on every layout pass.
+     */
+    private double cachedClipBoundsMinX;
+    private double cachedClipBoundsMinY;
+    private double cachedClipBoundsWidth;
+    private double cachedClipBoundsHeight;
 
     // ==================== Constructors ====================
 
@@ -127,17 +198,19 @@ public class RXImageView extends Control {
      */
     public RXImageView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setFocusTraversable(false);
-        imageProperty().addListener(obs -> onImageChanged());
 
-        // Lock scaleShape and centerShape — this control always scales and
-        // centers the shape to fill the entire bounds.
-        scaleShapeProperty().bind(new SimpleBooleanProperty(true));
-        centerShapeProperty().bind(new SimpleBooleanProperty(true));
+        weakMetadataReadyListener = new WeakInvalidationListener(metadataReadyListener);
+
+        internalImageView = new ImageView();
+        internalImageView.setSmooth(true);
+        internalImageView.setPreserveRatio(false);
+        getChildren().add(internalImageView);
+
+        image.addListener(obs -> onImageChanged());
     }
 
     /**
-     * Creates a new image view with the given image URL.
+     * Creates a new image view with the given image URL (background-loaded).
      *
      * @param imageUrl the image URL
      */
@@ -155,20 +228,14 @@ public class RXImageView extends Control {
         setImage(image);
     }
 
-    @Override
-    protected Skin<?> createDefaultSkin() {
-        return new RXImageViewSkin(this);
-    }
+    // ==================== User Agent Stylesheet ====================
 
     @Override
     public String getUserAgentStylesheet() {
         return USER_AGENT_STYLESHEET;
     }
 
-    // ==================== Image ====================
-
-    private final ObjectProperty<Image> image =
-            new SimpleObjectProperty<>(this, "image");
+    // ==================== Image API ====================
 
     /**
      * The image to display.
@@ -191,22 +258,178 @@ public class RXImageView extends Control {
     /**
      * Sets the image to display.
      *
-     * @param image the image
+     * @param value the image, or {@code null} to clear
      */
-    public final void setImage(Image image) {
-        this.image.set(image);
+    public final void setImage(Image value) {
+        image.set(value);
     }
 
-    // ==================== Image Change Tracking ====================
+    // ==================== ClipSvgPath API ====================
+
+    /**
+     * The SVG path string used to clip the rendered image, defined in a 0-100
+     * coordinate space; scaled and centered to fit the control bounds.
+     * A {@code null} or empty value disables clipping; a path with degenerate
+     * geometry (zero bounds) is also treated as no clip.
+     *
+     * @return the clipSvgPath property
+     */
+    public final StyleableStringProperty clipSvgPathProperty() {
+        return clipSvgPath;
+    }
+
+    /**
+     * Returns the current clipping SVG path string.
+     *
+     * @return the clip path, or {@code null} if clipping is disabled
+     */
+    public final String getClipSvgPath() {
+        return clipSvgPath.get();
+    }
+
+    /**
+     * Sets the SVG path string used to clip the rendered image.
+     *
+     * @param value the SVG path content (0-100 coordinate space),
+     *              or {@code null} to disable clipping
+     */
+    public final void setClipSvgPath(String value) {
+        clipSvgPath.set(value);
+    }
+
+    // ==================== State Updates ====================
 
     private void onImageChanged() {
-        if (currentImage != null) {
-            currentImage.progressProperty().removeListener(weakImageProgressListener);
+        Image newImage = image.get();
+        internalImageView.setImage(newImage);
+
+        if (trackedImage != null) {
+            trackedImage.widthProperty().removeListener(weakMetadataReadyListener);
         }
-        currentImage = getImage();
-        if (currentImage != null) {
-            currentImage.progressProperty().addListener(weakImageProgressListener);
+        trackedImage = newImage;
+        if (trackedImage != null && trackedImage.getWidth() <= 0) {
+            trackedImage.widthProperty().addListener(weakMetadataReadyListener);
         }
         requestLayout();
+    }
+
+    private void rebuildClipCache() {
+        String content = clipSvgPath.get();
+        if (content == null || content.isEmpty()) {
+            cachedClip = null;
+            return;
+        }
+        SVGPath clip = new SVGPath();
+        clip.setContent(content);
+        Bounds bounds = clip.getLayoutBounds();
+        double bw = bounds.getWidth();
+        double bh = bounds.getHeight();
+        if (bw <= 0 || bh <= 0) {
+            // Degenerate / unparseable path — treat as no clip.
+            cachedClip = null;
+            return;
+        }
+        cachedClip = clip;
+        cachedClipBoundsMinX = bounds.getMinX();
+        cachedClipBoundsMinY = bounds.getMinY();
+        cachedClipBoundsWidth = bw;
+        cachedClipBoundsHeight = bh;
+    }
+
+    // ==================== Layout ====================
+
+    @Override
+    protected void layoutChildren() {
+        Insets insets = getInsets();
+        double w = getWidth() - insets.getLeft() - insets.getRight();
+        double h = getHeight() - insets.getTop() - insets.getBottom();
+
+        Image img = internalImageView.getImage();
+        if (img == null || img.isError()
+                || img.getWidth() <= 0 || img.getHeight() <= 0
+                || w <= 0 || h <= 0) {
+            internalImageView.setVisible(false);
+            return;
+        }
+
+        internalImageView.setVisible(true);
+
+        double imgW = img.getWidth();
+        double imgH = img.getHeight();
+
+        // Cover-fit: scale image to fill w*h, crop overflow via viewport.
+        double scale = Math.max(w / imgW, h / imgH);
+        double viewportW = w / scale;
+        double viewportH = h / scale;
+        double viewportX = (imgW - viewportW) / 2;
+        double viewportY = (imgH - viewportH) / 2;
+        internalImageView.setViewport(new Rectangle2D(viewportX, viewportY, viewportW, viewportH));
+
+        internalImageView.setFitWidth(w);
+        internalImageView.setFitHeight(h);
+
+        if (cachedClip != null) {
+            cachedClip.setScaleX(w / cachedClipBoundsWidth);
+            cachedClip.setScaleY(h / cachedClipBoundsHeight);
+            cachedClip.setTranslateX(w / 2 - (cachedClipBoundsMinX + cachedClipBoundsWidth / 2));
+            cachedClip.setTranslateY(h / 2 - (cachedClipBoundsMinY + cachedClipBoundsHeight / 2));
+            internalImageView.setClip(cachedClip);
+        } else {
+            internalImageView.setClip(null);
+        }
+
+        internalImageView.relocate(insets.getLeft(), insets.getTop());
+    }
+
+    @Override
+    protected double computePrefWidth(double height) {
+        Insets insets = getInsets();
+        return insets.getLeft() + DEFAULT_SIZE + insets.getRight();
+    }
+
+    @Override
+    protected double computePrefHeight(double width) {
+        Insets insets = getInsets();
+        return insets.getTop() + DEFAULT_SIZE + insets.getBottom();
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static class StyleableProperties {
+        private static final CssMetaData<RXImageView, String> CLIP_SVG_PATH =
+                new CssMetaData<>("-fx-clip-svg-path", StringConverter.getInstance(), null) {
+                    @Override
+                    public boolean isSettable(RXImageView control) {
+                        return !control.clipSvgPath.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<String> getStyleableProperty(RXImageView control) {
+                        return control.clipSvgPath;
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(Region.getClassCssMetaData());
+            styleables.add(CLIP_SVG_PATH);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
+        return getClassCssMetaData();
     }
 }

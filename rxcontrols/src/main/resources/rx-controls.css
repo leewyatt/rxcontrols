@@ -169,7 +169,3 @@
     -fx-max-height: 0px;
 }
 
-/* image view */
-.rx-image-view {
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0, 0, 0);
-}
