@@ -22,9 +22,14 @@ import javafx.scene.text.HitInfo;
  * one of the rxcontrols {@code RX*FieldSkin} classes.
  * <p>
  * Contract for the supplied observables: {@code effectiveLeft} and
- * {@code effectiveRight} must not resolve to the same {@link Node} instance at
- * the same time — a JavaFX {@code Node} can only have one parent, and the
- * second slot will fail to install its wrapper.
+ * {@code effectiveRight} should not resolve to the same {@link Node} instance
+ * at the same time. {@link io.github.leewyatt.rxcontrols.RXTextField}
+ * enforces this for its own setters by clearing the opposite slot when the
+ * same node is moved across — see its slot migration semantics. Subclasses
+ * that bypass {@code RXTextField}'s setters (or feed in custom effective
+ * observables) are responsible for the same uniqueness; if both observables
+ * resolve to the same node, only the right wrapper will keep it (JavaFX
+ * reparents the node) and the left wrapper will render empty.
  */
 public class RXFieldBaseSkin extends TextFieldSkin {
 
@@ -70,9 +75,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         Node newLeft = effectiveLeft.getValue();
         Node newRight = effectiveRight.getValue();
 
-        // Detach BOTH old wrappers before constructing any new wrapper, so that
-        // a node moving from one slot to the other (e.g. setRight(n) then
-        // setLeft(n)) is properly orphaned before being re-parented.
+        // Release both wrappers before constructing any new wrapper, so that
+        // user nodes are fully detached from old parents before being
+        // re-parented into freshly created wrappers below.
         leftWrapper = releaseWrapper(leftWrapper);
         rightWrapper = releaseWrapper(rightWrapper);
 

@@ -16,8 +16,14 @@ import javafx.scene.control.TextField;
  * "clear" / "reveal" affordance — callers compose those with
  * {@link #setLeft(Node)} / {@link #setRight(Node)}.
  * <p>
- * The same {@link Node} instance must not be assigned to both slots at the
- * same time — a JavaFX {@link Node} can only have one parent.
+ * <b>Slot migration semantics.</b> A single {@link Node} instance is moved
+ * between slots rather than displayed in both: assigning a node to one slot
+ * via the setter automatically clears the opposite slot if it currently holds
+ * the same instance. This mirrors how {@link javafx.scene.layout.BorderPane}
+ * treats its region properties. If the opposite slot is bound via JavaFX
+ * binding, the automatic clear is skipped (the JavaFX binding contract takes
+ * precedence) and concurrent occupancy of both slots by the same node is
+ * unsupported — callers using bindings must arrange uniqueness themselves.
  */
 public class RXTextField extends TextField {
 
@@ -32,6 +38,16 @@ public class RXTextField extends TextField {
     public RXTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        left.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == right.get() && !right.isBound()) {
+                right.set(null);
+            }
+        });
+        right.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == left.get() && !left.isBound()) {
+                left.set(null);
+            }
+        });
     }
 
     @Override

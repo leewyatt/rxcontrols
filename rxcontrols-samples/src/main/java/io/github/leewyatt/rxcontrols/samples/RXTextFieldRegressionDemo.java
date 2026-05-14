@@ -148,10 +148,8 @@ public class RXTextFieldRegressionDemo extends Application {
         Button move = new Button("move left/right");
         move.setOnAction(event -> {
             if (field.getLeft() == reusable) {
-                field.setLeft(null);
                 field.setRight(reusable);
             } else {
-                field.setRight(null);
                 field.setLeft(reusable);
             }
         });
