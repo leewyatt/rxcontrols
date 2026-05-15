@@ -1,18 +1,16 @@
-/* Regression demo for ControlsFX issue #705 in RXFieldBaseSkin.
+/* Padding behaviour comparison: RXTextField vs ControlsFX CustomTextField.
  *
- * Three TextField-like rows share the same exaggerated padding (24 16) so
- * the 24px top/bottom padding region is visible (yellow) inside the red
- * outer border. After the fix, all three rows should look vertically aligned:
- * the colored .left-wrapper / .right-wrapper rectangles must leave the same
- * 24px yellow band at the top and bottom that [1] and [2] do.
+ * All five rows share identical -fx-padding (24 16), border (red), and
+ * background (yellow padding region) so the visual differences come purely
+ * from each skin's layoutChildren algorithm.
  *
- * Regression signal: if [3]'s blue / pink wrapper rectangles span the entire
- * red border vertically (cover the yellow padding band), the y/h pass-through
- * fix in RXFieldBaseSkin.layoutChildren has regressed.
+ * What to look for is documented in RXTextFieldPaddingBugDemo.java's hint Label.
  */
 
 .reference,
-.bug-demo {
+.bug-demo,
+.reference-cfx,
+.bug-demo-cfx {
     -fx-padding: 24 16;
     -fx-background-color: #fff8d4;          /* yellow padding region */
     -fx-border-color: red;
@@ -22,19 +20,48 @@
     -fx-font-size: 13;
 }
 
-/* Highlight wrapper bounds so we can see where the skin actually lays them out.
- * After the fix the colored boxes should span only the inner (content) region
- * and leave the yellow padding band visible at the top and bottom.
+/* RX wrapper bounds. After R3-#1 the wrappers span the full control height
+ * (touch the red border top/bottom) — that is by design, NOT a regression.
+ * The text Y baseline is the invariant that still must respect padding.
+ *
+ * The 0 3 0 3 padding mirrors ControlsFX's internal customtextfield.css
+ * (.left-pane / .right-pane both ship with 0 3 0 3) so the colored
+ * rectangles render at the same width in both implementations and the
+ * eye can focus on the layout algorithm (edge-hugging, text-baseline,
+ * horizontal-gap) instead of wrapper-size differences. This is for the
+ * regression demo's comparison fairness only — RX does NOT ship this
+ * padding in rx-controls.css.
  */
 .bug-demo > .left-wrapper {
     -fx-background-color: rgba(0, 128, 255, 0.45);
+    -fx-padding: 0 3 0 3;
 }
 
 .bug-demo > .right-wrapper {
     -fx-background-color: rgba(255, 0, 128, 0.45);
+    -fx-padding: 0 3 0 3;
 }
 
 .bug-demo > .right-wrapper .button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 0 4;
+}
+
+/* ControlsFX substructure uses .left-pane / .right-pane (not -wrapper).
+ * Same colors as the RX rows so eyeballing horizontal gap and full-height
+ * span is apples to apples.
+ */
+.bug-demo-cfx .left-pane {
+    -fx-background-color: rgba(0, 128, 255, 0.45);
+}
+
+.bug-demo-cfx .right-pane {
+    -fx-background-color: rgba(255, 0, 128, 0.45);
+}
+
+.bug-demo-cfx .right-pane .button {
     -fx-background-color: transparent;
     -fx-text-fill: white;
     -fx-font-weight: bold;
@@ -45,4 +72,5 @@
     -fx-font-family: "monospace";
     -fx-text-fill: #444;
     -fx-padding: 6 0 0 0;
+    -fx-font-size: 11;
 }

@@ -127,22 +127,31 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
+        final double topInset = snappedTopInset();
+        final double bottomInset = snappedBottomInset();
+        final double leftInset = snappedLeftInset();
+        final double rightInset = snappedRightInset();
+        final double fullH = h + topInset + bottomInset;
+
         final double leftWidth = leftWrapper == null
                 ? 0.0
-                : snapSizeX(leftWrapper.prefWidth(h));
+                : snapSizeX(leftWrapper.prefWidth(fullH));
         final double rightWidth = rightWrapper == null
                 ? 0.0
-                : snapSizeX(rightWrapper.prefWidth(h));
+                : snapSizeX(rightWrapper.prefWidth(fullH));
         final double innerWidth = Math.max(0.0, w - leftWidth - rightWidth);
 
         super.layoutChildren(x + leftWidth, y, innerWidth, h);
 
+        // Wrappers sit flush against the control's outer bounds (ignoring the
+        // control's own -fx-padding) so icons can hug the field edges, matching
+        // ControlsFX CustomTextField. The control's padding still applies to
+        // the text content via the super.layoutChildren call above.
         if (leftWrapper != null) {
-            leftWrapper.resizeRelocate(x, y, leftWidth, h);
+            leftWrapper.resizeRelocate(x - leftInset, y - topInset, leftWidth, fullH);
         }
-
         if (rightWrapper != null) {
-            rightWrapper.resizeRelocate(x + w - rightWidth, y, rightWidth, h);
+            rightWrapper.resizeRelocate(x + w + rightInset - rightWidth, y - topInset, rightWidth, fullH);
         }
     }
 

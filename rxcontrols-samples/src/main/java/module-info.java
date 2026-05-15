@@ -7,6 +7,7 @@ module rxcontrols.samples {
     requires javafx.media;
     requires javafx.swing;
     requires java.desktop;
+    requires org.controlsfx.controls;
 
     exports io.github.leewyatt.rxcontrols.samples.carousel;
     exports io.github.leewyatt.rxcontrols.samples.carousel.control;
