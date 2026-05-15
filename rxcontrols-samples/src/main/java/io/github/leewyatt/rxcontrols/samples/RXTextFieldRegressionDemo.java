@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.skins.RXTextFieldSkin;
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -42,10 +43,12 @@ public class RXTextFieldRegressionDemo extends Application {
                 new Label("5. Prompt fill: prompt text should be green"),
                 createPromptFillCheck(),
                 new Label("6. Node detach: click buttons; neither should throw IllegalArgumentException"),
-                createDetachCheck()
+                createDetachCheck(),
+                new Label("7. textPadding: (a) UA default ~7px gap, (b) EMPTY → 0 gap, (c) (0,12,0,12) → 12px gap, (d) (8,4,8,4) → 4px gap + tall control"),
+                createTextPaddingCheck()
         );
 
-        Scene scene = new Scene(root, 760, 680);
+        Scene scene = new Scene(root, 760, 820);
         scene.getStylesheets().add(getClass().getResource("rx-text-field-regression-demo.css").toExternalForm());
         stage.setScene(scene);
         stage.setTitle("RXTextField regression checks");
@@ -163,6 +166,33 @@ public class RXTextFieldRegressionDemo extends Application {
         HBox row = new HBox(8, field, toggle, clear, restore, move, replaceSkin);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
+    }
+
+    private static VBox createTextPaddingCheck() {
+        RXTextField a = paddingCheckField("(a) no setTextPadding — UA default ~7px gap");
+        // intentionally no setTextPadding call
+
+        RXTextField b = paddingCheckField("(b) setTextPadding(Insets.EMPTY) — wrapper hugs text");
+        b.setTextPadding(Insets.EMPTY);
+
+        RXTextField c = paddingCheckField("(c) setTextPadding(0,12,0,12) — 12px gap, normal height");
+        c.setTextPadding(new Insets(0, 12, 0, 12));
+
+        RXTextField d = paddingCheckField("(d) setTextPadding(8,4,8,4) — 4px gap, +16px height");
+        d.setTextPadding(new Insets(8, 4, 8, 4));
+
+        return new VBox(6, a, b, c, d);
+    }
+
+    private static RXTextField paddingCheckField(String text) {
+        RXTextField field = baseField(text);
+        field.setPrefWidth(560);
+        field.setLeft(iconNode());
+        Button right = new Button("R");
+        right.setFocusTraversable(false);
+        field.setRight(right);
+        field.getStyleClass().add("text-padding-check");
+        return field;
     }
 
     private static RXTextField baseField(String text) {

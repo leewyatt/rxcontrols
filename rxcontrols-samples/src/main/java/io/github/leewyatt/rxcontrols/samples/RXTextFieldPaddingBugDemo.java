@@ -39,18 +39,24 @@ import org.controlsfx.control.textfield.CustomTextField;
  *       leave a ~24px yellow band above and below the glyphs. This is the
  *       Issue #705 fix proper. If [4]'s text hugs the red border, our
  *       {@code layoutChildren} regressed.</li>
- *   <li><strong>Horizontal gap between side wrapper and text</strong> — this
- *       is R3-#2 in {@code devdoc/rxfield-new-plan.md}, an open design
- *       question, NOT a bug. Expected difference under {@code -fx-padding: 24 16}:
+ *   <li><strong>Horizontal gap between side wrapper and text</strong> — after
+ *       R3-#2 in {@code devdoc/rxfield-new-plan.md}, this gap is governed by
+ *       {@code -rx-text-padding} (UA default {@code 0.583em} ≈ 7px when a side
+ *       node is present), not by the control's own {@code -fx-padding}.
+ *       Expected under {@code -fx-padding: 24 16}:
  *       <ul>
- *         <li>[4] RX: gap ≈ 16px (control's horizontal {@code -fx-padding}
- *             still applies between the wrapper and the text)</li>
+ *         <li>[4] RX: gap ≈ 7px (UA default {@code -rx-text-padding}; the
+ *             control's {@code -fx-padding: 24 16} does NOT contribute to
+ *             the wrapper-to-text gap — the horizontal {@code 16} only
+ *             affects the no-side-node case, where it gives the text room to
+ *             breathe against the outer border)</li>
  *         <li>[5] CustomTextField: gap ≈ 3px (ControlsFX strips the
- *             control's left/right padding via the {@code :left-node-visible}
- *             / {@code :right-node-visible} pseudo-classes when side nodes are
- *             present, then adds a small wrapper-self padding back in)</li>
+ *             control's left/right padding via its own pseudo-classes when
+ *             side nodes are present, then adds a small wrapper-self padding
+ *             back in)</li>
  *       </ul>
- *       Pick a strategy after seeing both rows running.</li>
+ *       Both controls now produce a side-node-relative gap that is decoupled
+ *       from {@code -fx-padding}.</li>
  * </ol>
  */
 public class RXTextFieldPaddingBugDemo extends Application {
@@ -100,9 +106,10 @@ public class RXTextFieldPaddingBugDemo extends Application {
                 + "  红色 = 控件外边框    黄色 = padding 区    蓝/粉 = wrapper 占据范围\n"
                 + "  分组:[1][2][3] 无 side node 对照组,[4][5] 有 side node 对照组\n"
                 + "\n"
-                + "  注: author CSS '.bug-demo-cfx { -fx-padding: 24 16 }' 按 JavaFX origin\n"
-                + "  priority (author > user-agent) 实际胜过 ControlsFX 内置的伪类清零规则,\n"
-                + "  padding 实际仍是 24 16 — 五行都跑在同一 padding 设定下.\n"
+                + "  注: author CSS '.bug-demo / .bug-demo-cfx { -fx-padding: 24 16 }' 按\n"
+                + "  JavaFX origin priority (author > user-agent), padding 实际仍是 24 16 —\n"
+                + "  五行都跑在同一 padding 设定下. RX 的 -rx-text-padding UA 默认值\n"
+                + "  (0.583em ≈ 7px) 走的是另一个 styleable property, 与 -fx-padding 解耦.\n"
                 + "\n"
                 + "① 文字 Y 基线 — 五行都应距上下红边 ~24px,文字在同一水平线\n"
                 + "   → 如果 [4] 的文字明显比 [1][2][3][5] 更贴上/下红边, 是回归 bug.\n"
@@ -121,11 +128,13 @@ public class RXTextFieldPaddingBugDemo extends Application {
                 + "   不是 CSS 伪类的问题 — 伪类规则本身是对称设计.\n"
                 + "   详见 devdoc/controlsfx-textfield-bug.md A1.\n"
                 + "\n"
-                + "④ wrapper 与文字之间的横向间距\n"
-                + "   → [4] RX:   左 16px, 右 16px (对称 — R3-#1 wrapper 贴外边, padding 在内侧)\n"
-                + "   → [5] CFX:  左 16px, 右  0px (不对称 — 同 ③ A1 quirk, 文字右侧紧贴 wrapper)\n"
-                + "   R3-#2 间距策略讨论的视觉基础就在这里 — RX 左右各 16px 是对称留白,\n"
-                + "   CFX 右侧紧贴/左侧 16 是不对称, 不是 CFX 主动做的 '紧凑视觉' 设计.\n"
+                + "④ wrapper 与文字之间的横向间距 (★ R3-#2 后的核心改动 ★)\n"
+                + "   → [4] RX:   左 ≈ 7px, 右 ≈ 7px (UA 默认 -rx-text-padding 0.583em;\n"
+                + "               -fx-padding 横向 16 不再叠加进 wrapper-文字间距)\n"
+                + "   → [5] CFX:  左 ≈ 3px, 右 0px (ControlsFX 伪类清零 -fx-padding 后,\n"
+                + "               wrapper 内部 padding 提供少量间距; 右侧 0 仍是 A1 quirk)\n"
+                + "   两者都已与 -fx-padding 解耦. 若要还原 -fx-padding 旧语义, 在 author\n"
+                + "   CSS 中显式覆盖 -rx-text-padding.\n"
                 + "\n"
                 + "⑤ wrapper 内部的图标位置 — [4] 蓝色框内 SVG 居中,[5] 蓝色框内 SVG 也居中\n"
                 + "   → 两者一致, 都是 CENTER_LEFT/RIGHT 对齐.\n"

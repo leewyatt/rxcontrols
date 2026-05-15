@@ -608,21 +608,45 @@ digit-shape — Group
     </thead>
     <tbody>
     <tr>
-        <td>showing-left-node</td>
-        <td>applies when the left node is non-null</td>
+        <td>has-left-node</td>
+        <td>applies when the left property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
-        <td>showing-right-node</td>
-        <td>applies when the right node is non-null</td>
+        <td>has-right-node</td>
+        <td>applies when the right property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
-        <td>showing-no-side-nodes</td>
+        <td>has-no-nodes</td>
         <td>applies when both left and right are null (mutually exclusive with the two above)</td>
     </tr>
     </tbody>
 </table>
 <br/>
-<p>RXTextField does not expose any custom <code>-rx-*</code> CSS property. Use direct selectors on the substructure (e.g. <code>.rx-text-field &gt; .left-wrapper { -fx-padding: 0 4 0 0; }</code>) for layout tuning.</p>
+<p>CSS Properties</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-text-padding</td>
+        <td>Insets</td>
+        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-left-node</code> / <code>:has-right-node</code> is active)</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p><b>Padding model.</b> RXTextField has three independent padding concepts:</p>
+<ul>
+    <li><code>-fx-padding</code> (inherited from Region) sizes the control's outer dimensions and gives the text vertical breathing room. When no side node is present it also gives horizontal padding between the text and the outer border; when a side node is present it does NOT control the wrapper-to-text gap.</li>
+    <li><code>-rx-text-padding</code> is the inner padding of the text editor region, applied after the left / right wrapper widths are excluded. Horizontal values are the exact gap between a present wrapper and the text. Vertical values add inner padding to the text region and participate in min/pref height (enlarging vertical textPadding increases the control's preferred height so the text is not clipped).</li>
+    <li><code>.left-wrapper</code> / <code>.right-wrapper</code> accept their own <code>-fx-padding</code> (StackPane API) for internal breathing around the child node — independent of <code>-rx-text-padding</code>.</li>
+</ul>
+<p><b>Note:</b> The user-agent stylesheet provides differential <code>-rx-text-padding</code> defaults via <code>:has-left-node</code> / <code>:has-right-node</code>. If you override <code>-rx-text-padding</code> in an author stylesheet without using these pseudo-classes, the UA defaults no longer apply.</p>
 
 <h3 id="oldRxTextField">OldRXTextField (deprecated)</h3>
 <p class="fxClass">Style class: old-rx-text-field</p>

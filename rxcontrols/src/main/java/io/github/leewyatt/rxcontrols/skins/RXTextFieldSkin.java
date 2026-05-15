@@ -5,11 +5,11 @@ import io.github.leewyatt.rxcontrols.RXTextField;
 /**
  * Default skin for {@link RXTextField}. Delegates layout and pseudo-class
  * wiring to {@link RXFieldBaseSkin}, binding the base skin's "effective"
- * left/right observables directly to the control's properties.
+ * observables directly to the control's properties.
  */
 public class RXTextFieldSkin extends RXFieldBaseSkin {
 
     public RXTextFieldSkin(RXTextField control) {
-        super(control, control.leftProperty(), control.rightProperty());
+        super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
     }
 }
