@@ -24,6 +24,18 @@ import javafx.scene.control.TextField;
  * binding, the automatic clear is skipped (the JavaFX binding contract takes
  * precedence) and concurrent occupancy of both slots by the same node is
  * unsupported — callers using bindings must arrange uniqueness themselves.
+ * <p>
+ * <b>Side node geometry.</b> Side nodes are laid out flush against the
+ * control's outer edges (top, bottom, and the outer left or right edge),
+ * spanning the full control height. The control's {@code -fx-padding}
+ * controls the horizontal gap between the side node and the text content,
+ * not the gap between the side node and the control's outer border. This
+ * differs from the HTML / Material / iOS convention of keeping side icons
+ * inside the input's padding region; the rationale is a larger click target
+ * for interactive side nodes such as a clear button. The default left and
+ * right wrappers have no background, so the physical overlap with the
+ * control's border is invisible unless the caller explicitly styles
+ * {@code .left-wrapper} / {@code .right-wrapper}.
  */
 public class RXTextField extends TextField {
 
