@@ -42,7 +42,7 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     private static final PseudoClass HAS_LEFT_NODE = PseudoClass.getPseudoClass("has-left-node");
     private static final PseudoClass HAS_RIGHT_NODE = PseudoClass.getPseudoClass("has-right-node");
-    private static final PseudoClass HAS_NO_NODES = PseudoClass.getPseudoClass("has-no-nodes");
+    private static final PseudoClass HAS_NO_SIDE_NODES = PseudoClass.getPseudoClass("has-no-side-nodes");
 
     private static final String LEFT_WRAPPER_CLASS = "left-wrapper";
     private static final String RIGHT_WRAPPER_CLASS = "right-wrapper";
@@ -103,7 +103,7 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
         control.pseudoClassStateChanged(HAS_LEFT_NODE, newLeft != null);
         control.pseudoClassStateChanged(HAS_RIGHT_NODE, newRight != null);
-        control.pseudoClassStateChanged(HAS_NO_NODES, newLeft == null && newRight == null);
+        control.pseudoClassStateChanged(HAS_NO_SIDE_NODES, newLeft == null && newRight == null);
         // Removing an unmanaged child (releaseWrapper above) does not invalidate
         // the skin's layout on its own, so the text node would stay at its
         // previous left offset until something else triggered a layout pass.
