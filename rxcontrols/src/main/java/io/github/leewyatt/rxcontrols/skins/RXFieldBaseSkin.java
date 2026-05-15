@@ -199,7 +199,12 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double leftInset = snappedLeftInset();
         final double leftWidth = leftWrapper == null ? 0.0 : leftWrapper.getWidth();
         final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
-        return super.getIndex(x - leftAdjust, y);
+        // layoutChildren shifts the inner editor by +tpTop; getIndex must
+        // subtract the same offset so click / drag-select hit-tests land on
+        // the visible glyph instead of tpTop pixels above it.
+        final Insets tp = effectiveTextPadding.getValue();
+        final double tpTop = (tp == null) ? 0 : snapSizeY(tp.getTop());
+        return super.getIndex(x - leftAdjust, y - tpTop);
     }
 
     @Override

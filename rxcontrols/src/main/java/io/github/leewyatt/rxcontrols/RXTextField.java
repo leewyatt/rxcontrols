@@ -177,7 +177,10 @@ public class RXTextField extends TextField {
      * height so the text is not clipped.
      * <p>
      * Cannot be set to {@code null} — doing so throws
-     * {@link NullPointerException} and leaves the previous value in place.
+     * {@link NullPointerException}. The previous value is restored except
+     * when the property is bound; a bound property cannot accept
+     * {@code set()}, so it remains transiently {@code null} until the
+     * binding source produces a non-null value or the property is unbound.
      *
      * @return the text padding property
      * @defaultValue {@link Insets#EMPTY}
@@ -191,7 +194,15 @@ public class RXTextField extends TextField {
                 protected void invalidated() {
                     Insets newValue = get();
                     if (newValue == null) {
-                        set(lastValidValue);
+                        // A bound property cannot accept set(); attempting
+                        // it would raise IllegalStateException and mask the
+                        // NPE we want the caller to see. In that case the
+                        // property is left in its (transient) null state
+                        // until the binding source produces a non-null
+                        // value or the property is unbound.
+                        if (!isBound()) {
+                            set(lastValidValue);
+                        }
                         throw new NullPointerException("cannot set textPadding to null");
                     }
                     lastValidValue = newValue;
