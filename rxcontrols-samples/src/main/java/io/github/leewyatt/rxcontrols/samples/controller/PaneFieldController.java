@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.controller;
 
-import io.github.leewyatt.rxcontrols.OldRXTextField;
-import io.github.leewyatt.rxcontrols.event.RXActionEvent;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
@@ -20,33 +20,47 @@ public class PaneFieldController {
 
 
     @FXML
-    private OldRXTextField copyTextField;
+    private RXTextField clearTextField;
 
-    private FileChooser fileChooser = new FileChooser();
+    @FXML
+    private RXTextField copyTextField;
+
+    @FXML
+    private RXTextField fileTextField;
+
+    private final FileChooser fileChooser = new FileChooser();
 
     @FXML
     void initialize() {
         fileChooser.setTitle("选择文件");
-        copyTextField.setOnClickButton(event -> {
+
+        Button clearButton = createSideButton("清除");
+        clearButton.setOnAction(event -> clearTextField.clear());
+        clearTextField.setRight(clearButton);
+
+        Button copyButton = createSideButton("复制");
+        copyButton.setOnAction(event -> {
             copyTextField.selectAll();
             copyTextField.copy();
         });
+        copyTextField.setRight(copyButton);
+
+        Button fileButton = createSideButton("选择");
+        fileButton.setOnAction(event -> {
+            Window window = fileTextField.getScene().getWindow();
+            File file = fileChooser.showOpenDialog(window);
+            if (file != null) {
+                fileTextField.setText(file.getAbsolutePath());
+            }
+        });
+        fileTextField.setRight(fileButton);
     }
 
-    @FXML
-    void deleteText(RXActionEvent event) {
-        OldRXTextField tf = (OldRXTextField) event.getSource();
-        tf.clear();
-    }
-
-    @FXML
-    void openFile(RXActionEvent event) {
-        OldRXTextField tf = (OldRXTextField) event.getSource();
-        Window window = tf.getScene().getWindow();
-        File file = fileChooser.showOpenDialog(window);
-        if (file != null) {
-            tf.setText(file.getAbsolutePath());
-        }
+    private Button createSideButton(String text) {
+        Button button = new Button(text);
+        button.setFocusTraversable(false);
+        button.getStyleClass().add("field-side-button");
+        return button;
     }
 
 

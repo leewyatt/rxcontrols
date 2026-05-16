@@ -94,10 +94,8 @@
     <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
-    <li><a href="#oldRxPasswordField">OldRXPasswordField (deprecated)</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
-    <li><a href="#oldRxTextField">OldRXTextField (deprecated)</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
     <li><a href="#rxTranslationButton">RXTranslationButton</a></li>
 </ul>
@@ -549,53 +547,6 @@ pagination-control — StackPane <br>
 <p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
 <p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>showPassword</code> is <code>true</code>.</p>
 
-<h3 id="oldRxPasswordField">OldRXPasswordField (deprecated)</h3>
-<p class="fxClass">Style class: old-rx-password-field</p>
-<p>Deprecated; preserved for migration/reference. Has all the properties of PasswordField plus a built-in reveal button. New code should use <a href="#rxPasswordField">RXPasswordField</a>.</p>
-<h4>Substructure</h4>
-password-field  — PasswordField<br />
-tf-top-pane  — Pane<br/>
-&emsp;&emsp;tf-button — StackPane<br/>
-&emsp;&emsp;&emsp;&emsp;tf-button-shape — Region<br/>
-<br/>
-<p>Pseudo-classes</p>
-<table>
-    <thead>
-    <tr>
-        <th>CSS Pseudo-class</th>
-        <th>Comments</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td>showing</td>
-        <td>applies when the password is showing</td>
-    </tr>
-    </tbody>
-</table>
-<br/>
-<table>
-    <thead>
-    <tr>
-        <th>Css Property</th>
-        <th>Values</th>
-        <th>Default</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td>-rx-echochar</td>
-        <td>String</td>
-        <td>'\u25cf'</td>
-    </tr>
-    <tr>
-        <td>-rx-button-display</td>
-        <td>SHOW,HIDE,AUTO</td>
-        <td>AUTO</td>
-    </tr>
-    </tbody>
-</table>
-
 <h3 id="rxDigit">RXDigit</h3>
 <p class="fxClass">Style class: rx-digit</p>
 <p>The control has all the properties of Control;</p>
@@ -709,32 +660,6 @@ digit-shape — Group
     <li><code>.left-wrapper</code> / <code>.right-wrapper</code> accept their own <code>-fx-padding</code> (StackPane API) for internal breathing around the child node — independent of <code>-rx-text-padding</code>.</li>
 </ul>
 <p><b>Note:</b> The user-agent stylesheet provides differential <code>-rx-text-padding</code> defaults via <code>:has-left-node</code> / <code>:has-right-node</code>. If you override <code>-rx-text-padding</code> in an author stylesheet without using these pseudo-classes, the UA defaults no longer apply.</p>
-
-<h3 id="oldRxTextField">OldRXTextField (deprecated)</h3>
-<p class="fxClass">Style class: old-rx-text-field</p>
-<p>Deprecated; preserved for migration/reference. Has all the properties of TextField plus a built-in trailing action button.</p>
-<h4>Substructure</h4>
-TextField — text-field<br/>
-tf-top-pane — Pane<br/>
-&emsp;&emsp;tf-button — StackPane<br/>
-&emsp;&emsp;&emsp;&emsp;tf-button-shape — Region<br/><br/>
-<table>
-    <thead>
-    <tr>
-        <th>Css Property</th>
-        <th>Values</th>
-        <th>Default</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td>-rx-button-display</td>
-        <td>SHOW,HIDE,AUTO</td>
-        <td>AUTO</td>
-    </tr>
-
-    </tbody>
-</table>
 
 <h3 id="rxToggleButton">RXToggleButton</h3>
 <p class="fxClass">Style class: rx-toggle-button</p>
