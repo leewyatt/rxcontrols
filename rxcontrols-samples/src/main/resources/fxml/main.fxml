@@ -18,14 +18,14 @@
 <?import javafx.scene.shape.SVGPath?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="618.0" prefWidth="1017.0" style="-fx-background-color: #0000;"
+<AnchorPane prefHeight="668.0" prefWidth="1017.0" style="-fx-background-color: #0000;"
             xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="io.github.leewyatt.rxcontrols.samples.controller.MainController">
-   <BorderPane layoutX="9.0" layoutY="9.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity"
-               minWidth="-Infinity" prefHeight="600.0" prefWidth="998.0" styleClass="root-pane"
-               stylesheets="@../css/main.css">
+   <BorderPane layoutX="9.0" layoutY="9.0" maxHeight="Infinity" maxWidth="Infinity" minHeight="-Infinity"
+               minWidth="-Infinity" prefHeight="650.0" prefWidth="998.0" styleClass="root-pane"
+               stylesheets="@../css/main.css" AnchorPane.bottomAnchor="9.0" AnchorPane.leftAnchor="9.0" AnchorPane.rightAnchor="9.0" AnchorPane.topAnchor="9.0">
       <left>
-         <VBox fx:id="navBar" prefHeight="561.0" prefWidth="237.0" styleClass="box-nav" BorderPane.alignment="CENTER">
+         <VBox fx:id="navBar" prefHeight="611.0" prefWidth="237.0" styleClass="box-nav" BorderPane.alignment="CENTER">
             <BorderPane.margin>
                <Insets/>
             </BorderPane.margin>
@@ -35,6 +35,7 @@
                </toggleGroup>
             </RXToggleButton>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Avatar" toggleGroup="$navGroup"/>
+            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Image View" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Button / Labele" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Carousel" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Digit" toggleGroup="$navGroup"/>
@@ -47,8 +48,7 @@
          </VBox>
       </left>
       <center>
-         <RXCarousel fx:id="mainCarousel" prefHeight="511.0" prefWidth="761.0" styleClass="main-pane"
-                     BorderPane.alignment="CENTER"/>
+         <RXCarousel fx:id="mainCarousel" styleClass="main-pane" BorderPane.alignment="CENTER"/>
       </center>
       <top>
          <HBox fx:id="topBar" alignment="CENTER_LEFT" prefHeight="88.0" prefWidth="998.0" BorderPane.alignment="CENTER">
