@@ -174,37 +174,22 @@
     -fx-max-height: 0px;
 }
 
-/* New base text field (rxcontrols 1.0+) */
-.rx-text-field {
-    -rx-text-padding: 0;
-}
-
-.rx-text-field:has-left-node {
-    -rx-text-padding: 0 0 0 0.583em;
-}
-
-.rx-text-field:has-right-node {
-    -rx-text-padding: 0 0.583em 0 0;
-}
-
-.rx-text-field:has-left-node:has-right-node {
-    -rx-text-padding: 0 0.583em 0 0.583em;
-}
-
-/* New password field (rxcontrols 1.0+) */
-.rx-password-field {
-    -rx-text-padding: 0;
-    -rx-echo-char: '●';
-}
-
+/*******************************************************************************
+ *                                                                             *
+ * RXTextField   RXPasswordField                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-text-field:has-left-node,
 .rx-password-field:has-left-node {
     -rx-text-padding: 0 0 0 0.583em;
 }
 
+.rx-text-field:has-right-node,
 .rx-password-field:has-right-node {
     -rx-text-padding: 0 0.583em 0 0;
 }
 
+.rx-text-field:has-left-node:has-right-node,
 .rx-password-field:has-left-node:has-right-node {
     -rx-text-padding: 0 0.583em 0 0.583em;
 }
