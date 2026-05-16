@@ -2,57 +2,95 @@
 
 <?import io.github.leewyatt.rxcontrols.RXAvatar?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" styleClass="avatar-page" stylesheets="@../css/pane_avatar.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <children>
-      <HBox alignment="CENTER" layoutX="41.0" layoutY="172.0" prefHeight="124.0" prefWidth="679.0" spacing="35.0" style="-fx-border-color: #F1F2F3;" AnchorPane.leftAnchor="41.0" AnchorPane.rightAnchor="41.0" AnchorPane.topAnchor="130.0">
+      <VBox layoutX="42.0" layoutY="24.0" prefWidth="677.0" spacing="14.0" AnchorPane.leftAnchor="42.0" AnchorPane.rightAnchor="42.0" AnchorPane.topAnchor="24.0">
          <children>
-            <RXAvatar>
-               <image>
-                  <Image url="@../scenery/1.png" />
-               </image>
-               <effect>
-                  <DropShadow />
-               </effect>
-            </RXAvatar>
-            <RXAvatar arcHeight="35.0" arcWidth="35.0" shapeType="SQUARE">
-               <image>
-                  <Image url="@../scenery/2.png" />
-               </image>
-               <effect>
-                  <DropShadow />
-               </effect>
-            </RXAvatar>
-            <RXAvatar text="RX" prefHeight="87.0" prefWidth="100.0">
-               <image>
-                  <Image url="@../scenery/3.png" />
-               </image>
-               <effect>
-                  <DropShadow />
-               </effect>
-            </RXAvatar>
-            <RXAvatar text="LW" prefHeight="100.0" prefWidth="100.0" shapeType="SQUARE">
-               <image>
-                  <Image url="@../scenery/4.png" />
-               </image>
-               <effect>
-                  <DropShadow />
-               </effect>
-            </RXAvatar>
-            <RXAvatar shapeType="SQUARE">
-               <image>
-                  <Image url="@../scenery/3.png" />
-               </image>
-               <effect>
-                  <DropShadow />
-               </effect>
-            </RXAvatar>
+            <VBox spacing="6.0">
+               <children>
+                  <Label styleClass="page-title" text="RXAvatar" />
+                  <Label styleClass="page-subtitle" text="图片头像、名字缩写和默认图标都会自动裁切到指定形状。" />
+               </children>
+            </VBox>
+            <VBox spacing="8.0">
+               <children>
+                  <Label styleClass="section-title" text="图片形状" />
+                  <HBox alignment="CENTER" spacing="34.0" styleClass="avatar-row">
+                     <children>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar prefHeight="90.0" prefWidth="90.0">
+                                 <image>
+                                    <Image url="@../scenery/1.png" />
+                                 </image>
+                              </RXAvatar>
+                              <Label styleClass="avatar-caption" text="圆形" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar arcHeight="0.0" arcWidth="0.0" prefHeight="90.0" prefWidth="90.0" shapeType="SQUARE">
+                                 <image>
+                                    <Image url="@../scenery/2.png" />
+                                 </image>
+                              </RXAvatar>
+                              <Label styleClass="avatar-caption" text="正方形" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar arcHeight="24.0" arcWidth="24.0" prefHeight="90.0" prefWidth="90.0" shapeType="SQUARE">
+                                 <image>
+                                    <Image url="@../scenery/3.png" />
+                                 </image>
+                              </RXAvatar>
+                              <Label styleClass="avatar-caption" text="圆角正方形" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+            <VBox spacing="8.0">
+               <children>
+                  <Label styleClass="section-title" text="无图片时的回退显示" />
+                  <HBox alignment="CENTER" spacing="34.0" styleClass="avatar-row">
+                     <children>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar prefHeight="84.0" prefWidth="84.0" styleClass="initials-blue-avatar" text="LW" />
+                              <Label styleClass="avatar-caption" text="名字缩写" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar arcHeight="20.0" arcWidth="20.0" prefHeight="84.0" prefWidth="84.0" shapeType="SQUARE" styleClass="initials-green-avatar" text="DK" />
+                              <Label styleClass="avatar-caption" text="圆角缩写" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar prefHeight="84.0" prefWidth="84.0" styleClass="default-icon-avatar" />
+                              <Label styleClass="avatar-caption" text="默认图标" />
+                           </children>
+                        </VBox>
+                        <VBox alignment="CENTER" spacing="10.0" styleClass="avatar-item">
+                           <children>
+                              <RXAvatar arcHeight="20.0" arcWidth="20.0" prefHeight="84.0" prefWidth="84.0" shapeType="SQUARE" styleClass="default-square-avatar" />
+                              <Label styleClass="avatar-caption" text="圆角默认图标" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+            <Label maxWidth="Infinity" styleClass="avatar-note" text="Display priority: image &gt; text &gt; default icon.  圆角属性仅在 shapeType=SQUARE 时生效。" />
          </children>
-      </HBox>
-      <Label layoutX="214.0" layoutY="334.0" text="RXAvatar: 头像组件; &#10;会根据组件的大小, 自动缩放图片至合适的大小; &#10;并且根据Shape Type来显示出不同的形状;&#10;* Arc Width和Arc Height 属性只针对正方形有效;&#10;" textAlignment="CENTER" AnchorPane.leftAnchor="214.0" AnchorPane.rightAnchor="214.0" AnchorPane.topAnchor="300.0" />
+      </VBox>
    </children>
 </AnchorPane>

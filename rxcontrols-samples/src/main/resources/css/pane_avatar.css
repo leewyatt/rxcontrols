@@ -1,0 +1,83 @@
+.avatar-page {
+    -fx-background-color: white;
+}
+
+.page-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #223044;
+}
+
+.page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #667085;
+}
+
+.section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #344054;
+}
+
+.avatar-row {
+    -fx-padding: 12 20;
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.avatar-item {
+    -fx-min-width: 120px;
+}
+
+.avatar-caption {
+    -fx-font-size: 12px;
+    -fx-text-fill: #475467;
+}
+
+.initials-blue-avatar > .text-wrapper {
+    -fx-background-color: #2563eb;
+}
+
+.initials-blue-avatar > .text-wrapper > .label,
+.initials-green-avatar > .text-wrapper > .label {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.initials-green-avatar > .text-wrapper {
+    -fx-background-color: #0f9f6e;
+}
+
+.default-icon-avatar > .default-icon-wrapper {
+    -fx-background-color: #eef2ff;
+}
+
+.default-icon-avatar > .default-icon-wrapper > .default-icon {
+    -fx-background-color: #4f46e5;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+}
+
+.default-square-avatar > .default-icon-wrapper {
+    -fx-background-color: #f0fdfa;
+}
+
+.default-square-avatar > .default-icon-wrapper > .default-icon {
+    -fx-background-color: #0f766e;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+}
+
+.avatar-note {
+    -fx-padding: 10 16;
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 6;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-text-fill: #475467;
+    -fx-font-size: 12px;
+    -fx-alignment: center-left;
+}
