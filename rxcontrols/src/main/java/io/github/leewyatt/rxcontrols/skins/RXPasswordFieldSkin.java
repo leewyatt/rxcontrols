@@ -5,14 +5,12 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,8 +43,7 @@ import java.util.logging.Logger;
  * a way that breaks the heuristic), the flag stays {@code false} and the field
  * degrades to a permanent mask while still respecting the configured
  * {@code echoChar}. A warning is logged once, including the JavaFX runtime
- * version and diagnostic lookup statistics, so downstream maintainers can
- * diagnose.
+ * version and failure detail, so downstream maintainers can diagnose.
  */
 public class RXPasswordFieldSkin extends RXFieldBaseSkin {
 
@@ -120,9 +117,9 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
                 pendingSkinListener = null;
                 Text retryNode = findTextFieldSkinTextNode();
                 if (retryNode != null) {
-                    rebindTextNode(control, retryNode, "B");
+                    rebindTextNode(control, retryNode);
                 } else {
-                    logFallback(control, "A", "skin-attached lookup still empty");
+                    logFallback("discovery", "skin-attached textNode discovery failed");
                 }
             }
         };
@@ -150,7 +147,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
         return null;
     }
 
-    private void rebindTextNode(RXPasswordField control, Text textNode, String source) {
+    private void rebindTextNode(RXPasswordField control, Text textNode) {
         try {
             StringBinding binding = Bindings.createStringBinding(
                     () -> maskText(control.getText() == null ? "" : control.getText()),
@@ -179,7 +176,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
             textNode.textProperty().unbind();
             String safeMask = maskText(control.getText() == null ? "" : control.getText());
             textNode.setText(safeMask);
-            logFallback(control, source + "-catch", ex.toString());
+            logFallback("binding-install", ex.toString());
         }
     }
 
@@ -197,26 +194,15 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
                 });
     }
 
-    private void logFallback(RXPasswordField control, String source, String detail) {
-        Set<Node> candidates = control.lookupAll(".text");
-        long textCount = candidates.stream().filter(Text.class::isInstance).count();
-        long boundCount = candidates.stream()
-                .filter(Text.class::isInstance)
-                .map(Text.class::cast)
-                .filter(t -> t.layoutXProperty().isBound())
-                .count();
+    private void logFallback(String source, String detail) {
         LOGGER.log(Level.WARNING,
                 "JavaFX TextFieldSkin internals appear to have changed at runtime."
                         + " showPassword dynamic toggle is disabled; mask remains active."
-                        + " [source={0}, javafx.runtime.version={1}, java.version={2},"
-                        + " lookupAll.size={3}, textNodes={4}, boundLayoutX={5}, detail={6}]",
+                        + " [source={0}, javafx.runtime.version={1}, java.version={2}, detail={3}]",
                 new Object[]{
                         source,
                         System.getProperty("javafx.runtime.version"),
                         System.getProperty("java.version"),
-                        candidates.size(),
-                        textCount,
-                        boundCount,
                         detail
                 });
     }
