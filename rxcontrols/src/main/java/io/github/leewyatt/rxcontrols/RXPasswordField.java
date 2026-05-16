@@ -221,11 +221,9 @@ public class RXPasswordField extends PasswordField {
      * on top of the control's own vertical padding and increase the
      * control's preferred height so the text is not clipped.
      * <p>
-     * Cannot be set to {@code null} — doing so throws
-     * {@link NullPointerException}. The previous value is restored except
-     * when the property is bound; a bound property remains transiently
-     * {@code null} until the binding source produces a non-null value or
-     * the property is unbound.
+     * May be set to {@code null}. The raw property and getter then return
+     * {@code null}, while the skin treats it as {@link Insets#EMPTY} for
+     * layout.
      *
      * @return the text padding property
      * @defaultValue {@link Insets#EMPTY}
@@ -233,18 +231,8 @@ public class RXPasswordField extends PasswordField {
     public final ObjectProperty<Insets> textPaddingProperty() {
         if (textPadding == null) {
             textPadding = new StyleableObjectProperty<>(Insets.EMPTY) {
-                private Insets lastValidValue = Insets.EMPTY;
-
                 @Override
                 protected void invalidated() {
-                    Insets newValue = get();
-                    if (newValue == null) {
-                        if (!isBound()) {
-                            set(lastValidValue);
-                        }
-                        throw new NullPointerException("cannot set textPadding to null");
-                    }
-                    lastValidValue = newValue;
                     requestLayout();
                 }
 

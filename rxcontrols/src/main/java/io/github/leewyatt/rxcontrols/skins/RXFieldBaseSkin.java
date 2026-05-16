@@ -34,9 +34,10 @@ import javafx.scene.text.HitInfo;
  * reparents the node) and the left wrapper will render empty.
  * <p>
  * {@code effectiveTextPadding} resolves to the active text-editor inner
- * padding. Horizontal values are the exact gap between a present wrapper and
- * the text; vertical values stack on top of the control's own vertical
- * padding and feed into the pref/min height computation.
+ * padding. A {@code null} value is treated as {@link Insets#EMPTY}.
+ * Horizontal values are the exact gap between a present wrapper and the text;
+ * vertical values stack on top of the control's own vertical padding and feed
+ * into the pref/min height computation.
  */
 public class RXFieldBaseSkin extends TextFieldSkin {
 
@@ -138,9 +139,14 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     // ==================== Layout ====================
 
+    private Insets getEffectiveTextPadding() {
+        Insets padding = effectiveTextPadding.getValue();
+        return padding == null ? Insets.EMPTY : padding;
+    }
+
     private double resolveLeftAdjust(double leftInset, double leftWidth) {
-        Insets tp = effectiveTextPadding.getValue();
-        double tpLeft = (tp == null) ? 0 : snapSizeX(tp.getLeft());
+        Insets tp = getEffectiveTextPadding();
+        double tpLeft = snapSizeX(tp.getLeft());
         if (leftWrapper == null) {
             return tpLeft;
         }
@@ -148,8 +154,8 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     }
 
     private double resolveRightAdjust(double rightInset, double rightWidth) {
-        Insets tp = effectiveTextPadding.getValue();
-        double tpRight = (tp == null) ? 0 : snapSizeX(tp.getRight());
+        Insets tp = getEffectiveTextPadding();
+        double tpRight = snapSizeX(tp.getRight());
         if (rightWrapper == null) {
             return tpRight;
         }
@@ -169,9 +175,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double rightWidth = rightWrapper == null
                 ? 0.0 : snapSizeX(rightWrapper.prefWidth(fullH));
 
-        final Insets tp = effectiveTextPadding.getValue();
-        final double tpTop = (tp == null) ? 0 : snapSizeY(tp.getTop());
-        final double tpBottom = (tp == null) ? 0 : snapSizeY(tp.getBottom());
+        final Insets tp = getEffectiveTextPadding();
+        final double tpTop = snapSizeY(tp.getTop());
+        final double tpBottom = snapSizeY(tp.getBottom());
 
         final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
         final double rightAdjust = resolveRightAdjust(rightInset, rightWidth);
@@ -202,8 +208,8 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         // layoutChildren shifts the inner editor by +tpTop; getIndex must
         // subtract the same offset so click / drag-select hit-tests land on
         // the visible glyph instead of tpTop pixels above it.
-        final Insets tp = effectiveTextPadding.getValue();
-        final double tpTop = (tp == null) ? 0 : snapSizeY(tp.getTop());
+        final Insets tp = getEffectiveTextPadding();
+        final double tpTop = snapSizeY(tp.getTop());
         return super.getIndex(x - leftAdjust, y - tpTop);
     }
 
@@ -222,9 +228,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double ph = super.computePrefHeight(w, topInset, rightInset, bottomInset, leftInset);
         final double leftHeight = leftWrapper == null ? 0.0 : snapSizeY(leftWrapper.prefHeight(-1));
         final double rightHeight = rightWrapper == null ? 0.0 : snapSizeY(rightWrapper.prefHeight(-1));
-        final Insets tp = effectiveTextPadding.getValue();
-        final double tpTop = (tp == null) ? 0 : snapSizeY(tp.getTop());
-        final double tpBottom = (tp == null) ? 0 : snapSizeY(tp.getBottom());
+        final Insets tp = getEffectiveTextPadding();
+        final double tpTop = snapSizeY(tp.getTop());
+        final double tpBottom = snapSizeY(tp.getBottom());
         // Wrappers span the full control height (resizeRelocate uses fullH),
         // so bare wrapper heights already represent the wrapper region without
         // needing the vertical insets added back. textPadding adds height to
@@ -248,9 +254,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double mh = super.computeMinHeight(w, topInset, rightInset, bottomInset, leftInset);
         final double leftHeight = leftWrapper == null ? 0.0 : snapSizeY(leftWrapper.minHeight(-1));
         final double rightHeight = rightWrapper == null ? 0.0 : snapSizeY(rightWrapper.minHeight(-1));
-        final Insets tp = effectiveTextPadding.getValue();
-        final double tpTop = (tp == null) ? 0 : snapSizeY(tp.getTop());
-        final double tpBottom = (tp == null) ? 0 : snapSizeY(tp.getBottom());
+        final Insets tp = getEffectiveTextPadding();
+        final double tpTop = snapSizeY(tp.getTop());
+        final double tpBottom = snapSizeY(tp.getBottom());
         final double sidesH = Math.max(leftHeight, rightHeight);
         return Math.max(mh + tpTop + tpBottom, sidesH);
     }
