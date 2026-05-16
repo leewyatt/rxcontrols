@@ -15,41 +15,25 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Default skin for {@link RXPasswordField}. Responsible for two things on top
- * of what {@link RXFieldBaseSkin} already provides:
- *
- * <ol>
- *   <li>Overrides {@link #maskText(String)} so that
- *       {@link RXPasswordField#getEchoChar()} replaces the JavaFX-builtin
- *       {@code BULLET} and {@link RXPasswordField#isShowPassword()} can
- *       reveal plain text.</li>
- *   <li>Replaces the parent {@link javafx.scene.text.Text} node's text
- *       binding so the mask refreshes whenever {@code showPassword} or
- *       {@code echoChar} changes (the parent skin's binding only listens to
- *       the control's text property).</li>
- * </ol>
- *
- * <h2>Safety contract</h2>
- * The {@code dynamicTextBindingInstalled} flag defaults to {@code false} and
- * is flipped to {@code true} only after the new binding has been installed.
- * Before that point — including the synchronous window between {@code super()}
- * returning and binding installation, and the window where the skin is
- * waiting for {@code skinProperty} to settle so the internal {@code textNode}
- * can be discovered — {@code maskText} returns a fully masked string
- * regardless of {@code showPassword}. This guarantees that no plain-text
- * password leaks through the parent's still-live string binding.
+ * Skin for {@link RXPasswordField}. It keeps the left/right slot layout from
+ * {@link RXFieldBaseSkin} and replaces JavaFX's internal text binding so
+ * {@code showPassword} and {@code echoChar} refresh the rendered text
+ * immediately.
  * <p>
- * If the structural search fails permanently (i.e. JavaFX internals shifted in
- * a way that breaks the heuristic), the flag stays {@code false} and the field
- * degrades to a permanent mask while still respecting the configured
- * {@code echoChar}. A warning is logged once, including the JavaFX runtime
- * version and failure detail, so downstream maintainers can diagnose.
+ * Until that replacement binding is installed, {@link #maskText(String)}
+ * always returns a masked value. If JavaFX internals change and the internal
+ * text node cannot be found, the field safely degrades to permanent masking
+ * and logs a warning.
+ * <p>
+ * JavaFX's original text binding also calls this {@code maskText} override, so
+ * the default masked state is what prevents early reveal before replacement.
  */
 public class RXPasswordFieldSkin extends RXFieldBaseSkin {
 
     private static final Logger LOGGER = Logger.getLogger(RXPasswordFieldSkin.class.getName());
 
     private boolean dynamicTextBindingInstalled = false;
+    private boolean dynamicTextBindingFailed = false;
     private StringBinding displayTextBinding;
     private ChangeListener<Skin<?>> pendingSkinListener;
     private final ChangeListener<Object> ineffectiveToggleListener =
@@ -57,40 +41,23 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
 
     public RXPasswordFieldSkin(RXPasswordField control) {
         super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
-        // Per §11.0 Q1: while the dynamic binding is not yet installed (or has
-        // been disabled by a fallback), changing showPassword / echoChar does
-        // not visually take effect — warn the user once per toggle so they
-        // know why nothing happened.
         control.showPasswordProperty().addListener(ineffectiveToggleListener);
         control.echoCharProperty().addListener(ineffectiveToggleListener);
-        // Why not stash `control` in a subclass field: TextFieldSkin installs
-        // textNode.textProperty().bind(StringBinding{ ... maskText(...) }) inside
-        // its constructor (super chain). The binding's computeValue is a virtual
-        // dispatch to our maskText, so any code path that triggers an eager
-        // compute during super() would observe a still-null subclass field and
-        // NPE. getSkinnable() is assigned by SkinBase in the super chain, so
-        // reaching for the control via (RXPasswordField) getSkinnable() inside
-        // maskText is safe even mid-super-construction.
         tryInstallDynamicTextBinding(control);
     }
 
     @Override
     protected String maskText(String txt) {
-        // Must use the passed-in argument: the parent's StringBinding feeds the
-        // latest textProperty value here. Reading control.getText() at binding
-        // recompute time can return a stale value.
-        if (txt == null) {
-            txt = "";
-        }
+        // Use the argument supplied by JavaFX's text binding; reading
+        // control.getText() here can observe a stale value during recompute.
+        txt = (txt == null) ? "" : txt;
 
         RXPasswordField field = (RXPasswordField) getSkinnable();
         Character echo = (field == null) ? null : field.getEchoChar();
         char ch = (echo == null) ? RXPasswordField.DEFAULT_ECHO_CHAR : echo;
 
-        // Default-safe: unless our dynamic binding has been installed AND the
-        // user explicitly asked to reveal, fully mask. Covers (A) the
-        // synchronous window before lookup, (B) the asynchronous wait for
-        // skin attachment, and (C) the fallback terminal state.
+        // Safe by default: before the replacement binding is installed, never
+        // reveal plain text through JavaFX's original binding.
         if (!dynamicTextBindingInstalled || field == null || !field.isShowPassword()) {
             return String.valueOf(ch).repeat(txt.length());
         }
@@ -100,17 +67,8 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     // ==================== Dynamic binding installation ====================
 
     private void tryInstallDynamicTextBinding(RXPasswordField control) {
-        // Never sync-lookup in the constructor: when this skin is replacing an
-        // already-attached skin (field.setSkin(new RXPasswordFieldSkin(field))),
-        // the swap happens AFTER our constructor returns. A sync
-        // control.lookupAll(".text") here would hit the previous skin's
-        // textNode, bind our StringBinding to a node that's about to be
-        // disposed, set dynamicTextBindingInstalled=true on this skin, and
-        // leave OUR textNode driven by the parent's builtin binding — which
-        // then enters our maskText with installed=true and leaks plaintext on
-        // showPassword toggle. Always wait for the attachment via skinProperty
-        // == this; by then JavaFX has swapped the children and this skin's
-        // direct child list contains the textGroup that is actually displayed.
+        // Wait until JavaFX has attached this skin. During skin replacement,
+        // a constructor-time search can still see the previous skin's nodes.
         pendingSkinListener = (obs, oldSkin, newSkin) -> {
             if (newSkin == this) {
                 control.skinProperty().removeListener(pendingSkinListener);
@@ -119,6 +77,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
                 if (retryNode != null) {
                     rebindTextNode(control, retryNode);
                 } else {
+                    dynamicTextBindingFailed = true;
                     logFallback("discovery", "skin-attached textNode discovery failed");
                 }
             }
@@ -154,21 +113,16 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
                     control.textProperty(),
                     control.showPasswordProperty(),
                     control.echoCharProperty());
-            // Flip the flag before bind() — the first compute happens inside
-            // bind() and must see the flag true so it honours showPassword.
-            // The whole sequence is on the FX thread, no race.
+            // bind() computes immediately, so the flag must be true first.
             dynamicTextBindingInstalled = true;
             displayTextBinding = binding;
             textNode.textProperty().unbind();
             textNode.textProperty().bind(binding);
         } catch (RuntimeException ex) {
-            // First compute (inside bind) could in principle throw if a future
-            // override or hook injects an exception path into maskText. Roll
-            // every partial side effect back so the textNode lands in an
-            // explicit safe state — we cannot resurrect the parent's binding,
-            // so static-set the textNode to a mask and accept that future
-            // text/echoChar changes will not refresh until skin replacement.
+            // The original binding may already be removed, so leave the node
+            // in a known masked state instead of relying on future refreshes.
             dynamicTextBindingInstalled = false;
+            dynamicTextBindingFailed = true;
             if (displayTextBinding != null) {
                 displayTextBinding.dispose();
                 displayTextBinding = null;
@@ -181,12 +135,12 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     }
 
     private void logIneffectiveToggle(ObservableValue<?> source) {
-        if (dynamicTextBindingInstalled) {
+        if (dynamicTextBindingInstalled || !dynamicTextBindingFailed) {
             return;
         }
         LOGGER.log(Level.WARNING,
-                "RXPasswordField property changed while the dynamic mask binding"
-                        + " is not installed; the UI will not reflect this change."
+                "RXPasswordField cannot refresh the displayed password because"
+                        + " its dynamic text binding could not be installed."
                         + " [property={0}, javafx.runtime.version={1}]",
                 new Object[]{
                         source,
@@ -215,16 +169,12 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
         if (control != null) {
             control.showPasswordProperty().removeListener(ineffectiveToggleListener);
             control.echoCharProperty().removeListener(ineffectiveToggleListener);
-        }
-        if (pendingSkinListener != null && control != null) {
-            control.skinProperty().removeListener(pendingSkinListener);
-            pendingSkinListener = null;
+            if (pendingSkinListener != null) {
+                control.skinProperty().removeListener(pendingSkinListener);
+                pendingSkinListener = null;
+            }
         }
         if (displayTextBinding != null) {
-            // textNode lives in the parent skin's subtree which is torn down
-            // by super.dispose(); the binding is released alongside, but
-            // disposing explicitly drops the strong references to the
-            // control's three observables immediately.
             displayTextBinding.dispose();
             displayTextBinding = null;
         }
