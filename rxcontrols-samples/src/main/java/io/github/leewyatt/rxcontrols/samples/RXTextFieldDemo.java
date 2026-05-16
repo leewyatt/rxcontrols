@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.geometry.Pos;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -25,18 +26,16 @@ public class RXTextFieldDemo extends Application {
         VBox root = new VBox(16);
         root.setStyle("-fx-padding: 24; -fx-background-color: white;");
 
-        // 1) Plain — no left/right.
         RXTextField plain = new RXTextField();
         plain.setPromptText("Plain RXTextField (no slots)");
         plain.setPrefWidth(360);
 
-        // 2) Search field — left icon only.
         RXTextField search = new RXTextField();
         search.setPromptText("Search...");
         search.setPrefWidth(360);
+        search.getStyleClass().add("search-field");
         search.setLeft(magnifierIcon());
 
-        // 3) Right slot — a single clear button.
         RXTextField clearable = new RXTextField("clear me");
         clearable.setPrefWidth(360);
         Button clear = new Button("✕");
@@ -44,21 +43,21 @@ public class RXTextFieldDemo extends Application {
         clear.setOnAction(e -> clearable.clear());
         clearable.setRight(clear);
 
-        // 4) Both slots — left icon + right HBox with two buttons.
         RXTextField both = new RXTextField();
         both.setPromptText("Both slots");
         both.setPrefWidth(360);
+        both.getStyleClass().add("search-field");
         both.setLeft(magnifierIcon());
         Button clearBtn = new Button("✕");
-        Button submitBtn = new Button("↵");
+        Button submitBtn = new Button("⏎");
         clearBtn.setFocusTraversable(false);
         submitBtn.setFocusTraversable(false);
         clearBtn.setOnAction(e -> both.clear());
         submitBtn.setOnAction(e -> System.out.println("Submitted: " + both.getText()));
         HBox actions = new HBox(4, clearBtn, submitBtn);
+        actions.setAlignment(Pos.CENTER);
         both.setRight(actions);
 
-        // 5) Reference — JavaFX plain TextField to compare layout.
         TextField reference = new TextField();
         reference.setPromptText("Plain javafx.scene.control.TextField");
         reference.setPrefWidth(360);
@@ -84,7 +83,7 @@ public class RXTextFieldDemo extends Application {
         path.setFill(Color.web("#6c757d"));
         StackPane icon = new StackPane(path);
         icon.setMinWidth(Region.USE_PREF_SIZE);
-        icon.setPrefWidth(20);
+        icon.setPrefWidth(16);
         return icon;
     }
 

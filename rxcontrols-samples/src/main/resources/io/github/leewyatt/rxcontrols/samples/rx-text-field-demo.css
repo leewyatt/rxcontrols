@@ -1,25 +1,24 @@
-.rx-text-field {
-    -fx-padding: 6 10;
-    -fx-background-color: white;
-    -fx-border-color: #d0d4dc;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
-}
-
-.rx-text-field:focused {
-    -fx-border-color: #4c8bff;
-}
-
-.rx-text-field > .left-wrapper {
-    -fx-padding: 0 8 0 0;
-}
-
-.rx-text-field > .right-wrapper {
-    -fx-padding: 0 0 0 4;
+.rx-text-field.search-field > .left-wrapper {
+    -fx-background-color: #f3f5f7;
+    -fx-background-insets: 1 0 1 1;
+    -fx-background-radius: 3 0 0 3;
+    -fx-padding: 0 10;
 }
 
 .rx-text-field > .right-wrapper .button {
-    -fx-font-size: 11;
-    -fx-padding: 2 6;
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-padding: 3 8;
+    -fx-font-size: 14;
+    -fx-text-fill: #6c757d;
     -fx-cursor: hand;
+}
+
+.rx-text-field > .right-wrapper .button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.06);
+    -fx-text-fill: #1f2933;
+}
+
+.rx-text-field > .right-wrapper .button:pressed {
+    -fx-background-color: rgba(0, 0, 0, 0.12);
 }
