@@ -55,8 +55,8 @@ public class RXPasswordField extends PasswordField {
     /**
      * Default echo character (U+25CF BULLET) used when {@link #echoCharProperty()}
      * has not been explicitly set, and as the in-place fallback inside the skin
-     * when the property is transiently {@code null} (e.g. while bound to a
-     * source observable that produces {@code null}).
+     * when {@link #getEchoChar()} returns {@code null} (e.g. {@code setEchoChar(null)}
+     * was called, or a binding source produced {@code null}).
      */
     public static final char DEFAULT_ECHO_CHAR = '●';
 
@@ -169,13 +169,13 @@ public class RXPasswordField extends PasswordField {
      * The character used as the mask while {@link #isShowPassword()} is
      * {@code false}.
      * <p>
-     * Cannot be set to {@code null} — doing so throws
-     * {@link NullPointerException}. The previous value is restored except
-     * when the property is bound; a bound property cannot accept
-     * {@code set()}, so it remains transiently {@code null} until the
-     * binding source produces a non-null value or the property is unbound.
-     * Skin code defends against this transient state by falling back to
-     * {@link #DEFAULT_ECHO_CHAR}.
+     * Tolerates {@code null} as an in-band "use the default" signal —
+     * {@code setEchoChar(null)} does not throw, and {@link #getEchoChar()}
+     * subsequently returns {@code null}. The skin renders
+     * {@link #DEFAULT_ECHO_CHAR} whenever the property resolves to
+     * {@code null}, so callers do not need to null-check a value forwarded
+     * from upstream. This mirrors the null-tolerant style of
+     * {@link javafx.scene.control.Labeled#textFillProperty()}.
      *
      * @return the echo character property
      * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BULLET)
@@ -183,26 +183,6 @@ public class RXPasswordField extends PasswordField {
     public final ObjectProperty<Character> echoCharProperty() {
         if (echoChar == null) {
             echoChar = new StyleableObjectProperty<>(DEFAULT_ECHO_CHAR) {
-                private Character lastValidValue = DEFAULT_ECHO_CHAR;
-
-                @Override
-                protected void invalidated() {
-                    Character newValue = get();
-                    if (newValue == null) {
-                        // A bound property cannot accept set(); attempting
-                        // it would raise IllegalStateException and mask the
-                        // NPE we want the caller to see. In that case the
-                        // property is left in its (transient) null state
-                        // until the binding source produces a non-null
-                        // value or the property is unbound.
-                        if (!isBound()) {
-                            set(lastValidValue);
-                        }
-                        throw new NullPointerException("cannot set echoChar to null");
-                    }
-                    lastValidValue = newValue;
-                }
-
                 @Override
                 public CssMetaData<RXPasswordField, Character> getCssMetaData() {
                     return StyleableProperties.ECHO_CHAR;

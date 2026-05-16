@@ -12,10 +12,11 @@ import javafx.scene.text.Font;
  * <p>
  * The converter <em>never</em> returns {@code null} — when the parsed value
  * is absent, empty, or not a string, it falls back to
- * {@link RXPasswordField#DEFAULT_ECHO_CHAR}. This guarantee matters because
- * the styleable property's {@code invalidated()} rejects {@code null} with
- * {@code NullPointerException}; letting {@code null} flow in during CSS
- * application would crash layout.
+ * {@link RXPasswordField#DEFAULT_ECHO_CHAR}. The fallback is for stylesheet
+ * predictability: an unparseable CSS value (typo, wrong type, empty literal)
+ * should render the default mask rather than propagate {@code null} through
+ * to the skin. The property itself tolerates {@code null} (skin renders the
+ * default in that case too), so the fallback is convention, not necessity.
  */
 public final class EchoCharConverter extends StyleConverter<String, Character> {
 
