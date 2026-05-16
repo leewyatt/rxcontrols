@@ -7,6 +7,8 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
+import javafx.scene.layout.Pane;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 
 import java.util.List;
@@ -33,23 +35,22 @@ import java.util.logging.Logger;
  * The {@code dynamicTextBindingInstalled} flag defaults to {@code false} and
  * is flipped to {@code true} only after the new binding has been installed.
  * Before that point — including the synchronous window between {@code super()}
- * returning and the lookup running, and the asynchronous window where the
- * skin is waiting for {@code skinProperty} to settle so the internal
- * {@code textNode} can be discovered — {@code maskText} returns a fully
- * masked string regardless of {@code showPassword}. This guarantees that no
- * plain-text password leaks through the parent's still-live string binding.
+ * returning and binding installation, and the window where the skin is
+ * waiting for {@code skinProperty} to settle so the internal {@code textNode}
+ * can be discovered — {@code maskText} returns a fully masked string
+ * regardless of {@code showPassword}. This guarantees that no plain-text
+ * password leaks through the parent's still-live string binding.
  * <p>
- * If the lookup fails permanently (i.e. JavaFX internals shifted in a way
- * that breaks the heuristic), the flag stays {@code false} and the field
+ * If the structural search fails permanently (i.e. JavaFX internals shifted in
+ * a way that breaks the heuristic), the flag stays {@code false} and the field
  * degrades to a permanent mask while still respecting the configured
  * {@code echoChar}. A warning is logged once, including the JavaFX runtime
- * version and lookup statistics, so downstream maintainers can diagnose.
+ * version and diagnostic lookup statistics, so downstream maintainers can
+ * diagnose.
  */
 public class RXPasswordFieldSkin extends RXFieldBaseSkin {
 
     private static final Logger LOGGER = Logger.getLogger(RXPasswordFieldSkin.class.getName());
-
-    private static final String TEXT_STYLE_CLASS = ".text";
 
     private boolean dynamicTextBindingInstalled = false;
     private StringBinding displayTextBinding;
@@ -111,13 +112,13 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
         // leave OUR textNode driven by the parent's builtin binding — which
         // then enters our maskText with installed=true and leaks plaintext on
         // showPassword toggle. Always wait for the attachment via skinProperty
-        // == this; by then JavaFX has swapped the children and lookupAll
-        // resolves to the textNode that is actually displayed.
+        // == this; by then JavaFX has swapped the children and this skin's
+        // direct child list contains the textGroup that is actually displayed.
         pendingSkinListener = (obs, oldSkin, newSkin) -> {
             if (newSkin == this) {
                 control.skinProperty().removeListener(pendingSkinListener);
                 pendingSkinListener = null;
-                Text retryNode = findManagedTextNode(control);
+                Text retryNode = findTextFieldSkinTextNode();
                 if (retryNode != null) {
                     rebindTextNode(control, retryNode, "B");
                 } else {
@@ -129,17 +130,16 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     }
 
     /**
-     * Finds the parent {@code TextFieldSkin.textNode} via CSS lookup. The
-     * style class {@code .text} alone is not sufficient — the prompt node and
-     * any user-supplied Labeled in the left/right slots share it. The
-     * distinguishing fact, verified across JFX 17.0.13 / 21.0.7 / 24.0.1
-     * (see {@code devdoc/rxfield-passwordfield-probe-results-byClaude.md}),
-     * is that only the managed text node has its {@code layoutXProperty}
-     * bound by the parent skin.
+     * Finds the parent {@code TextFieldSkin.textNode} by first narrowing the
+     * search to the clipped textGroup pane created by {@code TextFieldSkin}.
+     * This avoids matching user-supplied nodes in the left/right wrappers.
      */
-    private static Text findManagedTextNode(RXPasswordField control) {
-        Set<Node> candidates = control.lookupAll(TEXT_STYLE_CLASS);
-        List<Text> filtered = candidates.stream()
+    private Text findTextFieldSkinTextNode() {
+        List<Text> filtered = getChildren().stream()
+                .filter(Pane.class::isInstance)
+                .map(Pane.class::cast)
+                .filter(pane -> pane.getClip() instanceof Rectangle)
+                .flatMap(pane -> pane.getChildren().stream())
                 .filter(Text.class::isInstance)
                 .map(Text.class::cast)
                 .filter(t -> t.layoutXProperty().isBound())
@@ -198,7 +198,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     }
 
     private void logFallback(RXPasswordField control, String source, String detail) {
-        Set<Node> candidates = control.lookupAll(TEXT_STYLE_CLASS);
+        Set<Node> candidates = control.lookupAll(".text");
         long textCount = candidates.stream().filter(Text.class::isInstance).count();
         long boundCount = candidates.stream()
                 .filter(Text.class::isInstance)

@@ -49,8 +49,7 @@ import java.util.List;
 public class RXPasswordField extends PasswordField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-password-field";
-    private static final String USER_AGENT_STYLESHEET = RXPasswordField.class.getResource("/rx-controls.css")
-            .toExternalForm();
+    private static final String USER_AGENT_STYLESHEET = RXPasswordField.class.getResource("/rx-controls.css").toExternalForm();
     private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
 
     /**
