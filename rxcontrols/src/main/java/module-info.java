@@ -1,6 +1,7 @@
 module rxcontrols {
     requires javafx.controls;
     requires java.xml;
+    requires java.logging;
 
     exports io.github.leewyatt.rxcontrols;
     exports io.github.leewyatt.rxcontrols.animation.fillbutton;

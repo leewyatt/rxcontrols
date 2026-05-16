@@ -93,7 +93,8 @@
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
-    <li><a href="#rxPasswordField">OldRXPasswordField (deprecated)</a></li>
+    <li><a href="#rxPasswordField">RXPasswordField</a></li>
+    <li><a href="#oldRxPasswordField">OldRXPasswordField (deprecated)</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#oldRxTextField">OldRXTextField (deprecated)</a></li>
@@ -487,9 +488,70 @@ pagination-control — StackPane <br>
 &emsp;&emsp;label-page — Label <br>
 &emsp;&emsp;ok-button — Button <br>
 
-<h3 id="rxPasswordField">OldRXPasswordField (deprecated)</h3>
+<h3 id="rxPasswordField">RXPasswordField</h3>
+<p class="fxClass">Style class: rx-password-field</p>
+<p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds left and right slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>left</code> / <code>right</code> with any Node, and bind your toggle's selected state to <code>showPasswordProperty()</code> to switch between masked and plain text.</p>
+<h4>Substructure</h4>
+.rx-password-field — extends PasswordField<br/>
+&emsp;&emsp;.left-wrapper — StackPane (present only when left is set)<br/>
+&emsp;&emsp;.right-wrapper — StackPane (present only when right is set)<br/><br/>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>showing</td>
+        <td>applies when <code>showPassword</code> is <code>true</code>; CSS hook for adjusting the reveal-toggle's visual</td>
+    </tr>
+    <tr>
+        <td>has-left-node</td>
+        <td>applies when the left property is non-null</td>
+    </tr>
+    <tr>
+        <td>has-right-node</td>
+        <td>applies when the right property is non-null</td>
+    </tr>
+    <tr>
+        <td>has-no-side-nodes</td>
+        <td>applies when both left and right are null (mutually exclusive with the two above)</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p>CSS Properties</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-echo-char</td>
+        <td>Character (single-quoted string literal; first character is used)</td>
+        <td>'●' (●)</td>
+    </tr>
+    <tr>
+        <td>-rx-text-padding</td>
+        <td>Insets</td>
+        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-left-node</code> / <code>:has-right-node</code> is active)</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
+<p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>showPassword</code> is <code>true</code>.</p>
+
+<h3 id="oldRxPasswordField">OldRXPasswordField (deprecated)</h3>
 <p class="fxClass">Style class: old-rx-password-field</p>
-<p>The control has all the properties of PasswordField. A follow-up PR will introduce the rxcontrols-namespace replacement; for now this old version is the only password-field control in the library.</p>
+<p>Deprecated; preserved for migration/reference. Has all the properties of PasswordField plus a built-in reveal button. New code should use <a href="#rxPasswordField">RXPasswordField</a>.</p>
 <h4>Substructure</h4>
 password-field  — PasswordField<br />
 tf-top-pane  — Pane<br/>

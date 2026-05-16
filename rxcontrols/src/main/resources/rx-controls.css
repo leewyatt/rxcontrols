@@ -190,3 +190,21 @@
 .rx-text-field:has-left-node:has-right-node {
     -rx-text-padding: 0 0.583em 0 0.583em;
 }
+
+/* New password field (rxcontrols 1.0+) */
+.rx-password-field {
+    -rx-text-padding: 0;
+    -rx-echo-char: '●';
+}
+
+.rx-password-field:has-left-node {
+    -rx-text-padding: 0 0 0 0.583em;
+}
+
+.rx-password-field:has-right-node {
+    -rx-text-padding: 0 0.583em 0 0;
+}
+
+.rx-password-field:has-left-node:has-right-node {
+    -rx-text-padding: 0 0.583em 0 0.583em;
+}
