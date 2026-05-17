@@ -167,3 +167,24 @@
 .rx-password-field:has-left-node:has-right-node {
     -rx-text-padding: 0 0.583em 0 0.583em;
 }
+
+.rx-circular-progress-indicator {
+    -rx-start-angle: 90;
+    -rx-clockwise: true;
+    -rx-indeterminate-cycle-duration: 1500ms;
+    -rx-track-stroke: derive(-fx-accent, 70%);
+    -rx-progress-stroke: -fx-accent;
+    -rx-track-stroke-width: 4;
+    -rx-progress-stroke-width: 4;
+    -rx-stroke-line-cap: round;
+}
+
+.rx-circular-progress-indicator:completed {
+    -rx-progress-stroke: #2ecc71;
+}
+
+.rx-circular-progress-indicator > .center-slot > .progress-label {
+    -fx-font-size: 0.9em;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-alignment: center;
+}

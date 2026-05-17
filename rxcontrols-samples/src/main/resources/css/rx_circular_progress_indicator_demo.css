@@ -1,0 +1,52 @@
+.root {
+    -fx-background-color: #f5f7fb;
+}
+
+.preview-pane {
+    -fx-background-color: white;
+    -fx-padding: 32px;
+}
+
+.control-pane {
+    -fx-background-color: white;
+    -fx-border-color: #e3e6ed;
+    -fx-border-width: 0 0 0 1px;
+    -fx-padding: 18px;
+}
+
+.control-pane .title-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2430;
+}
+
+.control-pane .label {
+    -fx-text-fill: #3a3f4b;
+    -fx-font-size: 13px;
+}
+
+.control-pane .value-label {
+    -fx-text-fill: #6b7280;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.control-pane .hint-label {
+    -fx-text-fill: #8a91a0;
+    -fx-font-size: 11px;
+}
+
+.control-pane .check-box,
+.control-pane .check-box .text {
+    -fx-text-fill: #3a3f4b;
+}
+
+.control-pane .scroll-pane,
+.control-pane .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.control-pane .separator .line {
+    -fx-border-color: #e3e6ed;
+    -fx-border-insets: 0;
+}
