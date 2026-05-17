@@ -1,8 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
@@ -18,7 +15,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -28,6 +24,9 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Interactive demo for {@link TreeShowingProperty}.

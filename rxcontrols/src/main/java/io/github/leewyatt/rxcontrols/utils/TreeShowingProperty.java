@@ -46,6 +46,9 @@ import java.util.Objects;
  */
 public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
 
+    /**
+     * Sentinel key for caching the shared per-node instance in {@link Node#getProperties()}.
+     */
     private static final Object CACHE_KEY = new Object();
 
     private final Node target;
@@ -54,6 +57,9 @@ public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
     private boolean treeShowing;
     private boolean disposed;
 
+    /**
+     * Snapshot of the ancestor chain (target first, scene root last).
+     */
     private final List<Node> chain = new ArrayList<>();
 
     private Scene currentScene;
@@ -120,7 +126,8 @@ public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
      * Returns a tree-showing property cached on the node's
      * {@link Node#getProperties() properties map}. Subsequent calls for the
      * same node return the same instance, so multiple consumers share a single
-     * listener chain. Do not dispose the shared instance.
+     * listener chain. Do not dispose the shared instance; if a previously
+     * cached instance has been disposed, a fresh one is created automatically.
      *
      * @param node the node to obtain a tree-showing property for
      * @return the shared, read-only tree-showing property
