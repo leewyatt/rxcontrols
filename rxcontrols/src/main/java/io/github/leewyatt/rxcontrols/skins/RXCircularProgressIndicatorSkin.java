@@ -72,6 +72,14 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
     private final DoubleProperty displayedProgress =
             new SimpleDoubleProperty(this, "displayedProgress", 0.0);
 
+    /**
+     * Additive offset applied on top of {@code control.startAngle}. Used by the
+     * Material indeterminate animation to advance the head endpoint during the
+     * "contract" half-cycle while {@code control.startAngle} stays user-owned.
+     */
+    private final DoubleProperty animatedStartOffset =
+            new SimpleDoubleProperty(this, "animatedStartOffset", 0.0);
+
     private final TreeShowingProperty treeShowing;
     private final List<Runnable> disposers = new ArrayList<>();
 
@@ -120,10 +128,10 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         progressArc.getStyleClass().add("progress-arc");
         progressArc.setManaged(false);
         progressArc.setType(ArcType.OPEN);
-        progressArc.setStartAngle(control.getStartAngle());
         progressArc.setLength(0.0);
         progressArc.setFill(null);
-        progressArc.startAngleProperty().bind(control.startAngleProperty());
+        progressArc.startAngleProperty().bind(
+                control.startAngleProperty().add(animatedStartOffset));
         progressArc.getTransforms().add(spinRotate);
 
         progressLabel.getStyleClass().add("progress-label");
@@ -276,9 +284,23 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
             indeterminateTimeline = null;
         }
         spinRotate.setAngle(0.0);
+        animatedStartOffset.set(0.0);
         applyDisplayedLength();
     }
 
+    /**
+     * Builds a Material-style two-phase indeterminate cycle:
+     * <ul>
+     *   <li>Phase A (0 → T/2, "expand"): tail fixed in local frame, arc length
+     *       grows {@code MIN → MAX} — the leading edge sweeps forward.</li>
+     *   <li>Phase B (T/2 → T, "contract"): head fixed in local frame, arc length
+     *       shrinks {@code MAX → MIN} while {@code animatedStartOffset} advances
+     *       by {@code sweepDelta} — the trailing edge catches up.</li>
+     * </ul>
+     * The {@code spinRotate} transform provides the remaining
+     * {@code 360° − sweepDelta} of base rotation, so both endpoints advance by
+     * exactly one full revolution per cycle and never move backwards.
+     */
     private void rebuildIndeterminateTimeline() {
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
@@ -293,26 +315,42 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             cycle = RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION;
         }
-
-        // Clockwise progress sweep ↔ visual clockwise rotation (negative length in JavaFX).
-        double rotateEnd = control.isClockwise() ? FULL_CIRCLE : -FULL_CIRCLE;
-        double sweepSign = control.isClockwise() ? -1.0 : 1.0;
         Duration halfCycle = cycle.divide(2.0);
+
+        double sweepSign = control.isClockwise() ? -1.0 : 1.0;
+        double sweepDelta = INDETERMINATE_MAX_LENGTH - INDETERMINATE_MIN_LENGTH;
+        double signedMinLen = sweepSign * INDETERMINATE_MIN_LENGTH;
+        double signedMaxLen = sweepSign * INDETERMINATE_MAX_LENGTH;
+        double startOffsetEnd = sweepSign * sweepDelta;
+        double rotateEnd = control.isClockwise()
+                ? (FULL_CIRCLE - sweepDelta)
+                : -(FULL_CIRCLE - sweepDelta);
+
+        animatedStartOffset.set(0.0);
+        spinRotate.setAngle(0.0);
 
         indeterminateTimeline = new Timeline(
                 new KeyFrame(Duration.ZERO,
                         new KeyValue(progressArc.lengthProperty(),
-                                sweepSign * INDETERMINATE_MIN_LENGTH, Interpolator.EASE_BOTH),
-                        new KeyValue(spinRotate.angleProperty(), 0.0, Interpolator.LINEAR)),
+                                signedMinLen, Interpolator.EASE_BOTH),
+                        new KeyValue(animatedStartOffset,
+                                0.0, Interpolator.EASE_BOTH),
+                        new KeyValue(spinRotate.angleProperty(),
+                                0.0, Interpolator.LINEAR)),
                 new KeyFrame(halfCycle,
                         new KeyValue(progressArc.lengthProperty(),
-                                sweepSign * INDETERMINATE_MAX_LENGTH, Interpolator.EASE_BOTH),
+                                signedMaxLen, Interpolator.EASE_BOTH),
+                        new KeyValue(animatedStartOffset,
+                                0.0, Interpolator.EASE_BOTH),
                         new KeyValue(spinRotate.angleProperty(),
                                 rotateEnd * HALF, Interpolator.LINEAR)),
                 new KeyFrame(cycle,
                         new KeyValue(progressArc.lengthProperty(),
-                                sweepSign * INDETERMINATE_MIN_LENGTH, Interpolator.EASE_BOTH),
-                        new KeyValue(spinRotate.angleProperty(), rotateEnd, Interpolator.LINEAR))
+                                signedMinLen, Interpolator.EASE_BOTH),
+                        new KeyValue(animatedStartOffset,
+                                startOffsetEnd, Interpolator.EASE_BOTH),
+                        new KeyValue(spinRotate.angleProperty(),
+                                rotateEnd, Interpolator.LINEAR))
         );
         indeterminateTimeline.setCycleCount(Animation.INDEFINITE);
         if (treeShowing.get()) {

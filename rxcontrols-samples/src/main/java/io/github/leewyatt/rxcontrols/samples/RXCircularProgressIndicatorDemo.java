@@ -1,12 +1,17 @@
 package io.github.leewyatt.rxcontrols.samples;
 
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
@@ -14,9 +19,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -26,6 +33,12 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import javax.imageio.ImageIO;
+import java.awt.Desktop;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Demo for {@link RXCircularProgressIndicator}.
@@ -52,10 +65,14 @@ public class RXCircularProgressIndicatorDemo extends Application {
                     + "M5 19a1 1 0 0 1 1-1h12a1 1 0 0 1 0 2H6a1 1 0 0 1-1-1Z";
     private static final double DOWNLOAD_ICON_SCALE = 1.6;
 
+    private static final int CAPTURE_FRAMES = 20;
+
     private RXCircularProgressIndicator indicator;
     private SVGPath downloadIcon;
     private Slider progressSlider;
     private CheckBox indeterminateBox;
+    private Button captureButton;
+    private Label statusLabel;
 
     @Override
     public void start(Stage primaryStage) {
@@ -108,6 +125,12 @@ public class RXCircularProgressIndicatorDemo extends Application {
         progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
         progressValue.setAlignment(Pos.CENTER_RIGHT);
 
+        HBox jumpButtons = new HBox(8.0,
+                jumpBtn("Reset", 0.0),
+                jumpBtn("50%", 0.5),
+                jumpBtn("100%", 1.0));
+        jumpButtons.setAlignment(Pos.CENTER_LEFT);
+
         indeterminateBox = new CheckBox();
         indeterminateBox.selectedProperty().addListener((obs, oldV, selected) -> {
             progressSlider.setDisable(selected);
@@ -117,6 +140,12 @@ public class RXCircularProgressIndicatorDemo extends Application {
                 indicator.setProgress(progressSlider.getValue());
             }
         });
+
+        captureButton = new Button("Capture cycle (" + CAPTURE_FRAMES + " frames)");
+        captureButton.setOnAction(e -> captureIndeterminateCycle());
+
+        HBox indeterminateRow = new HBox(10.0, indeterminateBox, captureButton);
+        indeterminateRow.setAlignment(Pos.CENTER_LEFT);
 
         // ==================== Toggles ====================
         CheckBox animatedBox = new CheckBox();
@@ -197,7 +226,8 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         int row = 0;
         grid.addRow(row++, new Label("Progress"), progressSlider, progressValue);
-        grid.addRow(row++, new Label("Indeterminate"), indeterminateBox);
+        grid.addRow(row++, new Label("Jump to"), jumpButtons);
+        grid.addRow(row++, new Label("Indeterminate"), indeterminateRow);
         addSeparator(grid, row++);
         grid.addRow(row++, new Label("Animated tween"), animatedBox);
         grid.addRow(row++, new Label("Clockwise"), clockwiseBox);
@@ -220,12 +250,18 @@ public class RXCircularProgressIndicatorDemo extends Application {
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
         Label tips = new Label(
-                "Drag the Progress slider or toggle Indeterminate to drive the indicator.\n"
+                "Drag the Progress slider, click Jump-to buttons to see the tween,\n"
+                        + "or toggle Indeterminate to drive the spinner.\n"
                         + "Minimising the window pauses the animation automatically.");
         tips.getStyleClass().add("hint-label");
         tips.setWrapText(true);
 
-        VBox panel = new VBox(10.0, title, new Separator(), grid, spacer, new Separator(), tips);
+        statusLabel = new Label();
+        statusLabel.getStyleClass().add("hint-label");
+        statusLabel.setWrapText(true);
+
+        VBox panel = new VBox(10.0,
+                title, new Separator(), grid, spacer, new Separator(), tips, statusLabel);
         panel.setFillWidth(true);
 
         ScrollPane scroll = new ScrollPane(panel);
@@ -255,6 +291,79 @@ public class RXCircularProgressIndicatorDemo extends Application {
         Separator separator = new Separator();
         GridPane.setMargin(separator, new Insets(2.0, 0.0, 2.0, 0.0));
         grid.add(separator, 0, row, 3, 1);
+    }
+
+    private Button jumpBtn(String text, double target) {
+        Button button = new Button(text);
+        button.setOnAction(e -> {
+            if (indeterminateBox.isSelected()) {
+                indeterminateBox.setSelected(false);
+            }
+            progressSlider.setValue(target);
+        });
+        return button;
+    }
+
+    private void captureIndeterminateCycle() {
+        if (!indeterminateBox.isSelected()) {
+            indeterminateBox.setSelected(true);
+        }
+
+        Duration cycle = indicator.getIndeterminateCycleDuration();
+        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+            cycle = RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION;
+        }
+
+        Path outDir;
+        try {
+            outDir = Files.createTempDirectory("rxcpi-snapshots-");
+        } catch (IOException ex) {
+            statusLabel.setText("Capture failed: " + ex.getMessage());
+            return;
+        }
+
+        captureButton.setDisable(true);
+        statusLabel.setText("Capturing 0/" + CAPTURE_FRAMES + "...");
+
+        SnapshotParameters params = new SnapshotParameters();
+        params.setFill(Color.WHITE);
+
+        Path finalOutDir = outDir;
+        Timeline capture = new Timeline();
+        for (int i = 0; i < CAPTURE_FRAMES; i++) {
+            final int idx = i;
+            Duration t = cycle.multiply((double) i / (double) (CAPTURE_FRAMES - 1));
+            capture.getKeyFrames().add(new KeyFrame(t,
+                    e -> takeFrame(params, finalOutDir, idx)));
+        }
+        capture.setOnFinished(e -> {
+            captureButton.setDisable(false);
+            statusLabel.setText("Saved " + CAPTURE_FRAMES + " frames to:\n" + finalOutDir);
+            openInFileManager(finalOutDir);
+        });
+        capture.play();
+    }
+
+    private void takeFrame(SnapshotParameters params, Path dir, int idx) {
+        WritableImage img = indicator.snapshot(params, null);
+        Path file = dir.resolve(String.format("frame_%02d.png", idx));
+        try {
+            ImageIO.write(SwingFXUtils.fromFXImage(img, null), "png", file.toFile());
+            statusLabel.setText("Capturing " + (idx + 1) + "/" + CAPTURE_FRAMES + "...");
+        } catch (IOException ex) {
+            statusLabel.setText("Frame " + idx + " failed: " + ex.getMessage());
+        }
+    }
+
+    private void openInFileManager(Path dir) {
+        if (!Desktop.isDesktopSupported()) {
+            return;
+        }
+        try {
+            Desktop.getDesktop().open(dir.toFile());
+        } catch (IOException ignored) {
+            // best-effort only; status label already shows the path
+        }
     }
 
     /**
