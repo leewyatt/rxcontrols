@@ -4,11 +4,11 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.StringProperty;
 import javafx.css.CssMetaData;
 import javafx.css.SimpleStyleableStringProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
-import javafx.css.StyleableStringProperty;
 import javafx.css.converter.StringConverter;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -42,7 +42,7 @@ import java.util.List;
  * view.setClipSvgPath(RXImageView.SHAPE_HEXAGON);
  *
  * // Or via CSS:
- * // .my-image { -fx-clip-svg-path: "M50,0 L100,50 L50,100 L0,50 Z"; }
+ * // .my-image { -rx-clip-svg-path: "M50,0 L100,50 L50,100 L0,50 Z"; }
  * }</pre>
  */
 public class RXImageView extends Region {
@@ -85,40 +85,38 @@ public class RXImageView extends Region {
             "M15,0 L85,0 Q100,0 100,15 L100,85 Q100,100 85,100 L15,100 Q0,100 0,85 L0,15 Q0,0 15,0 Z";
 
     /**
-     * Heart shape.
+     * Heart shape (SVG path in 0-100 coordinate space).
      */
     public static final String SHAPE_HEART =
             "M50,30 A20,20 0 0,1 90,30 Q90,60 50,95 Q10,60 10,30 A20,20 0 0,1 50,30 Z";
 
     /**
-     * Cross / plus shape.
+     * Cross / plus shape (SVG path in 0-100 coordinate space).
      */
     public static final String SHAPE_CROSS =
             "M35,0 L65,0 L65,35 L100,35 L100,65 L65,65 L65,100 L35,100 L35,65 L0,65 L0,35 L35,35 Z";
 
     /**
-     * Octagon shape.
+     * Octagon shape (SVG path in 0-100 coordinate space).
      */
     public static final String SHAPE_OCTAGON =
             "M30,0 L70,0 L100,30 L100,70 L70,100 L30,100 L0,70 L0,30 Z";
 
     /**
-     * Shield shape.
+     * Shield shape (SVG path in 0-100 coordinate space).
      */
     public static final String SHAPE_SHIELD =
             "M50,0 L100,15 L100,55 Q100,80 50,100 Q0,80 0,55 L0,15 Z";
 
     /**
-     * Teardrop / water drop shape.
+     * Teardrop / water drop shape (SVG path in 0-100 coordinate space).
      */
     public static final String SHAPE_DROP =
             "M50,0 Q80,40 80,60 A30,30 0 1,1 20,60 Q20,40 50,0 Z";
 
+    // ==================== Internal State ====================
+
     private final ImageView internalImageView;
-
-    // ==================== Image State ====================
-
-    private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image");
 
     /**
      * Image currently tracked for metadata readiness.
@@ -138,17 +136,6 @@ public class RXImageView extends Region {
         Image img = trackedImage;
         if (img != null && img.getWidth() > 0) {
             img.widthProperty().removeListener(weakMetadataReadyListener);
-            requestLayout();
-        }
-    };
-
-    // ==================== Clip State ====================
-
-    private final StyleableStringProperty clipSvgPath = new SimpleStyleableStringProperty(
-            StyleableProperties.CLIP_SVG_PATH, this, "clipSvgPath", null) {
-        @Override
-        protected void invalidated() {
-            rebuildClipCache();
             requestLayout();
         }
     };
@@ -181,7 +168,7 @@ public class RXImageView extends Region {
         internalImageView.setPreserveRatio(false);
         getChildren().add(internalImageView);
 
-        image.addListener(obs -> onImageChanged());
+        imageProperty().addListener(obs -> onImageChanged());
     }
 
     /**
@@ -207,6 +194,10 @@ public class RXImageView extends Region {
     public String getUserAgentStylesheet() {
         return USER_AGENT_STYLESHEET;
     }
+
+    // ==================== Image ====================
+
+    private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image");
 
     /**
      * The image to display.
@@ -235,6 +226,17 @@ public class RXImageView extends Region {
         image.set(value);
     }
 
+    // ==================== Clip SVG Path ====================
+
+    private final StringProperty clipSvgPath = new SimpleStyleableStringProperty(
+            StyleableProperties.CLIP_SVG_PATH, this, "clipSvgPath", null) {
+        @Override
+        protected void invalidated() {
+            rebuildClipCache();
+            requestLayout();
+        }
+    };
+
     /**
      * SVG path used to clip the rendered image, in 0-100 coordinate space;
      * scaled and centered to the control bounds. A {@code null}, empty,
@@ -242,7 +244,7 @@ public class RXImageView extends Region {
      *
      * @return the clipSvgPath property
      */
-    public final StyleableStringProperty clipSvgPathProperty() {
+    public final StringProperty clipSvgPathProperty() {
         return clipSvgPath;
     }
 
@@ -263,6 +265,8 @@ public class RXImageView extends Region {
     public final void setClipSvgPath(String value) {
         clipSvgPath.set(value);
     }
+
+    // ==================== Internal Methods ====================
 
     private void onImageChanged() {
         Image newImage = image.get();
@@ -360,15 +364,16 @@ public class RXImageView extends Region {
 
     private static class StyleableProperties {
         private static final CssMetaData<RXImageView, String> CLIP_SVG_PATH =
-                new CssMetaData<>("-fx-clip-svg-path", StringConverter.getInstance(), null) {
+                new CssMetaData<>("-rx-clip-svg-path", StringConverter.getInstance(), null) {
                     @Override
                     public boolean isSettable(RXImageView control) {
-                        return !control.clipSvgPath.isBound();
+                        return !control.clipSvgPathProperty().isBound();
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<String> getStyleableProperty(RXImageView control) {
-                        return control.clipSvgPath;
+                        return (StyleableProperty<String>) control.clipSvgPathProperty();
                     }
                 };
 
