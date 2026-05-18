@@ -318,16 +318,22 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         }
 
         RXCircularProgressIndicator control = getSkinnable();
+        double sweepSign = control.isClockwise() ? -1.0 : 1.0;
+        double signedMinLen = sweepSign * INDETERMINATE_MIN_LENGTH;
+
         Duration cycle = control.getIndeterminateCycleDuration();
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
-            // Suppress indeterminate animation; ring stays static.
+            // Suppress indeterminate animation, snap to the cycle's t=0 pose so
+            // the ring shows a deterministic static frame instead of whatever
+            // arc length / rotation was lingering from a previous animation.
+            progressArc.setLength(signedMinLen);
+            animatedStartOffset.set(0.0);
+            spinRotate.setAngle(0.0);
             return;
         }
         Duration halfCycle = cycle.divide(2.0);
 
-        double sweepSign = control.isClockwise() ? -1.0 : 1.0;
         double sweepDelta = INDETERMINATE_MAX_LENGTH - INDETERMINATE_MIN_LENGTH;
-        double signedMinLen = sweepSign * INDETERMINATE_MIN_LENGTH;
         double signedMaxLen = sweepSign * INDETERMINATE_MAX_LENGTH;
         double startOffsetEnd = sweepSign * sweepDelta;
         // Each endpoint advances by (1 + EXTRA_BASE_REVOLUTIONS) * 360° per cycle.

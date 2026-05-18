@@ -43,9 +43,11 @@ import java.nio.file.Path;
 /**
  * Demo for {@link RXCircularProgressIndicator}.
  *
- * <p>Exercises every public knob: progress, animated tween, clockwise direction,
- * track/progress stroke colours and widths, line cap, track visibility, custom
- * centre graphic, indeterminate cycle duration.
+ * <p>Exercises every public knob: progress, clockwise direction, custom centre
+ * graphic, sizing, start angle, track/progress stroke colours and widths,
+ * line cap, indeterminate cycle duration, progress transition duration.
+ * Boundary values (cycle/tween = 0) are reachable via the sliders so the
+ * "non-positive disables animation" semantic is directly observable.
  */
 public class RXCircularProgressIndicatorDemo extends Application {
 
@@ -302,7 +304,10 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         Duration cycle = indicator.getIndeterminateCycleDuration();
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
-            cycle = RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION;
+            // Indeterminate animation is disabled — capturing would just snapshot
+            // the same static frame N times, which would be misleading.
+            statusLabel.setText("Capture skipped: indeterminate animation is disabled (cycle ≤ 0).");
+            return;
         }
 
         Path outDir;
