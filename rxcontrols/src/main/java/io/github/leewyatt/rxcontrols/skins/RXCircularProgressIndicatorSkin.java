@@ -58,6 +58,22 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
     /** Below this inner diameter the centre slot is hidden to avoid overflow. */
     private static final double CENTER_SLOT_MIN_INNER = 14.0;
 
+    /**
+     * Extra base-rotation revolutions per cycle, on top of the obligatory
+     * {@code 360° − sweepDelta}. Lifting this beyond 1 narrows the head/tail
+     * speed gap so the spinner reads as a steady rotation rather than two
+     * alternating bursts.
+     */
+    private static final double EXTRA_BASE_REVOLUTIONS = 1.0;
+
+    /**
+     * Material "fast-out, slow-in" easing applied to {@code length} and
+     * {@code animatedStartOffset}. Compared to {@code EASE_BOTH}, the peak is
+     * passed through quickly instead of sustained for ~30% of the cycle.
+     */
+    private static final Interpolator MATERIAL_EASING =
+            Interpolator.SPLINE(0.4, 0.0, 0.2, 1.0);
+
     // ==================== Nodes ====================
 
     private final Arc trackArc = new Arc();
@@ -297,9 +313,11 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
      *       shrinks {@code MAX → MIN} while {@code animatedStartOffset} advances
      *       by {@code sweepDelta} — the trailing edge catches up.</li>
      * </ul>
-     * The {@code spinRotate} transform provides the remaining
-     * {@code 360° − sweepDelta} of base rotation, so both endpoints advance by
-     * exactly one full revolution per cycle and never move backwards.
+     * The {@code spinRotate} transform provides the remaining base rotation —
+     * {@code (1 + EXTRA_BASE_REVOLUTIONS) * 360° − sweepDelta} — so each
+     * endpoint advances by {@code (1 + EXTRA_BASE_REVOLUTIONS) * 360°} per
+     * cycle and never moves backwards. Length and offset use a Material
+     * "fast-out, slow-in" curve so the peak length is passed through cleanly.
      */
     private void rebuildIndeterminateTimeline() {
         if (indeterminateTimeline != null) {
@@ -322,9 +340,12 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         double signedMinLen = sweepSign * INDETERMINATE_MIN_LENGTH;
         double signedMaxLen = sweepSign * INDETERMINATE_MAX_LENGTH;
         double startOffsetEnd = sweepSign * sweepDelta;
-        double rotateEnd = control.isClockwise()
-                ? (FULL_CIRCLE - sweepDelta)
-                : -(FULL_CIRCLE - sweepDelta);
+        // Each endpoint advances by (1 + EXTRA_BASE_REVOLUTIONS) * 360° per cycle.
+        // Of that, sweepDelta is contributed by length / animatedStartOffset growth;
+        // the rest is spinRotate. Keeping spinRotate ≡ sweepSign * sweepDelta (mod 360)
+        // ensures the screen position is continuous across the cycle boundary.
+        double baseRotation = (1.0 + EXTRA_BASE_REVOLUTIONS) * FULL_CIRCLE - sweepDelta;
+        double rotateEnd = control.isClockwise() ? baseRotation : -baseRotation;
 
         animatedStartOffset.set(0.0);
         spinRotate.setAngle(0.0);
@@ -332,23 +353,23 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         indeterminateTimeline = new Timeline(
                 new KeyFrame(Duration.ZERO,
                         new KeyValue(progressArc.lengthProperty(),
-                                signedMinLen, Interpolator.EASE_BOTH),
+                                signedMinLen, MATERIAL_EASING),
                         new KeyValue(animatedStartOffset,
-                                0.0, Interpolator.EASE_BOTH),
+                                0.0, MATERIAL_EASING),
                         new KeyValue(spinRotate.angleProperty(),
                                 0.0, Interpolator.LINEAR)),
                 new KeyFrame(halfCycle,
                         new KeyValue(progressArc.lengthProperty(),
-                                signedMaxLen, Interpolator.EASE_BOTH),
+                                signedMaxLen, MATERIAL_EASING),
                         new KeyValue(animatedStartOffset,
-                                0.0, Interpolator.EASE_BOTH),
+                                0.0, MATERIAL_EASING),
                         new KeyValue(spinRotate.angleProperty(),
                                 rotateEnd * HALF, Interpolator.LINEAR)),
                 new KeyFrame(cycle,
                         new KeyValue(progressArc.lengthProperty(),
-                                signedMinLen, Interpolator.EASE_BOTH),
+                                signedMinLen, MATERIAL_EASING),
                         new KeyValue(animatedStartOffset,
-                                startOffsetEnd, Interpolator.EASE_BOTH),
+                                startOffsetEnd, MATERIAL_EASING),
                         new KeyValue(spinRotate.angleProperty(),
                                 rotateEnd, Interpolator.LINEAR))
         );
