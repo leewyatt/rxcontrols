@@ -161,3 +161,11 @@
     -fx-pref-width: 17.59px;
     -fx-pref-height: 13.41px;
 }
+
+
+.rx-circular-progress-indicator {
+    -fx-border-color: #1ecc94;
+}
+
+.rx-circular-progress-indicator .progress-label {
+}

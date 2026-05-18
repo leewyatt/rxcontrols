@@ -184,7 +184,7 @@
     -rx-progress-stroke: #2ecc71;
 }
 
-.rx-circular-progress-indicator > .center-slot > .progress-label {
+.rx-circular-progress-indicator > .progress-label {
     -fx-font-size: 0.9em;
     -fx-text-fill: -fx-text-base-color;
     -fx-alignment: center;

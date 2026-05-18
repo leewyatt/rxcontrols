@@ -50,7 +50,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
             if (progress >= 1.0) {
                 return "Done!";
             }
-            return "Working… " + Math.round(progress * 100.0) + "%";
+            return "Step " + Math.round(progress * 100.0) + "%";
         }
 
         @Override
@@ -80,7 +80,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         Scene scene = new Scene(root, 960.0, 620.0);
         scene.getStylesheets().add(
-                RXCircularProgressIndicatorDemo.class.getResource("/css/rx_circular_progress_indicator_demo.css").toExternalForm());
+                RXCircularProgressIndicatorDemo.class.getResource("rx_circular_progress_indicator_demo.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXCircularProgressIndicator Demo");
         primaryStage.show();

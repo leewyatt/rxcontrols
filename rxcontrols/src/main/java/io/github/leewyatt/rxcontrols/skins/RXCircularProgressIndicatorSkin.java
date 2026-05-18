@@ -14,7 +14,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Arc;
 import javafx.scene.shape.ArcType;
@@ -28,8 +27,8 @@ import java.util.List;
 
 /**
  * Default skin for {@link RXCircularProgressIndicator}. Renders a track ring,
- * a progress arc, and a centre slot that hosts either {@link
- * RXCircularProgressIndicator#getGraphic()} or a default percentage label.
+ * a progress arc, and a centre label that shows either {@link
+ * RXCircularProgressIndicator#getGraphic()} or the converted progress text.
  *
  * <p>The indeterminate animation is a Material-style sweep
  * ({@code progressArc.length} animated between a short and long sweep) combined
@@ -54,9 +53,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
     /** Sweep length of the indeterminate arc at the midpoint of a cycle. */
     private static final double INDETERMINATE_MAX_LENGTH = 270.0;
 
-    /** Below this inner diameter the centre slot is hidden to avoid overflow. */
-    private static final double CENTER_SLOT_MIN_INNER = 14.0;
-
     /**
      * Extra base-rotation revolutions per cycle, on top of the obligatory
      * {@code 360° − sweepDelta}. Lifting this beyond 1 narrows the head/tail
@@ -77,7 +73,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
 
     private final Arc trackArc = new Arc();
     private final Arc progressArc = new Arc();
-    private final StackPane centerSlot = new StackPane();
     private final Label progressLabel = new Label();
     private final Rotate spinRotate = new Rotate();
 
@@ -152,14 +147,11 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         progressLabel.setMouseTransparent(true);
         progressLabel.graphicProperty().bind(control.graphicProperty());
         progressLabel.visibleProperty().bind(
-                control.graphicProperty().isNotNull().or(progressLabel.textProperty().isNotEmpty()));
+                control.graphicProperty().isNotNull()
+                        .or(progressLabel.textProperty().isNotEmpty()));
         progressLabel.managedProperty().bind(progressLabel.visibleProperty());
 
-        centerSlot.getStyleClass().add("center-slot");
-        centerSlot.setMouseTransparent(true);
-        centerSlot.getChildren().setAll(progressLabel);
-
-        getChildren().setAll(trackArc, progressArc, centerSlot);
+        getChildren().setAll(trackArc, progressArc, progressLabel);
     }
 
     private void registerListeners(RXCircularProgressIndicator control) {
@@ -412,18 +404,13 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         spinRotate.setPivotY(centerY);
 
         double innerDiameter = Math.max(0.0, (radius - strokeMax) * 2.0);
-        if (innerDiameter < CENTER_SLOT_MIN_INNER) {
-            centerSlot.setVisible(false);
-            centerSlot.setManaged(false);
-        } else {
-            centerSlot.setVisible(true);
-            centerSlot.setManaged(true);
-            centerSlot.resizeRelocate(
-                    centerX - innerDiameter * HALF,
-                    centerY - innerDiameter * HALF,
-                    innerDiameter,
-                    innerDiameter);
-        }
+        double labelWidth = Math.min(progressLabel.prefWidth(innerDiameter), innerDiameter);
+        double labelHeight = Math.min(progressLabel.prefHeight(labelWidth), innerDiameter);
+        progressLabel.resizeRelocate(
+                centerX - labelWidth * HALF,
+                centerY - labelHeight * HALF,
+                labelWidth,
+                labelHeight);
     }
 
     private void layoutArc(Arc arc, double centerX, double centerY, double radius) {

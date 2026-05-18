@@ -41,10 +41,9 @@ import java.util.List;
  * <ul>
  *   <li>{@code .track-arc} — full background ring</li>
  *   <li>{@code .progress-arc} — foreground sweep</li>
- *   <li>{@code .center-slot} — hosts the {@code .progress-label} which renders
- *       both the converted progress text and {@link #graphicProperty()}; their
- *       layout is controlled via {@code -fx-content-display} on
- *       {@code .progress-label}</li>
+ *   <li>{@code .progress-label} — renders both the converted progress text and
+ *       {@link #graphicProperty()}; their relative layout is controlled via
+ *       {@code -fx-content-display}</li>
  * </ul>
  *
  * <p>Pseudo-classes (in addition to {@code :determinate} / {@code :indeterminate}
