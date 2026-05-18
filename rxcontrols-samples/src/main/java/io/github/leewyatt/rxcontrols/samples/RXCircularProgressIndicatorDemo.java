@@ -25,7 +25,6 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import org.scenicview.ScenicView;
 
 /**
  * Demo for {@link RXCircularProgressIndicator}.
@@ -38,19 +37,8 @@ import org.scenicview.ScenicView;
  */
 public class RXCircularProgressIndicatorDemo extends Application {
 
-    private static final double SCENE_WIDTH = 960.0;
-    private static final double SCENE_HEIGHT = 620.0;
     private static final double PREVIEW_SIZE = 100.0;
-    private static final double CONTROL_PANEL_WIDTH = 420.0;
-    private static final double LABEL_COLUMN_MIN_WIDTH = 112.0;
     private static final double VALUE_LABEL_MIN_WIDTH = 56.0;
-    private static final double SECTION_SPACING = 14.0;
-    private static final double GRID_HGAP = 12.0;
-    private static final double GRID_VGAP = 10.0;
-    private static final double BUTTON_SPACING = 8.0;
-    private static final double HEADER_SPACING = 2.0;
-    private static final double SECTION_INNER_SPACING = 10.0;
-    private static final double TOGGLE_SPACING = 18.0;
 
     private static final String DOWNLOAD_SVG =
             "M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 0 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4"
@@ -79,14 +67,12 @@ public class RXCircularProgressIndicatorDemo extends Application {
         root.setCenter(createPreviewPane());
         root.setRight(createControlPane());
 
-        Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
+        Scene scene = new Scene(root, 960.0, 620.0);
         scene.getStylesheets().add(
                 RXCircularProgressIndicatorDemo.class.getResource("/css/rx_circular_progress_indicator_demo.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXCircularProgressIndicator Demo");
         primaryStage.show();
-
-        ScenicView.show(scene);
     }
 
     private Node createPreviewPane() {
@@ -118,7 +104,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
         progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
         progressValue.setAlignment(Pos.CENTER_RIGHT);
 
-        HBox jumpButtons = new HBox(BUTTON_SPACING,
+        HBox jumpButtons = new HBox(8.0,
                 jumpBtn("0%", 0.0),
                 jumpBtn("50%", 0.5),
                 jumpBtn("100%", 1.0));
@@ -142,7 +128,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
         CheckBox graphicBox = new CheckBox("Centre graphic");
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setGraphic(selected ? downloadIcon : null));
-        HBox toggleRow = new HBox(TOGGLE_SPACING, indeterminateBox, clockwiseBox);
+        HBox toggleRow = new HBox(18.0, indeterminateBox, clockwiseBox);
         toggleRow.getStyleClass().add("toggle-row");
         HBox graphicRow = new HBox(graphicBox);
         graphicRow.getStyleClass().add("toggle-row");
@@ -198,10 +184,10 @@ public class RXCircularProgressIndicatorDemo extends Application {
                 indicator.setProgressTransitionDuration(Duration.millis(newV.doubleValue())));
         Label tweenValue = createValueLabel(tweenSlider, "%.0f ms");
 
-        VBox header = new VBox(HEADER_SPACING, title, subtitle);
+        VBox header = new VBox(2.0, title, subtitle);
         header.getStyleClass().add("header-block");
 
-        VBox panel = new VBox(SECTION_SPACING,
+        VBox panel = new VBox(14.0,
                 header,
                 createSection("Progress",
                         createGrid(
@@ -229,7 +215,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
         scroll.getStyleClass().add("control-pane");
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setPrefWidth(CONTROL_PANEL_WIDTH);
+        scroll.setPrefWidth(420.0);
         return scroll;
     }
 
@@ -237,7 +223,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
         Label label = new Label(title);
         label.getStyleClass().add("section-label");
 
-        VBox section = new VBox(SECTION_INNER_SPACING, label, content);
+        VBox section = new VBox(10.0, label, content);
         section.getStyleClass().add("section");
         section.setFillWidth(true);
         return section;
@@ -246,12 +232,13 @@ public class RXCircularProgressIndicatorDemo extends Application {
     private GridPane createGrid(Node[]... rows) {
         GridPane grid = new GridPane();
         grid.getStyleClass().add("control-grid");
-        grid.setHgap(GRID_HGAP);
-        grid.setVgap(GRID_VGAP);
+        grid.setHgap(12.0);
+        grid.setVgap(10.0);
 
+        final double labelColWidth = 112.0;
         ColumnConstraints labelCol = new ColumnConstraints();
-        labelCol.setMinWidth(LABEL_COLUMN_MIN_WIDTH);
-        labelCol.setPrefWidth(LABEL_COLUMN_MIN_WIDTH);
+        labelCol.setMinWidth(labelColWidth);
+        labelCol.setPrefWidth(labelColWidth);
         ColumnConstraints controlCol = new ColumnConstraints();
         controlCol.setHgrow(Priority.ALWAYS);
         controlCol.setFillWidth(true);
