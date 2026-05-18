@@ -157,9 +157,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
         CheckBox showTextBox = new CheckBox();
         showTextBox.selectedProperty().bindBidirectional(indicator.showProgressTextProperty());
 
-        CheckBox trackVisibleBox = new CheckBox();
-        trackVisibleBox.selectedProperty().bindBidirectional(indicator.trackVisibleProperty());
-
         CheckBox graphicBox = new CheckBox();
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setGraphic(selected ? downloadIcon : null));
@@ -232,7 +229,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
         grid.addRow(row++, new Label("Animated tween"), animatedBox);
         grid.addRow(row++, new Label("Clockwise"), clockwiseBox);
         grid.addRow(row++, new Label("Show text"), showTextBox);
-        grid.addRow(row++, new Label("Track visible"), trackVisibleBox);
         grid.addRow(row++, new Label("Centre graphic"), graphicBox);
         addSeparator(grid, row++);
         grid.addRow(row++, new Label("Size"), sizeSlider, sizeValue);

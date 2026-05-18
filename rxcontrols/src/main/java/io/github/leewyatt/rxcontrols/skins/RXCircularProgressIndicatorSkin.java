@@ -117,7 +117,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
 
         registerListeners(control);
         applyStrokeStyles();
-        applyTrackVisibility();
         applyCenterContent();
 
         double initial = control.getProgress();
@@ -197,7 +196,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
             control.requestLayout();
         });
         track(control.strokeLineCapProperty(), (obs, oldV, newV) -> applyStrokeStyles());
-        track(control.trackVisibleProperty(), (obs, oldV, newV) -> applyTrackVisibility());
 
         track(treeShowing, (obs, oldV, newV) -> {
             if (!indeterminateMode || indeterminateTimeline == null) {
@@ -236,10 +234,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         }
         trackArc.setStrokeLineCap(cap);
         progressArc.setStrokeLineCap(cap);
-    }
-
-    private void applyTrackVisibility() {
-        trackArc.setVisible(getSkinnable().isTrackVisible());
     }
 
     // ==================== Progress changes ====================

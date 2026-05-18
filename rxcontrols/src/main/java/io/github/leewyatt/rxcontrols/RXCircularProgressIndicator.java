@@ -71,9 +71,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /** Default sweep direction. */
     public static final boolean DEFAULT_CLOCKWISE = true;
 
-    /** Default visibility of the background track. */
-    public static final boolean DEFAULT_TRACK_VISIBLE = true;
-
     /** Default visibility of the auto-generated progress text. */
     public static final boolean DEFAULT_SHOW_PROGRESS_TEXT = true;
 
@@ -271,28 +268,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     public final void setClockwise(boolean value) {
         clockwise.set(value);
-    }
-
-    // ==================== Track Visible ====================
-
-    private final BooleanProperty trackVisible =
-            new SimpleBooleanProperty(this, "trackVisible", DEFAULT_TRACK_VISIBLE);
-
-    /**
-     * Whether the background track ring is rendered.
-     *
-     * @return the track-visible property
-     */
-    public final BooleanProperty trackVisibleProperty() {
-        return trackVisible;
-    }
-
-    public final boolean isTrackVisible() {
-        return trackVisible.get();
-    }
-
-    public final void setTrackVisible(boolean value) {
-        trackVisible.set(value);
     }
 
     // ==================== Show Progress Text ====================
