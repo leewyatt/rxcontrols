@@ -172,6 +172,7 @@
     -rx-start-angle: 90;
     -rx-clockwise: true;
     -rx-indeterminate-cycle-duration: 1500ms;
+    -rx-progress-transition-duration: 250ms;
     -rx-track-stroke: derive(-fx-accent, 70%);
     -rx-progress-stroke: -fx-accent;
     -rx-track-stroke-width: 4;

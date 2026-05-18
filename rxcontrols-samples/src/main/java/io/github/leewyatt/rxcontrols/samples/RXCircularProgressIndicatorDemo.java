@@ -148,9 +148,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
         indeterminateRow.setAlignment(Pos.CENTER_LEFT);
 
         // ==================== Toggles ====================
-        CheckBox animatedBox = new CheckBox();
-        animatedBox.selectedProperty().bindBidirectional(indicator.animatedProperty());
-
         CheckBox clockwiseBox = new CheckBox();
         clockwiseBox.selectedProperty().bindBidirectional(indicator.clockwiseProperty());
 
@@ -194,7 +191,10 @@ public class RXCircularProgressIndicatorDemo extends Application {
         indicator.progressStrokeProperty().bind(progressColor.valueProperty());
 
         // ==================== Timing ====================
-        Slider cycleSlider = createSlider(500.0, 4000.0,
+        // Both sliders go down to 0 to demonstrate the "non-positive disables animation" semantic:
+        // cycle = 0  → indeterminate spinner stops (ring stays static)
+        // tween = 0  → determinate progress jumps instead of tweening
+        Slider cycleSlider = createSlider(0.0, 4000.0,
                 RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION.toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setIndeterminateCycleDuration(Duration.millis(newV.doubleValue())));
@@ -223,7 +223,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
         grid.addRow(row++, new Label("Jump to"), jumpButtons);
         grid.addRow(row++, new Label("Indeterminate"), indeterminateRow);
         addSeparator(grid, row++);
-        grid.addRow(row++, new Label("Animated tween"), animatedBox);
         grid.addRow(row++, new Label("Clockwise"), clockwiseBox);
         grid.addRow(row++, new Label("Centre graphic"), graphicBox);
         addSeparator(grid, row++);

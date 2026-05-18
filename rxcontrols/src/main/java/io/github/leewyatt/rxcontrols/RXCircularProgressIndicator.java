@@ -5,7 +5,6 @@ import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -72,9 +71,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     /** Default sweep direction. */
     public static final boolean DEFAULT_CLOCKWISE = true;
-
-    /** Default tweening of programmatic progress changes. */
-    public static final boolean DEFAULT_ANIMATED = true;
 
     /** Default track stroke paint (used when CSS does not resolve {@code -rx-track-stroke}). */
     public static final Paint DEFAULT_TRACK_STROKE = Color.rgb(0, 0, 0, 0.12);
@@ -272,39 +268,31 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
         clockwise.set(value);
     }
 
-    // ==================== Animated ====================
-
-    private final BooleanProperty animated =
-            new SimpleBooleanProperty(this, "animated", DEFAULT_ANIMATED);
-
-    /**
-     * If {@code true} (default), determinate progress changes are tweened over
-     * {@link #progressTransitionDurationProperty()} instead of jumping. Set to
-     * {@code false} for very high-frequency updates.
-     *
-     * @return the animated property
-     */
-    public final BooleanProperty animatedProperty() {
-        return animated;
-    }
-
-    public final boolean isAnimated() {
-        return animated.get();
-    }
-
-    public final void setAnimated(boolean value) {
-        animated.set(value);
-    }
-
     // ==================== Progress Transition Duration ====================
 
     private final ObjectProperty<Duration> progressTransitionDuration =
-            new SimpleObjectProperty<>(this, "progressTransitionDuration", DEFAULT_PROGRESS_TRANSITION_DURATION);
+            new StyleableObjectProperty<>(DEFAULT_PROGRESS_TRANSITION_DURATION) {
+                @Override
+                public Object getBean() {
+                    return RXCircularProgressIndicator.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "progressTransitionDuration";
+                }
+
+                @Override
+                public CssMetaData<RXCircularProgressIndicator, Duration> getCssMetaData() {
+                    return StyleableProperties.PROGRESS_TRANSITION_DURATION;
+                }
+            };
 
     /**
-     * Duration of the progress tween when {@link #animatedProperty()} is
-     * {@code true}. Tolerates {@code null} or non-positive (skin falls back to
-     * {@link #DEFAULT_PROGRESS_TRANSITION_DURATION}).
+     * Duration of the tween applied to determinate progress changes. A value
+     * of {@code null} or any {@code Duration} less than or equal to
+     * {@link Duration#ZERO} disables tweening — the displayed arc jumps
+     * directly to the new progress.
      *
      * @return the progress-transition-duration property
      */
@@ -324,23 +312,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     private final ObjectProperty<Duration> indeterminateCycleDuration =
             new StyleableObjectProperty<>(DEFAULT_INDETERMINATE_CYCLE_DURATION) {
-                private Duration lastValid = DEFAULT_INDETERMINATE_CYCLE_DURATION;
-
-                @Override
-                protected void invalidated() {
-                    Duration v = get();
-                    if (v != null && v.lessThanOrEqualTo(Duration.ZERO)) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new IllegalArgumentException(
-                                "indeterminateCycleDuration must be positive");
-                    }
-                    if (v != null) {
-                        lastValid = v;
-                    }
-                }
-
                 @Override
                 public Object getBean() {
                     return RXCircularProgressIndicator.this;
@@ -358,7 +329,10 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
             };
 
     /**
-     * Duration of one full cycle of the indeterminate animation.
+     * Duration of one full cycle of the indeterminate animation. A value of
+     * {@code null} or any {@code Duration} less than or equal to
+     * {@link Duration#ZERO} suppresses the indeterminate animation — the ring
+     * stays in its initial pose.
      *
      * @return the cycle-duration property
      */
@@ -451,20 +425,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     // ==================== Track Stroke Width ====================
 
     private final DoubleProperty trackStrokeWidth = new StyleableDoubleProperty(DEFAULT_TRACK_STROKE_WIDTH) {
-        private double lastValid = DEFAULT_TRACK_STROKE_WIDTH;
-
-        @Override
-        protected void invalidated() {
-            double v = get();
-            if (v < 0.0 || Double.isNaN(v)) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("trackStrokeWidth must be non-negative");
-            }
-            lastValid = v;
-        }
-
         @Override
         public Object getBean() {
             return RXCircularProgressIndicator.this;
@@ -482,7 +442,8 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Stroke width of the track ring; must be non-negative.
+     * Stroke width of the track ring. Negative values and {@code NaN} are
+     * clamped to {@code 0} at render time (no ring drawn).
      *
      * @return the track-stroke-width property
      */
@@ -501,20 +462,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     // ==================== Progress Stroke Width ====================
 
     private final DoubleProperty progressStrokeWidth = new StyleableDoubleProperty(DEFAULT_PROGRESS_STROKE_WIDTH) {
-        private double lastValid = DEFAULT_PROGRESS_STROKE_WIDTH;
-
-        @Override
-        protected void invalidated() {
-            double v = get();
-            if (v < 0.0 || Double.isNaN(v)) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("progressStrokeWidth must be non-negative");
-            }
-            lastValid = v;
-        }
-
         @Override
         public Object getBean() {
             return RXCircularProgressIndicator.this;
@@ -532,7 +479,8 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Stroke width of the progress arc; must be non-negative.
+     * Stroke width of the progress arc. Negative values and {@code NaN} are
+     * clamped to {@code 0} at render time (no arc drawn).
      *
      * @return the progress-stroke-width property
      */
@@ -634,6 +582,22 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
                     }
                 };
 
+        private static final CssMetaData<RXCircularProgressIndicator, Duration> PROGRESS_TRANSITION_DURATION =
+                new CssMetaData<>("-rx-progress-transition-duration",
+                        DurationConverter.getInstance(),
+                        DEFAULT_PROGRESS_TRANSITION_DURATION) {
+                    @Override
+                    public boolean isSettable(RXCircularProgressIndicator n) {
+                        return !n.progressTransitionDuration.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Duration> getStyleableProperty(RXCircularProgressIndicator n) {
+                        return (StyleableProperty<Duration>) n.progressTransitionDurationProperty();
+                    }
+                };
+
         private static final CssMetaData<RXCircularProgressIndicator, Paint> TRACK_STROKE =
                 new CssMetaData<>("-rx-track-stroke", PaintConverter.getInstance(), DEFAULT_TRACK_STROKE) {
                     @Override
@@ -715,6 +679,7 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
                     START_ANGLE,
                     CLOCKWISE,
                     INDETERMINATE_CYCLE_DURATION,
+                    PROGRESS_TRANSITION_DURATION,
                     TRACK_STROKE,
                     PROGRESS_STROKE,
                     TRACK_STROKE_WIDTH,

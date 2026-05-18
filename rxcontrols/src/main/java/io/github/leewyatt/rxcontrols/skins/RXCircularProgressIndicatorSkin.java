@@ -225,8 +225,8 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         Paint progress = control.getProgressStroke();
         progressArc.setStroke(progress != null ? progress : RXCircularProgressIndicator.DEFAULT_PROGRESS_STROKE);
 
-        trackArc.setStrokeWidth(Math.max(0.0, control.getTrackStrokeWidth()));
-        progressArc.setStrokeWidth(Math.max(0.0, control.getProgressStrokeWidth()));
+        trackArc.setStrokeWidth(sanitizeStrokeWidth(control.getTrackStrokeWidth()));
+        progressArc.setStrokeWidth(sanitizeStrokeWidth(control.getProgressStrokeWidth()));
 
         StrokeLineCap cap = control.getStrokeLineCap();
         if (cap == null) {
@@ -249,15 +249,10 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         }
         stopProgressTween();
 
-        RXCircularProgressIndicator control = getSkinnable();
-        if (!control.isAnimated()) {
+        Duration tweenDuration = getSkinnable().getProgressTransitionDuration();
+        if (tweenDuration == null || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
             displayedProgress.set(target);
             return;
-        }
-
-        Duration tweenDuration = control.getProgressTransitionDuration();
-        if (tweenDuration == null || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
-            tweenDuration = RXCircularProgressIndicator.DEFAULT_PROGRESS_TRANSITION_DURATION;
         }
         progressTween = new Timeline(new KeyFrame(
                 tweenDuration,
@@ -325,7 +320,8 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         RXCircularProgressIndicator control = getSkinnable();
         Duration cycle = control.getIndeterminateCycleDuration();
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
-            cycle = RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION;
+            // Suppress indeterminate animation; ring stays static.
+            return;
         }
         Duration halfCycle = cycle.divide(2.0);
 
@@ -496,6 +492,13 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         }
         if (v > 1.0) {
             return 1.0;
+        }
+        return v;
+    }
+
+    private static double sanitizeStrokeWidth(double v) {
+        if (Double.isNaN(v) || v < 0.0) {
+            return 0.0;
         }
         return v;
     }
