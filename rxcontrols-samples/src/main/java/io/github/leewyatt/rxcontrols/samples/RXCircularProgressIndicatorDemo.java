@@ -1,31 +1,23 @@
 package io.github.leewyatt.rxcontrols.samples;
 
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
-import javafx.embed.swing.SwingFXUtils;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -33,12 +25,7 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import javax.imageio.ImageIO;
-import java.awt.Desktop;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.scenicview.ScenicView;
 
 /**
  * Demo for {@link RXCircularProgressIndicator}.
@@ -51,15 +38,19 @@ import java.nio.file.Path;
  */
 public class RXCircularProgressIndicatorDemo extends Application {
 
-    private static final String STYLESHEET =
-            "/css/rx_circular_progress_indicator_demo.css";
-
-    private static final double SCENE_WIDTH = 940.0;
+    private static final double SCENE_WIDTH = 960.0;
     private static final double SCENE_HEIGHT = 620.0;
-    private static final double PREVIEW_SIZE = 200.0;
-    private static final double CONTROL_PANEL_WIDTH = 380.0;
-    private static final double LABEL_COLUMN_MIN_WIDTH = 130.0;
-    private static final double VALUE_LABEL_MIN_WIDTH = 72.0;
+    private static final double PREVIEW_SIZE = 100.0;
+    private static final double CONTROL_PANEL_WIDTH = 420.0;
+    private static final double LABEL_COLUMN_MIN_WIDTH = 112.0;
+    private static final double VALUE_LABEL_MIN_WIDTH = 56.0;
+    private static final double SECTION_SPACING = 14.0;
+    private static final double GRID_HGAP = 12.0;
+    private static final double GRID_VGAP = 10.0;
+    private static final double BUTTON_SPACING = 8.0;
+    private static final double HEADER_SPACING = 2.0;
+    private static final double SECTION_INNER_SPACING = 10.0;
+    private static final double TOGGLE_SPACING = 18.0;
 
     private static final String DOWNLOAD_SVG =
             "M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 0 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4"
@@ -67,14 +58,10 @@ public class RXCircularProgressIndicatorDemo extends Application {
                     + "M5 19a1 1 0 0 1 1-1h12a1 1 0 0 1 0 2H6a1 1 0 0 1-1-1Z";
     private static final double DOWNLOAD_ICON_SCALE = 1.6;
 
-    private static final int CAPTURE_FRAMES = 20;
-
     private RXCircularProgressIndicator indicator;
     private SVGPath downloadIcon;
     private Slider progressSlider;
     private CheckBox indeterminateBox;
-    private Button captureButton;
-    private Label statusLabel;
 
     @Override
     public void start(Stage primaryStage) {
@@ -94,10 +81,12 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
         scene.getStylesheets().add(
-                RXCircularProgressIndicatorDemo.class.getResource(STYLESHEET).toExternalForm());
+                RXCircularProgressIndicatorDemo.class.getResource("/css/rx_circular_progress_indicator_demo.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXCircularProgressIndicator Demo");
         primaryStage.show();
+
+        ScenicView.show(scene);
     }
 
     private Node createPreviewPane() {
@@ -110,6 +99,8 @@ public class RXCircularProgressIndicatorDemo extends Application {
     private Node createControlPane() {
         Label title = new Label("RXCircularProgressIndicator");
         title.getStyleClass().add("title-label");
+        Label subtitle = new Label("Circular progress control sample");
+        subtitle.getStyleClass().add("subtitle-label");
 
         // ==================== Progress ====================
         progressSlider = createSlider(0.0, 1.0, indicator.getProgress());
@@ -127,13 +118,14 @@ public class RXCircularProgressIndicatorDemo extends Application {
         progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
         progressValue.setAlignment(Pos.CENTER_RIGHT);
 
-        HBox jumpButtons = new HBox(8.0,
-                jumpBtn("Reset", 0.0),
+        HBox jumpButtons = new HBox(BUTTON_SPACING,
+                jumpBtn("0%", 0.0),
                 jumpBtn("50%", 0.5),
                 jumpBtn("100%", 1.0));
+        jumpButtons.getStyleClass().add("segmented-row");
         jumpButtons.setAlignment(Pos.CENTER_LEFT);
 
-        indeterminateBox = new CheckBox();
+        indeterminateBox = new CheckBox("Indeterminate");
         indeterminateBox.selectedProperty().addListener((obs, oldV, selected) -> {
             progressSlider.setDisable(selected);
             if (selected) {
@@ -143,19 +135,17 @@ public class RXCircularProgressIndicatorDemo extends Application {
             }
         });
 
-        captureButton = new Button("Capture cycle (" + CAPTURE_FRAMES + " frames)");
-        captureButton.setOnAction(e -> captureIndeterminateCycle());
-
-        HBox indeterminateRow = new HBox(10.0, indeterminateBox, captureButton);
-        indeterminateRow.setAlignment(Pos.CENTER_LEFT);
-
         // ==================== Toggles ====================
-        CheckBox clockwiseBox = new CheckBox();
+        CheckBox clockwiseBox = new CheckBox("Clockwise");
         clockwiseBox.selectedProperty().bindBidirectional(indicator.clockwiseProperty());
 
-        CheckBox graphicBox = new CheckBox();
+        CheckBox graphicBox = new CheckBox("Centre graphic");
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setGraphic(selected ? downloadIcon : null));
+        HBox toggleRow = new HBox(TOGGLE_SPACING, indeterminateBox, clockwiseBox);
+        toggleRow.getStyleClass().add("toggle-row");
+        HBox graphicRow = new HBox(graphicBox);
+        graphicRow.getStyleClass().add("toggle-row");
 
         // ==================== Sizing & strokes ====================
         Slider sizeSlider = createSlider(40.0, 320.0, PREVIEW_SIZE);
@@ -208,54 +198,32 @@ public class RXCircularProgressIndicatorDemo extends Application {
                 indicator.setProgressTransitionDuration(Duration.millis(newV.doubleValue())));
         Label tweenValue = createValueLabel(tweenSlider, "%.0f ms");
 
-        // ==================== Grid ====================
-        GridPane grid = new GridPane();
-        grid.setHgap(8.0);
-        grid.setVgap(10.0);
-        ColumnConstraints labelCol = new ColumnConstraints();
-        labelCol.setMinWidth(LABEL_COLUMN_MIN_WIDTH);
-        ColumnConstraints controlCol = new ColumnConstraints();
-        controlCol.setHgrow(Priority.ALWAYS);
-        controlCol.setFillWidth(true);
-        ColumnConstraints valueCol = new ColumnConstraints();
-        grid.getColumnConstraints().addAll(labelCol, controlCol, valueCol);
+        VBox header = new VBox(HEADER_SPACING, title, subtitle);
+        header.getStyleClass().add("header-block");
 
-        int row = 0;
-        grid.addRow(row++, new Label("Progress"), progressSlider, progressValue);
-        grid.addRow(row++, new Label("Jump to"), jumpButtons);
-        grid.addRow(row++, new Label("Indeterminate"), indeterminateRow);
-        addSeparator(grid, row++);
-        grid.addRow(row++, new Label("Clockwise"), clockwiseBox);
-        grid.addRow(row++, new Label("Centre graphic"), graphicBox);
-        addSeparator(grid, row++);
-        grid.addRow(row++, new Label("Size"), sizeSlider, sizeValue);
-        grid.addRow(row++, new Label("Start angle"), startAngleSlider, startAngleValue);
-        grid.addRow(row++, new Label("Track width"), trackWidthSlider, trackWidthValue);
-        grid.addRow(row++, new Label("Progress width"), progressWidthSlider, progressWidthValue);
-        grid.addRow(row++, new Label("Line cap"), lineCapBox);
-        grid.addRow(row++, new Label("Track color"), trackColor);
-        grid.addRow(row++, new Label("Progress color"), progressColor);
-        addSeparator(grid, row++);
-        grid.addRow(row++, new Label("Cycle"), cycleSlider, cycleValue);
-        grid.addRow(row, new Label("Tween"), tweenSlider, tweenValue);
-
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-
-        Label tips = new Label(
-                "Drag the Progress slider, click Jump-to buttons to see the tween,\n"
-                        + "or toggle Indeterminate to drive the spinner.\n"
-                        + "Minimising the window pauses the animation automatically.");
-        tips.getStyleClass().add("hint-label");
-        tips.setWrapText(true);
-
-        statusLabel = new Label();
-        statusLabel.getStyleClass().add("hint-label");
-        statusLabel.setWrapText(true);
-
-        VBox panel = new VBox(10.0,
-                title, new Separator(), grid, spacer, new Separator(), tips, statusLabel);
+        VBox panel = new VBox(SECTION_SPACING,
+                header,
+                createSection("Progress",
+                        createGrid(
+                                row("Value", progressSlider, progressValue),
+                                row("Jump to", jumpButtons),
+                                row(toggleRow))),
+                createSection("Appearance",
+                        createGrid(
+                                row(graphicRow),
+                                row("Size", sizeSlider, sizeValue),
+                                row("Start angle", startAngleSlider, startAngleValue),
+                                row("Track width", trackWidthSlider, trackWidthValue),
+                                row("Progress width", progressWidthSlider, progressWidthValue),
+                                row("Line cap", lineCapBox),
+                                row("Track color", trackColor),
+                                row("Progress color", progressColor))),
+                createSection("Timing",
+                        createGrid(
+                                row("Cycle", cycleSlider, cycleValue),
+                                row("Tween", tweenSlider, tweenValue))));
         panel.setFillWidth(true);
+        panel.getStyleClass().add("control-panel");
 
         ScrollPane scroll = new ScrollPane(panel);
         scroll.getStyleClass().add("control-pane");
@@ -263,6 +231,64 @@ public class RXCircularProgressIndicatorDemo extends Application {
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setPrefWidth(CONTROL_PANEL_WIDTH);
         return scroll;
+    }
+
+    private VBox createSection(String title, Node content) {
+        Label label = new Label(title);
+        label.getStyleClass().add("section-label");
+
+        VBox section = new VBox(SECTION_INNER_SPACING, label, content);
+        section.getStyleClass().add("section");
+        section.setFillWidth(true);
+        return section;
+    }
+
+    private GridPane createGrid(Node[]... rows) {
+        GridPane grid = new GridPane();
+        grid.getStyleClass().add("control-grid");
+        grid.setHgap(GRID_HGAP);
+        grid.setVgap(GRID_VGAP);
+
+        ColumnConstraints labelCol = new ColumnConstraints();
+        labelCol.setMinWidth(LABEL_COLUMN_MIN_WIDTH);
+        labelCol.setPrefWidth(LABEL_COLUMN_MIN_WIDTH);
+        ColumnConstraints controlCol = new ColumnConstraints();
+        controlCol.setHgrow(Priority.ALWAYS);
+        controlCol.setFillWidth(true);
+        ColumnConstraints valueCol = new ColumnConstraints();
+        valueCol.setMinWidth(VALUE_LABEL_MIN_WIDTH);
+        grid.getColumnConstraints().addAll(labelCol, controlCol, valueCol);
+
+        for (int i = 0; i < rows.length; i++) {
+            Node[] row = rows[i];
+            if (row.length == 1) {
+                grid.add(row[0], 0, i, 3, 1);
+            } else if (row.length == 2) {
+                grid.add(row[0], 0, i);
+                grid.add(row[1], 1, i, 2, 1);
+            } else {
+                grid.addRow(i, row);
+            }
+        }
+        return grid;
+    }
+
+    private Node[] row(String label, Node control, Node value) {
+        return new Node[]{createFieldLabel(label), control, value};
+    }
+
+    private Node[] row(String label, Node control) {
+        return new Node[]{createFieldLabel(label), control};
+    }
+
+    private Node[] row(Node control) {
+        return new Node[]{control};
+    }
+
+    private Label createFieldLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("field-label");
+        return label;
     }
 
     private Slider createSlider(double min, double max, double value) {
@@ -280,12 +306,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
         return label;
     }
 
-    private void addSeparator(GridPane grid, int row) {
-        Separator separator = new Separator();
-        GridPane.setMargin(separator, new Insets(2.0, 0.0, 2.0, 0.0));
-        grid.add(separator, 0, row, 3, 1);
-    }
-
     private Button jumpBtn(String text, double target) {
         Button button = new Button(text);
         button.setOnAction(e -> {
@@ -295,71 +315,6 @@ public class RXCircularProgressIndicatorDemo extends Application {
             progressSlider.setValue(target);
         });
         return button;
-    }
-
-    private void captureIndeterminateCycle() {
-        if (!indeterminateBox.isSelected()) {
-            indeterminateBox.setSelected(true);
-        }
-
-        Duration cycle = indicator.getIndeterminateCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
-            // Indeterminate animation is disabled — capturing would just snapshot
-            // the same static frame N times, which would be misleading.
-            statusLabel.setText("Capture skipped: indeterminate animation is disabled (cycle ≤ 0).");
-            return;
-        }
-
-        Path outDir;
-        try {
-            outDir = Files.createTempDirectory("rxcpi-snapshots-");
-        } catch (IOException ex) {
-            statusLabel.setText("Capture failed: " + ex.getMessage());
-            return;
-        }
-
-        captureButton.setDisable(true);
-        statusLabel.setText("Capturing 0/" + CAPTURE_FRAMES + "...");
-
-        SnapshotParameters params = new SnapshotParameters();
-        params.setFill(Color.WHITE);
-
-        Path finalOutDir = outDir;
-        Timeline capture = new Timeline();
-        for (int i = 0; i < CAPTURE_FRAMES; i++) {
-            final int idx = i;
-            Duration t = cycle.multiply((double) i / (double) (CAPTURE_FRAMES - 1));
-            capture.getKeyFrames().add(new KeyFrame(t,
-                    e -> takeFrame(params, finalOutDir, idx)));
-        }
-        capture.setOnFinished(e -> {
-            captureButton.setDisable(false);
-            statusLabel.setText("Saved " + CAPTURE_FRAMES + " frames to:\n" + finalOutDir);
-            openInFileManager(finalOutDir);
-        });
-        capture.play();
-    }
-
-    private void takeFrame(SnapshotParameters params, Path dir, int idx) {
-        WritableImage img = indicator.snapshot(params, null);
-        Path file = dir.resolve(String.format("frame_%02d.png", idx));
-        try {
-            ImageIO.write(SwingFXUtils.fromFXImage(img, null), "png", file.toFile());
-            statusLabel.setText("Capturing " + (idx + 1) + "/" + CAPTURE_FRAMES + "...");
-        } catch (IOException ex) {
-            statusLabel.setText("Frame " + idx + " failed: " + ex.getMessage());
-        }
-    }
-
-    private void openInFileManager(Path dir) {
-        if (!Desktop.isDesktopSupported()) {
-            return;
-        }
-        try {
-            Desktop.getDesktop().open(dir.toFile());
-        } catch (IOException ignored) {
-            // best-effort only; status label already shows the path
-        }
     }
 
     /**

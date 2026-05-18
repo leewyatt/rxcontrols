@@ -66,34 +66,54 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     // ==================== Public Defaults ====================
 
-    /** Default ring start angle in degrees (12 o'clock). */
+    /**
+     * Default ring start angle in degrees (12 o'clock).
+     */
     public static final double DEFAULT_START_ANGLE = 90.0;
 
-    /** Default sweep direction. */
+    /**
+     * Default sweep direction.
+     */
     public static final boolean DEFAULT_CLOCKWISE = true;
 
-    /** Default track stroke paint (used when CSS does not resolve {@code -rx-track-stroke}). */
+    /**
+     * Default track stroke paint (used when CSS does not resolve {@code -rx-track-stroke}).
+     */
     public static final Paint DEFAULT_TRACK_STROKE = Color.rgb(0, 0, 0, 0.12);
 
-    /** Default progress stroke paint (used when CSS does not resolve {@code -rx-progress-stroke}). */
+    /**
+     * Default progress stroke paint (used when CSS does not resolve {@code -rx-progress-stroke}).
+     */
     public static final Paint DEFAULT_PROGRESS_STROKE = Color.web("#616dfe");
 
-    /** Default stroke width for the track ring, in pixels. */
+    /**
+     * Default stroke width for the track ring, in pixels.
+     */
     public static final double DEFAULT_TRACK_STROKE_WIDTH = 4.0;
 
-    /** Default stroke width for the progress arc, in pixels. */
+    /**
+     * Default stroke width for the progress arc, in pixels.
+     */
     public static final double DEFAULT_PROGRESS_STROKE_WIDTH = 4.0;
 
-    /** Default stroke line cap. */
+    /**
+     * Default stroke line cap.
+     */
     public static final StrokeLineCap DEFAULT_STROKE_LINE_CAP = StrokeLineCap.ROUND;
 
-    /** Default cycle duration for the indeterminate animation. */
+    /**
+     * Default cycle duration for the indeterminate animation.
+     */
     public static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1500.0);
 
-    /** Default tween duration applied to determinate progress changes. */
+    /**
+     * Default tween duration applied to determinate progress changes.
+     */
     public static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
 
-    /** Default converter used by the skin when {@link #converterProperty()} is {@code null}. */
+    /**
+     * Default converter used by the skin when {@link #converterProperty()} is {@code null}.
+     */
     public static final StringConverter<Double> DEFAULT_CONVERTER = new StringConverter<>() {
         @Override
         public String toString(Double progress) {

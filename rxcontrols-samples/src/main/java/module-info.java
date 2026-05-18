@@ -8,6 +8,7 @@ module rxcontrols.samples {
     requires javafx.swing;
     requires java.desktop;
     requires org.controlsfx.controls;
+    requires org.scenicview.scenicview;
 
     exports io.github.leewyatt.rxcontrols.samples.carousel;
     exports io.github.leewyatt.rxcontrols.samples.carousel.control;
