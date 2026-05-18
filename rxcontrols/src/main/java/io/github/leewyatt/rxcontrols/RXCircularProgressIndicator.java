@@ -42,7 +42,9 @@ import java.util.List;
  * <ul>
  *   <li>{@code .track-arc} — full background ring</li>
  *   <li>{@code .progress-arc} — foreground sweep</li>
- *   <li>{@code .center-slot} — hosts {@link #graphicProperty()} or the default
+ *   <li>{@code .center-slot} — hosts the {@code .progress-label} which renders
+ *       both the converted progress text and {@link #graphicProperty()}; their
+ *       layout is controlled via {@code -fx-content-display} on
  *       {@code .progress-label}</li>
  * </ul>
  *
@@ -70,9 +72,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     /** Default sweep direction. */
     public static final boolean DEFAULT_CLOCKWISE = true;
-
-    /** Default visibility of the auto-generated progress text. */
-    public static final boolean DEFAULT_SHOW_PROGRESS_TEXT = true;
 
     /** Default tweening of programmatic progress changes. */
     public static final boolean DEFAULT_ANIMATED = true;
@@ -155,8 +154,11 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     private final ObjectProperty<Node> graphic = new SimpleObjectProperty<>(this, "graphic");
 
     /**
-     * Node shown in the centre of the ring. When non-null it replaces the
-     * generated progress text.
+     * Node shown alongside the generated progress text inside the centre
+     * label. Acts like {@link javafx.scene.control.Labeled#graphicProperty()}:
+     * graphic and text coexist; their relative position is controlled by the
+     * label's {@code -fx-content-display} CSS property (target
+     * {@code .rx-circular-progress-indicator .progress-label}).
      *
      * @return the graphic property
      */
@@ -268,29 +270,6 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     public final void setClockwise(boolean value) {
         clockwise.set(value);
-    }
-
-    // ==================== Show Progress Text ====================
-
-    private final BooleanProperty showProgressText =
-            new SimpleBooleanProperty(this, "showProgressText", DEFAULT_SHOW_PROGRESS_TEXT);
-
-    /**
-     * Whether the auto-generated progress label is shown when no
-     * {@link #graphicProperty() graphic} is set.
-     *
-     * @return the show-progress-text property
-     */
-    public final BooleanProperty showProgressTextProperty() {
-        return showProgressText;
-    }
-
-    public final boolean isShowProgressText() {
-        return showProgressText.get();
-    }
-
-    public final void setShowProgressText(boolean value) {
-        showProgressText.set(value);
     }
 
     // ==================== Animated ====================

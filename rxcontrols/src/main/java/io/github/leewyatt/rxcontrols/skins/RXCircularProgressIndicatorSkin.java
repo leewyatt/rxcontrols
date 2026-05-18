@@ -12,7 +12,6 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
 import javafx.scene.layout.StackPane;
@@ -102,7 +101,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
     private Timeline progressTween;
     private Timeline indeterminateTimeline;
     private boolean indeterminateMode;
-    private Node currentGraphic;
 
     /**
      * Creates a skin for the given control.
@@ -152,6 +150,10 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
+        progressLabel.graphicProperty().bind(control.graphicProperty());
+        progressLabel.visibleProperty().bind(
+                control.graphicProperty().isNotNull().or(progressLabel.textProperty().isNotEmpty()));
+        progressLabel.managedProperty().bind(progressLabel.visibleProperty());
 
         centerSlot.getStyleClass().add("center-slot");
         centerSlot.setMouseTransparent(true);
@@ -172,9 +174,7 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
                 applyDisplayedLength();
             }
         });
-        track(control.graphicProperty(), (obs, oldV, newV) -> applyCenterContent());
         track(control.converterProperty(), (obs, oldV, newV) -> applyCenterContent());
-        track(control.showProgressTextProperty(), (obs, oldV, newV) -> applyCenterContent());
         track(displayedProgress, (obs, oldV, newV) -> {
             if (!indeterminateMode) {
                 applyDisplayedLength();
@@ -376,25 +376,7 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
     // ==================== Centre content ====================
 
     private void applyCenterContent() {
-        RXCircularProgressIndicator control = getSkinnable();
-        Node graphic = control.getGraphic();
-
-        if (graphic != currentGraphic) {
-            currentGraphic = graphic;
-            if (graphic != null) {
-                centerSlot.getChildren().setAll(graphic);
-            } else {
-                centerSlot.getChildren().setAll(progressLabel);
-            }
-        }
-
-        progressLabel.setText(formatLabel(control.getProgress()));
-        boolean showText = graphic == null
-                && control.isShowProgressText()
-                && progressLabel.getText() != null
-                && !progressLabel.getText().isEmpty();
-        progressLabel.setVisible(showText);
-        progressLabel.setManaged(showText);
+        progressLabel.setText(formatLabel(getSkinnable().getProgress()));
     }
 
     private String formatLabel(double progress) {
@@ -500,10 +482,8 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         disposers.clear();
         progressArc.startAngleProperty().unbind();
         progressArc.getTransforms().remove(spinRotate);
-        if (currentGraphic != null) {
-            centerSlot.getChildren().remove(currentGraphic);
-            currentGraphic = null;
-        }
+        progressLabel.graphicProperty().unbind();
+        progressLabel.setGraphic(null);
         treeShowing.dispose();
         super.dispose();
     }

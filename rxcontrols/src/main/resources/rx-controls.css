@@ -187,4 +187,5 @@
     -fx-font-size: 0.9em;
     -fx-text-fill: -fx-text-base-color;
     -fx-alignment: center;
+    -fx-content-display: top;
 }
