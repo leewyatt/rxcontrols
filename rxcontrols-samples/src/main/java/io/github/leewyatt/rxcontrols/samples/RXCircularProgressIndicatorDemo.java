@@ -50,7 +50,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
             if (progress >= 1.0) {
                 return "Done!";
             }
-            return Math.round(progress * 100.0) + "%";
+            return "Working… " + Math.round(progress * 100.0) + "%";
         }
 
         @Override
@@ -71,6 +71,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         stateIcon = new Region();
         stateIcon.getStyleClass().add("state-icon");
+        stateIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
@@ -135,13 +136,15 @@ public class RXCircularProgressIndicatorDemo extends Application {
         CheckBox clockwiseBox = new CheckBox("Clockwise");
         clockwiseBox.selectedProperty().bindBidirectional(indicator.clockwiseProperty());
 
-        CheckBox graphicBox = new CheckBox("Centre graphic");
+        CheckBox graphicBox = new CheckBox("Custom graphic");
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setGraphic(selected ? stateIcon : null));
+        graphicBox.setSelected(true);
 
-        CheckBox converterBox = new CheckBox("Custom converter");
+        CheckBox converterBox = new CheckBox("Custom text");
         converterBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setConverter(selected ? STATE_CONVERTER : null));
+        converterBox.setSelected(true);
 
         HBox toggleRow = new HBox(18.0, indeterminateBox, clockwiseBox);
         toggleRow.getStyleClass().add("toggle-row");
