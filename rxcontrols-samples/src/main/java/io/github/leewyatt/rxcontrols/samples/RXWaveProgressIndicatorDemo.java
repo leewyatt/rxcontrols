@@ -39,7 +39,9 @@ public class RXWaveProgressIndicatorDemo extends Application {
 
     private static final double PREVIEW_SIZE = 140.0;
     private static final double VALUE_LABEL_MIN_WIDTH = 60.0;
-    private static final String BORDERED_STYLE_CLASS = "bordered";
+    private static final Color BORDERED_PRESET_STROKE = Color.web("#1e90ff");
+    private static final double BORDERED_PRESET_WIDTH = 6.0;
+    private static final double BORDERED_PRESET_PADDING = 5.0;
 
     private static final StringConverter<Double> STATE_CONVERTER = new StringConverter<>() {
         @Override
@@ -132,16 +134,8 @@ public class RXWaveProgressIndicatorDemo extends Application {
             }
         });
 
+        // Listener attached later — its body references border controls declared further down.
         CheckBox borderedBox = new CheckBox("Bordered preset");
-        borderedBox.selectedProperty().addListener((obs, oldV, selected) -> {
-            if (selected) {
-                if (!indicator.getStyleClass().contains(BORDERED_STYLE_CLASS)) {
-                    indicator.getStyleClass().add(BORDERED_STYLE_CLASS);
-                }
-            } else {
-                indicator.getStyleClass().remove(BORDERED_STYLE_CLASS);
-            }
-        });
 
         // ==================== Centre slot toggles ====================
         CheckBox graphicBox = new CheckBox("Custom graphic");
@@ -217,6 +211,25 @@ public class RXWaveProgressIndicatorDemo extends Application {
                 RXWaveProgressIndicator.DEFAULT_BORDER_PADDING);
         indicator.borderPaddingProperty().bind(borderPaddingSlider.valueProperty());
         Label borderPaddingValue = createValueLabel(borderPaddingSlider, "%.0f");
+
+        // Bordered-preset checkbox writes source-control values directly because
+        // the three border properties above are bound — JavaFX suppresses CSS
+        // and direct setters on bound properties, so a `.bordered` style class
+        // could not take effect here. The `.bordered` CSS rule still lives in
+        // the demo stylesheet as a copy-pasteable example for users who do not
+        // bind these properties.
+        borderedBox.selectedProperty().addListener((obs, oldV, selected) -> {
+            if (selected) {
+                borderColor.setValue(BORDERED_PRESET_STROKE);
+                borderWidthSlider.setValue(BORDERED_PRESET_WIDTH);
+                borderPaddingSlider.setValue(BORDERED_PRESET_PADDING);
+            } else {
+                // Hide the ring by zeroing size; keep the picker on its current
+                // colour so dragging the width slider back up still shows blue.
+                borderWidthSlider.setValue(RXWaveProgressIndicator.DEFAULT_BORDER_STROKE_WIDTH);
+                borderPaddingSlider.setValue(RXWaveProgressIndicator.DEFAULT_BORDER_PADDING);
+            }
+        });
 
         // ==================== Timing ====================
         // Both sliders reach 0 to demonstrate the "non-positive disables animation" semantic:
