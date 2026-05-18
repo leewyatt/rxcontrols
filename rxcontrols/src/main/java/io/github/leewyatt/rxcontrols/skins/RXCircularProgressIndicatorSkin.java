@@ -9,11 +9,8 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Arc;
 import javafx.scene.shape.ArcType;
@@ -21,9 +18,6 @@ import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Default skin for {@link RXCircularProgressIndicator}. Renders a track ring,
@@ -39,7 +33,7 @@ import java.util.List;
  * <p>An internal {@code displayedProgress} lets the control's logical
  * {@code progress} jump while the visible arc tweens.
  */
-public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgressIndicator> {
+public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgressIndicator> {
 
     // ==================== Layout Constants ====================
 
@@ -92,7 +86,6 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
             new SimpleDoubleProperty(this, "animatedStartOffset", 0.0);
 
     private final TreeShowingProperty treeShowing;
-    private final List<Runnable> disposers = new ArrayList<>();
 
     private Timeline progressTween;
     private Timeline indeterminateTimeline;
@@ -108,6 +101,7 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
 
         initNodes(control);
         treeShowing = new TreeShowingProperty(control);
+        disposer.registerDisposeTask(treeShowing::dispose);
 
         registerListeners(control);
         applyStrokeStyles();
@@ -139,72 +133,75 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
         progressArc.setType(ArcType.OPEN);
         progressArc.setLength(0.0);
         progressArc.setFill(null);
-        progressArc.startAngleProperty().bind(
+        disposer.registerBinding(progressArc.startAngleProperty(),
                 control.startAngleProperty().add(animatedStartOffset));
         progressArc.getTransforms().add(spinRotate);
+        disposer.registerDisposeTask(() -> progressArc.getTransforms().remove(spinRotate));
 
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
+        // Clear the user-supplied graphic on dispose; the unbind must happen
+        // before setGraphic(null) or it would throw because the property is bound.
+        disposer.registerDisposeTask(() -> {
+            progressLabel.graphicProperty().unbind();
+            progressLabel.setGraphic(null);
+        });
         progressLabel.graphicProperty().bind(control.graphicProperty());
-        progressLabel.visibleProperty().bind(
+        disposer.registerBinding(progressLabel.visibleProperty(),
                 control.graphicProperty().isNotNull()
                         .or(progressLabel.textProperty().isNotEmpty()));
-        progressLabel.managedProperty().bind(progressLabel.visibleProperty());
+        disposer.registerBinding(progressLabel.managedProperty(),
+                progressLabel.visibleProperty());
 
         getChildren().setAll(trackArc, progressArc, progressLabel);
     }
 
     private void registerListeners(RXCircularProgressIndicator control) {
-        track(control.progressProperty(), (obs, oldV, newV) -> {
-            onProgressChanged(newV.doubleValue());
+        disposer.registerListener(control.progressProperty(), () -> {
+            onProgressChanged(control.getProgress());
             applyCenterContent();
         });
-        track(control.clockwiseProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.clockwiseProperty(), () -> {
             if (indeterminateMode) {
                 rebuildIndeterminateTimeline();
             } else {
                 applyDisplayedLength();
             }
         });
-        track(control.converterProperty(), (obs, oldV, newV) -> applyCenterContent());
-        track(displayedProgress, (obs, oldV, newV) -> {
+        disposer.registerListener(control.converterProperty(), this::applyCenterContent);
+        disposer.registerListener(displayedProgress, () -> {
             if (!indeterminateMode) {
                 applyDisplayedLength();
             }
         });
-        track(control.indeterminateCycleDurationProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.indeterminateCycleDurationProperty(), () -> {
             if (indeterminateMode) {
                 rebuildIndeterminateTimeline();
             }
         });
-        track(control.trackStrokeProperty(), (obs, oldV, newV) -> applyStrokeStyles());
-        track(control.progressStrokeProperty(), (obs, oldV, newV) -> applyStrokeStyles());
-        track(control.trackStrokeWidthProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.trackStrokeProperty(), this::applyStrokeStyles);
+        disposer.registerListener(control.progressStrokeProperty(), this::applyStrokeStyles);
+        disposer.registerListener(control.trackStrokeWidthProperty(), () -> {
             applyStrokeStyles();
             control.requestLayout();
         });
-        track(control.progressStrokeWidthProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.progressStrokeWidthProperty(), () -> {
             applyStrokeStyles();
             control.requestLayout();
         });
-        track(control.strokeLineCapProperty(), (obs, oldV, newV) -> applyStrokeStyles());
+        disposer.registerListener(control.strokeLineCapProperty(), this::applyStrokeStyles);
 
-        track(treeShowing, (obs, oldV, newV) -> {
+        disposer.registerListener(treeShowing, () -> {
             if (!indeterminateMode || indeterminateTimeline == null) {
                 return;
             }
-            if (newV) {
+            if (treeShowing.get()) {
                 indeterminateTimeline.play();
             } else {
                 indeterminateTimeline.pause();
             }
         });
-    }
-
-    private <T> void track(ObservableValue<T> obs, ChangeListener<T> listener) {
-        obs.addListener(listener);
-        disposers.add(() -> obs.removeListener(listener));
     }
 
     // ==================== Style application ====================
@@ -469,20 +466,15 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
 
     @Override
     public void dispose() {
+        // Timelines are rebuilt many times during the skin's life; stop the
+        // current one explicitly here. Listeners, bindings, transform and
+        // treeShowing teardown are handled by the embedded SkinDisposer in
+        // RXSkinBase.dispose().
         stopProgressTween();
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
             indeterminateTimeline = null;
         }
-        for (int i = disposers.size() - 1; i >= 0; i--) {
-            disposers.get(i).run();
-        }
-        disposers.clear();
-        progressArc.startAngleProperty().unbind();
-        progressArc.getTransforms().remove(spinRotate);
-        progressLabel.graphicProperty().unbind();
-        progressLabel.setGraphic(null);
-        treeShowing.dispose();
         super.dispose();
     }
 

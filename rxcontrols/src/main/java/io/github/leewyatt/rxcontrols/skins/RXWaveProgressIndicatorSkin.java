@@ -9,12 +9,9 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
@@ -49,7 +46,7 @@ import java.util.List;
  * <p>All long-running timelines auto-pause whenever the host window or any
  * ancestor of the control is hidden, via {@link TreeShowingProperty}.
  */
-public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicator> {
+public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndicator> {
 
     // ==================== Layout Constants ====================
 
@@ -92,7 +89,6 @@ public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicato
             new SimpleDoubleProperty(this, "displayedProgress", 0.0);
 
     private final TreeShowingProperty treeShowing;
-    private final List<Runnable> disposers = new ArrayList<>();
 
     private Timeline progressTween;
     private Timeline frontWaveTimeline;
@@ -125,6 +121,7 @@ public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicato
 
         initNodes(control);
         treeShowing = new TreeShowingProperty(control);
+        disposer.registerDisposeTask(treeShowing::dispose);
 
         registerListeners(control);
         applyFills();
@@ -167,60 +164,63 @@ public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicato
         // matches the water container, so the paths never spill outside the
         // round container.
         waveLayer.setClip(clipCircle);
+        disposer.registerDisposeTask(() -> waveLayer.setClip(null));
 
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
+        // Clear the user-supplied graphic on dispose; unbind must run before
+        // setGraphic(null), so both steps live in one task.
+        disposer.registerDisposeTask(() -> {
+            progressLabel.graphicProperty().unbind();
+            progressLabel.setGraphic(null);
+        });
         progressLabel.graphicProperty().bind(control.graphicProperty());
-        progressLabel.visibleProperty().bind(
+        disposer.registerBinding(progressLabel.visibleProperty(),
                 control.graphicProperty().isNotNull()
                         .or(progressLabel.textProperty().isNotEmpty()));
-        progressLabel.managedProperty().bind(progressLabel.visibleProperty());
+        disposer.registerBinding(progressLabel.managedProperty(),
+                progressLabel.visibleProperty());
 
         getChildren().setAll(container, waveLayer, borderRing, progressLabel);
     }
 
     private void registerListeners(RXWaveProgressIndicator control) {
-        track(control.progressProperty(), (obs, oldV, newV) -> {
-            onProgressChanged(newV.doubleValue());
+        disposer.registerListener(control.progressProperty(), () -> {
+            onProgressChanged(control.getProgress());
             applyCenterContent();
         });
-        track(control.converterProperty(), (obs, oldV, newV) -> applyCenterContent());
+        disposer.registerListener(control.converterProperty(), this::applyCenterContent);
 
-        track(displayedProgress, (obs, oldV, newV) -> rebuildWavePaths());
+        disposer.registerListener(displayedProgress, this::rebuildWavePaths);
 
-        track(control.waveAmplitudeProperty(), (obs, oldV, newV) -> rebuildWavePaths());
-        track(control.waveLengthProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.waveAmplitudeProperty(), this::rebuildWavePaths);
+        disposer.registerListener(control.waveLengthProperty(), () -> {
             rebuildWavePaths();
             rebuildWaveTimelines();
         });
-        track(control.waveCycleDurationProperty(), (obs, oldV, newV) -> rebuildWaveTimelines());
-        track(control.backWaveSpeedRatioProperty(), (obs, oldV, newV) -> rebuildWaveTimelines());
-        track(control.backWaveAmplitudeRatioProperty(), (obs, oldV, newV) -> rebuildWavePaths());
+        disposer.registerListener(control.waveCycleDurationProperty(), this::rebuildWaveTimelines);
+        disposer.registerListener(control.backWaveSpeedRatioProperty(), this::rebuildWaveTimelines);
+        disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::rebuildWavePaths);
 
-        track(control.containerFillProperty(), (obs, oldV, newV) -> applyFills());
-        track(control.frontWaveFillProperty(), (obs, oldV, newV) -> applyFills());
-        track(control.backWaveFillProperty(), (obs, oldV, newV) -> applyFills());
+        disposer.registerListener(control.containerFillProperty(), this::applyFills);
+        disposer.registerListener(control.frontWaveFillProperty(), this::applyFills);
+        disposer.registerListener(control.backWaveFillProperty(), this::applyFills);
 
-        track(control.borderStrokeProperty(), (obs, oldV, newV) -> applyBorder());
-        track(control.borderStrokeWidthProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.borderStrokeProperty(), this::applyBorder);
+        disposer.registerListener(control.borderStrokeWidthProperty(), () -> {
             applyBorder();
             control.requestLayout();
         });
-        track(control.borderPaddingProperty(), (obs, oldV, newV) -> control.requestLayout());
+        disposer.registerListener(control.borderPaddingProperty(), control::requestLayout);
 
-        track(control.indeterminateCycleDurationProperty(), (obs, oldV, newV) -> {
+        disposer.registerListener(control.indeterminateCycleDurationProperty(), () -> {
             if (indeterminateMode) {
                 rebuildIndeterminateTimeline();
             }
         });
 
-        track(treeShowing, (obs, oldV, newV) -> onTreeShowingChanged(newV));
-    }
-
-    private <T> void track(ObservableValue<T> obs, ChangeListener<T> listener) {
-        obs.addListener(listener);
-        disposers.add(() -> obs.removeListener(listener));
+        disposer.registerListener(treeShowing, () -> onTreeShowingChanged(treeShowing.get()));
     }
 
     // ==================== Style application ====================
@@ -677,6 +677,10 @@ public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicato
 
     @Override
     public void dispose() {
+        // Timelines are rebuilt many times during the skin's life; stop the
+        // current ones explicitly here. Listeners, bindings, clip and
+        // treeShowing teardown are handled by the embedded SkinDisposer in
+        // RXSkinBase.dispose().
         stopProgressTween();
         stopAndClearWaveTimeline(true);
         stopAndClearWaveTimeline(false);
@@ -684,16 +688,6 @@ public class RXWaveProgressIndicatorSkin extends SkinBase<RXWaveProgressIndicato
             indeterminateTimeline.stop();
             indeterminateTimeline = null;
         }
-        for (int i = disposers.size() - 1; i >= 0; i--) {
-            disposers.get(i).run();
-        }
-        disposers.clear();
-        waveLayer.setClip(null);
-        progressLabel.graphicProperty().unbind();
-        progressLabel.visibleProperty().unbind();
-        progressLabel.managedProperty().unbind();
-        progressLabel.setGraphic(null);
-        treeShowing.dispose();
         super.dispose();
     }
 
