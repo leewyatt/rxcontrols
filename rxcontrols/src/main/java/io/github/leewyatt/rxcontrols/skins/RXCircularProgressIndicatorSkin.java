@@ -27,8 +27,9 @@ import java.util.List;
 
 /**
  * Default skin for {@link RXCircularProgressIndicator}. Renders a track ring,
- * a progress arc, and a centre label that shows either {@link
- * RXCircularProgressIndicator#getGraphic()} or the converted progress text.
+ * a progress arc, and a centre label that shows both {@link
+ * RXCircularProgressIndicator#getGraphic()} and the converted progress text;
+ * their relative layout is controlled via {@code -fx-content-display}.
  *
  * <p>The indeterminate animation is a Material-style sweep
  * ({@code progressArc.length} animated between a short and long sweep) combined
@@ -388,6 +389,14 @@ public class RXCircularProgressIndicatorSkin extends SkinBase<RXCircularProgress
                                   double contentWidth, double contentHeight) {
         double size = Math.min(contentWidth, contentHeight);
         if (size <= 0.0) {
+            // JavaFX does not auto-clip children to parent bounds; if we just return,
+            // arcs / label keep their previous geometry and can render outside this
+            // now-zero-sized control. Collapse them to a deterministic zero pose.
+            layoutArc(trackArc, contentX, contentY, 0.0);
+            layoutArc(progressArc, contentX, contentY, 0.0);
+            spinRotate.setPivotX(contentX);
+            spinRotate.setPivotY(contentY);
+            progressLabel.resizeRelocate(contentX, contentY, 0.0, 0.0);
             return;
         }
 
