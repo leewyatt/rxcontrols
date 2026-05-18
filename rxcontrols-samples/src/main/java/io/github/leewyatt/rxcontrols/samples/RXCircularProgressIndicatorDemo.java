@@ -18,13 +18,14 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 /**
  * Demo for {@link RXCircularProgressIndicator}.
@@ -40,14 +41,26 @@ public class RXCircularProgressIndicatorDemo extends Application {
     private static final double PREVIEW_SIZE = 100.0;
     private static final double VALUE_LABEL_MIN_WIDTH = 56.0;
 
-    private static final String DOWNLOAD_SVG =
-            "M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 0 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4"
-                    + "a1 1 0 1 1 1.4-1.42L11 12.6V4a1 1 0 0 1 1-1Z"
-                    + "M5 19a1 1 0 0 1 1-1h12a1 1 0 0 1 0 2H6a1 1 0 0 1-1-1Z";
-    private static final double DOWNLOAD_ICON_SCALE = 1.6;
+    private static final StringConverter<Double> STATE_CONVERTER = new StringConverter<>() {
+        @Override
+        public String toString(Double progress) {
+            if (progress == null || progress < 0.0) {
+                return "Loading…";
+            }
+            if (progress >= 1.0) {
+                return "Done!";
+            }
+            return Math.round(progress * 100.0) + "%";
+        }
+
+        @Override
+        public Double fromString(String value) {
+            return null;
+        }
+    };
 
     private RXCircularProgressIndicator indicator;
-    private SVGPath downloadIcon;
+    private Region stateIcon;
     private Slider progressSlider;
     private CheckBox indeterminateBox;
 
@@ -56,11 +69,8 @@ public class RXCircularProgressIndicatorDemo extends Application {
         indicator = new RXCircularProgressIndicator(0.35);
         indicator.setPrefSize(PREVIEW_SIZE, PREVIEW_SIZE);
 
-        downloadIcon = new SVGPath();
-        downloadIcon.setContent(DOWNLOAD_SVG);
-        downloadIcon.setScaleX(DOWNLOAD_ICON_SCALE);
-        downloadIcon.setScaleY(DOWNLOAD_ICON_SCALE);
-        downloadIcon.setFill(Color.web("#3a3f4b"));
+        stateIcon = new Region();
+        stateIcon.getStyleClass().add("state-icon");
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
@@ -127,10 +137,15 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
         CheckBox graphicBox = new CheckBox("Centre graphic");
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
-                indicator.setGraphic(selected ? downloadIcon : null));
+                indicator.setGraphic(selected ? stateIcon : null));
+
+        CheckBox converterBox = new CheckBox("Custom converter");
+        converterBox.selectedProperty().addListener((obs, oldV, selected) ->
+                indicator.setConverter(selected ? STATE_CONVERTER : null));
+
         HBox toggleRow = new HBox(18.0, indeterminateBox, clockwiseBox);
         toggleRow.getStyleClass().add("toggle-row");
-        HBox graphicRow = new HBox(graphicBox);
+        HBox graphicRow = new HBox(18.0, graphicBox, converterBox);
         graphicRow.getStyleClass().add("toggle-row");
 
         // ==================== Sizing & strokes ====================
