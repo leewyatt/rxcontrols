@@ -190,3 +190,42 @@
     -fx-alignment: center;
     -fx-content-display: top;
 }
+
+.rx-wave-progress-indicator {
+    -rx-progress-transition-duration: 250ms;
+    -rx-indeterminate-cycle-duration: 2500ms;
+    -rx-wave-amplitude: 6;
+    -rx-wave-length: 0;
+    -rx-wave-cycle-duration: 2000ms;
+    -rx-back-wave-speed-ratio: 1.4;
+    -rx-back-wave-amplitude-ratio: 0.7;
+    -rx-container-fill: #e8f4ff;
+    -rx-front-wave-fill: #1e90ff;
+    -rx-back-wave-fill: rgba(30, 144, 255, 0.4);
+    -rx-border-stroke: transparent;
+    -rx-border-stroke-width: 0;
+    -rx-border-padding: 0;
+}
+
+.rx-wave-progress-indicator:completed {
+    -rx-front-wave-fill: #2ecc71;
+    -rx-back-wave-fill: rgba(46, 204, 113, 0.4);
+}
+
+.rx-wave-progress-indicator:empty {
+    -rx-wave-amplitude: 0;
+}
+
+.rx-wave-progress-indicator > .progress-label {
+    -fx-font-size: 1em;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-alignment: center;
+    -fx-content-display: top;
+}
+
+.rx-wave-progress-indicator.bordered {
+    -rx-border-stroke: #1e90ff;
+    -rx-border-stroke-width: 6;
+    -rx-border-padding: 5;
+}
