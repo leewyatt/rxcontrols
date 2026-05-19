@@ -223,3 +223,16 @@
     -fx-alignment: center;
     -fx-content-display: top;
 }
+
+.rx-skeleton-loader {
+    -rx-variant: rounded-rect;
+    -rx-corner-radius: 4;
+    -rx-base-color: #e0e0e0;
+    -rx-shimmer-color: rgba(255, 255, 255, 0.6);
+    -rx-cycle-duration: 1500ms;
+    -rx-shimmer-width-ratio: 0.35;
+    -rx-line-count: 1;
+    -rx-line-height: 14;
+    -rx-line-spacing: 8;
+    -rx-last-line-fill-percent: 70;
+}
