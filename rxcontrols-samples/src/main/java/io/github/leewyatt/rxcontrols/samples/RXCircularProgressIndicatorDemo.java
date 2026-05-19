@@ -18,7 +18,7 @@ public class RXCircularProgressIndicatorDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXCircularProgressIndicator indicator = new RXCircularProgressIndicator(0.6);
+        RXCircularProgressIndicator indicator = new RXCircularProgressIndicator(-1);
         indicator.setPrefSize(120, 120);
 
         StackPane root = new StackPane(indicator);
