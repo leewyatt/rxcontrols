@@ -481,7 +481,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
     // ==================== Helpers ====================
 
     private static double clamp(double v) {
-        if (v < 0.0) {
+        if (Double.isNaN(v) || v < 0.0) {
             return 0.0;
         }
         if (v > 1.0) {
