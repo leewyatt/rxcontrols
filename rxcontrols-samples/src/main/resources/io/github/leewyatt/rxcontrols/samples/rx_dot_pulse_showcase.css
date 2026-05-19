@@ -1,0 +1,28 @@
+.preview-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d9dee8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 16px 20px;
+}
+
+.preview-card .caption {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+}
+
+.preview-card .inline-text {
+    -fx-text-fill: #344054;
+    -fx-font-size: 13px;
+}
+
+.button.loading-button {
+    -fx-background-color: #616dfe;
+    -fx-text-fill: white;
+    -fx-padding: 6px 16px;
+    -fx-background-radius: 6px;
+}
+
+.button.loading-button:hover {
+    -fx-background-color: derive(#616dfe, -10%);
+}

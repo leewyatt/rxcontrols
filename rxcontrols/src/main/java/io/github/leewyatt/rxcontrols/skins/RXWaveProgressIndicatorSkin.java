@@ -21,7 +21,7 @@ import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.util.Duration;
-import javafx.util.StringConverter;
+import javafx.util.Callback;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -190,7 +190,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             onProgressChanged(control.getProgress());
             applyCenterContent();
         });
-        disposer.registerListener(control.converterProperty(), this::applyCenterContent);
+        disposer.registerListener(control.textFactoryProperty(), this::applyCenterContent);
 
         disposer.registerListener(displayedProgress, this::rebuildWavePaths);
 
@@ -563,11 +563,11 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     }
 
     private String formatLabel(double progress) {
-        StringConverter<Double> converter = getSkinnable().getConverter();
-        if (converter == null) {
-            converter = RXWaveProgressIndicator.DEFAULT_CONVERTER;
+        Callback<Double, String> textFactory = getSkinnable().getTextFactory();
+        if (textFactory == null) {
+            textFactory = RXWaveProgressIndicator.DEFAULT_TEXT_FACTORY;
         }
-        return converter.toString(progress);
+        return textFactory.call(progress);
     }
 
     // ==================== Layout ====================

@@ -25,7 +25,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.util.Duration;
-import javafx.util.StringConverter;
+import javafx.util.Callback;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -111,22 +111,14 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     public static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
 
     /**
-     * Default converter used by the skin when {@link #converterProperty()} is {@code null}.
+     * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.
      */
-    public static final StringConverter<Double> DEFAULT_CONVERTER = new StringConverter<>() {
-        @Override
-        public String toString(Double progress) {
-            if (progress == null || progress < 0.0) {
-                return "";
-            }
-            double clamped = Math.max(0.0, Math.min(1.0, progress));
-            return Math.round(clamped * 100.0) + "%";
+    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
+        if (progress == null || progress < 0.0) {
+            return "";
         }
-
-        @Override
-        public Double fromString(String value) {
-            return null;
-        }
+        double clamped = Math.max(0.0, Math.min(1.0, progress));
+        return Math.round(clamped * 100.0) + "%";
     };
 
     // ==================== Constructors ====================
@@ -189,28 +181,28 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
         graphic.set(value);
     }
 
-    // ==================== Converter ====================
+    // ==================== Text Factory ====================
 
-    private final ObjectProperty<StringConverter<Double>> converter =
-            new SimpleObjectProperty<>(this, "converter", DEFAULT_CONVERTER);
+    private final ObjectProperty<Callback<Double, String>> textFactory =
+            new SimpleObjectProperty<>(this, "textFactory", DEFAULT_TEXT_FACTORY);
 
     /**
-     * Converter used to render the progress as text when no
-     * {@link #graphicProperty() graphic} is set. Tolerates {@code null}
-     * (skin falls back to {@link #DEFAULT_CONVERTER}).
+     * Factory that produces the progress text rendered alongside the
+     * {@link #graphicProperty() graphic}. Tolerates {@code null}
+     * (skin falls back to {@link #DEFAULT_TEXT_FACTORY}).
      *
-     * @return the converter property
+     * @return the textFactory property
      */
-    public final ObjectProperty<StringConverter<Double>> converterProperty() {
-        return converter;
+    public final ObjectProperty<Callback<Double, String>> textFactoryProperty() {
+        return textFactory;
     }
 
-    public final StringConverter<Double> getConverter() {
-        return converter.get();
+    public final Callback<Double, String> getTextFactory() {
+        return textFactory.get();
     }
 
-    public final void setConverter(StringConverter<Double> value) {
-        converter.set(value);
+    public final void setTextFactory(Callback<Double, String> value) {
+        textFactory.set(value);
     }
 
     // ==================== Start Angle ====================

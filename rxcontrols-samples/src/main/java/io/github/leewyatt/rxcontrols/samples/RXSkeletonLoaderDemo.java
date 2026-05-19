@@ -333,7 +333,7 @@ public class RXSkeletonLoaderDemo extends Application {
         }
     }
 
-    // ==================== Layout helpers (mirrors RXWaveProgressIndicatorDemo) ====================
+    // ==================== Layout helpers (mirrors RXWaveProgressIndicatorShowcase) ====================
 
     private VBox createSection(String title, Node content) {
         Label label = new Label(title);

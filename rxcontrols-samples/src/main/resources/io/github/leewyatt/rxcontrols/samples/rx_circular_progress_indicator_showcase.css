@@ -1,0 +1,24 @@
+.state-icon {
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+    -fx-background-color: #3a3f4b;
+}
+
+.rx-circular-progress-indicator:indeterminate .state-icon {
+    -fx-shape: "M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z";
+    -fx-pref-width: 16px;
+    -fx-pref-height: 20px;
+}
+
+.rx-circular-progress-indicator:determinate .state-icon {
+    -fx-shape: "M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 0 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.42L11 12.6V4a1 1 0 0 1 1-1ZM5 19a1 1 0 0 1 1-1h12a1 1 0 0 1 0 2H6a1 1 0 0 1-1-1Z";
+    -fx-pref-width: 13px;
+    -fx-pref-height: 17px;
+}
+
+.rx-circular-progress-indicator:determinate:completed .state-icon {
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    -fx-background-color: #2ecc71;
+    -fx-pref-width: 17.59px;
+    -fx-pref-height: 13.41px;
+}
