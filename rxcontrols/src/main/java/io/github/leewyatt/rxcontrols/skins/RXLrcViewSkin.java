@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
 import io.github.leewyatt.rxcontrols.pojo.LrcLine;
-import io.github.leewyatt.rxcontrols.utils.UIUtil;
 import javafx.animation.*;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
@@ -12,13 +11,17 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -102,7 +105,7 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         //lrc-view-pane
         lrcPane.getStyleClass().add("lrc-pane");
         root.getChildren().add(lrcPane);
-        UIUtil.clipRoot(control, root);
+        clipRoot(control, root);
         getChildren().setAll(root);
         paintLrcLines();
 
@@ -141,7 +144,7 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         }
 
         lastMoveDis = event.getY() - startDragY;
-        double bottomBound = UIUtil.computeInnerH(control) / 2 + control.getLineHeight() / 2 - control.getLineHeight() - offsetY;
+        double bottomBound = computeInnerH(control) / 2 + control.getLineHeight() / 2 - control.getLineHeight() - offsetY;
 
         if (lastMoveDis > bottomBound) {
             lastMoveDis = bottomBound;
@@ -159,16 +162,16 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
             offsetY = lrcPane.getChildren().get(0).getTranslateY();
         }
         //低于底部后 ,自动往上的动画
-        double x = UIUtil.computeBorderSize(control, false, false, true, false) +
-                UIUtil.computePaddingSize(control, false, false, true, false);
+        double x = computeBorderSize(control, false, false, true, false) +
+                computePaddingSize(control, false, false, true, false);
 
-        if (lrcPane.getLayoutY() >= UIUtil.computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY - x) {
+        if (lrcPane.getLayoutY() >= computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY - x) {
             if (reboundUp.getStatus() == Animation.Status.RUNNING) {
                 reboundUp.stop();
             }
             reboundUp.getKeyFrames().setAll(new KeyFrame(REBOUND_DURATION, new KeyValue(
                     lrcPane.layoutYProperty(),
-                    UIUtil.computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY,
+                    computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY,
                     Interpolator.EASE_OUT)));
             reboundUp.play();
         }
@@ -193,7 +196,7 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         if (newIndex < 0) {
             return;
         }
-        UIUtil.animeStopAtEnd(moveAndScaleAnim);
+        animeStopAtEnd(moveAndScaleAnim);
         lrcPaneMoveAnim.getKeyFrames().clear();
         Duration duration = control.getAnimationTime();
         // 歌词面板的整体移动
@@ -267,11 +270,11 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
             }
             label.setLayoutY(
                     (i + 1) * control.getLineHeight()
-                            + (UIUtil.computeInnerH(control)
+                            + (computeInnerH(control)
                             - control.getLineHeight()) / 2);
             label.setPrefHeight(control.getLineHeight());
             label.prefWidthProperty().bind(Bindings.createDoubleBinding(
-                    () -> UIUtil.computeInnerW(control),
+                    () -> computeInnerW(control),
                     control.layoutBoundsProperty(),
                     control.paddingProperty(),
                     control.borderProperty()));
@@ -336,11 +339,230 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         control.removeEventHandler(MouseEvent.MOUSE_PRESSED, mousePressedHandler);
         control.removeEventHandler(MouseEvent.MOUSE_DRAGGED, mouseDraggedHandler);
         control.removeEventHandler(MouseEvent.MOUSE_RELEASED, mouseReleasedHandler);
-        UIUtil.animeStop(
+        animeStop(
                 reboundUp, reboundDown, moveAndScaleAnim, lrcPaneMoveAnim, smallST, bigST);
-        UIUtil.animeStop(lineMove);
+        animeStop(lineMove);
         getChildren().clear();
         super.dispose();
+    }
+
+    // ==================== Migrated UIUtil helpers (legacy, pending refactor) ====================
+    //
+    // The helpers below were lifted from io.github.leewyatt.rxcontrols.utils.UIUtil during the
+    // 2026-05 review. Behaviour is intentionally preserved as-is — known issues are called out
+    // with TODO markers and will be addressed when RXLrcViewSkin itself is refactored. These
+    // helpers (along with their TODO markers and the inherited Chinese Javadoc) are temporary;
+    // remove them entirely during the rewrite rather than keeping them as long-term residents.
+
+    /**
+     * 获得组件的真实内部宽, 去掉了边框和内边距
+     *
+     * @param control 指定的组件
+     */
+    // TODO(refactor): redundant, not a correctness bug. For resizable nodes (Region/Control)
+    //   layoutBounds is always `(0, 0, width, height)` — effect/clip/transforms do NOT extend
+    //   it (see Node#layoutBoundsProperty javadoc) — so `maxX - minX` is just a verbose way
+    //   to write `getWidth()`. Padding and border are also already merged by Region.getInsets(),
+    //   and snapped*Inset() adds pixel snapping for free.
+    //   Suggested simplification:
+    //     return control.getWidth() - control.snappedLeftInset() - control.snappedRightInset();
+    //   Skin-idiomatic preference: drop this helper entirely and inline `snappedLeftInset()` /
+    //   `snappedRightInset()` (protected on SkinBase) at the call sites. The current call sites
+    //   are outside layoutChildren (mouse handlers, paintLrcLines, clipRoot binding), so the
+    //   `layoutChildren(x, y, w, h)` parameters are not available there.
+    //   Better still: reshape the source of layout state — cache the content-area size in Skin
+    //   fields updated from layoutChildren — instead of mechanically recomputing it from
+    //   `control` at every call site.
+    private static double computeInnerW(Control control) {
+        if (control == null) {
+            return 0;
+        }
+        double width = 0;
+        Bounds bounds = control.getLayoutBounds();
+        if (bounds != null) {
+            width = bounds.getMaxX() - bounds.getMinX();
+        }
+        double paddingWidth = 0;
+        Insets padding = control.getPadding();
+        if (padding != null) {
+            paddingWidth = padding.getLeft() + padding.getRight();
+        }
+        double borderWidth = 0;
+        if (control.getBorder() != null && control.getBorder().getInsets() != null) {
+            Insets insets = control.getBorder().getInsets();
+            borderWidth = insets.getLeft() + insets.getRight();
+        }
+        return width - borderWidth - paddingWidth;
+    }
+
+    /**
+     * 获得组件的真实内部高, 去掉了边框和内边距
+     *
+     * @param control 指定的组件
+     */
+    // TODO(refactor): same redundancy as computeInnerW (layoutBounds for Region/Control is
+    //   just `(0, 0, width, height)`), plus a style inconsistency — this variant delegates to
+    //   computeBorderSize/computePaddingSize while computeInnerW inlines the math.
+    //   Suggested simplification:
+    //     return control.getHeight() - control.snappedTopInset() - control.snappedBottomInset();
+    //   Skin-idiomatic preference: same as computeInnerW — drop the helper and inline
+    //   `snappedTopInset()` / `snappedBottomInset()` at call sites.
+    private static double computeInnerH(Control control) {
+        if (control == null) {
+            return 0;
+        }
+        double height = 0;
+        Bounds bounds = control.getLayoutBounds();
+        if (bounds != null) {
+            height = bounds.getMaxY() - bounds.getMinY();
+        }
+        double borderHeight = computeBorderSize(control, true, false, true, false);
+        double paddingHeight = computePaddingSize(control, true, false, true, false);
+        return height - borderHeight - paddingHeight;
+    }
+
+    /**
+     * 获得组件的内边距长度
+     *
+     * @param control
+     * @param top     上边距
+     * @param right   右边距
+     * @param bottom  下边距
+     * @param left    左边距
+     * @return
+     */
+    // TODO(bug): NPE — `control.getPadding()` is dereferenced before the null-check on `control`
+    //   (lines below), so a null `control` triggers NPE instead of returning 0.
+    // TODO(api): four-boolean edge mask is hard to read at call sites (see the
+    //   `(false, false, true, false)` invocation in mouseReleasedHandler). Prefer
+    //   `control.snappedTopInset()` / `snappedBottomInset()` etc, which already merge
+    //   padding + border and apply pixel snapping.
+    private static double computePaddingSize(Control control, boolean top, boolean right, boolean bottom, boolean left) {
+        double paddingSize = 0;
+        Insets insets = control.getPadding();
+        if (control == null || insets == null) {
+            return paddingSize;
+        }
+        return getSize(top, right, bottom, left, insets);
+    }
+
+    /**
+     * 获取组件的边框大小
+     * @param control
+     * @param top 上边框
+     * @param right 有边框
+     * @param bottom 下边框
+     * @param left 左边框
+     * @return
+     */
+    // TODO(doc): Javadoc typo — "有边框" should be "右边框".
+    // TODO(api): same four-boolean redundancy as computePaddingSize; replace call sites with
+    //   `snappedXxxInset()` (which already includes border insets) when refactoring.
+    private static double computeBorderSize(Control control, boolean top, boolean right, boolean bottom, boolean left) {
+        double borderSize = 0;
+        if (control == null || control.getBorder() == null || control.getBorder().getInsets() == null) {
+            return borderSize;
+        }
+        Insets insets = control.getBorder().getInsets();
+        return getSize(top, right, bottom, left, insets);
+    }
+
+    private static double getSize(boolean top, boolean right, boolean bottom, boolean left, Insets insets) {
+        double size = 0;
+        if (top) {
+            size += insets.getTop();
+        }
+        if (right) {
+            size += insets.getRight();
+        }
+        if (bottom) {
+            size += insets.getBottom();
+        }
+        if (left) {
+            size += insets.getLeft();
+        }
+        return size;
+    }
+
+    /**
+     * 根据组件的 位置, 边框, 内边距来计算根节点内容面积的大小
+     * @param control 组件
+     * @param root 根节点
+     */
+    // Note: keep the clip at (0, 0). `root` is already laid out at (snappedLeftInset,
+    //   snappedTopInset) by RXLrcViewSkin#layoutChildren — see Control#layoutChildren in
+    //   OpenJFX which feeds inset-offset coordinates into SkinBase#layoutChildren(x,y,w,h).
+    //   Clip coordinates are in the clipped node's local space (AGENTS §3.2), so root's
+    //   local origin already equals the content area's top-left. Binding rect.x/rect.y to
+    //   snapped insets here would double-offset and crop the clip incorrectly.
+    // TODO(perf): `boundsInParentProperty` is in the dependency list but never read inside
+    //   the binding lambda; it triggers redundant recomputes on transform / parent changes.
+    //   Drop it from both bindings.
+    // TODO(lifecycle): Rectangle is created and bound but never returned, so dispose() cannot
+    //   `unbind` / `setClip(null)` and the binding keeps a strong ref to `control`. Either
+    //   inline this into the skin and store the Rectangle as a field, or return it for the
+    //   caller to manage. Required by AGENTS §3.1 (skin dispose must be exhaustive).
+    private static void clipRoot(Control control, Pane root) {
+        Rectangle rect = new Rectangle();
+        rect.widthProperty().bind(Bindings.createDoubleBinding(
+                () -> computeInnerW(control),
+                control.boundsInParentProperty(),
+                control.borderProperty(),
+                control.paddingProperty(),
+                control.widthProperty()));
+
+        rect.heightProperty().bind(Bindings.createDoubleBinding(
+                () -> computeInnerH(control),
+                control.boundsInParentProperty(),
+                control.borderProperty(),
+                control.paddingProperty(),
+                control.heightProperty()));
+        root.setClip(rect);
+    }
+
+    /**
+     * 动画跳转到最后面然后停止.
+     * @param animations 动画
+     */
+    // TODO(semantics): for animations with cycleCount = INDEFINITE, `getTotalDuration()`
+    //   returns Duration.INDEFINITE. Verified against JFX 17.0.13 Animation#jumpTo:
+    //   isUnknown() throws IAE, but isIndefinite() does NOT — the impl silently falls back to
+    //   `getCycleDuration().toMillis()`. So this call effectively jumps to ONE cycle's end, not
+    //   "the end of the animation". That may or may not be the desired pose; the call site
+    //   should decide explicitly (e.g. pass `getCycleDuration()` directly, or just `stop()`
+    //   without jumping for infinite animations). Note: javafx.animation.Animation has no
+    //   public `jumpToEnd()` API — do not suggest one.
+    // TODO(semantics): the `status != STOPPED` guard means an already-stopped animation will
+    //   NOT be moved to its end frame, contradicting the method name. Decide whether the
+    //   contract is "make sure the animation ends at the end-frame regardless of status".
+    // TODO(rename): "anime" is an informal abbreviation; rename to `finishAndStop` when
+    //   refactoring.
+    private static void animeStopAtEnd(Animation... animations) {
+        if (animations == null || animations.length == 0) {
+            return;
+        }
+        for (Animation animation : animations) {
+            if (animation == null) {
+                continue;
+            }
+            if (animation.getStatus() != Animation.Status.STOPPED) {
+                animation.jumpTo(animation.getTotalDuration());
+                animation.stop();
+            }
+        }
+    }
+
+    // TODO(rename): align with `animeStopAtEnd` — rename to `stopAnimations` for clarity.
+    private static void animeStop(Animation... animations) {
+        if (animations == null || animations.length == 0) {
+            return;
+        }
+        for (Animation animation : animations) {
+            if (animation == null) {
+                continue;
+            }
+            animation.stop();
+        }
     }
 
 }
