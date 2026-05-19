@@ -1,9 +1,11 @@
-.circle-progress-indicator {
+.rx-circular-progress-indicator {
     -fx-pref-width: 70px;
     -fx-pref-height: 70px;
+    -rx-track-stroke-width: 4px;
+    -rx-progress-stroke-width: 4px;
 }
 
-.circle-progress-indicator .progress-label {
+.rx-circular-progress-indicator .progress-label {
     -fx-text-fill: rgba(71, 67, 67, 0.79);
     -fx-font-size: 25px;
     -fx-font-weight: bold;
@@ -12,12 +14,4 @@
     -fx-pref-width: 55px;
     -fx-pref-height: 55px;
     -fx-alignment: center;
-}
-
-.circle-progress-indicator .track-circle {
-    -fx-stroke-width: 4px;
-}
-
-.circle-progress-indicator .progress-arc {
-    -fx-stroke-width: 4px;
 }

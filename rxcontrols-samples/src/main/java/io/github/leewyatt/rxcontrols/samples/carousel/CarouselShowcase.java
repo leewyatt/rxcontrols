@@ -1,11 +1,11 @@
 package io.github.leewyatt.rxcontrols.samples.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
+import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.carousel.animation.*;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
-import io.github.leewyatt.rxcontrols.samples.carousel.control.CircleProgressIndicator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -23,7 +23,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.util.StringConverter;
 
 import javax.imageio.ImageIO;
 import java.io.File;
@@ -231,24 +230,16 @@ public class CarouselShowcase extends Application {
         autoPlayCb.selectedProperty().bindBidirectional(carousel.autoPlayProperty());
 
         // Countdown indicator
-        CircleProgressIndicator progressIndicator = new CircleProgressIndicator(0);
+        RXCircularProgressIndicator progressIndicator = new RXCircularProgressIndicator(0);
         progressIndicator.setPrefSize(28, 28);
         progressIndicator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        progressIndicator.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(Double progress) {
-                if (progress == null || progress < 0) {
-                    return "";
-                }
-                double totalSeconds = carousel.getAutoPlayInterval().toSeconds();
-                double remaining = totalSeconds * (1.0 - progress);
-                return String.format("%.0f", Math.ceil(remaining));
+        progressIndicator.setTextFactory(progress -> {
+            if (progress == null || progress < 0) {
+                return "";
             }
-
-            @Override
-            public Double fromString(String string) {
-                return null;
-            }
+            double totalSeconds = carousel.getAutoPlayInterval().toSeconds();
+            double remaining = totalSeconds * (1.0 - progress);
+            return String.format("%.0f", Math.ceil(remaining));
         });
         carousel.autoPlayProgressProperty().addListener((obs, o, n) ->
                 progressIndicator.setProgress(n.doubleValue()));
