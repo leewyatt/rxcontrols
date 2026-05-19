@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCircularProgressIndicatorSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
@@ -59,8 +60,7 @@ import java.util.List;
 public class RXCircularProgressIndicator extends ProgressIndicator {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-circular-progress-indicator";
-    private static final String USER_AGENT_STYLESHEET =
-            RXCircularProgressIndicator.class.getResource("/rx-controls.css").toExternalForm();
+
     private static final PseudoClass PSEUDO_CLASS_COMPLETED = PseudoClass.getPseudoClass("completed");
 
     // ==================== Public Defaults ====================
@@ -149,7 +149,7 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     private void updateCompletedPseudoClass() {

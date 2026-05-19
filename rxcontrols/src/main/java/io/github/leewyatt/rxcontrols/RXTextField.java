@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTextFieldSkin;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -91,8 +92,6 @@ import java.util.List;
 public class RXTextField extends TextField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-text-field";
-    private static final String USER_AGENT_STYLESHEET = RXTextField.class.getResource("/rx-controls.css")
-            .toExternalForm();
 
     public RXTextField() {
         this(null);
@@ -115,7 +114,7 @@ public class RXTextField extends TextField {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     @Override

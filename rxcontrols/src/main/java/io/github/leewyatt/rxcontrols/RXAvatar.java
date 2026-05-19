@@ -24,6 +24,7 @@
  */
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXAvatarSkin;
 
 import javafx.beans.InvalidationListener;
@@ -87,8 +88,6 @@ public class RXAvatar extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-avatar";
     private static final double DEFAULT_ARC = 10;
-    private static final String USER_AGENT_STYLESHEET =
-            RXAvatar.class.getResource("/rx-controls.css").toExternalForm();
 
     // ==================== Pseudo-classes ====================
 
@@ -152,7 +151,7 @@ public class RXAvatar extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Display State ====================

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDotPulseSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
@@ -79,8 +80,7 @@ public class RXDotPulse extends Control {
     }
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dot-pulse";
-    private static final String USER_AGENT_STYLESHEET =
-            RXDotPulse.class.getResource("/rx-controls.css").toExternalForm();
+
 
     // ==================== Public Defaults ====================
 
@@ -162,7 +162,7 @@ public class RXDotPulse extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Pulse Style ====================

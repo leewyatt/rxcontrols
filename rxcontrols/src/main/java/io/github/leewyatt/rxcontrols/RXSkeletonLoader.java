@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSkeletonLoaderSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
@@ -82,8 +83,7 @@ public class RXSkeletonLoader extends Control {
     }
 
     private static final String DEFAULT_STYLE_CLASS = "rx-skeleton-loader";
-    private static final String USER_AGENT_STYLESHEET =
-            RXSkeletonLoader.class.getResource("/rx-controls.css").toExternalForm();
+
 
     // ==================== Public Defaults ====================
 
@@ -168,7 +168,7 @@ public class RXSkeletonLoader extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Variant ====================

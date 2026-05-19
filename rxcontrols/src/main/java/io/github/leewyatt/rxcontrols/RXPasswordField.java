@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.EchoCharConverter;
 import io.github.leewyatt.rxcontrols.skins.RXPasswordFieldSkin;
 import javafx.beans.property.BooleanProperty;
@@ -49,7 +50,6 @@ import java.util.List;
 public class RXPasswordField extends PasswordField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-password-field";
-    private static final String USER_AGENT_STYLESHEET = RXPasswordField.class.getResource("/rx-controls.css").toExternalForm();
     private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
 
     /**
@@ -87,7 +87,7 @@ public class RXPasswordField extends PasswordField {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     @Override

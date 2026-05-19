@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXWaveProgressIndicatorSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
@@ -62,8 +63,7 @@ import java.util.List;
 public class RXWaveProgressIndicator extends ProgressIndicator {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-wave-progress-indicator";
-    private static final String USER_AGENT_STYLESHEET =
-            RXWaveProgressIndicator.class.getResource("/rx-controls.css").toExternalForm();
+
     private static final PseudoClass PSEUDO_CLASS_COMPLETED = PseudoClass.getPseudoClass("completed");
     private static final PseudoClass PSEUDO_CLASS_EMPTY = PseudoClass.getPseudoClass("empty");
 
@@ -178,7 +178,7 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     private void updateProgressPseudoClasses() {

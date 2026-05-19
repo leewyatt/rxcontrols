@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.ObjectProperty;
@@ -48,8 +49,6 @@ import java.util.List;
 public class RXImageView extends Region {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-image-view";
-    private static final String USER_AGENT_STYLESHEET =
-            RXImageView.class.getResource("/rx-controls.css").toExternalForm();
     private static final double DEFAULT_SIZE = 100;
 
     // ==================== Shape Constants ====================
@@ -192,7 +191,7 @@ public class RXImageView extends Region {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Image ====================
