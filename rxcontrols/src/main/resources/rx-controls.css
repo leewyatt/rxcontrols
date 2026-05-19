@@ -236,3 +236,13 @@
     -rx-line-spacing: 8;
     -rx-last-line-fill-percent: 70;
 }
+
+.rx-dot-pulse {
+    -rx-pulse-style: bounce;
+    -rx-dot-count: 3;
+    -rx-dot-size: 8;
+    -rx-dot-gap: 6;
+    -rx-dot-color: #616dfe;
+    -rx-cycle-duration: 1200ms;
+    -rx-amplitude: 1;
+}

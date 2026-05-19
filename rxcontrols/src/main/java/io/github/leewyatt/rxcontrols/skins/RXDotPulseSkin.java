@@ -1,0 +1,422 @@
+package io.github.leewyatt.rxcontrols.skins;
+
+import io.github.leewyatt.rxcontrols.RXDotPulse;
+import io.github.leewyatt.rxcontrols.RXDotPulse.PulseStyle;
+import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
+import javafx.util.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Default skin for {@link RXDotPulse}. Renders a horizontal row of
+ * {@link Circle} dots and drives a shared {@code phase} property on an
+ * indefinite {@link Timeline}; an invalidation listener fans the phase out to
+ * each dot using a per-dot offset of {@code i / dotCount}, then maps the
+ * per-dot local time to a translate / scale / opacity effect based on
+ * {@link PulseStyle}.
+ *
+ * <p>Implementation notes:
+ * <ul>
+ *   <li>The driver is a single {@link Timeline}, not one timeline per dot,
+ *       so phase relationships stay exact across the cycle boundary and there
+ *       is only one play / pause site to wire up to
+ *       {@link TreeShowingProperty}.</li>
+ *   <li>Each dot's "local time" is {@code (phase + i/N) % 1.0}; the active
+ *       portion of the local time uses a {@code sin(π · t / ACTIVE_FRACTION)}
+ *       curve so the peak is smooth in both directions. Outside the active
+ *       portion the dot rests at its baseline transform.</li>
+ *   <li>{@code cycleDuration ≤ 0} or {@code null} disables the timeline per
+ *       AGENTS.md §3.6 and snaps all dots to a clean rest pose (translate 0,
+ *       scale 1, opacity 1) so a stale frame cannot linger (§1.8).</li>
+ * </ul>
+ */
+public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
+
+    // ==================== Animation Constants ====================
+
+    /**
+     * Fraction of each dot's local cycle spent in the "active" pulse; the
+     * remainder is rest. {@code 0.5} keeps about half the dots visibly
+     * animating at any given moment for the default 3-dot configuration,
+     * which reads as the classic typing indicator.
+     */
+    private static final double ACTIVE_FRACTION = 0.5;
+
+    /**
+     * Peak upward translation for {@link PulseStyle#BOUNCE}, expressed as a
+     * fraction of {@link RXDotPulse#dotSizeProperty() dotSize}, before the
+     * amplitude multiplier is applied.
+     */
+    private static final double BOUNCE_PEAK_FACTOR = 0.75;
+
+    /**
+     * Peak scale increment for {@link PulseStyle#PULSE}, before the
+     * amplitude multiplier is applied. Combined with amplitude {@code = 1}
+     * the dot grows to {@code 1.5x}.
+     */
+    private static final double PULSE_SCALE_INCREMENT = 0.5;
+
+    /**
+     * Resting-opacity reduction for {@link PulseStyle#FADE} at amplitude
+     * {@code = 1}: dots at rest sit at {@code 1.0 − 0.7 = 0.3}, rising to
+     * {@code 1.0} at the peak.
+     */
+    private static final double FADE_RESTING_REDUCTION = 0.7;
+
+    // ==================== Layout Constants ====================
+
+    /**
+     * Multiplier applied to {@link RXDotPulse#dotSizeProperty() dotSize} to
+     * derive {@code prefHeight}. Two times the dot size gives the row enough
+     * headroom for the default-amplitude bounce without exposing a separate
+     * "vertical padding" property.
+     */
+    private static final double PREF_HEIGHT_FACTOR = 2.0;
+
+    private static final double HALF = 0.5;
+
+    // ==================== Nodes ====================
+
+    private final List<Circle> dots = new ArrayList<>();
+
+    /**
+     * Global cycle position in {@code [0, 1)}. The timeline animates this
+     * linearly; an invalidation listener fans it out to each dot's transform.
+     */
+    private final DoubleProperty phase = new SimpleDoubleProperty(this, "phase", 0.0);
+
+    private final TreeShowingProperty treeShowing;
+
+    private Timeline timeline;
+
+    /**
+     * Creates a skin for the given control.
+     *
+     * @param control the skinnable control
+     */
+    public RXDotPulseSkin(RXDotPulse control) {
+        super(control);
+
+        treeShowing = new TreeShowingProperty(control);
+        disposer.registerDisposeTask(treeShowing::dispose);
+
+        rebuildDots();
+        registerListeners(control);
+
+        rebuildTimeline();
+        if (timeline == null) {
+            // Animation disabled at construction (e.g. cycleDuration <= 0) —
+            // §1.8: still snap the dots to a deterministic rest pose so the
+            // first frame is not whatever defaults Circle was initialised to.
+            applyStaticRest();
+        }
+    }
+
+    // ==================== Init ====================
+
+    private void registerListeners(RXDotPulse control) {
+        disposer.registerListener(control.dotCountProperty(), () -> {
+            rebuildDots();
+            control.requestLayout();
+            // Rebuild the timeline too: the per-dot phase offset uses N, and
+            // the running animation referenced the previous circle list.
+            rebuildTimeline();
+            if (timeline == null) {
+                applyStaticRest();
+            }
+        });
+        disposer.registerListener(control.dotSizeProperty(), control::requestLayout);
+        disposer.registerListener(control.dotGapProperty(), control::requestLayout);
+        disposer.registerListener(control.dotColorProperty(), this::applyDotFill);
+        disposer.registerListener(control.pulseStyleProperty(), this::refreshDots);
+        disposer.registerListener(control.cycleDurationProperty(), () -> {
+            rebuildTimeline();
+            if (timeline == null) {
+                applyStaticRest();
+            }
+        });
+        disposer.registerListener(control.amplitudeProperty(), this::refreshDots);
+
+        disposer.registerListener(phase, this::updateDotStates);
+
+        disposer.registerListener(treeShowing, () -> {
+            if (timeline == null) {
+                return;
+            }
+            if (treeShowing.get()) {
+                timeline.play();
+            } else {
+                timeline.pause();
+            }
+        });
+    }
+
+    // ==================== Dot composition ====================
+
+    private void rebuildDots() {
+        int n = clampDotCount(getSkinnable().getDotCount());
+        Paint fill = paintOrDefault(getSkinnable().getDotColor(), RXDotPulse.DEFAULT_DOT_COLOR);
+
+        dots.clear();
+        for (int i = 0; i < n; i++) {
+            Circle c = new Circle();
+            c.getStyleClass().add("dot");
+            c.setManaged(false);
+            c.setMouseTransparent(true);
+            c.setFill(fill);
+            dots.add(c);
+        }
+        getChildren().setAll(dots);
+    }
+
+    private void applyDotFill() {
+        Paint fill = paintOrDefault(getSkinnable().getDotColor(), RXDotPulse.DEFAULT_DOT_COLOR);
+        for (Circle c : dots) {
+            c.setFill(fill);
+        }
+    }
+
+    // ==================== Animation ====================
+
+    private void rebuildTimeline() {
+        if (timeline != null) {
+            timeline.stop();
+            timeline = null;
+        }
+
+        Duration cycle = getSkinnable().getCycleDuration();
+        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+            // Caller is responsible for following up with applyStaticRest()
+            // — keeping that off this method lets dotCount/style change
+            // paths share a single "stop + reset" sequence (see registerListeners).
+            phase.set(0.0);
+            return;
+        }
+
+        phase.set(0.0);
+        timeline = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(phase, 0.0, Interpolator.LINEAR)),
+                new KeyFrame(cycle,
+                        new KeyValue(phase, 1.0, Interpolator.LINEAR))
+        );
+        timeline.setCycleCount(Animation.INDEFINITE);
+        if (treeShowing.get()) {
+            timeline.play();
+        }
+    }
+
+    private void updateDotStates() {
+        int n = dots.size();
+        if (n == 0) {
+            return;
+        }
+        double t = phase.get();
+        PulseStyle style = getSkinnable().getPulseStyle();
+        if (style == null) {
+            style = RXDotPulse.DEFAULT_PULSE_STYLE;
+        }
+        double amp = sanitize(getSkinnable().getAmplitude());
+        double size = sanitize(getSkinnable().getDotSize());
+
+        for (int i = 0; i < n; i++) {
+            double local = ((t + (double) i / n) % 1.0 + 1.0) % 1.0;
+            applyDotState(dots.get(i), local, style, amp, size);
+        }
+    }
+
+    private void applyStaticRest() {
+        for (Circle c : dots) {
+            c.setTranslateY(0.0);
+            c.setScaleX(1.0);
+            c.setScaleY(1.0);
+            c.setOpacity(1.0);
+        }
+    }
+
+    /**
+     * Pushes a fresh transform to every dot — either by recomputing against
+     * the current phase (timeline running) or by snapping to rest (timeline
+     * disabled). Use when a non-timing property (style, amplitude) changes
+     * mid-cycle and we want the new effect visible this frame instead of next.
+     */
+    private void refreshDots() {
+        if (timeline == null) {
+            applyStaticRest();
+        } else {
+            updateDotStates();
+        }
+    }
+
+    private static void applyDotState(Circle c, double local, PulseStyle style,
+                                      double amp, double size) {
+        double pulse = (local < ACTIVE_FRACTION)
+                ? Math.sin(Math.PI * local / ACTIVE_FRACTION)
+                : 0.0;
+
+        switch (style) {
+            case BOUNCE -> {
+                c.setTranslateY(-pulse * amp * size * BOUNCE_PEAK_FACTOR);
+                c.setScaleX(1.0);
+                c.setScaleY(1.0);
+                c.setOpacity(1.0);
+            }
+            case PULSE -> {
+                double scale = 1.0 + pulse * amp * PULSE_SCALE_INCREMENT;
+                c.setTranslateY(0.0);
+                c.setScaleX(scale);
+                c.setScaleY(scale);
+                c.setOpacity(1.0);
+            }
+            case FADE -> {
+                double restingReduction = Math.min(1.0, amp * FADE_RESTING_REDUCTION);
+                double opacity = 1.0 - restingReduction * (1.0 - pulse);
+                c.setTranslateY(0.0);
+                c.setScaleX(1.0);
+                c.setScaleY(1.0);
+                c.setOpacity(clamp01(opacity));
+            }
+        }
+    }
+
+    // ==================== Layout ====================
+
+    @Override
+    protected void layoutChildren(double contentX, double contentY,
+                                  double contentWidth, double contentHeight) {
+        int n = dots.size();
+        if (n == 0 || contentWidth <= 0.0 || contentHeight <= 0.0) {
+            for (Circle c : dots) {
+                c.setRadius(0.0);
+                c.setCenterX(contentX);
+                c.setCenterY(contentY);
+            }
+            return;
+        }
+
+        double size = sanitize(getSkinnable().getDotSize());
+        double gap = sanitize(getSkinnable().getDotGap());
+        double radius = size * HALF;
+        double rowWidth = n * size + Math.max(0, n - 1) * gap;
+        double startX = contentX + (contentWidth - rowWidth) * HALF + radius;
+        // Bottom-anchor the row so the BOUNCE translateY (upward) stays
+        // visible within the content box even when the user shrinks
+        // prefHeight below the default-derived margin.
+        double centerY = contentY + contentHeight - radius;
+
+        for (int i = 0; i < n; i++) {
+            Circle c = dots.get(i);
+            c.setRadius(radius);
+            c.setCenterX(startX + i * (size + gap));
+            c.setCenterY(centerY);
+        }
+    }
+
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return leftInset + computeRowWidth() + rightInset;
+    }
+
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return topInset + sanitize(getSkinnable().getDotSize()) + bottomInset;
+    }
+
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + computeRowWidth() + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        double size = sanitize(getSkinnable().getDotSize());
+        double amp = sanitize(getSkinnable().getAmplitude());
+        // Always leave room for the bounce headroom, even on PULSE/FADE — the
+        // user may switch styles at runtime and we should not have to relayout
+        // on every change.
+        double minimal = size * PREF_HEIGHT_FACTOR;
+        double withBounce = size + amp * size * BOUNCE_PEAK_FACTOR;
+        return topInset + Math.max(minimal, withBounce) + bottomInset;
+    }
+
+    @Override
+    protected double computeMaxWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return getSkinnable().prefWidth(height);
+    }
+
+    @Override
+    protected double computeMaxHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return getSkinnable().prefHeight(width);
+    }
+
+    private double computeRowWidth() {
+        int n = clampDotCount(getSkinnable().getDotCount());
+        double size = sanitize(getSkinnable().getDotSize());
+        double gap = sanitize(getSkinnable().getDotGap());
+        return n * size + Math.max(0, n - 1) * gap;
+    }
+
+    // ==================== Dispose ====================
+
+    @Override
+    public void dispose() {
+        // Timelines are rebuilt many times during the skin's life; stop the
+        // current one explicitly here. Listeners, transforms, and treeShowing
+        // teardown are handled by the embedded SkinDisposer in
+        // RXSkinBase.dispose().
+        if (timeline != null) {
+            timeline.stop();
+            timeline = null;
+        }
+        super.dispose();
+    }
+
+    // ==================== Helpers ====================
+
+    private static int clampDotCount(int v) {
+        if (v < RXDotPulse.MIN_DOT_COUNT) {
+            return RXDotPulse.MIN_DOT_COUNT;
+        }
+        if (v > RXDotPulse.MAX_DOT_COUNT) {
+            return RXDotPulse.MAX_DOT_COUNT;
+        }
+        return v;
+    }
+
+    private static double sanitize(double v) {
+        if (Double.isNaN(v) || v < 0.0) {
+            return 0.0;
+        }
+        return v;
+    }
+
+    private static double clamp01(double v) {
+        if (Double.isNaN(v) || v < 0.0) {
+            return 0.0;
+        }
+        if (v > 1.0) {
+            return 1.0;
+        }
+        return v;
+    }
+
+    private static Paint paintOrDefault(Paint v, Paint fallback) {
+        return v != null ? v : fallback;
+    }
+}
