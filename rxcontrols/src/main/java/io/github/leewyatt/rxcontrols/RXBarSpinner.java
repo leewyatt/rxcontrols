@@ -37,11 +37,13 @@ import java.util.List;
  *
  * <p>Two animation variants are exposed via {@link #barStyleProperty() barStyle}:
  * <ul>
- *   <li>{@link BarStyle#WAVE} (default) — smooth sine wave; per-bar phase
- *       offset of {@code i / barCount} produces a continuous wave across the
- *       row</li>
- *   <li>{@link BarStyle#BOUNCE} — each bar follows a sharper "tent" curve,
- *       reading as discrete bounces rather than a flowing wave</li>
+ *   <li>{@link BarStyle#WAVE} (default) — every bar is always oscillating on a
+ *       smooth sine curve; per-bar phase offset of {@code i / barCount}
+ *       produces one continuous travelling wave across the row</li>
+ *   <li>{@link BarStyle#BOUNCE} — each bar bounces up and back during half of
+ *       its local cycle and rests at the minimum height for the other half;
+ *       with the same phase offset only a subset of bars is bouncing at any
+ *       instant, reading as a sequence of pings rather than a flowing wave</li>
  * </ul>
  *
  * <p>Bars never collapse fully — {@link #minBarHeightRatioProperty()
@@ -65,15 +67,17 @@ public class RXBarSpinner extends Control {
      */
     public enum BarStyle {
         /**
-         * Smooth sine wave across the row. Each bar's height tracks
-         * {@code sin(2π·local)} so adjacent bars rise and fall in phase
-         * continuity, producing one flowing wave.
+         * Smooth sine wave across the row. Every bar is always oscillating
+         * along the curve, so adjacent bars rise and fall in phase continuity
+         * and the row reads as one flowing wave.
          */
         WAVE,
         /**
-         * Sharper "tent" curve per bar. Each bar climbs to peak height and
-         * falls back symmetrically, reading as a discrete bounce instead of
-         * a continuous wave.
+         * Half-cycle bounce with a rest period. Each bar climbs to peak height
+         * and falls back during the first half of its local cycle, then sits
+         * at the minimum height for the second half. Combined with the per-bar
+         * phase offset only a subset of bars is bouncing at any instant — the
+         * row reads as a sequence of discrete pings.
          */
         BOUNCE
     }

@@ -50,6 +50,15 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
 
     private static final double HALF = 0.5;
 
+    /**
+     * Fraction of each bar's local cycle spent in the "active" pulse for
+     * {@link BarStyle#BOUNCE}; the remainder is rest at the minimum height.
+     * {@code 0.5} keeps roughly half the bars visibly bouncing at any moment
+     * for the default 5-bar configuration, which reads as a sequence of pings
+     * rather than a continuous wave.
+     */
+    private static final double BOUNCE_ACTIVE_FRACTION = 0.5;
+
     // ==================== Nodes ====================
 
     private final List<Rectangle> bars = new ArrayList<>();
@@ -226,14 +235,20 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
 
     private static double curveValue(double local, BarStyle style) {
         return switch (style) {
-            // sin maps [0, 1) to a full oscillation; shift by π/2 so the curve
-            // starts at the peak — this puts the first bar at peak height at
-            // t=0 rather than at the trough, which reads as a more decisive
-            // wave start than starting on a zero crossing.
+            // WAVE: full oscillation in [0, 1) — every bar is always somewhere
+            // on the curve, so the row reads as one continuous travelling wave.
+            // Shift by π/2 so the first bar starts at peak (decisive start
+            // instead of a zero crossing).
             case WAVE -> (1.0 + Math.sin(TWO_PI * local + Math.PI * HALF)) * HALF;
-            // Tent: rises 0 → 1 in the first half, falls 1 → 0 in the second.
-            // Sharper than sin so the bounce reads as discrete.
-            case BOUNCE -> 1.0 - Math.abs(2.0 * local - 1.0);
+            // BOUNCE: a half-cycle sine pulse during the first BOUNCE_ACTIVE_FRACTION
+            // of the local cycle, then rest at 0 for the remainder. Combined
+            // with the i/N phase offset, only ACTIVE_FRACTION × N bars are
+            // bouncing at any instant — the others sit at minimum height. Reads
+            // as discrete pings rather than a continuous wave, which is the
+            // visual distinction from WAVE.
+            case BOUNCE -> (local < BOUNCE_ACTIVE_FRACTION)
+                    ? Math.sin(Math.PI * local / BOUNCE_ACTIVE_FRACTION)
+                    : 0.0;
         };
     }
 
