@@ -246,3 +246,30 @@
     -rx-cycle-duration: 1200ms;
     -rx-amplitude: 1;
 }
+
+.rx-bar-spinner {
+    -rx-bar-style: wave;
+    -rx-bar-count: 5;
+    -rx-bar-width: 4;
+    -rx-bar-height: 24;
+    -rx-bar-gap: 4;
+    -rx-bar-arc: 2;
+    -rx-bar-color: #616dfe;
+    -rx-cycle-duration: 1000ms;
+    -rx-min-bar-height-ratio: 0.2;
+}
+
+.rx-segmented-progress-bar {
+    -rx-segment-count: 5;
+    -rx-segment-gap: 4;
+    -rx-segment-height: 8;
+    -rx-segment-arc: 4;
+    -rx-filled-color: #616dfe;
+    -rx-unfilled-color: rgba(0, 0, 0, 0.12);
+    -rx-progress-transition-duration: 250ms;
+    -rx-indeterminate-cycle-duration: 1600ms;
+}
+
+.rx-segmented-progress-bar:completed {
+    -rx-filled-color: #2ecc71;
+}
