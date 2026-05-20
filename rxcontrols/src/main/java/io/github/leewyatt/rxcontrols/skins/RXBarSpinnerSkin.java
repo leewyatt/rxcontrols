@@ -59,6 +59,28 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
      */
     private static final double BOUNCE_ACTIVE_FRACTION = 0.5;
 
+    /**
+     * Per-bar frequency multipliers for {@link BarStyle#RANDOM}. Picked as
+     * irrational-ish ratios so adjacent bars do not visibly fall back into
+     * phase, and the combined period across {@link RXBarSpinner#MAX_BAR_COUNT
+     * MAX_BAR_COUNT} bars is long enough to read as random. Length matches
+     * {@link RXBarSpinner#MAX_BAR_COUNT} so every bar gets its own slot.
+     */
+    private static final double[] RANDOM_FREQUENCIES = {
+            1.0, 1.7, 1.3, 2.1, 1.5, 1.9,
+            1.1, 2.3, 1.8, 1.2, 2.0, 1.4
+    };
+
+    /**
+     * Per-bar starting phase offsets for {@link BarStyle#RANDOM}, in cycle
+     * units {@code [0, 1)}. Hand-spread across the range so no two adjacent
+     * bars share a starting position.
+     */
+    private static final double[] RANDOM_PHASE_OFFSETS = {
+            0.00, 0.31, 0.67, 0.14, 0.83, 0.41,
+            0.59, 0.22, 0.71, 0.05, 0.93, 0.48
+    };
+
     // ==================== Nodes ====================
 
     private final List<Rectangle> bars = new ArrayList<>();
@@ -224,7 +246,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         double range = cachedPeakHeight - minH;
 
         for (int i = 0; i < n; i++) {
-            double local = ((t + (double) i / n) % 1.0 + 1.0) % 1.0;
+            double local = computeLocal(t, i, n, style);
             double k = curveValue(local, style);
             double h = minH + range * k;
             Rectangle r = bars.get(i);
@@ -233,13 +255,44 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         }
     }
 
+    /**
+     * Maps the shared global {@code phase} into a per-bar local cycle
+     * position. The mapping is what visually distinguishes the styles:
+     * <ul>
+     *   <li>{@code WAVE} / {@code BOUNCE}: i/N phase offset → travelling wave</li>
+     *   <li>{@code PULSE}: no offset → all bars in lock-step</li>
+     *   <li>{@code RANDOM}: per-bar frequency × global phase + per-bar offset
+     *       → uncorrelated jitter</li>
+     * </ul>
+     *
+     * @return cycle position in {@code [0, 1)}
+     */
+    private static double computeLocal(double phase, int i, int n, BarStyle style) {
+        double raw = switch (style) {
+            case PULSE -> phase;
+            case RANDOM -> {
+                double freq = RANDOM_FREQUENCIES[i % RANDOM_FREQUENCIES.length];
+                double offset = RANDOM_PHASE_OFFSETS[i % RANDOM_PHASE_OFFSETS.length];
+                yield phase * freq + offset;
+            }
+            default -> phase + (double) i / n;
+        };
+        return mod1(raw);
+    }
+
+    private static double mod1(double v) {
+        double m = v % 1.0;
+        return m < 0.0 ? m + 1.0 : m;
+    }
+
     private static double curveValue(double local, BarStyle style) {
         return switch (style) {
-            // WAVE: full oscillation in [0, 1) — every bar is always somewhere
-            // on the curve, so the row reads as one continuous travelling wave.
-            // Shift by π/2 so the first bar starts at peak (decisive start
-            // instead of a zero crossing).
-            case WAVE -> (1.0 + Math.sin(TWO_PI * local + Math.PI * HALF)) * HALF;
+            // WAVE / PULSE / RANDOM: full oscillation in [0, 1) — every bar is
+            // always somewhere on the curve. Shift by π/2 so the curve starts
+            // at the peak — at t=0 PULSE / WAVE put the leading bar at peak
+            // height (decisive start instead of a zero crossing).
+            case WAVE, PULSE, RANDOM ->
+                    (1.0 + Math.sin(TWO_PI * local + Math.PI * HALF)) * HALF;
             // BOUNCE: a half-cycle sine pulse during the first BOUNCE_ACTIVE_FRACTION
             // of the local cycle, then rest at 0 for the remainder. Combined
             // with the i/N phase offset, only ACTIVE_FRACTION × N bars are

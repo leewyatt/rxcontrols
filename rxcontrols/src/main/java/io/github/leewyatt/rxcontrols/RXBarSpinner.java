@@ -35,7 +35,7 @@ import java.util.List;
  * unlike {@link RXAudioSpectrum} it does not consume real spectrum data, and
  * unlike {@link RXCircularProgressIndicator} it has no determinate progress.
  *
- * <p>Two animation variants are exposed via {@link #barStyleProperty() barStyle}:
+ * <p>Four animation variants are exposed via {@link #barStyleProperty() barStyle}:
  * <ul>
  *   <li>{@link BarStyle#WAVE} (default) — every bar is always oscillating on a
  *       smooth sine curve; per-bar phase offset of {@code i / barCount}
@@ -44,6 +44,12 @@ import java.util.List;
  *       its local cycle and rests at the minimum height for the other half;
  *       with the same phase offset only a subset of bars is bouncing at any
  *       instant, reading as a sequence of pings rather than a flowing wave</li>
+ *   <li>{@link BarStyle#PULSE} — all bars share the same phase and oscillate
+ *       on the smooth sine curve in lock-step; the row breathes up and down
+ *       as a single block, like a heartbeat</li>
+ *   <li>{@link BarStyle#RANDOM} — each bar runs at its own frequency and
+ *       phase offset (deterministic, not actually random), so the row reads as
+ *       uncorrelated jitter — a "fake spectrum analyser" effect</li>
  * </ul>
  *
  * <p>Bars never collapse fully — {@link #minBarHeightRatioProperty()
@@ -79,7 +85,21 @@ public class RXBarSpinner extends Control {
          * phase offset only a subset of bars is bouncing at any instant — the
          * row reads as a sequence of discrete pings.
          */
-        BOUNCE
+        BOUNCE,
+        /**
+         * Synchronized "heartbeat" — every bar shares the same phase and
+         * oscillates in lock-step, so the row rises and falls as a single
+         * block. There is no travelling wave; the row breathes.
+         */
+        PULSE,
+        /**
+         * Per-bar independent oscillation. Each bar runs at its own
+         * (deterministic, not actually stochastic) frequency and phase offset,
+         * so the heights look uncorrelated — a "fake spectrum analyser" feel.
+         * The pattern repeats over a long period determined by the bundled
+         * frequency table.
+         */
+        RANDOM
     }
 
     private static final String DEFAULT_STYLE_CLASS = "rx-bar-spinner";
