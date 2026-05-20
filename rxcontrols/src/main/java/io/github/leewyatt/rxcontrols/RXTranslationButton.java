@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTranslationButtonSkin;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -24,11 +25,7 @@ public class RXTranslationButton extends RXButtonBase {
     private static final String DEFAULT_STYLE_CLASS = "rx-translation-button";
 
     private RXTranslationButtonSkin skin;
-    /**
-     * 默认外观css
-     */
-    private static final String USER_AGENT_STYLESHEET = RXTranslationButton.class.getResource("/rx-controls.css")
-            .toExternalForm();
+
     public RXTranslationButton() {
         this(null);
     }
@@ -46,7 +43,7 @@ public class RXTranslationButton extends RXButtonBase {
     }
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXMediaProgressBarSkin;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -17,12 +18,6 @@ public class RXMediaProgressBar extends Control {
      * 添加css的类名
      */
     private static final String DEFAULT_STYLE_CLASS = "rx-media-progress-bar";
-    /**
-     * 默认外观css
-     */
-    private static final String USER_AGENT_STYLESHEET = RXMediaProgressBar.class.getResource("/rx-controls.css")
-            .toExternalForm();
-
 
     public RXMediaProgressBar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
@@ -30,7 +25,7 @@ public class RXMediaProgressBar extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     @Override

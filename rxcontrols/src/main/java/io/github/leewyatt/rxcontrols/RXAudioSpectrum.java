@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXAudioSpectrumSkin;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -31,11 +32,6 @@ public class RXAudioSpectrum extends Control {
      * 添加css的类名
      */
     private static final String DEFAULT_STYLE_CLASS = "rx-audio-spectrum";
-    /**
-     * 默认外观css
-     */
-    private static final String USER_AGENT_STYLESHEET = RXAudioSpectrum.class.getResource("/rx-controls.css")
-            .toExternalForm();
 
     /**
      * 默认的波峰位置
@@ -58,7 +54,7 @@ public class RXAudioSpectrum extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
 

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
 import io.github.leewyatt.rxcontrols.skins.RXLrcViewSkin;
 import javafx.beans.property.DoubleProperty;
@@ -28,11 +29,6 @@ public class RXLrcView extends Control {
      * 添加css的类名
      */
     private static final String DEFAULT_STYLE_CLASS = "rx-lrc-view";
-    /**
-     * 默认外观css
-     */
-    private static final String USER_AGENT_STYLESHEET = RXLrcView.class.getResource("/rx-controls.css")
-            .toExternalForm();
     /**
      * 默认的翻页动画时间
      */
@@ -269,7 +265,7 @@ public class RXLrcView extends Control {
      */
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     @Override

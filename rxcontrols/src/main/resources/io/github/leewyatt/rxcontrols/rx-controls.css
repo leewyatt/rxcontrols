@@ -273,3 +273,168 @@
 .rx-segmented-progress-bar:completed {
     -rx-filled-color: #2ecc71;
 }
+
+/*******************************************************************************
+ *                                                                             *
+ * RXCarousel                                                                  *
+ *                                                                             *
+ * Scene-graph structure:                                                      *
+ *   .rx-carousel                                                              *
+ *    +-- > .content-pane                                                      *
+ *    +-- > .placeholder                                                       *
+ *    +-- > .prev-button > .arrow                                              *
+ *    +-- > .next-button > .arrow                                              *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-carousel {
+    -fx-background-color: transparent;
+}
+
+.rx-carousel > .content-pane {
+    -fx-background-color: transparent;
+}
+
+.rx-carousel > .placeholder {
+    -fx-alignment: center;
+}
+
+.rx-carousel > .prev-button,
+.rx-carousel > .next-button {
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-background-radius: 4;
+    -fx-padding: 10;
+    -fx-cursor: hand;
+    -fx-min-width: 32;
+    -fx-min-height: 48;
+    -fx-max-width: 32;
+    -fx-max-height: 48;
+    -fx-alignment: center;
+}
+
+.rx-carousel > .prev-button:hover,
+.rx-carousel > .next-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+}
+
+.rx-carousel > .prev-button:disabled,
+.rx-carousel > .next-button:disabled {
+    -fx-opacity: 0.3;
+    -fx-cursor: default;
+}
+
+.rx-carousel > .prev-button > .arrow,
+.rx-carousel > .next-button > .arrow {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-max-width: 10;
+    -fx-max-height: 10;
+    -fx-background-color: white;
+}
+
+.rx-carousel > .prev-button > .arrow {
+    -fx-shape: "M 10 0 L 0 5 L 10 10 Z";
+}
+
+.rx-carousel > .next-button > .arrow {
+    -fx-shape: "M 0 0 L 10 5 L 0 10 Z";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * DefaultNavigator (RXCarousel's default bottom navigator)                    *
+ *                                                                             *
+ * Scene-graph structure:                                                      *
+ *   .carousel-navigator                                                       *
+ *    +-- > .dot-indicator > .dot                                              *
+ *    +-- > .compact-navigator                                                 *
+ *         +-- > .prev-button > .arrow                                         *
+ *         +-- > .fraction-label                                               *
+ *         +-- > .next-button > .arrow                                         *
+ *                                                                             *
+ ******************************************************************************/
+
+.carousel-navigator {
+    -fx-padding: 5 10;
+}
+
+.carousel-navigator > .dot-indicator {
+    -fx-spacing: 6;
+    -fx-alignment: center;
+    -fx-padding: 4;
+}
+
+.carousel-navigator > .dot-indicator > .dot {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-max-width: 8;
+    -fx-max-height: 8;
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 50;
+    -fx-cursor: hand;
+}
+
+.carousel-navigator > .dot-indicator > .dot:selected {
+    -fx-background-color: white;
+}
+
+.carousel-navigator > .compact-navigator {
+    -fx-alignment: center;
+    -fx-spacing: 6;
+}
+
+.carousel-navigator > .compact-navigator > .fraction-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button,
+.carousel-navigator > .compact-navigator > .next-button {
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-background-radius: 50;
+    -fx-min-width: 24;
+    -fx-min-height: 24;
+    -fx-max-width: 24;
+    -fx-max-height: 24;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-content-display: graphic-only;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:hover,
+.carousel-navigator > .compact-navigator > .next-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:focused,
+.carousel-navigator > .compact-navigator > .next-button:focused {
+    -fx-background-color: rgba(0, 0, 0, 0.4);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button:pressed,
+.carousel-navigator > .compact-navigator > .next-button:pressed {
+    -fx-background-color: rgba(0, 0, 0, 0.6);
+    -fx-background-radius: 50;
+    -fx-background-insets: 0;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button > .arrow,
+.carousel-navigator > .compact-navigator > .next-button > .arrow {
+    -fx-background-color: white;
+    -fx-min-width: 6;
+    -fx-min-height: 6;
+    -fx-max-width: 6;
+    -fx-max-height: 6;
+}
+
+.carousel-navigator > .compact-navigator > .prev-button > .arrow {
+    -fx-shape: "M 10 0 L 0 5 L 10 10 Z";
+}
+
+.carousel-navigator > .compact-navigator > .next-button > .arrow {
+    -fx-shape: "M 0 0 L 10 5 L 0 10 Z";
+}

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.*;
 import javafx.css.*;
 import javafx.css.converter.EnumConverter;
@@ -20,7 +21,6 @@ public class RXHighlightText extends Control {
     private RXHighlightTextSkin skin;
     private ObjectProperty<MatchRules> matchRules ;
     private static final String DEFAULT_STYLE_CLASS = "rx-highlight-text";
-    private static final String USER_AGENT_STYLESHEET = RXHighlightText.class.getResource("/rx-controls.css").toExternalForm();
 
     public MatchRules getMatchRules() {
         return matchRules==null?MatchRules.MATCH_CASE:matchRules.get();
@@ -72,7 +72,7 @@ public class RXHighlightText extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
 

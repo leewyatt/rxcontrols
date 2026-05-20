@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fillbutton.*;
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -32,11 +33,6 @@ public class RXFillButton extends RXButtonBase {
      * 添加css的类名
      */
     private static final String DEFAULT_STYLE_CLASS = "rx-fill-button";
-    /**
-     * 默认外观css
-     */
-    private static final String USER_AGENT_STYLESHEET = RXFillButton.class.getResource("/rx-controls.css")
-            .toExternalForm();
 
     public RXFillButton() {
         this(null);
@@ -54,7 +50,7 @@ public class RXFillButton extends RXButtonBase {
 
     @Override
     public String getUserAgentStylesheet() {
-        return USER_AGENT_STYLESHEET;
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     private void init() {

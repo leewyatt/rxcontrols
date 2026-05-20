@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlide;
 import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -99,7 +100,7 @@ public class RXCarousel extends Control {
 
     @Override
     public String getUserAgentStylesheet() {
-        return RXCarousel.class.getResource("/io/github/leewyatt/rxcontrols/carousel/carousel.css").toExternalForm();
+        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Page Management ====================

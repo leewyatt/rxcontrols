@@ -65,12 +65,7 @@ public class DefaultNavigator implements CarouselNavigator {
         dotBox = new HBox();
         dotBox.getStyleClass().add("dot-indicator");
 
-        container = new StackPane(dotBox){
-            @Override
-            public String getUserAgentStylesheet() {
-                return DefaultNavigator.class.getResource("carousel-navigator.css").toExternalForm();
-            }
-        };
+        container = new StackPane(dotBox);
         container.getStyleClass().add("carousel-navigator");
         container.setPickOnBounds(false);
 
