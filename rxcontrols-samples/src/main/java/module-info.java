@@ -16,5 +16,4 @@ module rxcontrols.samples {
     opens io.github.leewyatt.rxcontrols.samples.controller to javafx.fxml;
     opens io.github.leewyatt.rxcontrols.samples.carousel to javafx.graphics;
     opens io.github.leewyatt.rxcontrols.samples.playground to javafx.graphics;
-    opens io.github.leewyatt.rxcontrols.samples.test to javafx.graphics;
 }
