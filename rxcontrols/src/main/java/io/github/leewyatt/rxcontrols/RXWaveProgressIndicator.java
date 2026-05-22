@@ -39,8 +39,8 @@ import java.util.List;
  * <ul>
  *   <li>{@code .wave-container} — circular background filled with
  *       {@link #containerFillProperty() containerFill}</li>
- *   <li>{@code .back-wave} — rear wave (offset phase, smaller amplitude)</li>
- *   <li>{@code .front-wave} — front wave (full amplitude, slightly slower)</li>
+ *   <li>{@code .back-wave} — rear wave layer (smaller amplitude, slower, phase-shifted)</li>
+ *   <li>{@code .front-wave} — front wave layer (full amplitude)</li>
  *   <li>{@code .border-ring} — optional outer stroke ring</li>
  *   <li>{@code .progress-label} — renders both the converted progress text and
  *       {@link #graphicProperty()}; their relative layout is controlled via
@@ -70,13 +70,13 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     // ==================== Public Defaults ====================
 
     /**
-     * Default crest-to-baseline height of the front wave, in pixels.
+     * Default resting crest height of the wave, in pixels.
      */
     public static final double DEFAULT_WAVE_AMPLITUDE = 6.0;
 
     /**
-     * Default horizontal distance covered by one full sine period, in pixels.
-     * A value of {@code 0} lets the skin fall back to the container diameter.
+     * Default base wavelength, in pixels. A value of {@code 0} lets the skin
+     * fall back to the container diameter.
      */
     public static final double DEFAULT_WAVE_LENGTH = 0.0;
 
@@ -336,9 +336,11 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Crest-to-baseline height of the front wave, in pixels. Negative values
-     * and {@code NaN} are clamped to {@code 0} at render time (the surface
-     * flattens to a straight line).
+     * Resting crest height of the wave, in pixels — the calm amplitude shown
+     * once the water level is stable. While {@code progress} is changing the
+     * surface briefly swells above this value, then settles back. Negative
+     * values and {@code NaN} are clamped to {@code 0} at render time (the
+     * surface flattens to a straight line).
      *
      * @return the wave-amplitude property
      */
@@ -374,10 +376,10 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Horizontal distance covered by one full sine period, in pixels. Values
-     * of {@code 0}, negative, or {@code NaN} fall back to the container
-     * diameter at render time, so the default wave spans exactly one period
-     * across the visible width.
+     * Base wavelength of the wave surface, in pixels. The surface is a sum of
+     * several sine components derived from this base; values of {@code 0},
+     * negative, or {@code NaN} fall back to the container diameter at render
+     * time.
      *
      * @return the wave-length property
      */

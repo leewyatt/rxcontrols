@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
+import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -15,7 +16,6 @@ import javafx.scene.control.Label;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
-import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -28,23 +28,30 @@ import java.util.List;
 
 /**
  * Default skin for {@link RXWaveProgressIndicator}. Renders a circular water
- * container, two layered sine waves that scroll horizontally, an optional
- * outer ring, and a centre label that shows both
- * {@link RXWaveProgressIndicator#getGraphic()} and the converted progress
- * text (relative layout is controlled via {@code -fx-content-display}).
+ * container, two layered wave surfaces, an optional outer ring, and a centre
+ * label that shows both {@link RXWaveProgressIndicator#getGraphic()} and the
+ * converted progress text (relative layout is controlled via
+ * {@code -fx-content-display}).
  *
- * <p>The horizontal scroll is implemented by animating {@code translateX} on
- * each wave {@link Path} from {@code 0} to {@code -waveLength} on
- * {@link Animation#INDEFINITE INDEFINITE} loop — the path content stays
- * static, so the cost per frame is a pure affine transform.
+ * <p>Each wave surface is a <em>sum of sines</em>: several sinusoidal
+ * components of different wavelength, amplitude and speed are added into one
+ * height function. Because the components travel at different speeds they
+ * drift in and out of phase, so individual crests genuinely rise and fall
+ * over time instead of scrolling as one frozen shape. The surface is
+ * re-evaluated every frame by a single {@link AnimationTimer} and written
+ * into reusable {@link LineTo} nodes, so steady-state animation allocates
+ * nothing.
  *
- * <p>An internal {@code displayedProgress} lets the control's logical
- * {@code progress} jump while the visible water level tweens. The
- * indeterminate animation breathes {@code displayedProgress} between
- * {@code 0.35} and {@code 0.65} while the wave scroll keeps running.
+ * <p>The wave amplitude is not constant: an internal {@code displayedProgress}
+ * lets the control's logical {@code progress} jump while the visible water
+ * level tweens, and the surface briefly swells (slosh) while that level is
+ * moving, settling back to the calm resting amplitude
+ * ({@link RXWaveProgressIndicator#getWaveAmplitude()}) once it stabilises.
  *
- * <p>All long-running timelines auto-pause whenever the host window or any
- * ancestor of the control is hidden, via {@link TreeShowingProperty}.
+ * <p>The indeterminate animation breathes {@code displayedProgress} between
+ * {@code 0.35} and {@code 0.65}. The frame timer auto-stops whenever the host
+ * window or any ancestor is hidden (via {@link TreeShowingProperty}) or when
+ * the surface has nothing left to animate, and resumes on the next change.
  */
 public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndicator> {
 
@@ -53,6 +60,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private static final double DEFAULT_PREF_SIZE = 80.0;
     private static final double DEFAULT_MIN_SIZE = 32.0;
     private static final double HALF = 0.5;
+    private static final double TWO_PI = 2.0 * Math.PI;
 
     /** Lower water-level bound for the indeterminate breathing. */
     private static final double INDETERMINATE_LOW = 0.35;
@@ -63,14 +71,71 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     /** Mid-range water level used when the indeterminate animation is suppressed. */
     private static final double INDETERMINATE_REST = 0.5;
 
-    /** Phase offset applied to the back wave, expressed as a fraction of one wavelength. */
-    private static final double BACK_WAVE_PHASE_OFFSET = 1.0 / 3.0;
+    /** Spacing between wave-surface sample points, in pixels. */
+    private static final double WAVE_SAMPLE_STEP = 3.0;
 
-    /** Cubic Bezier control-point x ratio (relative to half-wavelength) — approximates a sine half-cycle. */
-    private static final double BEZIER_C1_RATIO = 0.36;
+    /** Lower bound on surface sample points, so tiny controls still curve smoothly. */
+    private static final int MIN_WAVE_POINTS = 8;
 
-    /** Cubic Bezier control-point x ratio for the second control point. */
-    private static final double BEZIER_C2_RATIO = 0.64;
+    /** Upper bound on one frame's time step — guards against a long stall after resume. */
+    private static final double MAX_FRAME_SECONDS = 1.0 / 30.0;
+
+    /** Radians added to the back layer's component phases so the two layers never coincide. */
+    private static final double BACK_WAVE_PHASE_OFFSET = 2.0;
+
+    /** Converts water-level speed (progress per second) into an amplitude-swell multiplier. */
+    private static final double SLOSH_GAIN = 0.22;
+
+    /** Upper bound on the slosh multiplier — amplitude never exceeds {@code (1 + this)} x rest. */
+    private static final double SLOSH_MAX_GAIN = 2.0;
+
+    // ==================== Wave Model ====================
+
+    /**
+     * One sinusoidal component of a wave surface. Ratios are relative to the
+     * base wavelength / base angular speed resolved at render time; weights
+     * across all components sum to {@code 1}, so the summed offset stays in
+     * {@code [-1, 1]}.
+     */
+    private static final class WaveComponent {
+        final double wavelengthRatio;
+        final double weight;
+        final double speedRatio;
+        final double phase;
+
+        WaveComponent(double wavelengthRatio, double weight, double speedRatio, double phase) {
+            this.wavelengthRatio = wavelengthRatio;
+            this.weight = weight;
+            this.speedRatio = speedRatio;
+            this.phase = phase;
+        }
+    }
+
+    /**
+     * The components summed into each wave surface. Different speed ratios are
+     * what make crests rise and fall: the components drift in and out of phase
+     * over time. Weights sum to {@code 1}.
+     */
+    private static final WaveComponent[] WAVE_COMPONENTS = {
+            new WaveComponent(1.00, 0.50, 1.00, 0.0),
+            new WaveComponent(0.60, 0.32, 1.60, 1.3),
+            new WaveComponent(0.38, 0.18, 0.70, 3.7),
+    };
+
+    /** Reusable {@link MoveTo} / {@link LineTo} nodes for one wave-layer path. */
+    private static final class WaveLayerNodes {
+        final MoveTo start = new MoveTo();
+        final LineTo[] surface;
+        final LineTo bottomRight = new LineTo();
+        final LineTo bottomLeft = new LineTo();
+
+        WaveLayerNodes(int pointCount) {
+            surface = new LineTo[pointCount - 1];
+            for (int i = 0; i < surface.length; i++) {
+                surface[i] = new LineTo();
+            }
+        }
+    }
 
     // ==================== Nodes ====================
 
@@ -91,25 +156,34 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private final TreeShowingProperty treeShowing;
 
     private Timeline progressTween;
-    private Timeline frontWaveTimeline;
-    private Timeline backWaveTimeline;
     private Timeline indeterminateTimeline;
     private boolean indeterminateMode;
 
-    /** Cached geometry used by path rebuilds — kept in skin-local coordinates. */
+    /** Per-frame driver for the sum-of-sines surface; started/stopped, never paused. */
+    private final AnimationTimer waveTimer = new AnimationTimer() {
+        @Override
+        public void handle(long now) {
+            onWaveFrame(now);
+        }
+    };
+
+    private boolean waveTimerRunning;
+    private long lastFrameNanos = -1L;
+    private double elapsedSeconds;
+    private double lastDisplayedProgress;
+
+    /** Current slosh swell, as a fraction added on top of the resting amplitude. */
+    private double sloshMultiplier;
+
+    private WaveLayerNodes frontNodes;
+    private WaveLayerNodes backNodes;
+    private int wavePointCount;
+    private double[] sampleX = new double[0];
+
+    /** Cached geometry used by the per-frame surface rebuild — skin-local coordinates. */
     private double cachedCenterX;
     private double cachedCenterY;
     private double cachedWaterRadius;
-
-    /**
-     * Wave-scroll timeline parameters that were in effect when the current
-     * timelines were built. Used to short-circuit layout-driven rebuilds when
-     * nothing material has changed, so the scroll position is not reset to
-     * {@code translateX = 0} on every size change.
-     */
-    private double timelineLambda = Double.NaN;
-    private Duration timelineFrontCycle;
-    private double timelineBackRatio = Double.NaN;
 
     /**
      * Creates a skin for the given control.
@@ -192,16 +266,15 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         });
         disposer.registerListener(control.textFactoryProperty(), this::applyCenterContent);
 
-        disposer.registerListener(displayedProgress, this::rebuildWavePaths);
+        // The frame timer reads displayedProgress directly; a change only needs
+        // to make sure the timer is running so the motion is drawn.
+        disposer.registerListener(displayedProgress, this::startWaveTimer);
 
-        disposer.registerListener(control.waveAmplitudeProperty(), this::rebuildWavePaths);
-        disposer.registerListener(control.waveLengthProperty(), () -> {
-            rebuildWavePaths();
-            rebuildWaveTimelines();
-        });
-        disposer.registerListener(control.waveCycleDurationProperty(), this::rebuildWaveTimelines);
-        disposer.registerListener(control.backWaveSpeedRatioProperty(), this::rebuildWaveTimelines);
-        disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::rebuildWavePaths);
+        disposer.registerListener(control.waveAmplitudeProperty(), this::requestWaveAnimation);
+        disposer.registerListener(control.waveLengthProperty(), this::requestWaveAnimation);
+        disposer.registerListener(control.waveCycleDurationProperty(), this::requestWaveAnimation);
+        disposer.registerListener(control.backWaveSpeedRatioProperty(), this::requestWaveAnimation);
+        disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::requestWaveAnimation);
 
         disposer.registerListener(control.containerFillProperty(), this::applyFills);
         disposer.registerListener(control.frontWaveFillProperty(), this::applyFills);
@@ -262,13 +335,14 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         Duration tweenDuration = getSkinnable().getProgressTransitionDuration();
         if (tweenDuration == null || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
             displayedProgress.set(target);
-            return;
+        } else {
+            progressTween = new Timeline(new KeyFrame(
+                    tweenDuration,
+                    new KeyValue(displayedProgress, target, Interpolator.EASE_OUT)
+            ));
+            progressTween.play();
         }
-        progressTween = new Timeline(new KeyFrame(
-                tweenDuration,
-                new KeyValue(displayedProgress, target, Interpolator.EASE_OUT)
-        ));
-        progressTween.play();
+        startWaveTimer();
     }
 
     private void stopProgressTween() {
@@ -284,6 +358,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         stopProgressTween();
         indeterminateMode = true;
         rebuildIndeterminateTimeline();
+        startWaveTimer();
     }
 
     private void stopIndeterminate() {
@@ -300,9 +375,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     /**
      * Builds the indeterminate breathing timeline. {@code displayedProgress}
      * oscillates between {@link #INDETERMINATE_LOW} and
-     * {@link #INDETERMINATE_HIGH} with an {@link Interpolator#EASE_BOTH} curve.
-     * Wave-scroll timelines keep running independently so the surface still
-     * appears to flow.
+     * {@link #INDETERMINATE_HIGH} with an {@link Interpolator#EASE_BOTH} curve;
+     * the wave surface keeps flowing independently via the frame timer.
      */
     private void rebuildIndeterminateTimeline() {
         if (indeterminateTimeline != null) {
@@ -336,224 +410,252 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         }
     }
 
-    // ==================== Wave scroll timelines ====================
+    // ==================== Wave animation ====================
 
     /**
-     * Rebuilds the front and back wave scroll timelines. Each timeline animates
-     * the path's {@code translateX} from {@code 0} to {@code -waveLength} with
-     * a {@link Interpolator#LINEAR LINEAR} curve so the loop boundary is
-     * seamless — the path content covers an integer number of periods, so the
-     * post-cycle frame is geometrically identical to {@code t = 0}.
+     * Per-frame callback: advances time, derives the slosh swell from the
+     * water-level velocity, rebuilds the surface, then stops itself once
+     * nothing is left to animate.
      */
-    private void rebuildWaveTimelines() {
-        double lambda = resolveWaveLength();
-        RXWaveProgressIndicator control = getSkinnable();
-        Duration cycle = control.getWaveCycleDuration();
-        double speedRatio = control.getBackWaveSpeedRatio();
-        if (Double.isNaN(speedRatio) || speedRatio <= 0.0) {
-            speedRatio = 1.0;
-        }
-
-        boolean disabled = lambda <= 0.0 || cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO);
-        if (disabled) {
-            stopAndClearWaveTimeline(true);
-            stopAndClearWaveTimeline(false);
-            frontWavePath.setTranslateX(0.0);
-            backWavePath.setTranslateX(0.0);
-            timelineLambda = Double.NaN;
-            timelineFrontCycle = null;
-            timelineBackRatio = Double.NaN;
+    private void onWaveFrame(long now) {
+        if (lastFrameNanos < 0L) {
+            lastFrameNanos = now;
             return;
         }
-
-        // Avoid rebuilding when nothing material changed — a layout-driven call
-        // with identical lambda / cycle / ratio would otherwise stop running
-        // timelines and snap translateX back to 0, freezing the scroll visually.
-        boolean lambdaChanged = lambda != timelineLambda;
-        boolean cycleChanged = !durationEquals(cycle, timelineFrontCycle);
-        boolean ratioChanged = speedRatio != timelineBackRatio;
-        if (!lambdaChanged && !cycleChanged && !ratioChanged
-                && frontWaveTimeline != null && backWaveTimeline != null) {
+        double dt = (now - lastFrameNanos) / 1.0e9;
+        lastFrameNanos = now;
+        if (dt <= 0.0) {
             return;
         }
-
-        if (lambdaChanged || cycleChanged) {
-            stopAndClearWaveTimeline(true);
-            frontWaveTimeline = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(frontWavePath.translateXProperty(), 0.0, Interpolator.LINEAR)),
-                    new KeyFrame(cycle,
-                            new KeyValue(frontWavePath.translateXProperty(), -lambda, Interpolator.LINEAR))
-            );
-            frontWaveTimeline.setCycleCount(Animation.INDEFINITE);
-            if (treeShowing.get()) {
-                frontWaveTimeline.play();
-            }
+        if (dt > MAX_FRAME_SECONDS) {
+            dt = MAX_FRAME_SECONDS;
         }
+        elapsedSeconds += dt;
 
-        if (lambdaChanged || cycleChanged || ratioChanged) {
-            stopAndClearWaveTimeline(false);
-            Duration backCycle = cycle.multiply(speedRatio);
-            backWaveTimeline = new Timeline(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(backWavePath.translateXProperty(), 0.0, Interpolator.LINEAR)),
-                    new KeyFrame(backCycle,
-                            new KeyValue(backWavePath.translateXProperty(), -lambda, Interpolator.LINEAR))
-            );
-            backWaveTimeline.setCycleCount(Animation.INDEFINITE);
-            if (treeShowing.get()) {
-                backWaveTimeline.play();
-            }
-        }
+        double progressNow = displayedProgress.get();
+        double velocity = (progressNow - lastDisplayedProgress) / dt;
+        lastDisplayedProgress = progressNow;
+        double slosh = SLOSH_GAIN * Math.abs(velocity);
+        sloshMultiplier = (slosh > SLOSH_MAX_GAIN) ? SLOSH_MAX_GAIN : slosh;
 
-        timelineLambda = lambda;
-        timelineFrontCycle = cycle;
-        timelineBackRatio = speedRatio;
-    }
+        updateWaveSurface();
 
-    private static boolean durationEquals(Duration a, Duration b) {
-        if (a == b) {
-            return true;
-        }
-        if (a == null || b == null) {
-            return false;
-        }
-        return a.toMillis() == b.toMillis();
-    }
-
-    private void stopAndClearWaveTimeline(boolean front) {
-        Timeline target = front ? frontWaveTimeline : backWaveTimeline;
-        if (target != null) {
-            target.stop();
-        }
-        if (front) {
-            frontWaveTimeline = null;
-        } else {
-            backWaveTimeline = null;
+        if (!isWaveActive()) {
+            stopWaveTimer();
         }
     }
 
-    // ==================== tree-showing pause ====================
+    private void startWaveTimer() {
+        if (waveTimerRunning || !treeShowing.get()) {
+            return;
+        }
+        // Re-prime so the first dt after a (re)start is a normal frame, and the
+        // velocity baseline is the current level — no spurious slosh on resume.
+        lastFrameNanos = -1L;
+        lastDisplayedProgress = displayedProgress.get();
+        waveTimerRunning = true;
+        waveTimer.start();
+    }
+
+    private void stopWaveTimer() {
+        if (!waveTimerRunning) {
+            return;
+        }
+        waveTimerRunning = false;
+        waveTimer.stop();
+        sloshMultiplier = 0.0;
+    }
+
+    /** Ensures the surface is current and the frame timer is running if it should be. */
+    private void requestWaveAnimation() {
+        startWaveTimer();
+        updateWaveSurface();
+    }
+
+    /**
+     * Whether the surface still has motion to render. The wave scroll runs
+     * forever while enabled; otherwise the timer keeps going only while the
+     * indeterminate breathing or a determinate tween is in progress.
+     */
+    private boolean isWaveActive() {
+        return indeterminateMode
+                || scrollEnabled()
+                || (progressTween != null
+                && progressTween.getStatus() == Animation.Status.RUNNING);
+    }
+
+    private boolean scrollEnabled() {
+        Duration cycle = getSkinnable().getWaveCycleDuration();
+        return cycle != null && cycle.greaterThan(Duration.ZERO);
+    }
 
     private void onTreeShowingChanged(boolean showing) {
-        pauseOrResume(frontWaveTimeline, showing);
-        pauseOrResume(backWaveTimeline, showing);
-        if (indeterminateMode) {
-            pauseOrResume(indeterminateTimeline, showing);
-        }
-    }
-
-    private static void pauseOrResume(Timeline timeline, boolean showing) {
-        if (timeline == null) {
-            return;
-        }
         if (showing) {
-            timeline.play();
+            startWaveTimer();
         } else {
-            timeline.pause();
+            stopWaveTimer();
+        }
+        if (indeterminateMode && indeterminateTimeline != null) {
+            if (showing) {
+                indeterminateTimeline.play();
+            } else {
+                indeterminateTimeline.pause();
+            }
         }
     }
 
-    // ==================== Path geometry ====================
+    // ==================== Wave geometry & surface ====================
 
+    /**
+     * Resolves the base wavelength. A value of {@code 0}, negative or
+     * {@code NaN} falls back to the container diameter; the shorter layered
+     * components (see {@link #WAVE_COMPONENTS}) then add the finer ripples.
+     */
     private double resolveWaveLength() {
         double declared = getSkinnable().getWaveLength();
         if (Double.isNaN(declared) || declared <= 0.0) {
-            // Fall back to the container diameter so a default control still
-            // shows a complete sine period across its width.
             return Math.max(0.0, cachedWaterRadius * 2.0);
         }
         return declared;
     }
 
-    private void rebuildWavePaths() {
+    private double resolveBaseOmega() {
+        Duration cycle = getSkinnable().getWaveCycleDuration();
+        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+            return 0.0;
+        }
+        return TWO_PI / (cycle.toMillis() / 1000.0);
+    }
+
+    private double resolveBackSpeedRatio() {
+        double ratio = getSkinnable().getBackWaveSpeedRatio();
+        return (Double.isNaN(ratio) || ratio <= 0.0) ? 1.0 : ratio;
+    }
+
+    /**
+     * (Re)builds the reusable path nodes for the current size. The element
+     * lists are rebuilt only when the sample-point count changes; on every
+     * call the fixed x-coordinates (and the sealed bottom edge) are refreshed,
+     * since the centre / radius move on layout.
+     */
+    private void ensureWaveGeometry() {
         double radius = cachedWaterRadius;
         if (radius <= 0.0) {
             frontWavePath.getElements().clear();
             backWavePath.getElements().clear();
+            frontNodes = null;
+            backNodes = null;
+            wavePointCount = 0;
             return;
         }
 
-        RXWaveProgressIndicator control = getSkinnable();
-        double lambda = resolveWaveLength();
-        if (lambda <= 0.0) {
-            frontWavePath.getElements().clear();
-            backWavePath.getElements().clear();
-            return;
+        int n = Math.max(MIN_WAVE_POINTS,
+                (int) Math.ceil((radius * 2.0) / WAVE_SAMPLE_STEP) + 1);
+        if (n != wavePointCount) {
+            sampleX = new double[n];
+            frontNodes = buildLayerNodes(frontWavePath, n);
+            backNodes = buildLayerNodes(backWavePath, n);
+            wavePointCount = n;
         }
 
-        double amplitude = sanitize(control.getWaveAmplitude());
-        double backRatio = sanitize(control.getBackWaveAmplitudeRatio());
-        double backAmplitude = amplitude * backRatio;
+        double leftX = cachedCenterX - radius;
+        double span = radius * 2.0;
+        for (int i = 0; i < n; i++) {
+            sampleX[i] = leftX + span * ((double) i / (n - 1));
+        }
+        // Keep the path bottom strictly below the clip so anti-aliasing along
+        // the lower edge does not leave a single-pixel transparent seam.
+        double sealedBottom = cachedCenterY + radius + 1.0;
+        applyLayerX(frontNodes, sealedBottom);
+        applyLayerX(backNodes, sealedBottom);
+    }
 
-        double cx = cachedCenterX;
-        double cy = cachedCenterY;
-        double topY = cy - radius;
-        double bottomY = cy + radius;
-        double level = clamp(displayedProgress.get());
-        double baseline = bottomY - level * (radius * 2.0);
+    private void applyLayerX(WaveLayerNodes nodes, double sealedBottom) {
+        nodes.start.setX(sampleX[0]);
+        for (int i = 1; i < wavePointCount; i++) {
+            nodes.surface[i - 1].setX(sampleX[i]);
+        }
+        nodes.bottomRight.setX(sampleX[wavePointCount - 1]);
+        nodes.bottomRight.setY(sealedBottom);
+        nodes.bottomLeft.setX(sampleX[0]);
+        nodes.bottomLeft.setY(sealedBottom);
+    }
 
-        double leftX = cx - radius - lambda;
-        int periods = Math.max(3, (int) Math.ceil((radius * 2.0) / lambda) + 3);
-
-        frontWavePath.getElements().setAll(
-                buildWaveElements(leftX, baseline, amplitude, lambda, bottomY, topY, periods));
-        backWavePath.getElements().setAll(
-                buildWaveElements(leftX + lambda * BACK_WAVE_PHASE_OFFSET,
-                        baseline, backAmplitude, lambda, bottomY, topY, periods));
+    private static WaveLayerNodes buildLayerNodes(Path path, int n) {
+        WaveLayerNodes nodes = new WaveLayerNodes(n);
+        List<PathElement> elements = new ArrayList<>(n + 3);
+        elements.add(nodes.start);
+        for (int i = 0; i < n - 1; i++) {
+            elements.add(nodes.surface[i]);
+        }
+        elements.add(nodes.bottomRight);
+        elements.add(nodes.bottomLeft);
+        elements.add(new ClosePath());
+        path.getElements().setAll(elements);
+        return nodes;
     }
 
     /**
-     * Builds a closed wave shape spanning {@code periods} full sine periods.
-     * The top edge alternates {@code crest → trough} cubic Bezier segments
-     * (one segment per half-period); the path then closes back to
-     * {@code bottomY} so the region below the surface fills solidly.
-     *
-     * @param leftX     left edge of the path
-     * @param baseline  y-coordinate at which the surface crosses (water level)
-     * @param amplitude crest height (already sanitized to >= 0)
-     * @param lambda    wavelength in pixels (already > 0)
-     * @param bottomY   y-coordinate of the bottom edge (below the clip)
-     * @param topY      y-coordinate of the top edge (used to clamp out-of-range baselines)
-     * @param periods   number of full sine periods to draw
-     * @return the path-element sequence
+     * Recomputes both wave surfaces for the current frame: the water level
+     * from {@code displayedProgress}, the amplitude from the resting amplitude
+     * scaled by the slosh swell, and each surface point from the sum of sine
+     * components.
      */
-    private static List<PathElement> buildWaveElements(double leftX, double baseline,
-                                                      double amplitude, double lambda,
-                                                      double bottomY, double topY, int periods) {
-        // Keep the path bottom strictly below the clip so anti-aliasing along
-        // the lower edge does not leave a single-pixel transparent seam.
+    private void updateWaveSurface() {
+        int n = wavePointCount;
+        if (n <= 0) {
+            return;
+        }
+        RXWaveProgressIndicator control = getSkinnable();
+        double radius = cachedWaterRadius;
+        double bottomY = cachedCenterY + radius;
         double sealedBottom = bottomY + 1.0;
-        // Clamp baseline within [topY - amplitude - 1, bottomY + amplitude + 1]
-        // so a sanitized-zero amplitude with an off-range baseline still gives
-        // a sensible closed region.
-        double clampedBaseline = baseline;
-        if (clampedBaseline > sealedBottom) {
-            clampedBaseline = sealedBottom;
-        }
-        if (clampedBaseline < topY - amplitude - 1.0) {
-            clampedBaseline = topY - amplitude - 1.0;
-        }
 
-        List<PathElement> elements = new ArrayList<>(periods * 2 + 4);
-        elements.add(new MoveTo(leftX, clampedBaseline));
+        double level = clamp(displayedProgress.get());
+        double baseline = bottomY - level * (radius * 2.0);
 
-        double half = lambda * HALF;
-        double x = leftX;
-        for (int i = 0, halfCycles = periods * 2; i < halfCycles; i++) {
-            boolean crest = (i % 2 == 0);
-            double crestY = crest ? clampedBaseline - amplitude : clampedBaseline + amplitude;
-            double nextX = x + half;
-            elements.add(new CubicCurveTo(
-                    x + half * BEZIER_C1_RATIO, crestY,
-                    x + half * BEZIER_C2_RATIO, crestY,
-                    nextX, clampedBaseline));
-            x = nextX;
+        double restAmplitude = sanitize(control.getWaveAmplitude());
+        double frontAmplitude = restAmplitude * (1.0 + sloshMultiplier);
+        double backAmplitude = frontAmplitude * sanitize(control.getBackWaveAmplitudeRatio());
+
+        double lambda = resolveWaveLength();
+        double baseOmega = resolveBaseOmega();
+        double backOmega = baseOmega / resolveBackSpeedRatio();
+
+        writeLayerSurface(frontNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
+        writeLayerSurface(backNodes, baseline, backAmplitude, lambda, backOmega,
+                BACK_WAVE_PHASE_OFFSET, sealedBottom);
+    }
+
+    /**
+     * Writes one layer's surface y-coordinates. The surface height at x is
+     * {@code baseline - amplitude * Σ wᵢ·sin(kᵢ·x + ωᵢ·t + φᵢ)}; the clip
+     * circle trims whatever extends past the round container.
+     */
+    private void writeLayerSurface(WaveLayerNodes nodes, double baseline, double amplitude,
+                                   double lambda, double layerOmega, double layerPhase,
+                                   double sealedBottom) {
+        double t = elapsedSeconds;
+        for (int i = 0; i < wavePointCount; i++) {
+            double x = sampleX[i];
+            double offset = 0.0;
+            for (WaveComponent c : WAVE_COMPONENTS) {
+                double k = TWO_PI / (lambda * c.wavelengthRatio);
+                offset += c.weight
+                        * Math.sin(k * x + layerOmega * c.speedRatio * t + c.phase + layerPhase);
+            }
+            double y = baseline - amplitude * offset;
+            // Never let the surface dip below the sealed bottom, or the closing
+            // edge would fold the fill region inside-out.
+            if (y > sealedBottom) {
+                y = sealedBottom;
+            }
+            if (i == 0) {
+                nodes.start.setY(y);
+            } else {
+                nodes.surface[i - 1].setY(y);
+            }
         }
-        elements.add(new LineTo(x, sealedBottom));
-        elements.add(new LineTo(leftX, sealedBottom));
-        elements.add(new ClosePath());
-        return elements;
     }
 
     // ==================== Centre content ====================
@@ -586,7 +688,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             cachedWaterRadius = 0.0;
             cachedCenterX = contentX;
             cachedCenterY = contentY;
-            rebuildWavePaths();
+            ensureWaveGeometry();
             progressLabel.resizeRelocate(contentX, contentY, 0.0, 0.0);
             return;
         }
@@ -621,8 +723,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         cachedCenterY = centerY;
         cachedWaterRadius = waterRadius;
 
-        rebuildWavePaths();
-        rebuildWaveTimelines();
+        ensureWaveGeometry();
+        requestWaveAnimation();
         layoutLabel(centerX, centerY, waterRadius);
     }
 
@@ -677,13 +779,11 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     @Override
     public void dispose() {
-        // Timelines are rebuilt many times during the skin's life; stop the
-        // current ones explicitly here. Listeners, bindings, clip and
-        // treeShowing teardown are handled by the embedded SkinDisposer in
-        // RXSkinBase.dispose().
+        // The frame timer and the two timelines are not managed by the embedded
+        // SkinDisposer; stop them explicitly. Listeners, bindings, clip and
+        // treeShowing teardown are handled by RXSkinBase.dispose().
         stopProgressTween();
-        stopAndClearWaveTimeline(true);
-        stopAndClearWaveTimeline(false);
+        stopWaveTimer();
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
             indeterminateTimeline = null;
