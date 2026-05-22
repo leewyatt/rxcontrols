@@ -1,0 +1,32 @@
+.field-readout {
+    -fx-text-fill: #5a6072;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 4px;
+}
+
+.hint {
+    -fx-text-fill: #8a90a0;
+    -fx-font-size: 11px;
+}
+
+.slot-badge {
+    -fx-padding: 2px 7px;
+    -fx-background-color: #eef0f4;
+    -fx-text-fill: #5a6072;
+    -fx-font-weight: bold;
+}
+
+.slot-unit {
+    -fx-padding: 0 8px;
+    -fx-text-fill: #8a90a0;
+}
+
+.slot-button {
+    -fx-min-width: 30px;
+    -fx-cursor: hand;
+}
+
+.policy-result {
+    -fx-text-fill: #5a6072;
+    -fx-font-size: 11px;
+}
