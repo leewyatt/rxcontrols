@@ -62,6 +62,7 @@ public class MainController {
             "/fxml/pane_digit.fxml",
             "/fxml/pane_highlight_text.fxml",
             "/fxml/pane_field.fxml",
+            "/fxml/pane_number_field.fxml",
             "/fxml/pane_svgview.fxml",
             "/fxml/pane_media.fxml",
             "/fxml/pane_css_reference.fxml"

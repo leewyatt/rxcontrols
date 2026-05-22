@@ -1,0 +1,48 @@
+.number-field-page {
+    -fx-background-color: white;
+}
+
+.page-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #223044;
+}
+
+.page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #667085;
+}
+
+.section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #344054;
+}
+
+.field-row {
+    -fx-padding: 22 18;
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.field-item {
+    -fx-min-width: 195px;
+}
+
+.field-caption {
+    -fx-font-size: 12px;
+    -fx-text-fill: #475467;
+}
+
+.field-note {
+    -fx-padding: 10 16;
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 6;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-text-fill: #475467;
+    -fx-font-size: 12px;
+    -fx-alignment: center-left;
+}
