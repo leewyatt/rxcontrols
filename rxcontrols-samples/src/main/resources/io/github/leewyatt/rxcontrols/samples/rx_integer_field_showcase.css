@@ -21,9 +21,31 @@
     -fx-text-fill: #8a90a0;
 }
 
+.slot-button-box {
+    -fx-padding: 4px;
+}
+
 .slot-button {
+    -fx-background-color: #eef1f6;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-border-width: 0;
+    -fx-padding: 0 4px;
     -fx-min-width: 30px;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #475467;
     -fx-cursor: hand;
+}
+
+.slot-button:hover {
+    -fx-background-color: #616dfe;
+    -fx-text-fill: #ffffff;
+}
+
+.slot-button:pressed {
+    -fx-background-color: #4a55d6;
+    -fx-text-fill: #ffffff;
 }
 
 .policy-result {

@@ -12,6 +12,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
@@ -206,12 +207,17 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
         field.setValue(current.add(delta));
     }
 
-    private Button stepButton(String text, BigDecimal delta) {
+    private Node stepButton(String text, BigDecimal delta) {
         Button button = new Button(text);
         button.getStyleClass().add("slot-button");
         button.setFocusTraversable(false);
+        button.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         button.setOnAction(e -> step(delta));
-        return button;
+
+        StackPane box = new StackPane(button);
+        box.getStyleClass().add("slot-button-box");
+        box.setMaxHeight(Double.MAX_VALUE);
+        return box;
     }
 
     private static Label slotLabel(String text, String styleClass) {
