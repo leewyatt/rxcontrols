@@ -1,4 +1,4 @@
-module rxcontrols.samples {
+open module rxcontrols.samples {
     requires rxcontrols;
 
     requires javafx.controls;
@@ -11,10 +11,10 @@ module rxcontrols.samples {
     requires org.controlsfx.controls;
     requires org.scenicview.scenicview;
 
-    exports io.github.leewyatt.rxcontrols.samples.carousel;
+    exports io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
-    opens io.github.leewyatt.rxcontrols.samples to javafx.graphics;
-    opens io.github.leewyatt.rxcontrols.samples.controller to javafx.fxml;
-    opens io.github.leewyatt.rxcontrols.samples.carousel to javafx.graphics;
-    opens io.github.leewyatt.rxcontrols.samples.playground to javafx.graphics;
+    exports io.github.leewyatt.rxcontrols.samples;
+    exports io.github.leewyatt.rxcontrols.samples.showcase;
+    exports io.github.leewyatt.rxcontrols.samples.support;
+    exports io.github.leewyatt.rxcontrols.samples.test;
 }

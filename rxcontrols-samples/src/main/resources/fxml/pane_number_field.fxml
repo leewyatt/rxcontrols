@@ -13,7 +13,7 @@
 <AnchorPane prefHeight="511.0" prefWidth="761.0" styleClass="number-field-page"
             stylesheets="@../css/pane_number_field.css"
             xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="io.github.leewyatt.rxcontrols.samples.controller.PaneNumberFieldController">
+            fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneNumberFieldController">
     <children>
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="page-scroll"
                     AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"

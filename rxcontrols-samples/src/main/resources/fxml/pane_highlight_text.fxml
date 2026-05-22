@@ -10,7 +10,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_highlight_text.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.controller.PaneHighightTextController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_highlight_text.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneHighightTextController">
    <children>
       <ListView fx:id="listEmail" layoutX="400.0" layoutY="122.0" prefHeight="379.0" prefWidth="310.0" />
       <RXHighlightText layoutX="59.0" layoutY="14.0" text="" />

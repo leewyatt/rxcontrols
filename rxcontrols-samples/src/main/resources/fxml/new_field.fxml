@@ -8,7 +8,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.shape.SVGPath?>
 
-<VBox spacing="14" style="-fx-padding: 24; -fx-background-color: white;" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.controller.NewFieldController">
+<VBox spacing="14" style="-fx-padding: 24; -fx-background-color: white;" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.NewFieldController">
     <Label text="Search field — left icon only" />
     <RXTextField fx:id="searchField" prefWidth="360" promptText="Search...">
         <left>
