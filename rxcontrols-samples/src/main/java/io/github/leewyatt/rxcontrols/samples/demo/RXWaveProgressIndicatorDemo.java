@@ -19,7 +19,7 @@ public class RXWaveProgressIndicatorDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXWaveProgressIndicator indicator = new RXWaveProgressIndicator(0.6);
+        RXWaveProgressIndicator indicator = new RXWaveProgressIndicator(-1);
         indicator.setPrefSize(160, 160);
 
         StackPane root = new StackPane(indicator);
