@@ -25,6 +25,11 @@ public class RXNumberFieldSkin extends RXFieldBaseSkin {
     private final RXNumberField control;
     private final EventHandler<ActionEvent> enterCommitHandler;
 
+    /**
+     * Creates a skin for the given number field.
+     *
+     * @param control the number field to skin
+     */
     public RXNumberFieldSkin(RXNumberField control) {
         super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
         this.control = control;

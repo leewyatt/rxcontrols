@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 /**
  * Verification runner for the RXNumberField series rebuild
@@ -23,8 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * prints a single PASS / FAIL line. The runner deliberately stays off
  * {@code Application}, {@code Scene}, and {@code Stage}: it only calls
  * {@link Platform#startup(Runnable)} so {@code Control.<clinit>} can resolve
- * the default stylesheet, then runs every check on the FX thread. No render
- * pipeline is exercised.
+ * the default stylesheet, then runs every check on the FX thread. No scene
+ * graph is built, so no node is ever laid out or rendered.
  */
 public final class NumberFieldVerification {
 
@@ -156,15 +160,13 @@ public final class NumberFieldVerification {
             }
         });
 
-        // -------------------- P0-C: setTextFormatter guard (restore + throw) --------------------
+        // -------------------- P0-C: setTextFormatter guard (restore + WARNING log) --------------------
         //
-        // JFX TextInputControl.setTextFormatter is public final, so the only available
-        // guard is a property ChangeListener. Listener exceptions are caught inside
-        // ExpressionHelper and routed to Thread.UncaughtExceptionHandler instead of
-        // propagating back to setTextFormatter's caller. We verify the throw via that
-        // handler and the restore via getTextFormatter().
+        // TextInputControl.setTextFormatter is public final, so the only available
+        // guard is a property ChangeListener. The guard restores the internal
+        // formatter and logs a WARNING; we verify both.
 
-        check(results, "P0-C.1 setTextFormatter(other) → UnsupportedOperationException + restore", () -> {
+        check(results, "P0-C.1 setTextFormatter(other) → WARNING log + restore", () -> {
             RXNumberField f = new RXNumberField(new BigDecimal("1"));
             TextFormatter<?> original = f.getTextFormatter();
             TextFormatter<String> other = new TextFormatter<>(new StringConverter<>() {
@@ -176,7 +178,7 @@ public final class NumberFieldVerification {
             return assertGuardRejects(f, original, () -> f.setTextFormatter(other));
         });
 
-        check(results, "P0-C.2 setTextFormatter(null) → UnsupportedOperationException + restore", () -> {
+        check(results, "P0-C.2 setTextFormatter(null) → WARNING log + restore", () -> {
             RXNumberField f = new RXNumberField(new BigDecimal("1"));
             TextFormatter<?> original = f.getTextFormatter();
             return assertGuardRejects(f, original, () -> f.setTextFormatter(null));
@@ -260,23 +262,40 @@ public final class NumberFieldVerification {
     }
 
     /**
-     * Calls {@code action} while a default uncaught-exception handler is installed,
-     * then asserts that an {@link UnsupportedOperationException} was captured and
-     * that the field's text formatter is still {@code expected}.
+     * Runs {@code action} while a temporary handler is attached to the
+     * {@code RXNumberField} logger, then asserts that a {@code WARNING} record
+     * was emitted and that the field's text formatter is still {@code expected}.
      */
     private static String assertGuardRejects(RXNumberField f, TextFormatter<?> expected, Runnable action) {
-        AtomicReference<Throwable> captured = new AtomicReference<>();
-        Thread.UncaughtExceptionHandler previous = Thread.currentThread().getUncaughtExceptionHandler();
-        Thread.currentThread().setUncaughtExceptionHandler((thr, ex) -> captured.set(ex));
+        Logger logger = Logger.getLogger(RXNumberField.class.getName());
+        AtomicReference<LogRecord> captured = new AtomicReference<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                captured.set(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        boolean useParentHandlers = logger.getUseParentHandlers();
+        logger.addHandler(handler);
+        logger.setUseParentHandlers(false);
         try {
             action.run();
         } finally {
-            Thread.currentThread().setUncaughtExceptionHandler(previous);
+            logger.removeHandler(handler);
+            logger.setUseParentHandlers(useParentHandlers);
         }
-        Throwable t = captured.get();
-        if (!(t instanceof UnsupportedOperationException)) {
-            return "expected UnsupportedOperationException on uncaught handler, got "
-                    + (t == null ? "none" : t.getClass().getSimpleName());
+        LogRecord record = captured.get();
+        if (record == null || record.getLevel() != Level.WARNING) {
+            return "expected a WARNING log record, got "
+                    + (record == null ? "none" : record.getLevel());
         }
         return f.getTextFormatter() == expected
                 ? null

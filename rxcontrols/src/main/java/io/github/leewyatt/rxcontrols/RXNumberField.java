@@ -13,6 +13,8 @@ import javafx.util.StringConverter;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Text field for {@link BigDecimal} input.
@@ -33,12 +35,11 @@ import java.util.function.UnaryOperator;
  *   <li>The internal {@link TextFormatter} is not replaceable; customize
  *       parsing through {@link #createConverter()} / {@link #createFilter()}.
  * </ul>
- * An external {@link #setTextFormatter(TextFormatter)} is rejected — the
- * internal formatter is reinstalled and an {@link UnsupportedOperationException}
- * is raised. The guard is a property listener, so that exception reaches the
- * thread's uncaught-exception handler, not the caller's {@code try/catch}; and
- * a {@link TextFormatter} already bound to another control cannot be repaired,
- * as JavaFX nulls the property and throws {@link IllegalStateException} first.
+ * An external {@link #setTextFormatter(TextFormatter)} is rejected: the
+ * internal formatter is reinstalled and a {@code WARNING} is logged. The one
+ * case the guard cannot repair is a {@link TextFormatter} already bound to
+ * another control, where JavaFX nulls the property and throws
+ * {@link IllegalStateException} before any listener runs.
  * <p>
  * Prefer bidirectional binding for the value property; one-way {@code bind}
  * blocks user edits from being committed.
@@ -48,6 +49,7 @@ public class RXNumberField extends RXTextField {
     // ==================== Constants ====================
 
     private static final String DEFAULT_STYLE_CLASS = "rx-number-field";
+    private static final Logger LOGGER = Logger.getLogger(RXNumberField.class.getName());
 
     // ==================== Fields ====================
 
@@ -393,10 +395,11 @@ public class RXNumberField extends RXTextField {
         } finally {
             restoringTextFormatter = false;
         }
-        throw new UnsupportedOperationException(
-                "RXNumberField manages its own TextFormatter; replacing it via "
-              + "setTextFormatter is unsupported. Override createFilter() or "
-              + "createConverter() instead.");
+        LOGGER.log(Level.WARNING,
+                "RXNumberField manages its own TextFormatter; replacing it via"
+                        + " setTextFormatter is unsupported. The internal formatter"
+                        + " has been restored; the replacement was ignored."
+                        + " Override createFilter() or createConverter() instead.");
     }
 
     private void coerceValueProperty() {
