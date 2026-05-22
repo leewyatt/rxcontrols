@@ -405,11 +405,6 @@ public class RXSkeletonLoaderDemo extends Application {
         return label;
     }
 
-    /**
-     * Launches the demo.
-     *
-     * @param args command-line arguments
-     */
     public static void main(String[] args) {
         launch(args);
     }
