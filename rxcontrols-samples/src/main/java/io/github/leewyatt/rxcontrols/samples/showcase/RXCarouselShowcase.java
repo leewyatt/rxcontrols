@@ -79,7 +79,7 @@ public class RXCarouselShowcase extends Application {
         BorderPane.setMargin(carousel, new Insets(10));
 
         Scene scene = new Scene(root, 1100, 650);
-        scene.getStylesheets().add(getClass().getResource("carousel-showcase.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("rx-carousel-showcase.css").toExternalForm());
         primaryStage.setTitle("CarouselFX Showcase");
         primaryStage.setScene(scene);
         scene.setCamera(new PerspectiveCamera());

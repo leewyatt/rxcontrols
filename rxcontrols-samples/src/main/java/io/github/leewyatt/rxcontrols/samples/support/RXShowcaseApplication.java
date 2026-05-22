@@ -41,7 +41,7 @@ public abstract class RXShowcaseApplication extends Application {
     protected static final double VALUE_LABEL_MIN_WIDTH = 60.0;
 
     private static final String SHELL_STYLESHEET =
-            "/io/github/leewyatt/rxcontrols/samples/rx-showcase-shell.css";
+            "/io/github/leewyatt/rxcontrols/samples/support/rx-showcase-shell.css";
     private static final double LABEL_COL_WIDTH = 112.0;
 
     // ==================== Application lifecycle ====================
