@@ -4,8 +4,10 @@
 <?import io.github.leewyatt.rxcontrols.RXIntegerField?>
 <?import io.github.leewyatt.rxcontrols.RXNumberField?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane prefHeight="511.0" prefWidth="761.0" styleClass="number-field-page"
@@ -13,76 +15,140 @@
             xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="io.github.leewyatt.rxcontrols.samples.controller.PaneNumberFieldController">
     <children>
-        <VBox layoutX="42.0" layoutY="24.0" prefWidth="677.0" spacing="16.0"
-              AnchorPane.leftAnchor="42.0" AnchorPane.rightAnchor="42.0" AnchorPane.topAnchor="24.0">
-            <children>
-                <VBox spacing="6.0">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="page-scroll"
+                    AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                    AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <content>
+                <VBox spacing="16.0" styleClass="page-content">
                     <children>
-                        <Label styleClass="page-title" text="数字输入框"/>
-                        <Label styleClass="page-subtitle"
-                               text="基于 BigDecimal 的数字文本框：精度无损、可设上下限、支持 NumberFormat 格式化。"/>
-                    </children>
-                </VBox>
-
-                <VBox spacing="10.0">
-                    <children>
-                        <Label styleClass="section-title" text="三种数字输入框"/>
-                        <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
+                        <VBox spacing="6.0">
                             <children>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
-                                    <children>
-                                        <RXNumberField fx:id="numberField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="RXNumberField · 任意精度小数"/>
-                                    </children>
-                                </VBox>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
-                                    <children>
-                                        <RXIntegerField fx:id="integerField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="RXIntegerField · 仅整数"/>
-                                    </children>
-                                </VBox>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
-                                    <children>
-                                        <RXFormattedNumberField fx:id="formattedField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="RXFormattedNumberField · 格式化"/>
-                                    </children>
-                                </VBox>
+                                <Label styleClass="page-title" text="数字输入框"/>
+                                <Label styleClass="page-subtitle"
+                                       text="基于 BigDecimal 的数字文本框：精度无损、可设上下限、支持 NumberFormat 格式化。"/>
                             </children>
-                        </HBox>
-                    </children>
-                </VBox>
+                        </VBox>
 
-                <VBox spacing="10.0">
-                    <children>
-                        <Label styleClass="section-title" text="RXFormattedNumberField · 多种格式"/>
-                        <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
+                        <VBox spacing="10.0">
                             <children>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                <Label styleClass="section-title" text="三种数字输入框"/>
+                                <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
                                     <children>
-                                        <RXFormattedNumberField fx:id="groupingField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="千分位分组"/>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXNumberField fx:id="numberField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="RXNumberField · 任意精度小数"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXIntegerField fx:id="integerField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="RXIntegerField · 仅整数"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="formattedField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="RXFormattedNumberField · 格式化"/>
+                                            </children>
+                                        </VBox>
                                     </children>
-                                </VBox>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
-                                    <children>
-                                        <RXFormattedNumberField fx:id="currencyField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="货币 (en-US)"/>
-                                    </children>
-                                </VBox>
-                                <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
-                                    <children>
-                                        <RXFormattedNumberField fx:id="percentField" prefColumnCount="14"/>
-                                        <Label styleClass="field-caption" text="百分比"/>
-                                    </children>
-                                </VBox>
+                                </HBox>
                             </children>
-                        </HBox>
+                        </VBox>
+
+                        <VBox spacing="10.0">
+                            <children>
+                                <Label styleClass="section-title" text="RXFormattedNumberField · 多种格式"/>
+                                <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
+                                    <children>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="groupingField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="千分位分组"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="currencyField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="货币 (en-US)"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="percentField" prefColumnCount="14"/>
+                                                <Label styleClass="field-caption" text="百分比"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+
+                        <VBox spacing="10.0">
+                            <children>
+                                <Label styleClass="section-title" text="左右插槽 · setLeft / setRight"/>
+                                <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
+                                    <children>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="leftSlotField" prefColumnCount="11">
+                                                    <left>
+                                                        <StackPane styleClass="slot-box">
+                                                            <children>
+                                                                <Label styleClass="slot-money" text="\$"/>
+                                                            </children>
+                                                        </StackPane>
+                                                    </left>
+                                                </RXFormattedNumberField>
+                                                <Label styleClass="field-caption" text="左插槽 · 货币前缀"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="rightSlotField" prefColumnCount="11">
+                                                    <right>
+                                                        <StackPane styleClass="slot-box">
+                                                            <children>
+                                                                <Label styleClass="slot-unit" text="kg"/>
+                                                            </children>
+                                                        </StackPane>
+                                                    </right>
+                                                </RXFormattedNumberField>
+                                                <Label styleClass="field-caption" text="右插槽 · 单位后缀"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXFormattedNumberField fx:id="dualSlotField" prefColumnCount="11">
+                                                    <left>
+                                                        <StackPane styleClass="slot-box">
+                                                            <children>
+                                                                <Label styleClass="slot-temp" text="T"/>
+                                                            </children>
+                                                        </StackPane>
+                                                    </left>
+                                                    <right>
+                                                        <StackPane styleClass="slot-box">
+                                                            <children>
+                                                                <Label styleClass="slot-unit" text="°C"/>
+                                                            </children>
+                                                        </StackPane>
+                                                    </right>
+                                                </RXFormattedNumberField>
+                                                <Label styleClass="field-caption" text="左 + 右双插槽"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+
+                        <Label maxWidth="Infinity" styleClass="field-note"
+                               text="左 / 右插槽接受任意节点，可放符号、单位、图标或按钮；键入时非法字符被即时过滤，超出 min / max 的值在提交时自动夹紧。"/>
                     </children>
                 </VBox>
-
-                <Label maxWidth="Infinity" styleClass="field-note"
-                       text="键入时非法字符被即时过滤；超出 min / max 的值在提交时自动夹紧；整数框拒绝小数点。"/>
-            </children>
-        </VBox>
+            </content>
+        </ScrollPane>
     </children>
 </AnchorPane>

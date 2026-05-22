@@ -35,6 +35,15 @@ public class PaneNumberFieldController {
     private RXFormattedNumberField percentField;
 
     @FXML
+    private RXFormattedNumberField leftSlotField;
+
+    @FXML
+    private RXFormattedNumberField rightSlotField;
+
+    @FXML
+    private RXFormattedNumberField dualSlotField;
+
+    @FXML
     void initialize() {
         numberField.setValue(new BigDecimal("3.14159"));
 
@@ -52,5 +61,9 @@ public class PaneNumberFieldController {
         percent.setMaximumFractionDigits(1);
         percentField.setNumberFormat(percent);
         percentField.setValue(new BigDecimal("0.875"));
+
+        leftSlotField.setValue(new BigDecimal("1500"));
+        rightSlotField.setValue(new BigDecimal("68.5"));
+        dualSlotField.setValue(new BigDecimal("25"));
     }
 }

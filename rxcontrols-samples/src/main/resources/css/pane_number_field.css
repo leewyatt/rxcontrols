@@ -2,6 +2,19 @@
     -fx-background-color: white;
 }
 
+.page-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.page-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.page-content {
+    -fx-padding: 24 42 24 42;
+}
+
 .page-title {
     -fx-font-size: 26px;
     -fx-font-weight: bold;
@@ -45,4 +58,35 @@
     -fx-text-fill: #475467;
     -fx-font-size: 12px;
     -fx-alignment: center-left;
+}
+
+.slot-box {
+    -fx-padding: 4;
+}
+
+.slot-money,
+.slot-temp,
+.slot-unit {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+    -fx-background-radius: 4;
+}
+
+.slot-money,
+.slot-temp {
+    -fx-text-fill: white;
+}
+
+.slot-money {
+    -fx-background-color: #16a34a;
+}
+
+.slot-temp {
+    -fx-background-color: #ea7317;
+}
+
+.slot-unit {
+    -fx-text-fill: #667085;
+    -fx-background-color: #eef1f6;
 }
