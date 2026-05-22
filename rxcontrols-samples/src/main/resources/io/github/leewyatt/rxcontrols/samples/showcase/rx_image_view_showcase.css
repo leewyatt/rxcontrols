@@ -1,0 +1,33 @@
+.live-preview {
+    -fx-alignment: center;
+}
+
+.live-preview .rx-image-view {
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.22), 18, 0, 0, 6);
+}
+
+.size-label {
+    -fx-padding: 5px 12px;
+    -fx-background-color: #1d2433;
+    -fx-background-radius: 6px;
+    -fx-text-fill: white;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.control-pane .text-area {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #cfd5df;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 11px;
+}
+
+.control-pane .text-area .content {
+    -fx-background-color: #f9fafb;
+}
+
+.control-pane .invalid-value {
+    -fx-text-fill: #c0392b;
+}
