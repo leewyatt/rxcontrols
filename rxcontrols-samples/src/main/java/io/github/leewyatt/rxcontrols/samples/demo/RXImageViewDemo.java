@@ -33,11 +33,6 @@ public class RXImageViewDemo extends Application {
         primaryStage.show();
     }
 
-    /**
-     * Launches the demo.
-     *
-     * @param args command-line arguments
-     */
     public static void main(String[] args) {
         launch(args);
     }

@@ -34,11 +34,16 @@ public class RXFormattedNumberFieldDemo extends Application {
                         ? "null" : field.getValue().toPlainString()),
                 field.valueProperty()));
 
-        VBox root = new VBox(16.0, field, valueLabel);
+        Label tipsLabel = new Label("Tip: Press Enter or move focus away from the field to commit the typed value.");
+        tipsLabel.setFocusTraversable(true);
+        tipsLabel.setWrapText(true);
+        tipsLabel.setMaxWidth(300.0);
+
+        VBox root = new VBox(16.0, field, valueLabel, tipsLabel);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(40.0));
 
-        primaryStage.setScene(new Scene(root, 380.0, 200.0));
+        primaryStage.setScene(new Scene(root, 380.0, 240.0));
         primaryStage.setTitle("RXFormattedNumberField Demo");
         primaryStage.show();
     }
