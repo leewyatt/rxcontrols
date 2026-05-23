@@ -82,7 +82,15 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private static final double MAX_FRAME_SECONDS = 1.0 / 30.0;
 
     /** Radians added to the back layer's component phases so the two layers never coincide. */
-    private static final double BACK_WAVE_PHASE_OFFSET = 2.0;
+    private static final double BACK_WAVE_PHASE_OFFSET = Math.PI;
+
+    /**
+     * Back baseline is raised above the front baseline (smaller Y in screen space) by
+     * this fraction of the resting amplitude, so the back wave's surface averages
+     * above the front and is consistently visible as a band peeking over the front
+     * instead of relying on instantaneous phase desync to expose it.
+     */
+    private static final double BACK_BASELINE_LIFT_RATIO = 0.5;
 
     /** Converts water-level speed (progress per second) into an amplitude-swell multiplier. */
     private static final double SLOSH_GAIN = 0.22;
@@ -309,7 +317,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         frontWavePath.setFill(ff != null ? ff : RXWaveProgressIndicator.DEFAULT_FRONT_WAVE_FILL);
 
         Paint bf = control.getBackWaveFill();
-        backWavePath.setFill(bf != null ? bf : RXWaveProgressIndicator.DEFAULT_BACK_WAVE_FILL);
+        backWavePath.setFill(bf);
     }
 
     private void applyBorder() {
@@ -613,18 +621,26 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double sealedBottom = bottomY + 1.0;
 
         double level = RXMath.clamp0To1(displayedProgress.get());
-        double baseline = bottomY - level * (radius * 2.0);
+        double waterDepth = level * (radius * 2.0);
+        double baseline = bottomY - waterDepth;
 
         double restAmplitude = RXMath.sanitizeNonNegative(control.getWaveAmplitude());
         double frontAmplitude = restAmplitude * (1.0 + sloshMultiplier);
         double backAmplitude = frontAmplitude * RXMath.sanitizeNonNegative(control.getBackWaveAmplitudeRatio());
+
+        // Lift the back baseline above the front baseline so the back surface is visible
+        // as a permanent band, not just on rare phase alignments. Capped by current water
+        // depth, otherwise an empty container (level = 0) would still show a back-wave
+        // sliver at the bottom.
+        double backLift = Math.min(restAmplitude * BACK_BASELINE_LIFT_RATIO, waterDepth);
+        double backBaseline = baseline - backLift;
 
         double lambda = resolveWaveLength();
         double baseOmega = resolveBaseOmega();
         double backOmega = baseOmega / resolveBackSpeedRatio();
 
         writeLayerSurface(frontNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
-        writeLayerSurface(backNodes, baseline, backAmplitude, lambda, backOmega,
+        writeLayerSurface(backNodes, backBaseline, backAmplitude, lambda, backOmega,
                 BACK_WAVE_PHASE_OFFSET, sealedBottom);
     }
 
