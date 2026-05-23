@@ -2,74 +2,61 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXWaveProgressIndicatorShowcase;
+import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 /**
- * Out-of-the-box demo for {@link RXWaveProgressIndicator} that cycles through
- * every wave state so each is visible without any user interaction:
- * indeterminate breathing → determinate {@code 0 → 1} ramp → brief hold at
- * full → back to indeterminate, looping forever.
+ * Out-of-the-box demo for {@link RXWaveProgressIndicator}. Shows two
+ * indicators side by side: an indeterminate one on the left (breathing
+ * forever) and a determinate one on the right that ping-pongs progress
+ * {@code 0 → 1 → 0} in a continuous loop.
  *
  * <p>For a full property explorer (sliders, color pickers, every styleable
  * knob) see {@link RXWaveProgressIndicatorShowcase}.
  */
 public class RXWaveProgressIndicatorDemo extends Application {
 
-    private static final Duration INDETERMINATE_DWELL = Duration.seconds(3);
-    private static final Duration RAMP_DURATION = Duration.seconds(6);
-    private static final Duration FULL_DWELL = Duration.seconds(2);
+    private static final Duration RAMP_DURATION = Duration.seconds(10);
 
     @Override
     public void start(Stage primaryStage) {
-        RXWaveProgressIndicator indicator = new RXWaveProgressIndicator(-1);
-        indicator.setPrefSize(160, 160);
+        RXWaveProgressIndicator left = new RXWaveProgressIndicator(-1);
+        left.setPrefSize(160, 160);
 
-        StackPane root = new StackPane(indicator);
+        RXWaveProgressIndicator right = new RXWaveProgressIndicator(0.0);
+        right.setPrefSize(160, 160);
+
+        HBox root = new HBox(40, left, right);
         root.setPadding(new Insets(40));
+        root.setAlignment(Pos.CENTER);
 
         primaryStage.setScene(new Scene(root));
         primaryStage.setTitle("RXWaveProgressIndicator Demo");
         primaryStage.show();
 
-        startShowcaseCycle(indicator);
+        startPingPong(right);
     }
 
-    /**
-     * Chains the cycle phases manually via {@code setOnFinished} callbacks
-     * instead of a {@code SequentialTransition}: the latter propagates a
-     * cycle-restart {@code jumpTo(0)} to every child, and the ramp Timeline's
-     * captured start value (progress = 0) then snaps the indicator out of
-     * indeterminate at the beginning of the second loop.
-     */
-    private static void startShowcaseCycle(RXWaveProgressIndicator indicator) {
-        PauseTransition indeterminateDwell = new PauseTransition(INDETERMINATE_DWELL);
-        Timeline ramp = new Timeline(
+    private static void startPingPong(RXWaveProgressIndicator indicator) {
+        Timeline pingPong = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(indicator.progressProperty(), 0.0)),
                 new KeyFrame(RAMP_DURATION,
                         new KeyValue(indicator.progressProperty(), 1.0, Interpolator.EASE_BOTH))
         );
-        PauseTransition fullDwell = new PauseTransition(FULL_DWELL);
-
-        indeterminateDwell.setOnFinished(e -> {
-            indicator.setProgress(0.0);
-            ramp.playFromStart();
-        });
-        ramp.setOnFinished(e -> fullDwell.playFromStart());
-        fullDwell.setOnFinished(e -> {
-            indicator.setProgress(-1.0);
-            indeterminateDwell.playFromStart();
-        });
-
-        indeterminateDwell.playFromStart();
+        pingPong.setAutoReverse(true);
+        pingPong.setCycleCount(Animation.INDEFINITE);
+        pingPong.play();
     }
 
     public static void main(String[] args) {
