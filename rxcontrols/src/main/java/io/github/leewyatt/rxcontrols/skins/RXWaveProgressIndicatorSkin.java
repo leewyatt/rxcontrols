@@ -16,6 +16,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.LineTo;
@@ -175,7 +176,10 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private final Group waveLayer = new Group();
     private final Path frontWavePath = new Path();
     private final Path backWavePath = new Path();
+    private final Path waterClipPath = new Path();
     private final Label progressLabel = new Label();
+    private final Label progressLabelBelow = new Label();
+    private final Group belowGroup = new Group();
     private final StackPane disc = new StackPane();
 
     // ==================== State ====================
@@ -214,6 +218,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     private WaveLayerNodes frontNodes;
     private WaveLayerNodes backNodes;
+    private WaveLayerNodes waterClipNodes;
     private int wavePointCount;
     private double[] sampleX = new double[0];
 
@@ -269,6 +274,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
+        progressLabel.setManaged(false);
         disposer.registerDisposeTask(() -> {
             progressLabel.graphicProperty().unbind();
             progressLabel.setGraphic(null);
@@ -277,12 +283,44 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabel.visibleProperty(),
                 control.graphicProperty().isNotNull()
                         .or(progressLabel.textProperty().isNotEmpty()));
-        disposer.registerBinding(progressLabel.managedProperty(),
-                progressLabel.visibleProperty());
+
+        waterClipPath.setManaged(false);
+        // Path's default is fill=null + stroke=BLACK (opposite of generic Shape). Used as a
+        // clip mask, only the rendered area becomes visible — without an explicit fill, the
+        // mask would only be the 1px stroked outline, not the closed water-body interior.
+        waterClipPath.setFill(Color.BLACK);
+        waterClipPath.setStroke(null);
+
+        progressLabelBelow.getStyleClass().addAll("progress-label", "below-water");
+        progressLabelBelow.setAlignment(Pos.CENTER);
+        progressLabelBelow.setMouseTransparent(true);
+        progressLabelBelow.setManaged(false);
+        progressLabelBelow.textProperty().bind(progressLabel.textProperty());
+        // Pin font + padding to the above label so the two labels always have the same
+        // prefSize and therefore land on the same pixel. CSS targeting .below-water
+        // for these properties is intentionally ignored — any divergence would break
+        // the pixel-perfect overlay required for the water-line colour switch.
+        progressLabelBelow.fontProperty().bind(progressLabel.fontProperty());
+        progressLabelBelow.paddingProperty().bind(progressLabel.paddingProperty());
+        disposer.registerDisposeTask(() -> {
+            progressLabelBelow.textProperty().unbind();
+            progressLabelBelow.fontProperty().unbind();
+            progressLabelBelow.paddingProperty().unbind();
+        });
+        disposer.registerBinding(progressLabelBelow.visibleProperty(),
+                progressLabel.textProperty().isNotEmpty());
+
+        // belowGroup sits at disc-local (0, 0), so its local coord system equals disc-local.
+        // The clip path (also in disc-local) therefore aligns with the wave geometry pixel-for-pixel.
+        belowGroup.setManaged(false);
+        belowGroup.setMouseTransparent(true);
+        belowGroup.setClip(waterClipPath);
+        belowGroup.getChildren().setAll(progressLabelBelow);
+        disposer.registerDisposeTask(() -> belowGroup.setClip(null));
 
         disc.getStyleClass().add("wave-container");
         disc.setManaged(false);
-        disc.getChildren().setAll(waveLayer, progressLabel);
+        disc.getChildren().setAll(waveLayer, progressLabel, belowGroup);
 
         disposer.registerBinding(frontWavePath.fillProperty(), control.frontWaveFillProperty());
         disposer.registerBinding(backWavePath.fillProperty(), control.backWaveFillProperty());
@@ -542,8 +580,10 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         if (radius <= 0.0) {
             frontWavePath.getElements().clear();
             backWavePath.getElements().clear();
+            waterClipPath.getElements().clear();
             frontNodes = null;
             backNodes = null;
+            waterClipNodes = null;
             wavePointCount = 0;
             return;
         }
@@ -554,6 +594,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             sampleX = new double[n];
             frontNodes = buildLayerNodes(frontWavePath, n);
             backNodes = buildLayerNodes(backWavePath, n);
+            waterClipNodes = buildLayerNodes(waterClipPath, n);
             wavePointCount = n;
         }
 
@@ -567,6 +608,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double sealedBottom = cachedCenterY + radius + 1.0;
         applyLayerX(frontNodes, sealedBottom);
         applyLayerX(backNodes, sealedBottom);
+        applyLayerX(waterClipNodes, sealedBottom);
     }
 
     private void applyLayerX(WaveLayerNodes nodes, double sealedBottom) {
@@ -627,6 +669,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double backOmega = baseOmega / resolveBackSpeedRatio();
 
         writeLayerSurface(frontNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
+        // Mirror the front wave geometry into waterClipPath; used as a clip on the
+        // below-water label so the label switches colour exactly along the water surface.
+        writeLayerSurface(waterClipNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
         writeLayerSurface(backNodes, backBaseline, backAmplitude, lambda, backOmega,
                 BACK_WAVE_PHASE_OFFSET, sealedBottom);
     }
@@ -666,6 +711,27 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     private void applyCenterContent() {
         progressLabel.setText(formatLabel(getSkinnable().getProgress()));
+        // Both labels are unmanaged for pixel-perfect alignment along the water surface;
+        // an unmanaged child does not bubble layout requests, so re-position on text change.
+        positionLabels();
+    }
+
+    private void positionLabels() {
+        if (cachedWaterRadius <= 0.0) {
+            return;
+        }
+        positionLabel(progressLabel);
+        positionLabel(progressLabelBelow);
+    }
+
+    private void positionLabel(Label label) {
+        double innerDiameter = cachedWaterRadius * 2.0;
+        double w = Math.min(label.prefWidth(innerDiameter), innerDiameter);
+        double h = Math.min(label.prefHeight(w), innerDiameter);
+        label.resizeRelocate(
+                cachedCenterX - w * HALF,
+                cachedCenterY - h * HALF,
+                w, h);
     }
 
     private String formatLabel(double progress) {
@@ -713,6 +779,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         ensureWaveGeometry();
         requestWaveAnimation();
+        positionLabels();
     }
 
     @Override

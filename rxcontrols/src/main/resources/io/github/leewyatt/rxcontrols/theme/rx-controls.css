@@ -212,9 +212,15 @@
     -rx-wave-amplitude: 0;
 }
 
-.rx-wave-progress-indicator > .wave-container > .progress-label {
+.rx-wave-progress-indicator > .wave-container .progress-label {
     -fx-font-weight: bold;
     -fx-content-display: top;
+    -fx-font-size: 2.5em;
+    -fx-text-fill: #1e90ff;
+}
+
+.rx-wave-progress-indicator > .wave-container .progress-label.below-water {
+    -fx-text-fill: white;
 }
 
 .rx-skeleton-loader {
