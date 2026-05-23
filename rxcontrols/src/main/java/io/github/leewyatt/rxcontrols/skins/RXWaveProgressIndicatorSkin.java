@@ -11,9 +11,11 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.LineTo;
@@ -27,11 +29,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXWaveProgressIndicator}. Renders a circular water
- * container, two layered wave surfaces, an optional outer ring, and a centre
- * label that shows both {@link RXWaveProgressIndicator#getGraphic()} and the
- * converted progress text (relative layout is controlled via
- * {@code -fx-content-display}).
+ * Default skin for {@link RXWaveProgressIndicator}. Wraps two layered wave
+ * surfaces and a centre label inside an inner {@link StackPane} ({@code .wave-container})
+ * that is always sized to the inscribed square of the outer control. Background,
+ * border, border-radius and insets are styled on {@code .wave-container} via
+ * standard {@code -fx-background-*} / {@code -fx-border-*} CSS, so the circle
+ * stays a true circle even when the outer control is non-square. The centre
+ * label renders both {@link RXWaveProgressIndicator#getGraphic()} and the
+ * converted progress text; relative layout is controlled via
+ * {@code -fx-content-display}.
  *
  * <p>Each wave surface is a <em>sum of sines</em>: several sinusoidal
  * components of different wavelength, amplitude and speed are added into one
@@ -165,13 +171,12 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     // ==================== Nodes ====================
 
-    private final Circle container = new Circle();
-    private final Circle borderRing = new Circle();
     private final Circle clipCircle = new Circle();
     private final Group waveLayer = new Group();
     private final Path frontWavePath = new Path();
     private final Path backWavePath = new Path();
     private final Label progressLabel = new Label();
+    private final StackPane disc = new StackPane();
 
     // ==================== State ====================
 
@@ -232,7 +237,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerDisposeTask(treeShowing::dispose);
 
         registerListeners(control);
-        applyBorderWidth();
         applyCenterContent();
 
         double initial = control.getProgress();
@@ -248,14 +252,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     // ==================== Init ====================
 
     private void initNodes(RXWaveProgressIndicator control) {
-        container.getStyleClass().add("wave-container");
-        container.setManaged(false);
-        container.setStroke(null);
-
-        borderRing.getStyleClass().add("border-ring");
-        borderRing.setManaged(false);
-        borderRing.setFill(null);
-
         backWavePath.getStyleClass().add("back-wave");
         backWavePath.setStroke(null);
         backWavePath.setManaged(false);
@@ -267,17 +263,13 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         waveLayer.getChildren().setAll(backWavePath, frontWavePath);
         waveLayer.setManaged(false);
         waveLayer.setMouseTransparent(true);
-        // Clip is set on the Group: a Circle in skin-local coordinates that
-        // matches the water container, so the paths never spill outside the
-        // round container.
         waveLayer.setClip(clipCircle);
         disposer.registerDisposeTask(() -> waveLayer.setClip(null));
 
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
-        // Clear the user-supplied graphic on dispose; unbind must run before
-        // setGraphic(null), so both steps live in one task.
+        progressLabel.setManaged(false);
         disposer.registerDisposeTask(() -> {
             progressLabel.graphicProperty().unbind();
             progressLabel.setGraphic(null);
@@ -286,15 +278,15 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabel.visibleProperty(),
                 control.graphicProperty().isNotNull()
                         .or(progressLabel.textProperty().isNotEmpty()));
-        disposer.registerBinding(progressLabel.managedProperty(),
-                progressLabel.visibleProperty());
 
-        disposer.registerBinding(container.fillProperty(), control.containerFillProperty());
+        disc.getStyleClass().add("wave-container");
+        disc.setManaged(false);
+        disc.getChildren().setAll(waveLayer, progressLabel);
+
         disposer.registerBinding(frontWavePath.fillProperty(), control.frontWaveFillProperty());
         disposer.registerBinding(backWavePath.fillProperty(), control.backWaveFillProperty());
-        disposer.registerBinding(borderRing.strokeProperty(), control.borderStrokeProperty());
 
-        getChildren().setAll(container, waveLayer, borderRing, progressLabel);
+        getChildren().setAll(disc);
     }
 
     private void registerListeners(RXWaveProgressIndicator control) {
@@ -314,12 +306,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerListener(control.backWaveSpeedRatioProperty(), this::requestWaveAnimation);
         disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::requestWaveAnimation);
 
-        disposer.registerListener(control.borderStrokeWidthProperty(), () -> {
-            applyBorderWidth();
-            control.requestLayout();
-        });
-        disposer.registerListener(control.borderPaddingProperty(), control::requestLayout);
-
         disposer.registerListener(control.indeterminateCycleDurationProperty(), () -> {
             if (indeterminateMode) {
                 rebuildIndeterminateTimeline();
@@ -327,12 +313,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         });
 
         disposer.registerListener(treeShowing, () -> onTreeShowingChanged(treeShowing.get()));
-    }
-
-    // ==================== Style application ====================
-
-    private void applyBorderWidth() {
-        borderRing.setStrokeWidth(RXMath.sanitizeNonNegative(getSkinnable().getBorderStrokeWidth()));
     }
 
     // ==================== Progress changes ====================
@@ -702,41 +682,26 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
                                   double contentWidth, double contentHeight) {
         double size = Math.min(contentWidth, contentHeight);
         if (size <= 0.0) {
-            // JavaFX does not auto-clip children; collapse everything so a
-            // previous frame's geometry cannot leak outside the now-zero
-            // content area.
-            container.setRadius(0.0);
-            borderRing.setRadius(0.0);
+            disc.resizeRelocate(contentX, contentY, 0.0, 0.0);
             clipCircle.setRadius(0.0);
             cachedWaterRadius = 0.0;
-            cachedCenterX = contentX;
-            cachedCenterY = contentY;
+            cachedCenterX = 0.0;
+            cachedCenterY = 0.0;
             ensureWaveGeometry();
-            progressLabel.resizeRelocate(contentX, contentY, 0.0, 0.0);
+            progressLabel.resizeRelocate(0.0, 0.0, 0.0, 0.0);
             return;
         }
 
-        RXWaveProgressIndicator control = getSkinnable();
-        double border = RXMath.sanitizeNonNegative(control.getBorderStrokeWidth());
-        double padding = RXMath.sanitizeNonNegative(control.getBorderPadding());
-
-        double waterDiameter = Math.max(0.0, size - 2.0 * (border + padding));
         double offsetX = contentX + (contentWidth - size) * HALF;
         double offsetY = contentY + (contentHeight - size) * HALF;
-        double centerX = offsetX + size * HALF;
-        double centerY = offsetY + size * HALF;
-        double waterRadius = waterDiameter * HALF;
+        disc.resizeRelocate(offsetX, offsetY, size, size);
 
-        container.setCenterX(centerX);
-        container.setCenterY(centerY);
-        container.setRadius(waterRadius);
-
-        // Stroke is rendered centred on the radius, so the visible outer edge
-        // sits at waterRadius + padding + border, and the inner edge at
-        // waterRadius + padding.
-        borderRing.setCenterX(centerX);
-        borderRing.setCenterY(centerY);
-        borderRing.setRadius(waterRadius + padding + border * HALF);
+        Insets insets = disc.getInsets();
+        double innerW = Math.max(0.0, size - insets.getLeft() - insets.getRight());
+        double innerH = Math.max(0.0, size - insets.getTop() - insets.getBottom());
+        double waterRadius = Math.min(innerW, innerH) * HALF;
+        double centerX = insets.getLeft() + innerW * HALF;
+        double centerY = insets.getTop() + innerH * HALF;
 
         clipCircle.setCenterX(centerX);
         clipCircle.setCenterY(centerY);

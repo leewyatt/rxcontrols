@@ -15,8 +15,3 @@
     -fx-font-size: 14px;
 }
 
-.rx-wave-progress-indicator.bordered {
-    -rx-border-stroke: #1e90ff;
-    -rx-border-stroke-width: 6;
-    -rx-border-padding: 5;
-}

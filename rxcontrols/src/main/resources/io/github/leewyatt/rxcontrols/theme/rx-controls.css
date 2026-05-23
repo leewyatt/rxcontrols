@@ -199,12 +199,18 @@
     -rx-wave-cycle-duration: 2000ms;
     -rx-back-wave-speed-ratio: 1.4;
     -rx-back-wave-amplitude-ratio: 0.7;
-    -rx-container-fill: #e8f4ff;
     -rx-front-wave-fill: #1e90ff;
     -rx-back-wave-fill: rgba(30, 144, 255, 0.4);
-    -rx-border-stroke: transparent;
-    -rx-border-stroke-width: 0;
-    -rx-border-padding: 0;
+}
+
+.rx-wave-progress-indicator > .wave-container {
+    -fx-background-color: #e8f4ff;
+    -fx-background-radius: 50%;
+    -fx-background-insets: 4;
+    -fx-padding: 4;
+    -fx-border-color: #1e90ff;
+    -fx-border-width: 1;
+    -fx-border-radius: 50%;
 }
 
 .rx-wave-progress-indicator:completed {

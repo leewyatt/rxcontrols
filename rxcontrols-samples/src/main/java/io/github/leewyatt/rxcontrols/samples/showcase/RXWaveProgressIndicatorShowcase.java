@@ -23,11 +23,14 @@ import java.util.List;
  * Showcase application for {@link RXWaveProgressIndicator}.
  *
  * <p>Exercises every public knob: progress, indeterminate, custom centre
- * graphic, container/wave/border colours, wave amplitude / wavelength /
- * cycle / back-wave ratios, progress and indeterminate timings, and the
- * optional outer ring. Boundary values (cycle = 0, transition = 0) are
- * reachable via the sliders so the "non-positive disables animation" semantic
- * is directly observable.
+ * graphic, wave colours, wave amplitude / wavelength / cycle / back-wave
+ * ratios, progress and indeterminate timings. Container background and the
+ * outer ring are styled purely via CSS on the skin-internal
+ * {@code .wave-container} child node — see the default rules in
+ * {@code rx-controls.css}; users override by adding rules like
+ * {@code .my-control > .wave-container { -fx-border-color: ...; }}.
+ * Boundary values (cycle = 0, transition = 0) are reachable via the sliders
+ * so the "non-positive disables animation" semantic is directly observable.
  *
  * <p>For a minimal "few lines of code" example see
  * {@link RXWaveProgressIndicatorDemo}.
@@ -35,9 +38,6 @@ import java.util.List;
 public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
 
     private static final double PREVIEW_SIZE = 140.0;
-    private static final Color BORDERED_PRESET_STROKE = Color.web("#1e90ff");
-    private static final double BORDERED_PRESET_WIDTH = 6.0;
-    private static final double BORDERED_PRESET_PADDING = 5.0;
 
     private static final Callback<Double, String> STATE_TEXT_FACTORY = progress -> {
         if (progress == null || progress < 0.0) {
@@ -137,9 +137,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
             }
         });
 
-        // Listener attached later — its body references border controls declared further down.
-        CheckBox borderedBox = new CheckBox("Bordered preset");
-
         // ==================== Centre slot toggles ====================
         CheckBox graphicBox = new CheckBox("Custom graphic");
         graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
@@ -149,7 +146,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
         customTextBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setTextFactory(selected ? STATE_TEXT_FACTORY : null));
 
-        HBox toggleRow = new HBox(18.0, indeterminateBox, borderedBox);
+        HBox toggleRow = new HBox(18.0, indeterminateBox);
         toggleRow.getStyleClass().add("toggle-row");
         HBox graphicRow = new HBox(18.0, graphicBox, customTextBox);
         graphicRow.getStyleClass().add("toggle-row");
@@ -188,10 +185,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
         Label backAmpValue = createValueLabel(backAmpSlider, "%.2f");
 
         // ==================== Colours ====================
-        ColorPicker containerColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_CONTAINER_FILL);
-        containerColor.setMaxWidth(Double.MAX_VALUE);
-        indicator.containerFillProperty().bind(containerColor.valueProperty());
-
         ColorPicker frontColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_FRONT_WAVE_FILL);
         frontColor.setMaxWidth(Double.MAX_VALUE);
         indicator.frontWaveFillProperty().bind(frontColor.valueProperty());
@@ -199,38 +192,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
         ColorPicker backColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_BACK_WAVE_FILL);
         backColor.setMaxWidth(Double.MAX_VALUE);
         indicator.backWaveFillProperty().bind(backColor.valueProperty());
-
-        // ==================== Border ====================
-        ColorPicker borderColor = new ColorPicker(BORDERED_PRESET_STROKE);
-        borderColor.setMaxWidth(Double.MAX_VALUE);
-        indicator.borderStrokeProperty().bind(borderColor.valueProperty());
-
-        Slider borderWidthSlider = createSlider(0.0, 20.0,
-                RXWaveProgressIndicator.DEFAULT_BORDER_STROKE_WIDTH);
-        indicator.borderStrokeWidthProperty().bind(borderWidthSlider.valueProperty());
-        Label borderWidthValue = createValueLabel(borderWidthSlider, "%.0f");
-
-        Slider borderPaddingSlider = createSlider(0.0, 20.0,
-                RXWaveProgressIndicator.DEFAULT_BORDER_PADDING);
-        indicator.borderPaddingProperty().bind(borderPaddingSlider.valueProperty());
-        Label borderPaddingValue = createValueLabel(borderPaddingSlider, "%.0f");
-
-        // Bordered-preset checkbox writes source-control values directly because
-        // the three border properties above are bound — JavaFX suppresses CSS
-        // and direct setters on bound properties, so a `.bordered` style class
-        // could not take effect here. The `.bordered` CSS rule still lives in
-        // the showcase stylesheet as a copy-pasteable example for users who do
-        // not bind these properties.
-        borderedBox.selectedProperty().addListener((obs, oldV, selected) -> {
-            if (selected) {
-                borderColor.setValue(BORDERED_PRESET_STROKE);
-                borderWidthSlider.setValue(BORDERED_PRESET_WIDTH);
-                borderPaddingSlider.setValue(BORDERED_PRESET_PADDING);
-            } else {
-                borderWidthSlider.setValue(RXWaveProgressIndicator.DEFAULT_BORDER_STROKE_WIDTH);
-                borderPaddingSlider.setValue(RXWaveProgressIndicator.DEFAULT_BORDER_PADDING);
-            }
-        });
 
         // ==================== Timing ====================
         // Both sliders reach 0 to demonstrate the "non-positive disables animation" semantic:
@@ -268,14 +229,8 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
                                 row("Back amp", backAmpSlider, backAmpValue))),
                 section("Colours",
                         createGrid(
-                                row("Container", containerColor),
                                 row("Front", frontColor),
                                 row("Back", backColor))),
-                section("Border",
-                        createGrid(
-                                row("Stroke", borderColor),
-                                row("Width", borderWidthSlider, borderWidthValue),
-                                row("Padding", borderPaddingSlider, borderPaddingValue))),
                 section("Timing",
                         createGrid(
                                 row("Tween", tweenSlider, tweenValue),

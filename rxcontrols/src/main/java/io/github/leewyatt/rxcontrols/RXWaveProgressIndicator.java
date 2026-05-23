@@ -37,11 +37,13 @@ import java.util.List;
  *
  * <p>Visual structure (driven by the default skin):
  * <ul>
- *   <li>{@code .wave-container} — circular background filled with
- *       {@link #containerFillProperty() containerFill}</li>
+ *   <li>circular container — drawn by {@link javafx.scene.layout.Region}'s standard
+ *       background ({@code -fx-background-color} / {@code -fx-background-radius})</li>
  *   <li>{@code .back-wave} — rear wave layer (smaller amplitude, slower, phase-shifted)</li>
  *   <li>{@code .front-wave} — front wave layer (full amplitude)</li>
- *   <li>{@code .border-ring} — optional outer stroke ring</li>
+ *   <li>optional outer ring — use {@code -fx-border-color} / {@code -fx-border-width}
+ *       / {@code -fx-border-radius} / {@code -fx-padding} via CSS or
+ *       {@link javafx.scene.layout.Region#setBorder(javafx.scene.layout.Border) setBorder}</li>
  *   <li>{@code .progress-label} — renders both the converted progress text and
  *       {@link #graphicProperty()}; their relative layout is controlled via
  *       {@code -fx-content-display}</li>
@@ -99,11 +101,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     public static final double DEFAULT_BACK_WAVE_AMPLITUDE_RATIO = 0.7;
 
     /**
-     * Default container fill — the colour seen above the water surface.
-     */
-    public static final Paint DEFAULT_CONTAINER_FILL = Color.web("#E8F4FF");
-
-    /**
      * Default front-wave fill (opaque blue).
      */
     public static final Paint DEFAULT_FRONT_WAVE_FILL = Color.web("#1E90FF");
@@ -112,22 +109,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
      * Default back-wave fill (translucent blue).
      */
     public static final Paint DEFAULT_BACK_WAVE_FILL = Color.web("#1E90FF", 0.4);
-
-    /**
-     * Default outer-ring stroke. Transparent so the bordered preset is purely
-     * opt-in via {@link #borderStrokeWidthProperty()} / CSS.
-     */
-    public static final Paint DEFAULT_BORDER_STROKE = Color.TRANSPARENT;
-
-    /**
-     * Default outer-ring stroke width, in pixels. {@code 0} suppresses the ring.
-     */
-    public static final double DEFAULT_BORDER_STROKE_WIDTH = 0.0;
-
-    /**
-     * Default gap between the outer ring and the water container, in pixels.
-     */
-    public static final double DEFAULT_BORDER_PADDING = 0.0;
 
     /**
      * Default cycle duration for the indeterminate breathing animation.
@@ -513,45 +494,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
         backWaveAmplitudeRatio.set(value);
     }
 
-    // ==================== Container Fill ====================
-
-    private final ObjectProperty<Paint> containerFill = new StyleableObjectProperty<>(DEFAULT_CONTAINER_FILL) {
-        @Override
-        public Object getBean() {
-            return RXWaveProgressIndicator.this;
-        }
-
-        @Override
-        public String getName() {
-            return "containerFill";
-        }
-
-        @Override
-        public CssMetaData<RXWaveProgressIndicator, Paint> getCssMetaData() {
-            return StyleableProperties.CONTAINER_FILL;
-        }
-    };
-
-    /**
-     * Paint used for the round water container (the colour visible above the
-     * water surface). Initial value is {@link #DEFAULT_CONTAINER_FILL};
-     * setting {@code null} renders no fill (transparent), per the JavaFX
-     * {@code Shape.setFill} convention.
-     *
-     * @return the container-fill property
-     */
-    public final ObjectProperty<Paint> containerFillProperty() {
-        return containerFill;
-    }
-
-    public final Paint getContainerFill() {
-        return containerFill.get();
-    }
-
-    public final void setContainerFill(Paint value) {
-        containerFill.set(value);
-    }
-
     // ==================== Front Wave Fill ====================
 
     private final ObjectProperty<Paint> frontWaveFill = new StyleableObjectProperty<>(DEFAULT_FRONT_WAVE_FILL) {
@@ -626,120 +568,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
 
     public final void setBackWaveFill(Paint value) {
         backWaveFill.set(value);
-    }
-
-    // ==================== Border Stroke ====================
-
-    private final ObjectProperty<Paint> borderStroke = new StyleableObjectProperty<>(DEFAULT_BORDER_STROKE) {
-        @Override
-        public Object getBean() {
-            return RXWaveProgressIndicator.this;
-        }
-
-        @Override
-        public String getName() {
-            return "borderStroke";
-        }
-
-        @Override
-        public CssMetaData<RXWaveProgressIndicator, Paint> getCssMetaData() {
-            return StyleableProperties.BORDER_STROKE;
-        }
-    };
-
-    /**
-     * Paint used to stroke the optional outer ring. Initial value is
-     * {@link #DEFAULT_BORDER_STROKE}; setting {@code null} renders no stroke,
-     * per the JavaFX {@code Shape.setStroke} convention. To make the ring
-     * visible, set {@link #borderStrokeWidthProperty()} to a positive value
-     * and provide a non-{@code null} stroke.
-     *
-     * @return the border-stroke property
-     */
-    public final ObjectProperty<Paint> borderStrokeProperty() {
-        return borderStroke;
-    }
-
-    public final Paint getBorderStroke() {
-        return borderStroke.get();
-    }
-
-    public final void setBorderStroke(Paint value) {
-        borderStroke.set(value);
-    }
-
-    // ==================== Border Stroke Width ====================
-
-    private final DoubleProperty borderStrokeWidth = new StyleableDoubleProperty(DEFAULT_BORDER_STROKE_WIDTH) {
-        @Override
-        public Object getBean() {
-            return RXWaveProgressIndicator.this;
-        }
-
-        @Override
-        public String getName() {
-            return "borderStrokeWidth";
-        }
-
-        @Override
-        public CssMetaData<RXWaveProgressIndicator, Number> getCssMetaData() {
-            return StyleableProperties.BORDER_STROKE_WIDTH;
-        }
-    };
-
-    /**
-     * Stroke width of the outer ring, in pixels. Negative values and
-     * {@code NaN} are clamped to {@code 0} at render time (no ring drawn).
-     *
-     * @return the border-stroke-width property
-     */
-    public final DoubleProperty borderStrokeWidthProperty() {
-        return borderStrokeWidth;
-    }
-
-    public final double getBorderStrokeWidth() {
-        return borderStrokeWidth.get();
-    }
-
-    public final void setBorderStrokeWidth(double value) {
-        borderStrokeWidth.set(value);
-    }
-
-    // ==================== Border Padding ====================
-
-    private final DoubleProperty borderPadding = new StyleableDoubleProperty(DEFAULT_BORDER_PADDING) {
-        @Override
-        public Object getBean() {
-            return RXWaveProgressIndicator.this;
-        }
-
-        @Override
-        public String getName() {
-            return "borderPadding";
-        }
-
-        @Override
-        public CssMetaData<RXWaveProgressIndicator, Number> getCssMetaData() {
-            return StyleableProperties.BORDER_PADDING;
-        }
-    };
-
-    /**
-     * Gap between the outer ring and the water container, in pixels. Negative
-     * values and {@code NaN} are clamped to {@code 0} at render time.
-     *
-     * @return the border-padding property
-     */
-    public final DoubleProperty borderPaddingProperty() {
-        return borderPadding;
-    }
-
-    public final double getBorderPadding() {
-        return borderPadding.get();
-    }
-
-    public final void setBorderPadding(double value) {
-        borderPadding.set(value);
     }
 
     // ==================== CSS Metadata ====================
@@ -854,20 +682,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
                     }
                 };
 
-        private static final CssMetaData<RXWaveProgressIndicator, Paint> CONTAINER_FILL =
-                new CssMetaData<>("-rx-container-fill", PaintConverter.getInstance(), DEFAULT_CONTAINER_FILL) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.containerFill.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Paint>) n.containerFillProperty();
-                    }
-                };
-
         private static final CssMetaData<RXWaveProgressIndicator, Paint> FRONT_WAVE_FILL =
                 new CssMetaData<>("-rx-front-wave-fill", PaintConverter.getInstance(), DEFAULT_FRONT_WAVE_FILL) {
                     @Override
@@ -896,52 +710,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
                     }
                 };
 
-        private static final CssMetaData<RXWaveProgressIndicator, Paint> BORDER_STROKE =
-                new CssMetaData<>("-rx-border-stroke", PaintConverter.getInstance(), DEFAULT_BORDER_STROKE) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.borderStroke.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Paint>) n.borderStrokeProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXWaveProgressIndicator, Number> BORDER_STROKE_WIDTH =
-                new CssMetaData<>("-rx-border-stroke-width",
-                        SizeConverter.getInstance(),
-                        DEFAULT_BORDER_STROKE_WIDTH) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.borderStrokeWidth.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Number>) n.borderStrokeWidthProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXWaveProgressIndicator, Number> BORDER_PADDING =
-                new CssMetaData<>("-rx-border-padding",
-                        SizeConverter.getInstance(),
-                        DEFAULT_BORDER_PADDING) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.borderPadding.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Number>) n.borderPaddingProperty();
-                    }
-                };
-
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -955,12 +723,8 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
                     WAVE_CYCLE_DURATION,
                     BACK_WAVE_SPEED_RATIO,
                     BACK_WAVE_AMPLITUDE_RATIO,
-                    CONTAINER_FILL,
                     FRONT_WAVE_FILL,
-                    BACK_WAVE_FILL,
-                    BORDER_STROKE,
-                    BORDER_STROKE_WIDTH,
-                    BORDER_PADDING);
+                    BACK_WAVE_FILL);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
