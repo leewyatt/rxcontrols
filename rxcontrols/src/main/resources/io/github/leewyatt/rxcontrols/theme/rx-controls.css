@@ -191,6 +191,11 @@
     -fx-content-display: top;
 }
 
+/*******************************************************************************
+ *                                                                             *
+ * RXWaveProgressIndicator                                               *
+ *                                                                             *
+ ******************************************************************************/
 .rx-wave-progress-indicator {
     -rx-progress-transition-duration: 250ms;
     -rx-indeterminate-cycle-duration: 2500ms;
@@ -213,16 +218,11 @@
     -fx-border-radius: 50%;
 }
 
-.rx-wave-progress-indicator:completed {
-    -rx-front-wave-fill: #2ecc71;
-    -rx-back-wave-fill: rgba(46, 204, 113, 0.4);
-}
-
 .rx-wave-progress-indicator:empty {
     -rx-wave-amplitude: 0;
 }
 
-.rx-wave-progress-indicator > .progress-label {
+.rx-wave-progress-indicator > .wave-container > .progress-label {
     -fx-font-size: 1em;
     -fx-font-weight: bold;
     -fx-text-fill: -fx-text-base-color;

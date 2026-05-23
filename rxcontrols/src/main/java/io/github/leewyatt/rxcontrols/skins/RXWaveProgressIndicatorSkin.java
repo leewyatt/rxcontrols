@@ -269,7 +269,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
-        progressLabel.setManaged(false);
         disposer.registerDisposeTask(() -> {
             progressLabel.graphicProperty().unbind();
             progressLabel.setGraphic(null);
@@ -278,6 +277,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabel.visibleProperty(),
                 control.graphicProperty().isNotNull()
                         .or(progressLabel.textProperty().isNotEmpty()));
+        disposer.registerBinding(progressLabel.managedProperty(),
+                progressLabel.visibleProperty());
 
         disc.getStyleClass().add("wave-container");
         disc.setManaged(false);
@@ -688,7 +689,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             cachedCenterX = 0.0;
             cachedCenterY = 0.0;
             ensureWaveGeometry();
-            progressLabel.resizeRelocate(0.0, 0.0, 0.0, 0.0);
             return;
         }
 
@@ -713,18 +713,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         ensureWaveGeometry();
         requestWaveAnimation();
-        layoutLabel(centerX, centerY, waterRadius);
-    }
-
-    private void layoutLabel(double centerX, double centerY, double waterRadius) {
-        double innerDiameter = Math.max(0.0, waterRadius * 2.0);
-        double labelWidth = Math.min(progressLabel.prefWidth(innerDiameter), innerDiameter);
-        double labelHeight = Math.min(progressLabel.prefHeight(labelWidth), innerDiameter);
-        progressLabel.resizeRelocate(
-                centerX - labelWidth * HALF,
-                centerY - labelHeight * HALF,
-                labelWidth,
-                labelHeight);
     }
 
     @Override
