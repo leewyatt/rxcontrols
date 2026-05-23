@@ -215,8 +215,8 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         Paint progress = control.getProgressStroke();
         progressArc.setStroke(progress != null ? progress : RXCircularProgressIndicator.DEFAULT_PROGRESS_STROKE);
 
-        trackArc.setStrokeWidth(sanitizeStrokeWidth(control.getTrackStrokeWidth()));
-        progressArc.setStrokeWidth(sanitizeStrokeWidth(control.getProgressStrokeWidth()));
+        trackArc.setStrokeWidth(sanitize(control.getTrackStrokeWidth()));
+        progressArc.setStrokeWidth(sanitize(control.getProgressStrokeWidth()));
 
         StrokeLineCap cap = control.getStrokeLineCap();
         if (cap == null) {
@@ -490,7 +490,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         return v;
     }
 
-    private static double sanitizeStrokeWidth(double v) {
+    private static double sanitize(double v) {
         if (Double.isNaN(v) || v < 0.0) {
             return 0.0;
         }
