@@ -62,39 +62,55 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private static final double HALF = 0.5;
     private static final double TWO_PI = 2.0 * Math.PI;
 
-    /** Lower water-level bound for the indeterminate breathing. */
+    /**
+     * Lower water-level bound for the indeterminate breathing.
+     */
     private static final double INDETERMINATE_LOW = 0.35;
 
-    /** Upper water-level bound for the indeterminate breathing. */
+    /**
+     * Upper water-level bound for the indeterminate breathing.
+     */
     private static final double INDETERMINATE_HIGH = 0.65;
 
-    /** Mid-range water level used when the indeterminate animation is suppressed. */
+    /**
+     * Mid-range water level used when the indeterminate animation is suppressed.
+     */
     private static final double INDETERMINATE_REST = 0.5;
 
-    /** Spacing between wave-surface sample points, in pixels. */
+    /**
+     * Spacing between wave-surface sample points, in pixels.
+     */
     private static final double WAVE_SAMPLE_STEP = 3.0;
 
-    /** Lower bound on surface sample points, so tiny controls still curve smoothly. */
+    /**
+     * Lower bound on surface sample points, so tiny controls still curve smoothly.
+     */
     private static final int MIN_WAVE_POINTS = 8;
 
-    /** Upper bound on one frame's time step — guards against a long stall after resume. */
+    /**
+     * Upper bound on one frame's time step — guards against a long stall after resume.
+     */
     private static final double MAX_FRAME_SECONDS = 1.0 / 30.0;
 
-    /** Radians added to the back layer's component phases so the two layers never coincide. */
+    /**
+     * Radians added to the back layer's component phases so the two layers never coincide.
+     */
     private static final double BACK_WAVE_PHASE_OFFSET = Math.PI;
 
     /**
-     * Back baseline is raised above the front baseline (smaller Y in screen space) by
-     * this fraction of the resting amplitude, so the back wave's surface averages
-     * above the front and is consistently visible as a band peeking over the front
-     * instead of relying on instantaneous phase desync to expose it.
+     * Back baseline lift above the front baseline, as a fraction of resting amplitude
+     * (screen-space, smaller Y = higher), so the back wave shows as a permanent band.
      */
     private static final double BACK_BASELINE_LIFT_RATIO = 0.5;
 
-    /** Converts water-level speed (progress per second) into an amplitude-swell multiplier. */
+    /**
+     * Converts water-level speed (progress per second) into an amplitude-swell multiplier.
+     */
     private static final double SLOSH_GAIN = 0.22;
 
-    /** Upper bound on the slosh multiplier — amplitude never exceeds {@code (1 + this)} x rest. */
+    /**
+     * Upper bound on the slosh multiplier — amplitude never exceeds {@code (1 + this)} x rest.
+     */
     private static final double SLOSH_MAX_GAIN = 2.0;
 
     // ==================== Wave Model ====================
@@ -130,7 +146,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             new WaveComponent(0.38, 0.18, 0.70, 3.7),
     };
 
-    /** Reusable {@link MoveTo} / {@link LineTo} nodes for one wave-layer path. */
+    /**
+     * Reusable {@link MoveTo} / {@link LineTo} nodes for one wave-layer path.
+     */
     private static final class WaveLayerNodes {
         final MoveTo start = new MoveTo();
         final LineTo[] surface;
@@ -157,7 +175,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     // ==================== State ====================
 
-    /** Visible [0,1] progress — diverges from {@code control.progress} during tween / indeterminate. */
+    /**
+     * Visible [0,1] progress — diverges from {@code control.progress} during tween / indeterminate.
+     */
     private final DoubleProperty displayedProgress =
             new SimpleDoubleProperty(this, "displayedProgress", 0.0);
 
@@ -167,7 +187,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private Timeline indeterminateTimeline;
     private boolean indeterminateMode;
 
-    /** Per-frame driver for the sum-of-sines surface; started/stopped, never paused. */
+    /**
+     * Per-frame driver for the sum-of-sines surface; started/stopped, never paused.
+     */
     private final AnimationTimer waveTimer = new AnimationTimer() {
         @Override
         public void handle(long now) {
@@ -180,7 +202,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private double elapsedSeconds;
     private double lastDisplayedProgress;
 
-    /** Current slosh swell, as a fraction added on top of the resting amplitude. */
+    /**
+     * Current slosh swell, as a fraction added on top of the resting amplitude.
+     */
     private double sloshMultiplier;
 
     private WaveLayerNodes frontNodes;
@@ -188,7 +212,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private int wavePointCount;
     private double[] sampleX = new double[0];
 
-    /** Cached geometry used by the per-frame surface rebuild — skin-local coordinates. */
+    /**
+     * Cached geometry used by the per-frame surface rebuild — skin-local coordinates.
+     */
     private double cachedCenterX;
     private double cachedCenterY;
     private double cachedWaterRadius;
@@ -263,9 +289,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabel.managedProperty(),
                 progressLabel.visibleProperty());
 
-        // Pass paints through verbatim — Shape.setFill / setStroke accept null
-        // with the JavaFX-standard "no fill / no stroke" meaning, so swallowing
-        // null and substituting a default would conflict with that convention.
         disposer.registerBinding(container.fillProperty(), control.containerFillProperty());
         disposer.registerBinding(frontWavePath.fillProperty(), control.frontWaveFillProperty());
         disposer.registerBinding(backWavePath.fillProperty(), control.backWaveFillProperty());
@@ -459,7 +482,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         sloshMultiplier = 0.0;
     }
 
-    /** Ensures the surface is current and the frame timer is running if it should be. */
+    /**
+     * Ensures the surface is current and the frame timer is running if it should be.
+     */
     private void requestWaveAnimation() {
         startWaveTimer();
         updateWaveSurface();
@@ -612,10 +637,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double frontAmplitude = restAmplitude * (1.0 + sloshMultiplier);
         double backAmplitude = frontAmplitude * RXMath.sanitizeNonNegative(control.getBackWaveAmplitudeRatio());
 
-        // Lift the back baseline above the front baseline so the back surface is visible
-        // as a permanent band, not just on rare phase alignments. Capped by current water
-        // depth, otherwise an empty container (level = 0) would still show a back-wave
-        // sliver at the bottom.
+        // Clamp by water depth so level=0 doesn't leave a back-wave sliver at the bottom.
         double backLift = Math.min(restAmplitude * BACK_BASELINE_LIFT_RATIO, waterDepth);
         double backBaseline = baseline - backLift;
 
