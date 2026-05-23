@@ -15,7 +15,6 @@ import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
-import javafx.scene.Node;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
@@ -44,10 +43,15 @@ import java.util.List;
  *   <li>optional outer ring — use {@code -fx-border-color} / {@code -fx-border-width}
  *       / {@code -fx-border-radius} / {@code -fx-padding} via CSS or
  *       {@link javafx.scene.layout.Region#setBorder(javafx.scene.layout.Border) setBorder}</li>
- *   <li>{@code .progress-label} — renders both the converted progress text and
- *       {@link #graphicProperty()}; their relative layout is controlled via
- *       {@code -fx-content-display}</li>
+ *   <li>{@code .progress-label} — renders the converted progress text;
+ *       water-line dual-colour rendering uses a hidden mirror label clipped to
+ *       the front-wave surface ({@code .progress-label.below-water})</li>
  * </ul>
+ *
+ * <p>This control deliberately does not own a {@code graphic} property: the
+ * dual-label water-line trick cannot mirror an arbitrary graphic node (a node
+ * has only one parent). To compose with an icon, wrap externally:
+ * {@code new StackPane(indicator, iconNode)}.
  *
  * <p>Pseudo-classes (in addition to {@code :determinate} / {@code :indeterminate}
  * inherited from {@link ProgressIndicator}):
@@ -168,39 +172,13 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
         pseudoClassStateChanged(PSEUDO_CLASS_EMPTY, p == 0.0);
     }
 
-    // ==================== Graphic ====================
-
-    private final ObjectProperty<Node> graphic = new SimpleObjectProperty<>(this, "graphic");
-
-    /**
-     * Node shown alongside the generated progress text inside the centre
-     * label. Acts like {@link javafx.scene.control.Labeled#graphicProperty()}:
-     * graphic and text coexist; their relative position is controlled by the
-     * label's {@code -fx-content-display} CSS property (target
-     * {@code .rx-wave-progress-indicator .progress-label}).
-     *
-     * @return the graphic property
-     */
-    public final ObjectProperty<Node> graphicProperty() {
-        return graphic;
-    }
-
-    public final Node getGraphic() {
-        return graphic.get();
-    }
-
-    public final void setGraphic(Node value) {
-        graphic.set(value);
-    }
-
     // ==================== Text Factory ====================
 
     private final ObjectProperty<Callback<Double, String>> textFactory =
             new SimpleObjectProperty<>(this, "textFactory", DEFAULT_TEXT_FACTORY);
 
     /**
-     * Factory that produces the progress text rendered alongside the
-     * {@link #graphicProperty() graphic}. Tolerates {@code null}
+     * Factory that produces the centre progress text. Tolerates {@code null}
      * (skin falls back to {@link #DEFAULT_TEXT_FACTORY}).
      *
      * @return the textFactory property

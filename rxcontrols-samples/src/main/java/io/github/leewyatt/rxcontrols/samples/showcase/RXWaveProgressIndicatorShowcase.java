@@ -12,7 +12,6 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -22,8 +21,8 @@ import java.util.List;
 /**
  * Showcase application for {@link RXWaveProgressIndicator}.
  *
- * <p>Exercises every public knob: progress, indeterminate, custom centre
- * graphic, wave colours, wave amplitude / wavelength / cycle / back-wave
+ * <p>Exercises every public knob: progress, indeterminate, custom text
+ * factory, wave colours, wave amplitude / wavelength / cycle / back-wave
  * ratios, progress and indeterminate timings. Container background and the
  * outer ring are styled purely via CSS on the skin-internal
  * {@code .wave-container} child node — see the default rules in
@@ -50,7 +49,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
     };
 
     private RXWaveProgressIndicator indicator;
-    private Region stateIcon;
     private Slider progressSlider;
     private CheckBox indeterminateBox;
 
@@ -95,10 +93,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         indicator = new RXWaveProgressIndicator(0.6);
         indicator.setPrefSize(PREVIEW_SIZE, PREVIEW_SIZE);
-
-        stateIcon = new Region();
-        stateIcon.getStyleClass().add("state-icon");
-        stateIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return indicator;
     }
 
@@ -137,19 +131,12 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
             }
         });
 
-        // ==================== Centre slot toggles ====================
-        CheckBox graphicBox = new CheckBox("Custom graphic");
-        graphicBox.selectedProperty().addListener((obs, oldV, selected) ->
-                indicator.setGraphic(selected ? stateIcon : null));
-
         CheckBox customTextBox = new CheckBox("Custom text");
         customTextBox.selectedProperty().addListener((obs, oldV, selected) ->
                 indicator.setTextFactory(selected ? STATE_TEXT_FACTORY : null));
 
-        HBox toggleRow = new HBox(18.0, indeterminateBox);
+        HBox toggleRow = new HBox(18.0, indeterminateBox, customTextBox);
         toggleRow.getStyleClass().add("toggle-row");
-        HBox graphicRow = new HBox(18.0, graphicBox, customTextBox);
-        graphicRow.getStyleClass().add("toggle-row");
 
         // ==================== Sizing ====================
         Slider sizeSlider = createSlider(40.0, 320.0, PREVIEW_SIZE);
@@ -216,9 +203,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
                                 row("Value", progressSlider, progressValue),
                                 row("Jump to", jumpButtons),
                                 row(toggleRow))),
-                section("Centre slot",
-                        createGrid(
-                                row(graphicRow))),
                 section("Wave",
                         createGrid(
                                 row("Size", sizeSlider, sizeValue),

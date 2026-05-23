@@ -35,10 +35,15 @@ import java.util.List;
  * that is always sized to the inscribed square of the outer control. Background,
  * border, border-radius and insets are styled on {@code .wave-container} via
  * standard {@code -fx-background-*} / {@code -fx-border-*} CSS, so the circle
- * stays a true circle even when the outer control is non-square. The centre
- * label renders both {@link RXWaveProgressIndicator#getGraphic()} and the
- * converted progress text; relative layout is controlled via
- * {@code -fx-content-display}.
+ * stays a true circle even when the outer control is non-square.
+ *
+ * <p>The centre label renders the converted progress text. To make the text
+ * legible both above and below the water line, a hidden mirror label
+ * ({@code .progress-label.below-water}) is clipped to the front-wave surface
+ * and rendered on top; users style the two colours independently via the
+ * {@code .progress-label} and {@code .progress-label.below-water} selectors.
+ * Font and padding on the mirror label are pinned to the visible label so the
+ * two labels remain pixel-aligned along the water surface.
  *
  * <p>Each wave surface is a <em>sum of sines</em>: several sinusoidal
  * components of different wavelength, amplitude and speed are added into one
@@ -275,14 +280,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         progressLabel.setAlignment(Pos.CENTER);
         progressLabel.setMouseTransparent(true);
         progressLabel.setManaged(false);
-        disposer.registerDisposeTask(() -> {
-            progressLabel.graphicProperty().unbind();
-            progressLabel.setGraphic(null);
-        });
-        progressLabel.graphicProperty().bind(control.graphicProperty());
         disposer.registerBinding(progressLabel.visibleProperty(),
-                control.graphicProperty().isNotNull()
-                        .or(progressLabel.textProperty().isNotEmpty()));
+                progressLabel.textProperty().isNotEmpty());
 
         waterClipPath.setManaged(false);
         // Path's default is fill=null + stroke=BLACK (opposite of generic Shape). Used as a
