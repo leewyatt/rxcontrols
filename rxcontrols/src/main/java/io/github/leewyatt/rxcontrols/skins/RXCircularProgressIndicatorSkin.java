@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -110,7 +111,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         double initial = control.getProgress();
         if (initial >= 0.0) {
             indeterminateMode = false;
-            displayedProgress.set(clamp(initial));
+            displayedProgress.set(RXMath.clamp0To1(initial));
             applyDisplayedLength();
         } else {
             displayedProgress.set(0.0);
@@ -215,8 +216,8 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         Paint progress = control.getProgressStroke();
         progressArc.setStroke(progress != null ? progress : RXCircularProgressIndicator.DEFAULT_PROGRESS_STROKE);
 
-        trackArc.setStrokeWidth(sanitize(control.getTrackStrokeWidth()));
-        progressArc.setStrokeWidth(sanitize(control.getProgressStrokeWidth()));
+        trackArc.setStrokeWidth(RXMath.sanitizeNonNegative(control.getTrackStrokeWidth()));
+        progressArc.setStrokeWidth(RXMath.sanitizeNonNegative(control.getProgressStrokeWidth()));
 
         StrokeLineCap cap = control.getStrokeLineCap();
         if (cap == null) {
@@ -233,7 +234,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
             startIndeterminate();
             return;
         }
-        double target = clamp(newProgress);
+        double target = RXMath.clamp0To1(newProgress);
         if (indeterminateMode) {
             stopIndeterminate();
         }
@@ -478,22 +479,4 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         super.dispose();
     }
 
-    // ==================== Helpers ====================
-
-    private static double clamp(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
-
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
 }

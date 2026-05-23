@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXDotPulse.PulseStyle;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -164,7 +165,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     // ==================== Dot composition ====================
 
     private void rebuildDots() {
-        int n = clampDotCount(getSkinnable().getDotCount());
+        int n = RXMath.clamp(getSkinnable().getDotCount(),
+                RXDotPulse.MIN_DOT_COUNT, RXDotPulse.MAX_DOT_COUNT);
         Paint fill = paintOrDefault(getSkinnable().getDotColor(), RXDotPulse.DEFAULT_DOT_COLOR);
 
         dots.clear();
@@ -226,8 +228,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         if (style == null) {
             style = RXDotPulse.DEFAULT_PULSE_STYLE;
         }
-        double amp = sanitize(getSkinnable().getAmplitude());
-        double size = sanitize(getSkinnable().getDotSize());
+        double amp = RXMath.sanitizeNonNegative(getSkinnable().getAmplitude());
+        double size = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
 
         for (int i = 0; i < n; i++) {
             double local = ((t + (double) i / n) % 1.0 + 1.0) % 1.0;
@@ -284,7 +286,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
                 c.setTranslateY(0.0);
                 c.setScaleX(1.0);
                 c.setScaleY(1.0);
-                c.setOpacity(clamp(opacity));
+                c.setOpacity(RXMath.clamp0To1(opacity));
             }
         }
     }
@@ -304,8 +306,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
             return;
         }
 
-        double size = sanitize(getSkinnable().getDotSize());
-        double gap = sanitize(getSkinnable().getDotGap());
+        double size = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
+        double gap = RXMath.sanitizeNonNegative(getSkinnable().getDotGap());
         double radius = size * HALF;
         double rowWidth = n * size + Math.max(0, n - 1) * gap;
         double startX = contentX + (contentWidth - rowWidth) * HALF + radius;
@@ -331,7 +333,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + sanitize(getSkinnable().getDotSize()) + bottomInset;
+        return topInset + RXMath.sanitizeNonNegative(getSkinnable().getDotSize()) + bottomInset;
     }
 
     @Override
@@ -343,8 +345,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        double size = sanitize(getSkinnable().getDotSize());
-        double amp = sanitize(getSkinnable().getAmplitude());
+        double size = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
+        double amp = RXMath.sanitizeNonNegative(getSkinnable().getAmplitude());
         // Always leave room for the bounce headroom, even on PULSE/FADE — the
         // user may switch styles at runtime and we should not have to relayout
         // on every change.
@@ -366,9 +368,10 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     }
 
     private double computeRowWidth() {
-        int n = clampDotCount(getSkinnable().getDotCount());
-        double size = sanitize(getSkinnable().getDotSize());
-        double gap = sanitize(getSkinnable().getDotGap());
+        int n = RXMath.clamp(getSkinnable().getDotCount(),
+                RXDotPulse.MIN_DOT_COUNT, RXDotPulse.MAX_DOT_COUNT);
+        double size = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
+        double gap = RXMath.sanitizeNonNegative(getSkinnable().getDotGap());
         return n * size + Math.max(0, n - 1) * gap;
     }
 
@@ -388,33 +391,6 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     }
 
     // ==================== Helpers ====================
-
-    private static int clampDotCount(int v) {
-        if (v < RXDotPulse.MIN_DOT_COUNT) {
-            return RXDotPulse.MIN_DOT_COUNT;
-        }
-        if (v > RXDotPulse.MAX_DOT_COUNT) {
-            return RXDotPulse.MAX_DOT_COUNT;
-        }
-        return v;
-    }
-
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
-
-    private static double clamp(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
 
     private static Paint paintOrDefault(Paint v, Paint fallback) {
         return v != null ? v : fallback;

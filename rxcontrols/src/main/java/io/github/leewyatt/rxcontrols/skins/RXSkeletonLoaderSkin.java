@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSkeletonLoader;
 import io.github.leewyatt.rxcontrols.RXSkeletonLoader.Shape;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -344,7 +345,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
 
     private void layoutRoundedRect(double cx, double cy, double cw, double ch) {
         Rectangle base = (Rectangle) baseLayer.getChildren().get(0);
-        double radius = sanitize(getSkinnable().getCornerRadius());
+        double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
         base.setX(cx);
         base.setY(cy);
         base.setWidth(cw);
@@ -370,9 +371,10 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     }
 
     private void layoutTextLine(double cx, double cy, double cw, double ch) {
-        double lineHeight = sanitize(getSkinnable().getLineHeight());
-        double lineSpacing = sanitize(getSkinnable().getLineSpacing());
-        double lastPercent = clampPercent(getSkinnable().getLastLineFillPercent());
+        double lineHeight = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
+        double lineSpacing = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
+        double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
+        double lastPercent = RXMath.clamp(lastPercentSource, 0.0, FULL_PERCENT);
         int lineCount = baseLayer.getChildren().size();
         // Per-line corner radius keeps the line ends rounded without exposing
         // a separate property; using half the line height yields fully rounded
@@ -396,7 +398,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     }
 
     private void layoutShimmer(Shape s, double cx, double cy, double cw, double ch) {
-        double ratio = clampRatio(getSkinnable().getShimmerWidthRatio());
+        double ratio = RXMath.clamp0To1(getSkinnable().getShimmerWidthRatio());
         double bandWidth = cw * ratio;
         if (bandWidth <= 0.0) {
             shimmerBand.setWidth(0.0);
@@ -433,7 +435,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
                 // enough — the gradient is mostly transparent and visually it
                 // reads as one band sweeping across the paragraph rather than
                 // each line ticking independently.
-                double radius = sanitize(getSkinnable().getLineHeight()) * HALF;
+                double radius = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight()) * HALF;
                 shimmerClip.setX(cx);
                 shimmerClip.setY(cy);
                 shimmerClip.setWidth(cw);
@@ -442,7 +444,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
                 shimmerClip.setArcHeight(radius * 2.0);
             }
             case ROUNDED_RECT -> {
-                double radius = sanitize(getSkinnable().getCornerRadius());
+                double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
                 shimmerClip.setX(cx);
                 shimmerClip.setY(cy);
                 shimmerClip.setWidth(cw);
@@ -482,8 +484,8 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         double inner = switch (s) {
             case TEXT_LINE -> {
                 int n = Math.max(1, getSkinnable().getLineCount());
-                double lh = sanitize(getSkinnable().getLineHeight());
-                double sp = sanitize(getSkinnable().getLineSpacing());
+                double lh = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
+                double sp = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
                 yield n * lh + Math.max(0, n - 1) * sp;
             }
             case CIRCLE -> DEFAULT_PREF_HEIGHT * 2.0;
@@ -525,30 +527,4 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         return v != null ? v : fallback;
     }
 
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
-
-    private static double clampRatio(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
-
-    private static double clampPercent(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > FULL_PERCENT) {
-            return FULL_PERCENT;
-        }
-        return v;
-    }
 }

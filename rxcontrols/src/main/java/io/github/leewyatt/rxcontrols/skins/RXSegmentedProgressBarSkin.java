@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -124,7 +125,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         double initial = control.getProgress();
         if (initial >= 0.0) {
             indeterminateMode = false;
-            displayedProgress.set(clamp(initial));
+            displayedProgress.set(RXMath.clamp0To1(initial));
         } else {
             displayedProgress.set(0.0);
             startIndeterminate();
@@ -181,10 +182,11 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     // ==================== Segment composition ====================
 
     private void rebuildSegments() {
-        int n = clampSegmentCount(getSkinnable().getSegmentCount());
+        int n = RXMath.clamp(getSkinnable().getSegmentCount(),
+                RXSegmentedProgressBar.MIN_SEGMENT_COUNT, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
         Paint filled = paintOrDefault(getSkinnable().getFilledColor(), RXSegmentedProgressBar.DEFAULT_FILLED_COLOR);
         Paint unfilled = paintOrDefault(getSkinnable().getUnfilledColor(), RXSegmentedProgressBar.DEFAULT_UNFILLED_COLOR);
-        double arc = sanitize(getSkinnable().getSegmentArc()) * 2.0;
+        double arc = RXMath.sanitizeNonNegative(getSkinnable().getSegmentArc()) * 2.0;
 
         trackRects.clear();
         fillRects.clear();
@@ -231,7 +233,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     }
 
     private void applySegmentArc() {
-        double arc = sanitize(getSkinnable().getSegmentArc()) * 2.0;
+        double arc = RXMath.sanitizeNonNegative(getSkinnable().getSegmentArc()) * 2.0;
         for (Rectangle r : trackRects) {
             r.setArcWidth(arc);
             r.setArcHeight(arc);
@@ -249,7 +251,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             startIndeterminate();
             return;
         }
-        double target = clamp(newProgress);
+        double target = RXMath.clamp0To1(newProgress);
         if (indeterminateMode) {
             stopIndeterminate();
         }
@@ -349,7 +351,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             return;
         }
 
-        double p = clamp(displayedProgress.get());
+        double p = RXMath.clamp0To1(displayedProgress.get());
         double globalFill = p * n;
         for (int i = 0; i < n; i++) {
             double ratio = globalFill - i;
@@ -382,8 +384,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         }
 
         RXSegmentedProgressBar control = getSkinnable();
-        double gap = sanitize(control.getSegmentGap());
-        double segHeight = sanitize(control.getSegmentHeight());
+        double gap = RXMath.sanitizeNonNegative(control.getSegmentGap());
+        double segHeight = RXMath.sanitizeNonNegative(control.getSegmentHeight());
         // Cap the rendered segment height to the available content height so a
         // too-tall segmentHeight on a clamped parent does not overflow.
         double renderedHeight = Math.min(segHeight, contentHeight);
@@ -429,15 +431,16 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
                                      double bottomInset, double leftInset) {
         // One pixel per segment plus gaps — the absolute floor below which the
         // bar stops being a meaningful progress display.
-        int n = clampSegmentCount(getSkinnable().getSegmentCount());
-        double gap = sanitize(getSkinnable().getSegmentGap());
+        int n = RXMath.clamp(getSkinnable().getSegmentCount(),
+                RXSegmentedProgressBar.MIN_SEGMENT_COUNT, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
+        double gap = RXMath.sanitizeNonNegative(getSkinnable().getSegmentGap());
         return leftInset + n + gap * Math.max(0, n - 1) + rightInset;
     }
 
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + sanitize(getSkinnable().getSegmentHeight()) + bottomInset;
+        return topInset + RXMath.sanitizeNonNegative(getSkinnable().getSegmentHeight()) + bottomInset;
     }
 
     @Override
@@ -449,7 +452,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + sanitize(getSkinnable().getSegmentHeight()) + bottomInset;
+        return topInset + RXMath.sanitizeNonNegative(getSkinnable().getSegmentHeight()) + bottomInset;
     }
 
     @Override
@@ -482,33 +485,6 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     }
 
     // ==================== Helpers ====================
-
-    private static int clampSegmentCount(int v) {
-        if (v < RXSegmentedProgressBar.MIN_SEGMENT_COUNT) {
-            return RXSegmentedProgressBar.MIN_SEGMENT_COUNT;
-        }
-        if (v > RXSegmentedProgressBar.MAX_SEGMENT_COUNT) {
-            return RXSegmentedProgressBar.MAX_SEGMENT_COUNT;
-        }
-        return v;
-    }
-
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
-
-    private static double clamp(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
 
     private static Paint paintOrDefault(Paint v, Paint fallback) {
         return v != null ? v : fallback;

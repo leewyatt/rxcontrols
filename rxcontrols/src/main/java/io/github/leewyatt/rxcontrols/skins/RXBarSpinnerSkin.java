@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXBarSpinner.BarStyle;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -169,9 +170,10 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     // ==================== Bar composition ====================
 
     private void rebuildBars() {
-        int n = clampBarCount(getSkinnable().getBarCount());
+        int n = RXMath.clamp(getSkinnable().getBarCount(),
+                RXBarSpinner.MIN_BAR_COUNT, RXBarSpinner.MAX_BAR_COUNT);
         Paint fill = paintOrDefault(getSkinnable().getBarColor(), RXBarSpinner.DEFAULT_BAR_COLOR);
-        double arc = sanitize(getSkinnable().getBarArc());
+        double arc = RXMath.sanitizeNonNegative(getSkinnable().getBarArc());
 
         bars.clear();
         for (int i = 0; i < n; i++) {
@@ -195,7 +197,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     }
 
     private void applyBarArc() {
-        double arc = sanitize(getSkinnable().getBarArc()) * 2.0;
+        double arc = RXMath.sanitizeNonNegative(getSkinnable().getBarArc()) * 2.0;
         for (Rectangle r : bars) {
             r.setArcWidth(arc);
             r.setArcHeight(arc);
@@ -356,13 +358,13 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         }
 
         RXBarSpinner control = getSkinnable();
-        double width = sanitize(control.getBarWidth());
-        double gap = sanitize(control.getBarGap());
-        double declaredHeight = sanitize(control.getBarHeight());
+        double width = RXMath.sanitizeNonNegative(control.getBarWidth());
+        double gap = RXMath.sanitizeNonNegative(control.getBarGap());
+        double declaredHeight = RXMath.sanitizeNonNegative(control.getBarHeight());
         // Cap peak to the available content height so a too-tall barHeight on
         // a clamped parent does not clip the bars.
         double peak = Math.min(declaredHeight, contentHeight);
-        double ratio = clampRatio(control.getMinBarHeightRatio());
+        double ratio = RXMath.clamp0To1(control.getMinBarHeightRatio());
         double minH = peak * ratio;
 
         double rowWidth = n * width + Math.max(0, n - 1) * gap;
@@ -392,7 +394,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + sanitize(getSkinnable().getBarHeight()) + bottomInset;
+        return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;
     }
 
     @Override
@@ -404,7 +406,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + sanitize(getSkinnable().getBarHeight()) + bottomInset;
+        return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;
     }
 
     @Override
@@ -420,9 +422,10 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     }
 
     private double computeRowWidth() {
-        int n = clampBarCount(getSkinnable().getBarCount());
-        double width = sanitize(getSkinnable().getBarWidth());
-        double gap = sanitize(getSkinnable().getBarGap());
+        int n = RXMath.clamp(getSkinnable().getBarCount(),
+                RXBarSpinner.MIN_BAR_COUNT, RXBarSpinner.MAX_BAR_COUNT);
+        double width = RXMath.sanitizeNonNegative(getSkinnable().getBarWidth());
+        double gap = RXMath.sanitizeNonNegative(getSkinnable().getBarGap());
         return n * width + Math.max(0, n - 1) * gap;
     }
 
@@ -441,33 +444,6 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     }
 
     // ==================== Helpers ====================
-
-    private static int clampBarCount(int v) {
-        if (v < RXBarSpinner.MIN_BAR_COUNT) {
-            return RXBarSpinner.MIN_BAR_COUNT;
-        }
-        if (v > RXBarSpinner.MAX_BAR_COUNT) {
-            return RXBarSpinner.MAX_BAR_COUNT;
-        }
-        return v;
-    }
-
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
-
-    private static double clampRatio(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
 
     private static Paint paintOrDefault(Paint v, Paint fallback) {
         return v != null ? v : fallback;

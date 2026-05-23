@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.AnimationTimer;
@@ -205,7 +206,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double initial = control.getProgress();
         if (initial >= 0.0) {
             indeterminateMode = false;
-            displayedProgress.set(clamp(initial));
+            displayedProgress.set(RXMath.clamp0To1(initial));
         } else {
             displayedProgress.set(INDETERMINATE_REST);
             startIndeterminate();
@@ -316,7 +317,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         Paint bs = control.getBorderStroke();
         borderRing.setStroke(bs != null ? bs : RXWaveProgressIndicator.DEFAULT_BORDER_STROKE);
-        borderRing.setStrokeWidth(sanitize(control.getBorderStrokeWidth()));
+        borderRing.setStrokeWidth(RXMath.sanitizeNonNegative(control.getBorderStrokeWidth()));
     }
 
     // ==================== Progress changes ====================
@@ -326,7 +327,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             startIndeterminate();
             return;
         }
-        double target = clamp(newProgress);
+        double target = RXMath.clamp0To1(newProgress);
         if (indeterminateMode) {
             stopIndeterminate();
         }
@@ -611,12 +612,12 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         double bottomY = cachedCenterY + radius;
         double sealedBottom = bottomY + 1.0;
 
-        double level = clamp(displayedProgress.get());
+        double level = RXMath.clamp0To1(displayedProgress.get());
         double baseline = bottomY - level * (radius * 2.0);
 
-        double restAmplitude = sanitize(control.getWaveAmplitude());
+        double restAmplitude = RXMath.sanitizeNonNegative(control.getWaveAmplitude());
         double frontAmplitude = restAmplitude * (1.0 + sloshMultiplier);
-        double backAmplitude = frontAmplitude * sanitize(control.getBackWaveAmplitudeRatio());
+        double backAmplitude = frontAmplitude * RXMath.sanitizeNonNegative(control.getBackWaveAmplitudeRatio());
 
         double lambda = resolveWaveLength();
         double baseOmega = resolveBaseOmega();
@@ -694,8 +695,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         }
 
         RXWaveProgressIndicator control = getSkinnable();
-        double border = sanitize(control.getBorderStrokeWidth());
-        double padding = sanitize(control.getBorderPadding());
+        double border = RXMath.sanitizeNonNegative(control.getBorderStrokeWidth());
+        double padding = RXMath.sanitizeNonNegative(control.getBorderPadding());
 
         double waterDiameter = Math.max(0.0, size - 2.0 * (border + padding));
         double offsetX = contentX + (contentWidth - size) * HALF;
@@ -791,22 +792,4 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         super.dispose();
     }
 
-    // ==================== Helpers ====================
-
-    private static double clamp(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        if (v > 1.0) {
-            return 1.0;
-        }
-        return v;
-    }
-
-    private static double sanitize(double v) {
-        if (Double.isNaN(v) || v < 0.0) {
-            return 0.0;
-        }
-        return v;
-    }
 }

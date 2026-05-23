@@ -346,10 +346,10 @@ public class RXLrcViewSkin extends SkinBase<RXLrcView> {
         super.dispose();
     }
 
-    // ==================== Migrated UIUtil helpers (legacy, pending refactor) ====================
+    // ==================== Migrated legacy helpers (pending refactor) ====================
     //
-    // The helpers below were lifted from io.github.leewyatt.rxcontrols.utils.UIUtil during the
-    // 2026-05 review. Behaviour is intentionally preserved as-is — known issues are called out
+    // The helpers below were lifted from a deleted utility class during the 2026-05 review.
+    // Behaviour is intentionally preserved as-is — known issues are called out
     // with TODO markers and will be addressed when RXLrcViewSkin itself is refactored. These
     // helpers (along with their TODO markers and the inherited Chinese Javadoc) are temporary;
     // remove them entirely during the rewrite rather than keeping them as long-term residents.
