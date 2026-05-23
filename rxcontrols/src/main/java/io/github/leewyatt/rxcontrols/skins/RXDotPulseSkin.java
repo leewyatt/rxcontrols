@@ -284,7 +284,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
                 c.setTranslateY(0.0);
                 c.setScaleX(1.0);
                 c.setScaleY(1.0);
-                c.setOpacity(clamp01(opacity));
+                c.setOpacity(clamp(opacity));
             }
         }
     }
@@ -406,7 +406,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         return v;
     }
 
-    private static double clamp01(double v) {
+    private static double clamp(double v) {
         if (Double.isNaN(v) || v < 0.0) {
             return 0.0;
         }
