@@ -14,7 +14,6 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.LineTo;
@@ -207,8 +206,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerDisposeTask(treeShowing::dispose);
 
         registerListeners(control);
-        applyFills();
-        applyBorder();
+        applyBorderWidth();
         applyCenterContent();
 
         double initial = control.getProgress();
@@ -265,6 +263,14 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabel.managedProperty(),
                 progressLabel.visibleProperty());
 
+        // Pass paints through verbatim — Shape.setFill / setStroke accept null
+        // with the JavaFX-standard "no fill / no stroke" meaning, so swallowing
+        // null and substituting a default would conflict with that convention.
+        disposer.registerBinding(container.fillProperty(), control.containerFillProperty());
+        disposer.registerBinding(frontWavePath.fillProperty(), control.frontWaveFillProperty());
+        disposer.registerBinding(backWavePath.fillProperty(), control.backWaveFillProperty());
+        disposer.registerBinding(borderRing.strokeProperty(), control.borderStrokeProperty());
+
         getChildren().setAll(container, waveLayer, borderRing, progressLabel);
     }
 
@@ -285,13 +291,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerListener(control.backWaveSpeedRatioProperty(), this::requestWaveAnimation);
         disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::requestWaveAnimation);
 
-        disposer.registerListener(control.containerFillProperty(), this::applyFills);
-        disposer.registerListener(control.frontWaveFillProperty(), this::applyFills);
-        disposer.registerListener(control.backWaveFillProperty(), this::applyFills);
-
-        disposer.registerListener(control.borderStrokeProperty(), this::applyBorder);
         disposer.registerListener(control.borderStrokeWidthProperty(), () -> {
-            applyBorder();
+            applyBorderWidth();
             control.requestLayout();
         });
         disposer.registerListener(control.borderPaddingProperty(), control::requestLayout);
@@ -307,25 +308,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     // ==================== Style application ====================
 
-    private void applyFills() {
-        RXWaveProgressIndicator control = getSkinnable();
-
-        Paint cf = control.getContainerFill();
-        container.setFill(cf != null ? cf : RXWaveProgressIndicator.DEFAULT_CONTAINER_FILL);
-
-        Paint ff = control.getFrontWaveFill();
-        frontWavePath.setFill(ff != null ? ff : RXWaveProgressIndicator.DEFAULT_FRONT_WAVE_FILL);
-
-        Paint bf = control.getBackWaveFill();
-        backWavePath.setFill(bf);
-    }
-
-    private void applyBorder() {
-        RXWaveProgressIndicator control = getSkinnable();
-
-        Paint bs = control.getBorderStroke();
-        borderRing.setStroke(bs != null ? bs : RXWaveProgressIndicator.DEFAULT_BORDER_STROKE);
-        borderRing.setStrokeWidth(RXMath.sanitizeNonNegative(control.getBorderStrokeWidth()));
+    private void applyBorderWidth() {
+        borderRing.setStrokeWidth(RXMath.sanitizeNonNegative(getSkinnable().getBorderStrokeWidth()));
     }
 
     // ==================== Progress changes ====================

@@ -534,8 +534,9 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
 
     /**
      * Paint used for the round water container (the colour visible above the
-     * water surface). Tolerates {@code null} (skin falls back to
-     * {@link #DEFAULT_CONTAINER_FILL}).
+     * water surface). Initial value is {@link #DEFAULT_CONTAINER_FILL};
+     * setting {@code null} renders no fill (transparent), per the JavaFX
+     * {@code Shape.setFill} convention.
      *
      * @return the container-fill property
      */
@@ -571,8 +572,9 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Paint used to fill the front wave. Tolerates {@code null} (skin falls
-     * back to {@link #DEFAULT_FRONT_WAVE_FILL}).
+     * Paint used to fill the front wave. Initial value is
+     * {@link #DEFAULT_FRONT_WAVE_FILL}; setting {@code null} renders no fill
+     * (transparent), per the JavaFX {@code Shape.setFill} convention.
      *
      * @return the front-wave-fill property
      */
@@ -608,8 +610,9 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Paint used to fill the back wave. Tolerates {@code null} (skin falls
-     * back to {@link #DEFAULT_BACK_WAVE_FILL}).
+     * Paint used to fill the back wave. Initial value is
+     * {@link #DEFAULT_BACK_WAVE_FILL}; setting {@code null} renders no fill
+     * (transparent), per the JavaFX {@code Shape.setFill} convention.
      *
      * @return the back-wave-fill property
      */
@@ -645,9 +648,11 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Paint used to stroke the optional outer ring. Tolerates {@code null}
-     * (skin falls back to {@link #DEFAULT_BORDER_STROKE}). To make the ring
-     * visible, set {@link #borderStrokeWidthProperty()} to a positive value.
+     * Paint used to stroke the optional outer ring. Initial value is
+     * {@link #DEFAULT_BORDER_STROKE}; setting {@code null} renders no stroke,
+     * per the JavaFX {@code Shape.setStroke} convention. To make the ring
+     * visible, set {@link #borderStrokeWidthProperty()} to a positive value
+     * and provide a non-{@code null} stroke.
      *
      * @return the border-stroke property
      */
