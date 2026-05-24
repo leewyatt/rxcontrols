@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXWaveProgressIndicatorSkin;
+import io.github.leewyatt.rxcontrols.utils.RXFormat;
 import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -19,8 +20,8 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.util.Duration;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,13 +117,7 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.
      */
-    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
-        if (progress == null || progress < 0.0) {
-            return "";
-        }
-        double clamped = Math.max(0.0, Math.min(1.0, progress));
-        return Math.round(clamped * 100.0) + "%";
-    };
+    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = RXFormat::percent;
 
     // ==================== Constructors ====================
 

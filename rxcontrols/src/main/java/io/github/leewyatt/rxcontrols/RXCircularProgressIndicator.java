@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCircularProgressIndicatorSkin;
+import io.github.leewyatt.rxcontrols.utils.RXFormat;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -113,13 +114,7 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.
      */
-    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
-        if (progress == null || progress < 0.0) {
-            return "";
-        }
-        double clamped = Math.max(0.0, Math.min(1.0, progress));
-        return Math.round(clamped * 100.0) + "%";
-    };
+    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = RXFormat::percent;
 
     // ==================== Constructors ====================
 
