@@ -114,7 +114,12 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.
      */
-    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = RXFormat::percent;
+    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
+        if (progress == null || progress < 0.0) {
+            return "";
+        }
+        return RXFormat.percent(progress);
+    };
 
     // ==================== Constructors ====================
 

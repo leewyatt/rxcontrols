@@ -12,37 +12,43 @@ public final class RXFormat {
     }
 
     /**
-     * Formats a {@code [0, 1]} progress as an integer percentage.
-     * Example: {@code percent(0.52312)} → {@code "52%"}.
+     * Formats a ratio as an integer percentage. The input is not clamped:
+     * values outside {@code [0, 1]} pass through unchanged.
+     * The argument must be finite; results for {@code NaN} or infinity are
+     * outside the contract and may differ between overloads.
+     * Examples: {@code percent(0.52312)} → {@code "52%"};
+     * {@code percent(1.5)} → {@code "150%"};
+     * {@code percent(-0.05)} → {@code "-5%"}.
      *
-     * @param progress the progress; {@code null} or negative returns {@code ""}
-     * @return the formatted percentage, or {@code ""} for indeterminate input
+     * @param value the ratio to scale by 100
+     * @return the formatted percentage
      */
-    public static String percent(Double progress) {
-        return percent(progress, 0);
+    public static String percent(double value) {
+        return percent(value, 0);
     }
 
     /**
-     * Formats a {@code [0, 1]} progress as a percentage with {@code decimals}
-     * fractional digits. Trailing zeros are preserved.
-     * Examples: {@code percent(0.52312, 0)} → {@code "52%"};
-     * {@code percent(0.52312, 2)} → {@code "52.31%"};
-     * {@code percent(0.5, 2)} → {@code "50.00%"}.
+     * Formats a ratio as a percentage with up to {@code decimals} fractional
+     * digits; trailing zeros are stripped. The input is not clamped.
+     * The argument must be finite; results for {@code NaN} or infinity are
+     * outside the contract and may differ between overloads.
+     * Examples: {@code percent(0.52312, 2)} → {@code "52.31%"};
+     * {@code percent(0.523, 2)} → {@code "52.3%"};
+     * {@code percent(0.5, 2)} → {@code "50%"};
+     * {@code percent(2.0, 1)} → {@code "200%"}.
      *
-     * @param progress the progress; {@code null} or negative returns {@code ""}
-     * @param decimals fractional digits; {@code <= 0} produces an integer percentage
-     * @return the formatted percentage, or {@code ""} for indeterminate input
+     * @param value    the ratio to scale by 100
+     * @param decimals maximum fractional digits; {@code <= 0} produces an integer percentage
+     * @return the formatted percentage
      */
-    public static String percent(Double progress, int decimals) {
-        if (progress == null || progress < 0.0) {
-            return "";
-        }
-        double scaled = RXMath.clamp0To1(progress) * 100.0;
+    public static String percent(double value, int decimals) {
+        double scaled = value * 100.0;
         if (decimals <= 0) {
             return Math.round(scaled) + "%";
         }
         return BigDecimal.valueOf(scaled)
                 .setScale(decimals, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
                 .toPlainString() + "%";
     }
 }
