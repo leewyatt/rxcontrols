@@ -91,7 +91,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        indicator = new RXWaveProgressIndicator(0.6);
+        indicator = new RXWaveProgressIndicator(0.52);
         indicator.setPrefSize(PREVIEW_SIZE, PREVIEW_SIZE);
         return indicator;
     }

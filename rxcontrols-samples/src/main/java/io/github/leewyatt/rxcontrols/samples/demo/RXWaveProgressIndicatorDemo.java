@@ -12,6 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -32,11 +33,19 @@ public class RXWaveProgressIndicatorDemo extends Application {
     public void start(Stage primaryStage) {
         RXWaveProgressIndicator left = new RXWaveProgressIndicator(-1);
         left.setPrefSize(160, 160);
+        left.setTextFactory(progress -> "Loading…");
+
+        RXWaveProgressIndicator middle = new RXWaveProgressIndicator(0.3);
+        middle.setPrefSize(160, 160);
+        // show back wave
+        middle.setBackWaveFill(Color.web("#1E90FF", 0.4));
+        // hide the text
+        middle.setTextFactory(progress -> null);
 
         RXWaveProgressIndicator right = new RXWaveProgressIndicator(0.0);
         right.setPrefSize(160, 160);
 
-        HBox root = new HBox(40, left, right);
+        HBox root = new HBox(40, left, middle, right);
         root.setPadding(new Insets(40));
         root.setAlignment(Pos.CENTER);
 

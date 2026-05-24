@@ -215,7 +215,7 @@
 .rx-wave-progress-indicator > .wave-container .progress-label {
     -fx-font-weight: bold;
     -fx-content-display: top;
-    -fx-font-size: 2em;
+    -fx-font-size: 1.5em;
     -fx-text-fill: #1e90ff;
 }
 
