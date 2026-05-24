@@ -99,9 +99,9 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     public static final Paint DEFAULT_FRONT_WAVE_FILL = Color.web("#1E90FF");
 
     /**
-     * Default back-wave fill (translucent blue).
+     * Default back-wave fill (transparent).
      */
-    public static final Paint DEFAULT_BACK_WAVE_FILL = Color.web("#1E90FF", 0.4);
+    public static final Paint DEFAULT_BACK_WAVE_FILL = Color.TRANSPARENT;
 
     /**
      * Default cycle duration for the indeterminate breathing animation.
