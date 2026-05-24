@@ -105,9 +105,17 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private static final double MAX_FRAME_SECONDS = 1.0 / 30.0;
 
     /**
-     * Radians added to the back layer's component phases so the two layers never coincide.
+     * Small phase offset between the two layers. Combined with the shared
+     * wavelength and angular speed, the back wave reads as a parallax-shifted
+     * copy of the front rather than an independent wave.
      */
-    private static final double BACK_WAVE_PHASE_OFFSET = Math.PI;
+    private static final double BACK_WAVE_PHASE_OFFSET = 0.35 * Math.PI;
+
+    /**
+     * Back wave amplitude as a fraction of the front amplitude — shallower
+     * than the front so the two layers do not visually compete.
+     */
+    private static final double BACK_WAVE_AMPLITUDE_RATIO = 0.7;
 
     /**
      * Back baseline lift above the front baseline, as a fraction of resting amplitude
@@ -341,8 +349,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerListener(control.waveAmplitudeProperty(), this::requestWaveAnimation);
         disposer.registerListener(control.waveLengthProperty(), this::requestWaveAnimation);
         disposer.registerListener(control.waveCycleDurationProperty(), this::requestWaveAnimation);
-        disposer.registerListener(control.backWaveSpeedRatioProperty(), this::requestWaveAnimation);
-        disposer.registerListener(control.backWaveAmplitudeRatioProperty(), this::requestWaveAnimation);
 
         disposer.registerListener(control.indeterminateCycleDurationProperty(), () -> {
             if (indeterminateMode) {
@@ -563,11 +569,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         return TWO_PI / (cycle.toMillis() / 1000.0);
     }
 
-    private double resolveBackSpeedRatio() {
-        double ratio = getSkinnable().getBackWaveSpeedRatio();
-        return (Double.isNaN(ratio) || ratio <= 0.0) ? 1.0 : ratio;
-    }
-
     /**
      * (Re)builds the reusable path nodes for the current size. The element
      * lists are rebuilt only when the sample-point count changes; on every
@@ -657,21 +658,20 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         double restAmplitude = RXMath.sanitizeNonNegative(control.getWaveAmplitude());
         double frontAmplitude = restAmplitude * (1.0 + sloshMultiplier);
-        double backAmplitude = frontAmplitude * RXMath.sanitizeNonNegative(control.getBackWaveAmplitudeRatio());
+        double backAmplitude = frontAmplitude * BACK_WAVE_AMPLITUDE_RATIO;
 
         // Clamp by water depth so level=0 doesn't leave a back-wave sliver at the bottom.
         double backLift = Math.min(restAmplitude * BACK_BASELINE_LIFT_RATIO, waterDepth);
         double backBaseline = baseline - backLift;
 
         double lambda = resolveWaveLength();
-        double baseOmega = resolveBaseOmega();
-        double backOmega = baseOmega / resolveBackSpeedRatio();
+        double omega = resolveBaseOmega();
 
-        writeLayerSurface(frontNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
+        writeLayerSurface(frontNodes, baseline, frontAmplitude, lambda, omega, 0.0, sealedBottom);
         // Mirror the front wave geometry into waterClipPath; used as a clip on the
         // below-water label so the label switches colour exactly along the water surface.
-        writeLayerSurface(waterClipNodes, baseline, frontAmplitude, lambda, baseOmega, 0.0, sealedBottom);
-        writeLayerSurface(backNodes, backBaseline, backAmplitude, lambda, backOmega,
+        writeLayerSurface(waterClipNodes, baseline, frontAmplitude, lambda, omega, 0.0, sealedBottom);
+        writeLayerSurface(backNodes, backBaseline, backAmplitude, lambda, omega,
                 BACK_WAVE_PHASE_OFFSET, sealedBottom);
     }
 

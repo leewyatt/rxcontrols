@@ -161,16 +161,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
                 indicator.setWaveCycleDuration(Duration.millis(newV.doubleValue())));
         Label waveCycleValue = createValueLabel(waveCycleSlider, "%.0f ms");
 
-        Slider backSpeedSlider = createSlider(0.5, 3.0,
-                RXWaveProgressIndicator.DEFAULT_BACK_WAVE_SPEED_RATIO);
-        indicator.backWaveSpeedRatioProperty().bind(backSpeedSlider.valueProperty());
-        Label backSpeedValue = createValueLabel(backSpeedSlider, "%.2f×");
-
-        Slider backAmpSlider = createSlider(0.0, 1.5,
-                RXWaveProgressIndicator.DEFAULT_BACK_WAVE_AMPLITUDE_RATIO);
-        indicator.backWaveAmplitudeRatioProperty().bind(backAmpSlider.valueProperty());
-        Label backAmpValue = createValueLabel(backAmpSlider, "%.2f");
-
         // ==================== Colours ====================
         ColorPicker frontColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_FRONT_WAVE_FILL);
         frontColor.setMaxWidth(Double.MAX_VALUE);
@@ -208,9 +198,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
                                 row("Size", sizeSlider, sizeValue),
                                 row("Amplitude", amplitudeSlider, amplitudeValue),
                                 row("Wavelength", waveLengthSlider, waveLengthValue),
-                                row("Cycle", waveCycleSlider, waveCycleValue),
-                                row("Back speed", backSpeedSlider, backSpeedValue),
-                                row("Back amp", backAmpSlider, backAmpValue))),
+                                row("Cycle", waveCycleSlider, waveCycleValue))),
                 section("Colours",
                         createGrid(
                                 row("Front", frontColor),

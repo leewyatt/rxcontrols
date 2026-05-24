@@ -38,7 +38,9 @@ import java.util.List;
  * <ul>
  *   <li>circular container — drawn by {@link javafx.scene.layout.Region}'s standard
  *       background ({@code -fx-background-color} / {@code -fx-background-radius})</li>
- *   <li>{@code .back-wave} — rear wave layer (smaller amplitude, slower, phase-shifted)</li>
+ *   <li>{@code .back-wave} — rear wave layer (shares the front wave's wavelength
+ *       and speed; smaller amplitude and a small phase offset give a parallax
+ *       depth effect)</li>
  *   <li>{@code .front-wave} — front wave layer (full amplitude)</li>
  *   <li>optional outer ring — use {@code -fx-border-color} / {@code -fx-border-width}
  *       / {@code -fx-border-radius} / {@code -fx-padding} via CSS or
@@ -90,19 +92,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
      * Default cycle duration for the front wave's horizontal scroll.
      */
     public static final Duration DEFAULT_WAVE_CYCLE_DURATION = Duration.millis(2000.0);
-
-    /**
-     * Default ratio applied to the front cycle duration to derive the back
-     * wave's cycle. {@code > 1} means the back wave moves slower than the
-     * front, mimicking depth.
-     */
-    public static final double DEFAULT_BACK_WAVE_SPEED_RATIO = 1.4;
-
-    /**
-     * Default ratio applied to the front amplitude to derive the back
-     * amplitude. {@code < 1} keeps the back wave subtler than the front.
-     */
-    public static final double DEFAULT_BACK_WAVE_AMPLITUDE_RATIO = 0.7;
 
     /**
      * Default front-wave fill (opaque blue).
@@ -393,85 +382,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
         waveCycleDuration.set(value);
     }
 
-    // ==================== Back Wave Speed Ratio ====================
-
-    private final DoubleProperty backWaveSpeedRatio =
-            new StyleableDoubleProperty(DEFAULT_BACK_WAVE_SPEED_RATIO) {
-                @Override
-                public Object getBean() {
-                    return RXWaveProgressIndicator.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "backWaveSpeedRatio";
-                }
-
-                @Override
-                public CssMetaData<RXWaveProgressIndicator, Number> getCssMetaData() {
-                    return StyleableProperties.BACK_WAVE_SPEED_RATIO;
-                }
-            };
-
-    /**
-     * Multiplier applied to {@link #waveCycleDurationProperty() waveCycleDuration}
-     * to derive the back wave's cycle. Values {@code <= 0} or {@code NaN}
-     * collapse to {@code 1.0} at render time (avoids a tight loop on the back
-     * timeline).
-     *
-     * @return the back-wave-speed-ratio property
-     */
-    public final DoubleProperty backWaveSpeedRatioProperty() {
-        return backWaveSpeedRatio;
-    }
-
-    public final double getBackWaveSpeedRatio() {
-        return backWaveSpeedRatio.get();
-    }
-
-    public final void setBackWaveSpeedRatio(double value) {
-        backWaveSpeedRatio.set(value);
-    }
-
-    // ==================== Back Wave Amplitude Ratio ====================
-
-    private final DoubleProperty backWaveAmplitudeRatio =
-            new StyleableDoubleProperty(DEFAULT_BACK_WAVE_AMPLITUDE_RATIO) {
-                @Override
-                public Object getBean() {
-                    return RXWaveProgressIndicator.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "backWaveAmplitudeRatio";
-                }
-
-                @Override
-                public CssMetaData<RXWaveProgressIndicator, Number> getCssMetaData() {
-                    return StyleableProperties.BACK_WAVE_AMPLITUDE_RATIO;
-                }
-            };
-
-    /**
-     * Multiplier applied to {@link #waveAmplitudeProperty() waveAmplitude} to
-     * derive the back wave's amplitude. {@code 0} or negative hides the back
-     * wave (its crest flattens onto the baseline).
-     *
-     * @return the back-wave-amplitude-ratio property
-     */
-    public final DoubleProperty backWaveAmplitudeRatioProperty() {
-        return backWaveAmplitudeRatio;
-    }
-
-    public final double getBackWaveAmplitudeRatio() {
-        return backWaveAmplitudeRatio.get();
-    }
-
-    public final void setBackWaveAmplitudeRatio(double value) {
-        backWaveAmplitudeRatio.set(value);
-    }
-
     // ==================== Front Wave Fill ====================
 
     private final ObjectProperty<Paint> frontWaveFill = new StyleableObjectProperty<>(DEFAULT_FRONT_WAVE_FILL) {
@@ -628,38 +538,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
                     }
                 };
 
-        private static final CssMetaData<RXWaveProgressIndicator, Number> BACK_WAVE_SPEED_RATIO =
-                new CssMetaData<>("-rx-back-wave-speed-ratio",
-                        SizeConverter.getInstance(),
-                        DEFAULT_BACK_WAVE_SPEED_RATIO) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.backWaveSpeedRatio.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Number>) n.backWaveSpeedRatioProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXWaveProgressIndicator, Number> BACK_WAVE_AMPLITUDE_RATIO =
-                new CssMetaData<>("-rx-back-wave-amplitude-ratio",
-                        SizeConverter.getInstance(),
-                        DEFAULT_BACK_WAVE_AMPLITUDE_RATIO) {
-                    @Override
-                    public boolean isSettable(RXWaveProgressIndicator n) {
-                        return !n.backWaveAmplitudeRatio.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXWaveProgressIndicator n) {
-                        return (StyleableProperty<Number>) n.backWaveAmplitudeRatioProperty();
-                    }
-                };
-
         private static final CssMetaData<RXWaveProgressIndicator, Paint> FRONT_WAVE_FILL =
                 new CssMetaData<>("-rx-front-wave-fill", PaintConverter.getInstance(), DEFAULT_FRONT_WAVE_FILL) {
                     @Override
@@ -699,8 +577,6 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
                     WAVE_AMPLITUDE,
                     WAVE_LENGTH,
                     WAVE_CYCLE_DURATION,
-                    BACK_WAVE_SPEED_RATIO,
-                    BACK_WAVE_AMPLITUDE_RATIO,
                     FRONT_WAVE_FILL,
                     BACK_WAVE_FILL);
             STYLEABLES = Collections.unmodifiableList(styleables);
