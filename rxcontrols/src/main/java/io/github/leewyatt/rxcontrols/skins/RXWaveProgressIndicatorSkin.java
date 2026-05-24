@@ -162,8 +162,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
      */
     private static final WaveComponent[] WAVE_COMPONENTS = {
             new WaveComponent(1.00, 0.50, 1.00, 0.0),
-            new WaveComponent(0.60, 0.32, 1.60, 1.3),
-            new WaveComponent(0.38, 0.18, 0.70, 3.7),
+            new WaveComponent(0.57, 0.32, 1.60, 1.3),
+            new WaveComponent(0.31, 0.18, 0.70, 3.7),
     };
 
     /**
