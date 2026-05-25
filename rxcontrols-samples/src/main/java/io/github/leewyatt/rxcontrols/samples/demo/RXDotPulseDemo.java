@@ -4,8 +4,10 @@ import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXDotPulseShowcase;
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
@@ -20,12 +22,19 @@ public class RXDotPulseDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXDotPulse indicator = new RXDotPulse();
+        RXDotPulse indicator1 = new RXDotPulse();
 
-        StackPane root = new StackPane(indicator);
+        RXDotPulse indicator2 = new RXDotPulse();
+        indicator2.setPulseStyle(RXDotPulse.PulseStyle.PULSE);
+
+        RXDotPulse indicator3 = new RXDotPulse();
+        indicator3.setPulseStyle(RXDotPulse.PulseStyle.FADE);
+
+        VBox root = new VBox(25, indicator1, new Separator(), indicator2, new Separator(), indicator3);
+        root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(40));
 
-        primaryStage.setScene(new Scene(root));
+        primaryStage.setScene(new Scene(root, 260, 225));
         primaryStage.setTitle("RXDotPulse Demo");
         primaryStage.show();
     }
