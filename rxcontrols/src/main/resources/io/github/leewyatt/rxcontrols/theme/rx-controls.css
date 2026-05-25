@@ -241,9 +241,14 @@
     -rx-dot-count: 3;
     -rx-dot-size: 8;
     -rx-dot-gap: 6;
-    -rx-dot-color: #616dfe;
+    -rx-dot-fill: #616dfe;
     -rx-cycle-duration: 1200ms;
     -rx-amplitude: 1;
+}
+
+.rx-dot-pulse > .dot {
+    -fx-background-color: -rx-dot-fill;
+    -fx-background-radius: 50%;
 }
 
 .rx-bar-spinner {

@@ -11,8 +11,8 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.scene.paint.Paint;
-import javafx.scene.shape.Circle;
+import javafx.css.PseudoClass;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -20,11 +20,19 @@ import java.util.List;
 
 /**
  * Default skin for {@link RXDotPulse}. Renders a horizontal row of
- * {@link Circle} dots and drives a shared {@code phase} property on an
- * indefinite {@link Timeline}; an invalidation listener fans the phase out to
- * each dot using a per-dot offset of {@code i / dotCount}, then maps the
- * per-dot local time to a translate / scale / opacity effect based on
- * {@link PulseStyle}.
+ * {@link Region} dots (style class {@code .dot}) and drives a shared
+ * {@code phase} property on an indefinite {@link Timeline}; an invalidation
+ * listener fans the phase out to each dot using a per-dot offset of
+ * {@code i / dotCount}, then maps the per-dot local time to a translate /
+ * scale / opacity effect based on {@link PulseStyle}.
+ *
+ * <p>Dot appearance (fill, shape, border, multi-layer background, ...) is
+ * fully delegated to CSS. The default circular look comes from the user-agent
+ * stylesheet ({@code -fx-background-color: -rx-dot-fill; -fx-background-radius: 1000;});
+ * users override either the looked-up {@code -rx-dot-fill} color or the entire
+ * {@code .rx-dot-pulse > .dot} rule (including {@code -fx-shape} for non-circle
+ * dot shapes). The first and last dots also carry {@code :first} / {@code :last}
+ * pseudo-classes so leading/trailing dots can be themed independently.
  *
  * <p>Implementation notes:
  * <ul>
@@ -86,9 +94,12 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
 
     private static final double HALF = 0.5;
 
+    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
+
     // ==================== Nodes ====================
 
-    private final List<Circle> dots = new ArrayList<>();
+    private final List<Region> dots = new ArrayList<>();
 
     /**
      * Global cycle position in {@code [0, 1)}. The timeline animates this
@@ -118,7 +129,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         if (timeline == null) {
             // Animation disabled at construction (e.g. cycleDuration <= 0) —
             // §1.8: still snap the dots to a deterministic rest pose so the
-            // first frame is not whatever defaults Circle was initialised to.
+            // first frame is not whatever defaults Region was initialised to.
             applyStaticRest();
         }
     }
@@ -130,7 +141,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
             rebuildDots();
             control.requestLayout();
             // Rebuild the timeline too: the per-dot phase offset uses N, and
-            // the running animation referenced the previous circle list.
+            // the running animation referenced the previous dot list.
             rebuildTimeline();
             if (timeline == null) {
                 applyStaticRest();
@@ -138,7 +149,6 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         });
         disposer.registerListener(control.dotSizeProperty(), control::requestLayout);
         disposer.registerListener(control.dotGapProperty(), control::requestLayout);
-        disposer.registerListener(control.dotColorProperty(), this::applyDotFill);
         disposer.registerListener(control.pulseStyleProperty(), this::refreshDots);
         disposer.registerListener(control.cycleDurationProperty(), () -> {
             rebuildTimeline();
@@ -167,25 +177,17 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     private void rebuildDots() {
         int n = RXMath.clamp(getSkinnable().getDotCount(),
                 RXDotPulse.MIN_DOT_COUNT, RXDotPulse.MAX_DOT_COUNT);
-        Paint fill = paintOrDefault(getSkinnable().getDotColor(), RXDotPulse.DEFAULT_DOT_COLOR);
 
         dots.clear();
         for (int i = 0; i < n; i++) {
-            Circle c = new Circle();
-            c.getStyleClass().add("dot");
-            c.setManaged(false);
-            c.setMouseTransparent(true);
-            c.setFill(fill);
-            dots.add(c);
+            Region r = new Region();
+            r.getStyleClass().add("dot");
+            r.setManaged(false);
+            dots.add(r);
         }
+        dots.get(0).pseudoClassStateChanged(FIRST, true);
+        dots.get(n - 1).pseudoClassStateChanged(LAST, true);
         getChildren().setAll(dots);
-    }
-
-    private void applyDotFill() {
-        Paint fill = paintOrDefault(getSkinnable().getDotColor(), RXDotPulse.DEFAULT_DOT_COLOR);
-        for (Circle c : dots) {
-            c.setFill(fill);
-        }
     }
 
     // ==================== Animation ====================
@@ -238,11 +240,11 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     }
 
     private void applyStaticRest() {
-        for (Circle c : dots) {
-            c.setTranslateY(0.0);
-            c.setScaleX(1.0);
-            c.setScaleY(1.0);
-            c.setOpacity(1.0);
+        for (Region r : dots) {
+            r.setTranslateY(0.0);
+            r.setScaleX(1.0);
+            r.setScaleY(1.0);
+            r.setOpacity(1.0);
         }
     }
 
@@ -260,7 +262,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         }
     }
 
-    private static void applyDotState(Circle c, double local, PulseStyle style,
+    private static void applyDotState(Region r, double local, PulseStyle style,
                                       double amp, double size) {
         double pulse = (local < ACTIVE_FRACTION)
                 ? Math.sin(Math.PI * local / ACTIVE_FRACTION)
@@ -268,25 +270,25 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
 
         switch (style) {
             case BOUNCE -> {
-                c.setTranslateY(-pulse * amp * size * BOUNCE_PEAK_FACTOR);
-                c.setScaleX(1.0);
-                c.setScaleY(1.0);
-                c.setOpacity(1.0);
+                r.setTranslateY(-pulse * amp * size * BOUNCE_PEAK_FACTOR);
+                r.setScaleX(1.0);
+                r.setScaleY(1.0);
+                r.setOpacity(1.0);
             }
             case PULSE -> {
                 double scale = 1.0 + pulse * amp * PULSE_SCALE_INCREMENT;
-                c.setTranslateY(0.0);
-                c.setScaleX(scale);
-                c.setScaleY(scale);
-                c.setOpacity(1.0);
+                r.setTranslateY(0.0);
+                r.setScaleX(scale);
+                r.setScaleY(scale);
+                r.setOpacity(1.0);
             }
             case FADE -> {
                 double restingReduction = Math.min(1.0, amp * FADE_RESTING_REDUCTION);
                 double opacity = 1.0 - restingReduction * (1.0 - pulse);
-                c.setTranslateY(0.0);
-                c.setScaleX(1.0);
-                c.setScaleY(1.0);
-                c.setOpacity(RXMath.clamp0To1(opacity));
+                r.setTranslateY(0.0);
+                r.setScaleX(1.0);
+                r.setScaleY(1.0);
+                r.setOpacity(RXMath.clamp0To1(opacity));
             }
         }
     }
@@ -298,10 +300,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
                                   double contentWidth, double contentHeight) {
         int n = dots.size();
         if (n == 0 || contentWidth <= 0.0 || contentHeight <= 0.0) {
-            for (Circle c : dots) {
-                c.setRadius(0.0);
-                c.setCenterX(contentX);
-                c.setCenterY(contentY);
+            for (Region r : dots) {
+                r.resizeRelocate(contentX, contentY, 0.0, 0.0);
             }
             return;
         }
@@ -310,17 +310,16 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         double gap = RXMath.sanitizeNonNegative(getSkinnable().getDotGap());
         double radius = size * HALF;
         double rowWidth = n * size + Math.max(0, n - 1) * gap;
-        double startX = contentX + (contentWidth - rowWidth) * HALF + radius;
+        double startCenterX = contentX + (contentWidth - rowWidth) * HALF + radius;
         // Bottom-anchor the row so the BOUNCE translateY (upward) stays
         // visible within the content box even when the user shrinks
         // prefHeight below the default-derived margin.
         double centerY = contentY + contentHeight - radius;
 
         for (int i = 0; i < n; i++) {
-            Circle c = dots.get(i);
-            c.setRadius(radius);
-            c.setCenterX(startX + i * (size + gap));
-            c.setCenterY(centerY);
+            Region r = dots.get(i);
+            double cx = startCenterX + i * (size + gap);
+            r.resizeRelocate(cx - radius, centerY - radius, size, size);
         }
     }
 
@@ -388,11 +387,5 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
             timeline = null;
         }
         super.dispose();
-    }
-
-    // ==================== Helpers ====================
-
-    private static Paint paintOrDefault(Paint v, Paint fallback) {
-        return v != null ? v : fallback;
     }
 }

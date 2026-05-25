@@ -19,6 +19,7 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Showcase application for {@link RXDotPulse}.
@@ -113,7 +114,9 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
 
     private Node buildInlineExample() {
         RXDotPulse inline = new RXDotPulse();
-        inline.dotColorProperty().bind(mainIndicator.dotColorProperty());
+        // Mirror the main indicator's inline style so the color picker
+        // (which writes -rx-dot-fill on mainIndicator) flows through to here too.
+        inline.styleProperty().bind(mainIndicator.styleProperty());
         inline.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
         inline.pulseStyleProperty().bind(mainIndicator.pulseStyleProperty());
         inline.amplitudeProperty().bind(mainIndicator.amplitudeProperty());
@@ -129,7 +132,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
         inButton.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
         inButton.pulseStyleProperty().bind(mainIndicator.pulseStyleProperty());
         inButton.amplitudeProperty().bind(mainIndicator.amplitudeProperty());
-        inButton.setDotColor(Color.WHITE);
+        inButton.setStyle("-rx-dot-fill: white;");
         inButton.setDotSize(6.0);
         inButton.setDotGap(4.0);
 
@@ -186,12 +189,25 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
     }
 
     private Node buildAppearanceGrid() {
-        ColorPicker colorPicker = new ColorPicker((Color) RXDotPulse.DEFAULT_DOT_COLOR);
+        // Dot color is no longer a Java property — it is the CSS looked-up
+        // color -rx-dot-fill declared on .rx-dot-pulse. Driving it via inline
+        // style on the indicator (rather than a typed property) is the
+        // recommended way for Java callers to retint without writing CSS.
+        ColorPicker colorPicker = new ColorPicker(Color.web("#616dfe"));
         colorPicker.setMaxWidth(Double.MAX_VALUE);
-        mainIndicator.dotColorProperty().bind(colorPicker.valueProperty());
+        colorPicker.valueProperty().addListener((obs, oldV, newV) ->
+                mainIndicator.setStyle("-rx-dot-fill: " + toCssRgba(newV) + ";"));
 
         return createGrid(
                 row("Dot color", colorPicker));
+    }
+
+    private static String toCssRgba(Color c) {
+        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
+                (int) Math.round(c.getRed() * 255.0),
+                (int) Math.round(c.getGreen() * 255.0),
+                (int) Math.round(c.getBlue() * 255.0),
+                c.getOpacity());
     }
 
     private Node buildTimingGrid() {

@@ -14,13 +14,10 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
-import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Region;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -115,13 +112,6 @@ public class RXDotPulse extends Control {
      * Default horizontal gap between adjacent dots, in pixels.
      */
     public static final double DEFAULT_DOT_GAP = 6.0;
-
-    /**
-     * Default dot fill. Matches the rest of the RX progress-indicator family
-     * so a {@link RXDotPulse} dropped next to a {@link RXCircularProgressIndicator}
-     * reads as part of the same control set.
-     */
-    public static final Paint DEFAULT_DOT_COLOR = Color.web("#616dfe");
 
     /**
      * Default cycle duration for one full staggered pass over all dots.
@@ -333,43 +323,6 @@ public class RXDotPulse extends Control {
         dotGap.set(value);
     }
 
-    // ==================== Dot Color ====================
-
-    private final ObjectProperty<Paint> dotColor = new StyleableObjectProperty<>(DEFAULT_DOT_COLOR) {
-        @Override
-        public Object getBean() {
-            return RXDotPulse.this;
-        }
-
-        @Override
-        public String getName() {
-            return "dotColor";
-        }
-
-        @Override
-        public CssMetaData<RXDotPulse, Paint> getCssMetaData() {
-            return StyleableProperties.DOT_COLOR;
-        }
-    };
-
-    /**
-     * Fill paint used for every dot. Tolerates {@code null} (skin falls back
-     * to {@link #DEFAULT_DOT_COLOR}).
-     *
-     * @return the dot-color property
-     */
-    public final ObjectProperty<Paint> dotColorProperty() {
-        return dotColor;
-    }
-
-    public final Paint getDotColor() {
-        return dotColor.get();
-    }
-
-    public final void setDotColor(Paint value) {
-        dotColor.set(value);
-    }
-
     // ==================== Cycle Duration ====================
 
     private final ObjectProperty<Duration> cycleDuration =
@@ -523,22 +476,6 @@ public class RXDotPulse extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXDotPulse, Paint> DOT_COLOR =
-                new CssMetaData<>("-rx-dot-color",
-                        PaintConverter.getInstance(),
-                        DEFAULT_DOT_COLOR) {
-                    @Override
-                    public boolean isSettable(RXDotPulse n) {
-                        return !n.dotColor.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXDotPulse n) {
-                        return (StyleableProperty<Paint>) n.dotColorProperty();
-                    }
-                };
-
         private static final CssMetaData<RXDotPulse, Duration> CYCLE_DURATION =
                 new CssMetaData<>("-rx-cycle-duration",
                         DurationConverter.getInstance(),
@@ -581,7 +518,6 @@ public class RXDotPulse extends Control {
                     DOT_COUNT,
                     DOT_SIZE,
                     DOT_GAP,
-                    DOT_COLOR,
                     CYCLE_DURATION,
                     AMPLITUDE);
             STYLEABLES = Collections.unmodifiableList(styleables);
