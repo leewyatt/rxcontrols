@@ -193,7 +193,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private final Label progressLabel = new Label();
     private final Label progressLabelBelow = new Label();
     private final Group belowGroup = new Group();
-    private final StackPane disc = new StackPane();
+    private final StackPane waveContainer = new StackPane();
 
     // ==================== State ====================
 
@@ -280,13 +280,11 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         waveLayer.getChildren().setAll(backWavePath, frontWavePath);
         waveLayer.setManaged(false);
-        waveLayer.setMouseTransparent(true);
         waveLayer.setClip(clipCircle);
         disposer.registerDisposeTask(() -> waveLayer.setClip(null));
 
         progressLabel.getStyleClass().add("progress-label");
         progressLabel.setAlignment(Pos.CENTER);
-        progressLabel.setMouseTransparent(true);
         progressLabel.setManaged(false);
         disposer.registerBinding(progressLabel.visibleProperty(),
                 progressLabel.textProperty().isNotEmpty());
@@ -300,7 +298,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         progressLabelBelow.getStyleClass().addAll("progress-label", "below-water");
         progressLabelBelow.setAlignment(Pos.CENTER);
-        progressLabelBelow.setMouseTransparent(true);
         progressLabelBelow.setManaged(false);
         progressLabelBelow.textProperty().bind(progressLabel.textProperty());
         // Pin font + padding to the above label so the two labels always have the same
@@ -317,22 +314,21 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         disposer.registerBinding(progressLabelBelow.visibleProperty(),
                 progressLabel.textProperty().isNotEmpty());
 
-        // belowGroup sits at disc-local (0, 0), so its local coord system equals disc-local.
-        // The clip path (also in disc-local) therefore aligns with the wave geometry pixel-for-pixel.
+        // belowGroup sits at waveContainer-local (0, 0), so its local coord system equals waveContainer-local.
+        // The clip path (also in waveContainer-local) therefore aligns with the wave geometry pixel-for-pixel.
         belowGroup.setManaged(false);
-        belowGroup.setMouseTransparent(true);
         belowGroup.setClip(waterClipPath);
         belowGroup.getChildren().setAll(progressLabelBelow);
         disposer.registerDisposeTask(() -> belowGroup.setClip(null));
 
-        disc.getStyleClass().add("wave-container");
-        disc.setManaged(false);
-        disc.getChildren().setAll(waveLayer, progressLabel, belowGroup);
+        waveContainer.getStyleClass().add("wave-container");
+        waveContainer.setManaged(false);
+        waveContainer.getChildren().setAll(waveLayer, progressLabel, belowGroup);
 
         disposer.registerBinding(frontWavePath.fillProperty(), control.frontWaveFillProperty());
         disposer.registerBinding(backWavePath.fillProperty(), control.backWaveFillProperty());
 
-        getChildren().setAll(disc);
+        getChildren().setAll(waveContainer);
     }
 
     private void registerListeners(RXWaveProgressIndicator control) {
@@ -748,7 +744,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
                                   double contentWidth, double contentHeight) {
         double size = Math.min(contentWidth, contentHeight);
         if (size <= 0.0) {
-            disc.resizeRelocate(contentX, contentY, 0.0, 0.0);
+            waveContainer.resizeRelocate(contentX, contentY, 0.0, 0.0);
             clipCircle.setRadius(0.0);
             cachedWaterRadius = 0.0;
             cachedCenterX = 0.0;
@@ -759,9 +755,9 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
         double offsetX = contentX + (contentWidth - size) * HALF;
         double offsetY = contentY + (contentHeight - size) * HALF;
-        disc.resizeRelocate(offsetX, offsetY, size, size);
+        waveContainer.resizeRelocate(offsetX, offsetY, size, size);
 
-        Insets insets = disc.getInsets();
+        Insets insets = waveContainer.getInsets();
         double innerW = Math.max(0.0, size - insets.getLeft() - insets.getRight());
         double innerH = Math.max(0.0, size - insets.getTop() - insets.getBottom());
         double waterRadius = Math.min(innerW, innerH) * HALF;
