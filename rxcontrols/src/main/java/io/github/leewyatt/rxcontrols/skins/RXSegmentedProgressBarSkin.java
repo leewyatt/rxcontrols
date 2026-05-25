@@ -203,6 +203,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             fill.getStyleClass().add("segment-fill");
             fill.setManaged(false);
             fill.setMouseTransparent(true);
+            fill.setVisible(false);
             fill.setFill(filled);
             fill.setArcWidth(arc);
             fill.setArcHeight(arc);
@@ -363,9 +364,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
                 double overlapStart = Math.max(segmentStart, bandLeft);
                 double overlapEnd = Math.min(segmentEnd, bandRight);
                 double overlap = Math.max(0.0, overlapEnd - overlapStart);
-                Rectangle clip = fillClips.get(i);
-                clip.setX(overlap > 0.0 ? overlapStart : segmentStart);
-                clip.setWidth(overlap);
+                setFillClip(i, overlap > 0.0 ? overlapStart : segmentStart, overlap);
             }
             return;
         }
@@ -379,18 +378,22 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             } else if (ratio > 1.0) {
                 ratio = 1.0;
             }
-            Rectangle clip = fillClips.get(i);
-            clip.setX(cachedSegmentStartX[i]);
-            clip.setWidth(cachedSegmentWidth * ratio);
+            setFillClip(i, cachedSegmentStartX[i], cachedSegmentWidth * ratio);
         }
     }
 
     private void clearFills() {
         for (int i = 0; i < fillClips.size(); i++) {
-            Rectangle clip = fillClips.get(i);
-            clip.setX(i < cachedSegmentStartX.length ? cachedSegmentStartX[i] : 0.0);
-            clip.setWidth(0.0);
+            setFillClip(i, i < cachedSegmentStartX.length ? cachedSegmentStartX[i] : 0.0, 0.0);
         }
+    }
+
+    private void setFillClip(int index, double x, double width) {
+        Rectangle clip = fillClips.get(index);
+        clip.setX(x);
+        clip.setWidth(width);
+        // A zero-width clip can still leave an anti-aliased edge on some pipelines.
+        fillRects.get(index).setVisible(width > 0.0);
     }
 
     // ==================== Layout ====================
