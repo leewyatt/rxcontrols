@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
-import io.github.leewyatt.rxcontrols.RXBarSpinner.BarStyle;
+import io.github.leewyatt.rxcontrols.RXBarSpinner.AnimationMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBarSpinnerDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
@@ -23,8 +23,8 @@ import java.util.List;
 /**
  * Showcase application for {@link RXBarSpinner}.
  *
- * <p>Exercises every public knob: bar style, count / width / height / gap /
- * arc, bar color, cycle duration, min-bar-height ratio. Boundary values
+ * <p>Exercises every public knob: animation mode, count / width / height /
+ * gap / arc, bar color, cycle duration, min-bar-height ratio. Boundary values
  * (cycle = 0, min ratio = 0 / 1) are reachable via the sliders so the
  * "non-positive disables animation" semantic and "ratio = 1 flattens the
  * row" semantic are directly observable.
@@ -115,7 +115,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
         RXBarSpinner inline = new RXBarSpinner();
         inline.barColorProperty().bind(mainIndicator.barColorProperty());
         inline.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
-        inline.barStyleProperty().bind(mainIndicator.barStyleProperty());
+        inline.animationModeProperty().bind(mainIndicator.animationModeProperty());
         inline.minBarHeightRatioProperty().bind(mainIndicator.minBarHeightRatioProperty());
         inline.setBarHeight(14.0);
         inline.setBarWidth(3.0);
@@ -130,7 +130,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
     private Node buildButtonExample() {
         RXBarSpinner inButton = new RXBarSpinner();
         inButton.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
-        inButton.barStyleProperty().bind(mainIndicator.barStyleProperty());
+        inButton.animationModeProperty().bind(mainIndicator.animationModeProperty());
         inButton.minBarHeightRatioProperty().bind(mainIndicator.minBarHeightRatioProperty());
         inButton.setBarColor(Color.WHITE);
         inButton.setBarWidth(3.0);
@@ -149,18 +149,18 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildBehaviourGrid() {
-        ChoiceBox<BarStyle> styleBox = new ChoiceBox<>();
-        styleBox.getItems().addAll(BarStyle.values());
-        styleBox.setValue(mainIndicator.getBarStyle());
-        styleBox.setMaxWidth(Double.MAX_VALUE);
-        mainIndicator.barStyleProperty().bind(styleBox.valueProperty());
+        ChoiceBox<AnimationMode> modeBox = new ChoiceBox<>();
+        modeBox.getItems().addAll(AnimationMode.values());
+        modeBox.setValue(mainIndicator.getAnimationMode());
+        modeBox.setMaxWidth(Double.MAX_VALUE);
+        mainIndicator.animationModeProperty().bind(modeBox.valueProperty());
 
         Slider minRatioSlider = createSlider(0.0, 1.0, RXBarSpinner.DEFAULT_MIN_BAR_HEIGHT_RATIO);
         mainIndicator.minBarHeightRatioProperty().bind(minRatioSlider.valueProperty());
         Label minRatioValue = createValueLabel(minRatioSlider, "%.2f");
 
         return createGrid(
-                row("Bar style", styleBox),
+                row("Animation mode", modeBox),
                 row("Min ratio", minRatioSlider, minRatioValue));
     }
 

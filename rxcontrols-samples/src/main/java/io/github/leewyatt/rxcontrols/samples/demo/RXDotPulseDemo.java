@@ -25,10 +25,10 @@ public class RXDotPulseDemo extends Application {
         RXDotPulse indicator1 = new RXDotPulse();
 
         RXDotPulse indicator2 = new RXDotPulse();
-        indicator2.setPulseMode(RXDotPulse.PulseMode.PULSE);
+        indicator2.setAnimationMode(RXDotPulse.AnimationMode.PULSE);
 
         RXDotPulse indicator3 = new RXDotPulse();
-        indicator3.setPulseMode(RXDotPulse.PulseMode.FADE);
+        indicator3.setAnimationMode(RXDotPulse.AnimationMode.FADE);
 
         VBox root = new VBox(25, indicator1, new Separator(), indicator2, new Separator(), indicator3);
         root.setAlignment(Pos.CENTER);

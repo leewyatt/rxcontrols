@@ -35,19 +35,19 @@ import java.util.List;
  * unlike {@link RXAudioSpectrum} it does not consume real spectrum data, and
  * unlike {@link RXCircularProgressIndicator} it has no determinate progress.
  *
- * <p>Four animation variants are exposed via {@link #barStyleProperty() barStyle}:
+ * <p>Four animation variants are exposed via {@link #animationModeProperty() animationMode}:
  * <ul>
- *   <li>{@link BarStyle#WAVE} (default) — every bar is always oscillating on a
+ *   <li>{@link AnimationMode#WAVE} (default) — every bar is always oscillating on a
  *       smooth sine curve; per-bar phase offset of {@code i / barCount}
  *       produces one continuous travelling wave across the row</li>
- *   <li>{@link BarStyle#BOUNCE} — each bar bounces up and back during half of
+ *   <li>{@link AnimationMode#BOUNCE} — each bar bounces up and back during half of
  *       its local cycle and rests at the minimum height for the other half;
  *       with the same phase offset only a subset of bars is bouncing at any
  *       instant, reading as a sequence of pings rather than a flowing wave</li>
- *   <li>{@link BarStyle#PULSE} — all bars share the same phase and oscillate
+ *   <li>{@link AnimationMode#PULSE} — all bars share the same phase and oscillate
  *       on the smooth sine curve in lock-step; the row breathes up and down
  *       as a single block, like a heartbeat</li>
- *   <li>{@link BarStyle#RANDOM} — each bar runs at its own frequency and
+ *   <li>{@link AnimationMode#RANDOM} — each bar runs at its own frequency and
  *       phase offset (deterministic, not actually random), so the row reads as
  *       uncorrelated jitter — a "fake spectrum analyser" effect</li>
  * </ul>
@@ -71,7 +71,7 @@ public class RXBarSpinner extends Control {
     /**
      * Animation variant for {@link RXBarSpinner}.
      */
-    public enum BarStyle {
+    public enum AnimationMode {
         /**
          * Smooth sine wave across the row. Every bar is always oscillating
          * along the curve, so adjacent bars rise and fall in phase continuity
@@ -107,9 +107,9 @@ public class RXBarSpinner extends Control {
     // ==================== Public Defaults ====================
 
     /**
-     * Default {@link BarStyle}.
+     * Default {@link AnimationMode}.
      */
-    public static final BarStyle DEFAULT_BAR_STYLE = BarStyle.WAVE;
+    public static final AnimationMode DEFAULT_ANIMATION_MODE = AnimationMode.WAVE;
 
     /**
      * Default number of bars.
@@ -170,21 +170,21 @@ public class RXBarSpinner extends Control {
     // ==================== Constructors ====================
 
     /**
-     * Creates an indicator with the {@linkplain #DEFAULT_BAR_STYLE default style}.
+     * Creates an indicator with the {@linkplain #DEFAULT_ANIMATION_MODE default animation mode}.
      */
     public RXBarSpinner() {
-        this(DEFAULT_BAR_STYLE);
+        this(DEFAULT_ANIMATION_MODE);
     }
 
     /**
-     * Creates an indicator with the given bar style.
+     * Creates an indicator with the given animation mode.
      *
-     * @param barStyle the initial bar style; {@code null} falls back to
-     *                 {@link #DEFAULT_BAR_STYLE}
+     * @param animationMode the initial animation mode; {@code null} falls back
+     *                      to {@link #DEFAULT_ANIMATION_MODE}
      */
-    public RXBarSpinner(@NamedArg("barStyle") BarStyle barStyle) {
+    public RXBarSpinner(@NamedArg("animationMode") AnimationMode animationMode) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setBarStyle(barStyle == null ? DEFAULT_BAR_STYLE : barStyle);
+        setAnimationMode(animationMode == null ? DEFAULT_ANIMATION_MODE : animationMode);
     }
 
     @Override
@@ -197,19 +197,19 @@ public class RXBarSpinner extends Control {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    // ==================== Bar Style ====================
+    // ==================== Animation Mode ====================
 
-    private final ObjectProperty<BarStyle> barStyle = new StyleableObjectProperty<>(DEFAULT_BAR_STYLE) {
-        private BarStyle lastValid = DEFAULT_BAR_STYLE;
+    private final ObjectProperty<AnimationMode> animationMode = new StyleableObjectProperty<>(DEFAULT_ANIMATION_MODE) {
+        private AnimationMode lastValid = DEFAULT_ANIMATION_MODE;
 
         @Override
         protected void invalidated() {
-            BarStyle v = get();
+            AnimationMode v = get();
             if (v == null) {
                 if (!isBound()) {
                     set(lastValid);
                 }
-                throw new NullPointerException("barStyle cannot be null");
+                throw new NullPointerException("animationMode cannot be null");
             }
             lastValid = v;
         }
@@ -221,12 +221,12 @@ public class RXBarSpinner extends Control {
 
         @Override
         public String getName() {
-            return "barStyle";
+            return "animationMode";
         }
 
         @Override
-        public CssMetaData<RXBarSpinner, BarStyle> getCssMetaData() {
-            return StyleableProperties.BAR_STYLE;
+        public CssMetaData<RXBarSpinner, AnimationMode> getCssMetaData() {
+            return StyleableProperties.ANIMATION_MODE;
         }
     };
 
@@ -235,18 +235,29 @@ public class RXBarSpinner extends Control {
      * {@link NullPointerException} and rolls back to the previous value
      * (unless the property is currently bound).
      *
-     * @return the bar-style property
+     * @return the animation-mode property
      */
-    public final ObjectProperty<BarStyle> barStyleProperty() {
-        return barStyle;
+    public final ObjectProperty<AnimationMode> animationModeProperty() {
+        return animationMode;
     }
 
-    public final BarStyle getBarStyle() {
-        return barStyle.get();
+    /**
+     * Returns the current animation mode.
+     *
+     * @return the animation mode
+     */
+    public final AnimationMode getAnimationMode() {
+        return animationMode.get();
     }
 
-    public final void setBarStyle(BarStyle value) {
-        barStyle.set(value);
+    /**
+     * Sets the animation mode.
+     *
+     * @param value the animation mode; cannot be {@code null}
+     * @throws NullPointerException if {@code value} is {@code null}
+     */
+    public final void setAnimationMode(AnimationMode value) {
+        animationMode.set(value);
     }
 
     // ==================== Bar Count ====================
@@ -559,19 +570,19 @@ public class RXBarSpinner extends Control {
 
     private static final class StyleableProperties {
 
-        private static final CssMetaData<RXBarSpinner, BarStyle> BAR_STYLE =
-                new CssMetaData<>("-rx-bar-style",
-                        new EnumConverter<>(BarStyle.class),
-                        DEFAULT_BAR_STYLE) {
+        private static final CssMetaData<RXBarSpinner, AnimationMode> ANIMATION_MODE =
+                new CssMetaData<>("-rx-animation-mode",
+                        new EnumConverter<>(AnimationMode.class),
+                        DEFAULT_ANIMATION_MODE) {
                     @Override
                     public boolean isSettable(RXBarSpinner n) {
-                        return !n.barStyle.isBound();
+                        return !n.animationMode.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<BarStyle> getStyleableProperty(RXBarSpinner n) {
-                        return (StyleableProperty<BarStyle>) n.barStyleProperty();
+                    public StyleableProperty<AnimationMode> getStyleableProperty(RXBarSpinner n) {
+                        return (StyleableProperty<AnimationMode>) n.animationModeProperty();
                     }
                 };
 
@@ -709,7 +720,7 @@ public class RXBarSpinner extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Region.getClassCssMetaData());
             Collections.addAll(styleables,
-                    BAR_STYLE,
+                    ANIMATION_MODE,
                     BAR_COUNT,
                     BAR_WIDTH,
                     BAR_HEIGHT,

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
-import io.github.leewyatt.rxcontrols.RXBarSpinner.BarStyle;
+import io.github.leewyatt.rxcontrols.RXBarSpinner.AnimationMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
@@ -24,7 +24,7 @@ import java.util.List;
  * indefinite {@link Timeline}; an invalidation listener fans the phase out to
  * each bar using a per-bar offset of {@code i / barCount}, then maps the
  * per-bar local time to a bar height via the curve selected by
- * {@link BarStyle}.
+ * {@link AnimationMode}.
  *
  * <p>Implementation notes:
  * <ul>
@@ -33,7 +33,7 @@ import java.util.List;
  *       is only one play / pause site to wire up to
  *       {@link TreeShowingProperty}.</li>
  *   <li>Each bar's "local time" is {@code (phase + i/N) % 1.0}; this maps
- *       through {@link BarStyle#WAVE} ({@code sin}) or {@link BarStyle#BOUNCE}
+ *       through {@link AnimationMode#WAVE} ({@code sin}) or {@link AnimationMode#BOUNCE}
  *       (tent) to a value in {@code [0, 1]}, then lerped from
  *       {@code minHeight} to {@code peakHeight}.</li>
  *   <li>{@code cycleDuration ≤ 0} or {@code null} disables the timeline per
@@ -53,7 +53,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
 
     /**
      * Fraction of each bar's local cycle spent in the "active" pulse for
-     * {@link BarStyle#BOUNCE}; the remainder is rest at the minimum height.
+     * {@link AnimationMode#BOUNCE}; the remainder is rest at the minimum height.
      * {@code 0.5} keeps roughly half the bars visibly bouncing at any moment
      * for the default 5-bar configuration, which reads as a sequence of pings
      * rather than a continuous wave.
@@ -61,7 +61,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     private static final double BOUNCE_ACTIVE_FRACTION = 0.5;
 
     /**
-     * Per-bar frequency multipliers for {@link BarStyle#RANDOM}. Picked as
+     * Per-bar frequency multipliers for {@link AnimationMode#RANDOM}. Picked as
      * irrational-ish ratios so adjacent bars do not visibly fall back into
      * phase, and the combined period across {@link RXBarSpinner#MAX_BAR_COUNT
      * MAX_BAR_COUNT} bars is long enough to read as random. Length matches
@@ -73,7 +73,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     };
 
     /**
-     * Per-bar starting phase offsets for {@link BarStyle#RANDOM}, in cycle
+     * Per-bar starting phase offsets for {@link AnimationMode#RANDOM}, in cycle
      * units {@code [0, 1)}. Hand-spread across the range so no two adjacent
      * bars share a starting position.
      */
@@ -144,7 +144,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         disposer.registerListener(control.barGapProperty(), control::requestLayout);
         disposer.registerListener(control.barArcProperty(), this::applyBarArc);
         disposer.registerListener(control.barColorProperty(), this::applyBarFill);
-        disposer.registerListener(control.barStyleProperty(), this::refreshBars);
+        disposer.registerListener(control.animationModeProperty(), this::refreshBars);
         disposer.registerListener(control.minBarHeightRatioProperty(), control::requestLayout);
         disposer.registerListener(control.cycleDurationProperty(), () -> {
             rebuildTimeline();
@@ -240,16 +240,16 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             return;
         }
         double t = phase.get();
-        BarStyle style = getSkinnable().getBarStyle();
-        if (style == null) {
-            style = RXBarSpinner.DEFAULT_BAR_STYLE;
+        AnimationMode mode = getSkinnable().getAnimationMode();
+        if (mode == null) {
+            mode = RXBarSpinner.DEFAULT_ANIMATION_MODE;
         }
         double minH = cachedMinHeight;
         double range = cachedPeakHeight - minH;
 
         for (int i = 0; i < n; i++) {
-            double local = computeLocal(t, i, n, style);
-            double k = curveValue(local, style);
+            double local = computeLocal(t, i, n, mode);
+            double k = curveValue(local, mode);
             double h = minH + range * k;
             Rectangle r = bars.get(i);
             r.setHeight(h);
@@ -269,8 +269,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
      *
      * @return cycle position in {@code [0, 1)}
      */
-    private static double computeLocal(double phase, int i, int n, BarStyle style) {
-        double raw = switch (style) {
+    private static double computeLocal(double phase, int i, int n, AnimationMode mode) {
+        double raw = switch (mode) {
             case PULSE -> phase;
             case RANDOM -> {
                 double freq = RANDOM_FREQUENCIES[i % RANDOM_FREQUENCIES.length];
@@ -287,8 +287,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         return m < 0.0 ? m + 1.0 : m;
     }
 
-    private static double curveValue(double local, BarStyle style) {
-        return switch (style) {
+    private static double curveValue(double local, AnimationMode mode) {
+        return switch (mode) {
             // WAVE / PULSE / RANDOM: full oscillation in [0, 1) — every bar is
             // always somewhere on the curve. Shift by π/2 so the curve starts
             // at the peak — at t=0 PULSE / WAVE put the leading bar at peak
