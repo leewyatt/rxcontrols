@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDotPulse;
-import io.github.leewyatt.rxcontrols.RXDotPulse.PulseStyle;
+import io.github.leewyatt.rxcontrols.RXDotPulse.PulseMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDotPulseDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
@@ -24,7 +24,7 @@ import java.util.Locale;
 /**
  * Showcase application for {@link RXDotPulse}.
  *
- * <p>Exercises every public knob: pulse style, dot count / size / gap, dot
+ * <p>Exercises every public knob: pulse mode, dot count / size / gap, dot
  * color, cycle duration, amplitude. Boundary values (cycle = 0, amplitude = 0)
  * are reachable via the sliders so the "non-positive disables animation"
  * semantic and "amplitude = 0 flattens the pulse" semantic are directly
@@ -118,7 +118,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
         // (which writes -rx-dot-fill on mainIndicator) flows through to here too.
         inline.styleProperty().bind(mainIndicator.styleProperty());
         inline.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
-        inline.pulseStyleProperty().bind(mainIndicator.pulseStyleProperty());
+        inline.pulseModeProperty().bind(mainIndicator.pulseModeProperty());
         inline.amplitudeProperty().bind(mainIndicator.amplitudeProperty());
         Label leading = new Label("User is typing");
         leading.getStyleClass().add("inline-text");
@@ -130,7 +130,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
     private Node buildButtonExample() {
         RXDotPulse inButton = new RXDotPulse();
         inButton.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
-        inButton.pulseStyleProperty().bind(mainIndicator.pulseStyleProperty());
+        inButton.pulseModeProperty().bind(mainIndicator.pulseModeProperty());
         inButton.amplitudeProperty().bind(mainIndicator.amplitudeProperty());
         inButton.setStyle("-rx-dot-fill: white;");
         inButton.setDotSize(6.0);
@@ -148,18 +148,18 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildBehaviourGrid() {
-        ChoiceBox<PulseStyle> styleBox = new ChoiceBox<>();
-        styleBox.getItems().addAll(PulseStyle.values());
-        styleBox.setValue(mainIndicator.getPulseStyle());
-        styleBox.setMaxWidth(Double.MAX_VALUE);
-        mainIndicator.pulseStyleProperty().bind(styleBox.valueProperty());
+        ChoiceBox<PulseMode> modeBox = new ChoiceBox<>();
+        modeBox.getItems().addAll(PulseMode.values());
+        modeBox.setValue(mainIndicator.getPulseMode());
+        modeBox.setMaxWidth(Double.MAX_VALUE);
+        mainIndicator.pulseModeProperty().bind(modeBox.valueProperty());
 
         Slider amplitudeSlider = createSlider(0.0, 3.0, RXDotPulse.DEFAULT_AMPLITUDE);
         mainIndicator.amplitudeProperty().bind(amplitudeSlider.valueProperty());
         Label amplitudeValue = createValueLabel(amplitudeSlider, "%.2f");
 
         return createGrid(
-                row("Pulse style", styleBox),
+                row("Pulse mode", modeBox),
                 row("Amplitude", amplitudeSlider, amplitudeValue));
     }
 

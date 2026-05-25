@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDotPulse;
-import io.github.leewyatt.rxcontrols.RXDotPulse.PulseStyle;
+import io.github.leewyatt.rxcontrols.RXDotPulse.PulseMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
@@ -26,7 +26,7 @@ import java.util.List;
  *
  * <p>A single {@link Timeline} drives a shared phase value. Each dot derives
  * its local phase from its index, then maps that phase to translate, scale, or
- * opacity according to {@link PulseStyle}. The first and last dots expose
+ * opacity according to {@link PulseMode}. The first and last dots expose
  * {@code :first} and {@code :last} pseudo-classes for CSS theming.
  */
 public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
@@ -42,21 +42,21 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     private static final double ACTIVE_FRACTION = 0.5;
 
     /**
-     * Peak upward translation for {@link PulseStyle#BOUNCE}, expressed as a
+     * Peak upward translation for {@link PulseMode#BOUNCE}, expressed as a
      * fraction of {@link RXDotPulse#dotSizeProperty() dotSize}, before the
      * amplitude multiplier is applied.
      */
     private static final double BOUNCE_PEAK_FACTOR = 0.75;
 
     /**
-     * Peak scale increment for {@link PulseStyle#PULSE}, before the
+     * Peak scale increment for {@link PulseMode#PULSE}, before the
      * amplitude multiplier is applied. Combined with amplitude {@code = 1}
      * the dot grows to {@code 1.5x}.
      */
     private static final double PULSE_SCALE_INCREMENT = 0.5;
 
     /**
-     * Resting-opacity reduction for {@link PulseStyle#FADE} at amplitude
+     * Resting-opacity reduction for {@link PulseMode#FADE} at amplitude
      * {@code = 1}: dots at rest sit at {@code 1.0 − 0.7 = 0.3}, rising to
      * {@code 1.0} at the peak.
      */
@@ -129,7 +129,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         });
         disposer.registerListener(control.dotSizeProperty(), control::requestLayout);
         disposer.registerListener(control.dotGapProperty(), control::requestLayout);
-        disposer.registerListener(control.pulseStyleProperty(), this::refreshDots);
+        disposer.registerListener(control.pulseModeProperty(), this::refreshDots);
         disposer.registerListener(control.cycleDurationProperty(), () -> {
             rebuildTimeline();
             if (timeline == null) {
@@ -181,7 +181,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         Duration cycle = getSkinnable().getCycleDuration();
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Caller is responsible for following up with applyStaticRest()
-            // — keeping that off this method lets dotCount/style change
+            // — keeping that off this method lets dotCount/mode change
             // paths share a single "stop + reset" sequence (see registerListeners).
             phase.set(0.0);
             return;
@@ -206,16 +206,16 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
             return;
         }
         double t = phase.get();
-        PulseStyle style = getSkinnable().getPulseStyle();
-        if (style == null) {
-            style = RXDotPulse.DEFAULT_PULSE_STYLE;
+        PulseMode mode = getSkinnable().getPulseMode();
+        if (mode == null) {
+            mode = RXDotPulse.DEFAULT_PULSE_MODE;
         }
         double amp = RXMath.sanitizeNonNegative(getSkinnable().getAmplitude());
         double size = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
 
         for (int i = 0; i < n; i++) {
             double local = ((t + (double) i / n) % 1.0 + 1.0) % 1.0;
-            applyDotState(dots.get(i), local, style, amp, size);
+            applyDotState(dots.get(i), local, mode, amp, size);
         }
     }
 
@@ -231,7 +231,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     /**
      * Pushes a fresh transform to every dot — either by recomputing against
      * the current phase (timeline running) or by snapping to rest (timeline
-     * disabled). Use when a non-timing property (style, amplitude) changes
+     * disabled). Use when a non-timing property (mode, amplitude) changes
      * mid-cycle and we want the new effect visible this frame instead of next.
      */
     private void refreshDots() {
@@ -242,13 +242,13 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         }
     }
 
-    private static void applyDotState(Region r, double local, PulseStyle style,
+    private static void applyDotState(Region r, double local, PulseMode mode,
                                       double amp, double size) {
         double pulse = (local < ACTIVE_FRACTION)
                 ? Math.sin(Math.PI * local / ACTIVE_FRACTION)
                 : 0.0;
 
-        switch (style) {
+        switch (mode) {
             case BOUNCE -> {
                 r.setTranslateY(-pulse * amp * size * BOUNCE_PEAK_FACTOR);
                 r.setScaleX(1.0);

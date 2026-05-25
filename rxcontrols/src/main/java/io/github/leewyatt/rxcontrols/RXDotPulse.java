@@ -29,12 +29,12 @@ import java.util.List;
  * staggered phase. Common use cases include "typing…" indicators in chat UIs,
  * inline placeholders next to text, and small loading badges inside buttons.
  *
- * <p>Three animation variants are exposed via {@link #pulseStyleProperty() pulseStyle}:
+ * <p>Three animation variants are exposed via {@link #pulseModeProperty() pulseMode}:
  * <ul>
- *   <li>{@link PulseStyle#BOUNCE} (default) — each dot translates upward and
+ *   <li>{@link PulseMode#BOUNCE} (default) — each dot translates upward and
  *       returns, mimicking a wave of bouncing dots</li>
- *   <li>{@link PulseStyle#PULSE} — each dot scales up briefly and contracts</li>
- *   <li>{@link PulseStyle#FADE} — each dot lifts its opacity from a resting
+ *   <li>{@link PulseMode#PULSE} — each dot scales up briefly and contracts</li>
+ *   <li>{@link PulseMode#FADE} — each dot lifts its opacity from a resting
  *       value to fully opaque and back</li>
  * </ul>
  *
@@ -57,7 +57,7 @@ public class RXDotPulse extends Control {
     /**
      * Animation variant for {@link RXDotPulse}.
      */
-    public enum PulseStyle {
+    public enum PulseMode {
         /**
          * Each dot translates upward by an amount proportional to
          * {@link RXDotPulse#amplitudeProperty() amplitude} and {@link
@@ -82,9 +82,9 @@ public class RXDotPulse extends Control {
     // ==================== Public Defaults ====================
 
     /**
-     * Default {@link PulseStyle}.
+     * Default {@link PulseMode}.
      */
-    public static final PulseStyle DEFAULT_PULSE_STYLE = PulseStyle.BOUNCE;
+    public static final PulseMode DEFAULT_PULSE_MODE = PulseMode.BOUNCE;
 
     /**
      * Default number of dots.
@@ -120,7 +120,7 @@ public class RXDotPulse extends Control {
 
     /**
      * Default amplitude multiplier. {@code 1.0} yields the visual defaults
-     * tuned per {@link PulseStyle}; {@code 0} flattens the animation; values
+     * tuned per {@link PulseMode}; {@code 0} flattens the animation; values
      * above {@code 1.0} exaggerate the effect.
      */
     public static final double DEFAULT_AMPLITUDE = 1.0;
@@ -128,21 +128,21 @@ public class RXDotPulse extends Control {
     // ==================== Constructors ====================
 
     /**
-     * Creates an indicator with the {@linkplain #DEFAULT_PULSE_STYLE default style}.
+     * Creates an indicator with the {@linkplain #DEFAULT_PULSE_MODE default mode}.
      */
     public RXDotPulse() {
-        this(DEFAULT_PULSE_STYLE);
+        this(DEFAULT_PULSE_MODE);
     }
 
     /**
-     * Creates an indicator with the given pulse style.
+     * Creates an indicator with the given pulse mode.
      *
-     * @param pulseStyle the initial pulse style; {@code null} falls back to
-     *                   {@link #DEFAULT_PULSE_STYLE}
+     * @param pulseMode the initial pulse mode; {@code null} falls back to
+     *                   {@link #DEFAULT_PULSE_MODE}
      */
-    public RXDotPulse(@NamedArg("pulseStyle") PulseStyle pulseStyle) {
+    public RXDotPulse(@NamedArg("pulseMode") PulseMode pulseMode) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setPulseStyle(pulseStyle == null ? DEFAULT_PULSE_STYLE : pulseStyle);
+        setPulseMode(pulseMode == null ? DEFAULT_PULSE_MODE : pulseMode);
     }
 
     @Override
@@ -155,19 +155,19 @@ public class RXDotPulse extends Control {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    // ==================== Pulse Style ====================
+    // ==================== Pulse Mode ====================
 
-    private final ObjectProperty<PulseStyle> pulseStyle = new StyleableObjectProperty<>(DEFAULT_PULSE_STYLE) {
-        private PulseStyle lastValid = DEFAULT_PULSE_STYLE;
+    private final ObjectProperty<PulseMode> pulseMode = new StyleableObjectProperty<>(DEFAULT_PULSE_MODE) {
+        private PulseMode lastValid = DEFAULT_PULSE_MODE;
 
         @Override
         protected void invalidated() {
-            PulseStyle v = get();
+            PulseMode v = get();
             if (v == null) {
                 if (!isBound()) {
                     set(lastValid);
                 }
-                throw new NullPointerException("pulseStyle cannot be null");
+                throw new NullPointerException("pulseMode cannot be null");
             }
             lastValid = v;
         }
@@ -179,12 +179,12 @@ public class RXDotPulse extends Control {
 
         @Override
         public String getName() {
-            return "pulseStyle";
+            return "pulseMode";
         }
 
         @Override
-        public CssMetaData<RXDotPulse, PulseStyle> getCssMetaData() {
-            return StyleableProperties.PULSE_STYLE;
+        public CssMetaData<RXDotPulse, PulseMode> getCssMetaData() {
+            return StyleableProperties.PULSE_MODE;
         }
     };
 
@@ -193,22 +193,22 @@ public class RXDotPulse extends Control {
      * {@link NullPointerException} and rolls back to the previous value
      * (unless the property is currently bound).
      *
-     * <p>The name is {@code pulseStyle} rather than {@code style} to avoid
+     * <p>The name is {@code pulseMode} rather than {@code style} to avoid
      * shadowing {@link javafx.scene.Node#styleProperty()}, which is final and
      * typed as {@code StringProperty}.
      *
-     * @return the pulse-style property
+     * @return the pulse-mode property
      */
-    public final ObjectProperty<PulseStyle> pulseStyleProperty() {
-        return pulseStyle;
+    public final ObjectProperty<PulseMode> pulseModeProperty() {
+        return pulseMode;
     }
 
-    public final PulseStyle getPulseStyle() {
-        return pulseStyle.get();
+    public final PulseMode getPulseMode() {
+        return pulseMode.get();
     }
 
-    public final void setPulseStyle(PulseStyle value) {
-        pulseStyle.set(value);
+    public final void setPulseMode(PulseMode value) {
+        pulseMode.set(value);
     }
 
     // ==================== Dot Count ====================
@@ -385,12 +385,12 @@ public class RXDotPulse extends Control {
     };
 
     /**
-     * Multiplier applied to the per-style peak effect:
+     * Multiplier applied to the per-mode peak effect:
      * <ul>
-     *   <li>{@link PulseStyle#BOUNCE}: peak upward translation in pixels =
+     *   <li>{@link PulseMode#BOUNCE}: peak upward translation in pixels =
      *       {@code amplitude * dotSize * 0.75}</li>
-     *   <li>{@link PulseStyle#PULSE}: peak scale = {@code 1 + amplitude * 0.5}</li>
-     *   <li>{@link PulseStyle#FADE}: opacity range = {@code [1 - 0.7 * amplitude, 1]},
+     *   <li>{@link PulseMode#PULSE}: peak scale = {@code 1 + amplitude * 0.5}</li>
+     *   <li>{@link PulseMode#FADE}: opacity range = {@code [1 - 0.7 * amplitude, 1]},
      *       clamped to {@code [0, 1]}</li>
      * </ul>
      * Negative values and {@code NaN} are treated as {@code 0} at render time
@@ -414,19 +414,19 @@ public class RXDotPulse extends Control {
 
     private static final class StyleableProperties {
 
-        private static final CssMetaData<RXDotPulse, PulseStyle> PULSE_STYLE =
-                new CssMetaData<>("-rx-pulse-style",
-                        new EnumConverter<>(PulseStyle.class),
-                        DEFAULT_PULSE_STYLE) {
+        private static final CssMetaData<RXDotPulse, PulseMode> PULSE_MODE =
+                new CssMetaData<>("-rx-pulse-mode",
+                        new EnumConverter<>(PulseMode.class),
+                        DEFAULT_PULSE_MODE) {
                     @Override
                     public boolean isSettable(RXDotPulse n) {
-                        return !n.pulseStyle.isBound();
+                        return !n.pulseMode.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<PulseStyle> getStyleableProperty(RXDotPulse n) {
-                        return (StyleableProperty<PulseStyle>) n.pulseStyleProperty();
+                    public StyleableProperty<PulseMode> getStyleableProperty(RXDotPulse n) {
+                        return (StyleableProperty<PulseMode>) n.pulseModeProperty();
                     }
                 };
 
@@ -516,7 +516,7 @@ public class RXDotPulse extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Region.getClassCssMetaData());
             Collections.addAll(styleables,
-                    PULSE_STYLE,
+                    PULSE_MODE,
                     DOT_COUNT,
                     DOT_SIZE,
                     DOT_GAP,
