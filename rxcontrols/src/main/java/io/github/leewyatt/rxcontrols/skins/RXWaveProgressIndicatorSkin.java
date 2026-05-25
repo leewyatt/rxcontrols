@@ -712,9 +712,6 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     }
 
     private void positionLabels() {
-        if (cachedWaterRadius <= 0.0) {
-            return;
-        }
         positionLabel(progressLabel);
         positionLabel(progressLabelBelow);
     }
@@ -750,6 +747,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
             cachedCenterX = 0.0;
             cachedCenterY = 0.0;
             ensureWaveGeometry();
+            positionLabels();
             return;
         }
 
