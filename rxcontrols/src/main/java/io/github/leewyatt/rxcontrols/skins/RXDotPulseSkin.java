@@ -19,35 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXDotPulse}. Renders a horizontal row of
- * {@link Region} dots (style class {@code .dot}) and drives a shared
- * {@code phase} property on an indefinite {@link Timeline}; an invalidation
- * listener fans the phase out to each dot using a per-dot offset of
- * {@code i / dotCount}, then maps the per-dot local time to a translate /
- * scale / opacity effect based on {@link PulseStyle}.
+ * Default skin for {@link RXDotPulse}. Renders a row of unmanaged
+ * {@link Region} dots using the {@code .dot} style class. Dot appearance is
+ * delegated to CSS; the user-agent stylesheet provides the default circular
+ * fill via {@code -rx-dot-fill}.
  *
- * <p>Dot appearance (fill, shape, border, multi-layer background, ...) is
- * fully delegated to CSS. The default circular look comes from the user-agent
- * stylesheet ({@code -fx-background-color: -rx-dot-fill; -fx-background-radius: 1000;});
- * users override either the looked-up {@code -rx-dot-fill} color or the entire
- * {@code .rx-dot-pulse > .dot} rule (including {@code -fx-shape} for non-circle
- * dot shapes). The first and last dots also carry {@code :first} / {@code :last}
- * pseudo-classes so leading/trailing dots can be themed independently.
- *
- * <p>Implementation notes:
- * <ul>
- *   <li>The driver is a single {@link Timeline}, not one timeline per dot,
- *       so phase relationships stay exact across the cycle boundary and there
- *       is only one play / pause site to wire up to
- *       {@link TreeShowingProperty}.</li>
- *   <li>Each dot's "local time" is {@code (phase + i/N) % 1.0}; the active
- *       portion of the local time uses a {@code sin(π · t / ACTIVE_FRACTION)}
- *       curve so the peak is smooth in both directions. Outside the active
- *       portion the dot rests at its baseline transform.</li>
- *   <li>{@code cycleDuration ≤ 0} or {@code null} disables the timeline per
- *       AGENTS.md §3.6 and snaps all dots to a clean rest pose (translate 0,
- *       scale 1, opacity 1) so a stale frame cannot linger (§1.8).</li>
- * </ul>
+ * <p>A single {@link Timeline} drives a shared phase value. Each dot derives
+ * its local phase from its index, then maps that phase to translate, scale, or
+ * opacity according to {@link PulseStyle}. The first and last dots expose
+ * {@code :first} and {@code :last} pseudo-classes for CSS theming.
  */
 public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
 

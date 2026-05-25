@@ -104,7 +104,7 @@ public class RXDotPulse extends Control {
     public static final int MAX_DOT_COUNT = 8;
 
     /**
-     * Default diameter of each dot, in pixels.
+     * Default layout size of each dot, in pixels.
      */
     public static final double DEFAULT_DOT_SIZE = 8.0;
 
@@ -269,8 +269,10 @@ public class RXDotPulse extends Control {
     };
 
     /**
-     * Diameter of each dot, in pixels. Negative values and {@code NaN} are
-     * treated as {@code 0} at render time (the dot collapses to invisible).
+     * Layout size of each dot, in pixels. The skin lays each dot out in a
+     * {@code dotSize x dotSize} box; the painted shape is controlled by CSS.
+     * Negative values and {@code NaN} are treated as {@code 0} at render time
+     * (the dot collapses to invisible).
      *
      * @return the dot-size property
      */
