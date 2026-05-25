@@ -295,6 +295,10 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         // displayedProgress is the entry point for the determinate tween in
         // onProgressChanged; do not snap it here or the incoming transition
         // would start from a discontinuous frame.
+        // Reset clip geometry to the determinate form now — if the incoming
+        // tween target equals the current displayedProgress, no listener fires
+        // and last frame's band overlap would otherwise linger (§1.8).
+        applyFills();
     }
 
     private void rebuildIndeterminateTimeline() {

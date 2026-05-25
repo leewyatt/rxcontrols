@@ -126,6 +126,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         stories.filledColorProperty().bind(mainBar.filledColorProperty());
         stories.unfilledColorProperty().bind(mainBar.unfilledColorProperty());
         stories.indeterminateCycleDurationProperty().bind(mainBar.indeterminateCycleDurationProperty());
+        stories.indeterminateBandRatioProperty().bind(mainBar.indeterminateBandRatioProperty());
         return stories;
     }
 
@@ -139,6 +140,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         inline.filledColorProperty().bind(mainBar.filledColorProperty());
         inline.unfilledColorProperty().bind(mainBar.unfilledColorProperty());
         inline.indeterminateCycleDurationProperty().bind(mainBar.indeterminateCycleDurationProperty());
+        inline.indeterminateBandRatioProperty().bind(mainBar.indeterminateBandRatioProperty());
 
         Label stepLabel = new Label();
         stepLabel.getStyleClass().add("inline-text");
