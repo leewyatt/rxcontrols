@@ -23,10 +23,10 @@ import java.util.List;
  * Showcase application for {@link RXSegmentedProgressBar}.
  *
  * <p>Exercises every public knob: segment count / gap / height / arc, filled
- * and unfilled colours, indeterminate cycle, and the progress transition
- * tween. Boundary values (cycle = 0, transition = 0) are reachable via the
- * sliders so the "non-positive disables animation" semantic is directly
- * observable.
+ * and unfilled colours, indeterminate cycle and band ratio, and the progress
+ * transition tween. Boundary values (cycle = 0, transition = 0) are reachable
+ * via the sliders so the "non-positive disables animation" semantic is
+ * directly observable.
  *
  * <p>The preview pane embeds three usages: a standalone bar, a Stories-style
  * dense bar with many short segments, and an inline composition with a
@@ -254,14 +254,19 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildTimingGrid() {
-        // Both sliders go down to 0 to demonstrate the "non-positive disables animation" semantic:
-        // cycle = 0  → indeterminate wave stops (row stays empty)
-        // tween = 0  → determinate progress jumps instead of tweening
+        // Both duration sliders go down to 0 to demonstrate the "non-positive disables animation" semantic:
+        // cycle = 0 -> indeterminate band stops (row stays empty)
+        // tween = 0 -> determinate progress jumps instead of tweening
         Slider cycleSlider = createSlider(0.0, 4000.0,
                 RXSegmentedProgressBar.DEFAULT_INDETERMINATE_CYCLE_DURATION.toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 mainBar.setIndeterminateCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");
+
+        Slider bandRatioSlider = createSlider(0.05, 1.0,
+                RXSegmentedProgressBar.DEFAULT_INDETERMINATE_BAND_RATIO);
+        mainBar.indeterminateBandRatioProperty().bind(bandRatioSlider.valueProperty());
+        Label bandRatioValue = createValueLabel(bandRatioSlider, "%.2f");
 
         Slider tweenSlider = createSlider(0.0, 1000.0,
                 RXSegmentedProgressBar.DEFAULT_PROGRESS_TRANSITION_DURATION.toMillis());
@@ -271,6 +276,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Cycle", cycleSlider, cycleValue),
+                row("Band ratio", bandRatioSlider, bandRatioValue),
                 row("Tween", tweenSlider, tweenValue));
     }
 

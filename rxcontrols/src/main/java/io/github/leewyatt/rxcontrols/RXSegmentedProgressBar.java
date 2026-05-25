@@ -51,11 +51,11 @@ import java.util.List;
  *   <li>{@code :completed} — set when {@code progress >= 1.0}</li>
  * </ul>
  *
- * <p>In indeterminate mode a single highlight wave sweeps across the row: each
- * segment briefly fills and then drains as the wave passes, giving the bar a
- * direction-aware "still working" appearance distinct from the deterministic
- * left-to-right fill. The animation auto-pauses whenever the host window or
- * any ancestor is hidden, so an off-screen bar does not waste CPU.
+ * <p>In indeterminate mode a fixed-width highlight band sweeps across the row,
+ * clipped by each segment as it passes. With one segment the control behaves
+ * like a classic linear indeterminate progress bar. The animation auto-pauses
+ * whenever the host window or any ancestor is hidden, so an off-screen bar does
+ * not waste CPU.
  */
 public class RXSegmentedProgressBar extends ProgressIndicator {
 
@@ -73,7 +73,7 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
     /**
      * Minimum permitted {@link #segmentCountProperty() segmentCount} at render time.
      */
-    public static final int MIN_SEGMENT_COUNT = 2;
+    public static final int MIN_SEGMENT_COUNT = 1;
 
     /**
      * Maximum permitted {@link #segmentCountProperty() segmentCount} at render time.
@@ -119,6 +119,12 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
      * Default cycle duration for the indeterminate highlight sweep.
      */
     public static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1600.0);
+
+    /**
+     * Default width of the indeterminate highlight band, expressed as a
+     * fraction of the content width.
+     */
+    public static final double DEFAULT_INDETERMINATE_BAND_RATIO = 0.35;
 
     // ==================== Constructors ====================
 
@@ -326,8 +332,9 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
     };
 
     /**
-     * Paint used for the filled portion of each segment. Tolerates {@code null}
-     * (skin falls back to {@link #DEFAULT_FILLED_COLOR}).
+     * Paint used for the filled portion of each segment. Initial value is
+     * {@link #DEFAULT_FILLED_COLOR}; setting {@code null} renders no fill
+     * (transparent) per the JavaFX {@code Shape.setFill} convention.
      *
      * @return the filled-color property
      */
@@ -363,8 +370,9 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
     };
 
     /**
-     * Paint used for the unfilled portion of each segment. Tolerates {@code null}
-     * (skin falls back to {@link #DEFAULT_UNFILLED_COLOR}).
+     * Paint used for the unfilled portion of each segment. Initial value is
+     * {@link #DEFAULT_UNFILLED_COLOR}; setting {@code null} renders no track
+     * fill (transparent) per the JavaFX {@code Shape.setFill} convention.
      *
      * @return the unfilled-color property
      */
@@ -441,7 +449,7 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
             };
 
     /**
-     * Duration of one full pass of the indeterminate highlight wave across the
+     * Duration of one full pass of the indeterminate highlight band across the
      * row. A value of {@code null} or any {@code Duration} less than or equal
      * to {@link Duration#ZERO} suppresses the indeterminate animation — the
      * row collapses to its empty pose (all segments unfilled).
@@ -458,6 +466,45 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
 
     public final void setIndeterminateCycleDuration(Duration value) {
         indeterminateCycleDuration.set(value);
+    }
+
+    // ==================== Indeterminate Band Ratio ====================
+
+    private final DoubleProperty indeterminateBandRatio =
+            new StyleableDoubleProperty(DEFAULT_INDETERMINATE_BAND_RATIO) {
+                @Override
+                public Object getBean() {
+                    return RXSegmentedProgressBar.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "indeterminateBandRatio";
+                }
+
+                @Override
+                public CssMetaData<RXSegmentedProgressBar, Number> getCssMetaData() {
+                    return StyleableProperties.INDETERMINATE_BAND_RATIO;
+                }
+            };
+
+    /**
+     * Width of the indeterminate highlight band, expressed as a fraction of
+     * the content width. Values outside {@code [0, 1]} are clamped at render
+     * time; {@code 0} hides the band.
+     *
+     * @return the indeterminate-band-ratio property
+     */
+    public final DoubleProperty indeterminateBandRatioProperty() {
+        return indeterminateBandRatio;
+    }
+
+    public final double getIndeterminateBandRatio() {
+        return indeterminateBandRatio.get();
+    }
+
+    public final void setIndeterminateBandRatio(double value) {
+        indeterminateBandRatio.set(value);
     }
 
     // ==================== CSS Metadata ====================
@@ -592,6 +639,22 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
                     }
                 };
 
+        private static final CssMetaData<RXSegmentedProgressBar, Number> INDETERMINATE_BAND_RATIO =
+                new CssMetaData<>("-rx-indeterminate-band-ratio",
+                        SizeConverter.getInstance(),
+                        DEFAULT_INDETERMINATE_BAND_RATIO) {
+                    @Override
+                    public boolean isSettable(RXSegmentedProgressBar n) {
+                        return !n.indeterminateBandRatio.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSegmentedProgressBar n) {
+                        return (StyleableProperty<Number>) n.indeterminateBandRatioProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -605,7 +668,8 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
                     FILLED_COLOR,
                     UNFILLED_COLOR,
                     PROGRESS_TRANSITION_DURATION,
-                    INDETERMINATE_CYCLE_DURATION);
+                    INDETERMINATE_CYCLE_DURATION,
+                    INDETERMINATE_BAND_RATIO);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
