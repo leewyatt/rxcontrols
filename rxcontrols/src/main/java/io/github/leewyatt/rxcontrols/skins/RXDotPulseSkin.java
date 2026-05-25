@@ -107,9 +107,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
 
         rebuildTimeline();
         if (timeline == null) {
-            // Animation disabled at construction (e.g. cycleDuration <= 0) —
-            // §1.8: still snap the dots to a deterministic rest pose so the
-            // first frame is not whatever defaults Region was initialised to.
+            // Keep the first frame initialized when animation is disabled.
             applyStaticRest();
         }
     }
