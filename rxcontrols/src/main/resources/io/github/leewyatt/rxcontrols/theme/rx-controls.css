@@ -240,6 +240,21 @@
  * RXSegmentedProgressBar                                                      *
  *                                                                             *
  ******************************************************************************/
+.rx-segmented-progress-bar {
+    -rx-filled-color: #616dfe;
+    -rx-unfilled-color: rgba(0, 0, 0, 0.12);
+}
+
+.rx-segmented-progress-bar > .track {
+    -fx-background-color: -rx-unfilled-color;
+    -fx-background-radius: 4px;
+}
+
+.rx-segmented-progress-bar > .segment-fill {
+    -fx-background-color: -rx-filled-color;
+    -fx-background-radius: 4px;
+}
+
 .rx-segmented-progress-bar:completed {
     -rx-filled-color: #2ecc71;
 }
@@ -408,4 +423,3 @@
 .carousel-navigator > .compact-navigator > .next-button > .arrow {
     -fx-shape: "M 0 0 L 10 5 L 0 10 Z";
 }
-

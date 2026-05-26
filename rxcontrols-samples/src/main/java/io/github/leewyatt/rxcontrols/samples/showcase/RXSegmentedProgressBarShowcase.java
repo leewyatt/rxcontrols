@@ -8,13 +8,11 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -22,11 +20,10 @@ import java.util.List;
 /**
  * Showcase application for {@link RXSegmentedProgressBar}.
  *
- * <p>Exercises every public knob: segment count / gap / height / arc, filled
- * and unfilled colours, indeterminate cycle and band ratio, and the progress
- * transition tween. Boundary values (cycle = 0, transition = 0) are reachable
- * via the sliders so the "non-positive disables animation" semantic is
- * directly observable.
+ * <p>Exercises every public knob: segment count / gap / height, indeterminate
+ * cycle and band ratio, and the progress transition tween. Boundary values
+ * (cycle = 0, transition = 0) are reachable via the sliders so the
+ * "non-positive disables animation" semantic is directly observable.
  *
  * <p>The preview pane embeds three usages: a standalone bar, a Stories-style
  * dense bar with many short segments, and an inline composition with a
@@ -34,8 +31,6 @@ import java.util.List;
  * {@link RXSegmentedProgressBarDemo}.
  */
 public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
-
-    private static final double PREVIEW_WIDTH = 360.0;
 
     private RXSegmentedProgressBar mainBar;
     private CheckBox indeterminateBox;
@@ -81,7 +76,6 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         mainBar = new RXSegmentedProgressBar(0.4);
-        mainBar.setPrefWidth(PREVIEW_WIDTH);
 
         VBox stack = new VBox(28.0,
                 buildCard("Standalone", new StackPane(mainBar)),
@@ -96,7 +90,6 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Progress", buildProgressGrid()),
                 section("Geometry", buildGeometryGrid()),
-                section("Appearance", buildAppearanceGrid()),
                 section("Timing", buildTimingGrid()));
     }
 
@@ -115,16 +108,12 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
 
     private Node buildStoriesExample() {
         RXSegmentedProgressBar stories = new RXSegmentedProgressBar();
-        stories.setPrefWidth(PREVIEW_WIDTH);
         stories.setSegmentCount(10);
         stories.setSegmentHeight(4.0);
-        stories.setSegmentArc(2.0);
         stories.setSegmentGap(3.0);
         // Slave the Stories bar to the main bar so the showcase reads as a
         // single demo, not three independent controls.
         stories.progressProperty().bind(mainBar.progressProperty());
-        stories.filledColorProperty().bind(mainBar.filledColorProperty());
-        stories.unfilledColorProperty().bind(mainBar.unfilledColorProperty());
         stories.indeterminateCycleDurationProperty().bind(mainBar.indeterminateCycleDurationProperty());
         stories.indeterminateBandRatioProperty().bind(mainBar.indeterminateBandRatioProperty());
         return stories;
@@ -135,10 +124,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         inline.setPrefWidth(220.0);
         inline.setSegmentCount(4);
         inline.setSegmentHeight(6.0);
-        inline.setSegmentArc(3.0);
         inline.progressProperty().bind(mainBar.progressProperty());
-        inline.filledColorProperty().bind(mainBar.filledColorProperty());
-        inline.unfilledColorProperty().bind(mainBar.unfilledColorProperty());
         inline.indeterminateCycleDurationProperty().bind(mainBar.indeterminateCycleDurationProperty());
         inline.indeterminateBandRatioProperty().bind(mainBar.indeterminateBandRatioProperty());
 
@@ -224,35 +210,10 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         mainBar.segmentHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 
-        Slider arcSlider = createSlider(0.0, 24.0,
-                RXSegmentedProgressBar.DEFAULT_SEGMENT_ARC);
-        mainBar.segmentArcProperty().bind(arcSlider.valueProperty());
-        Label arcValue = createValueLabel(arcSlider, "%.0f px");
-
-        Slider widthSlider = createSlider(120.0, 600.0, PREVIEW_WIDTH);
-        mainBar.prefWidthProperty().bind(widthSlider.valueProperty());
-        Label widthValue = createValueLabel(widthSlider, "%.0f px");
-
         return createGrid(
                 row("Segments", countSlider, countValue),
                 row("Gap", gapSlider, gapValue),
-                row("Height", heightSlider, heightValue),
-                row("Arc", arcSlider, arcValue),
-                row("Bar width", widthSlider, widthValue));
-    }
-
-    private Node buildAppearanceGrid() {
-        ColorPicker filledPicker = new ColorPicker((Color) RXSegmentedProgressBar.DEFAULT_FILLED_COLOR);
-        filledPicker.setMaxWidth(Double.MAX_VALUE);
-        mainBar.filledColorProperty().bind(filledPicker.valueProperty());
-
-        ColorPicker unfilledPicker = new ColorPicker((Color) RXSegmentedProgressBar.DEFAULT_UNFILLED_COLOR);
-        unfilledPicker.setMaxWidth(Double.MAX_VALUE);
-        mainBar.unfilledColorProperty().bind(unfilledPicker.valueProperty());
-
-        return createGrid(
-                row("Filled", filledPicker),
-                row("Unfilled", unfilledPicker));
+                row("Height", heightSlider, heightValue));
     }
 
     private Node buildTimingGrid() {

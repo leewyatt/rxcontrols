@@ -14,12 +14,9 @@ import javafx.css.StyleableIntegerProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
-import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Skin;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -41,14 +38,20 @@ import java.util.List;
  *
  * <p>Visual structure (driven by the default skin):
  * <ul>
- *   <li>{@code .track} — the unfilled pill behind each segment</li>
- *   <li>{@code .segment-fill} — the filled pill on top of each track</li>
+ *   <li>{@code .track} — the unfilled region behind each segment</li>
+ *   <li>{@code .segment-fill} — the filled region on top of each track</li>
  * </ul>
  *
- * <p>Pseudo-classes (in addition to {@code :determinate} / {@code :indeterminate}
- * inherited from {@link ProgressIndicator}):
+ * <p>Control pseudo-classes (in addition to {@code :determinate} /
+ * {@code :indeterminate} inherited from {@link ProgressIndicator}):
  * <ul>
  *   <li>{@code :completed} — set when {@code progress >= 1.0}</li>
+ * </ul>
+ *
+ * <p>Child-region pseudo-classes:
+ * <ul>
+ *   <li>{@code :first} — set on the first {@code .track} and {@code .segment-fill}</li>
+ *   <li>{@code :last} — set on the last {@code .track} and {@code .segment-fill}</li>
  * </ul>
  *
  * <p>In indeterminate mode a fixed-width highlight band sweeps across the row,
@@ -91,24 +94,6 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
      * Default segment height (also drives {@code prefHeight}), in pixels.
      */
     public static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
-
-    /**
-     * Default corner radius of each segment, in pixels. Equal to half the
-     * default height so segments render as pills by default.
-     */
-    public static final double DEFAULT_SEGMENT_ARC = 4.0;
-
-    /**
-     * Default fill paint for the filled portion of each segment. Matches the
-     * rest of the RX progress-indicator family so the bar reads as part of the
-     * same control set.
-     */
-    public static final Paint DEFAULT_FILLED_COLOR = Color.web("#616dfe");
-
-    /**
-     * Default fill paint for the unfilled portion of each segment.
-     */
-    public static final Paint DEFAULT_UNFILLED_COLOR = Color.rgb(0, 0, 0, 0.12);
 
     /**
      * Default tween duration applied to determinate progress changes.
@@ -271,121 +256,6 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
 
     public final void setSegmentHeight(double value) {
         segmentHeight.set(value);
-    }
-
-    // ==================== Segment Arc ====================
-
-    private final DoubleProperty segmentArc = new StyleableDoubleProperty(DEFAULT_SEGMENT_ARC) {
-        @Override
-        public Object getBean() {
-            return RXSegmentedProgressBar.this;
-        }
-
-        @Override
-        public String getName() {
-            return "segmentArc";
-        }
-
-        @Override
-        public CssMetaData<RXSegmentedProgressBar, Number> getCssMetaData() {
-            return StyleableProperties.SEGMENT_ARC;
-        }
-    };
-
-    /**
-     * Corner radius of each segment, in pixels. {@code 0} yields plain
-     * rectangles; values {@code >= segmentHeight / 2} round the ends into
-     * pills. Negative values and {@code NaN} are treated as {@code 0} at
-     * render time.
-     *
-     * @return the segment-arc property
-     */
-    public final DoubleProperty segmentArcProperty() {
-        return segmentArc;
-    }
-
-    public final double getSegmentArc() {
-        return segmentArc.get();
-    }
-
-    public final void setSegmentArc(double value) {
-        segmentArc.set(value);
-    }
-
-    // ==================== Filled Color ====================
-
-    private final ObjectProperty<Paint> filledColor = new StyleableObjectProperty<>(DEFAULT_FILLED_COLOR) {
-        @Override
-        public Object getBean() {
-            return RXSegmentedProgressBar.this;
-        }
-
-        @Override
-        public String getName() {
-            return "filledColor";
-        }
-
-        @Override
-        public CssMetaData<RXSegmentedProgressBar, Paint> getCssMetaData() {
-            return StyleableProperties.FILLED_COLOR;
-        }
-    };
-
-    /**
-     * Paint used for the filled portion of each segment. Initial value is
-     * {@link #DEFAULT_FILLED_COLOR}; setting {@code null} renders no fill
-     * (transparent) per the JavaFX {@code Shape.setFill} convention.
-     *
-     * @return the filled-color property
-     */
-    public final ObjectProperty<Paint> filledColorProperty() {
-        return filledColor;
-    }
-
-    public final Paint getFilledColor() {
-        return filledColor.get();
-    }
-
-    public final void setFilledColor(Paint value) {
-        filledColor.set(value);
-    }
-
-    // ==================== Unfilled Color ====================
-
-    private final ObjectProperty<Paint> unfilledColor = new StyleableObjectProperty<>(DEFAULT_UNFILLED_COLOR) {
-        @Override
-        public Object getBean() {
-            return RXSegmentedProgressBar.this;
-        }
-
-        @Override
-        public String getName() {
-            return "unfilledColor";
-        }
-
-        @Override
-        public CssMetaData<RXSegmentedProgressBar, Paint> getCssMetaData() {
-            return StyleableProperties.UNFILLED_COLOR;
-        }
-    };
-
-    /**
-     * Paint used for the unfilled portion of each segment. Initial value is
-     * {@link #DEFAULT_UNFILLED_COLOR}; setting {@code null} renders no track
-     * fill (transparent) per the JavaFX {@code Shape.setFill} convention.
-     *
-     * @return the unfilled-color property
-     */
-    public final ObjectProperty<Paint> unfilledColorProperty() {
-        return unfilledColor;
-    }
-
-    public final Paint getUnfilledColor() {
-        return unfilledColor.get();
-    }
-
-    public final void setUnfilledColor(Paint value) {
-        unfilledColor.set(value);
     }
 
     // ==================== Progress Transition Duration ====================
@@ -559,54 +429,6 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
                     }
                 };
 
-        private static final CssMetaData<RXSegmentedProgressBar, Number> SEGMENT_ARC =
-                new CssMetaData<>("-rx-segment-arc",
-                        SizeConverter.getInstance(),
-                        DEFAULT_SEGMENT_ARC) {
-                    @Override
-                    public boolean isSettable(RXSegmentedProgressBar n) {
-                        return !n.segmentArc.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXSegmentedProgressBar n) {
-                        return (StyleableProperty<Number>) n.segmentArcProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXSegmentedProgressBar, Paint> FILLED_COLOR =
-                new CssMetaData<>("-rx-filled-color",
-                        PaintConverter.getInstance(),
-                        DEFAULT_FILLED_COLOR) {
-                    @Override
-                    public boolean isSettable(RXSegmentedProgressBar n) {
-                        return !n.filledColor.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXSegmentedProgressBar n) {
-                        return (StyleableProperty<Paint>) n.filledColorProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXSegmentedProgressBar, Paint> UNFILLED_COLOR =
-                new CssMetaData<>("-rx-unfilled-color",
-                        PaintConverter.getInstance(),
-                        DEFAULT_UNFILLED_COLOR) {
-                    @Override
-                    public boolean isSettable(RXSegmentedProgressBar n) {
-                        return !n.unfilledColor.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXSegmentedProgressBar n) {
-                        return (StyleableProperty<Paint>) n.unfilledColorProperty();
-                    }
-                };
-
         private static final CssMetaData<RXSegmentedProgressBar, Duration> PROGRESS_TRANSITION_DURATION =
                 new CssMetaData<>("-rx-progress-transition-duration",
                         DurationConverter.getInstance(),
@@ -664,9 +486,6 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
                     SEGMENT_COUNT,
                     SEGMENT_GAP,
                     SEGMENT_HEIGHT,
-                    SEGMENT_ARC,
-                    FILLED_COLOR,
-                    UNFILLED_COLOR,
                     PROGRESS_TRANSITION_DURATION,
                     INDETERMINATE_CYCLE_DURATION,
                     INDETERMINATE_BAND_RATIO);

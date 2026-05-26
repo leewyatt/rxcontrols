@@ -10,7 +10,8 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.scene.paint.Paint;
+import javafx.css.PseudoClass;
+import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
@@ -18,15 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXSegmentedProgressBar}. Renders a row of equal-width
- * pill segments and animates either a determinate left-to-right fill or a
- * single indeterminate highlight band depending on the control's
- * {@code progress}.
+ * Default skin for {@link RXSegmentedProgressBar}. Renders a row of
+ * equal-width CSS-styled segment regions and animates either a determinate
+ * left-to-right fill or a single indeterminate highlight band depending on the
+ * control's {@code progress}.
  *
- * <p>Each segment is rendered as a {@link Rectangle} pair:
+ * <p>Each segment is rendered as a {@link Region} pair:
  * <ul>
- *   <li>a track rectangle painted with the unfilled colour, full segment width;</li>
- *   <li>a fill rectangle painted with the filled colour, also full segment
+ *   <li>a track region styled by {@code .track}, full segment width;</li>
+ *   <li>a fill region styled by {@code .segment-fill}, also full segment
  *       width but clipped by a third {@code Rectangle} whose width is driven
  *       by the per-segment fill ratio.</li>
  * </ul>
@@ -67,12 +68,16 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
      */
     private static final double DEFAULT_PREF_WIDTH = 150.0;
 
+    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
+
     // ==================== Nodes ====================
 
-    private final List<Rectangle> trackRects = new ArrayList<>();
-    private final List<Rectangle> fillRects = new ArrayList<>();
+    private final List<Region> trackRegions = new ArrayList<>();
+    private final List<Region> fillRegions = new ArrayList<>();
     /**
-     * One clip per fill rectangle, kept as a parallel list so {@code applyFills}
+     * One clip per fill region, kept as a parallel list so {@code applyFills}
      * can resize them by index without walking the scene graph. The clip nodes
      * are not part of {@code getChildren()} — JavaFX renders them implicitly via
      * {@link javafx.scene.Node#setClip(javafx.scene.Node)}.
@@ -140,9 +145,6 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         });
         disposer.registerListener(control.segmentGapProperty(), control::requestLayout);
         disposer.registerListener(control.segmentHeightProperty(), control::requestLayout);
-        disposer.registerListener(control.segmentArcProperty(), this::applySegmentArc);
-        disposer.registerListener(control.filledColorProperty(), this::applyColors);
-        disposer.registerListener(control.unfilledColorProperty(), this::applyColors);
         disposer.registerListener(control.indeterminateCycleDurationProperty(), () -> {
             if (indeterminateMode) {
                 rebuildIndeterminateTimeline();
@@ -182,37 +184,35 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     private void rebuildSegments() {
         int n = RXMath.clamp(getSkinnable().getSegmentCount(),
                 RXSegmentedProgressBar.MIN_SEGMENT_COUNT, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
-        Paint filled = getSkinnable().getFilledColor();
-        Paint unfilled = getSkinnable().getUnfilledColor();
-        double arc = RXMath.sanitizeNonNegative(getSkinnable().getSegmentArc()) * 2.0;
 
-        trackRects.clear();
-        fillRects.clear();
+        trackRegions.clear();
+        fillRegions.clear();
         fillClips.clear();
-        List<Rectangle> children = new ArrayList<>(n * 2);
+        List<Region> children = new ArrayList<>(n * 2);
         for (int i = 0; i < n; i++) {
-            Rectangle track = new Rectangle();
-            track.getStyleClass().add("track");
+            Region track = new Region();
+            track.getStyleClass().setAll("track");
             track.setManaged(false);
             track.setMouseTransparent(true);
-            track.setFill(unfilled);
-            track.setArcWidth(arc);
-            track.setArcHeight(arc);
 
-            Rectangle fill = new Rectangle();
-            fill.getStyleClass().add("segment-fill");
+            Region fill = new Region();
+            fill.getStyleClass().setAll("segment-fill");
             fill.setManaged(false);
             fill.setMouseTransparent(true);
             fill.setVisible(false);
-            fill.setFill(filled);
-            fill.setArcWidth(arc);
-            fill.setArcHeight(arc);
 
             Rectangle clip = new Rectangle();
             fill.setClip(clip);
 
-            trackRects.add(track);
-            fillRects.add(fill);
+            boolean first = i == 0;
+            boolean last = i == n - 1;
+            track.pseudoClassStateChanged(FIRST, first);
+            track.pseudoClassStateChanged(LAST, last);
+            fill.pseudoClassStateChanged(FIRST, first);
+            fill.pseudoClassStateChanged(LAST, last);
+
+            trackRegions.add(track);
+            fillRegions.add(fill);
             fillClips.add(clip);
             children.add(track);
             children.add(fill);
@@ -221,29 +221,6 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         cachedContentWidth = 0.0;
         cachedSegmentWidth = 0.0;
         cachedSegmentStartX = new double[n];
-    }
-
-    private void applyColors() {
-        Paint filled = getSkinnable().getFilledColor();
-        Paint unfilled = getSkinnable().getUnfilledColor();
-        for (Rectangle r : trackRects) {
-            r.setFill(unfilled);
-        }
-        for (Rectangle r : fillRects) {
-            r.setFill(filled);
-        }
-    }
-
-    private void applySegmentArc() {
-        double arc = RXMath.sanitizeNonNegative(getSkinnable().getSegmentArc()) * 2.0;
-        for (Rectangle r : trackRects) {
-            r.setArcWidth(arc);
-            r.setArcHeight(arc);
-        }
-        for (Rectangle r : fillRects) {
-            r.setArcWidth(arc);
-            r.setArcHeight(arc);
-        }
     }
 
     // ==================== Determinate progress ====================
@@ -336,7 +313,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
 
     /**
      * Recomputes the per-segment fill ratio (in determinate or indeterminate
-     * mode) and resizes each clip rectangle accordingly. This is the single
+     * mode) and resizes each clip accordingly. This is the single
      * write site for the visible fill, so all animations end here.
      */
     private void applyFills() {
@@ -364,7 +341,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
                 double overlapStart = Math.max(segmentStart, bandLeft);
                 double overlapEnd = Math.min(segmentEnd, bandRight);
                 double overlap = Math.max(0.0, overlapEnd - overlapStart);
-                setFillClip(i, overlap > 0.0 ? overlapStart : segmentStart, overlap);
+                setFillClip(i, overlap > 0.0 ? overlapStart - segmentStart : 0.0, overlap);
             }
             return;
         }
@@ -378,13 +355,13 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             } else if (ratio > 1.0) {
                 ratio = 1.0;
             }
-            setFillClip(i, cachedSegmentStartX[i], cachedSegmentWidth * ratio);
+            setFillClip(i, 0.0, cachedSegmentWidth * ratio);
         }
     }
 
     private void clearFills() {
         for (int i = 0; i < fillClips.size(); i++) {
-            setFillClip(i, i < cachedSegmentStartX.length ? cachedSegmentStartX[i] : 0.0, 0.0);
+            setFillClip(i, 0.0, 0.0);
         }
     }
 
@@ -393,7 +370,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         clip.setX(x);
         clip.setWidth(width);
         // A zero-width clip can still leave an anti-aliased edge on some pipelines.
-        fillRects.get(index).setVisible(width > 0.0);
+        fillRegions.get(index).setVisible(width > 0.0);
     }
 
     // ==================== Layout ====================
@@ -401,13 +378,14 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     @Override
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
-        int n = fillRects.size();
+        int n = fillRegions.size();
         if (n == 0 || contentWidth <= 0.0 || contentHeight <= 0.0) {
             for (int i = 0; i < n; i++) {
-                trackRects.get(i).setWidth(0.0);
-                trackRects.get(i).setHeight(0.0);
-                fillRects.get(i).setWidth(0.0);
-                fillRects.get(i).setHeight(0.0);
+                trackRegions.get(i).resizeRelocate(contentX, contentY, 0.0, 0.0);
+                fillRegions.get(i).resizeRelocate(contentX, contentY, 0.0, 0.0);
+                fillRegions.get(i).setVisible(false);
+                fillClips.get(i).setX(0.0);
+                fillClips.get(i).setY(0.0);
                 fillClips.get(i).setWidth(0.0);
                 fillClips.get(i).setHeight(0.0);
             }
@@ -439,21 +417,12 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             double x = contentX + i * (segWidth + gap);
             cachedSegmentStartX[i] = x;
 
-            Rectangle track = trackRects.get(i);
-            track.setX(x);
-            track.setY(y);
-            track.setWidth(segWidth);
-            track.setHeight(renderedHeight);
-
-            Rectangle fill = fillRects.get(i);
-            fill.setX(x);
-            fill.setY(y);
-            fill.setWidth(segWidth);
-            fill.setHeight(renderedHeight);
+            trackRegions.get(i).resizeRelocate(x, y, segWidth, renderedHeight);
+            fillRegions.get(i).resizeRelocate(x, y, segWidth, renderedHeight);
 
             Rectangle clip = fillClips.get(i);
-            clip.setX(x);
-            clip.setY(y);
+            clip.setX(0.0);
+            clip.setY(0.0);
             clip.setHeight(renderedHeight);
             // width is set by applyFills().
         }
@@ -514,8 +483,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             indeterminateTimeline = null;
         }
         // Detach clip nodes — they are not part of getChildren() and would be
-        // retained by the fill rectangles otherwise.
-        for (Rectangle r : fillRects) {
+        // retained by the fill regions otherwise.
+        for (Region r : fillRegions) {
             r.setClip(null);
         }
         super.dispose();
