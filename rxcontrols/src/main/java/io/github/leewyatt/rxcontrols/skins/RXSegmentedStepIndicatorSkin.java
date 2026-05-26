@@ -25,6 +25,8 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     private static final double DEFAULT_PREF_WIDTH = 150.0;
 
+    private static final double MIN_SEGMENT_WIDTH = 1.0;
+
     private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
 
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
@@ -265,7 +267,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
                                      double bottomInset, double leftInset) {
         int n = renderedStepCount();
         double gap = RXMath.sanitizeFiniteNonNegative(getSkinnable().getSegmentGap());
-        return leftInset + n + gap * Math.max(0, n - 1) + rightInset;
+        return leftInset + n * MIN_SEGMENT_WIDTH + gap * Math.max(0, n - 1) + rightInset;
     }
 
     @Override
