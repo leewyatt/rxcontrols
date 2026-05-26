@@ -271,12 +271,12 @@
 
 .rx-segmented-step-indicator > .track {
     -fx-background-color: -rx-unfilled-color;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 2px;
 }
 
 .rx-segmented-step-indicator > .segment-fill {
     -fx-background-color: -rx-filled-color;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 2px;
 }
 
 /*******************************************************************************
@@ -454,5 +454,12 @@
     -fx-padding: 6px 0 6px 0;
     -rx-filled-color: white;
     -rx-unfilled-color: rgba(255, 255, 255, 0.35);
-    -rx-segment-height: 12px;
+    -rx-segment-height: 8px;
+    -fx-border-color: blue;
+    -fx-border-width: 2px;
+}
+
+.rx-segmented-step-indicator > .track,
+.rx-segmented-step-indicator > .segment-fill {
+    -fx-background-radius: 0px;
 }

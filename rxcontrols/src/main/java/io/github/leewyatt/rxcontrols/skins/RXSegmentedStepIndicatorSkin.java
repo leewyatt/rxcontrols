@@ -164,7 +164,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         }
     }
 
-    private void handleMouseExited(MouseEvent event) {
+    private void handleMouseExited(MouseEvent ignored) {
         hoverIndex = -1;
     }
 
