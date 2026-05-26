@@ -261,6 +261,26 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXSegmentedStepIndicator                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.rx-segmented-step-indicator {
+    -rx-filled-color: #616dfe;
+    -rx-unfilled-color: rgba(0, 0, 0, 0.12);
+}
+
+.rx-segmented-step-indicator > .track {
+    -fx-background-color: -rx-unfilled-color;
+    -fx-background-radius: 4px;
+}
+
+.rx-segmented-step-indicator > .segment-fill {
+    -fx-background-color: -rx-filled-color;
+    -fx-background-radius: 4px;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXCarousel                                                                  *
  *                                                                             *
  * Scene-graph structure:                                                      *
@@ -430,9 +450,9 @@
  *                                                                             *
  ******************************************************************************/
 
-.segmented-progress-navigator > .rx-segmented-progress-bar {
+.segmented-progress-navigator > .rx-segmented-step-indicator {
+    -fx-padding: 6px 0 6px 0;
     -rx-filled-color: white;
     -rx-unfilled-color: rgba(255, 255, 255, 0.35);
-    -rx-segment-gap: 4px;
     -rx-segment-height: 12px;
 }

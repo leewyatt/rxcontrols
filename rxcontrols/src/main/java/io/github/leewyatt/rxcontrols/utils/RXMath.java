@@ -24,6 +24,21 @@ public final class RXMath {
     }
 
     /**
+     * Converts {@code NaN}, infinite, and negative values to {@code 0}; all
+     * other values are returned unchanged.
+     *
+     * @param value the value to sanitize
+     * @return {@code 0} for non-finite or negative input; otherwise
+     *         {@code value}
+     */
+    public static double sanitizeFiniteNonNegative(double value) {
+        if (!Double.isFinite(value) || value < 0.0) {
+            return 0.0;
+        }
+        return value;
+    }
+
+    /**
      * Clamps a value to the unit interval {@code [0, 1]}. {@code NaN} is
      * treated as {@code 0}.
      *

@@ -9,6 +9,7 @@ module rxcontrols {
     exports io.github.leewyatt.rxcontrols.carousel;
     exports io.github.leewyatt.rxcontrols.carousel.animation;
     exports io.github.leewyatt.rxcontrols.enums;
+    exports io.github.leewyatt.rxcontrols.event;
     exports io.github.leewyatt.rxcontrols.pojo;
     exports io.github.leewyatt.rxcontrols.skins;
     exports io.github.leewyatt.rxcontrols.utils;
