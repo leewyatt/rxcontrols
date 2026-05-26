@@ -27,6 +27,8 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     private static final double MIN_SEGMENT_WIDTH = 1.0;
 
+    private static final Object SEGMENT_INDEX_KEY = new Object();
+
     private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
 
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
@@ -45,11 +47,8 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     // ==================== Handlers ====================
 
-    private final EventHandler<MouseEvent> mouseClickedHandler = this::handleMouseClicked;
-    private final EventHandler<MouseEvent> mouseMovedHandler = this::handleMouseMoved;
-    private final EventHandler<MouseEvent> mouseExitedHandler = this::handleMouseExited;
-
-    private int hoverIndex = -1;
+    private final EventHandler<MouseEvent> segmentClickedHandler = this::handleSegmentClicked;
+    private final EventHandler<MouseEvent> segmentEnteredHandler = this::handleSegmentEntered;
 
     /**
      * Creates a skin for the given control.
@@ -60,13 +59,6 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         super(control);
         rebuildSegments();
         registerListeners(control);
-
-        control.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseClickedHandler);
-        control.addEventHandler(MouseEvent.MOUSE_MOVED, mouseMovedHandler);
-        control.addEventHandler(MouseEvent.MOUSE_EXITED, mouseExitedHandler);
-        disposer.registerDisposeTask(() -> control.removeEventHandler(MouseEvent.MOUSE_CLICKED, mouseClickedHandler));
-        disposer.registerDisposeTask(() -> control.removeEventHandler(MouseEvent.MOUSE_MOVED, mouseMovedHandler));
-        disposer.registerDisposeTask(() -> control.removeEventHandler(MouseEvent.MOUSE_EXITED, mouseExitedHandler));
     }
 
     // ==================== Init ====================
@@ -89,16 +81,9 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     private void rebuildSegments() {
         int n = renderedStepCount();
-
-        for (Region fill : fillRegions) {
-            fill.setClip(null);
-        }
-        trackRegions.clear();
-        fillRegions.clear();
-        fillClips.clear();
+        clearSegments();
 
         if (n == 0) {
-            getChildren().clear();
             return;
         }
 
@@ -107,7 +92,10 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
             Region track = new Region();
             track.getStyleClass().setAll("track");
             track.setManaged(false);
-            track.setMouseTransparent(true);
+            track.setPickOnBounds(true);
+            track.getProperties().put(SEGMENT_INDEX_KEY, i);
+            track.addEventHandler(MouseEvent.MOUSE_CLICKED, segmentClickedHandler);
+            track.addEventHandler(MouseEvent.MOUSE_ENTERED, segmentEnteredHandler);
 
             Region fill = new Region();
             fill.getStyleClass().setAll("segment-fill");
@@ -135,6 +123,21 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         updateSegmentStates();
     }
 
+    private void clearSegments() {
+        for (Region track : trackRegions) {
+            track.removeEventHandler(MouseEvent.MOUSE_CLICKED, segmentClickedHandler);
+            track.removeEventHandler(MouseEvent.MOUSE_ENTERED, segmentEnteredHandler);
+            track.getProperties().remove(SEGMENT_INDEX_KEY);
+        }
+        for (Region fill : fillRegions) {
+            fill.setClip(null);
+        }
+        trackRegions.clear();
+        fillRegions.clear();
+        fillClips.clear();
+        getChildren().clear();
+    }
+
     private int renderedStepCount() {
         return RXMath.clamp(getSkinnable().getStepCount(), 0, RXSegmentedStepIndicator.MAX_STEP_COUNT);
     }
@@ -145,27 +148,29 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     // ==================== Interaction ====================
 
-    private void handleMouseClicked(MouseEvent event) {
-        RXSegmentedStepIndicator control = getSkinnable();
-        int index = control.segmentIndexAt(event.getX());
+    private void handleSegmentClicked(MouseEvent event) {
+        int index = segmentIndexFrom(event);
         if (index >= 0) {
-            control.fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.CLICKED, index));
+            getSkinnable().fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.CLICKED, index));
         }
     }
 
-    private void handleMouseMoved(MouseEvent event) {
-        RXSegmentedStepIndicator control = getSkinnable();
-        int index = control.segmentIndexAt(event.getX());
-        if (index != hoverIndex) {
-            hoverIndex = index;
-            if (index >= 0) {
-                control.fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.ENTERED, index));
+    private void handleSegmentEntered(MouseEvent event) {
+        int index = segmentIndexFrom(event);
+        if (index >= 0) {
+            getSkinnable().fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.ENTERED, index));
+        }
+    }
+
+    private int segmentIndexFrom(MouseEvent event) {
+        Object source = event.getSource();
+        if (source instanceof Region region) {
+            Object value = region.getProperties().get(SEGMENT_INDEX_KEY);
+            if (value instanceof Integer index) {
+                return index;
             }
         }
-    }
-
-    private void handleMouseExited(MouseEvent ignored) {
-        hoverIndex = -1;
+        return -1;
     }
 
     // ==================== Segment state ====================
@@ -308,9 +313,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
     @Override
     public void dispose() {
-        for (Region fill : fillRegions) {
-            fill.setClip(null);
-        }
+        clearSegments();
         super.dispose();
     }
 }

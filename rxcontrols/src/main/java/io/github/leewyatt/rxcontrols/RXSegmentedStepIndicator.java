@@ -18,7 +18,6 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 
@@ -82,7 +81,6 @@ public class RXSegmentedStepIndicator extends Control {
      */
     public RXSegmentedStepIndicator(@NamedArg("stepCount") int stepCount) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setPickOnBounds(true);
         setStepCount(stepCount);
         updateEmptyPseudoClass();
     }
@@ -412,61 +410,6 @@ public class RXSegmentedStepIndicator extends Control {
      */
     public final EventHandler<SegmentInteractionEvent> getOnSegmentEntered() {
         return onSegmentEntered == null ? null : onSegmentEntered.get();
-    }
-
-    // ==================== Hit Testing ====================
-
-    /**
-     * Returns the nearest segment index for an x coordinate in this control's
-     * local coordinate space. Gaps and horizontal padding snap to the nearest
-     * segment, and finite x values outside the content area clamp to the first
-     * or last rendered segment.
-     *
-     * @param x x coordinate in local coordinate space
-     * @return the segment index, or {@code -1} when no segment can be hit
-     */
-    public final int segmentIndexAt(double x) {
-        int n = renderedStepCount();
-        if (n == 0 || !Double.isFinite(x)) {
-            return -1;
-        }
-
-        Insets insets = getInsets();
-        double width = getWidth() - insets.getLeft() - insets.getRight();
-        if (width <= 0.0 || !Double.isFinite(width)) {
-            return -1;
-        }
-
-        double localX = x - insets.getLeft();
-        if (localX <= 0.0) {
-            return 0;
-        }
-        if (localX >= width) {
-            return n - 1;
-        }
-
-        double gap = RXMath.sanitizeFiniteNonNegative(getSegmentGap());
-        double totalGap = gap * Math.max(0, n - 1);
-        double segmentWidth = (width - totalGap) / n;
-        if (segmentWidth <= 0.0 || !Double.isFinite(segmentWidth)) {
-            int index = (int) Math.floor(localX / width * n);
-            return RXMath.clamp(index, 0, n - 1);
-        }
-
-        double cycle = segmentWidth + gap;
-        int index = (int) Math.floor(localX / cycle);
-        if (index >= n - 1) {
-            return n - 1;
-        }
-
-        double start = index * cycle;
-        double end = start + segmentWidth;
-        if (localX <= end) {
-            return index;
-        }
-
-        double midpoint = end + gap * 0.5;
-        return localX < midpoint ? index : index + 1;
     }
 
     // ==================== CSS Metadata ====================

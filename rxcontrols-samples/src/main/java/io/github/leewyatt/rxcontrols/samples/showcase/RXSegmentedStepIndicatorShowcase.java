@@ -19,7 +19,7 @@ import java.util.List;
  * Showcase application for {@link RXSegmentedStepIndicator}.
  *
  * <p>Exercises every configurable property: step count, selected index,
- * selected-segment progress, fat-target padding, segment gap, and segment
+ * selected-segment progress, content padding, segment gap, and segment
  * height. It also logs {@code CLICKED} and {@code ENTERED} events so the
  * indicator can be verified as a passive event source.</p>
  *
@@ -145,8 +145,8 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Steps", stepSlider, stepValue),
-                row("Selected", selectedSlider, selectedValue),
-                row("Progress", progressSlider, progressValue));
+                row("Selected Index", selectedSlider, selectedValue),
+                row("Segment Progress", progressSlider, progressValue));
     }
 
     private Node buildGeometryGrid() {
@@ -165,7 +165,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         updateInlineStyle();
 
         return createGrid(
-                row("Padding", paddingSlider, paddingValue),
+                row("Content Padding", paddingSlider, paddingValue),
                 row("Gap", gapSlider, gapValue),
                 row("Height", heightSlider, heightValue));
     }
