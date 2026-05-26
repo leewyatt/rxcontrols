@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -34,6 +35,7 @@ import javafx.util.Duration;
 public class SegmentedProgressNavigator implements CarouselNavigator {
 
     private static final double DEFAULT_HORIZONTAL_INSET = 24.0;
+    private static final double DEFAULT_HIT_HEIGHT = 24.0;
 
     private boolean clickToJump = true;
     private boolean hoverToJump;
@@ -168,6 +170,9 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
 
         hitLayer = new Region();
         hitLayer.getStyleClass().add("hit-area");
+        hitLayer.setMinHeight(DEFAULT_HIT_HEIGHT);
+        hitLayer.setPrefHeight(DEFAULT_HIT_HEIGHT);
+
         hitLayer.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         hitLayer.setPickOnBounds(true);
         hitLayer.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseClickedHandler);
@@ -261,7 +266,7 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
         hitLayer.setDisable(false);
         syncSegmentCount(pageCount);
 
-        int selectedIndex = clamp(carousel.getSelectedIndex(), 0, pageCount - 1);
+        int selectedIndex = RXMath.clamp(carousel.getSelectedIndex(), 0, pageCount - 1);
         double segmentProgress;
         if (carousel.isPageTransitioning()) {
             segmentProgress = 0.0;
@@ -269,16 +274,16 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
                 || (!carousel.isCircular() && selectedIndex >= pageCount - 1)) {
             segmentProgress = 1.0;
         } else {
-            segmentProgress = clamp0To1(carousel.getAutoPlayProgress());
+            segmentProgress = RXMath.clamp0To1(carousel.getAutoPlayProgress());
         }
-        progressBar.setProgress(clamp0To1((selectedIndex + segmentProgress) / pageCount));
+        progressBar.setProgress(RXMath.clamp0To1((selectedIndex + segmentProgress) / pageCount));
     }
 
     private void syncSegmentCount(int pageCount) {
         if (pageCount <= 0) {
             return;
         }
-        int next = clamp(pageCount, 1, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
+        int next = RXMath.clamp(pageCount, 1, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
         if (next != renderedSegmentCount) {
             renderedSegmentCount = next;
             progressBar.setSegmentCount(next);
@@ -351,7 +356,7 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
         double segmentWidth = (width - totalGap) / renderedSegmentCount;
         if (segmentWidth <= 0.0) {
             int index = (int) Math.floor(localX / width * renderedSegmentCount);
-            return clamp(index, 0, renderedSegmentCount - 1);
+            return RXMath.clamp(index, 0, renderedSegmentCount - 1);
         }
 
         for (int i = 0; i < renderedSegmentCount; i++) {
@@ -368,25 +373,5 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
         if (hitLayer != null) {
             hitLayer.setCursor(clickToJump || hoverToJump ? Cursor.HAND : Cursor.DEFAULT);
         }
-    }
-
-    private static int clamp(int value, int min, int max) {
-        if (value < min) {
-            return min;
-        }
-        if (value > max) {
-            return max;
-        }
-        return value;
-    }
-
-    private static double clamp0To1(double value) {
-        if (Double.isNaN(value) || value < 0.0) {
-            return 0.0;
-        }
-        if (value > 1.0) {
-            return 1.0;
-        }
-        return value;
     }
 }

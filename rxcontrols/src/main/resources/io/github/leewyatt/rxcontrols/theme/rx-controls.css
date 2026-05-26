@@ -434,5 +434,5 @@
     -rx-filled-color: white;
     -rx-unfilled-color: rgba(255, 255, 255, 0.35);
     -rx-segment-gap: 4px;
-    -rx-segment-height: 4px;
+    -rx-segment-height: 12px;
 }
