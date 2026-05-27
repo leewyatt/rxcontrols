@@ -197,9 +197,8 @@ public class RXResponsiveLayoutDemo extends Application {
                 RXColSpec.of(24), RXColSpec.of(24), RXColSpec.of(8), RXColSpec.of(12));
         RXResponsiveCol shape = col("Shape", buildShape(),
                 RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 0), RXColSpec.of(6, 0));
-        RXResponsiveCol base = new RXResponsiveCol();
+        RXResponsiveCol base = col("Base span", buildStatusButton("Base"));
         base.setSpan(6);
-        base.getChildren().add(tile("Base span", buildStatusButton("Base"), base));
 
         row.getChildren().addAll(summary, image, chart, shape, base);
         return new ResponsiveDemoNodes(row, image, shape);
@@ -214,11 +213,16 @@ public class RXResponsiveLayoutDemo extends Application {
 
     private RXResponsiveCol col(String title, Node body, RXColSpec xs, RXColSpec sm,
                                 RXColSpec md, RXColSpec lg) {
-        RXResponsiveCol col = new RXResponsiveCol();
+        RXResponsiveCol col = col(title, body);
         col.setXs(xs);
         col.setSm(sm);
         col.setMd(md);
         col.setLg(lg);
+        return col;
+    }
+
+    private RXResponsiveCol col(String title, Node body) {
+        RXResponsiveCol col = new RXResponsiveCol();
         col.getChildren().add(tile(title, body, col));
         return col;
     }

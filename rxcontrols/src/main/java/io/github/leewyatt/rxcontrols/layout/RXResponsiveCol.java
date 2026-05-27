@@ -71,7 +71,6 @@ public class RXResponsiveCol extends StackPane {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-responsive-col";
 
-    private double responsiveGutter;
     private final Map<String, RXColSpec> namedSpecs = new HashMap<>();
 
     // ==================== Constructors ====================
@@ -536,7 +535,7 @@ public class RXResponsiveCol extends StackPane {
         HPos alignHpos = align.getHpos();
         VPos alignVpos = align.getVpos();
         Insets insets = getInsets();
-        double halfGutter = snapSpaceX(responsiveGutter / 2.0);
+        double halfGutter = snapSpaceX(resolveEffectiveGutter() / 2.0);
         double left = insets.getLeft() + halfGutter;
         double right = insets.getRight() + halfGutter;
         double top = insets.getTop();
@@ -555,22 +554,22 @@ public class RXResponsiveCol extends StackPane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return computeResponsiveMinWidth(height, responsiveGutter);
+        return computeResponsiveMinWidth(height, resolveEffectiveGutter());
     }
 
     @Override
     protected double computeMinHeight(double width) {
-        return computeResponsiveMinHeight(width, responsiveGutter);
+        return computeResponsiveMinHeight(width, resolveEffectiveGutter());
     }
 
     @Override
     protected double computePrefWidth(double height) {
-        return computeResponsivePrefWidth(height, responsiveGutter);
+        return computeResponsivePrefWidth(height, resolveEffectiveGutter());
     }
 
     @Override
     protected double computePrefHeight(double width) {
-        return computeResponsivePrefHeight(width, responsiveGutter);
+        return computeResponsivePrefHeight(width, resolveEffectiveGutter());
     }
 
     double computeResponsiveMinWidth(double height, double gutter) {
@@ -641,14 +640,6 @@ public class RXResponsiveCol extends StackPane {
         return insets.getTop() + snapSizeY(maxHeight) + insets.getBottom();
     }
 
-    void setResponsiveGutter(double value) {
-        double normalized = normalizeGutter(value);
-        if (Double.compare(responsiveGutter, normalized) != 0) {
-            responsiveGutter = normalized;
-            requestLayout();
-        }
-    }
-
     RXColSpec getSpec(String breakpointName) {
         RXColSpec standardSpec = switch (breakpointName) {
             case "xs" -> getXs();
@@ -687,6 +678,14 @@ public class RXResponsiveCol extends StackPane {
         if (parent != null) {
             parent.requestLayout();
         }
+    }
+
+    private double resolveEffectiveGutter() {
+        Parent parent = getParent();
+        if (parent instanceof RXResponsiveRow row) {
+            return normalizeGutter(row.getGutter());
+        }
+        return 0.0;
     }
 
     private double boundedPrefWidth(Node child, double height) {

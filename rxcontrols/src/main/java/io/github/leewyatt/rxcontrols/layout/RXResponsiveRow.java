@@ -177,6 +177,7 @@ public class RXResponsiveRow extends Pane {
             }
             lastValid = value;
             requestLayout();
+            requestColumnLayouts();
         }
 
         @Override
@@ -544,12 +545,11 @@ public class RXResponsiveRow extends Pane {
         RXRowAlign rowAlign = alignOrDefault();
         RXRowJustify rowJustify = justifyOrDefault();
         int columnsCount = columnsOrDefault();
-        double gutterValue = gutterOrDefault();
 
         for (int lineIndex = 0; lineIndex < measurement.lines().size(); lineIndex++) {
             Line line = measurement.lines().get(lineIndex);
             layoutLine(line, contentX, y, contentWidth, columnsCount,
-                    rowJustify, rowAlign, gutterValue);
+                    rowJustify, rowAlign);
             y += line.height();
             if (lineIndex < measurement.lines().size() - 1) {
                 y += gap;
@@ -559,7 +559,7 @@ public class RXResponsiveRow extends Pane {
 
     private void layoutLine(Line line, double contentX, double y, double contentWidth,
                             int columnsCount, RXRowJustify rowJustify,
-                            RXRowAlign rowAlign, double gutterValue) {
+                            RXRowAlign rowAlign) {
         JustifyMetrics justifyMetrics = justifyMetrics(rowJustify,
                 Math.max(0.0, contentWidth - line.usedWidth()), line.items().size());
         VPos vpos = switch (rowAlign) {
@@ -572,9 +572,6 @@ public class RXResponsiveRow extends Pane {
         for (int i = 0; i < line.items().size(); i++) {
             LineItem item = line.items().get(i);
             Node child = item.child();
-            if (child instanceof RXResponsiveCol col) {
-                col.setResponsiveGutter(gutterValue);
-            }
             double itemOffset = justifyMetrics.edgeOffset() + i * justifyMetrics.itemGap();
             double rawX = contentX + justifyMetrics.lineOffset() + itemOffset
                     + contentWidth * item.startColumn() / columnsCount;
@@ -912,6 +909,14 @@ public class RXResponsiveRow extends Pane {
     private double gutterOrDefault() {
         double value = getGutter();
         return Double.isFinite(value) && value >= 0.0 ? value : DEFAULT_GUTTER;
+    }
+
+    private void requestColumnLayouts() {
+        for (Node child : getChildren()) {
+            if (child instanceof RXResponsiveCol col) {
+                col.requestLayout();
+            }
+        }
     }
 
     private double rowGapOrDefault() {
