@@ -158,13 +158,14 @@ public class RXResponsiveLayoutDemo extends Application {
 
         StackPane rowFrame = new StackPane(row);
         rowFrame.getStyleClass().add("row-frame");
+        rowFrame.setAlignment(Pos.TOP_LEFT);
         rowFrame.prefWidthProperty().bind(widthSlider.valueProperty());
         rowFrame.setMinWidth(Region.USE_PREF_SIZE);
         rowFrame.setMaxWidth(Region.USE_PREF_SIZE);
 
         ScrollPane scroll = new ScrollPane(rowFrame);
         scroll.getStyleClass().add("demo-scroll");
-        scroll.setFitToWidth(true);
+        scroll.setFitToWidth(false);
         scroll.setFitToHeight(false);
 
         VBox root = new VBox(14.0, controls, scroll);
