@@ -28,8 +28,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -61,8 +61,9 @@ public class RXResponsiveRow extends Pane {
     private static final Logger LOGGER = Logger.getLogger(RXResponsiveRow.class.getName());
 
     private PseudoClass activeBreakpointPseudoClass;
-    private final Set<Node> coercedSpecWarningNodes =
-            Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
+    private boolean columnsExplicitlySet;
+    private boolean updatingColumnsFromProfile;
 
     // ==================== Constructors ====================
 
@@ -105,6 +106,9 @@ public class RXResponsiveRow extends Pane {
                 throw new IllegalArgumentException("columns must be greater than zero");
             }
             lastValid = value;
+            if (!updatingColumnsFromProfile) {
+                columnsExplicitlySet = true;
+            }
             requestLayout();
         }
 
@@ -125,7 +129,9 @@ public class RXResponsiveRow extends Pane {
     };
 
     /**
-     * Total number of layout columns in the row.
+     * Total number of layout columns in the row. Until this property is
+     * explicitly set or bound, it follows {@link #breakpointProfileProperty()}
+     * when the profile changes.
      *
      * @return the columns property
      */
@@ -423,6 +429,7 @@ public class RXResponsiveRow extends Pane {
                         throw new NullPointerException("breakpointProfile cannot be null");
                     }
                     lastValid = value;
+                    syncColumnsWithProfile(value);
                     updateActiveBreakpoint(getWidth());
                     requestLayout();
                 }
@@ -430,7 +437,9 @@ public class RXResponsiveRow extends Pane {
 
     /**
      * Breakpoint profile used to resolve active breakpoint and mobile-first
-     * column specs. Cannot be set to {@code null}.
+     * column specs. Cannot be set to {@code null}. Changing the profile also
+     * updates {@link #columnsProperty()} while columns is still using the
+     * profile default.
      *
      * @return the breakpoint profile property
      */
@@ -656,10 +665,14 @@ public class RXResponsiveRow extends Pane {
         int coercedOffset = clamp(offset, 0, columnsCount);
         int maxSpan = columnsCount - coercedOffset;
         int coercedSpan = clamp(span, 0, maxSpan);
-        if (shouldWarnSpecCoercion(span, offset, coercedSpan, coercedOffset, columnsCount)
-                && coercedSpecWarningNodes.add(child)) {
-            LOGGER.warning("Responsive column spec exceeds row columns and was clamped: span="
-                    + span + ", offset=" + offset + ", columns=" + columnsCount);
+        if (shouldWarnSpecCoercion(span, offset, coercedSpan, coercedOffset, columnsCount)) {
+            SpecWarningKey warningKey = new SpecWarningKey(span, offset, columnsCount);
+            if (!warningKey.equals(coercedSpecWarnings.put(child, warningKey))) {
+                LOGGER.warning("Responsive column spec exceeds row columns and was clamped: span="
+                        + span + ", offset=" + offset + ", columns=" + columnsCount);
+            }
+        } else {
+            coercedSpecWarnings.remove(child);
         }
         return new EffectiveSpec(coercedSpan, coercedOffset);
     }
@@ -779,6 +792,22 @@ public class RXResponsiveRow extends Pane {
     private RXBreakpointProfile breakpointProfileOrDefault() {
         RXBreakpointProfile value = getBreakpointProfile();
         return value == null ? RXBreakpointProfile.ELEMENT : value;
+    }
+
+    private void syncColumnsWithProfile(RXBreakpointProfile profile) {
+        if (columnsExplicitlySet || columns.isBound()) {
+            return;
+        }
+        int profileColumns = profile.getColumns();
+        if (getColumns() == profileColumns) {
+            return;
+        }
+        updatingColumnsFromProfile = true;
+        try {
+            columns.set(profileColumns);
+        } finally {
+            updatingColumnsFromProfile = false;
+        }
     }
 
     private JustifyMetrics justifyMetrics(RXRowJustify rowJustify, double remaining, int itemCount) {
@@ -922,6 +951,9 @@ public class RXResponsiveRow extends Pane {
     }
 
     private record EffectiveSpec(int span, int offset) {
+    }
+
+    private record SpecWarningKey(int span, int offset, int columns) {
     }
 
     private record LineItem(Node child, int startColumn, int span) {
