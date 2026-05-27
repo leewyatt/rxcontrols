@@ -89,6 +89,10 @@ public class RXResponsiveLayoutDemo extends Application {
         rowGapValue.getStyleClass().add("value-label");
         rowGapValue.textProperty().bind(Bindings.format("%.0f px", rowGapSlider.valueProperty()));
 
+        row.prefWidthProperty().bind(widthSlider.valueProperty());
+        row.setMinWidth(Region.USE_PREF_SIZE);
+        row.setMaxWidth(Region.USE_PREF_SIZE);
+
         ComboBox<RXRowJustify> justifyBox =
                 new ComboBox<>(FXCollections.observableArrayList(RXRowJustify.values()));
         justifyBox.setValue(RXRowJustify.START);
@@ -159,7 +163,6 @@ public class RXResponsiveLayoutDemo extends Application {
         StackPane rowFrame = new StackPane(row);
         rowFrame.getStyleClass().add("row-frame");
         rowFrame.setAlignment(Pos.TOP_LEFT);
-        rowFrame.prefWidthProperty().bind(widthSlider.valueProperty());
         rowFrame.setMinWidth(Region.USE_PREF_SIZE);
         rowFrame.setMaxWidth(Region.USE_PREF_SIZE);
 
