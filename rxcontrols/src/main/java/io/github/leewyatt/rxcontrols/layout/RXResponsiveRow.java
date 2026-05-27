@@ -26,6 +26,7 @@ import javafx.scene.layout.Pane;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,8 @@ public class RXResponsiveRow extends Pane {
 
     private PseudoClass activeBreakpointPseudoClass;
     private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
+    private final Map<RXResponsiveCol, ResponsiveHiddenState> responsiveHiddenStates =
+            new IdentityHashMap<>();
     private boolean columnsExplicitlySet;
     private boolean updatingColumnsFromProfile;
 
@@ -520,7 +523,7 @@ public class RXResponsiveRow extends Pane {
     @Override
     protected double computePrefHeight(double width) {
         double measuredWidth = normalizeMeasurementWidth(width);
-        Measurement measurement = measure(measuredWidth, resolveBreakpoint(measuredWidth));
+        Measurement measurement = measure(measuredWidth, resolveBreakpoint(measuredWidth), false);
         return getInsets().getTop() + snapSizeY(measurement.totalHeight()) + getInsets().getBottom();
     }
 
@@ -531,7 +534,7 @@ public class RXResponsiveRow extends Pane {
         if (breakpoint == null) {
             breakpoint = resolveBreakpoint(rowWidth);
         }
-        Measurement measurement = measure(rowWidth, breakpoint);
+        Measurement measurement = measure(rowWidth, breakpoint, true);
         Insets insets = getInsets();
         double contentX = snapPositionX(insets.getLeft());
         double contentY = snapPositionY(insets.getTop());
@@ -589,7 +592,8 @@ public class RXResponsiveRow extends Pane {
         }
     }
 
-    private Measurement measure(double rowWidth, RXBreakpoint breakpoint) {
+    private Measurement measure(double rowWidth, RXBreakpoint breakpoint,
+                                boolean applyHiddenState) {
         int columnsCount = columnsOrDefault();
         double contentWidth = contentWidth(rowWidth);
         double gutterValue = gutterOrDefault();
@@ -598,13 +602,12 @@ public class RXResponsiveRow extends Pane {
         int cursor = 0;
         double lineHeight = 0.0;
         int maxEndColumn = 0;
-        List<Node> children = getChildren();
+        List<LayoutCandidate> candidates =
+                collectLayoutCandidates(breakpoint, columnsCount, applyHiddenState);
 
-        for (Node child : children) {
-            if (!child.isManaged()) {
-                continue;
-            }
-            EffectiveSpec spec = resolveSpec(child, breakpoint, columnsCount);
+        for (LayoutCandidate candidate : candidates) {
+            Node child = candidate.child();
+            EffectiveSpec spec = candidate.spec();
             int required = spec.offset() + spec.span();
             if (!items.isEmpty() && cursor + required > columnsCount) {
                 lines.add(createLine(items, lineHeight, maxEndColumn, contentWidth, columnsCount));
@@ -633,6 +636,123 @@ public class RXResponsiveRow extends Pane {
         return new Measurement(lines, snapSpaceY(rowGapOrDefault()));
     }
 
+    private List<LayoutCandidate> collectLayoutCandidates(RXBreakpoint breakpoint,
+                                                          int columnsCount,
+                                                          boolean applyHiddenState) {
+        List<LayoutCandidate> candidates = new ArrayList<>();
+        List<Node> children = getChildren();
+        for (int i = 0; i < children.size(); i++) {
+            Node child = children.get(i);
+            EffectiveSpec spec = resolveSpec(child, breakpoint, columnsCount);
+            if (child instanceof RXResponsiveCol col) {
+                if (applyHiddenState) {
+                    updateResponsiveHidden(col, spec.hidden());
+                }
+                if (spec.hidden()) {
+                    continue;
+                }
+            }
+            if (!isEffectivelyManaged(child)) {
+                continue;
+            }
+            candidates.add(new LayoutCandidate(child, spec, i));
+        }
+        if (applyHiddenState) {
+            cleanupRemovedResponsiveHiddenStates(children);
+        }
+        candidates.sort(Comparator
+                .comparingInt((LayoutCandidate candidate) -> candidate.spec().order())
+                .thenComparingInt(LayoutCandidate::index));
+        return candidates;
+    }
+
+    private boolean isEffectivelyManaged(Node child) {
+        if (child instanceof RXResponsiveCol col) {
+            ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
+            if (hiddenState != null) {
+                return hiddenState.managedBefore();
+            }
+        }
+        return child.isManaged();
+    }
+
+    private void updateResponsiveHidden(RXResponsiveCol col, boolean hidden) {
+        if (hidden) {
+            ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
+            if (hiddenState == null) {
+                hiddenState = new ResponsiveHiddenState(col.isVisible(), col.isManaged());
+                responsiveHiddenStates.put(col, hiddenState);
+            }
+            applyResponsiveHidden(col, hiddenState);
+        } else {
+            restoreResponsiveHidden(col);
+        }
+    }
+
+    private void applyResponsiveHidden(RXResponsiveCol col, ResponsiveHiddenState hiddenState) {
+        if (col.visibleProperty().isBound()) {
+            warnResponsiveHiddenBinding(col, "visible", hiddenState);
+        } else if (col.isVisible()) {
+            col.setVisible(false);
+        }
+        if (col.managedProperty().isBound()) {
+            warnResponsiveHiddenBinding(col, "managed", hiddenState);
+        } else if (col.isManaged()) {
+            col.setManaged(false);
+        }
+        col.resizeRelocate(0.0, 0.0, 0.0, 0.0);
+    }
+
+    private void restoreResponsiveHidden(RXResponsiveCol col) {
+        ResponsiveHiddenState hiddenState = responsiveHiddenStates.remove(col);
+        if (hiddenState == null) {
+            return;
+        }
+        if (col.visibleProperty().isBound()) {
+            warnResponsiveHiddenBinding(col, "visible", hiddenState);
+        } else {
+            col.setVisible(hiddenState.visibleBefore());
+        }
+        if (col.managedProperty().isBound()) {
+            warnResponsiveHiddenBinding(col, "managed", hiddenState);
+        } else {
+            col.setManaged(hiddenState.managedBefore());
+        }
+    }
+
+    private void cleanupRemovedResponsiveHiddenStates(List<Node> children) {
+        if (responsiveHiddenStates.isEmpty()) {
+            return;
+        }
+        List<RXResponsiveCol> removed = new ArrayList<>();
+        for (RXResponsiveCol col : responsiveHiddenStates.keySet()) {
+            if (!children.contains(col)) {
+                removed.add(col);
+            }
+        }
+        for (RXResponsiveCol col : removed) {
+            restoreResponsiveHidden(col);
+        }
+    }
+
+    private void warnResponsiveHiddenBinding(RXResponsiveCol col, String propertyName,
+                                             ResponsiveHiddenState hiddenState) {
+        if ("visible".equals(propertyName)) {
+            if (hiddenState.visibleWarningLogged()) {
+                return;
+            }
+            hiddenState.setVisibleWarningLogged(true);
+        } else {
+            if (hiddenState.managedWarningLogged()) {
+                return;
+            }
+            hiddenState.setManagedWarningLogged(true);
+        }
+        LOGGER.warning("Responsive hidden could not update bound "
+                + propertyName + "Property on " + col
+                + "; layout still skips the column.");
+    }
+
     private Line createLine(List<LineItem> items, double lineHeight, int maxEndColumn,
                             double contentWidth, int columnsCount) {
         double usedWidth = contentWidth * maxEndColumn / columnsCount;
@@ -642,6 +762,10 @@ public class RXResponsiveRow extends Pane {
     private EffectiveSpec resolveSpec(Node child, RXBreakpoint breakpoint, int columnsCount) {
         int span = child instanceof RXResponsiveCol col ? col.getSpan() : columnsCount;
         int offset = child instanceof RXResponsiveCol col ? col.getOffset() : 0;
+        int order = child instanceof RXResponsiveCol col
+                ? col.getOrder()
+                : RXResponsiveCol.DEFAULT_ORDER;
+        boolean hidden = child instanceof RXResponsiveCol col && col.isHidden();
         if (child instanceof RXResponsiveCol col) {
             RXBreakpointProfile profile = breakpointProfileOrDefault();
             double activeMinWidth = breakpoint == null ? 0.0 : breakpoint.getMinWidth();
@@ -657,13 +781,20 @@ public class RXResponsiveRow extends Pane {
                     if (spec.getOffset() != null) {
                         offset = spec.getOffset();
                     }
+                    if (spec.getOrder() != null) {
+                        order = spec.getOrder();
+                    }
+                    if (spec.getHidden() != null) {
+                        hidden = spec.getHidden();
+                    }
                 }
             }
         }
-        return coerceSpec(child, span, offset, columnsCount);
+        return coerceSpec(child, span, offset, order, hidden, columnsCount);
     }
 
-    private EffectiveSpec coerceSpec(Node child, int span, int offset, int columnsCount) {
+    private EffectiveSpec coerceSpec(Node child, int span, int offset, int order,
+                                     boolean hidden, int columnsCount) {
         int coercedOffset = clamp(offset, 0, columnsCount);
         int maxSpan = columnsCount - coercedOffset;
         int coercedSpan = clamp(span, 0, maxSpan);
@@ -676,7 +807,7 @@ public class RXResponsiveRow extends Pane {
         } else {
             coercedSpecWarnings.remove(child);
         }
-        return new EffectiveSpec(coercedSpan, coercedOffset);
+        return new EffectiveSpec(coercedSpan, coercedOffset, order, hidden);
     }
 
     private boolean shouldWarnSpecCoercion(int span, int offset, int coercedSpan,
@@ -714,11 +845,11 @@ public class RXResponsiveRow extends Pane {
         double contentWidth = 0.0;
 
         for (RXBreakpoint breakpoint : breakpointProfileOrDefault().getBreakpoints()) {
-            for (Node child : getChildren()) {
-                if (!child.isManaged()) {
-                    continue;
-                }
-                EffectiveSpec spec = resolveSpec(child, breakpoint, columnsCount);
+            List<LayoutCandidate> candidates =
+                    collectLayoutCandidates(breakpoint, columnsCount, false);
+            for (LayoutCandidate candidate : candidates) {
+                Node child = candidate.child();
+                EffectiveSpec spec = candidate.spec();
                 if (spec.span() == 0) {
                     continue;
                 }
@@ -952,10 +1083,13 @@ public class RXResponsiveRow extends Pane {
         return getClassCssMetaData();
     }
 
-    private record EffectiveSpec(int span, int offset) {
+    private record EffectiveSpec(int span, int offset, int order, boolean hidden) {
     }
 
     private record SpecWarningKey(int span, int offset, int columns) {
+    }
+
+    private record LayoutCandidate(Node child, EffectiveSpec spec, int index) {
     }
 
     private record LineItem(Node child, int startColumn, int span) {
@@ -981,5 +1115,41 @@ public class RXResponsiveRow extends Pane {
     }
 
     private record JustifyMetrics(double lineOffset, double edgeOffset, double itemGap) {
+    }
+
+    private static final class ResponsiveHiddenState {
+        private final boolean visibleBefore;
+        private final boolean managedBefore;
+        private boolean visibleWarningLogged;
+        private boolean managedWarningLogged;
+
+        private ResponsiveHiddenState(boolean visibleBefore, boolean managedBefore) {
+            this.visibleBefore = visibleBefore;
+            this.managedBefore = managedBefore;
+        }
+
+        private boolean visibleBefore() {
+            return visibleBefore;
+        }
+
+        private boolean managedBefore() {
+            return managedBefore;
+        }
+
+        private boolean visibleWarningLogged() {
+            return visibleWarningLogged;
+        }
+
+        private void setVisibleWarningLogged(boolean value) {
+            visibleWarningLogged = value;
+        }
+
+        private boolean managedWarningLogged() {
+            return managedWarningLogged;
+        }
+
+        private void setManagedWarningLogged(boolean value) {
+            managedWarningLogged = value;
+        }
     }
 }

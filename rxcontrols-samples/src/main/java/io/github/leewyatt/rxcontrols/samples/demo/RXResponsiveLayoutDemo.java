@@ -16,11 +16,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -36,12 +38,14 @@ import javafx.stage.Stage;
 public class RXResponsiveLayoutDemo extends Application {
 
     private static final double[] WIDTH_PRESETS = {
-            360.0, 767.0, 768.0, 991.0, 992.0, 1199.0, 1200.0, 1919.0, 1920.0
+            360.0, 575.0, 576.0, 767.0, 768.0, 991.0, 992.0,
+            1199.0, 1200.0, 1399.0, 1400.0, 1919.0, 1920.0
     };
 
     @Override
     public void start(Stage primaryStage) {
-        RXResponsiveRow row = createResponsiveRow();
+        ResponsiveDemoNodes demoNodes = createResponsiveRow();
+        RXResponsiveRow row = demoNodes.row();
 
         ComboBox<ProfilePreset> profileBox =
                 new ComboBox<>(FXCollections.observableArrayList(ProfilePreset.values()));
@@ -95,6 +99,21 @@ public class RXResponsiveLayoutDemo extends Application {
         alignBox.setValue(RXRowAlign.TOP);
         row.alignProperty().bind(alignBox.valueProperty());
 
+        Slider shapeOrderSlider = new Slider(-2.0, 2.0, 0.0);
+        shapeOrderSlider.setSnapToTicks(true);
+        shapeOrderSlider.setMajorTickUnit(1.0);
+        shapeOrderSlider.setMinorTickCount(0);
+        shapeOrderSlider.valueProperty().addListener((obs, oldV, newV) ->
+                demoNodes.shape().setOrder((int) Math.round(newV.doubleValue())));
+        Label shapeOrderValue = new Label();
+        shapeOrderValue.getStyleClass().add("value-label");
+        shapeOrderValue.textProperty().bind(
+                Bindings.format("%.0f", shapeOrderSlider.valueProperty()));
+
+        CheckBox hideImageLg = new CheckBox("lg+");
+        hideImageLg.selectedProperty().addListener((obs, wasHidden, isHidden) ->
+                setImageLgHidden(demoNodes.image(), isHidden));
+
         Label breakpointLabel = new Label();
         breakpointLabel.getStyleClass().add("breakpoint-label");
         breakpointLabel.textProperty().bind(Bindings.createStringBinding(() -> {
@@ -105,7 +124,7 @@ public class RXResponsiveLayoutDemo extends Application {
             return breakpoint.getName() + " >= " + Math.round(breakpoint.getMinWidth());
         }, row.activeBreakpointProperty()));
 
-        HBox presetButtons = new HBox(6.0);
+        FlowPane presetButtons = new FlowPane(6.0, 6.0);
         presetButtons.setAlignment(Pos.CENTER_LEFT);
         for (double preset : WIDTH_PRESETS) {
             Button button = new Button(String.format("%.0f", preset));
@@ -121,6 +140,8 @@ public class RXResponsiveLayoutDemo extends Application {
                 controlRow("Row gap", rowGapSlider, rowGapValue),
                 controlRow("Justify", justifyBox, breakpointLabel),
                 controlRow("Align", alignBox, new Label()),
+                controlRow("Shape order", shapeOrderSlider, shapeOrderValue),
+                controlRow("Hide image", hideImageLg, new Label()),
                 presetButtons);
         controls.getStyleClass().add("toolbar");
 
@@ -148,7 +169,7 @@ public class RXResponsiveLayoutDemo extends Application {
         primaryStage.show();
     }
 
-    private RXResponsiveRow createResponsiveRow() {
+    private ResponsiveDemoNodes createResponsiveRow() {
         RXResponsiveRow row = new RXResponsiveRow();
         row.getStyleClass().add("demo-row");
         row.setPadding(new Insets(16.0));
@@ -165,7 +186,14 @@ public class RXResponsiveLayoutDemo extends Application {
         base.setSpan(6);
 
         row.getChildren().addAll(summary, image, chart, shape, base);
-        return row;
+        return new ResponsiveDemoNodes(row, image, shape);
+    }
+
+    private void setImageLgHidden(RXResponsiveCol image, boolean hidden) {
+        image.setLg(RXColSpec.builder()
+                .span(6)
+                .hidden(hidden)
+                .build());
     }
 
     private RXResponsiveCol col(Node content, RXColSpec xs, RXColSpec sm,
@@ -238,14 +266,8 @@ public class RXResponsiveLayoutDemo extends Application {
     private enum ProfilePreset {
         ELEMENT("Element 24", RXBreakpointProfile.ELEMENT,
                 RXBreakpointProfile.ELEMENT.getColumns()),
-        TWELVE_COLUMNS("12-column", RXBreakpointProfile.builder()
-                .columns(12)
-                .breakpoint("xs", 0.0)
-                .breakpoint("sm", 576.0)
-                .breakpoint("md", 768.0)
-                .breakpoint("lg", 992.0)
-                .breakpoint("xl", 1200.0)
-                .build(), 12);
+        BOOTSTRAP("Bootstrap 12", RXBreakpointProfile.BOOTSTRAP,
+                RXBreakpointProfile.BOOTSTRAP.getColumns());
 
         private final String text;
         private final RXBreakpointProfile profile;
@@ -269,5 +291,9 @@ public class RXResponsiveLayoutDemo extends Application {
         public String toString() {
             return text;
         }
+    }
+
+    private record ResponsiveDemoNodes(RXResponsiveRow row, RXResponsiveCol image,
+                                       RXResponsiveCol shape) {
     }
 }

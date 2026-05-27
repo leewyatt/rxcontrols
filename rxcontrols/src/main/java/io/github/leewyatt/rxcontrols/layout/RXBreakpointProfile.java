@@ -22,6 +22,17 @@ public final class RXBreakpointProfile {
             new RXBreakpoint("lg", 1200.0),
             new RXBreakpoint("xl", 1920.0)));
 
+    /**
+     * Bootstrap-style profile: 12 columns and xs/sm/md/lg/xl/xxl breakpoints.
+     */
+    public static final RXBreakpointProfile BOOTSTRAP = RXBreakpointProfile.of(12, List.of(
+            new RXBreakpoint("xs", 0.0),
+            new RXBreakpoint("sm", 576.0),
+            new RXBreakpoint("md", 768.0),
+            new RXBreakpoint("lg", 992.0),
+            new RXBreakpoint("xl", 1200.0),
+            new RXBreakpoint("xxl", 1400.0)));
+
     private final int columns;
     private final List<RXBreakpoint> breakpoints;
 

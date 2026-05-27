@@ -2,8 +2,11 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -33,6 +36,15 @@ import java.util.Map;
  * larger breakpoints until another spec overrides the same field. Use
  * {@link RXColSpec#of(int, int)} with {@code offset=0} when a larger
  * breakpoint should clear an inherited offset.</p>
+ *
+ * <p>{@link #orderProperty() order} changes visual layout order only; it does
+ * not change the parent row's child list order or the default focus traversal
+ * order.</p>
+ *
+ * <p>{@link #hiddenProperty() hidden} is managed by {@link RXResponsiveRow} on
+ * this wrapper. Do not bind this column's {@code visible} or {@code managed}
+ * properties for responsive visibility; put business visibility on content
+ * inside the column or on an outer wrapper instead.</p>
  */
 public class RXResponsiveCol extends StackPane {
 
@@ -46,6 +58,16 @@ public class RXResponsiveCol extends StackPane {
      * Default left offset.
      */
     public static final int DEFAULT_OFFSET = 0;
+
+    /**
+     * Default visual order.
+     */
+    public static final int DEFAULT_ORDER = 0;
+
+    /**
+     * Default hidden state.
+     */
+    public static final boolean DEFAULT_HIDDEN = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-responsive-col";
 
@@ -202,6 +224,84 @@ public class RXResponsiveCol extends StackPane {
      */
     public final void setOffset(int value) {
         offset.set(value);
+    }
+
+    // ==================== Order ====================
+
+    private final IntegerProperty order = new SimpleIntegerProperty(this, "order", DEFAULT_ORDER) {
+        @Override
+        protected void invalidated() {
+            requestRowLayout();
+        }
+    };
+
+    /**
+     * Visual layout order before responsive overrides. Lower values are laid
+     * out first. This does not change child list order, so focus traversal may
+     * remain different from visual order.
+     *
+     * @return the order property
+     */
+    public final IntegerProperty orderProperty() {
+        return order;
+    }
+
+    /**
+     * Returns the base visual order.
+     *
+     * @return the base order
+     */
+    public final int getOrder() {
+        return order.get();
+    }
+
+    /**
+     * Sets the base visual order.
+     *
+     * @param value the base order
+     */
+    public final void setOrder(int value) {
+        order.set(value);
+    }
+
+    // ==================== Hidden ====================
+
+    private final BooleanProperty hidden =
+            new SimpleBooleanProperty(this, "hidden", DEFAULT_HIDDEN) {
+                @Override
+                protected void invalidated() {
+                    requestRowLayout();
+                }
+            };
+
+    /**
+     * Responsive hidden state before breakpoint overrides. This property is
+     * distinct from {@link #visibleProperty()} and {@link #managedProperty()}.
+     * The parent {@link RXResponsiveRow} applies the effective value to this
+     * wrapper while preserving the state it changes.
+     *
+     * @return the hidden property
+     */
+    public final BooleanProperty hiddenProperty() {
+        return hidden;
+    }
+
+    /**
+     * Returns the base hidden state.
+     *
+     * @return whether this column is hidden
+     */
+    public final boolean isHidden() {
+        return hidden.get();
+    }
+
+    /**
+     * Sets the base hidden state.
+     *
+     * @param value whether this column is hidden
+     */
+    public final void setHidden(boolean value) {
+        hidden.set(value);
     }
 
     // ==================== XS ====================
