@@ -11,6 +11,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.PseudoClass;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
@@ -51,6 +52,10 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     private static final double TWO_PI = Math.PI * 2.0;
 
     private static final double HALF = 0.5;
+
+    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
 
     /**
      * Fraction of each bar's local cycle spent in the "active" pulse for
@@ -178,6 +183,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             r.getStyleClass().add("bar");
             r.setManaged(false);
             r.setMouseTransparent(true);
+            r.pseudoClassStateChanged(FIRST, i == 0);
+            r.pseudoClassStateChanged(LAST, i == n - 1);
             bars.add(r);
         }
         getChildren().setAll(bars);

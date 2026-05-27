@@ -52,6 +52,9 @@ import java.util.List;
  * <p>Bars never collapse fully — {@link #minBarHeightRatioProperty()
  * minBarHeightRatio} floors them at a fraction of {@link #barHeightProperty()
  * barHeight} so the row stays visually present at the trough of the cycle.
+ * The default skin renders each bar as a {@code .bar} region; the first and
+ * last bars expose {@code :first} and {@code :last} pseudo-classes for CSS
+ * theming.
  *
  * <p>Setting {@link #cycleDurationProperty() cycleDuration} to {@code null}
  * or any value {@code <= 0} stops the animation — the bars snap to their
