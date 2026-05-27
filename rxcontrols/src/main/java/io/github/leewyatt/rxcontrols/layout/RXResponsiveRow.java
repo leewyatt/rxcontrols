@@ -853,12 +853,19 @@ public class RXResponsiveRow extends Pane {
                 if (spec.span() == 0) {
                     continue;
                 }
-                double childWidth = min ? child.minWidth(height)
+                double childWidth = min ? computeChildMinWidth(child, height, gutterValue)
                         : computeChildPrefWidth(child, height, gutterValue);
                 contentWidth = Math.max(contentWidth, childWidth * columnsCount / spec.span());
             }
         }
         return insets.getLeft() + snapSizeX(contentWidth) + insets.getRight();
+    }
+
+    private double computeChildMinWidth(Node child, double height, double gutterValue) {
+        double minWidth = child instanceof RXResponsiveCol col
+                ? col.computeResponsiveMinWidth(height, gutterValue)
+                : child.minWidth(height);
+        return snapSizeX(minWidth);
     }
 
     private void updateActiveBreakpoint(double width) {

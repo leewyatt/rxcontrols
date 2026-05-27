@@ -553,6 +553,60 @@ public class RXResponsiveCol extends StackPane {
         }
     }
 
+    @Override
+    protected double computeMinWidth(double height) {
+        return computeResponsiveMinWidth(height, responsiveGutter);
+    }
+
+    @Override
+    protected double computeMinHeight(double width) {
+        return computeResponsiveMinHeight(width, responsiveGutter);
+    }
+
+    @Override
+    protected double computePrefWidth(double height) {
+        return computeResponsivePrefWidth(height, responsiveGutter);
+    }
+
+    @Override
+    protected double computePrefHeight(double width) {
+        return computeResponsivePrefHeight(width, responsiveGutter);
+    }
+
+    double computeResponsiveMinWidth(double height, double gutter) {
+        Insets insets = getInsets();
+        double contentHeight = height == -1.0 ? -1.0
+                : Math.max(0.0, height - insets.getTop() - insets.getBottom());
+        double maxWidth = 0.0;
+        for (Node child : getManagedChildren()) {
+            Insets margin = marginOrEmpty(child);
+            double childHeight = contentHeight == -1.0 ? -1.0
+                    : Math.max(0.0, contentHeight - margin.getTop() - margin.getBottom());
+            double childWidth = snapSizeX(child.minWidth(childHeight));
+            maxWidth = Math.max(maxWidth, snapSpaceX(margin.getLeft())
+                    + childWidth + snapSpaceX(margin.getRight()));
+        }
+        return insets.getLeft() + snapSizeX(maxWidth)
+                + snapSpaceX(normalizeGutter(gutter)) + insets.getRight();
+    }
+
+    double computeResponsiveMinHeight(double width, double gutter) {
+        Insets insets = getInsets();
+        double contentWidth = width == -1.0 ? -1.0
+                : Math.max(0.0, width - insets.getLeft() - insets.getRight()
+                - snapSpaceX(normalizeGutter(gutter)));
+        double maxHeight = 0.0;
+        for (Node child : getManagedChildren()) {
+            Insets margin = marginOrEmpty(child);
+            double childWidth = contentWidth == -1.0 ? -1.0
+                    : Math.max(0.0, contentWidth - margin.getLeft() - margin.getRight());
+            double childHeight = snapSizeY(child.minHeight(childWidth));
+            maxHeight = Math.max(maxHeight, snapSpaceY(margin.getTop())
+                    + childHeight + snapSpaceY(margin.getBottom()));
+        }
+        return insets.getTop() + snapSizeY(maxHeight) + insets.getBottom();
+    }
+
     double computeResponsivePrefWidth(double height, double gutter) {
         Insets insets = getInsets();
         double contentHeight = height == -1.0 ? -1.0
