@@ -270,6 +270,12 @@ public class RXBarSpinner extends Control {
         return barCount.get();
     }
 
+    /**
+     * Sets the number of bars in the row. Values less than or equal to
+     * {@code 0} render no bar regions.
+     *
+     * @param value the bar count
+     */
     public final void setBarCount(int value) {
         barCount.set(value);
     }

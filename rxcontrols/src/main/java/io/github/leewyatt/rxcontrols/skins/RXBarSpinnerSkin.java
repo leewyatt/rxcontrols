@@ -53,10 +53,6 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
 
     private static final double HALF = 0.5;
 
-    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
-
-    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
-
     /**
      * Fraction of each bar's local cycle spent in the "active" pulse for
      * {@link AnimationMode#BOUNCE}; the remainder is rest at the minimum height.
@@ -86,6 +82,12 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             0.00, 0.31, 0.67, 0.14, 0.83, 0.41,
             0.59, 0.22, 0.71, 0.05, 0.93, 0.48
     };
+
+    // ==================== Pseudo-Classes ====================
+
+    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
 
     // ==================== Nodes ====================
 
@@ -373,6 +375,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         if (renderedBarCount() == 0) {
+            // No rendered bars means no content footprint, regardless of configured barHeight.
             return topInset + bottomInset;
         }
         return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;
@@ -388,6 +391,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         if (renderedBarCount() == 0) {
+            // No rendered bars means no content footprint, regardless of configured barHeight.
             return topInset + bottomInset;
         }
         return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;

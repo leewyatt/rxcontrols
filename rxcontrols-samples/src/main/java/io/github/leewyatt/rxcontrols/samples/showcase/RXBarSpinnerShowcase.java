@@ -166,7 +166,8 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
     }
 
     private Node buildGeometryGrid() {
-        Slider countSlider = createSlider(-5.0, 24.0, RXBarSpinner.DEFAULT_BAR_COUNT);
+        // Showcase range is arbitrary; the control itself does not cap positive bar counts.
+        Slider countSlider = createSlider(-1.0, 20.0, RXBarSpinner.DEFAULT_BAR_COUNT);
         countSlider.setSnapToTicks(true);
         countSlider.setMajorTickUnit(1.0);
         countSlider.setMinorTickCount(0);
