@@ -110,6 +110,17 @@ public class RXResponsiveLayoutDemo extends Application {
         shapeOrderValue.textProperty().bind(
                 Bindings.format("%.0f", shapeOrderSlider.valueProperty()));
 
+        Slider mdOffsetSlider = new Slider(0.0, 4.0, 0.0);
+        mdOffsetSlider.setSnapToTicks(true);
+        mdOffsetSlider.setMajorTickUnit(1.0);
+        mdOffsetSlider.setMinorTickCount(0);
+        mdOffsetSlider.valueProperty().addListener((obs, oldV, newV) ->
+                demoNodes.shape().setMd(RXColSpec.of(8, (int) Math.round(newV.doubleValue()))));
+        Label mdOffsetValue = new Label();
+        mdOffsetValue.getStyleClass().add("value-label");
+        mdOffsetValue.textProperty().bind(
+                Bindings.format("%.0f", mdOffsetSlider.valueProperty()));
+
         CheckBox hideImageLg = new CheckBox("lg+");
         hideImageLg.selectedProperty().addListener((obs, wasHidden, isHidden) ->
                 setImageLgHidden(demoNodes.image(), isHidden));
@@ -141,6 +152,7 @@ public class RXResponsiveLayoutDemo extends Application {
                 controlRow("Justify", justifyBox, breakpointLabel),
                 controlRow("Align", alignBox, new Label()),
                 controlRow("Shape order", shapeOrderSlider, shapeOrderValue),
+                controlRow("MD offset", mdOffsetSlider, mdOffsetValue),
                 controlRow("Hide image", hideImageLg, new Label()),
                 presetButtons);
         controls.getStyleClass().add("toolbar");
@@ -181,7 +193,7 @@ public class RXResponsiveLayoutDemo extends Application {
         RXResponsiveCol chart = col(tile("Region", buildRegion()),
                 RXColSpec.of(24), RXColSpec.of(24), RXColSpec.of(8), RXColSpec.of(12));
         RXResponsiveCol shape = col(tile("Shape", buildShape()),
-                RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 4), RXColSpec.of(6, 0));
+                RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 0), RXColSpec.of(6, 0));
         RXResponsiveCol base = new RXResponsiveCol(tile("Base span", buildStatusButton("Base")));
         base.setSpan(6);
 
