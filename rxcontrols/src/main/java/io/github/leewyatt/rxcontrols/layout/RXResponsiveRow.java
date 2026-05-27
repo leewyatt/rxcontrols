@@ -36,9 +36,35 @@ import java.util.logging.Logger;
 /**
  * JavaFX-native responsive row layout driven by the row's own width.
  *
+ * <p><b>Despite the name, an {@code RXResponsiveRow} is not a single horizontal
+ * row.</b> It is a column-based responsive grid container (24 columns by the
+ * default {@link RXBreakpointProfile#ELEMENT} profile, 12 by
+ * {@link RXBreakpointProfile#BOOTSTRAP}) that automatically wraps its child
+ * {@link RXResponsiveCol} instances onto multiple visual rows whenever their
+ * combined spans exceed {@link #columnsProperty() columns}. The {@code Row}
+ * naming follows the web convention shared by Element UI, Element Plus,
+ * Bootstrap, Ant Design and similar frameworks, where a single {@code <el-row>}
+ * / {@code <div class="row">} can wrap into many visual rows. Add columns
+ * directly to {@link #getChildren()}; there is no separate "add a new row" step.</p>
+ *
  * <p>Children are expected to be {@link RXResponsiveCol} wrappers. Plain
  * {@link Node} children are accepted as full-width columns for convenience, but
  * only {@code RXResponsiveCol} supports breakpoint-specific specs.</p>
+ *
+ * <p>Minimal example:</p>
+ * <pre>{@code
+ * RXResponsiveRow row = new RXResponsiveRow();
+ * row.setGutter(16);
+ * row.setRowGap(16);
+ * for (int i = 0; i < 5; i++) {
+ *     RXResponsiveCol col = new RXResponsiveCol();
+ *     col.setXs(RXColSpec.of(24));   // narrow: 1 column per visual row
+ *     col.setMd(RXColSpec.of(12));   // medium: 2 columns per visual row
+ *     col.setLg(RXColSpec.of(6));    // wide:   4 columns per visual row
+ *     col.getChildren().add(new Label("Card " + i));
+ *     row.getChildren().add(col);
+ * }
+ * }</pre>
  */
 public class RXResponsiveRow extends Pane {
 
