@@ -185,16 +185,17 @@ public class RXResponsiveLayoutDemo extends Application {
         row.getStyleClass().add("demo-row");
         row.setPadding(new Insets(16.0));
 
-        RXResponsiveCol summary = col(tile("Summary", buildStatusButton("Open")),
+        RXResponsiveCol summary = col("Summary", buildStatusButton("Open"),
                 RXColSpec.of(24), RXColSpec.of(12), RXColSpec.of(8), RXColSpec.of(6));
-        RXResponsiveCol image = col(tile("Image", buildImage()),
+        RXResponsiveCol image = col("Image", buildImage(),
                 RXColSpec.of(24), RXColSpec.of(12), RXColSpec.of(8), RXColSpec.of(6));
-        RXResponsiveCol chart = col(tile("Region", buildRegion()),
+        RXResponsiveCol chart = col("Region", buildRegion(),
                 RXColSpec.of(24), RXColSpec.of(24), RXColSpec.of(8), RXColSpec.of(12));
-        RXResponsiveCol shape = col(tile("Shape", buildShape()),
+        RXResponsiveCol shape = col("Shape", buildShape(),
                 RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 0), RXColSpec.of(6, 0));
-        RXResponsiveCol base = new RXResponsiveCol(tile("Base span", buildStatusButton("Base")));
+        RXResponsiveCol base = new RXResponsiveCol();
         base.setSpan(6);
+        base.getChildren().add(tile("Base span", buildStatusButton("Base"), base));
 
         row.getChildren().addAll(summary, image, chart, shape, base);
         return new ResponsiveDemoNodes(row, image, shape);
@@ -207,22 +208,30 @@ public class RXResponsiveLayoutDemo extends Application {
                 .build());
     }
 
-    private RXResponsiveCol col(Node content, RXColSpec xs, RXColSpec sm,
+    private RXResponsiveCol col(String title, Node body, RXColSpec xs, RXColSpec sm,
                                 RXColSpec md, RXColSpec lg) {
-        RXResponsiveCol col = new RXResponsiveCol(content);
+        RXResponsiveCol col = new RXResponsiveCol();
         col.setXs(xs);
         col.setSm(sm);
         col.setMd(md);
         col.setLg(lg);
+        col.getChildren().add(tile(title, body, col));
         return col;
     }
 
-    private Node tile(String title, Node body) {
+    private Node tile(String title, Node body, RXResponsiveCol owner) {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("tile-title");
+        Label orderLabel = new Label();
+        orderLabel.getStyleClass().add("order-label");
+        orderLabel.textProperty().bind(owner.orderProperty().asString("order %d"));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox header = new HBox(8.0, titleLabel, spacer, orderLabel);
+        header.getStyleClass().add("tile-header");
         StackPane bodyPane = new StackPane(body);
         bodyPane.getStyleClass().add("tile-body");
-        VBox tile = new VBox(8.0, titleLabel, bodyPane);
+        VBox tile = new VBox(8.0, header, bodyPane);
         tile.getStyleClass().add("tile");
         VBox.setVgrow(bodyPane, Priority.ALWAYS);
         return tile;

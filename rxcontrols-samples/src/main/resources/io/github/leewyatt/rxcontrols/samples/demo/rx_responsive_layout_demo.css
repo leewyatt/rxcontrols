@@ -71,6 +71,15 @@
     -fx-font-weight: bold;
 }
 
+.tile-header {
+    -fx-alignment: center-left;
+}
+
+.order-label {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 11px;
+}
+
 .tile-body {
     -fx-min-height: 92px;
     -fx-alignment: center;
