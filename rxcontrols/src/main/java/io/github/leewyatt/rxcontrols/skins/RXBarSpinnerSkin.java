@@ -69,9 +69,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     /**
      * Per-bar frequency multipliers for {@link AnimationMode#RANDOM}. Picked as
      * irrational-ish ratios so adjacent bars do not visibly fall back into
-     * phase, and the combined period across {@link RXBarSpinner#MAX_BAR_COUNT
-     * MAX_BAR_COUNT} bars is long enough to read as random. Length matches
-     * {@link RXBarSpinner#MAX_BAR_COUNT} so every bar gets its own slot.
+     * phase; when the user renders more bars than this table contains the
+     * pattern repeats.
      */
     private static final double[] RANDOM_FREQUENCIES = {
             1.0, 1.7, 1.3, 2.1, 1.5, 1.9,
@@ -174,8 +173,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     // ==================== Bar composition ====================
 
     private void rebuildBars() {
-        int n = RXMath.clamp(getSkinnable().getBarCount(),
-                RXBarSpinner.MIN_BAR_COUNT, RXBarSpinner.MAX_BAR_COUNT);
+        int n = renderedBarCount();
 
         bars.clear();
         for (int i = 0; i < n; i++) {
@@ -199,7 +197,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         }
 
         Duration cycle = getSkinnable().getCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (renderedBarCount() == 0 || cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Caller is responsible for following up with applyStaticRest()
             // — keeping that off this method lets barCount / duration change
             // paths share a single "stop + reset" sequence (see registerListeners).
@@ -374,6 +372,9 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
+        if (renderedBarCount() == 0) {
+            return topInset + bottomInset;
+        }
         return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;
     }
 
@@ -386,6 +387,9 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
+        if (renderedBarCount() == 0) {
+            return topInset + bottomInset;
+        }
         return topInset + RXMath.sanitizeNonNegative(getSkinnable().getBarHeight()) + bottomInset;
     }
 
@@ -402,11 +406,14 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     }
 
     private double computeRowWidth() {
-        int n = RXMath.clamp(getSkinnable().getBarCount(),
-                RXBarSpinner.MIN_BAR_COUNT, RXBarSpinner.MAX_BAR_COUNT);
+        int n = renderedBarCount();
         double width = RXMath.sanitizeNonNegative(getSkinnable().getBarWidth());
         double gap = RXMath.sanitizeNonNegative(getSkinnable().getBarGap());
         return n * width + Math.max(0, n - 1) * gap;
+    }
+
+    private int renderedBarCount() {
+        return Math.max(0, getSkinnable().getBarCount());
     }
 
     // ==================== Dispose ====================

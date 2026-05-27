@@ -117,18 +117,6 @@ public class RXBarSpinner extends Control {
     public static final int DEFAULT_BAR_COUNT = 5;
 
     /**
-     * Minimum permitted {@link #barCountProperty() barCount} at render time.
-     */
-    public static final int MIN_BAR_COUNT = 2;
-
-    /**
-     * Maximum permitted {@link #barCountProperty() barCount} at render time.
-     * Beyond this the indicator stops reading as an equalizer and starts to
-     * look like a generic progress bar.
-     */
-    public static final int MAX_BAR_COUNT = 12;
-
-    /**
      * Default bar width, in pixels.
      */
     public static final double DEFAULT_BAR_WIDTH = 4.0;
@@ -268,9 +256,9 @@ public class RXBarSpinner extends Control {
     };
 
     /**
-     * Number of bars in the row. Values outside
-     * {@code [}{@link #MIN_BAR_COUNT}{@code , }{@link #MAX_BAR_COUNT}{@code ]}
-     * are clamped at render time.
+     * Number of bars in the row. Values less than or equal to {@code 0}
+     * render no bar regions. Positive values render that many bar regions;
+     * very large values may incur corresponding layout and rendering cost.
      *
      * @return the bar-count property
      */
