@@ -107,8 +107,7 @@ public class RXResponsiveLayoutDemo extends Application {
                 demoNodes.shape().setOrder((int) Math.round(newV.doubleValue())));
         Label shapeOrderValue = new Label();
         shapeOrderValue.getStyleClass().add("value-label");
-        shapeOrderValue.textProperty().bind(
-                Bindings.format("%.0f", shapeOrderSlider.valueProperty()));
+        shapeOrderValue.textProperty().bind(demoNodes.shape().orderProperty().asString());
 
         Slider mdOffsetSlider = new Slider(0.0, 4.0, 0.0);
         mdOffsetSlider.setSnapToTicks(true);
