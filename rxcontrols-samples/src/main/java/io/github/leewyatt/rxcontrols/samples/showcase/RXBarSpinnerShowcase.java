@@ -19,15 +19,16 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Showcase application for {@link RXBarSpinner}.
  *
  * <p>Exercises every public knob: animation mode, count / width / height /
- * gap / arc, bar color, cycle duration, min-bar-height ratio. Boundary values
- * (cycle = 0, min ratio = 0 / 1) are reachable via the sliders so the
- * "non-positive disables animation" semantic and "ratio = 1 flattens the
- * row" semantic are directly observable.
+ * gap, cycle duration, min-bar-height ratio, plus CSS-driven bar fill.
+ * Boundary values (cycle = 0, min ratio = 0 / 1) are reachable via the
+ * sliders so the "non-positive disables animation" semantic and "ratio = 1
+ * flattens the row" semantic are directly observable.
  *
  * <p>The preview pane also embeds an inline-text usage and a "button graphic"
  * usage so the typical compositions are visible alongside the property panel.
@@ -113,7 +114,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
 
     private Node buildInlineExample() {
         RXBarSpinner inline = new RXBarSpinner();
-        inline.barColorProperty().bind(mainIndicator.barColorProperty());
+        inline.styleProperty().bind(mainIndicator.styleProperty());
         inline.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
         inline.animationModeProperty().bind(mainIndicator.animationModeProperty());
         inline.minBarHeightRatioProperty().bind(mainIndicator.minBarHeightRatioProperty());
@@ -132,7 +133,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
         inButton.cycleDurationProperty().bind(mainIndicator.cycleDurationProperty());
         inButton.animationModeProperty().bind(mainIndicator.animationModeProperty());
         inButton.minBarHeightRatioProperty().bind(mainIndicator.minBarHeightRatioProperty());
-        inButton.setBarColor(Color.WHITE);
+        inButton.setStyle("-rx-bar-fill: white;");
         inButton.setBarWidth(3.0);
         inButton.setBarHeight(14.0);
         inButton.setBarGap(3.0);
@@ -187,25 +188,29 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
         mainIndicator.barGapProperty().bind(gapSlider.valueProperty());
         Label gapValue = createValueLabel(gapSlider, "%.0f px");
 
-        Slider arcSlider = createSlider(0.0, 8.0, RXBarSpinner.DEFAULT_BAR_ARC);
-        mainIndicator.barArcProperty().bind(arcSlider.valueProperty());
-        Label arcValue = createValueLabel(arcSlider, "%.0f px");
-
         return createGrid(
                 row("Bar count", countSlider, countValue),
                 row("Bar width", widthSlider, widthValue),
                 row("Bar height", heightSlider, heightValue),
-                row("Bar gap", gapSlider, gapValue),
-                row("Bar arc", arcSlider, arcValue));
+                row("Bar gap", gapSlider, gapValue));
     }
 
     private Node buildAppearanceGrid() {
-        ColorPicker colorPicker = new ColorPicker((Color) RXBarSpinner.DEFAULT_BAR_COLOR);
+        ColorPicker colorPicker = new ColorPicker(Color.web("#616dfe"));
         colorPicker.setMaxWidth(Double.MAX_VALUE);
-        mainIndicator.barColorProperty().bind(colorPicker.valueProperty());
+        colorPicker.valueProperty().addListener((obs, oldV, newV) ->
+                mainIndicator.setStyle("-rx-bar-fill: " + toCssRgba(newV) + ";"));
 
         return createGrid(
-                row("Bar color", colorPicker));
+                row("Bar fill", colorPicker));
+    }
+
+    private static String toCssRgba(Color c) {
+        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
+                (int) Math.round(c.getRed() * 255.0),
+                (int) Math.round(c.getGreen() * 255.0),
+                (int) Math.round(c.getBlue() * 255.0),
+                c.getOpacity());
     }
 
     private Node buildTimingGrid() {

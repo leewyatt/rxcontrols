@@ -14,13 +14,10 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
-import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Region;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -142,18 +139,6 @@ public class RXBarSpinner extends Control {
      * Default horizontal gap between adjacent bars, in pixels.
      */
     public static final double DEFAULT_BAR_GAP = 4.0;
-
-    /**
-     * Default corner radius for each bar, in pixels.
-     */
-    public static final double DEFAULT_BAR_ARC = 2.0;
-
-    /**
-     * Default bar fill. Matches the rest of the RX progress-indicator family
-     * so a {@link RXBarSpinner} dropped next to a {@link RXDotPulse} or
-     * {@link RXCircularProgressIndicator} reads as part of the same set.
-     */
-    public static final Paint DEFAULT_BAR_COLOR = Color.web("#616dfe");
 
     /**
      * Default cycle duration for one full staggered pass over all bars.
@@ -410,81 +395,6 @@ public class RXBarSpinner extends Control {
         barGap.set(value);
     }
 
-    // ==================== Bar Arc ====================
-
-    private final DoubleProperty barArc = new StyleableDoubleProperty(DEFAULT_BAR_ARC) {
-        @Override
-        public Object getBean() {
-            return RXBarSpinner.this;
-        }
-
-        @Override
-        public String getName() {
-            return "barArc";
-        }
-
-        @Override
-        public CssMetaData<RXBarSpinner, Number> getCssMetaData() {
-            return StyleableProperties.BAR_ARC;
-        }
-    };
-
-    /**
-     * Corner radius of each bar, in pixels. {@code 0} yields plain
-     * rectangles; values {@code >= barWidth / 2} round the ends into pills.
-     * Negative values and {@code NaN} are treated as {@code 0} at render time.
-     *
-     * @return the bar-arc property
-     */
-    public final DoubleProperty barArcProperty() {
-        return barArc;
-    }
-
-    public final double getBarArc() {
-        return barArc.get();
-    }
-
-    public final void setBarArc(double value) {
-        barArc.set(value);
-    }
-
-    // ==================== Bar Color ====================
-
-    private final ObjectProperty<Paint> barColor = new StyleableObjectProperty<>(DEFAULT_BAR_COLOR) {
-        @Override
-        public Object getBean() {
-            return RXBarSpinner.this;
-        }
-
-        @Override
-        public String getName() {
-            return "barColor";
-        }
-
-        @Override
-        public CssMetaData<RXBarSpinner, Paint> getCssMetaData() {
-            return StyleableProperties.BAR_COLOR;
-        }
-    };
-
-    /**
-     * Fill paint used for every bar. Tolerates {@code null} (skin falls back
-     * to {@link #DEFAULT_BAR_COLOR}).
-     *
-     * @return the bar-color property
-     */
-    public final ObjectProperty<Paint> barColorProperty() {
-        return barColor;
-    }
-
-    public final Paint getBarColor() {
-        return barColor.get();
-    }
-
-    public final void setBarColor(Paint value) {
-        barColor.set(value);
-    }
-
     // ==================== Cycle Duration ====================
 
     private final ObjectProperty<Duration> cycleDuration =
@@ -650,38 +560,6 @@ public class RXBarSpinner extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXBarSpinner, Number> BAR_ARC =
-                new CssMetaData<>("-rx-bar-arc",
-                        SizeConverter.getInstance(),
-                        DEFAULT_BAR_ARC) {
-                    @Override
-                    public boolean isSettable(RXBarSpinner n) {
-                        return !n.barArc.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXBarSpinner n) {
-                        return (StyleableProperty<Number>) n.barArcProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXBarSpinner, Paint> BAR_COLOR =
-                new CssMetaData<>("-rx-bar-color",
-                        PaintConverter.getInstance(),
-                        DEFAULT_BAR_COLOR) {
-                    @Override
-                    public boolean isSettable(RXBarSpinner n) {
-                        return !n.barColor.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXBarSpinner n) {
-                        return (StyleableProperty<Paint>) n.barColorProperty();
-                    }
-                };
-
         private static final CssMetaData<RXBarSpinner, Duration> CYCLE_DURATION =
                 new CssMetaData<>("-rx-cycle-duration",
                         DurationConverter.getInstance(),
@@ -725,8 +603,6 @@ public class RXBarSpinner extends Control {
                     BAR_WIDTH,
                     BAR_HEIGHT,
                     BAR_GAP,
-                    BAR_ARC,
-                    BAR_COLOR,
                     CYCLE_DURATION,
                     MIN_BAR_HEIGHT_RATIO);
             STYLEABLES = Collections.unmodifiableList(styleables);

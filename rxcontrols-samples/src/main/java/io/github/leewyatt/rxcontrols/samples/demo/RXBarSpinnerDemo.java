@@ -12,8 +12,8 @@ import javafx.stage.Stage;
  * Minimal "out-of-the-box" demo for {@link RXBarSpinner}.
  *
  * <p>Demonstrates the single line required to drop the indicator into a scene
- * with its default appearance. For a full property explorer (every styleable
- * knob, plus inline-with-text and button-graphic compositions) see
+ * with its default appearance. For a full property explorer (public and CSS
+ * knobs, plus inline-with-text and button-graphic compositions) see
  * {@link RXBarSpinnerShowcase}.
  */
 public class RXBarSpinnerDemo extends Application {

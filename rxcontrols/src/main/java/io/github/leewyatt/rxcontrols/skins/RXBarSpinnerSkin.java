@@ -11,8 +11,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.scene.paint.Paint;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -20,11 +19,13 @@ import java.util.List;
 
 /**
  * Default skin for {@link RXBarSpinner}. Renders a row of vertical
- * {@link Rectangle} bars and drives a shared {@code phase} property on an
- * indefinite {@link Timeline}; an invalidation listener fans the phase out to
- * each bar using a per-bar offset of {@code i / barCount}, then maps the
- * per-bar local time to a bar height via the curve selected by
- * {@link AnimationMode}.
+ * {@link Region} bars using the {@code .bar} style class. Bar appearance is
+ * delegated to CSS; the skin owns only bar count, geometry, and animation.
+ *
+ * <p>A shared {@code phase} property is driven by one indefinite
+ * {@link Timeline}; an invalidation listener fans the phase out to each bar
+ * using a per-bar offset of {@code i / barCount}, then maps the per-bar local
+ * time to a bar height via the curve selected by {@link AnimationMode}.
  *
  * <p>Implementation notes:
  * <ul>
@@ -84,7 +85,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
 
     // ==================== Nodes ====================
 
-    private final List<Rectangle> bars = new ArrayList<>();
+    private final List<Region> bars = new ArrayList<>();
 
     /**
      * Global cycle position in {@code [0, 1)}. The timeline animates this
@@ -119,7 +120,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         if (timeline == null) {
             // Animation disabled at construction (e.g. cycleDuration <= 0) —
             // §1.8: still snap the bars to a deterministic rest pose so the
-            // first frame is not whatever defaults Rectangle was initialised
+            // first frame is not whatever defaults Region was initialised
             // to. Layout will overwrite once dimensions are known; this only
             // matters for the brief window before the first layout pass.
             applyStaticRest();
@@ -142,8 +143,6 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         disposer.registerListener(control.barWidthProperty(), control::requestLayout);
         disposer.registerListener(control.barHeightProperty(), control::requestLayout);
         disposer.registerListener(control.barGapProperty(), control::requestLayout);
-        disposer.registerListener(control.barArcProperty(), this::applyBarArc);
-        disposer.registerListener(control.barColorProperty(), this::applyBarFill);
         disposer.registerListener(control.animationModeProperty(), this::refreshBars);
         disposer.registerListener(control.minBarHeightRatioProperty(), control::requestLayout);
         disposer.registerListener(control.cycleDurationProperty(), () -> {
@@ -172,36 +171,16 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     private void rebuildBars() {
         int n = RXMath.clamp(getSkinnable().getBarCount(),
                 RXBarSpinner.MIN_BAR_COUNT, RXBarSpinner.MAX_BAR_COUNT);
-        Paint fill = paintOrDefault(getSkinnable().getBarColor(), RXBarSpinner.DEFAULT_BAR_COLOR);
-        double arc = RXMath.sanitizeNonNegative(getSkinnable().getBarArc());
 
         bars.clear();
         for (int i = 0; i < n; i++) {
-            Rectangle r = new Rectangle();
+            Region r = new Region();
             r.getStyleClass().add("bar");
             r.setManaged(false);
             r.setMouseTransparent(true);
-            r.setFill(fill);
-            r.setArcWidth(arc * 2.0);
-            r.setArcHeight(arc * 2.0);
             bars.add(r);
         }
         getChildren().setAll(bars);
-    }
-
-    private void applyBarFill() {
-        Paint fill = paintOrDefault(getSkinnable().getBarColor(), RXBarSpinner.DEFAULT_BAR_COLOR);
-        for (Rectangle r : bars) {
-            r.setFill(fill);
-        }
-    }
-
-    private void applyBarArc() {
-        double arc = RXMath.sanitizeNonNegative(getSkinnable().getBarArc()) * 2.0;
-        for (Rectangle r : bars) {
-            r.setArcWidth(arc);
-            r.setArcHeight(arc);
-        }
     }
 
     // ==================== Animation ====================
@@ -215,7 +194,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         Duration cycle = getSkinnable().getCycleDuration();
         if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Caller is responsible for following up with applyStaticRest()
-            // — keeping that off this method lets barCount / style change
+            // — keeping that off this method lets barCount / duration change
             // paths share a single "stop + reset" sequence (see registerListeners).
             phase.set(0.0);
             return;
@@ -251,9 +230,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             double local = computeLocal(t, i, n, mode);
             double k = curveValue(local, mode);
             double h = minH + range * k;
-            Rectangle r = bars.get(i);
-            r.setHeight(h);
-            r.setY(cachedBottomY - h);
+            Region r = bars.get(i);
+            r.resizeRelocate(r.getLayoutX(), cachedBottomY - h, r.getWidth(), h);
         }
     }
 
@@ -312,22 +290,21 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             // First-frame guard: layout hasn't happened yet, so we can't
             // bottom-anchor properly. Drop bars to zero height — layout will
             // overwrite as soon as it runs.
-            for (Rectangle r : bars) {
-                r.setHeight(0.0);
+            for (Region r : bars) {
+                r.resize(r.getWidth(), 0.0);
             }
             return;
         }
         double h = cachedMinHeight;
-        for (Rectangle r : bars) {
-            r.setHeight(h);
-            r.setY(cachedBottomY - h);
+        for (Region r : bars) {
+            r.resizeRelocate(r.getLayoutX(), cachedBottomY - h, r.getWidth(), h);
         }
     }
 
     /**
      * Pushes a fresh height to every bar — either by recomputing against the
      * current phase (timeline running) or by snapping to rest (timeline
-     * disabled). Use when a non-timing property (style) changes mid-cycle and
+     * disabled). Use when a non-timing property changes mid-cycle and
      * we want the new curve visible this frame instead of next.
      */
     private void refreshBars() {
@@ -345,11 +322,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
                                   double contentWidth, double contentHeight) {
         int n = bars.size();
         if (n == 0 || contentWidth <= 0.0 || contentHeight <= 0.0) {
-            for (Rectangle r : bars) {
-                r.setWidth(0.0);
-                r.setHeight(0.0);
-                r.setX(contentX);
-                r.setY(contentY);
+            for (Region r : bars) {
+                r.resizeRelocate(contentX, contentY, 0.0, 0.0);
             }
             cachedBottomY = contentY + contentHeight;
             cachedPeakHeight = 0.0;
@@ -376,9 +350,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         cachedMinHeight = minH;
 
         for (int i = 0; i < n; i++) {
-            Rectangle r = bars.get(i);
-            r.setWidth(width);
-            r.setX(startX + i * (width + gap));
+            Region r = bars.get(i);
+            r.resizeRelocate(startX + i * (width + gap), bottomY, width, 0.0);
         }
         // Heights/y depend on phase; refresh against the current phase (or
         // rest pose if the timeline is disabled).
@@ -441,11 +414,5 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
             timeline = null;
         }
         super.dispose();
-    }
-
-    // ==================== Helpers ====================
-
-    private static Paint paintOrDefault(Paint v, Paint fallback) {
-        return v != null ? v : fallback;
     }
 }
