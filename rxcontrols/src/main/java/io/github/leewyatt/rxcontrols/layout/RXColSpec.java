@@ -23,6 +23,10 @@ public final class RXColSpec {
     /**
      * Creates a spec that overrides only the span.
      *
+     * <p>The offset remains unset and therefore inherits the previous
+     * breakpoint's resolved offset. Use {@link #of(int, int)} with
+     * {@code offset=0} to clear an inherited offset.</p>
+     *
      * @param span the span override
      * @return the spec
      * @throws IllegalArgumentException if {@code span < 0}

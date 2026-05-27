@@ -322,7 +322,9 @@ public class RXResponsiveRow extends Pane {
 
     /**
      * Horizontal distribution of remaining space for each line. Cannot be set
-     * to {@code null}.
+     * to {@code null}. Column offsets participate in the occupied line width,
+     * matching flexbox margin semantics; justify does not cancel or redistribute
+     * an explicit offset.
      *
      * @return the justify property
      */

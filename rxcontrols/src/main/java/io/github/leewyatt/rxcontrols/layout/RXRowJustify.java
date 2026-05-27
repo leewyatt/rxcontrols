@@ -2,6 +2,10 @@ package io.github.leewyatt.rxcontrols.layout;
 
 /**
  * Horizontal distribution of remaining space for each responsive row line.
+ *
+ * <p>Column offsets are treated as occupied space, equivalent to fixed
+ * flexbox margins. Justification distributes only the remaining free space
+ * after spans and offsets are accounted for.</p>
  */
 public enum RXRowJustify {
     /**

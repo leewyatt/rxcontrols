@@ -30,7 +30,9 @@ import java.util.Map;
  * <p>The base {@link #spanProperty() span} and {@link #offsetProperty() offset}
  * are used until a responsive {@link RXColSpec} for the active row breakpoint
  * overrides them. Responsive specs are mobile-first: a spec stays active for
- * larger breakpoints until another spec overrides the same field.</p>
+ * larger breakpoints until another spec overrides the same field. Use
+ * {@link RXColSpec#of(int, int)} with {@code offset=0} when a larger
+ * breakpoint should clear an inherited offset.</p>
  */
 public class RXResponsiveCol extends StackPane {
 

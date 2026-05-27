@@ -160,7 +160,7 @@ public class RXResponsiveLayoutDemo extends Application {
         RXResponsiveCol chart = col(tile("Region", buildRegion()),
                 RXColSpec.of(24), RXColSpec.of(24), RXColSpec.of(8), RXColSpec.of(12));
         RXResponsiveCol shape = col(tile("Shape", buildShape()),
-                RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 4), RXColSpec.of(6));
+                RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 4), RXColSpec.of(6, 0));
         RXResponsiveCol base = new RXResponsiveCol(tile("Base span", buildStatusButton("Base")));
         base.setSpan(6);
 
