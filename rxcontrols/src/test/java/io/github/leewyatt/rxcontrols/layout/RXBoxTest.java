@@ -454,6 +454,52 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies content-biased grow respects finite child max width like {@link HBox}.
+     */
+    @Test
+    public void contentBiasedGrowRespectsFiniteMaxWidthLikeHBox() {
+        HeightBiasedRegion hFirst = heightBiasedRegion(20.0);
+        FixedRegion hSecond = fixedRegion(30.0, 20.0);
+        HBox hbox = new HBox(0.0, hFirst, hSecond);
+        HBox.setHgrow(hFirst, Priority.ALWAYS);
+
+        HeightBiasedRegion rFirst = heightBiasedRegion(20.0);
+        FixedRegion rSecond = fixedRegion(30.0, 20.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 0.0, rFirst, rSecond);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+
+        layout(hbox, 180.0, 40.0);
+        layout(rxBox, 180.0, 40.0);
+
+        assertNodeMatches(hFirst, rFirst, "biased");
+        assertNodeMatches(hSecond, rSecond, "fixed");
+        assertClose(60.0, rFirst.getWidth(), "finite max width");
+    }
+
+    /**
+     * Verifies vertical content-bias size calculation against {@link VBox}.
+     */
+    @Test
+    public void verticalContentBiasPrefWidthMatchesVBox() {
+        HeightBiasedRegion vFirst = heightBiasedRegion(20.0);
+        FixedRegion vSecond = fixedRegion(30.0, 20.0);
+        VBox vbox = new VBox(4.0, vFirst, vSecond);
+        VBox.setVgrow(vFirst, Priority.ALWAYS);
+
+        HeightBiasedRegion rFirst = heightBiasedRegion(20.0);
+        FixedRegion rSecond = fixedRegion(30.0, 20.0);
+        RXBox rxBox = new RXBox(Orientation.VERTICAL, 4.0, rFirst, rSecond);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+
+        assertClose(vbox.prefWidth(120.0), rxBox.prefWidth(120.0), "pref width");
+        layout(vbox, 90.0, 120.0);
+        layout(rxBox, 90.0, 120.0);
+
+        assertNodeMatches(vFirst, rFirst, "biased");
+        assertNodeMatches(vSecond, rSecond, "fixed");
+    }
+
+    /**
      * Verifies CSS metadata exposes RXBox styleable properties.
      */
     @Test
@@ -517,6 +563,14 @@ public class RXBoxTest {
         return region;
     }
 
+    private static HeightBiasedRegion heightBiasedRegion(double baseWidth) {
+        HeightBiasedRegion region = new HeightBiasedRegion(baseWidth);
+        region.setMinHeight(10.0);
+        region.setPrefHeight(20.0);
+        region.setMaxHeight(40.0);
+        return region;
+    }
+
     private static void layout(Region region, double width, double height) {
         region.resize(width, height);
         region.layout();
@@ -577,6 +631,40 @@ public class RXBoxTest {
         private double computeHeight(double width, double multiplier) {
             double dependentWidth = width == -1.0 ? prefWidth(-1.0) : width;
             return baseHeight * multiplier + dependentWidth / 10.0;
+        }
+    }
+
+    private static final class HeightBiasedRegion extends FixedRegion {
+
+        private final double baseWidth;
+
+        private HeightBiasedRegion(double baseWidth) {
+            this.baseWidth = baseWidth;
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.VERTICAL;
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return computeWidth(height, 0.5);
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return computeWidth(height, 1.0);
+        }
+
+        @Override
+        protected double computeMaxWidth(double height) {
+            return computeWidth(height, 2.0);
+        }
+
+        private double computeWidth(double height, double multiplier) {
+            double dependentHeight = height == -1.0 ? prefHeight(-1.0) : height;
+            return baseWidth * multiplier + dependentHeight / 2.0;
         }
     }
 }
