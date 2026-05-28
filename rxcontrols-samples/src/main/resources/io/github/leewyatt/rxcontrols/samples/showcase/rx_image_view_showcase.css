@@ -2,25 +2,26 @@
     -fx-alignment: center;
 }
 
-.preview-frame {
-    -fx-alignment: center;
-    -fx-background-color: #f8fafc;
+.image-frame {
+    -fx-padding: 34px;
+    -fx-min-width: 620px;
+    -fx-min-height: 430px;
+    -fx-background-color: #eaf2fb;
     -fx-background-radius: 8px;
-    -fx-border-color: #cbd5e1;
+    -fx-border-color: #c9d9ea;
     -fx-border-radius: 8px;
-    -fx-border-width: 1px;
-    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 18, 0, 0, 6);
 }
 
-.preview-frame .rx-image-view {
-    -fx-background-color: rgba(37, 99, 235, 0.08);
-    -fx-border-color: rgba(37, 99, 235, 0.28);
-    -fx-border-width: 1px;
+.showcase-image {
+    -fx-background-color: white;
+    -fx-border-color: #98abc2;
+    -fx-border-radius: 4px;
+    -fx-effect: dropshadow(gaussian, rgba(29, 45, 65, 0.20), 18, 0, 0, 7);
 }
 
 .size-label {
     -fx-padding: 5px 12px;
-    -fx-background-color: #202938;
+    -fx-background-color: #1d2433;
     -fx-background-radius: 6px;
     -fx-text-fill: white;
     -fx-font-family: "Menlo", "Consolas", monospace;

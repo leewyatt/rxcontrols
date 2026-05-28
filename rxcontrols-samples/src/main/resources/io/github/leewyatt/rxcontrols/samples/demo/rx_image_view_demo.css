@@ -1,0 +1,70 @@
+.rx-image-view-demo {
+    -fx-padding: 34px;
+    -fx-background-color: #edf4fb;
+    -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.hero {
+    -fx-min-height: 310px;
+}
+
+.hero > .rx-image-view {
+    -fx-effect: dropshadow(gaussian, rgba(28, 47, 72, 0.20), 22, 0, 0, 9);
+}
+
+.hero-scrim {
+    -fx-background-color: linear-gradient(to top, rgba(8, 18, 32, 0.78), rgba(8, 18, 32, 0.08));
+    -fx-background-radius: 22px;
+}
+
+.hero-text {
+    -fx-padding: 0 0 30px 32px;
+    -fx-max-width: 560px;
+}
+
+.eyebrow {
+    -fx-text-fill: #69d2c8;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 34px;
+    -fx-font-weight: 800;
+}
+
+.hero-copy {
+    -fx-text-fill: rgba(255, 255, 255, 0.78);
+    -fx-font-size: 14px;
+}
+
+.card-row {
+    -fx-alignment: stretch;
+}
+
+.demo-card {
+    -fx-padding: 14px;
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #d7e3ef;
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(28, 47, 72, 0.11), 16, 0, 0, 5);
+}
+
+.card-image {
+    -fx-background-color: #eef4fb;
+    -fx-border-color: #d4e0ed;
+    -fx-border-radius: 8px;
+}
+
+.card-title {
+    -fx-text-fill: #162235;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+}
+
+.card-copy {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
+}
