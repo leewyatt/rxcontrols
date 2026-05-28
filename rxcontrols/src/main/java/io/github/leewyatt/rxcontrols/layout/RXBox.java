@@ -77,6 +77,19 @@ public class RXBox extends Pane {
     private static final String MARGIN_CONSTRAINT = "rxbox-margin";
     private static final double EPSILON = 1.0e-6;
 
+    // ==================== Types ====================
+
+    private enum Axis {
+        HORIZONTAL,
+        VERTICAL
+    }
+
+    private enum SizeKind {
+        MIN,
+        PREF,
+        MAX
+    }
+
     // ==================== Constraints ====================
 
     /**
@@ -691,8 +704,10 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             widths[i] = minimum
-                    ? computeChildMinAreaWidth(child, margin, availableHeight, fillHeight, baselineComplement)
-                    : computeChildPrefAreaWidth(child, margin, availableHeight, fillHeight, baselineComplement);
+                    ? computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.MIN,
+                            availableHeight, fillHeight, baselineComplement)
+                    : computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.PREF,
+                            availableHeight, fillHeight, baselineComplement);
         }
         return widths;
     }
@@ -706,8 +721,10 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             heights[i] = minimum
-                    ? computeChildMinAreaHeight(child, margin, availableWidth, fillWidth)
-                    : computeChildPrefAreaHeight(child, margin, availableWidth, fillWidth);
+                    ? computeChildArea(child, margin, Axis.VERTICAL, SizeKind.MIN,
+                            availableWidth, fillWidth)
+                    : computeChildArea(child, margin, Axis.VERTICAL, SizeKind.PREF,
+                            availableWidth, fillWidth);
         }
         return heights;
     }
@@ -801,21 +818,15 @@ public class RXBox extends Pane {
     private double computeChildMinMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
-        return horizontal
-                ? computeChildMinAreaWidth(child, margin, availableCross,
-                        shouldFillCrossAxis(), baselineComplement)
-                : computeChildMinAreaHeight(child, margin, availableCross,
-                        shouldFillCrossAxis());
+        return computeChildArea(child, margin, axis(horizontal), SizeKind.MIN,
+                availableCross, shouldFillCrossAxis(), baselineComplement);
     }
 
     private double computeChildMaxMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
-        return horizontal
-                ? computeChildMaxAreaWidth(child, margin, availableCross,
-                        shouldFillCrossAxis(), baselineComplement)
-                : computeChildMaxAreaHeight(child, margin, availableCross,
-                        shouldFillCrossAxis());
+        return computeChildArea(child, margin, axis(horizontal), SizeKind.MAX,
+                availableCross, shouldFillCrossAxis(), baselineComplement);
     }
 
     private double computeMaxAreaWidth(List<Node> managed, double[] childHeights,
@@ -826,8 +837,10 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             double childHeight = childHeights == null ? -1 : childHeights[i];
             double areaWidth = minimum
-                    ? computeChildMinAreaWidth(child, margin, childHeight, false)
-                    : computeChildPrefAreaWidth(child, margin, childHeight, false);
+                    ? computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.MIN,
+                            childHeight, false)
+                    : computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.PREF,
+                            childHeight, false);
             max = Math.max(max, areaWidth);
         }
         return max;
@@ -844,139 +857,163 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1 : childWidths[i];
             double areaHeight = minimum
-                    ? computeChildMinAreaHeight(child, margin, childWidth, false)
-                    : computeChildPrefAreaHeight(child, margin, childWidth, false);
+                    ? computeChildArea(child, margin, Axis.VERTICAL, SizeKind.MIN,
+                            childWidth, false)
+                    : computeChildArea(child, margin, Axis.VERTICAL, SizeKind.PREF,
+                            childWidth, false);
             max = Math.max(max, areaHeight);
         }
         return max;
     }
 
-    private double computeChildMinAreaWidth(Node child, Insets margin,
-                                            double availableHeight,
-                                            boolean fillHeight) {
-        return computeChildMinAreaWidth(child, margin, availableHeight, fillHeight, -1.0);
+    private double computeChildArea(Node child, Insets margin, Axis axis,
+                                    SizeKind kind, double availableCross,
+                                    boolean fillCross) {
+        return computeChildArea(child, margin, axis, kind, availableCross, fillCross, -1.0);
     }
 
-    private double computeChildMinAreaWidth(Node child, Insets margin,
-                                            double availableHeight,
-                                            boolean fillHeight,
-                                            double baselineComplement) {
-        double left = left(margin);
-        double right = right(margin);
-        double alt = heightAlt(child, margin, availableHeight, fillHeight, baselineComplement);
-        return left + snapSizeX(child.minWidth(alt)) + right;
-    }
-
-    private double computeChildPrefAreaWidth(Node child, Insets margin,
-                                             double availableHeight,
-                                             boolean fillHeight) {
-        return computeChildPrefAreaWidth(child, margin, availableHeight, fillHeight, -1.0);
-    }
-
-    private double computeChildPrefAreaWidth(Node child, Insets margin,
-                                             double availableHeight,
-                                             boolean fillHeight,
-                                             double baselineComplement) {
-        double left = left(margin);
-        double right = right(margin);
-        double alt = heightAlt(child, margin, availableHeight, fillHeight, baselineComplement);
-        return left + snapSizeX(boundedSize(child.minWidth(alt),
-                child.prefWidth(alt), child.maxWidth(alt))) + right;
-    }
-
-    private double computeChildMaxAreaWidth(Node child, Insets margin,
-                                            double availableHeight,
-                                            boolean fillHeight) {
-        return computeChildMaxAreaWidth(child, margin, availableHeight, fillHeight, -1.0);
-    }
-
-    private double computeChildMaxAreaWidth(Node child, Insets margin,
-                                            double availableHeight,
-                                            boolean fillHeight,
-                                            double baselineComplement) {
-        double alt = heightAlt(child, margin, availableHeight, fillHeight, baselineComplement);
-        double max = child.maxWidth(alt);
-        if (max == Double.MAX_VALUE) {
-            return max;
+    private double computeChildArea(Node child, Insets margin, Axis axis,
+                                    SizeKind kind, double availableCross,
+                                    boolean fillCross, double baselineComplement) {
+        double alt = computeAlt(child, margin, axis, availableCross, fillCross,
+                baselineComplement);
+        double value;
+        switch (kind) {
+            case MIN:
+                value = snapSize(axis, childMin(child, axis, alt));
+                break;
+            case PREF:
+                value = snapSize(axis, boundedSize(childMin(child, axis, alt),
+                        childPref(child, axis, alt), childMax(child, axis, alt)));
+                break;
+            case MAX:
+                double max = childMax(child, axis, alt);
+                if (max == Double.MAX_VALUE) {
+                    return max;
+                }
+                value = snapSize(axis, boundedSize(childMin(child, axis, alt), max,
+                        Double.MAX_VALUE));
+                break;
+            default:
+                throw new AssertionError("Unhandled SizeKind: " + kind);
         }
-        double left = left(margin);
-        double right = right(margin);
-        return left + snapSizeX(boundedSize(child.minWidth(alt), max,
-                Double.MAX_VALUE)) + right;
+        return leading(axis, margin) + value + trailing(axis, margin);
     }
 
-    private double computeChildMinAreaHeight(Node child, Insets margin,
-                                             double availableWidth,
-                                             boolean fillWidth) {
-        double top = top(margin);
-        double bottom = bottom(margin);
-        double alt = widthAlt(child, margin, availableWidth, fillWidth);
-        return top + snapSizeY(child.minHeight(alt)) + bottom;
-    }
-
-    private double computeChildPrefAreaHeight(Node child, Insets margin,
-                                              double availableWidth,
-                                              boolean fillWidth) {
-        double top = top(margin);
-        double bottom = bottom(margin);
-        double alt = widthAlt(child, margin, availableWidth, fillWidth);
-        return top + snapSizeY(boundedSize(child.minHeight(alt),
-                child.prefHeight(alt), child.maxHeight(alt))) + bottom;
-    }
-
-    private double computeChildMaxAreaHeight(Node child, Insets margin,
-                                             double availableWidth,
-                                             boolean fillWidth) {
-        double alt = widthAlt(child, margin, availableWidth, fillWidth);
-        double max = child.maxHeight(alt);
-        if (max == Double.MAX_VALUE) {
-            return max;
-        }
-        double top = top(margin);
-        double bottom = bottom(margin);
-        return top + snapSizeY(boundedSize(child.minHeight(alt), max,
-                Double.MAX_VALUE)) + bottom;
-    }
-
-    private double widthAlt(Node child, Insets margin, double availableWidth,
-                            boolean fillWidth) {
-        if (availableWidth == -1 || !child.isResizable()
-                || child.getContentBias() != Orientation.HORIZONTAL) {
+    private double computeAlt(Node child, Insets margin, Axis axis,
+                              double availableCross, boolean fillCross,
+                              double baselineComplement) {
+        if (availableCross == -1 || !child.isResizable()
+                || child.getContentBias() != crossOrientation(axis)) {
             return -1;
         }
-        double contentWidth = Math.max(0.0, availableWidth - left(margin) - right(margin));
-        return computeBoundedWidth(child, fillWidth, contentWidth);
-    }
-
-    private double heightAlt(Node child, Insets margin, double availableHeight,
-                             boolean fillHeight) {
-        return heightAlt(child, margin, availableHeight, fillHeight, -1.0);
-    }
-
-    private double heightAlt(Node child, Insets margin, double availableHeight,
-                             boolean fillHeight, double baselineComplement) {
-        if (availableHeight == -1 || !child.isResizable()
-                || child.getContentBias() != Orientation.VERTICAL) {
-            return -1;
-        }
-        double contentHeight = Math.max(0.0, availableHeight - top(margin) - bottom(margin));
-        if (child.getBaselineOffset() == Node.BASELINE_OFFSET_SAME_AS_HEIGHT
+        Axis crossAxis = crossAxis(axis);
+        double contentCross = Math.max(0.0,
+                availableCross - leading(crossAxis, margin) - trailing(crossAxis, margin));
+        if (axis == Axis.HORIZONTAL
+                && child.getBaselineOffset() == Node.BASELINE_OFFSET_SAME_AS_HEIGHT
                 && baselineComplement != -1.0) {
-            contentHeight -= baselineComplement;
+            contentCross -= baselineComplement;
         }
-        return computeBoundedHeight(child, fillHeight, contentHeight);
+        return computeBounded(child, crossAxis, fillCross, contentCross);
     }
 
-    private double computeBoundedWidth(Node child, boolean fill, double contentWidth) {
-        double min = child.minWidth(-1);
-        double pref = fill ? contentWidth : Math.min(contentWidth, child.prefWidth(-1));
-        return snapSizeX(boundedSize(min, pref, child.maxWidth(-1)));
+    private double computeBounded(Node child, Axis axis, boolean fill, double contentSize) {
+        double min = childMin(child, axis, -1);
+        double pref = fill ? contentSize : Math.min(contentSize, childPref(child, axis, -1));
+        return snapSize(axis, boundedSize(min, pref, childMax(child, axis, -1)));
     }
 
-    private double computeBoundedHeight(Node child, boolean fill, double contentHeight) {
-        double min = child.minHeight(-1);
-        double pref = fill ? contentHeight : Math.min(contentHeight, child.prefHeight(-1));
-        return snapSizeY(boundedSize(min, pref, child.maxHeight(-1)));
+    private Axis axis(boolean horizontal) {
+        return horizontal ? Axis.HORIZONTAL : Axis.VERTICAL;
+    }
+
+    private Axis crossAxis(Axis axis) {
+        switch (axis) {
+            case HORIZONTAL:
+                return Axis.VERTICAL;
+            case VERTICAL:
+                return Axis.HORIZONTAL;
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private Orientation crossOrientation(Axis axis) {
+        switch (axis) {
+            case HORIZONTAL:
+                return Orientation.VERTICAL;
+            case VERTICAL:
+                return Orientation.HORIZONTAL;
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double childMin(Node child, Axis axis, double alt) {
+        switch (axis) {
+            case HORIZONTAL:
+                return child.minWidth(alt);
+            case VERTICAL:
+                return child.minHeight(alt);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double childPref(Node child, Axis axis, double alt) {
+        switch (axis) {
+            case HORIZONTAL:
+                return child.prefWidth(alt);
+            case VERTICAL:
+                return child.prefHeight(alt);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double childMax(Node child, Axis axis, double alt) {
+        switch (axis) {
+            case HORIZONTAL:
+                return child.maxWidth(alt);
+            case VERTICAL:
+                return child.maxHeight(alt);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double snapSize(Axis axis, double value) {
+        switch (axis) {
+            case HORIZONTAL:
+                return snapSizeX(value);
+            case VERTICAL:
+                return snapSizeY(value);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double leading(Axis axis, Insets margin) {
+        switch (axis) {
+            case HORIZONTAL:
+                return left(margin);
+            case VERTICAL:
+                return top(margin);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
+    }
+
+    private double trailing(Axis axis, Insets margin) {
+        switch (axis) {
+            case HORIZONTAL:
+                return right(margin);
+            case VERTICAL:
+                return bottom(margin);
+            default:
+                throw new AssertionError("Unhandled Axis: " + axis);
+        }
     }
 
     private double spacingTotal(int childCount, boolean horizontal) {
