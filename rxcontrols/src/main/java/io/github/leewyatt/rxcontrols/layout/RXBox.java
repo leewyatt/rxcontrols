@@ -43,8 +43,8 @@ import java.util.Objects;
  * <p>Only managed children take part in layout; invisible but managed children
  * still consume space, matching JavaFX pane semantics. In horizontal
  * orientation, {@link VPos#BASELINE} follows HBox-like text baseline
- * alignment. In vertical orientation, baseline is not a special cross-child
- * alignment mode.</p>
+ * alignment. In vertical orientation, {@link VPos#BASELINE} falls back to
+ * top-axis behavior and the pane itself reports no baseline.</p>
  */
 public class RXBox extends Pane {
 
@@ -487,6 +487,7 @@ public class RXBox extends Pane {
 
     private boolean biasDirty = true;
     private Orientation bias;
+    private double baselineOffset = Double.NaN;
 
     // ==================== Layout ====================
 
@@ -519,14 +520,28 @@ public class RXBox extends Pane {
     public void requestLayout() {
         biasDirty = true;
         bias = null;
+        baselineOffset = Double.NaN;
         super.requestLayout();
     }
 
     /**
-     * {@inheritDoc}
+     * Returns this pane's text baseline offset.
+     *
+     * <p>Only horizontal baseline alignment exposes a pane baseline. In
+     * vertical orientation or non-baseline alignment, this method returns
+     * {@link Node#BASELINE_OFFSET_SAME_AS_HEIGHT}.</p>
+     *
+     * @return the baseline offset
      */
     @Override
     public double getBaselineOffset() {
+        if (Double.isNaN(baselineOffset)) {
+            baselineOffset = computeBaselineOffset();
+        }
+        return baselineOffset;
+    }
+
+    private double computeBaselineOffset() {
         if (!isHorizontalBaseline()) {
             return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
         }
@@ -587,7 +602,7 @@ public class RXBox extends Pane {
             double contentMain = adjustAreaSizes(managed, areaWidths, contentWidth, contentHeight, true);
             double x = left + computeXOffset(contentWidth, contentMain, hpos);
             double space = snapSpaceX(getSpacing());
-            boolean fillCrossAxis = shouldFillCrossAxis(true);
+            boolean fillCrossAxis = shouldFillCrossAxis();
             double baselineOffset = vpos == VPos.BASELINE
                     ? computeAreaBaselineOffset(managed, areaWidths, contentHeight)
                     : -1.0;
@@ -603,7 +618,7 @@ public class RXBox extends Pane {
             double contentMain = adjustAreaSizes(managed, areaHeights, contentHeight, contentWidth, false);
             double y = top + computeYOffset(contentHeight, contentMain, vpos);
             double space = snapSpaceY(getSpacing());
-            boolean fillCrossAxis = shouldFillCrossAxis(false);
+            boolean fillCrossAxis = shouldFillCrossAxis();
             for (int i = 0, size = managed.size(); i < size; i++) {
                 Node child = managed.get(i);
                 Insets margin = getMargin(child);
@@ -665,7 +680,7 @@ public class RXBox extends Pane {
     private double[] computeAreaWidths(List<Node> managed, double height, boolean minimum) {
         double availableHeight = height == -1 ? -1 :
                 Math.max(0.0, height - snappedTopInset() - snappedBottomInset());
-        boolean fillHeight = shouldFillCrossAxis(true);
+        boolean fillHeight = shouldFillCrossAxis();
         double baselineComplement = isHorizontalBaseline()
                 ? (minimum ? computeMinBaselineComplement(managed) : computePrefBaselineComplement(managed))
                 : -1.0;
@@ -683,7 +698,7 @@ public class RXBox extends Pane {
     private double[] computeAreaHeights(List<Node> managed, double width, boolean minimum) {
         double availableWidth = width == -1 ? -1 :
                 Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
-        boolean fillWidth = shouldFillCrossAxis(false);
+        boolean fillWidth = shouldFillCrossAxis();
         double[] heights = new double[managed.size()];
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
@@ -778,9 +793,9 @@ public class RXBox extends Pane {
         Insets margin = getMargin(child);
         return horizontal
                 ? computeChildMinAreaWidth(child, margin, availableCross,
-                        shouldFillCrossAxis(true), baselineComplement)
+                        shouldFillCrossAxis(), baselineComplement)
                 : computeChildMinAreaHeight(child, margin, availableCross,
-                        shouldFillCrossAxis(false));
+                        shouldFillCrossAxis());
     }
 
     private double computeChildMaxMainArea(Node child, double availableCross,
@@ -788,9 +803,9 @@ public class RXBox extends Pane {
         Insets margin = getMargin(child);
         return horizontal
                 ? computeChildMaxAreaWidth(child, margin, availableCross,
-                        shouldFillCrossAxis(true), baselineComplement)
+                        shouldFillCrossAxis(), baselineComplement)
                 : computeChildMaxAreaHeight(child, margin, availableCross,
-                        shouldFillCrossAxis(false));
+                        shouldFillCrossAxis());
     }
 
     private double computeMaxAreaWidth(List<Node> managed, double[] childHeights,
@@ -997,23 +1012,30 @@ public class RXBox extends Pane {
     }
 
     private double computeXOffset(double width, double contentWidth, HPos hpos) {
-        if (hpos == HPos.CENTER) {
-            return (width - contentWidth) / 2.0;
+        switch (hpos) {
+            case CENTER:
+                return (width - contentWidth) / 2.0;
+            case RIGHT:
+                return width - contentWidth;
+            case LEFT:
+                return 0.0;
+            default:
+                throw new AssertionError("Unhandled HPos: " + hpos);
         }
-        if (hpos == HPos.RIGHT) {
-            return width - contentWidth;
-        }
-        return 0.0;
     }
 
     private double computeYOffset(double height, double contentHeight, VPos vpos) {
-        if (vpos == VPos.CENTER) {
-            return (height - contentHeight) / 2.0;
+        switch (vpos) {
+            case BASELINE:
+            case TOP:
+                return 0.0;
+            case CENTER:
+                return (height - contentHeight) / 2.0;
+            case BOTTOM:
+                return height - contentHeight;
+            default:
+                throw new AssertionError("Unhandled VPos: " + vpos);
         }
-        if (vpos == VPos.BOTTOM) {
-            return height - contentHeight;
-        }
-        return 0.0;
     }
 
     private VPos effectiveVPos(VPos vpos, boolean horizontal) {
@@ -1023,8 +1045,8 @@ public class RXBox extends Pane {
         return horizontal ? VPos.BASELINE : VPos.TOP;
     }
 
-    private boolean shouldFillCrossAxis(boolean horizontal) {
-        return isFillCrossAxis() && !(horizontal && isHorizontalBaseline());
+    private boolean shouldFillCrossAxis() {
+        return isFillCrossAxis() && !isHorizontalBaseline();
     }
 
     private boolean isHorizontalBaseline() {
