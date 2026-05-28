@@ -28,8 +28,8 @@ import java.util.List;
  * it to an arbitrary SVG path.
  *
  * <p>Cover-fit: image fills the control bounds while preserving aspect ratio;
- * overflow is cropped. Clipping is controlled by {@link #clipSvgPathProperty()
- * clipSvgPath}. When the image is {@code null}, fails to load, or its metadata
+ * overflow is cropped. Clipping is controlled by {@link #clipSvgProperty()
+ * clipSvg}. When the image is {@code null}, fails to load, or its metadata
  * is unavailable, the control renders nothing — there is no built-in
  * placeholder.</p>
  *
@@ -39,16 +39,16 @@ import java.util.List;
  * {@link #SHAPE_OCTAGON}, {@link #SHAPE_SHIELD}, {@link #SHAPE_DROP}.</p>
  *
  * <pre>{@code
- * RXImageView view = new RXImageView(image);
- * view.setClipSvgPath(RXImageView.SHAPE_HEXAGON);
+ * RXClipPathImageView view = new RXClipPathImageView(image);
+ * view.setClipSvg(RXClipPathImageView.SHAPE_HEXAGON);
  *
  * // Or via CSS:
- * // .my-image { -rx-clip-svg-path: "M50,0 L100,50 L50,100 L0,50 Z"; }
+ * // .my-image { -rx-clip-svg: "M50,0 L100,50 L50,100 L0,50 Z"; }
  * }</pre>
  */
-public class RXImageView extends Region {
+public class RXClipPathImageView extends Region {
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-image-view";
+    private static final String DEFAULT_STYLE_CLASS = "rx-clip-path-image-view";
     private static final double DEFAULT_SIZE = 100;
 
     // ==================== Shape Constants ====================
@@ -157,7 +157,7 @@ public class RXImageView extends Region {
     /**
      * Creates a new image view with no image.
      */
-    public RXImageView() {
+    public RXClipPathImageView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         weakMetadataReadyListener = new WeakInvalidationListener(metadataReadyListener);
@@ -175,7 +175,7 @@ public class RXImageView extends Region {
      *
      * @param imageUrl the image URL
      */
-    public RXImageView(String imageUrl) {
+    public RXClipPathImageView(String imageUrl) {
         this(new Image(imageUrl, true));
     }
 
@@ -184,7 +184,7 @@ public class RXImageView extends Region {
      *
      * @param image the image to display
      */
-    public RXImageView(Image image) {
+    public RXClipPathImageView(Image image) {
         this();
         setImage(image);
     }
@@ -225,10 +225,10 @@ public class RXImageView extends Region {
         image.set(value);
     }
 
-    // ==================== Clip SVG Path ====================
+    // ==================== Clip SVG ====================
 
-    private final StringProperty clipSvgPath = new SimpleStyleableStringProperty(
-            StyleableProperties.CLIP_SVG_PATH, this, "clipSvgPath", null) {
+    private final StringProperty clipSvg = new SimpleStyleableStringProperty(
+            StyleableProperties.CLIP_SVG, this, "clipSvg", null) {
         @Override
         protected void invalidated() {
             rebuildClipCache();
@@ -241,10 +241,10 @@ public class RXImageView extends Region {
      * scaled and centered to the control bounds. A {@code null}, empty,
      * or degenerate path disables clipping.
      *
-     * @return the clipSvgPath property
+     * @return the clipSvg property
      */
-    public final StringProperty clipSvgPathProperty() {
-        return clipSvgPath;
+    public final StringProperty clipSvgProperty() {
+        return clipSvg;
     }
 
     /**
@@ -252,8 +252,8 @@ public class RXImageView extends Region {
      *
      * @return the clip path, or {@code null} if clipping is disabled
      */
-    public final String getClipSvgPath() {
-        return clipSvgPath.get();
+    public final String getClipSvg() {
+        return clipSvg.get();
     }
 
     /**
@@ -261,8 +261,8 @@ public class RXImageView extends Region {
      *
      * @param value the SVG path content, or {@code null} to disable clipping
      */
-    public final void setClipSvgPath(String value) {
-        clipSvgPath.set(value);
+    public final void setClipSvg(String value) {
+        clipSvg.set(value);
     }
 
     // ==================== Internal Methods ====================
@@ -282,7 +282,7 @@ public class RXImageView extends Region {
     }
 
     private void rebuildClipCache() {
-        String content = clipSvgPath.get();
+        String content = clipSvg.get();
         if (content == null || content.isEmpty()) {
             cachedClip = null;
             return;
@@ -362,17 +362,17 @@ public class RXImageView extends Region {
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
-        private static final CssMetaData<RXImageView, String> CLIP_SVG_PATH =
-                new CssMetaData<>("-rx-clip-svg-path", StringConverter.getInstance(), null) {
+        private static final CssMetaData<RXClipPathImageView, String> CLIP_SVG =
+                new CssMetaData<>("-rx-clip-svg", StringConverter.getInstance(), null) {
                     @Override
-                    public boolean isSettable(RXImageView control) {
-                        return !control.clipSvgPathProperty().isBound();
+                    public boolean isSettable(RXClipPathImageView control) {
+                        return !control.clipSvgProperty().isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<String> getStyleableProperty(RXImageView control) {
-                        return (StyleableProperty<String>) control.clipSvgPathProperty();
+                    public StyleableProperty<String> getStyleableProperty(RXClipPathImageView control) {
+                        return (StyleableProperty<String>) control.clipSvgProperty();
                     }
                 };
 
@@ -381,7 +381,7 @@ public class RXImageView extends Region {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Region.getClassCssMetaData());
-            styleables.add(CLIP_SVG_PATH);
+            styleables.add(CLIP_SVG);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

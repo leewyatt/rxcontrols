@@ -2,7 +2,7 @@
     -fx-alignment: center;
 }
 
-.live-preview .rx-image-view {
+.live-preview .rx-clip-path-image-view {
     -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.22), 18, 0, 0, 6);
 }
 

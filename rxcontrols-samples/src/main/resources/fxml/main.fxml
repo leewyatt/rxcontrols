@@ -35,7 +35,7 @@
                </toggleGroup>
             </RXToggleButton>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Avatar" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Image View" toggleGroup="$navGroup"/>
+            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Clip Path Image" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Button / Labele" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Carousel" toggleGroup="$navGroup"/>
             <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Digit" toggleGroup="$navGroup"/>

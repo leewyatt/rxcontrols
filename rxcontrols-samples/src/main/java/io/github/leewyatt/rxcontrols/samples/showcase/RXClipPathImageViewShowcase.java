@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXImageView;
-import io.github.leewyatt.rxcontrols.samples.demo.RXImageViewDemo;
+import io.github.leewyatt.rxcontrols.RXClipPathImageView;
+import io.github.leewyatt.rxcontrols.samples.demo.RXClipPathImageViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Bounds;
@@ -21,20 +21,20 @@ import javafx.scene.shape.SVGPath;
 import java.util.List;
 
 /**
- * Showcase application for {@link RXImageView}.
+ * Showcase application for {@link RXClipPathImageView}.
  *
  * <p>Exercises every public knob: image source, SVG clip path and preview
  * geometry. The width / height sliders make the cover-fit crop behaviour
  * directly observable.
  *
- * <p>For a minimal "few lines of code" example see {@link RXImageViewDemo}.
+ * <p>For a minimal "few lines of code" example see {@link RXClipPathImageViewDemo}.
  */
-public class RXImageViewShowcase extends RXShowcaseApplication {
+public class RXClipPathImageViewShowcase extends RXShowcaseApplication {
 
     private static final double PREVIEW_WIDTH = 260.0;
     private static final double PREVIEW_HEIGHT = 180.0;
 
-    private RXImageView imageView;
+    private RXClipPathImageView imageView;
     private TextArea pathArea;
     private Label pathStatus;
 
@@ -42,7 +42,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXImageView";
+        return "RXClipPathImageView";
     }
 
     @Override
@@ -52,7 +52,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String windowTitle() {
-        return "RXImageView Showcase";
+        return "RXClipPathImageView Showcase";
     }
 
     @Override
@@ -72,13 +72,13 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_image_view_showcase.css").toExternalForm();
+        return getClass().getResource("rx_clip_path_image_view_showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        imageView = new RXImageView(ImageChoice.IMAGE_2.image());
-        imageView.setClipSvgPath(ClipShape.SHIELD.path());
+        imageView = new RXClipPathImageView(ImageChoice.IMAGE_2.image());
+        imageView.setClipSvg(ClipShape.SHIELD.path());
         imageView.setPrefSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
         imageView.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
@@ -205,7 +205,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     private void applyClipPath(String path) {
         if (path == null || path.isEmpty()) {
-            imageView.setClipSvgPath(null);
+            imageView.setClipSvg(null);
             pathStatus.setText("None");
             pathStatus.getStyleClass().remove("invalid-value");
             return;
@@ -217,7 +217,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
             }
             return;
         }
-        imageView.setClipSvgPath(path);
+        imageView.setClipSvg(path);
         pathStatus.setText("Applied");
         pathStatus.getStyleClass().remove("invalid-value");
     }
@@ -266,7 +266,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
                 return null;
             }
             if (image == null) {
-                image = new Image(RXImageViewShowcase.class.getResource(resourcePath).toExternalForm());
+                image = new Image(RXClipPathImageViewShowcase.class.getResource(resourcePath).toExternalForm());
             }
             return image;
         }
@@ -282,16 +282,16 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
     private enum ClipShape {
 
         NONE("None", null),
-        CIRCLE("Circle", RXImageView.SHAPE_CIRCLE),
-        HEXAGON("Hexagon", RXImageView.SHAPE_HEXAGON),
-        DIAMOND("Diamond", RXImageView.SHAPE_DIAMOND),
-        STAR("Star", RXImageView.SHAPE_STAR),
-        ROUNDED_RECT("Rounded Rect", RXImageView.SHAPE_ROUNDED_RECT),
-        HEART("Heart", RXImageView.SHAPE_HEART),
-        CROSS("Cross", RXImageView.SHAPE_CROSS),
-        OCTAGON("Octagon", RXImageView.SHAPE_OCTAGON),
-        SHIELD("Shield", RXImageView.SHAPE_SHIELD),
-        DROP("Drop", RXImageView.SHAPE_DROP);
+        CIRCLE("Circle", RXClipPathImageView.SHAPE_CIRCLE),
+        HEXAGON("Hexagon", RXClipPathImageView.SHAPE_HEXAGON),
+        DIAMOND("Diamond", RXClipPathImageView.SHAPE_DIAMOND),
+        STAR("Star", RXClipPathImageView.SHAPE_STAR),
+        ROUNDED_RECT("Rounded Rect", RXClipPathImageView.SHAPE_ROUNDED_RECT),
+        HEART("Heart", RXClipPathImageView.SHAPE_HEART),
+        CROSS("Cross", RXClipPathImageView.SHAPE_CROSS),
+        OCTAGON("Octagon", RXClipPathImageView.SHAPE_OCTAGON),
+        SHIELD("Shield", RXClipPathImageView.SHAPE_SHIELD),
+        DROP("Drop", RXClipPathImageView.SHAPE_DROP);
 
         private final String label;
         private final String path;

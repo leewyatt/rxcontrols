@@ -72,8 +72,8 @@
     -fx-text-fill: white;
 }
 
-/** rx-image-view */
-.rx-image-view {
+/** rx-clip-path-image-view */
+.rx-clip-path-image-view {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 10, 0, 0, 0);
 }
 

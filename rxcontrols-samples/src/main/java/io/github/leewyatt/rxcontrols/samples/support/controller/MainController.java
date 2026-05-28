@@ -56,7 +56,7 @@ public class MainController {
     private static final String[] PAGE_FXML = {
             "/fxml/pane_about.fxml",
             "/fxml/pane_avatar.fxml",
-            "/fxml/pane_image_view.fxml",
+            "/fxml/pane_clip_path_image_view.fxml",
             "/fxml/pane_buttons.fxml",
             null, // carousel demo built dynamically
             "/fxml/pane_digit.fxml",

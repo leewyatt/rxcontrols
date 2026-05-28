@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import io.github.leewyatt.rxcontrols.RXImageView?>
+<?import io.github.leewyatt.rxcontrols.RXClipPathImageView?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane styleClass="image-view-page" stylesheets="@../css/pane_image_view.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane styleClass="clip-path-image-view-page" stylesheets="@../css/pane_clip_path_image_view.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <children>
       <VBox layoutX="42.0" layoutY="30.0" prefWidth="677.0" spacing="18.0" AnchorPane.leftAnchor="42.0" AnchorPane.rightAnchor="42.0" AnchorPane.topAnchor="30.0">
          <children>
             <VBox spacing="6.0">
                <children>
-                  <Label styleClass="page-title" text="RXImageView" />
+                  <Label styleClass="page-title" text="RXClipPathImageView" />
                   <Label styleClass="page-subtitle" text="图片按 cover-fit 方式填充区域，并可通过 SVG path 裁切成任意形状。" />
                </children>
             </VBox>
@@ -24,41 +24,41 @@
                      <children>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="0">
                            <children>
-                              <RXImageView maxHeight="118.0" maxWidth="144.0" prefHeight="118.0" prefWidth="144.0" styleClass="image-sample">
+                              <RXClipPathImageView maxHeight="118.0" maxWidth="144.0" prefHeight="118.0" prefWidth="144.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/2.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="无裁切" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="1">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 A50,50 0 1,1 50,100 A50,50 0 1,1 50,0 Z" maxHeight="112.0" maxWidth="112.0" prefHeight="112.0" prefWidth="112.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 A50,50 0 1,1 50,100 A50,50 0 1,1 50,0 Z" maxHeight="112.0" maxWidth="112.0" prefHeight="112.0" prefWidth="112.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/1.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Circle" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="2">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 L100,25 L100,75 L50,100 L0,75 L0,25 Z" maxHeight="104.0" maxWidth="120.0" prefHeight="104.0" prefWidth="120.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 L100,25 L100,75 L50,100 L0,75 L0,25 Z" maxHeight="104.0" maxWidth="120.0" prefHeight="104.0" prefWidth="120.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/3.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Hexagon" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="3">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 L100,50 L50,100 L0,50 Z" maxHeight="104.0" maxWidth="104.0" prefHeight="104.0" prefWidth="104.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 L100,50 L50,100 L0,50 Z" maxHeight="104.0" maxWidth="104.0" prefHeight="104.0" prefWidth="104.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/4.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Diamond" />
                            </children>
                         </VBox>
@@ -73,41 +73,41 @@
                      <children>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="0">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 L61,35 L98,35 L68,57 L79,91 L50,70 L21,91 L32,57 L2,35 L39,35 Z" maxHeight="104.0" maxWidth="116.0" prefHeight="104.0" prefWidth="116.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 L61,35 L98,35 L68,57 L79,91 L50,70 L21,91 L32,57 L2,35 L39,35 Z" maxHeight="104.0" maxWidth="116.0" prefHeight="104.0" prefWidth="116.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/1.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Star" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="1">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 L100,15 L100,55 Q100,80 50,100 Q0,80 0,55 L0,15 Z" maxHeight="104.0" maxWidth="112.0" prefHeight="104.0" prefWidth="112.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 L100,15 L100,55 Q100,80 50,100 Q0,80 0,55 L0,15 Z" maxHeight="104.0" maxWidth="112.0" prefHeight="104.0" prefWidth="112.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/2.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Shield" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="2">
                            <children>
-                              <RXImageView clipSvgPath="M50,0 Q80,40 80,60 A30,30 0 1,1 20,60 Q20,40 50,0 Z" maxHeight="112.0" maxWidth="96.0" prefHeight="112.0" prefWidth="96.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M50,0 Q80,40 80,60 A30,30 0 1,1 20,60 Q20,40 50,0 Z" maxHeight="112.0" maxWidth="96.0" prefHeight="112.0" prefWidth="96.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/3.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Drop" />
                            </children>
                         </VBox>
                         <VBox alignment="CENTER" spacing="9.0" styleClass="image-item" GridPane.columnIndex="3">
                            <children>
-                              <RXImageView clipSvgPath="M15,0 L85,0 Q100,0 100,15 L100,85 Q100,100 85,100 L15,100 Q0,100 0,85 L0,15 Q0,0 15,0 Z" maxHeight="104.0" maxWidth="116.0" prefHeight="104.0" prefWidth="116.0" styleClass="image-sample">
+                              <RXClipPathImageView clipSvg="M15,0 L85,0 Q100,0 100,15 L100,85 Q100,100 85,100 L15,100 Q0,100 0,85 L0,15 Q0,0 15,0 Z" maxHeight="104.0" maxWidth="116.0" prefHeight="104.0" prefWidth="116.0" styleClass="image-sample">
                                  <image>
                                     <Image url="@../scenery/4.png" />
                                  </image>
-                              </RXImageView>
+                              </RXClipPathImageView>
                               <Label styleClass="image-caption" text="Rounded Rect" />
                            </children>
                         </VBox>

@@ -88,7 +88,7 @@
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
     <li><a href="#rxHighlightText">RXHighlightText</a></li>
-    <li><a href="#rxImageView">RXImageView</a></li>
+    <li><a href="#rxClipPathImageView">RXClipPathImageView</a></li>
     <li><a href="#rxLineButton">RXLineButton</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxMediaProgressBar">RXMediaProgressBar</a></li>
@@ -351,9 +351,9 @@ text-flow  — TextFlow<br/>
     </tbody>
 </table>
 
-<h3 id="rxImageView">RXImageView</h3>
-<p class="fxClass">Style class: rx-image-view</p>
-<p>The RXImageView control extends Region and has all the properties of Region;
+<h3 id="rxClipPathImageView">RXClipPathImageView</h3>
+<p class="fxClass">Style class: rx-clip-path-image-view</p>
+<p>The RXClipPathImageView control extends Region and has all the properties of Region;
     it has no public substructure.</p>
 <table>
     <thead>
@@ -365,15 +365,15 @@ text-flow  — TextFlow<br/>
     </thead>
     <tbody>
     <tr>
-        <td>-fx-clip-svg-path</td>
+        <td>-rx-clip-svg</td>
         <td>String (SVG path in 0-100 coordinate space)</td>
         <td>null</td>
     </tr>
     </tbody>
 </table>
-<p>Clipping is supplied via <code>-fx-clip-svg-path</code> in CSS or
-    <code>setClipSvgPath(String)</code> in Java. Predefined SVG path strings are
-    exposed as constants on <code>RXImageView</code> (e.g. <code>SHAPE_CIRCLE</code>,
+<p>Clipping is supplied via <code>-rx-clip-svg</code> in CSS or
+    <code>setClipSvg(String)</code> in Java. Predefined SVG path strings are
+    exposed as constants on <code>RXClipPathImageView</code> (e.g. <code>SHAPE_CIRCLE</code>,
     <code>SHAPE_HEXAGON</code>, <code>SHAPE_SHIELD</code>). The image is cover-fit
     scaled to fill the control bounds; overflow is cropped. When the image is
     null, fails to load, or its metadata is not yet parsed, the control renders

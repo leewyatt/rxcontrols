@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXImageView;
+import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
@@ -253,9 +253,9 @@ public class RXResponsiveLayoutDemo extends Application {
 
     private Node buildImage() {
         Image image = new Image(getClass().getResource("/scenery/2.png").toExternalForm(), true);
-        RXImageView imageView = new RXImageView(image);
+        RXClipPathImageView imageView = new RXClipPathImageView(image);
         imageView.setPrefSize(180.0, 96.0);
-        imageView.setClipSvgPath(RXImageView.SHAPE_ROUNDED_RECT);
+        imageView.setClipSvg(RXClipPathImageView.SHAPE_ROUNDED_RECT);
         return imageView;
     }
 
