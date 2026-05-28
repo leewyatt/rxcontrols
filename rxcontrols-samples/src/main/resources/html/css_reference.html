@@ -88,6 +88,7 @@
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
     <li><a href="#rxHighlightText">RXHighlightText</a></li>
+    <li><a href="#rxImageView">RXImageView</a></li>
     <li><a href="#rxClipPathImageView">RXClipPathImageView</a></li>
     <li><a href="#rxLineButton">RXLineButton</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
@@ -350,6 +351,42 @@ text-flow  — TextFlow<br/>
     </tr>
     </tbody>
 </table>
+
+<h3 id="rxImageView">RXImageView</h3>
+<p class="fxClass">Style class: rx-image-view</p>
+<p>The RXImageView control extends Region and has all the properties of Region;
+    it has no public substructure.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-image-fit</td>
+        <td>cover, fit, stretch</td>
+        <td>cover</td>
+    </tr>
+    <tr>
+        <td>-rx-image-insets</td>
+        <td>size | size size | size size size size</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-image-radius</td>
+        <td>size</td>
+        <td>0</td>
+    </tr>
+    </tbody>
+</table>
+<p><code>-rx-image-fit</code> controls cover, contain-like fit, or stretch
+    rendering. <code>-rx-image-insets</code> changes the image allocation area
+    relative to the Region content area; negative values expand the drawn image
+    without changing layout size. <code>-rx-image-radius</code> rounds the
+    actual rendered image area with a fixed pixel radius.</p>
 
 <h3 id="rxClipPathImageView">RXClipPathImageView</h3>
 <p class="fxClass">Style class: rx-clip-path-image-view</p>
