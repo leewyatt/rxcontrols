@@ -29,9 +29,15 @@ import java.util.List;
  */
 public class RXBoxShowcase extends RXShowcaseApplication {
 
+    // ==================== Constants ====================
+
+    private static final double DEFAULT_TRAILING_MARGIN = 12.0;
+
+    // ==================== Fields ====================
+
     private RXBox box;
     private Button leadingButton;
-    private Button growingButton;
+    private Button middleButton;
     private Label staticLabel;
     private Button trailingButton;
     private StackPane previewFrame;
@@ -76,16 +82,16 @@ public class RXBoxShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         leadingButton = themedButton("Leading", "showcase-button-blue");
-        growingButton = themedButton("Grow", "showcase-button-green");
-        growingButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        RXBox.setGrow(growingButton, Priority.ALWAYS);
+        middleButton = themedButton("Middle", "showcase-button-green");
+        middleButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         staticLabel = new Label("Static");
         staticLabel.getStyleClass().add("showcase-label");
         trailingButton = themedButton("Trailing", "showcase-button-pink");
-        RXBox.setMargin(trailingButton, new Insets(0.0, 0.0, 0.0, 12.0));
+        applyTrailingMargin(DEFAULT_TRAILING_MARGIN);
+        configureMainAxisGrowth(Orientation.HORIZONTAL);
 
         box = new RXBox(Orientation.HORIZONTAL, 8.0,
-                leadingButton, growingButton, staticLabel, trailingButton);
+                leadingButton, middleButton, staticLabel, trailingButton);
         box.getStyleClass().add("showcase-box");
         box.setPadding(new Insets(16.0));
 
@@ -112,6 +118,8 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         ComboBox<Orientation> orientationBox =
                 new ComboBox<>(FXCollections.observableArrayList(Orientation.values()));
         orientationBox.setValue(Orientation.HORIZONTAL);
+        orientationBox.valueProperty().addListener((obs, oldV, newV) ->
+                configureMainAxisGrowth(newV));
         box.orientationProperty().bind(orientationBox.valueProperty());
 
         Slider spacingSlider = createSlider(-16.0, 48.0, 8.0);
@@ -149,20 +157,17 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         leadingGrowBox.valueProperty().addListener((obs, oldP, newP) ->
                 applyGrow(leadingButton, newP));
 
-        ComboBox<Priority> growingGrowBox = priorityBox();
-        growingGrowBox.setValue(Priority.ALWAYS);
-        growingGrowBox.valueProperty().addListener((obs, oldP, newP) ->
-                applyGrow(growingButton, newP));
+        ComboBox<Priority> middleGrowBox = priorityBox();
+        middleGrowBox.valueProperty().addListener((obs, oldP, newP) ->
+                applyGrow(middleButton, newP));
 
         ComboBox<Priority> trailingGrowBox = priorityBox();
         trailingGrowBox.valueProperty().addListener((obs, oldP, newP) ->
                 applyGrow(trailingButton, newP));
 
-        Slider trailingMarginSlider = createSlider(0.0, 64.0, 12.0);
+        Slider trailingMarginSlider = createSlider(0.0, 64.0, DEFAULT_TRAILING_MARGIN);
         trailingMarginSlider.valueProperty().addListener((obs, oldV, newV) -> {
-            double value = newV.doubleValue();
-            RXBox.setMargin(trailingButton,
-                    new Insets(value / 4.0, value / 2.0, value / 4.0, value));
+            applyTrailingMargin(newV.doubleValue());
         });
 
         CheckBox staticManagedBox = new CheckBox("Static label visible and managed");
@@ -175,19 +180,19 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         Button resetButton = new Button("Reset constraints");
         resetButton.setOnAction(e -> {
             RXBox.clearConstraints(leadingButton);
-            RXBox.clearConstraints(growingButton);
+            RXBox.clearConstraints(middleButton);
             RXBox.clearConstraints(staticLabel);
             RXBox.clearConstraints(trailingButton);
             leadingGrowBox.setValue(null);
-            growingGrowBox.setValue(Priority.ALWAYS);
-            applyGrow(growingButton, Priority.ALWAYS);
+            middleGrowBox.setValue(null);
             trailingGrowBox.setValue(null);
-            trailingMarginSlider.setValue(12.0);
+            trailingMarginSlider.setValue(DEFAULT_TRAILING_MARGIN);
+            applyTrailingMargin(DEFAULT_TRAILING_MARGIN);
         });
 
         return createGrid(
                 row("Leading grow", leadingGrowBox, new Label()),
-                row("Middle grow", growingGrowBox, new Label()),
+                row("Middle grow", middleGrowBox, new Label()),
                 row("Trailing grow", trailingGrowBox, new Label()),
                 row("Trailing margin", trailingMarginSlider,
                         createValueLabel(trailingMarginSlider, "%.0f px")),
@@ -199,9 +204,25 @@ public class RXBoxShowcase extends RXShowcaseApplication {
 
     private void applyGrow(Node node, Priority priority) {
         RXBox.setGrow(node, priority);
-        node.setManaged(true);
-        if (node instanceof Region region && priority != null) {
-            region.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+    }
+
+    private void applyTrailingMargin(double value) {
+        RXBox.setMargin(trailingButton,
+                new Insets(value / 4.0, value / 2.0, value / 4.0, value));
+    }
+
+    private void configureMainAxisGrowth(Orientation orientation) {
+        configureMainAxisGrowth(leadingButton, orientation);
+        configureMainAxisGrowth(trailingButton, orientation);
+    }
+
+    private void configureMainAxisGrowth(Region region, Orientation orientation) {
+        if (orientation == Orientation.HORIZONTAL) {
+            region.setMaxWidth(Double.MAX_VALUE);
+            region.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        } else {
+            region.setMaxWidth(Region.USE_COMPUTED_SIZE);
+            region.setMaxHeight(Double.MAX_VALUE);
         }
     }
 
