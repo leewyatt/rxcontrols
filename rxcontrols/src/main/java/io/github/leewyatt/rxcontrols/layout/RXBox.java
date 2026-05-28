@@ -80,8 +80,8 @@ public class RXBox extends Pane {
     // ==================== Types ====================
 
     private enum Axis {
-        HORIZONTAL,
-        VERTICAL
+        X,
+        Y
     }
 
     private enum SizeKind {
@@ -704,9 +704,9 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             widths[i] = minimum
-                    ? computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.MIN,
+                    ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
                             availableHeight, fillHeight, baselineComplement)
-                    : computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.PREF,
+                    : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
                             availableHeight, fillHeight, baselineComplement);
         }
         return widths;
@@ -721,9 +721,9 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             heights[i] = minimum
-                    ? computeChildArea(child, margin, Axis.VERTICAL, SizeKind.MIN,
+                    ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
                             availableWidth, fillWidth)
-                    : computeChildArea(child, margin, Axis.VERTICAL, SizeKind.PREF,
+                    : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
                             availableWidth, fillWidth);
         }
         return heights;
@@ -818,14 +818,14 @@ public class RXBox extends Pane {
     private double computeChildMinMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
-        return computeChildArea(child, margin, axis(horizontal), SizeKind.MIN,
+        return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MIN,
                 availableCross, shouldFillCrossAxis(), baselineComplement);
     }
 
     private double computeChildMaxMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
-        return computeChildArea(child, margin, axis(horizontal), SizeKind.MAX,
+        return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MAX,
                 availableCross, shouldFillCrossAxis(), baselineComplement);
     }
 
@@ -837,9 +837,9 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             double childHeight = childHeights == null ? -1 : childHeights[i];
             double areaWidth = minimum
-                    ? computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.MIN,
+                    ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
                             childHeight, false)
-                    : computeChildArea(child, margin, Axis.HORIZONTAL, SizeKind.PREF,
+                    : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
                             childHeight, false);
             max = Math.max(max, areaWidth);
         }
@@ -857,9 +857,9 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1 : childWidths[i];
             double areaHeight = minimum
-                    ? computeChildArea(child, margin, Axis.VERTICAL, SizeKind.MIN,
+                    ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
                             childWidth, false)
-                    : computeChildArea(child, margin, Axis.VERTICAL, SizeKind.PREF,
+                    : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
                             childWidth, false);
             max = Math.max(max, areaHeight);
         }
@@ -910,7 +910,7 @@ public class RXBox extends Pane {
         Axis crossAxis = crossAxis(axis);
         double contentCross = Math.max(0.0,
                 availableCross - leading(crossAxis, margin) - trailing(crossAxis, margin));
-        if (axis == Axis.HORIZONTAL
+        if (axis == Axis.X
                 && child.getBaselineOffset() == Node.BASELINE_OFFSET_SAME_AS_HEIGHT
                 && baselineComplement != -1.0) {
             contentCross -= baselineComplement;
@@ -924,16 +924,16 @@ public class RXBox extends Pane {
         return snapSize(axis, boundedSize(min, pref, childMax(child, axis, -1)));
     }
 
-    private Axis axis(boolean horizontal) {
-        return horizontal ? Axis.HORIZONTAL : Axis.VERTICAL;
+    private Axis axisOf(boolean horizontal) {
+        return horizontal ? Axis.X : Axis.Y;
     }
 
     private Axis crossAxis(Axis axis) {
         switch (axis) {
-            case HORIZONTAL:
-                return Axis.VERTICAL;
-            case VERTICAL:
-                return Axis.HORIZONTAL;
+            case X:
+                return Axis.Y;
+            case Y:
+                return Axis.X;
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
         }
@@ -941,9 +941,9 @@ public class RXBox extends Pane {
 
     private Orientation crossOrientation(Axis axis) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return Orientation.VERTICAL;
-            case VERTICAL:
+            case Y:
                 return Orientation.HORIZONTAL;
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -952,9 +952,9 @@ public class RXBox extends Pane {
 
     private double childMin(Node child, Axis axis, double alt) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return child.minWidth(alt);
-            case VERTICAL:
+            case Y:
                 return child.minHeight(alt);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -963,9 +963,9 @@ public class RXBox extends Pane {
 
     private double childPref(Node child, Axis axis, double alt) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return child.prefWidth(alt);
-            case VERTICAL:
+            case Y:
                 return child.prefHeight(alt);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -974,9 +974,9 @@ public class RXBox extends Pane {
 
     private double childMax(Node child, Axis axis, double alt) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return child.maxWidth(alt);
-            case VERTICAL:
+            case Y:
                 return child.maxHeight(alt);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -985,9 +985,9 @@ public class RXBox extends Pane {
 
     private double snapSize(Axis axis, double value) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return snapSizeX(value);
-            case VERTICAL:
+            case Y:
                 return snapSizeY(value);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -996,9 +996,9 @@ public class RXBox extends Pane {
 
     private double leading(Axis axis, Insets margin) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return left(margin);
-            case VERTICAL:
+            case Y:
                 return top(margin);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
@@ -1007,9 +1007,9 @@ public class RXBox extends Pane {
 
     private double trailing(Axis axis, Insets margin) {
         switch (axis) {
-            case HORIZONTAL:
+            case X:
                 return right(margin);
-            case VERTICAL:
+            case Y:
                 return bottom(margin);
             default:
                 throw new AssertionError("Unhandled Axis: " + axis);
