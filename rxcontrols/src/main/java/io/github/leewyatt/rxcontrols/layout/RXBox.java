@@ -481,6 +481,11 @@ public class RXBox extends Pane {
         fillCrossAxis.set(value);
     }
 
+    // ==================== Bias Cache ====================
+
+    private boolean biasDirty = true;
+    private Orientation bias;
+
     // ==================== Layout ====================
 
     /**
@@ -576,9 +581,6 @@ public class RXBox extends Pane {
             }
         }
     }
-
-    private boolean biasDirty = true;
-    private Orientation bias;
 
     private boolean isHorizontal() {
         return getOrientation() == Orientation.HORIZONTAL;
@@ -924,7 +926,7 @@ public class RXBox extends Pane {
     }
 
     private double computeYOffset(double height, double contentHeight, VPos vpos) {
-        if (vpos == VPos.CENTER || vpos == VPos.BASELINE) {
+        if (vpos == VPos.CENTER) {
             return (height - contentHeight) / 2.0;
         }
         if (vpos == VPos.BOTTOM) {
