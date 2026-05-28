@@ -16,6 +16,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
 import javafx.util.StringConverter;
 
 import java.util.List;
@@ -38,6 +39,8 @@ public class RXBoxShowcase extends RXShowcaseApplication {
     private RXBox box;
     private Button leadingButton;
     private Button middleButton;
+    private Label baselineLabel;
+    private Text baselineText;
     private Label staticLabel;
     private Button trailingButton;
     private StackPane previewFrame;
@@ -84,6 +87,10 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         leadingButton = themedButton("Leading", "showcase-button-blue");
         middleButton = themedButton("Middle", "showcase-button-green");
         middleButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        baselineLabel = new Label("Large");
+        baselineLabel.getStyleClass().add("showcase-baseline-label");
+        baselineText = new Text("Text");
+        baselineText.getStyleClass().add("showcase-baseline-text");
         staticLabel = new Label("Static");
         staticLabel.getStyleClass().add("showcase-label");
         trailingButton = themedButton("Trailing", "showcase-button-pink");
@@ -91,7 +98,8 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         configureMainAxisGrowth(Orientation.HORIZONTAL);
 
         box = new RXBox(Orientation.HORIZONTAL, 8.0,
-                leadingButton, middleButton, staticLabel, trailingButton);
+                leadingButton, baselineLabel, middleButton, baselineText,
+                staticLabel, trailingButton);
         box.getStyleClass().add("showcase-box");
         box.setPadding(new Insets(16.0));
 
@@ -181,6 +189,8 @@ public class RXBoxShowcase extends RXShowcaseApplication {
         resetButton.setOnAction(e -> {
             RXBox.clearConstraints(leadingButton);
             RXBox.clearConstraints(middleButton);
+            RXBox.clearConstraints(baselineLabel);
+            RXBox.clearConstraints(baselineText);
             RXBox.clearConstraints(staticLabel);
             RXBox.clearConstraints(trailingButton);
             leadingGrowBox.setValue(null);

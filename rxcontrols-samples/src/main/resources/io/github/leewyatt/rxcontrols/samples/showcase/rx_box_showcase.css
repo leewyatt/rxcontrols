@@ -39,3 +39,18 @@
     -fx-text-fill: #92400e;
     -fx-font-weight: bold;
 }
+
+.showcase-baseline-label {
+    -fx-padding: 2px 10px;
+    -fx-background-color: #e0f2fe;
+    -fx-background-radius: 6px;
+    -fx-text-fill: #075985;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.showcase-baseline-text {
+    -fx-fill: #1d4ed8;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
