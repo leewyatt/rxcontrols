@@ -198,6 +198,70 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies fractional grow extra is distributed on pixel portions like {@link HBox}.
+     */
+    @Test
+    public void fractionalGrowMatchesHBoxPixelSnapping() {
+        FixedRegion hFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        HBox hbox = new HBox(0.0, hFirst, hSecond, hThird);
+        HBox.setHgrow(hFirst, Priority.ALWAYS);
+        HBox.setHgrow(hSecond, Priority.ALWAYS);
+        HBox.setHgrow(hThird, Priority.ALWAYS);
+
+        FixedRegion rFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 0.0, rFirst, rSecond, rThird);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+        RXBox.setGrow(rSecond, Priority.ALWAYS);
+        RXBox.setGrow(rThird, Priority.ALWAYS);
+
+        layout(hbox, 32.5, 40.0);
+        layout(rxBox, 32.5, 40.0);
+
+        assertNodeMatches(hFirst, rFirst, "first");
+        assertNodeMatches(hSecond, rSecond, "second");
+        assertNodeMatches(hThird, rThird, "third");
+        assertClose(11.0, rFirst.getWidth(), "first snapped width");
+        assertClose(11.0, rSecond.getWidth(), "second snapped width");
+        assertClose(10.0, rThird.getWidth(), "third snapped width");
+    }
+
+    /**
+     * Verifies fractional vertical grow extra is distributed on pixel portions like {@link VBox}.
+     */
+    @Test
+    public void fractionalVerticalGrowMatchesVBoxPixelSnapping() {
+        FixedRegion vFirst = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        FixedRegion vSecond = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        FixedRegion vThird = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        VBox vbox = new VBox(0.0, vFirst, vSecond, vThird);
+        VBox.setVgrow(vFirst, Priority.ALWAYS);
+        VBox.setVgrow(vSecond, Priority.ALWAYS);
+        VBox.setVgrow(vThird, Priority.ALWAYS);
+
+        FixedRegion rFirst = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        FixedRegion rSecond = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        FixedRegion rThird = fixedRegion(10.0, 0.0, 10.0, 10.0, 40.0, 100.0);
+        RXBox rxBox = new RXBox(Orientation.VERTICAL, 0.0, rFirst, rSecond, rThird);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+        RXBox.setGrow(rSecond, Priority.ALWAYS);
+        RXBox.setGrow(rThird, Priority.ALWAYS);
+
+        layout(vbox, 40.0, 32.5);
+        layout(rxBox, 40.0, 32.5);
+
+        assertNodeMatches(vFirst, rFirst, "first");
+        assertNodeMatches(vSecond, rSecond, "second");
+        assertNodeMatches(vThird, rThird, "third");
+        assertClose(11.0, rFirst.getHeight(), "first snapped height");
+        assertClose(11.0, rSecond.getHeight(), "second snapped height");
+        assertClose(10.0, rThird.getHeight(), "third snapped height");
+    }
+
+    /**
      * Verifies shrink behavior does not go below child minimum sizes.
      */
     @Test
@@ -217,6 +281,32 @@ public class RXBoxTest {
         assertNodeMatches(hSecond, rSecond, "second");
         assertClose(25.0, rFirst.getWidth(), "first min width");
         assertClose(20.0, rSecond.getWidth(), "second min width");
+    }
+
+    /**
+     * Verifies fractional shrink extra is distributed on pixel portions like {@link HBox}.
+     */
+    @Test
+    public void fractionalShrinkMatchesHBoxPixelSnapping() {
+        FixedRegion hFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        HBox hbox = new HBox(0.0, hFirst, hSecond, hThird);
+
+        FixedRegion rFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 0.0, rFirst, rSecond, rThird);
+
+        layout(hbox, 27.5, 40.0);
+        layout(rxBox, 27.5, 40.0);
+
+        assertNodeMatches(hFirst, rFirst, "first");
+        assertNodeMatches(hSecond, rSecond, "second");
+        assertNodeMatches(hThird, rThird, "third");
+        assertClose(9.0, rFirst.getWidth(), "first snapped width");
+        assertClose(9.0, rSecond.getWidth(), "second snapped width");
+        assertClose(10.0, rThird.getWidth(), "third snapped width");
     }
 
     /**

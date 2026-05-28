@@ -21,8 +21,10 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.stage.Window;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -755,9 +757,17 @@ public class RXBox extends Pane {
             }
         }
 
+        double pixelSize = pixelSize(horizontal);
         double available = extra;
-        while (Math.abs(available) >= EPSILON && adjustable > 0) {
-            double portion = available / adjustable;
+        while (Math.abs(available) >= pixelSize && adjustable > 0) {
+            double portion = snapPortion(available / adjustable, horizontal);
+            if (portion == 0.0) {
+                if (pixelSize == 0.0) {
+                    break;
+                }
+                portion = pixelSize * Math.signum(available);
+            }
+
             boolean changed = false;
             for (int i = 0, size = managed.size(); i < size; i++) {
                 if (Double.isNaN(limits[i])) {
@@ -773,11 +783,11 @@ public class RXBox extends Pane {
                 sizes[i] += change;
                 available -= change;
                 changed = true;
-                if (Math.abs(limit) <= Math.abs(portion) + EPSILON) {
+                if (Math.abs(change) < Math.abs(portion)) {
                     limits[i] = Double.NaN;
                     adjustable--;
                 }
-                if (Math.abs(available) < EPSILON) {
+                if (Math.abs(available) < pixelSize) {
                     break;
                 }
             }
@@ -999,6 +1009,47 @@ public class RXBox extends Pane {
 
     private double bottom(Insets margin) {
         return margin == null ? 0.0 : snapSpaceY(margin.getBottom());
+    }
+
+    private double snapPortion(double value, boolean horizontal) {
+        if (!isSnapToPixel() || value == 0.0) {
+            return value;
+        }
+        double scale = snapScale(horizontal);
+        return value > 0.0 ? scaledFloor(value, scale) : scaledCeil(value, scale);
+    }
+
+    private double pixelSize(boolean horizontal) {
+        return isSnapToPixel() ? 1.0 / snapScale(horizontal) : 0.0;
+    }
+
+    private double snapScale(boolean horizontal) {
+        Scene scene = getScene();
+        if (scene == null) {
+            return 1.0;
+        }
+        Window window = scene.getWindow();
+        if (window == null) {
+            return 1.0;
+        }
+        double scale = horizontal ? window.getRenderScaleX() : window.getRenderScaleY();
+        return Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
+    }
+
+    private double scaledFloor(double value, double scale) {
+        double scaledValue = value * scale;
+        if (Double.isInfinite(scaledValue)) {
+            return value;
+        }
+        return Math.floor(scaledValue + Math.ulp(scaledValue)) / scale;
+    }
+
+    private double scaledCeil(double value, double scale) {
+        double scaledValue = value * scale;
+        if (Double.isInfinite(scaledValue)) {
+            return value;
+        }
+        return Math.ceil(scaledValue - Math.ulp(scaledValue)) / scale;
     }
 
     private double rawTop(Insets margin) {
