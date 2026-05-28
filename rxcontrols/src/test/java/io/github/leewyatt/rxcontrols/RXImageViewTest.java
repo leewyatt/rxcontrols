@@ -137,6 +137,7 @@ public class RXImageViewTest {
         assertClose(0.0, viewport.getMinY(), "viewport y");
         assertClose(100.0, viewport.getWidth(), "viewport width");
         assertClose(100.0, viewport.getHeight(), "viewport height");
+        assertNull(imageView.getClip());
     }
 
     /**
@@ -172,6 +173,7 @@ public class RXImageViewTest {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
         view.setImageFit(RXImageView.ImageFit.STRETCH);
         view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
+        view.setImageRadius(4.0);
 
         layout(view, 100.0, 100.0);
 

@@ -464,6 +464,17 @@ public class RXImageView extends Region {
         internalImageView.relocate(x, y);
 
         double radius = imageRadiusOrDefault();
+        if (radius <= 0.0) {
+            clipRect.setX(0.0);
+            clipRect.setY(0.0);
+            clipRect.setWidth(0.0);
+            clipRect.setHeight(0.0);
+            clipRect.setArcWidth(0.0);
+            clipRect.setArcHeight(0.0);
+            internalImageView.setClip(null);
+            return;
+        }
+
         double arc = radius * 2.0;
         clipRect.setX(0.0);
         clipRect.setY(0.0);
