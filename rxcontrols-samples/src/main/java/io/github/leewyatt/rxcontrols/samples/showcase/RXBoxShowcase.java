@@ -86,7 +86,7 @@ public class RXBoxShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         leadingButton = themedButton("Leading", "showcase-button-blue");
         middleButton = themedButton("Middle", "showcase-button-green");
-        middleButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        configureAllAxisResize(middleButton);
         baselineLabel = new Label("Large");
         baselineLabel.getStyleClass().add("showcase-baseline-label");
         baselineText = new Text("Text");
@@ -135,7 +135,7 @@ public class RXBoxShowcase extends RXShowcaseApplication {
 
         ComboBox<Pos> alignmentBox =
                 new ComboBox<>(FXCollections.observableArrayList(Pos.values()));
-        alignmentBox.setValue(Pos.TOP_LEFT);
+        alignmentBox.setValue(Pos.CENTER_LEFT);
         box.alignmentProperty().bind(alignmentBox.valueProperty());
 
         CheckBox fillCrossAxisBox = new CheckBox("Stretch resizable children on the cross axis");
@@ -163,15 +163,15 @@ public class RXBoxShowcase extends RXShowcaseApplication {
     private Node buildConstraintsGrid() {
         ComboBox<Priority> leadingGrowBox = priorityBox();
         leadingGrowBox.valueProperty().addListener((obs, oldP, newP) ->
-                applyGrow(leadingButton, newP));
+                RXBox.setGrow(leadingButton, newP));
 
         ComboBox<Priority> middleGrowBox = priorityBox();
         middleGrowBox.valueProperty().addListener((obs, oldP, newP) ->
-                applyGrow(middleButton, newP));
+                RXBox.setGrow(middleButton, newP));
 
         ComboBox<Priority> trailingGrowBox = priorityBox();
         trailingGrowBox.valueProperty().addListener((obs, oldP, newP) ->
-                applyGrow(trailingButton, newP));
+                RXBox.setGrow(trailingButton, newP));
 
         Slider trailingMarginSlider = createSlider(0.0, 64.0, DEFAULT_TRAILING_MARGIN);
         trailingMarginSlider.valueProperty().addListener((obs, oldV, newV) -> {
@@ -212,10 +212,6 @@ public class RXBoxShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    private void applyGrow(Node node, Priority priority) {
-        RXBox.setGrow(node, priority);
-    }
-
     private void applyTrailingMargin(double value) {
         RXBox.setMargin(trailingButton,
                 new Insets(value / 4.0, value / 2.0, value / 4.0, value));
@@ -234,6 +230,10 @@ public class RXBoxShowcase extends RXShowcaseApplication {
             region.setMaxWidth(Region.USE_COMPUTED_SIZE);
             region.setMaxHeight(Double.MAX_VALUE);
         }
+    }
+
+    private void configureAllAxisResize(Region region) {
+        region.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
     }
 
     private ComboBox<Priority> priorityBox() {
