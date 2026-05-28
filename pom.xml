@@ -33,6 +33,7 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
 
         <javafx.version>17.0.13</javafx.version>
+        <junit.jupiter.version>5.10.2</junit.jupiter.version>
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
@@ -64,6 +65,12 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-swing</artifactId>
                 <version>${javafx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <dependency>
