@@ -1,0 +1,65 @@
+.root {
+    -fx-background-color: #f5f7fb;
+    -fx-padding: 16px;
+}
+
+.toolbar {
+    -fx-padding: 14px;
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #d9e0ea;
+    -fx-border-radius: 8px;
+}
+
+.field-label {
+    -fx-min-width: 84px;
+    -fx-text-fill: #4b5563;
+    -fx-font-weight: bold;
+}
+
+.value-label {
+    -fx-min-width: 72px;
+    -fx-alignment: center-right;
+    -fx-text-fill: #1f2937;
+}
+
+.demo-frame {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #ccd5e2;
+    -fx-border-radius: 8px;
+}
+
+.demo-box {
+    -fx-background-color: #eef2ff;
+    -fx-background-radius: 8px;
+    -fx-border-color: #c7d2fe;
+    -fx-border-radius: 8px;
+}
+
+.demo-button {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 16px;
+}
+
+.demo-button-blue {
+    -fx-background-color: #4f8cff;
+}
+
+.demo-button-green {
+    -fx-background-color: #42b883;
+}
+
+.demo-button-pink {
+    -fx-background-color: #ec4899;
+}
+
+.demo-label {
+    -fx-padding: 6px 12px;
+    -fx-background-color: #fde68a;
+    -fx-background-radius: 6px;
+    -fx-text-fill: #92400e;
+    -fx-font-weight: bold;
+}
