@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.ImagePane;
+import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.carousel.SegmentedProgressNavigator;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
@@ -27,7 +27,7 @@ public class SegmentedProgressNavigatorDemo extends Application {
         RXCarousel carousel = new RXCarousel();
         carousel.setPageCount(IMAGE_COUNT);
         carousel.setPageFactory(index ->
-                new ImagePane(new Image(getClass().getResource(
+                new RXImageView(new Image(getClass().getResource(
                         "images/" + (index + 1) + ".png").toExternalForm(), true)));
         carousel.setAnimation(new AnimFade());
         carousel.setAnimationDuration(Duration.millis(450.0));

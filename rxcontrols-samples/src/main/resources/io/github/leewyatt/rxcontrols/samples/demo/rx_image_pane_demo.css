@@ -1,0 +1,65 @@
+.rx-image-pane-demo {
+    -fx-padding: 42px;
+    -fx-background-color: #eef4f0;
+    -fx-font-family: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.destination-pane {
+    -fx-background-color: #d8e1de;
+    -fx-effect: dropshadow(gaussian, rgba(23, 37, 43, 0.24), 24, 0, 0, 10);
+}
+
+.scrim {
+    -fx-background-color: linear-gradient(to top, rgba(9, 19, 23, 0.86), rgba(9, 19, 23, 0.10));
+    -fx-background-radius: 24px;
+}
+
+.badge {
+    -fx-padding: 7px 11px;
+    -fx-background-color: #f26f5e;
+    -fx-background-radius: 6px;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.eyebrow {
+    -fx-text-fill: #9ce2d1;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+}
+
+.title {
+    -fx-text-fill: white;
+    -fx-font-size: 34px;
+    -fx-font-weight: 800;
+}
+
+.copy {
+    -fx-text-fill: rgba(255, 255, 255, 0.82);
+    -fx-font-size: 14px;
+}
+
+.actions {
+    -fx-padding: 8px 0 0 0;
+}
+
+.primary-action,
+.secondary-action {
+    -fx-padding: 8px 14px;
+    -fx-background-radius: 6px;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+}
+
+.primary-action {
+    -fx-background-color: white;
+    -fx-text-fill: #16242c;
+}
+
+.secondary-action {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+    -fx-border-color: rgba(255, 255, 255, 0.62);
+    -fx-border-radius: 6px;
+    -fx-text-fill: white;
+}

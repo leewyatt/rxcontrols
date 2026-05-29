@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
+import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.carousel.ImagePane;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
@@ -240,7 +240,7 @@ public class CarouselAppDemo extends Application {
         banner.setPageCount(BANNER_COUNT);
         banner.setPageFactory(i -> {
             String url = getClass().getResource("images/" + (i + 1) + ".png").toExternalForm();
-            ImagePane imagePane = new ImagePane(new Image(url, true));
+            RXImagePane imagePane = new RXImagePane(new Image(url, true));
 
             Label title = new Label(BANNER_TITLES[i]);
             title.getStyleClass().add("banner-title");
@@ -253,9 +253,9 @@ public class CarouselAppDemo extends Application {
             textOverlay.setMouseTransparent(true);
             textOverlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-            imagePane.getChildren().add(textOverlay);
+            imagePane.getOverlayChildren().add(textOverlay);
 
-            StackPane.setMargin(textOverlay, new Insets(0, 0, 10, 15));
+            RXImagePane.setMargin(textOverlay, new Insets(0, 0, 10, 15));
             return imagePane;
         });
         banner.setAnimation(new AnimFade());

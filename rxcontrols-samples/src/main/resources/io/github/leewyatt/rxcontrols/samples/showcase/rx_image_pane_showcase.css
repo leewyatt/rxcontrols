@@ -1,0 +1,85 @@
+.preview-pane {
+    -fx-padding: 24px;
+}
+
+.live-preview {
+    -fx-alignment: center;
+}
+
+.image-frame {
+    -fx-padding: 16px;
+    -fx-background-color: #e9f0f7;
+    -fx-background-radius: 8px;
+    -fx-border-color: #c8d5e4;
+    -fx-border-radius: 8px;
+}
+
+.showcase-image-pane {
+    -fx-background-color: white;
+    -fx-border-color: #9aacbd;
+    -fx-border-radius: 6px;
+    -rx-image-radius: 22px;
+    -fx-effect: dropshadow(gaussian, rgba(25, 38, 56, 0.22), 18, 0, 0, 7);
+}
+
+.image-scrim {
+    -fx-background-color: linear-gradient(to bottom, rgba(12, 18, 29, 0.0), rgba(12, 18, 29, 0.76));
+}
+
+.title-overlay {
+    -fx-padding: 0;
+}
+
+.overlay-eyebrow {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #d9f2ff;
+}
+
+.overlay-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.overlay-copy {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255, 255, 255, 0.86);
+}
+
+.badge-overlay {
+    -fx-padding: 6px 10px;
+    -fx-background-color: #ff4d6d;
+    -fx-background-radius: 6px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.action-chip {
+    -fx-padding: 7px 14px;
+    -fx-background-radius: 6px;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.action-primary {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #172033;
+}
+
+.action-secondary {
+    -fx-background-color: rgba(23, 32, 51, 0.66);
+    -fx-border-color: rgba(255, 255, 255, 0.72);
+    -fx-border-radius: 6px;
+    -fx-text-fill: white;
+}
+
+.size-label {
+    -fx-padding: 5px 12px;
+    -fx-background-color: #1d2433;
+    -fx-background-radius: 6px;
+    -fx-text-fill: white;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}

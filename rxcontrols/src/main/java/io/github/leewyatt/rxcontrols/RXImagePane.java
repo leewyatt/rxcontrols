@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableDoubleProperty;
@@ -15,36 +16,34 @@ import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * A resizable image region with cover, contain and stretch image layout modes.
+ * A resizable image-backed pane with overlay children.
  *
- * <p>The image is rendered by an internal {@link ImageView}. The public API
- * controls the image source, how it is fitted into the allocated area, image
- * insets relative to the Region content area, and fixed-pixel rounded corners.
- * The control does not expose overlay children or SVG path clipping; use an
- * outer layout container for overlays and {@link RXClipPathImageView} for SVG
- * clipping.</p>
- *
- * <p>The preferred size is a fixed 100 by 100 pixels plus this Region's
- * insets. It does not follow the image's natural size, unlike JavaFX
- * {@link ImageView}; set an explicit preferred size or let the parent layout
- * drive the control size when a different size is needed.</p>
+ * <p>The image is rendered by an internal {@link ImageView}. Overlay nodes
+ * are stored in an internal {@link StackPane} and can be managed through
+ * {@link #getOverlayChildren()}. The image layer is not part of the public
+ * overlay list and does not contribute to this pane's preferred size.</p>
  *
  * <pre>{@code
- * RXImageView imageView = new RXImageView(image);
- * imageView.setImageFit(ImageFit.COVER);
- * imageView.setImageRadius(12.0);
+ * RXImagePane pane = new RXImagePane(image);
+ * pane.setImageRadius(12.0);
+ * pane.getOverlayChildren().add(title);
+ * RXImagePane.setAlignment(title, Pos.BOTTOM_CENTER);
  * }</pre>
  */
-public class RXImageView extends Region {
+public class RXImagePane extends Region {
 
     // ==================== Constants ====================
 
@@ -63,12 +62,12 @@ public class RXImageView extends Region {
      */
     public static final double DEFAULT_IMAGE_RADIUS = 0.0;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-image-view";
-    private static final double DEFAULT_PREF_SIZE = 100.0;
+    private static final String DEFAULT_STYLE_CLASS = "rx-image-pane";
 
     // ==================== Internal State ====================
 
     private final RXImageRenderer imageRenderer;
+    private final StackPane overlayLayer;
 
     private ImageFit lastValidImageFit = DEFAULT_IMAGE_FIT;
     private Insets lastValidImageInsets = DEFAULT_IMAGE_INSETS;
@@ -77,34 +76,38 @@ public class RXImageView extends Region {
     // ==================== Constructors ====================
 
     /**
-     * Creates a new image view with no image.
+     * Creates an empty image pane.
      */
-    public RXImageView() {
+    public RXImagePane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         imageRenderer = new RXImageRenderer(this::requestLayout);
-        getChildren().add(imageRenderer.getImageView());
+
+        overlayLayer = new StackPane();
+        overlayLayer.setPickOnBounds(false);
+
+        getChildren().addAll(imageRenderer.getImageView(), overlayLayer);
     }
 
     /**
-     * Creates a new image view with the given image.
+     * Creates an image pane with the given image.
      *
      * @param image the image to display, or {@code null}
      */
-    public RXImageView(Image image) {
+    public RXImagePane(Image image) {
         this();
         setImage(image);
     }
 
     /**
-     * Creates a new image view that loads an image from the given URL in the
+     * Creates an image pane that loads an image from the given URL in the
      * background to avoid blocking the JavaFX Application Thread.
      *
      * @param imageUrl the image URL
      * @throws NullPointerException     if {@code imageUrl} is {@code null}
      * @throws IllegalArgumentException if {@code imageUrl} is invalid or unsupported
      */
-    public RXImageView(String imageUrl) {
+    public RXImagePane(String imageUrl) {
         this(new Image(imageUrl, true));
     }
 
@@ -116,6 +119,67 @@ public class RXImageView extends Region {
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Overlay Children ====================
+
+    /**
+     * Returns the modifiable list of overlay children rendered above the image
+     * layer.
+     *
+     * @return the overlay children list
+     */
+    public final ObservableList<Node> getOverlayChildren() {
+        return overlayLayer.getChildren();
+    }
+
+    /**
+     * Sets the alignment used to lay out an overlay child.
+     *
+     * @param child the overlay child
+     * @param value the alignment, or {@code null} to use the pane default
+     */
+    public static void setAlignment(Node child, Pos value) {
+        StackPane.setAlignment(child, value);
+    }
+
+    /**
+     * Returns the alignment constraint for an overlay child.
+     *
+     * @param child the overlay child
+     * @return the alignment, or {@code null} if no constraint is set
+     */
+    public static Pos getAlignment(Node child) {
+        return StackPane.getAlignment(child);
+    }
+
+    /**
+     * Sets the margin used to lay out an overlay child.
+     *
+     * @param child the overlay child
+     * @param value the margin, or {@code null} to clear it
+     */
+    public static void setMargin(Node child, Insets value) {
+        StackPane.setMargin(child, value);
+    }
+
+    /**
+     * Returns the margin constraint for an overlay child.
+     *
+     * @param child the overlay child
+     * @return the margin, or {@code null} if no constraint is set
+     */
+    public static Insets getMargin(Node child) {
+        return StackPane.getMargin(child);
+    }
+
+    /**
+     * Clears all RXImagePane overlay constraints from the given child.
+     *
+     * @param child the overlay child
+     */
+    public static void clearConstraints(Node child) {
+        StackPane.clearConstraints(child);
     }
 
     // ==================== Image ====================
@@ -179,7 +243,7 @@ public class RXImageView extends Region {
 
                 @Override
                 public Object getBean() {
-                    return RXImageView.this;
+                    return RXImagePane.this;
                 }
 
                 @Override
@@ -190,8 +254,8 @@ public class RXImageView extends Region {
 
     /**
      * Image fitting mode. Cannot be set to {@code null}; if a bound value
-     * becomes {@code null}, an exception is thrown and layout falls back to the
-     * last valid value until the binding source is fixed.
+     * becomes {@code null}, an exception is thrown and the internal image layer
+     * keeps the last valid value until the binding source is fixed.
      *
      * @return the image fit property
      */
@@ -248,7 +312,7 @@ public class RXImageView extends Region {
 
                 @Override
                 public Object getBean() {
-                    return RXImageView.this;
+                    return RXImagePane.this;
                 }
 
                 @Override
@@ -258,7 +322,7 @@ public class RXImageView extends Region {
             };
 
     /**
-     * Insets applied to the image allocation area relative to this Region's
+     * Insets applied to the image allocation area relative to this pane's
      * content area. Positive values shrink the allocation area, negative values
      * expand it. Cannot be {@code null} and all edges must be finite.
      *
@@ -312,7 +376,7 @@ public class RXImageView extends Region {
 
                 @Override
                 public Object getBean() {
-                    return RXImageView.this;
+                    return RXImagePane.this;
                 }
 
                 @Override
@@ -353,6 +417,43 @@ public class RXImageView extends Region {
     // ==================== Layout ====================
 
     @Override
+    public Orientation getContentBias() {
+        return overlayLayer.getContentBias();
+    }
+
+    @Override
+    protected double computeMinWidth(double height) {
+        double top = snappedTopInset();
+        double bottom = snappedBottomInset();
+        double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
+        return snappedLeftInset() + overlayLayer.minWidth(contentHeight) + snappedRightInset();
+    }
+
+    @Override
+    protected double computeMinHeight(double width) {
+        double left = snappedLeftInset();
+        double right = snappedRightInset();
+        double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
+        return snappedTopInset() + overlayLayer.minHeight(contentWidth) + snappedBottomInset();
+    }
+
+    @Override
+    protected double computePrefWidth(double height) {
+        double top = snappedTopInset();
+        double bottom = snappedBottomInset();
+        double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
+        return snappedLeftInset() + overlayLayer.prefWidth(contentHeight) + snappedRightInset();
+    }
+
+    @Override
+    protected double computePrefHeight(double width) {
+        double left = snappedLeftInset();
+        double right = snappedRightInset();
+        double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
+        return snappedTopInset() + overlayLayer.prefHeight(contentWidth) + snappedBottomInset();
+    }
+
+    @Override
     protected void layoutChildren() {
         double left = snappedLeftInset();
         double right = snappedRightInset();
@@ -364,47 +465,30 @@ public class RXImageView extends Region {
         if (contentW <= 0.0 || contentH <= 0.0
                 || !Double.isFinite(contentW) || !Double.isFinite(contentH)) {
             imageRenderer.reset();
+            overlayLayer.resizeRelocate(0.0, 0.0, 0.0, 0.0);
             return;
         }
 
-        Insets insets = imageInsetsOrDefault();
-        double imageLeft = snapSpaceX(insets.getLeft());
-        double imageRight = snapSpaceX(insets.getRight());
-        double imageTop = snapSpaceY(insets.getTop());
-        double imageBottom = snapSpaceY(insets.getBottom());
+        overlayLayer.resizeRelocate(left, top, contentW, contentH);
 
-        double areaX = left + imageLeft;
-        double areaY = top + imageTop;
-        double areaW = contentW - imageLeft - imageRight;
-        double areaH = contentH - imageTop - imageBottom;
-        if (areaW <= 0.0 || areaH <= 0.0
-                || !Double.isFinite(areaW) || !Double.isFinite(areaH)) {
+        Insets imageAreaInsets = imageInsetsOrDefault();
+        double imageLeft = snapSpaceX(imageAreaInsets.getLeft());
+        double imageRight = snapSpaceX(imageAreaInsets.getRight());
+        double imageTop = snapSpaceY(imageAreaInsets.getTop());
+        double imageBottom = snapSpaceY(imageAreaInsets.getBottom());
+
+        double imageX = left + imageLeft;
+        double imageY = top + imageTop;
+        double imageW = contentW - imageLeft - imageRight;
+        double imageH = contentH - imageTop - imageBottom;
+        if (imageW <= 0.0 || imageH <= 0.0
+                || !Double.isFinite(imageW) || !Double.isFinite(imageH)) {
             imageRenderer.reset();
             return;
         }
 
-        imageRenderer.layout(areaX, areaY, areaW, areaH,
+        imageRenderer.layout(imageX, imageY, imageW, imageH,
                 imageFitOrDefault(), imageRadiusOrDefault());
-    }
-
-    @Override
-    protected double computeMinWidth(double height) {
-        return snappedLeftInset() + snappedRightInset();
-    }
-
-    @Override
-    protected double computeMinHeight(double width) {
-        return snappedTopInset() + snappedBottomInset();
-    }
-
-    @Override
-    protected double computePrefWidth(double height) {
-        return snappedLeftInset() + DEFAULT_PREF_SIZE + snappedRightInset();
-    }
-
-    @Override
-    protected double computePrefHeight(double width) {
-        return snappedTopInset() + DEFAULT_PREF_SIZE + snappedBottomInset();
     }
 
     // ==================== Helpers ====================
@@ -439,47 +523,47 @@ public class RXImageView extends Region {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXImageView, ImageFit> IMAGE_FIT =
+        private static final CssMetaData<RXImagePane, ImageFit> IMAGE_FIT =
                 new CssMetaData<>("-rx-image-fit",
                         new EnumConverter<>(ImageFit.class), DEFAULT_IMAGE_FIT) {
                     @Override
-                    public boolean isSettable(RXImageView control) {
+                    public boolean isSettable(RXImagePane control) {
                         return !control.imageFit.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<ImageFit> getStyleableProperty(RXImageView control) {
+                    public StyleableProperty<ImageFit> getStyleableProperty(RXImagePane control) {
                         return (StyleableProperty<ImageFit>) control.imageFitProperty();
                     }
                 };
 
-        private static final CssMetaData<RXImageView, Insets> IMAGE_INSETS =
+        private static final CssMetaData<RXImagePane, Insets> IMAGE_INSETS =
                 new CssMetaData<>("-rx-image-insets",
                         InsetsConverter.getInstance(), DEFAULT_IMAGE_INSETS) {
                     @Override
-                    public boolean isSettable(RXImageView control) {
+                    public boolean isSettable(RXImagePane control) {
                         return !control.imageInsets.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Insets> getStyleableProperty(RXImageView control) {
+                    public StyleableProperty<Insets> getStyleableProperty(RXImagePane control) {
                         return (StyleableProperty<Insets>) control.imageInsetsProperty();
                     }
                 };
 
-        private static final CssMetaData<RXImageView, Number> IMAGE_RADIUS =
+        private static final CssMetaData<RXImagePane, Number> IMAGE_RADIUS =
                 new CssMetaData<>("-rx-image-radius",
                         SizeConverter.getInstance(), DEFAULT_IMAGE_RADIUS) {
                     @Override
-                    public boolean isSettable(RXImageView control) {
+                    public boolean isSettable(RXImagePane control) {
                         return !control.imageRadius.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXImageView control) {
+                    public StyleableProperty<Number> getStyleableProperty(RXImagePane control) {
                         return (StyleableProperty<Number>) control.imageRadiusProperty();
                     }
                 };
@@ -514,5 +598,4 @@ public class RXImageView extends Region {
     public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
         return getClassCssMetaData();
     }
-
 }

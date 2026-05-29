@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.enums.ImageFit;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
@@ -34,7 +35,7 @@ public class RXImageViewTest {
 
         assertTrue(view.getStyleClass().contains("rx-image-view"));
         assertNull(view.getImage());
-        assertSame(RXImageView.ImageFit.COVER, view.getImageFit());
+        assertSame(ImageFit.COVER, view.getImageFit());
         assertSame(Insets.EMPTY, view.getImageInsets());
         assertClose(0.0, view.getImageRadius(), "image radius");
 
@@ -52,13 +53,13 @@ public class RXImageViewTest {
     @Test
     public void imageFitRejectsNullAndKeepsLastValidValue() {
         RXImageView view = new RXImageView();
-        view.setImageFit(RXImageView.ImageFit.CONTAIN);
+        view.setImageFit(ImageFit.CONTAIN);
 
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> view.setImageFit(null));
 
         assertEquals("imageFit cannot be null", exception.getMessage());
-        assertSame(RXImageView.ImageFit.CONTAIN, view.getImageFit());
+        assertSame(ImageFit.CONTAIN, view.getImageFit());
     }
 
     /**
@@ -168,7 +169,7 @@ public class RXImageViewTest {
     @Test
     public void containCentersWholeImage() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.CONTAIN);
+        view.setImageFit(ImageFit.CONTAIN);
         view.setImageRadius(8.0);
 
         layout(view, 100.0, 100.0);
@@ -193,7 +194,7 @@ public class RXImageViewTest {
     @Test
     public void containUsesImageInsetsBeforeCentering() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.CONTAIN);
+        view.setImageFit(ImageFit.CONTAIN);
         view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
 
         layout(view, 100.0, 100.0);
@@ -213,7 +214,7 @@ public class RXImageViewTest {
     @Test
     public void positiveImageInsetsShrinkAllocationArea() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.STRETCH);
+        view.setImageFit(ImageFit.STRETCH);
         view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
         view.setImageRadius(4.0);
 
@@ -236,7 +237,7 @@ public class RXImageViewTest {
     @Test
     public void negativeImageInsetsExpandAllocationArea() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.STRETCH);
+        view.setImageFit(ImageFit.STRETCH);
         view.setImageInsets(new Insets(-5.0, -10.0, -15.0, -20.0));
 
         layout(view, 100.0, 100.0);

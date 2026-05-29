@@ -88,6 +88,17 @@
     -rx-image-radius: 0;
 }
 
+/*******************************************************************************
+ *                                                                             *
+ * RXImagePane                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.rx-image-pane {
+    -rx-image-fit: cover;
+    -rx-image-insets: 0;
+    -rx-image-radius: 0;
+}
+
 /* LrcView 歌词显示组件*/
 .rx-lrc-view {
     -fx-border-color: #BFBFBF;

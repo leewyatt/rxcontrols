@@ -2,8 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.carousel.ImagePane;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimCheckerboard;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimDissolve;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimDomino;
@@ -35,7 +35,7 @@ public class AutoPlayProgressDemo extends Application {
         RXCarousel carousel = new RXCarousel();
         carousel.setPageCount(IMAGE_COUNT);
         carousel.setPageFactory(index ->
-                new ImagePane(new Image(getClass().getResource("images/" + (index + 1) + ".png").toExternalForm(), true)));
+                new RXImagePane(new Image(getClass().getResource("images/" + (index + 1) + ".png").toExternalForm(), true)));
 
         carousel.setAnimation(AnimSelector.random(new AnimShatter(), new AnimDomino(), new AnimCheckerboard(), new AnimDissolve()));
         // carousel.setAnimation(new AnimGallery());

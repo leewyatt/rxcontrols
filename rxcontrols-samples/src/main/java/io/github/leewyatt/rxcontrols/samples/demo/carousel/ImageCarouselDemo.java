@@ -1,7 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.ImagePane;
+import io.github.leewyatt.rxcontrols.RXImagePane;
+import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimBox;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube4;
@@ -11,10 +12,10 @@ import io.github.leewyatt.rxcontrols.carousel.animation.AnimGallery;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimGlitch;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimLouver;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimPeel;
+import io.github.leewyatt.rxcontrols.carousel.animation.AnimRandomTiles;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimRipple;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimSelector;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimShatter;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimRandomTiles;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -22,14 +23,17 @@ import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 /**
- * Demo showcasing {@link ImagePane} with the carousel.
+ * Demonstrates image pages in an {@link RXCarousel}.
+ *
+ * <p>Both {@link RXImageView} and {@link RXImagePane} work well as carousel pages.
+ * Use {@code RXImageView} for plain image-only pages; use {@code RXImagePane} when
+ * the image needs overlay content such as titles, badges, or buttons.</p>
  */
-public class ImagePaneDemo extends Application {
+public class ImageCarouselDemo extends Application {
 
     private static final int IMAGE_COUNT = 6;
 
@@ -39,12 +43,14 @@ public class ImagePaneDemo extends Application {
         carousel.setPageCount(IMAGE_COUNT);
         carousel.setPageFactory(index -> {
             String url = getClass().getResource("images/" + (index + 1) + ".png").toExternalForm();
-            ImagePane imagePane = new ImagePane(new Image(url, true));
+            RXImagePane imageNode = new RXImagePane(new Image(url, true));
+            // RXImagePane is used here because the demo adds an optional title overlay.
+            addTitleNode(index, imageNode);
 
-            // add a title to each image (optional)
-            addTitleNode(index, imagePane);
+            // For image-only pages, RXImageView can be returned directly.
+            // RXImageView imageNode = new RXImageView(new Image(url, true));
 
-            return imagePane;
+            return imageNode;
         });
 
         // 1. Apply a fixed animation effect for all carousel transitions
@@ -63,17 +69,17 @@ public class ImagePaneDemo extends Application {
 
         Scene scene = new Scene(carousel, 650, 350);
         scene.setCamera(new PerspectiveCamera());
-        stage.setTitle("CarouselFX - ImagePane Demo");
+        stage.setTitle("CarouselFX - Image Carousel Demo");
         stage.setScene(scene);
         stage.show();
     }
 
-    private void addTitleNode(Integer index, ImagePane imagePane) {
+    private void addTitleNode(Integer index, RXImagePane imageNode) {
         Label imageTitle = new Label("Image " + (index + 1));
         imageTitle.setStyle("-fx-font-size: 24; -fx-text-fill: white; -fx-font-weight: bold;");
-        imagePane.getChildren().add(imageTitle);
-        StackPane.setAlignment(imageTitle, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(imageTitle, new Insets(0, 0, 35, 0));
+        imageNode.getOverlayChildren().add(imageTitle);
+        RXImagePane.setAlignment(imageTitle, Pos.BOTTOM_CENTER);
+        RXImagePane.setMargin(imageTitle, new Insets(0, 0, 35, 0));
     }
 
     public static void main(String[] args) {

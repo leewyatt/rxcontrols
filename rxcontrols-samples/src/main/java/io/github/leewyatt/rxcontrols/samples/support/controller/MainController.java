@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.support.controller;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.ImagePane;
+import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimBlinds;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimBox;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube;
@@ -131,7 +131,7 @@ public class MainController {
         demoCarousel.setPageFactory(index -> {
             Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream(
                     CAROUSEL_DEMO_IMAGES + (index + 1) + ".png")));
-            ImagePane imagePane = new ImagePane(image);
+            RXImagePane imagePane = new RXImagePane(image);
             return imagePane;
         });
         demoCarousel.setArrowDisplayMode(DisplayMode.SHOW);
