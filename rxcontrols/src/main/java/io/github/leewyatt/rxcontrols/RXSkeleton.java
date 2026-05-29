@@ -86,7 +86,6 @@ public class RXSkeleton extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-skeleton";
 
-
     // ==================== Public Defaults ====================
 
     /**
@@ -178,7 +177,10 @@ public class RXSkeleton extends Control {
      * Creates a skeleton with the given variant.
      *
      * @param variant the initial variant; {@code null} falls back to
-     *                {@link #DEFAULT_VARIANT}
+     *                {@link #DEFAULT_VARIANT}. This constructor is lenient for
+     *                {@link NamedArg} / FXML-style creation; later writes through
+     *                {@link #setVariant(Variant)} or {@link #variantProperty()}
+     *                still reject {@code null}
      */
     public RXSkeleton(@NamedArg("variant") Variant variant) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
@@ -387,7 +389,9 @@ public class RXSkeleton extends Control {
     /**
      * Fill paint used for the moving shimmer band. Initial value is
      * {@link #DEFAULT_SHIMMER_FILL}; setting {@code null} renders no shimmer
-     * fill per the JavaFX {@code Shape.setFill} convention.
+     * fill per the JavaFX {@code Shape.setFill} convention. A solid paint
+     * renders a solid, hard-edged moving band; use
+     * {@link #createShimmerGradient(Color)} for the standard soft shimmer.
      *
      * @return the shimmer-fill property
      */
