@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * Showcase application for {@link RXImageView}.
  *
- * <p>Exercises image source, fit mode, image insets, fixed pixel radius and
+ * <p>Exercises image source, image fit mode, image insets, fixed pixel radius and
  * responsive sizing. For a minimal real-world example see
  * {@link RXImageViewDemo}.</p>
  */
@@ -40,7 +40,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "Resizable image view with fit, insets and fixed radius";
+        return "Resizable image view with image fit, insets and fixed radius";
     }
 
     @Override

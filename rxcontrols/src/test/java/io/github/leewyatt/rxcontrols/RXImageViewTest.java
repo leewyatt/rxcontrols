@@ -52,13 +52,13 @@ public class RXImageViewTest {
     @Test
     public void imageFitRejectsNullAndKeepsLastValidValue() {
         RXImageView view = new RXImageView();
-        view.setImageFit(RXImageView.ImageFit.FIT);
+        view.setImageFit(RXImageView.ImageFit.CONTAIN);
 
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> view.setImageFit(null));
 
         assertEquals("imageFit cannot be null", exception.getMessage());
-        assertSame(RXImageView.ImageFit.FIT, view.getImageFit());
+        assertSame(RXImageView.ImageFit.CONTAIN, view.getImageFit());
     }
 
     /**
@@ -163,12 +163,12 @@ public class RXImageViewTest {
     }
 
     /**
-     * Verifies FIT centers the whole image within the allocation area.
+     * Verifies CONTAIN centers the whole image within the allocation area.
      */
     @Test
-    public void fitCentersWholeImage() {
+    public void containCentersWholeImage() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.FIT);
+        view.setImageFit(RXImageView.ImageFit.CONTAIN);
         view.setImageRadius(8.0);
 
         layout(view, 100.0, 100.0);
@@ -188,12 +188,12 @@ public class RXImageViewTest {
     }
 
     /**
-     * Verifies FIT applies imageInsets before centering the scaled image.
+     * Verifies CONTAIN applies imageInsets before centering the scaled image.
      */
     @Test
-    public void fitUsesImageInsetsBeforeCentering() {
+    public void containUsesImageInsetsBeforeCentering() {
         RXImageView view = new RXImageView(new WritableImage(200, 100));
-        view.setImageFit(RXImageView.ImageFit.FIT);
+        view.setImageFit(RXImageView.ImageFit.CONTAIN);
         view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
 
         layout(view, 100.0, 100.0);

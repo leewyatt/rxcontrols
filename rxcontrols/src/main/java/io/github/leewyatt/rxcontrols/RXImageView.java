@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A resizable image region with cover, fit and stretch image layout modes.
+ * A resizable image region with cover, contain and stretch image layout modes.
  *
  * <p>The image is rendered by an internal {@link ImageView}. The public API
  * controls the image source, how it is fitted into the allocated area, image
@@ -415,8 +415,8 @@ public class RXImageView extends Region {
         }
 
         switch (imageFitOrDefault()) {
-            case FIT:
-                layoutFit(img, areaX, areaY, areaW, areaH);
+            case CONTAIN:
+                layoutContain(img, areaX, areaY, areaW, areaH);
                 break;
             case STRETCH:
                 layoutStretch(areaX, areaY, areaW, areaH);
@@ -442,8 +442,8 @@ public class RXImageView extends Region {
         applyImageViewLayout(areaX, areaY, areaW, areaH);
     }
 
-    private void layoutFit(Image img, double areaX, double areaY,
-                           double areaW, double areaH) {
+    private void layoutContain(Image img, double areaX, double areaY,
+                               double areaW, double areaH) {
         double imgW = img.getWidth();
         double imgH = img.getHeight();
         double scale = Math.min(areaW / imgW, areaH / imgH);
@@ -673,7 +673,7 @@ public class RXImageView extends Region {
         /**
          * Scale the whole image to fit inside the area while preserving aspect ratio.
          */
-        FIT,
+        CONTAIN,
         /**
          * Stretch the image to fill the area without preserving aspect ratio.
          */
