@@ -141,6 +141,28 @@ public class RXImageViewTest {
     }
 
     /**
+     * Verifies COVER applies imageInsets before computing the source viewport.
+     */
+    @Test
+    public void coverUsesImageInsetsBeforeViewportCrop() {
+        RXImageView view = new RXImageView(new WritableImage(200, 100));
+        view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
+
+        layout(view, 100.0, 100.0);
+
+        ImageView imageView = childImageView(view);
+        Rectangle2D viewport = imageView.getViewport();
+        assertClose(40.0, imageView.getLayoutX(), "layout x");
+        assertClose(10.0, imageView.getLayoutY(), "layout y");
+        assertClose(40.0, imageView.getFitWidth(), "fit width");
+        assertClose(60.0, imageView.getFitHeight(), "fit height");
+        assertClose(66.6667, viewport.getMinX(), "viewport x");
+        assertClose(0.0, viewport.getMinY(), "viewport y");
+        assertClose(66.6667, viewport.getWidth(), "viewport width");
+        assertClose(100.0, viewport.getHeight(), "viewport height");
+    }
+
+    /**
      * Verifies FIT centers the whole image within the allocation area.
      */
     @Test
@@ -163,6 +185,26 @@ public class RXImageViewTest {
         assertClose(50.0, clip.getHeight(), "clip height");
         assertClose(16.0, clip.getArcWidth(), "clip arc width");
         assertClose(16.0, clip.getArcHeight(), "clip arc height");
+    }
+
+    /**
+     * Verifies FIT applies imageInsets before centering the scaled image.
+     */
+    @Test
+    public void fitUsesImageInsetsBeforeCentering() {
+        RXImageView view = new RXImageView(new WritableImage(200, 100));
+        view.setImageFit(RXImageView.ImageFit.FIT);
+        view.setImageInsets(new Insets(10.0, 20.0, 30.0, 40.0));
+
+        layout(view, 100.0, 100.0);
+
+        ImageView imageView = childImageView(view);
+        assertNull(imageView.getViewport());
+        assertClose(40.0, imageView.getLayoutX(), "layout x");
+        assertClose(30.0, imageView.getLayoutY(), "layout y");
+        assertClose(40.0, imageView.getFitWidth(), "fit width");
+        assertClose(20.0, imageView.getFitHeight(), "fit height");
+        assertNull(imageView.getClip());
     }
 
     /**

@@ -35,6 +35,11 @@ import java.util.List;
  * outer layout container for overlays and {@link RXClipPathImageView} for SVG
  * clipping.</p>
  *
+ * <p>The preferred size is a fixed 100 by 100 pixels plus this Region's
+ * insets. It does not follow the image's natural size, unlike JavaFX
+ * {@link ImageView}; set an explicit preferred size or let the parent layout
+ * drive the control size when a different size is needed.</p>
+ *
  * <pre>{@code
  * RXImageView imageView = new RXImageView(image);
  * imageView.setImageFit(RXImageView.ImageFit.COVER);
@@ -108,7 +113,8 @@ public class RXImageView extends Region {
     }
 
     /**
-     * Creates a new image view that loads an image from the given URL.
+     * Creates a new image view that loads an image from the given URL in the
+     * background to avoid blocking the JavaFX Application Thread.
      *
      * @param imageUrl the image URL
      * @throws NullPointerException     if {@code imageUrl} is {@code null}
@@ -458,7 +464,6 @@ public class RXImageView extends Region {
 
     private void applyImageViewLayout(double x, double y, double w, double h) {
         internalImageView.setVisible(true);
-        internalImageView.setPreserveRatio(false);
         internalImageView.setFitWidth(w);
         internalImageView.setFitHeight(h);
         internalImageView.relocate(x, y);
