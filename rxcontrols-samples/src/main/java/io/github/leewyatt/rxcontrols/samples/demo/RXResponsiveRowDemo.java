@@ -108,7 +108,7 @@ public class RXResponsiveRowDemo extends Application {
 
     private Node createHeroVisual() {
         Image image = new Image(
-                getClass().getResource("assets/nimbus-crm-hero.png").toExternalForm(),
+                getClass().getResource("assets/nimbus-crm-hero.jpg").toExternalForm(),
                 true);
         RXImageView imageView = new RXImageView(image);
         imageView.setImageRadius(24.0);
