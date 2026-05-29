@@ -51,6 +51,12 @@ import java.util.logging.Logger;
  * {@link Node} children are accepted as full-width columns for convenience, but
  * only {@code RXResponsiveCol} supports breakpoint-specific specs.</p>
  *
+ * <p>The row's minimum width is measured with the profile's narrowest
+ * breakpoint so shrink-wrapping parents can still allocate a width that lets
+ * the row enter its narrow responsive layout. Wider breakpoint specs still
+ * participate in preferred width calculation and in layout once the row is
+ * allocated a width in those breakpoint ranges.</p>
+ *
  * <p>Minimal example:</p>
  * <pre>{@code
  * RXResponsiveRow row = new RXResponsiveRow();
@@ -534,7 +540,7 @@ public class RXResponsiveRow extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return computePreferredWidth(height, true);
+        return computeMinimumWidth(height);
     }
 
     @Override
@@ -862,12 +868,23 @@ public class RXResponsiveRow extends Pane {
     }
 
     private double computePreferredWidth(double height, boolean min) {
+        return computePreferredWidth(height, min, breakpointProfileOrDefault().getBreakpoints());
+    }
+
+    private double computeMinimumWidth(double height) {
+        RXBreakpointProfile profile = breakpointProfileOrDefault();
+        return computePreferredWidth(height, true,
+                Collections.singletonList(profile.getBreakpoints().get(0)));
+    }
+
+    private double computePreferredWidth(double height, boolean min,
+                                         List<RXBreakpoint> breakpoints) {
         Insets insets = getInsets();
         int columnsCount = columnsOrDefault();
         double gutterValue = gutterOrDefault();
         double contentWidth = 0.0;
 
-        for (RXBreakpoint breakpoint : breakpointProfileOrDefault().getBreakpoints()) {
+        for (RXBreakpoint breakpoint : breakpoints) {
             List<LayoutCandidate> candidates =
                     collectLayoutCandidates(breakpoint, columnsCount, false);
             for (LayoutCandidate candidate : candidates) {
