@@ -16,7 +16,7 @@
     -fx-text-fill: #667085;
 }
 
-.loader-backdrop {
+.skeleton-backdrop {
     -fx-background-color: #ffffff;
     -fx-border-color: #e4e7ec;
     -fx-border-radius: 8px;

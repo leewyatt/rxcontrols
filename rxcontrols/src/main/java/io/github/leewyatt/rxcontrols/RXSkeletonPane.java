@@ -17,7 +17,7 @@ import javafx.scene.layout.Region;
  * based on {@link #loadingProperty() loading}. Convenience over hand-rolled
  * {@code getChildren().setAll(...)} switching.
  *
- * <p>Use {@link RXSkeletonLoader} units composed in a {@code VBox} / {@code
+ * <p>Use {@link RXSkeleton} units composed in a {@code VBox} / {@code
  * HBox} as the skeleton, then assign the corresponding real node as the
  * content. Toggling {@code loading} swaps which one is in the scene graph.
  *
@@ -108,10 +108,20 @@ public class RXSkeletonPane extends Region {
         return skeleton;
     }
 
+    /**
+     * Gets the placeholder node shown while loading.
+     *
+     * @return the skeleton node, or {@code null}
+     */
     public final Node getSkeleton() {
         return skeleton.get();
     }
 
+    /**
+     * Sets the placeholder node shown while loading.
+     *
+     * @param value the skeleton node, or {@code null}
+     */
     public final void setSkeleton(Node value) {
         skeleton.set(value);
     }
@@ -131,10 +141,20 @@ public class RXSkeletonPane extends Region {
         return content;
     }
 
+    /**
+     * Gets the real content node shown when loading is complete.
+     *
+     * @return the content node, or {@code null}
+     */
     public final Node getContent() {
         return content.get();
     }
 
+    /**
+     * Sets the real content node shown when loading is complete.
+     *
+     * @param value the content node, or {@code null}
+     */
     public final void setContent(Node value) {
         content.set(value);
     }
@@ -156,10 +176,20 @@ public class RXSkeletonPane extends Region {
         return loading;
     }
 
+    /**
+     * Returns whether the pane is showing the skeleton slot.
+     *
+     * @return {@code true} when loading
+     */
     public final boolean isLoading() {
         return loading.get();
     }
 
+    /**
+     * Sets whether the pane shows the skeleton or content slot.
+     *
+     * @param value {@code true} to show the skeleton slot
+     */
     public final void setLoading(boolean value) {
         loading.set(value);
     }
@@ -199,6 +229,12 @@ public class RXSkeletonPane extends Region {
         }
     }
 
+    /**
+     * Returns the active measurement content bias, preferring content over
+     * skeleton when both slots are present.
+     *
+     * @return the delegated content bias, or {@code null}
+     */
     @Override
     public Orientation getContentBias() {
         Node c = getContent();

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXSkeletonLoader;
-import io.github.leewyatt.rxcontrols.RXSkeletonLoader.Shape;
+import io.github.leewyatt.rxcontrols.RXSkeleton;
+import io.github.leewyatt.rxcontrols.RXSkeleton.Variant;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
@@ -41,15 +41,15 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 
 /**
- * Demo for {@link RXSkeletonLoader} and {@link RXSkeletonPane}.
+ * Demo for {@link RXSkeleton} and {@link RXSkeletonPane}.
  *
  * <p>Exercises:
  * <ul>
- *   <li>All three {@link Shape variants}: {@code ROUNDED_RECT} /
- *       {@code CIRCLE} / {@code TEXT_LINE}, with every styleable property
+ *   <li>All three {@link Variant variants}: {@code ROUNDED_RECTANGLE} /
+ *       {@code CIRCULAR} / {@code TEXT}, with every styleable property
  *       reachable via the side panel</li>
  *   <li>The "stretch responsiveness" requirement that motivated the design —
- *       a loader inside {@code HBox.Hgrow=ALWAYS} resizes with the window</li>
+ *       a skeleton inside {@code HBox.Hgrow=ALWAYS} resizes with the window</li>
  *   <li>A typical "social card" composition: circular avatar + title line +
  *       multi-line paragraph, wrapped in an {@link RXSkeletonPane} that
  *       toggles between skeleton and real content on a refresh button</li>
@@ -59,7 +59,7 @@ import java.util.stream.Stream;
  * via the sliders so the "non-positive disables animation" semantic is
  * directly observable.
  */
-public class RXSkeletonLoaderDemo extends Application {
+public class RXSkeletonDemo extends Application {
 
     private static final double VALUE_LABEL_MIN_WIDTH = 60.0;
     private static final double PREVIEW_WIDTH = 280.0;
@@ -68,13 +68,18 @@ public class RXSkeletonLoaderDemo extends Application {
     private static final Path SOCIAL_CARD_SNAPSHOT_DIR =
             Path.of("devdoc", "skeletonloader", "imgs");
 
-    private RXSkeletonLoader previewLoader;
+    private RXSkeleton previewSkeleton;
     private Timeline socialCardSnapshotTimeline;
 
+    /**
+     * Starts the demo stage.
+     *
+     * @param primaryStage the primary stage
+     */
     @Override
     public void start(Stage primaryStage) {
-        previewLoader = new RXSkeletonLoader(Shape.ROUNDED_RECT);
-        previewLoader.setPrefWidth(PREVIEW_WIDTH);
+        previewSkeleton = new RXSkeleton(Variant.ROUNDED_RECTANGLE);
+        previewSkeleton.setPrefWidth(PREVIEW_WIDTH);
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
@@ -83,11 +88,11 @@ public class RXSkeletonLoaderDemo extends Application {
 
         Scene scene = new Scene(root, 1080.0, 720.0);
         scene.getStylesheets().add(
-                RXSkeletonLoaderDemo.class
-                        .getResource("rx_skeleton_loader_demo.css")
+                RXSkeletonDemo.class
+                        .getResource("rx_skeleton_demo.css")
                         .toExternalForm());
         primaryStage.setScene(scene);
-        primaryStage.setTitle("RXSkeletonLoader Demo");
+        primaryStage.setTitle("RXSkeleton Demo");
         primaryStage.show();
     }
 
@@ -95,8 +100,8 @@ public class RXSkeletonLoaderDemo extends Application {
 
     private Node createPreviewPane() {
         VBox previewStack = new VBox(24.0,
-                createPreviewBlock("Current loader (driven by the panel on the right)",
-                        wrapInBackdrop(previewLoader)),
+                createPreviewBlock("Current skeleton (driven by the panel on the right)",
+                        wrapInBackdrop(previewSkeleton)),
                 createPreviewBlock("Stretches with the window (HBox.Hgrow = ALWAYS, drag the window to verify)",
                         createStretchDemo()),
                 createPreviewBlock("Social card — RXSkeletonPane with a Refresh button",
@@ -120,23 +125,23 @@ public class RXSkeletonLoaderDemo extends Application {
     }
 
     /**
-     * Wraps the live loader in a fixed-size backdrop so the user can see the
-     * loader's bounds even while toggling between {@code TEXT_LINE} (tall)
-     * and {@code CIRCLE} (square).
+     * Wraps the live skeleton in a fixed-size backdrop so the user can see the
+     * skeleton's bounds even while toggling between {@code TEXT} (tall)
+     * and {@code CIRCULAR} (square).
      */
     private Node wrapInBackdrop(Node body) {
         StackPane backdrop = new StackPane(body);
-        backdrop.getStyleClass().add("loader-backdrop");
+        backdrop.getStyleClass().add("skeleton-backdrop");
         backdrop.setAlignment(Pos.CENTER);
         backdrop.setPrefHeight(160.0);
         return backdrop;
     }
 
     private Node createStretchDemo() {
-        RXSkeletonLoader stretchy = new RXSkeletonLoader(Shape.ROUNDED_RECT);
+        RXSkeleton stretchy = new RXSkeleton(Variant.ROUNDED_RECTANGLE);
         stretchy.setPrefHeight(18.0);
-        // Hgrow=ALWAYS is the contract that lets the loader expand. The skin
-        // already reports maxWidth=MAX_VALUE, so HBox honours this priority.
+        // Hgrow=ALWAYS is the contract that lets the skeleton expand. The skin
+        // already reports maxWidth=MAX_VALUE, so HBox honors this priority.
         HBox.setHgrow(stretchy, Priority.ALWAYS);
 
         Label left = new Label("Avatar");
@@ -152,15 +157,15 @@ public class RXSkeletonLoaderDemo extends Application {
 
     private Node createSocialCardDemo() {
         // Skeleton subtree: circular avatar + title line + compact paragraph.
-        RXSkeletonLoader avatarSkel = new RXSkeletonLoader(Shape.CIRCLE);
+        RXSkeleton avatarSkel = new RXSkeleton(Variant.CIRCULAR);
         avatarSkel.setPrefSize(48.0, 48.0);
 
-        RXSkeletonLoader titleSkel = new RXSkeletonLoader(Shape.ROUNDED_RECT);
+        RXSkeleton titleSkel = new RXSkeleton(Variant.ROUNDED_RECTANGLE);
         titleSkel.setPrefHeight(14.0);
         titleSkel.setPrefWidth(120.0);
         titleSkel.setMaxWidth(120.0);
 
-        RXSkeletonLoader paraSkel = new RXSkeletonLoader(Shape.TEXT_LINE);
+        RXSkeleton paraSkel = new RXSkeleton(Variant.TEXT);
         paraSkel.setLineCount(2);
         paraSkel.setLineHeight(10.0);
         paraSkel.setLineSpacing(6.0);
@@ -180,8 +185,8 @@ public class RXSkeletonLoaderDemo extends Application {
         Label name = new Label("Lee Wyatt");
         name.getStyleClass().add("real-name");
         Label body = new Label("Today's weather is great. Took a walk and "
-                + "met a small cat that followed me for blocks. Posting a "
-                + "photo once I get home.");
+                + "met a neighbor who shared a few useful cafe tips. Posting "
+                + "a photo once I get home.");
         body.getStyleClass().add("real-body");
         body.setWrapText(true);
         VBox textCol = new VBox(6.0, name, body);
@@ -270,82 +275,84 @@ public class RXSkeletonLoaderDemo extends Application {
     // ==================== Control panel ====================
 
     private Node createControlPane() {
-        Label title = new Label("RXSkeletonLoader");
+        Label title = new Label("RXSkeleton");
         title.getStyleClass().add("title-label");
         Label subtitle = new Label("Shimmer placeholder for loading UI");
         subtitle.getStyleClass().add("subtitle-label");
 
-        ChoiceBox<Shape> variantBox = new ChoiceBox<>();
-        variantBox.getItems().addAll(Shape.ROUNDED_RECT, Shape.CIRCLE, Shape.TEXT_LINE);
-        variantBox.setValue(previewLoader.getVariant());
+        ChoiceBox<Variant> variantBox = new ChoiceBox<>();
+        variantBox.getItems().addAll(Variant.ROUNDED_RECTANGLE, Variant.CIRCULAR, Variant.TEXT);
+        variantBox.setValue(previewSkeleton.getVariant());
         variantBox.setMaxWidth(Double.MAX_VALUE);
 
         Slider widthSlider = createSlider(40.0, PREVIEW_WIDTH * 1.4, PREVIEW_WIDTH);
-        previewLoader.prefWidthProperty().bind(widthSlider.valueProperty());
+        previewSkeleton.prefWidthProperty().bind(widthSlider.valueProperty());
         Label widthValue = createValueLabel(widthSlider, "%.0f px");
 
         Slider heightSlider = createSlider(8.0, 200.0, 80.0);
-        previewLoader.prefHeightProperty().bind(heightSlider.valueProperty());
+        previewSkeleton.prefHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 
         variantBox.valueProperty().addListener((obs, oldV, newV) -> {
-            previewLoader.setVariant(newV);
+            previewSkeleton.setVariant(newV);
             applyVariantPresetSize(newV, widthSlider, heightSlider);
         });
 
         Slider cornerSlider = createSlider(0.0, 40.0,
-                RXSkeletonLoader.DEFAULT_CORNER_RADIUS);
-        previewLoader.cornerRadiusProperty().bind(cornerSlider.valueProperty());
+                RXSkeleton.DEFAULT_CORNER_RADIUS);
+        previewSkeleton.cornerRadiusProperty().bind(cornerSlider.valueProperty());
         Label cornerValue = createValueLabel(cornerSlider, "%.0f");
 
         ColorPicker baseColorPicker =
-                new ColorPicker((Color) RXSkeletonLoader.DEFAULT_BASE_COLOR);
+                new ColorPicker((Color) RXSkeleton.DEFAULT_BASE_COLOR);
         baseColorPicker.setMaxWidth(Double.MAX_VALUE);
-        previewLoader.baseColorProperty().bind(baseColorPicker.valueProperty());
+        previewSkeleton.baseColorProperty().bind(baseColorPicker.valueProperty());
 
-        ColorPicker shimmerColorPicker =
-                new ColorPicker((Color) RXSkeletonLoader.DEFAULT_SHIMMER_COLOR);
-        shimmerColorPicker.setMaxWidth(Double.MAX_VALUE);
-        previewLoader.shimmerColorProperty().bind(shimmerColorPicker.valueProperty());
+        ColorPicker shimmerHighlightPicker =
+                new ColorPicker(Color.web("#ffffff", 0.6));
+        shimmerHighlightPicker.setMaxWidth(Double.MAX_VALUE);
+        previewSkeleton.shimmerFillProperty().bind(Bindings.createObjectBinding(
+                () -> RXSkeleton.createShimmerGradient(shimmerHighlightPicker.getValue()),
+                shimmerHighlightPicker.valueProperty()));
 
         // The cycle slider reaches 0 to demonstrate the "non-positive disables
         // animation" semantic — the band parks off-screen and the placeholder
-        // becomes a static grey block.
+        // becomes a static gray block.
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXSkeletonLoader.DEFAULT_CYCLE_DURATION.toMillis());
+                RXSkeleton.DEFAULT_CYCLE_DURATION.toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
-                previewLoader.setCycleDuration(Duration.millis(newV.doubleValue())));
+                previewSkeleton.setCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");
 
-        Slider shimmerWidthSlider = createSlider(0.0, 1.0,
-                RXSkeletonLoader.DEFAULT_SHIMMER_WIDTH_RATIO);
-        previewLoader.shimmerWidthRatioProperty().bind(shimmerWidthSlider.valueProperty());
-        Label shimmerWidthValue = createValueLabel(shimmerWidthSlider, "%.2f");
+        Slider shimmerWidthSlider = createSlider(0.0, 160.0,
+                RXSkeleton.DEFAULT_SHIMMER_WIDTH);
+        previewSkeleton.shimmerWidthProperty().bind(shimmerWidthSlider.valueProperty());
+        Label shimmerWidthValue = createValueLabel(shimmerWidthSlider, "%.0f px");
 
-        // ==================== TEXT_LINE controls ====================
+        // ==================== TEXT controls ====================
         Slider lineCountSlider = createSlider(1.0, 6.0,
-                RXSkeletonLoader.DEFAULT_LINE_COUNT);
+                RXSkeleton.DEFAULT_LINE_COUNT);
         lineCountSlider.setSnapToTicks(true);
         lineCountSlider.setMajorTickUnit(1.0);
         lineCountSlider.setMinorTickCount(0);
         lineCountSlider.setShowTickMarks(true);
         lineCountSlider.valueProperty().addListener((obs, oldV, newV) ->
-                previewLoader.setLineCount(newV.intValue()));
+                previewSkeleton.setLineCount(newV.intValue()));
         Label lineCountValue = createValueLabel(lineCountSlider, "%.0f");
 
         Slider lineHeightSlider = createSlider(6.0, 40.0,
-                RXSkeletonLoader.DEFAULT_LINE_HEIGHT);
-        previewLoader.lineHeightProperty().bind(lineHeightSlider.valueProperty());
+                RXSkeleton.DEFAULT_LINE_HEIGHT);
+        previewSkeleton.lineHeightProperty().bind(lineHeightSlider.valueProperty());
         Label lineHeightValue = createValueLabel(lineHeightSlider, "%.0f");
 
         Slider lineSpacingSlider = createSlider(0.0, 24.0,
-                RXSkeletonLoader.DEFAULT_LINE_SPACING);
-        previewLoader.lineSpacingProperty().bind(lineSpacingSlider.valueProperty());
+                RXSkeleton.DEFAULT_LINE_SPACING);
+        previewSkeleton.lineSpacingProperty().bind(lineSpacingSlider.valueProperty());
         Label lineSpacingValue = createValueLabel(lineSpacingSlider, "%.0f");
 
         Slider lastLineSlider = createSlider(0.0, 100.0,
-                RXSkeletonLoader.DEFAULT_LAST_LINE_FILL_PERCENT);
-        previewLoader.lastLineFillPercentProperty().bind(lastLineSlider.valueProperty());
+                RXSkeleton.DEFAULT_LAST_LINE_FILL_PERCENT);
+        previewSkeleton.lastLineFillPercentProperty().bind(lastLineSlider.valueProperty());
         Label lastLineValue = createValueLabel(lastLineSlider, "%.0f%%");
 
         VBox header = new VBox(2.0, title, subtitle);
@@ -361,15 +368,15 @@ public class RXSkeletonLoaderDemo extends Application {
                                 row("Pref width", widthSlider, widthValue),
                                 row("Pref height", heightSlider, heightValue),
                                 row("Corner radius", cornerSlider, cornerValue))),
-                createSection("Colours",
+                createSection("Colors",
                         createGrid(
                                 row("Base", baseColorPicker),
-                                row("Shimmer", shimmerColorPicker))),
+                                row("Highlight", shimmerHighlightPicker))),
                 createSection("Animation",
                         createGrid(
                                 row("Cycle", cycleSlider, cycleValue),
                                 row("Band width", shimmerWidthSlider, shimmerWidthValue))),
-                createSection("TEXT_LINE specifics",
+                createSection("TEXT specifics",
                         createGrid(
                                 row("Line count", lineCountSlider, lineCountValue),
                                 row("Line height", lineHeightSlider, lineHeightValue),
@@ -388,17 +395,23 @@ public class RXSkeletonLoaderDemo extends Application {
 
     /**
      * Picks pref sizes that make the just-switched variant visually obvious.
-     * CIRCLE benefits from a square aspect; TEXT_LINE from extra height to
-     * accommodate multiple lines; ROUNDED_RECT keeps the broad rectangle.
+     * CIRCULAR benefits from a square aspect; TEXT from extra height to
+     * accommodate multiple lines; ROUNDED_RECTANGLE keeps the broad rectangle.
      */
-    private void applyVariantPresetSize(Shape variant, Slider widthSlider, Slider heightSlider) {
+    private void applyVariantPresetSize(Variant variant, Slider widthSlider, Slider heightSlider) {
         switch (variant) {
-            case CIRCLE -> {
+            case CIRCULAR -> {
                 widthSlider.setValue(80.0);
                 heightSlider.setValue(80.0);
             }
-            case TEXT_LINE -> heightSlider.setValue(120.0);
-            case ROUNDED_RECT -> heightSlider.setValue(80.0);
+            case TEXT -> {
+                widthSlider.setValue(PREVIEW_WIDTH);
+                heightSlider.setValue(120.0);
+            }
+            case ROUNDED_RECTANGLE -> {
+                widthSlider.setValue(PREVIEW_WIDTH);
+                heightSlider.setValue(80.0);
+            }
         }
     }
 
@@ -474,6 +487,11 @@ public class RXSkeletonLoaderDemo extends Application {
         return label;
     }
 
+    /**
+     * Launches the demo application.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         launch(args);
     }

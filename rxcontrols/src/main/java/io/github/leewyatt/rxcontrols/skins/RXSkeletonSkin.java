@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXSkeletonLoader;
-import io.github.leewyatt.rxcontrols.RXSkeletonLoader.Shape;
+import io.github.leewyatt.rxcontrols.RXSkeleton;
+import io.github.leewyatt.rxcontrols.RXSkeleton.Variant;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
@@ -12,10 +12,7 @@ import javafx.animation.Timeline;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Paint;
-import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
@@ -23,29 +20,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXSkeletonLoader}. Renders the base block driven by
- * the control's {@link Shape}, overlays a translucent gradient band, and
+ * Default skin for {@link RXSkeleton}. Renders the base block driven by
+ * the control's {@link Variant}, overlays a configurable shimmer band, and
  * scrolls that band horizontally on an indefinite {@link Timeline}.
  *
  * <p>Implementation notes:
  * <ul>
  *   <li>The shimmer band is a single {@link Rectangle} translated along the
- *       x-axis; the gradient stops do not change per frame, so the cost per
+ *       x-axis; the fill paint does not change per frame, so the cost per
  *       frame is a pure affine transform.</li>
  *   <li>The band moves inside a fixed viewport clipped by rectangles computed
  *       from the same geometry as the base layer — this prevents the gradient
  *       from spilling into rounded corners or text-line gaps.</li>
- *   <li>{@link TreeShowingProperty} auto-pauses the scroll when the loader is
+ *   <li>{@link TreeShowingProperty} auto-pauses the scroll when the skeleton is
  *       detached, hidden, or hosted by a hidden window — see
  *       {@code AGENTS.md} §3.1.</li>
  *   <li>{@code maxWidth} / {@code maxHeight} report {@link Double#MAX_VALUE},
- *       so the loader stretches inside grow-priority containers — the
+ *       so the skeleton stretches inside grow-priority containers — the
  *       deliberate opposite of {@link RXCircularProgressIndicatorSkin} /
  *       {@link RXWaveProgressIndicatorSkin}, which lock {@code max == pref}
  *       to keep spinners square.</li>
  * </ul>
  */
-public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
+public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
 
     // ==================== Layout Constants ====================
 
@@ -94,7 +91,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
      *
      * @param control the skinnable control
      */
-    public RXSkeletonLoaderSkin(RXSkeletonLoader control) {
+    public RXSkeletonSkin(RXSkeleton control) {
         super(control);
 
         initNodes();
@@ -128,15 +125,15 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         getChildren().setAll(baseLayer, shimmerViewport);
     }
 
-    private void registerListeners(RXSkeletonLoader control) {
+    private void registerListeners(RXSkeleton control) {
         disposer.registerListener(control.variantProperty(), control::requestLayout);
         disposer.registerListener(control.cornerRadiusProperty(), control::requestLayout);
 
         disposer.registerListener(control.baseColorProperty(), this::applyBaseFill);
-        disposer.registerListener(control.shimmerColorProperty(), this::applyShimmerFill);
+        disposer.registerListener(control.shimmerFillProperty(), this::applyShimmerFill);
 
         disposer.registerListener(control.cycleDurationProperty(), this::rebuildShimmerTimeline);
-        disposer.registerListener(control.shimmerWidthRatioProperty(), control::requestLayout);
+        disposer.registerListener(control.shimmerWidthProperty(), control::requestLayout);
 
         disposer.registerListener(control.lineCountProperty(), control::requestLayout);
         disposer.registerListener(control.lineHeightProperty(), control::requestLayout);
@@ -149,7 +146,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     // ==================== Style application ====================
 
     private void applyBaseFill() {
-        Paint p = paintOrDefault(getSkinnable().getBaseColor(), RXSkeletonLoader.DEFAULT_BASE_COLOR);
+        Paint p = getSkinnable().getBaseColor();
         for (Node n : baseLayer.getChildren()) {
             if (n instanceof Rectangle r) {
                 r.setFill(p);
@@ -158,21 +155,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     }
 
     private void applyShimmerFill() {
-        // Recompute the gradient stops; the geometry is set during
-        // layoutChildren so we only refresh the paint here.
-        shimmerBand.setFill(buildShimmerGradient());
-    }
-
-    private LinearGradient buildShimmerGradient() {
-        Paint raw = getSkinnable().getShimmerColor();
-        Color stopColor = (raw instanceof Color c)
-                ? c
-                : (RXSkeletonLoader.DEFAULT_SHIMMER_COLOR instanceof Color dc ? dc : Color.WHITE);
-        Color edge = new Color(stopColor.getRed(), stopColor.getGreen(), stopColor.getBlue(), 0.0);
-        return new LinearGradient(0.0, 0.0, 1.0, 0.0, true, CycleMethod.NO_CYCLE,
-                new Stop(0.0, edge),
-                new Stop(HALF, stopColor),
-                new Stop(1.0, edge));
+        shimmerBand.setFill(getSkinnable().getShimmerFill());
     }
 
     // ==================== Shimmer timeline ====================
@@ -277,8 +260,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         }
 
         List<Block> blocks = computeBlocks(getSkinnable().getVariant(), contentWidth, contentHeight);
-        syncLayer(baseLayer, blocks, contentX, contentY,
-                paintOrDefault(getSkinnable().getBaseColor(), RXSkeletonLoader.DEFAULT_BASE_COLOR));
+        syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor());
         syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK);
 
         layoutShimmer(contentX, contentY, contentWidth, contentHeight);
@@ -295,16 +277,16 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         rebuildShimmerTimeline();
     }
 
-    private List<Block> computeBlocks(Shape shape, double cw, double ch) {
+    private List<Block> computeBlocks(Variant variant, double cw, double ch) {
         List<Block> blocks = new ArrayList<>();
-        switch (shape) {
-            case CIRCLE -> {
+        switch (variant) {
+            case CIRCULAR -> {
                 double diameter = Math.min(cw, ch);
                 double offsetX = (cw - diameter) * HALF;
                 double offsetY = (ch - diameter) * HALF;
                 blocks.add(new Block(offsetX, offsetY, diameter, diameter, diameter, diameter));
             }
-            case TEXT_LINE -> {
+            case TEXT -> {
                 double lineHeight = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
                 double lineSpacing = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
                 double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
@@ -320,7 +302,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
                     blocks.add(new Block(0.0, y, width, lineHeight, radius * 2.0, radius * 2.0));
                 }
             }
-            case ROUNDED_RECT -> {
+            case ROUNDED_RECTANGLE -> {
                 double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
                 blocks.add(new Block(0.0, 0.0, cw, ch, radius * 2.0, radius * 2.0));
             }
@@ -354,8 +336,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     }
 
     private void layoutShimmer(double cx, double cy, double cw, double ch) {
-        double ratio = RXMath.clamp0To1(getSkinnable().getShimmerWidthRatio());
-        double bandWidth = cw * ratio;
+        double bandWidth = RXMath.sanitizeFiniteNonNegative(getSkinnable().getShimmerWidth());
         positionShimmerViewport(cx, cy);
         if (bandWidth <= 0.0) {
             shimmerBand.setWidth(0.0);
@@ -407,15 +388,15 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        Shape s = getSkinnable().getVariant();
+        Variant s = getSkinnable().getVariant();
         double inner = switch (s) {
-            case TEXT_LINE -> {
+            case TEXT -> {
                 int n = Math.max(1, getSkinnable().getLineCount());
                 double lh = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
                 double sp = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
                 yield n * lh + Math.max(0, n - 1) * sp;
             }
-            case CIRCLE -> DEFAULT_PREF_HEIGHT * 2.0;
+            case CIRCULAR -> DEFAULT_PREF_HEIGHT * 2.0;
             default -> DEFAULT_PREF_HEIGHT;
         };
         return topInset + inner + bottomInset;
@@ -446,12 +427,6 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         // RXSkinBase.dispose().
         stopAndClearTimeline();
         super.dispose();
-    }
-
-    // ==================== Helpers ====================
-
-    private static Paint paintOrDefault(Paint v, Paint fallback) {
-        return v != null ? v : fallback;
     }
 
 }
