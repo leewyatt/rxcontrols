@@ -107,24 +107,28 @@ public class RXResponsiveRowDemo extends Application {
     }
 
     private Node createHeroVisual() {
-        Image image = new Image(getClass().getResource("/scenery/4.png").toExternalForm(), true);
+        Image image = new Image(
+                getClass().getResource("assets/nimbus-crm-hero.png").toExternalForm(),
+                true);
         RXImageView imageView = new RXImageView(image);
         imageView.setImageRadius(24.0);
         imageView.setPrefSize(420.0, 330.0);
         imageView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
-        Label responsiveNote = label(
-                "This visual insight is shown only on large viewports and above.",
+        Label breakpointNote = label(
+                "Shown only on lg+ viewports (1200px+). Hidden below lg.",
                 "visual-note");
-        responsiveNote.setWrapText(true);
-        StackPane notePane = new StackPane(responsiveNote);
+        breakpointNote.setWrapText(true);
+        StackPane notePane = new StackPane(breakpointNote);
         notePane.getStyleClass().add("visual-note-pane");
+        notePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         notePane.setMouseTransparent(true);
 
-        Label caption = label("West coast enterprise launch", "visual-caption");
+        Label caption = label("Enterprise pipeline health", "visual-caption");
         Label value = label("73%", "visual-value");
         VBox overlay = new VBox(2.0, caption, value);
         overlay.getStyleClass().add("visual-overlay");
+        overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         overlay.setMouseTransparent(true);
 
         StackPane visual = new StackPane(imageView, notePane, overlay);

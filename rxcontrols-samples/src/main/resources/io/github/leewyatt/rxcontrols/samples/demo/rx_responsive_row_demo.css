@@ -169,19 +169,21 @@
 .visual-overlay {
     -fx-padding: 14px;
     -fx-background-color: rgba(19, 34, 56, 0.82);
-    -fx-background-radius: 0 8px 0 8px;
-}
-
-.visual-note-pane {
-    -fx-max-width: 300px;
-    -fx-padding: 13px 16px;
-    -fx-background-color: rgba(255, 255, 255, 0.88);
     -fx-background-radius: 8px;
 }
 
+.visual-note-pane {
+    -fx-max-width: 320px;
+    -fx-padding: 15px 21px;
+    -fx-background-color: rgba(19, 34, 56, 0.74);
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(255, 255, 255, 0.16);
+    -fx-border-radius: 8px;
+}
+
 .visual-note {
-    -fx-text-fill: #132238;
-    -fx-font-size: 13px;
+    -fx-text-fill: #dce8f3;
+    -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-alignment: center;
 }
