@@ -3,19 +3,25 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 import io.github.leewyatt.rxcontrols.RXSkeletonLoader;
 import io.github.leewyatt.rxcontrols.RXSkeletonLoader.Shape;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -27,6 +33,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 
 /**
  * Demo for {@link RXSkeletonLoader} and {@link RXSkeletonPane}.
@@ -51,8 +63,13 @@ public class RXSkeletonLoaderDemo extends Application {
 
     private static final double VALUE_LABEL_MIN_WIDTH = 60.0;
     private static final double PREVIEW_WIDTH = 280.0;
+    private static final Duration SOCIAL_CARD_REFRESH_DURATION = Duration.seconds(2.0);
+    private static final int SOCIAL_CARD_SNAPSHOT_COUNT = 10;
+    private static final Path SOCIAL_CARD_SNAPSHOT_DIR =
+            Path.of("devdoc", "skeletonloader", "imgs");
 
     private RXSkeletonLoader previewLoader;
+    private Timeline socialCardSnapshotTimeline;
 
     @Override
     public void start(Stage primaryStage) {
@@ -134,7 +151,7 @@ public class RXSkeletonLoaderDemo extends Application {
     }
 
     private Node createSocialCardDemo() {
-        // Skeleton subtree: circular avatar + title line + 3-line paragraph.
+        // Skeleton subtree: circular avatar + title line + compact paragraph.
         RXSkeletonLoader avatarSkel = new RXSkeletonLoader(Shape.CIRCLE);
         avatarSkel.setPrefSize(48.0, 48.0);
 
@@ -144,7 +161,10 @@ public class RXSkeletonLoaderDemo extends Application {
         titleSkel.setMaxWidth(120.0);
 
         RXSkeletonLoader paraSkel = new RXSkeletonLoader(Shape.TEXT_LINE);
-        paraSkel.setLineCount(3);
+        paraSkel.setLineCount(2);
+        paraSkel.setLineHeight(10.0);
+        paraSkel.setLineSpacing(6.0);
+        paraSkel.setLastLineFillPercent(70.0);
 
         VBox skelTextCol = new VBox(8.0, titleSkel, paraSkel);
         HBox.setHgrow(skelTextCol, Priority.ALWAYS);
@@ -177,10 +197,11 @@ public class RXSkeletonLoaderDemo extends Application {
         Button refreshBtn = new Button("Refresh (loading → real, 2s)");
         refreshBtn.setOnAction(e -> {
             pane.setLoading(true);
+            captureSocialCardSnapshots(pane, SOCIAL_CARD_REFRESH_DURATION);
             // PauseTransition vs Timeline: this is a one-shot tween, not a
             // continuous animation, so per AGENTS.md §3.1 no treeShowing
             // pause is needed — it ends naturally either way.
-            PauseTransition wait = new PauseTransition(Duration.seconds(2.0));
+            PauseTransition wait = new PauseTransition(SOCIAL_CARD_REFRESH_DURATION);
             wait.setOnFinished(ev -> pane.setLoading(false));
             wait.play();
         });
@@ -191,6 +212,59 @@ public class RXSkeletonLoaderDemo extends Application {
         controls.setAlignment(Pos.CENTER_LEFT);
 
         return new VBox(12.0, pane, controls);
+    }
+
+    private void captureSocialCardSnapshots(Node target, Duration duration) {
+        if (socialCardSnapshotTimeline != null) {
+            socialCardSnapshotTimeline.stop();
+        }
+        try {
+            prepareSocialCardSnapshotDirectory();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return;
+        }
+
+        Timeline timeline = new Timeline();
+        double totalMillis = duration.toMillis();
+        for (int i = 0; i < SOCIAL_CARD_SNAPSHOT_COUNT; i++) {
+            int frameIndex = i;
+            Duration timestamp = Duration.millis(totalMillis * frameIndex
+                    / SOCIAL_CARD_SNAPSHOT_COUNT);
+            timeline.getKeyFrames().add(new KeyFrame(timestamp,
+                    event -> saveSocialCardSnapshot(target, frameIndex, timestamp)));
+        }
+        socialCardSnapshotTimeline = timeline;
+
+        target.applyCss();
+        if (target instanceof Parent parent) {
+            parent.layout();
+        }
+        timeline.play();
+    }
+
+    private void prepareSocialCardSnapshotDirectory() throws IOException {
+        Files.createDirectories(SOCIAL_CARD_SNAPSHOT_DIR);
+        try (Stream<Path> paths = Files.list(SOCIAL_CARD_SNAPSHOT_DIR)) {
+            for (Path path : paths.toList()) {
+                String fileName = path.getFileName().toString();
+                if (fileName.startsWith("social-card-") && fileName.endsWith(".png")) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+    }
+
+    private void saveSocialCardSnapshot(Node target, int frameIndex, Duration timestamp) {
+        WritableImage image = target.snapshot(new SnapshotParameters(), null);
+        Path snapshotPath = SOCIAL_CARD_SNAPSHOT_DIR.resolve(
+                String.format("social-card-%02d-%04dms.png",
+                        frameIndex, Math.round(timestamp.toMillis())));
+        try {
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", snapshotPath.toFile());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
 
     // ==================== Control panel ====================
@@ -205,10 +279,6 @@ public class RXSkeletonLoaderDemo extends Application {
         variantBox.getItems().addAll(Shape.ROUNDED_RECT, Shape.CIRCLE, Shape.TEXT_LINE);
         variantBox.setValue(previewLoader.getVariant());
         variantBox.setMaxWidth(Double.MAX_VALUE);
-        variantBox.valueProperty().addListener((obs, oldV, newV) -> {
-            previewLoader.setVariant(newV);
-            applyVariantPresetSize(newV);
-        });
 
         Slider widthSlider = createSlider(40.0, PREVIEW_WIDTH * 1.4, PREVIEW_WIDTH);
         previewLoader.prefWidthProperty().bind(widthSlider.valueProperty());
@@ -217,6 +287,11 @@ public class RXSkeletonLoaderDemo extends Application {
         Slider heightSlider = createSlider(8.0, 200.0, 80.0);
         previewLoader.prefHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
+
+        variantBox.valueProperty().addListener((obs, oldV, newV) -> {
+            previewLoader.setVariant(newV);
+            applyVariantPresetSize(newV, widthSlider, heightSlider);
+        });
 
         Slider cornerSlider = createSlider(0.0, 40.0,
                 RXSkeletonLoader.DEFAULT_CORNER_RADIUS);
@@ -316,20 +391,14 @@ public class RXSkeletonLoaderDemo extends Application {
      * CIRCLE benefits from a square aspect; TEXT_LINE from extra height to
      * accommodate multiple lines; ROUNDED_RECT keeps the broad rectangle.
      */
-    private void applyVariantPresetSize(Shape variant) {
+    private void applyVariantPresetSize(Shape variant, Slider widthSlider, Slider heightSlider) {
         switch (variant) {
             case CIRCLE -> {
-                previewLoader.prefWidthProperty().unbind();
-                previewLoader.prefHeightProperty().unbind();
-                previewLoader.setPrefSize(80.0, 80.0);
+                widthSlider.setValue(80.0);
+                heightSlider.setValue(80.0);
             }
-            case TEXT_LINE, ROUNDED_RECT -> {
-                // Restore the slider bindings if they were broken by CIRCLE.
-                // The sliders are not in scope here, so simply re-set to the
-                // current pref to leave them honest until the user touches a
-                // slider — the binding is re-installed by the slider listeners
-                // on the next value change. Acceptable for a demo.
-            }
+            case TEXT_LINE -> heightSlider.setValue(120.0);
+            case ROUNDED_RECT -> heightSlider.setValue(80.0);
         }
     }
 

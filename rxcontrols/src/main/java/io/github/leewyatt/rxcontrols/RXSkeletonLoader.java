@@ -18,7 +18,6 @@ import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
-import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.util.Duration;
@@ -740,7 +739,7 @@ public class RXSkeletonLoader extends Control {
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
-                    new ArrayList<>(Region.getClassCssMetaData());
+                    new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables,
                     VARIANT,
                     CORNER_RADIUS,

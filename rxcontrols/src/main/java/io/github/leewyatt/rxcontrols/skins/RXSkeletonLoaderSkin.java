@@ -10,6 +10,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -31,9 +32,9 @@ import java.util.List;
  *   <li>The shimmer band is a single {@link Rectangle} translated along the
  *       x-axis; the gradient stops do not change per frame, so the cost per
  *       frame is a pure affine transform.</li>
- *   <li>The band is clipped to a separate rectangle whose geometry matches
- *       the union of the base shapes — this prevents the gradient from
- *       spilling into the rounded / circular corners.</li>
+ *   <li>The band moves inside a fixed viewport clipped by rectangles computed
+ *       from the same geometry as the base layer — this prevents the gradient
+ *       from spilling into rounded corners or text-line gaps.</li>
  *   <li>{@link TreeShowingProperty} auto-pauses the scroll when the loader is
  *       detached, hidden, or hosted by a hidden window — see
  *       {@code AGENTS.md} §3.1.</li>
@@ -62,24 +63,21 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     // ==================== Nodes ====================
 
     /**
-     * Base layer drawn under the shimmer. For {@link Shape#TEXT_LINE} this is
-     * a {@link Group} of N {@link Rectangle line nodes}; for the other shapes
-     * it is a single {@link Rectangle}.
+     * Base layer drawn under the shimmer. The same computed blocks also drive
+     * the clip layer, keeping the base and shimmer footprint in sync.
      */
     private final Group baseLayer = new Group();
+    private final Group shimmerViewport = new Group();
+    private final Group clipLayer = new Group();
 
     private final Rectangle shimmerBand = new Rectangle();
-    private final Rectangle shimmerClip = new Rectangle();
 
     private final TreeShowingProperty treeShowing;
 
     private Timeline shimmerTimeline;
 
-    /** Cached geometry — kept so the timeline can be rebuilt without re-querying layout. */
-    private double cachedContentX;
-    private double cachedContentY;
+    /** Cached geometry kept so the timeline can be rebuilt without re-querying layout. */
     private double cachedContentWidth;
-    private double cachedContentHeight;
     private double cachedBandWidth;
 
     /**
@@ -106,9 +104,6 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         registerListeners(control);
         applyBaseFill();
         applyShimmerFill();
-        // Layer composition depends on shape (TEXT_LINE rebuilds children),
-        // do it once up-front so the first paint is correct.
-        rebuildBaseLayer();
     }
 
     // ==================== Init ====================
@@ -117,25 +112,24 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         baseLayer.setManaged(false);
         baseLayer.setMouseTransparent(true);
 
+        shimmerViewport.setManaged(false);
+        shimmerViewport.setMouseTransparent(true);
+        shimmerViewport.setClip(clipLayer);
+        disposer.registerDisposeTask(() -> shimmerViewport.setClip(null));
+
+        clipLayer.setManaged(false);
+        clipLayer.setMouseTransparent(true);
+
         shimmerBand.getStyleClass().add("shimmer-band");
         shimmerBand.setManaged(false);
         shimmerBand.setMouseTransparent(true);
-        // The band is wider than the visible window during a sweep (band width
-        // + content width travel), so clip it to the base footprint to keep
-        // the gradient from bleeding into rounded / circular corners.
-        shimmerBand.setClip(shimmerClip);
-        disposer.registerDisposeTask(() -> shimmerBand.setClip(null));
 
-        getChildren().setAll(baseLayer, shimmerBand);
+        shimmerViewport.getChildren().setAll(shimmerBand);
+        getChildren().setAll(baseLayer, shimmerViewport);
     }
 
     private void registerListeners(RXSkeletonLoader control) {
-        // Variant changes the children layout, so rebuild the base layer; the
-        // skin's own layoutChildren() re-runs naturally on requestLayout().
-        disposer.registerListener(control.variantProperty(), () -> {
-            rebuildBaseLayer();
-            control.requestLayout();
-        });
+        disposer.registerListener(control.variantProperty(), control::requestLayout);
         disposer.registerListener(control.cornerRadiusProperty(), control::requestLayout);
 
         disposer.registerListener(control.baseColorProperty(), this::applyBaseFill);
@@ -144,10 +138,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         disposer.registerListener(control.cycleDurationProperty(), this::rebuildShimmerTimeline);
         disposer.registerListener(control.shimmerWidthRatioProperty(), control::requestLayout);
 
-        disposer.registerListener(control.lineCountProperty(), () -> {
-            rebuildBaseLayer();
-            control.requestLayout();
-        });
+        disposer.registerListener(control.lineCountProperty(), control::requestLayout);
         disposer.registerListener(control.lineHeightProperty(), control::requestLayout);
         disposer.registerListener(control.lineSpacingProperty(), control::requestLayout);
         disposer.registerListener(control.lastLineFillPercentProperty(), control::requestLayout);
@@ -159,7 +150,7 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
 
     private void applyBaseFill() {
         Paint p = paintOrDefault(getSkinnable().getBaseColor(), RXSkeletonLoader.DEFAULT_BASE_COLOR);
-        for (javafx.scene.Node n : baseLayer.getChildren()) {
+        for (Node n : baseLayer.getChildren()) {
             if (n instanceof Rectangle r) {
                 r.setFill(p);
             }
@@ -182,35 +173,6 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
                 new Stop(0.0, edge),
                 new Stop(HALF, stopColor),
                 new Stop(1.0, edge));
-    }
-
-    // ==================== Base layer composition ====================
-
-    /**
-     * Rebuilds the base layer's children to match the current shape. Called on
-     * skin construction, on {@link Shape} change, and on
-     * {@link RXSkeletonLoader#lineCountProperty() lineCount} change.
-     */
-    private void rebuildBaseLayer() {
-        Shape s = getSkinnable().getVariant();
-        Paint fill = paintOrDefault(getSkinnable().getBaseColor(), RXSkeletonLoader.DEFAULT_BASE_COLOR);
-
-        if (s == Shape.TEXT_LINE) {
-            int n = Math.max(1, getSkinnable().getLineCount());
-            List<Rectangle> lines = new ArrayList<>(n);
-            for (int i = 0; i < n; i++) {
-                Rectangle line = new Rectangle();
-                line.setFill(fill);
-                line.setManaged(false);
-                lines.add(line);
-            }
-            baseLayer.getChildren().setAll(lines);
-        } else {
-            Rectangle base = new Rectangle();
-            base.setFill(fill);
-            base.setManaged(false);
-            baseLayer.getChildren().setAll(base);
-        }
     }
 
     // ==================== Shimmer timeline ====================
@@ -257,10 +219,10 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
         shimmerTimeline = new Timeline(
                 new KeyFrame(Duration.ZERO,
                         new KeyValue(shimmerBand.translateXProperty(),
-                                cachedContentX - bandWidth, Interpolator.LINEAR)),
+                                -bandWidth, Interpolator.LINEAR)),
                 new KeyFrame(cycle,
                         new KeyValue(shimmerBand.translateXProperty(),
-                                cachedContentX + cachedContentWidth, Interpolator.LINEAR))
+                                cachedContentWidth, Interpolator.LINEAR))
         );
         shimmerTimeline.setCycleCount(Animation.INDEFINITE);
         if (treeShowing.get()) {
@@ -307,154 +269,119 @@ public class RXSkeletonLoaderSkin extends RXSkinBase<RXSkeletonLoader> {
     @Override
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
-        cachedContentX = contentX;
-        cachedContentY = contentY;
         cachedContentWidth = contentWidth;
-        cachedContentHeight = contentHeight;
 
         if (contentWidth <= 0.0 || contentHeight <= 0.0) {
             collapseAll();
             return;
         }
 
-        Shape s = getSkinnable().getVariant();
-        switch (s) {
-            case CIRCLE -> layoutCircle(contentX, contentY, contentWidth, contentHeight);
-            case TEXT_LINE -> layoutTextLine(contentX, contentY, contentWidth, contentHeight);
-            case ROUNDED_RECT -> layoutRoundedRect(contentX, contentY, contentWidth, contentHeight);
-        }
+        List<Block> blocks = computeBlocks(getSkinnable().getVariant(), contentWidth, contentHeight);
+        syncLayer(baseLayer, blocks, contentX, contentY,
+                paintOrDefault(getSkinnable().getBaseColor(), RXSkeletonLoader.DEFAULT_BASE_COLOR));
+        syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK);
 
-        layoutShimmer(s, contentX, contentY, contentWidth, contentHeight);
+        layoutShimmer(contentX, contentY, contentWidth, contentHeight);
         rebuildShimmerTimeline();
     }
 
     private void collapseAll() {
-        for (javafx.scene.Node n : baseLayer.getChildren()) {
-            if (n instanceof Rectangle r) {
-                r.setWidth(0.0);
-                r.setHeight(0.0);
-            }
-        }
+        baseLayer.getChildren().clear();
+        clipLayer.getChildren().clear();
+        positionShimmerViewport(0.0, 0.0);
         shimmerBand.setWidth(0.0);
         shimmerBand.setHeight(0.0);
-        shimmerClip.setWidth(0.0);
-        shimmerClip.setHeight(0.0);
         cachedBandWidth = 0.0;
         rebuildShimmerTimeline();
     }
 
-    private void layoutRoundedRect(double cx, double cy, double cw, double ch) {
-        Rectangle base = (Rectangle) baseLayer.getChildren().get(0);
-        double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
-        base.setX(cx);
-        base.setY(cy);
-        base.setWidth(cw);
-        base.setHeight(ch);
-        base.setArcWidth(radius * 2.0);
-        base.setArcHeight(radius * 2.0);
-    }
-
-    private void layoutCircle(double cx, double cy, double cw, double ch) {
-        Rectangle base = (Rectangle) baseLayer.getChildren().get(0);
-        // Inscribe the circle in min(cw, ch) and centre it within the content
-        // box so the circle stays square even when the parent gives an oblong
-        // area (e.g. HBox.Hgrow=ALWAYS with no fixed width).
-        double diameter = Math.min(cw, ch);
-        double offsetX = cx + (cw - diameter) * HALF;
-        double offsetY = cy + (ch - diameter) * HALF;
-        base.setX(offsetX);
-        base.setY(offsetY);
-        base.setWidth(diameter);
-        base.setHeight(diameter);
-        base.setArcWidth(diameter);
-        base.setArcHeight(diameter);
-    }
-
-    private void layoutTextLine(double cx, double cy, double cw, double ch) {
-        double lineHeight = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
-        double lineSpacing = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
-        double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
-        double lastPercent = RXMath.clamp(lastPercentSource, 0.0, FULL_PERCENT);
-        int lineCount = baseLayer.getChildren().size();
-        // Per-line corner radius keeps the line ends rounded without exposing
-        // a separate property; using half the line height yields fully rounded
-        // pill ends, which mimics modern text skeletons (Material / Twitter).
-        double radius = lineHeight * HALF;
-
-        for (int i = 0; i < lineCount; i++) {
-            Rectangle line = (Rectangle) baseLayer.getChildren().get(i);
-            double y = cy + i * (lineHeight + lineSpacing);
-            double width = cw;
-            if (i == lineCount - 1 && lineCount > 1) {
-                width = cw * lastPercent / FULL_PERCENT;
+    private List<Block> computeBlocks(Shape shape, double cw, double ch) {
+        List<Block> blocks = new ArrayList<>();
+        switch (shape) {
+            case CIRCLE -> {
+                double diameter = Math.min(cw, ch);
+                double offsetX = (cw - diameter) * HALF;
+                double offsetY = (ch - diameter) * HALF;
+                blocks.add(new Block(offsetX, offsetY, diameter, diameter, diameter, diameter));
             }
-            line.setX(cx);
-            line.setY(y);
-            line.setWidth(width);
-            line.setHeight(lineHeight);
-            line.setArcWidth(radius * 2.0);
-            line.setArcHeight(radius * 2.0);
+            case TEXT_LINE -> {
+                double lineHeight = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
+                double lineSpacing = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
+                double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
+                double lastPercent = RXMath.clamp(lastPercentSource, 0.0, FULL_PERCENT);
+                int lineCount = Math.max(1, getSkinnable().getLineCount());
+                double radius = lineHeight * HALF;
+                for (int i = 0; i < lineCount; i++) {
+                    double y = i * (lineHeight + lineSpacing);
+                    double width = cw;
+                    if (i == lineCount - 1 && lineCount > 1) {
+                        width = cw * lastPercent / FULL_PERCENT;
+                    }
+                    blocks.add(new Block(0.0, y, width, lineHeight, radius * 2.0, radius * 2.0));
+                }
+            }
+            case ROUNDED_RECT -> {
+                double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
+                blocks.add(new Block(0.0, 0.0, cw, ch, radius * 2.0, radius * 2.0));
+            }
+        }
+        return blocks;
+    }
+
+    private void syncLayer(Group layer, List<Block> blocks, double offsetX,
+                           double offsetY, Paint fill) {
+        while (layer.getChildren().size() < blocks.size()) {
+            Rectangle rectangle = new Rectangle();
+            rectangle.setManaged(false);
+            rectangle.setMouseTransparent(true);
+            layer.getChildren().add(rectangle);
+        }
+        while (layer.getChildren().size() > blocks.size()) {
+            layer.getChildren().remove(layer.getChildren().size() - 1);
+        }
+
+        for (int i = 0; i < blocks.size(); i++) {
+            Rectangle rectangle = (Rectangle) layer.getChildren().get(i);
+            Block block = blocks.get(i);
+            rectangle.setX(offsetX + block.x());
+            rectangle.setY(offsetY + block.y());
+            rectangle.setWidth(block.width());
+            rectangle.setHeight(block.height());
+            rectangle.setArcWidth(block.arcWidth());
+            rectangle.setArcHeight(block.arcHeight());
+            rectangle.setFill(fill);
         }
     }
 
-    private void layoutShimmer(Shape s, double cx, double cy, double cw, double ch) {
+    private void layoutShimmer(double cx, double cy, double cw, double ch) {
         double ratio = RXMath.clamp0To1(getSkinnable().getShimmerWidthRatio());
         double bandWidth = cw * ratio;
+        positionShimmerViewport(cx, cy);
         if (bandWidth <= 0.0) {
             shimmerBand.setWidth(0.0);
-            shimmerClip.setWidth(0.0);
+            shimmerBand.setHeight(ch);
             cachedBandWidth = 0.0;
             return;
         }
 
         shimmerBand.setX(0.0);
-        shimmerBand.setY(cy);
+        shimmerBand.setY(0.0);
         shimmerBand.setWidth(bandWidth);
         shimmerBand.setHeight(ch);
-        // Refresh the gradient — the previous one used a unit rectangle, but a
-        // proportional LinearGradient is independent of the rect's width.
-        // Still cheap; rebuild every layout pass so colour changes pick up.
-        shimmerBand.setFill(buildShimmerGradient());
-
-        // Clip geometry depends on shape: the clip must mirror the base so the
-        // shimmer never paints outside the rounded / circular / per-line area.
-        switch (s) {
-            case CIRCLE -> {
-                double diameter = Math.min(cw, ch);
-                double offsetX = cx + (cw - diameter) * HALF;
-                double offsetY = cy + (ch - diameter) * HALF;
-                shimmerClip.setX(offsetX);
-                shimmerClip.setY(offsetY);
-                shimmerClip.setWidth(diameter);
-                shimmerClip.setHeight(diameter);
-                shimmerClip.setArcWidth(diameter);
-                shimmerClip.setArcHeight(diameter);
-            }
-            case TEXT_LINE -> {
-                // A single rectangular clip across the union of lines is good
-                // enough — the gradient is mostly transparent and visually it
-                // reads as one band sweeping across the paragraph rather than
-                // each line ticking independently.
-                double radius = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight()) * HALF;
-                shimmerClip.setX(cx);
-                shimmerClip.setY(cy);
-                shimmerClip.setWidth(cw);
-                shimmerClip.setHeight(ch);
-                shimmerClip.setArcWidth(radius * 2.0);
-                shimmerClip.setArcHeight(radius * 2.0);
-            }
-            case ROUNDED_RECT -> {
-                double radius = RXMath.sanitizeNonNegative(getSkinnable().getCornerRadius());
-                shimmerClip.setX(cx);
-                shimmerClip.setY(cy);
-                shimmerClip.setWidth(cw);
-                shimmerClip.setHeight(ch);
-                shimmerClip.setArcWidth(radius * 2.0);
-                shimmerClip.setArcHeight(radius * 2.0);
-            }
-        }
 
         cachedBandWidth = bandWidth;
+    }
+
+    private void positionShimmerViewport(double x, double y) {
+        // Do not use relocate(): Group layoutBounds include the animated band,
+        // so a re-layout after detach/attach would offset the clip by the
+        // band's current translateX.
+        shimmerViewport.setLayoutX(x);
+        shimmerViewport.setLayoutY(y);
+    }
+
+    private record Block(double x, double y, double width, double height,
+                         double arcWidth, double arcHeight) {
     }
 
     // ==================== Sizing — deliberately stretchable ====================

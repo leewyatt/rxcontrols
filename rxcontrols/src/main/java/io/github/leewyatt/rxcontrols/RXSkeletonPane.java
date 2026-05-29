@@ -6,7 +6,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
-import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
@@ -190,42 +190,58 @@ public class RXSkeletonPane extends Region {
 
     @Override
     protected void layoutChildren() {
-        Insets insets = getInsets();
-        double x = insets.getLeft();
-        double y = insets.getTop();
-        double w = getWidth() - insets.getLeft() - insets.getRight();
-        double h = getHeight() - insets.getTop() - insets.getBottom();
+        double x = snappedLeftInset();
+        double y = snappedTopInset();
+        double w = Math.max(0.0, getWidth() - x - snappedRightInset());
+        double h = Math.max(0.0, getHeight() - y - snappedBottomInset());
         for (Node child : getChildren()) {
             layoutInArea(child, x, y, w, h, 0.0, HPos.LEFT, VPos.TOP);
         }
     }
 
     @Override
+    public Orientation getContentBias() {
+        Node c = getContent();
+        if (c != null) {
+            return c.getContentBias();
+        }
+        Node sk = getSkeleton();
+        if (sk != null) {
+            return sk.getContentBias();
+        }
+        return null;
+    }
+
+    @Override
     protected double computeMinWidth(double height) {
-        double inner = pickMinWidth(height);
-        Insets insets = getInsets();
-        return inner + insets.getLeft() + insets.getRight();
+        double top = snappedTopInset();
+        double bottom = snappedBottomInset();
+        double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
+        return snappedLeftInset() + pickMinWidth(contentHeight) + snappedRightInset();
     }
 
     @Override
     protected double computeMinHeight(double width) {
-        double inner = pickMinHeight(width);
-        Insets insets = getInsets();
-        return inner + insets.getTop() + insets.getBottom();
+        double left = snappedLeftInset();
+        double right = snappedRightInset();
+        double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
+        return snappedTopInset() + pickMinHeight(contentWidth) + snappedBottomInset();
     }
 
     @Override
     protected double computePrefWidth(double height) {
-        double inner = pickPrefWidth(height);
-        Insets insets = getInsets();
-        return inner + insets.getLeft() + insets.getRight();
+        double top = snappedTopInset();
+        double bottom = snappedBottomInset();
+        double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
+        return snappedLeftInset() + pickPrefWidth(contentHeight) + snappedRightInset();
     }
 
     @Override
     protected double computePrefHeight(double width) {
-        double inner = pickPrefHeight(width);
-        Insets insets = getInsets();
-        return inner + insets.getTop() + insets.getBottom();
+        double left = snappedLeftInset();
+        double right = snappedRightInset();
+        double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
+        return snappedTopInset() + pickPrefHeight(contentWidth) + snappedBottomInset();
     }
 
     @Override
@@ -269,10 +285,11 @@ public class RXSkeletonPane extends Region {
 
     private double pickMinWidth(double height) {
         Node c = getContent();
-        if (c != null) {
-            return c.minWidth(height);
-        }
         Node sk = getSkeleton();
+        if (c != null) {
+            double contentMin = c.minWidth(height);
+            return sk == null ? contentMin : Math.max(contentMin, sk.minWidth(height));
+        }
         if (sk != null) {
             return sk.minWidth(height);
         }
@@ -281,10 +298,11 @@ public class RXSkeletonPane extends Region {
 
     private double pickMinHeight(double width) {
         Node c = getContent();
-        if (c != null) {
-            return c.minHeight(width);
-        }
         Node sk = getSkeleton();
+        if (c != null) {
+            double contentMin = c.minHeight(width);
+            return sk == null ? contentMin : Math.max(contentMin, sk.minHeight(width));
+        }
         if (sk != null) {
             return sk.minHeight(width);
         }
