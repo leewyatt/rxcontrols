@@ -6,14 +6,11 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXImageViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -53,7 +50,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected double sceneWidth() {
-        return 1400.0;
+        return 980.0;
     }
 
     @Override
@@ -63,7 +60,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected double controlPaneWidth() {
-        return 400.0;
+        return 360.0;
     }
 
     @Override
@@ -81,6 +78,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
         StackPane frame = new StackPane(imageView);
         frame.getStyleClass().add("image-frame");
+        frame.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label sizeLabel = new Label();
         sizeLabel.getStyleClass().add("size-label");
@@ -112,16 +110,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
         imageBox.valueProperty().addListener((obs, oldV, newV) ->
                 imageView.setImage(newV == null ? null : newV.image()));
 
-        HBox presets = new HBox(8.0,
-                imageButton("Image", imageBox, ImageChoice.IMAGE_2),
-                imageButton("Async", imageBox, ImageChoice.BACKGROUND),
-                imageButton("None", imageBox, ImageChoice.NONE));
-        presets.getStyleClass().add("segmented-row");
-        presets.setAlignment(Pos.CENTER_LEFT);
-
-        return createGrid(
-                row("Preset", presets),
-                row("Image", imageBox));
+        return createGrid(row("Image", imageBox));
     }
 
     private Node buildFitGrid() {
@@ -131,61 +120,46 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
         fitBox.setMaxWidth(Double.MAX_VALUE);
         imageView.imageFitProperty().bind(fitBox.valueProperty());
 
-        HBox presets = new HBox(8.0,
-                fitButton("Cover", fitBox, ImageFit.COVER),
-                fitButton("Fit", fitBox, ImageFit.FIT),
-                fitButton("Stretch", fitBox, ImageFit.STRETCH));
-        presets.getStyleClass().add("segmented-row");
-        presets.setAlignment(Pos.CENTER_LEFT);
-
-        return createGrid(
-                row("Preset", presets),
-                row("Mode", fitBox));
+        return createGrid(row("Image Fit", fitBox));
     }
 
     private Node buildInsetsGrid() {
-        Slider topSlider = createSlider(-36.0, 48.0, 0.0);
-        Slider rightSlider = createSlider(-36.0, 48.0, 0.0);
-        Slider bottomSlider = createSlider(-36.0, 48.0, 0.0);
-        Slider leftSlider = createSlider(-36.0, 48.0, 0.0);
-
+        Slider insetSlider = createSlider(-12.0, 12.0, 0.0);
         imageView.imageInsetsProperty().bind(Bindings.createObjectBinding(
-                () -> new Insets(topSlider.getValue(), rightSlider.getValue(),
-                        bottomSlider.getValue(), leftSlider.getValue()),
-                topSlider.valueProperty(), rightSlider.valueProperty(),
-                bottomSlider.valueProperty(), leftSlider.valueProperty()));
+                () -> new Insets(insetSlider.getValue()),
+                insetSlider.valueProperty()));
 
-        HBox presets = new HBox(8.0,
-                insetButton("Zero", topSlider, rightSlider, bottomSlider, leftSlider,
-                        0.0, 0.0, 0.0, 0.0),
-                insetButton("Inset", topSlider, rightSlider, bottomSlider, leftSlider,
-                        16.0, 16.0, 16.0, 16.0),
-                insetButton("Bleed", topSlider, rightSlider, bottomSlider, leftSlider,
-                        -18.0, -18.0, -18.0, -18.0));
-        presets.getStyleClass().add("segmented-row");
-        presets.setAlignment(Pos.CENTER_LEFT);
+        ComboBox<InsetPreset> presetBox = new ComboBox<>();
+        presetBox.getItems().setAll(InsetPreset.values());
+        presetBox.setValue(InsetPreset.ZERO);
+        presetBox.setMaxWidth(Double.MAX_VALUE);
+        presetBox.valueProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) {
+                insetSlider.setValue(newV.value());
+            }
+        });
 
         return createGrid(
-                row("Preset", presets),
-                row("Top", topSlider, createValueLabel(topSlider, "%.0f")),
-                row("Right", rightSlider, createValueLabel(rightSlider, "%.0f")),
-                row("Bottom", bottomSlider, createValueLabel(bottomSlider, "%.0f")),
-                row("Left", leftSlider, createValueLabel(leftSlider, "%.0f")));
+                row("Preset", presetBox),
+                row("Insets", insetSlider, createValueLabel(insetSlider, "%.0f px")));
     }
 
     private Node buildRadiusGrid() {
         Slider radiusSlider = createSlider(0.0, 140.0, 18.0);
         imageView.imageRadiusProperty().bind(radiusSlider.valueProperty());
 
-        HBox presets = new HBox(8.0,
-                radiusButton("None", radiusSlider, 0.0),
-                radiusButton("Soft", radiusSlider, 18.0),
-                radiusButton("Large", radiusSlider, 64.0));
-        presets.getStyleClass().add("segmented-row");
-        presets.setAlignment(Pos.CENTER_LEFT);
+        ComboBox<RadiusPreset> presetBox = new ComboBox<>();
+        presetBox.getItems().setAll(RadiusPreset.values());
+        presetBox.setValue(RadiusPreset.SOFT);
+        presetBox.setMaxWidth(Double.MAX_VALUE);
+        presetBox.valueProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) {
+                radiusSlider.setValue(newV.value());
+            }
+        });
 
         return createGrid(
-                row("Preset", presets),
+                row("Preset", presetBox),
                 row("Radius", radiusSlider, createValueLabel(radiusSlider, "%.0f px")));
     }
 
@@ -195,57 +169,21 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
         imageView.prefWidthProperty().bind(widthSlider.valueProperty());
         imageView.prefHeightProperty().bind(heightSlider.valueProperty());
 
-        HBox presets = new HBox(8.0,
-                sizeButton("Wide", widthSlider, heightSlider, 380.0, 210.0),
-                sizeButton("Square", widthSlider, heightSlider, 250.0, 250.0),
-                sizeButton("Tall", widthSlider, heightSlider, 190.0, 320.0));
-        presets.getStyleClass().add("segmented-row");
-        presets.setAlignment(Pos.CENTER_LEFT);
+        ComboBox<SizePreset> presetBox = new ComboBox<>();
+        presetBox.getItems().setAll(SizePreset.values());
+        presetBox.setValue(SizePreset.DEFAULT);
+        presetBox.setMaxWidth(Double.MAX_VALUE);
+        presetBox.valueProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) {
+                widthSlider.setValue(newV.width());
+                heightSlider.setValue(newV.height());
+            }
+        });
 
         return createGrid(
-                row("Preset", presets),
+                row("Preset", presetBox),
                 row("Width", widthSlider, createValueLabel(widthSlider, "%.0f px")),
                 row("Height", heightSlider, createValueLabel(heightSlider, "%.0f px")));
-    }
-
-    private Button imageButton(String text, ComboBox<ImageChoice> imageBox, ImageChoice imageChoice) {
-        Button button = new Button(text);
-        button.setOnAction(e -> imageBox.setValue(imageChoice));
-        return button;
-    }
-
-    private Button fitButton(String text, ComboBox<ImageFit> fitBox, ImageFit fit) {
-        Button button = new Button(text);
-        button.setOnAction(e -> fitBox.setValue(fit));
-        return button;
-    }
-
-    private Button insetButton(String text, Slider top, Slider right, Slider bottom, Slider left,
-                               double topValue, double rightValue, double bottomValue, double leftValue) {
-        Button button = new Button(text);
-        button.setOnAction(e -> {
-            top.setValue(topValue);
-            right.setValue(rightValue);
-            bottom.setValue(bottomValue);
-            left.setValue(leftValue);
-        });
-        return button;
-    }
-
-    private Button radiusButton(String text, Slider slider, double value) {
-        Button button = new Button(text);
-        button.setOnAction(e -> slider.setValue(value));
-        return button;
-    }
-
-    private Button sizeButton(String text, Slider widthSlider, Slider heightSlider,
-                              double width, double height) {
-        Button button = new Button(text);
-        button.setOnAction(e -> {
-            widthSlider.setValue(width);
-            heightSlider.setValue(height);
-        });
-        return button;
     }
 
     /**
@@ -283,6 +221,87 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
             }
             return new Image(RXImageViewShowcase.class.getResource(resourcePath).toExternalForm(),
                     backgroundLoading);
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    // ==================== Presets ====================
+
+    private enum InsetPreset {
+
+        ZERO("Zero", 0.0),
+        INSET("Inset", 8.0),
+        BLEED("Bleed", -8.0);
+
+        private final String label;
+        private final double value;
+
+        InsetPreset(String label, double value) {
+            this.label = label;
+            this.value = value;
+        }
+
+        private double value() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    private enum RadiusPreset {
+
+        NONE("None", 0.0),
+        SOFT("Soft", 18.0),
+        LARGE("Large", 64.0);
+
+        private final String label;
+        private final double value;
+
+        RadiusPreset(String label, double value) {
+            this.label = label;
+            this.value = value;
+        }
+
+        private double value() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    private enum SizePreset {
+
+        DEFAULT("Default", PREVIEW_WIDTH, PREVIEW_HEIGHT),
+        WIDE("Wide", 380.0, 210.0),
+        SQUARE("Square", 250.0, 250.0),
+        TALL("Tall", 190.0, 320.0);
+
+        private final String label;
+        private final double width;
+        private final double height;
+
+        SizePreset(String label, double width, double height) {
+            this.label = label;
+            this.width = width;
+            this.height = height;
+        }
+
+        private double width() {
+            return width;
+        }
+
+        private double height() {
+            return height;
         }
 
         @Override

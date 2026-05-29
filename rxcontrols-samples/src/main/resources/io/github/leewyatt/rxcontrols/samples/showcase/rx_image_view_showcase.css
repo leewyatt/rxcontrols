@@ -1,11 +1,13 @@
+.preview-pane {
+    -fx-padding: 24px;
+}
+
 .live-preview {
     -fx-alignment: center;
 }
 
 .image-frame {
-    -fx-padding: 34px;
-    -fx-min-width: 620px;
-    -fx-min-height: 430px;
+    -fx-padding: 16px;
     -fx-background-color: #eaf2fb;
     -fx-background-radius: 8px;
     -fx-border-color: #c9d9ea;

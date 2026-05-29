@@ -42,7 +42,7 @@ public abstract class RXShowcaseApplication extends Application {
 
     private static final String SHELL_STYLESHEET =
             "/io/github/leewyatt/rxcontrols/samples/support/rx-showcase-shell.css";
-    private static final double LABEL_COL_WIDTH = 112.0;
+    private static final double LABEL_COL_WIDTH = 92.0;
 
     // ==================== Application lifecycle ====================
 
@@ -187,7 +187,7 @@ public abstract class RXShowcaseApplication extends Application {
     protected GridPane createGrid(Node[]... rows) {
         GridPane grid = new GridPane();
         grid.getStyleClass().add("control-grid");
-        grid.setHgap(12.0);
+        grid.setHgap(8.0);
         grid.setVgap(10.0);
 
         ColumnConstraints labelCol = new ColumnConstraints();
