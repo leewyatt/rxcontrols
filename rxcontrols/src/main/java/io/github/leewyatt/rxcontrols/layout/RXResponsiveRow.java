@@ -55,7 +55,10 @@ import java.util.logging.Logger;
  * breakpoint so shrink-wrapping parents can still allocate a width that lets
  * the row enter its narrow responsive layout. Wider breakpoint specs still
  * participate in preferred width calculation and in layout once the row is
- * allocated a width in those breakpoint ranges.</p>
+ * allocated a width in those breakpoint ranges. If an intermediate breakpoint
+ * assigns columns that are too narrow for their content minimum widths, that
+ * content may still clip in that breakpoint range; adjust the column specs or
+ * content minimum sizes to fit.</p>
  *
  * <p>Minimal example:</p>
  * <pre>{@code
