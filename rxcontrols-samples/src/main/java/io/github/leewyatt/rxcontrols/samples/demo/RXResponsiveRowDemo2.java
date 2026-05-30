@@ -67,9 +67,9 @@ public class RXResponsiveRowDemo2 extends Application {
                         spec(24), spec(12), spec(8), spec(5)),
                 col(createMetricCard("Nuclear base", "9.6 GW", "99.4%", "nuclear"),
                         spec(24), spec(12), spec(8), spec(5)),
-                col(createMetricCard("Thermal ramp", "1.3 GW", "Standby", "thermal"),
+                col(createMetricCard("Solar Fleet", "1.3 GW", "Standby", "solar"),
                         spec(24), spec(12), spec(12), spec(5)),
-                col(createMetricCard("Geothermal", "640 MW", "+4%", "geo"),
+                col(createMetricCard("Gas Fleet", "640 MW", "+4%", "gas"),
                         spec(24), spec(24), spec(12), spec(5)),
                 col(createMixCard(), spec(24), spec(24), spec(15), spec(16)),
                 col(createPlantStatusCard(), spec(24), spec(24), spec(9), spec(8)),
@@ -154,8 +154,8 @@ public class RXResponsiveRowDemo2 extends Application {
                 mixRow("Wind", "4.8 GW", 72.0, "wind-fill"),
                 mixRow("Hydro", "6.1 GW", 84.0, "hydro-fill"),
                 mixRow("Nuclear", "9.6 GW", 96.0, "nuclear-fill"),
-                mixRow("Thermal", "7.4 GW", 58.0, "thermal-fill"),
-                mixRow("Geothermal", "640 MW", 38.0, "geo-fill"));
+                mixRow("Gas", "7.4 GW", 58.0, "gas-fill"),
+                mixRow("Solar", "640 MW", 38.0, "solar-fill"));
         bars.getStyleClass().add("mix-list");
 
         VBox card = card("mix-card", header, bars);
