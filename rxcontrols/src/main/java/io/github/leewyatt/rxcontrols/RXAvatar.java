@@ -47,6 +47,7 @@ import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.image.Image;
+import javafx.scene.layout.Region;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,6 +121,8 @@ public class RXAvatar extends Control {
     public RXAvatar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(false);
+        setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         imageProperty().addListener(obs -> onImageChanged());
         textProperty().addListener(obs -> updateDisplayState());
         updateDisplayState();

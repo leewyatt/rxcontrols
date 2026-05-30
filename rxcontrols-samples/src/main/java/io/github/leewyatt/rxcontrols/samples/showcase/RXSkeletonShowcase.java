@@ -189,9 +189,7 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
         RXAvatar avatar = new RXAvatar();
         avatar.setText("LW");
         avatar.getStyleClass().add("real-avatar");
-        avatar.setMinSize(48.0, 48.0);
         avatar.setPrefSize(48.0, 48.0);
-        avatar.setMaxSize(48.0, 48.0);
 
         Label name = new Label("Lee Wyatt");
         name.getStyleClass().add("real-name");
