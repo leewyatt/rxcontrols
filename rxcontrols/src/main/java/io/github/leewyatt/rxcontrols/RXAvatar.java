@@ -121,6 +121,8 @@ public class RXAvatar extends Control {
     public RXAvatar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(false);
+        // The skin keeps computed min/max stable for opt-out callers; by default
+        // the avatar is a fixed-size visual unit whose bounds track effective pref.
         setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         imageProperty().addListener(obs -> onImageChanged());
