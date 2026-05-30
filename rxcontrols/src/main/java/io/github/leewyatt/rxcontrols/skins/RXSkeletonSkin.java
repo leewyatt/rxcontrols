@@ -53,9 +53,16 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
      */
     private static final double DEFAULT_PREF_WIDTH = 120.0;
     private static final double DEFAULT_PREF_HEIGHT = 16.0;
+    private static final double DEFAULT_CIRCULAR_SIZE = 48.0;
 
     private static final double HALF = 0.5;
     private static final double FULL_PERCENT = 100.0;
+    private static final String BASE_LAYER_STYLE_CLASS = "base-layer";
+    private static final String BASE_BLOCK_STYLE_CLASS = "base-block";
+    private static final String SHIMMER_VIEWPORT_STYLE_CLASS = "shimmer-viewport";
+    private static final String SHIMMER_BAND_STYLE_CLASS = "shimmer-band";
+    private static final String CLIP_LAYER_STYLE_CLASS = "clip-layer";
+    private static final String CLIP_BLOCK_STYLE_CLASS = "clip-block";
 
     // ==================== Nodes ====================
 
@@ -106,18 +113,21 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     // ==================== Init ====================
 
     private void initNodes() {
+        baseLayer.getStyleClass().add(BASE_LAYER_STYLE_CLASS);
         baseLayer.setManaged(false);
         baseLayer.setMouseTransparent(true);
 
+        shimmerViewport.getStyleClass().add(SHIMMER_VIEWPORT_STYLE_CLASS);
         shimmerViewport.setManaged(false);
         shimmerViewport.setMouseTransparent(true);
         shimmerViewport.setClip(clipLayer);
         disposer.registerDisposeTask(() -> shimmerViewport.setClip(null));
 
+        clipLayer.getStyleClass().add(CLIP_LAYER_STYLE_CLASS);
         clipLayer.setManaged(false);
         clipLayer.setMouseTransparent(true);
 
-        shimmerBand.getStyleClass().add("shimmer-band");
+        shimmerBand.getStyleClass().add(SHIMMER_BAND_STYLE_CLASS);
         shimmerBand.setManaged(false);
         shimmerBand.setMouseTransparent(true);
 
@@ -260,8 +270,9 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         }
 
         List<Block> blocks = computeBlocks(getSkinnable().getVariant(), contentWidth, contentHeight);
-        syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor());
-        syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK);
+        syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor(),
+                BASE_BLOCK_STYLE_CLASS);
+        syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK, CLIP_BLOCK_STYLE_CLASS);
 
         layoutShimmer(contentX, contentY, contentWidth, contentHeight);
         rebuildShimmerTimeline();
@@ -311,9 +322,10 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     }
 
     private void syncLayer(Group layer, List<Block> blocks, double offsetX,
-                           double offsetY, Paint fill) {
+                           double offsetY, Paint fill, String blockStyleClass) {
         while (layer.getChildren().size() < blocks.size()) {
             Rectangle rectangle = new Rectangle();
+            rectangle.getStyleClass().add(blockStyleClass);
             rectangle.setManaged(false);
             rectangle.setMouseTransparent(true);
             layer.getChildren().add(rectangle);
@@ -382,7 +394,12 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + DEFAULT_PREF_WIDTH + rightInset;
+        Variant s = getSkinnable().getVariant();
+        double inner = switch (s) {
+            case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
+            default -> DEFAULT_PREF_WIDTH;
+        };
+        return leftInset + inner + rightInset;
     }
 
     @Override
@@ -396,7 +413,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 double sp = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
                 yield n * lh + Math.max(0, n - 1) * sp;
             }
-            case CIRCULAR -> DEFAULT_PREF_HEIGHT * 2.0;
+            case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
             default -> DEFAULT_PREF_HEIGHT;
         };
         return topInset + inner + bottomInset;

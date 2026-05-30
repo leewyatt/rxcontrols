@@ -1,0 +1,87 @@
+.preview-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.preview-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.preview-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e4e7ec;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 16px 18px;
+}
+
+.preview-card .caption {
+    -fx-font-size: 12px;
+    -fx-text-fill: #667085;
+}
+
+.skeleton-backdrop {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e4e7ec;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 24px;
+}
+
+.stretch-row {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e4e7ec;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 16px 18px;
+}
+
+.anchor-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #667085;
+}
+
+.social-card {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e4e7ec;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 16px 18px;
+}
+
+.card-body {
+    -fx-padding: 4px 0 0 0;
+}
+
+.real-avatar > .text-wrapper {
+    -fx-background-color: #c7d2fe;
+}
+
+.real-avatar > .text-wrapper > .label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d2433;
+}
+
+.real-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d2433;
+}
+
+.real-body {
+    -fx-font-size: 13px;
+    -fx-text-fill: #344054;
+}
+
+.preview-card .button {
+    -fx-background-color: #1e90ff;
+    -fx-text-fill: #ffffff;
+    -fx-background-radius: 6px;
+    -fx-padding: 6px 14px;
+    -fx-font-size: 13px;
+}
+
+.preview-card .button:hover {
+    -fx-background-color: #1976d2;
+}
