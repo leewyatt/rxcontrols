@@ -86,7 +86,7 @@ public class RXResponsiveRowDemo2 extends Application {
         title.setWrapText(true);
 
         Label copy = label(
-                "Dispatch monitors wind, hydro, nuclear, thermal and geothermal supply in one responsive dashboard.",
+                "Dispatch monitors wind, hydro, nuclear, solar and gas supply in one responsive dashboard.",
                 "hero-copy");
         copy.setWrapText(true);
 
@@ -175,9 +175,9 @@ public class RXResponsiveRowDemo2 extends Application {
                 divider(),
                 plantRow("Unit 3 Nuclear", "Baseload steady", "Normal", "nuclear"),
                 divider(),
-                plantRow("Riverside Thermal", "Fast ramp available", "Standby", "thermal"),
+                plantRow("Riverside Solar", "Cloud cover tapering output", "Watch", "solar"),
                 divider(),
-                plantRow("Cinder Geothermal", "Wellhead pressure rising", "Review", "geo"));
+                plantRow("Cinder Gas", "Fast ramp available", "Standby", "gas"));
         list.getStyleClass().add("plant-list");
 
         VBox card = card("status-card", header, list);

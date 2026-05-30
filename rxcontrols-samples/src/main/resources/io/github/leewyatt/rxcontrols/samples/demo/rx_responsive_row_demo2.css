@@ -246,13 +246,13 @@
     -fx-text-fill: #626aef;
 }
 
-.thermal-text,
-.thermal-status {
+.solar-text,
+.solar-status {
     -fx-text-fill: #b88230;
 }
 
-.geo-text,
-.geo-status {
+.gas-text,
+.gas-status {
     -fx-text-fill: #f56c6c;
 }
 
@@ -350,11 +350,11 @@
     -fx-background-color: #7c8cff;
 }
 
-.thermal-dot {
+.solar-dot {
     -fx-background-color: #e6a23c;
 }
 
-.geo-dot {
+.gas-dot {
     -fx-background-color: #f56c6c;
 }
 
