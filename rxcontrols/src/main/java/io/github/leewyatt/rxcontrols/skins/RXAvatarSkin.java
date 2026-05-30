@@ -1,15 +1,12 @@
-
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.DisplayState;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
-import javafx.beans.InvalidationListener;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
@@ -24,7 +21,7 @@ import javafx.scene.shape.Rectangle;
  * centered within the control bounds. This ensures the avatar remains
  * square/circular regardless of the control's aspect ratio.</p>
  */
-public class RXAvatarSkin extends SkinBase<RXAvatar> {
+public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
 
     private static final double DEFAULT_PREF_SIZE = 100;
 
@@ -39,14 +36,13 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
     private final Rectangle clipRect;
     private final Circle clipCircle;
 
-    // ==================== Listeners ====================
-
-    private final InvalidationListener imageListener = obs -> onImageChanged();
-    private final InvalidationListener displayStateListener = obs -> onDisplayStateChanged();
-    private final InvalidationListener layoutListener = obs -> getSkinnable().requestLayout();
-
     // ==================== Constructor ====================
 
+    /**
+     * Creates a skin for the given control.
+     *
+     * @param control the skinnable control
+     */
     public RXAvatarSkin(RXAvatar control) {
         super(control);
 
@@ -63,7 +59,7 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         clipCircle = new Circle();
 
         textLabel = new Label();
-        textLabel.textProperty().bind(control.textProperty());
+        disposer.registerBinding(textLabel.textProperty(), control.textProperty());
         textWrapper = new StackPane(textLabel);
         textWrapper.getStyleClass().add("text-wrapper");
 
@@ -76,11 +72,18 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
 
         getChildren().addAll(defaultIconWrapper, textWrapper, imageWrapper);
 
-        control.imageProperty().addListener(imageListener);
-        control.displayStateProperty().addListener(displayStateListener);
-        control.shapeTypeProperty().addListener(layoutListener);
-        control.arcWidthProperty().addListener(layoutListener);
-        control.arcHeightProperty().addListener(layoutListener);
+        disposer.registerListener(control.imageProperty(), this::onImageChanged);
+        disposer.registerListener(control.displayStateProperty(), this::onDisplayStateChanged);
+        disposer.registerListener(control.shapeTypeProperty(), control::requestLayout);
+        disposer.registerListener(control.arcWidthProperty(), control::requestLayout);
+        disposer.registerListener(control.arcHeightProperty(), control::requestLayout);
+        disposer.registerDisposeTask(() -> {
+            imageView.setImage(null);
+            imageView.setClip(null);
+            imageView.setViewport(null);
+            textWrapper.setClip(null);
+            defaultIconWrapper.setClip(null);
+        });
 
         imageView.setImage(control.getImage());
         updateVisibility();
@@ -227,26 +230,4 @@ public class RXAvatarSkin extends SkinBase<RXAvatar> {
         return getSkinnable().prefHeight(width);
     }
 
-    // ==================== Dispose ====================
-
-    @Override
-    public void dispose() {
-        RXAvatar control = getSkinnable();
-
-        control.imageProperty().removeListener(imageListener);
-        control.displayStateProperty().removeListener(displayStateListener);
-        control.shapeTypeProperty().removeListener(layoutListener);
-        control.arcWidthProperty().removeListener(layoutListener);
-        control.arcHeightProperty().removeListener(layoutListener);
-
-        textLabel.textProperty().unbind();
-
-        imageView.setImage(null);
-        imageView.setClip(null);
-        imageView.setViewport(null);
-        textWrapper.setClip(null);
-        defaultIconWrapper.setClip(null);
-
-        super.dispose();
-    }
 }
