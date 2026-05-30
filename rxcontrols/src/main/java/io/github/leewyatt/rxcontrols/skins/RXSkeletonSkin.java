@@ -394,10 +394,10 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        Variant s = getSkinnable().getVariant();
-        double inner = switch (s) {
+        Variant variant = getSkinnable().getVariant();
+        double inner = switch (variant) {
             case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
-            default -> DEFAULT_PREF_WIDTH;
+            case ROUNDED_RECTANGLE, TEXT -> DEFAULT_PREF_WIDTH;
         };
         return leftInset + inner + rightInset;
     }
@@ -405,8 +405,8 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        Variant s = getSkinnable().getVariant();
-        double inner = switch (s) {
+        Variant variant = getSkinnable().getVariant();
+        double inner = switch (variant) {
             case TEXT -> {
                 int n = Math.max(1, getSkinnable().getLineCount());
                 double lh = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
@@ -414,7 +414,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 yield n * lh + Math.max(0, n - 1) * sp;
             }
             case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
-            default -> DEFAULT_PREF_HEIGHT;
+            case ROUNDED_RECTANGLE -> DEFAULT_PREF_HEIGHT;
         };
         return topInset + inner + bottomInset;
     }
