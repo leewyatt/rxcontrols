@@ -5,6 +5,10 @@ import javafx.beans.Observable;
 import javafx.beans.property.Property;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.scene.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +105,42 @@ public final class SkinDisposer {
         ChangeListener<? super T> checkedListener = Objects.requireNonNull(changeListener, "changeListener");
         checkedObservable.addListener(checkedListener);
         tasks.add(() -> checkedObservable.removeListener(checkedListener));
+    }
+
+    /**
+     * Attaches an event handler to {@code target} and registers its removal on
+     * {@link #dispose()}.
+     *
+     * @param target    the node receiving the handler
+     * @param eventType the event type to handle
+     * @param handler   the event handler
+     * @param <E>       the event type
+     */
+    public <E extends Event> void registerEventHandler(Node target, EventType<E> eventType,
+                                                       EventHandler<? super E> handler) {
+        Node checkedTarget = Objects.requireNonNull(target, "target");
+        EventType<E> checkedType = Objects.requireNonNull(eventType, "eventType");
+        EventHandler<? super E> checkedHandler = Objects.requireNonNull(handler, "handler");
+        checkedTarget.addEventHandler(checkedType, checkedHandler);
+        tasks.add(() -> checkedTarget.removeEventHandler(checkedType, checkedHandler));
+    }
+
+    /**
+     * Attaches an event filter to {@code target} and registers its removal on
+     * {@link #dispose()}.
+     *
+     * @param target    the node receiving the filter
+     * @param eventType the event type to filter
+     * @param filter    the event filter
+     * @param <E>       the event type
+     */
+    public <E extends Event> void registerEventFilter(Node target, EventType<E> eventType,
+                                                      EventHandler<? super E> filter) {
+        Node checkedTarget = Objects.requireNonNull(target, "target");
+        EventType<E> checkedType = Objects.requireNonNull(eventType, "eventType");
+        EventHandler<? super E> checkedFilter = Objects.requireNonNull(filter, "filter");
+        checkedTarget.addEventFilter(checkedType, checkedFilter);
+        tasks.add(() -> checkedTarget.removeEventFilter(checkedType, checkedFilter));
     }
 
     /**

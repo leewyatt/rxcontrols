@@ -3,6 +3,10 @@ package io.github.leewyatt.rxcontrols.skins;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.scene.layout.Pane;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -17,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Tests for {@link SkinDisposer}.
  */
 public class SkinDisposerTest {
+
+    private static final EventType<Event> TEST_EVENT =
+            new EventType<>(Event.ANY, "SKIN_DISPOSER_TEST_EVENT");
 
     /**
      * Verifies LIFO cleanup, complete cleanup after failures, and suppressed
@@ -67,6 +74,22 @@ public class SkinDisposerTest {
         }));
         assertThrows(NullPointerException.class,
                 () -> disposer.registerListener(target, (ChangeListener<Object>) null));
+
+        Pane node = new Pane();
+        EventHandler<Event> handler = event -> {
+        };
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventHandler(null, TEST_EVENT, handler));
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventHandler(node, null, handler));
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventHandler(node, TEST_EVENT, null));
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventFilter(null, TEST_EVENT, handler));
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventFilter(node, null, handler));
+        assertThrows(NullPointerException.class,
+                () -> disposer.registerEventFilter(node, TEST_EVENT, null));
     }
 
     /**
@@ -85,6 +108,42 @@ public class SkinDisposerTest {
         text.set("b");
         disposer.dispose();
         text.set("c");
+
+        assertEquals(1, calls.get());
+    }
+
+    /**
+     * Verifies event handlers are removed during dispose.
+     */
+    @Test
+    public void eventHandlerIsRemovedOnDispose() {
+        SkinDisposer disposer = new SkinDisposer();
+        Pane node = new Pane();
+        AtomicInteger calls = new AtomicInteger();
+
+        disposer.registerEventHandler(node, TEST_EVENT, event -> calls.incrementAndGet());
+
+        node.fireEvent(new Event(TEST_EVENT));
+        disposer.dispose();
+        node.fireEvent(new Event(TEST_EVENT));
+
+        assertEquals(1, calls.get());
+    }
+
+    /**
+     * Verifies event filters are removed during dispose.
+     */
+    @Test
+    public void eventFilterIsRemovedOnDispose() {
+        SkinDisposer disposer = new SkinDisposer();
+        Pane node = new Pane();
+        AtomicInteger calls = new AtomicInteger();
+
+        disposer.registerEventFilter(node, TEST_EVENT, event -> calls.incrementAndGet());
+
+        node.fireEvent(new Event(TEST_EVENT));
+        disposer.dispose();
+        node.fireEvent(new Event(TEST_EVENT));
 
         assertEquals(1, calls.get());
     }
