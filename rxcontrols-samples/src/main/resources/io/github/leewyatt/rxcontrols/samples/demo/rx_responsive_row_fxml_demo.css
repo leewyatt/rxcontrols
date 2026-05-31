@@ -1,0 +1,152 @@
+.responsive-fxml-scroll {
+    -fx-background-color: #eef3f7;
+    -fx-background: #eef3f7;
+}
+
+.responsive-fxml-scroll > .viewport {
+    -fx-background-color: #eef3f7;
+}
+
+.responsive-fxml-page {
+    -fx-padding: 22px;
+    -fx-background-color: #eef3f7;
+}
+
+.responsive-fxml-page:bp-xs {
+    -fx-padding: 14px;
+}
+
+.hero-card,
+.status-card,
+.metric-card,
+.callout-card {
+    -fx-padding: 18px;
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #d7e0ea;
+    -fx-border-radius: 8px;
+}
+
+.hero-card {
+    -fx-min-height: 220px;
+    -fx-background-color: #16324f;
+    -fx-border-color: #16324f;
+}
+
+.eyebrow {
+    -fx-text-fill: #7dd3c7;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.hero-title {
+    -fx-text-fill: white;
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.responsive-fxml-page:bp-xs .hero-title {
+    -fx-font-size: 22px;
+}
+
+.hero-copy {
+    -fx-text-fill: #d5e1ec;
+    -fx-font-size: 13px;
+}
+
+.hero-actions {
+    -fx-padding: 8px 0 0 0;
+}
+
+.button {
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-padding: 8px 12px;
+}
+
+.primary-button {
+    -fx-background-color: #36d6b7;
+    -fx-text-fill: #07352e;
+    -fx-font-weight: bold;
+}
+
+.secondary-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #89a0b8;
+    -fx-text-fill: white;
+}
+
+.status-card {
+    -fx-min-height: 220px;
+}
+
+.card-title,
+.metric-title {
+    -fx-text-fill: #536477;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.status-value,
+.metric-value {
+    -fx-text-fill: #172033;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+}
+
+.card-copy,
+.metric-copy,
+.callout-copy {
+    -fx-text-fill: #66768a;
+    -fx-font-size: 13px;
+}
+
+.status-rule {
+    -fx-pref-height: 1px;
+    -fx-background-color: #d7e0ea;
+}
+
+.status-note {
+    -fx-text-fill: #0f766e;
+    -fx-font-size: 13px;
+}
+
+.metric-card {
+    -fx-min-height: 128px;
+}
+
+.metric-accent-green,
+.metric-accent-blue,
+.metric-accent-gold {
+    -fx-pref-width: 34px;
+    -fx-pref-height: 4px;
+    -fx-background-radius: 50%;
+}
+
+.metric-accent-green {
+    -fx-background-color: #2fbf8f;
+}
+
+.metric-accent-blue {
+    -fx-background-color: #3b82f6;
+}
+
+.metric-accent-gold {
+    -fx-background-color: #f4b83f;
+}
+
+.callout-card {
+    -fx-alignment: center-left;
+}
+
+.callout-title {
+    -fx-text-fill: #172033;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.callout-button {
+    -fx-background-color: #26364a;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}

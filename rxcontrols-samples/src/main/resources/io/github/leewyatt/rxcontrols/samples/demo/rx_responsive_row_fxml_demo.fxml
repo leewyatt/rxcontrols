@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol?>
+<?import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" pannable="true"
+            styleClass="responsive-fxml-scroll"
+            stylesheets="@rx_responsive_row_fxml_demo.css"
+            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="io.github.leewyatt.rxcontrols.samples.demo.RXResponsiveRowFXMLDemoController">
+    <content>
+        <RXResponsiveRow align="STRETCH" gutter="18.0" justify="START"
+                         rowGap="18.0" styleClass="responsive-fxml-page">
+            <children>
+                <RXResponsiveCol fx:id="heroCol">
+
+                    <children>
+                        <VBox spacing="10.0" styleClass="hero-card">
+                            <children>
+                                <Label styleClass="eyebrow" text="OPERATIONS"/>
+                                <Label styleClass="hero-title"
+                                       text="Adaptive service queue for regional support teams."
+                                       wrapText="true"/>
+                                <Label styleClass="hero-copy"
+                                       text="Incidents, response load, and customer health stay readable as the window changes width."
+                                       wrapText="true"/>
+                                <HBox spacing="10.0" styleClass="hero-actions">
+                                    <children>
+                                        <Button styleClass="primary-button" text="Review queue"/>
+                                        <Button styleClass="secondary-button" text="Open reports"/>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+                    </children>
+                </RXResponsiveCol>
+
+                <RXResponsiveCol fx:id="statusCol">
+                    <children>
+                        <VBox spacing="9.0" styleClass="status-card">
+                            <children>
+                                <Label styleClass="card-title" text="Today"/>
+                                <Label styleClass="status-value" text="142"/>
+                                <Label styleClass="card-copy"
+                                       text="Open requests across three service regions."
+                                       wrapText="true"/>
+                                <Region styleClass="status-rule"/>
+                                <Label styleClass="status-note" text="Peak load expected at 16:30"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </RXResponsiveCol>
+
+                <RXResponsiveCol fx:id="slaCol">
+                    <children>
+                        <VBox spacing="8.0" styleClass="metric-card">
+                            <children>
+                                <Region styleClass="metric-accent-green"/>
+                                <Label styleClass="metric-title" text="SLA health"/>
+                                <Label styleClass="metric-value" text="99.8%"/>
+                                <Label styleClass="metric-copy" text="+0.4% from last week"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </RXResponsiveCol>
+
+                <RXResponsiveCol fx:id="responseCol">
+                    <children>
+                        <VBox spacing="8.0" styleClass="metric-card">
+                            <children>
+                                <Region styleClass="metric-accent-blue"/>
+                                <Label styleClass="metric-title" text="Median response"/>
+                                <Label styleClass="metric-value" text="11 min"/>
+                                <Label styleClass="metric-copy" text="4 min faster than target"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </RXResponsiveCol>
+
+                <RXResponsiveCol fx:id="escalationCol">
+                    <children>
+                        <VBox spacing="8.0" styleClass="metric-card">
+                            <children>
+                                <Region styleClass="metric-accent-gold"/>
+                                <Label styleClass="metric-title" text="Escalations"/>
+                                <Label styleClass="metric-value" text="7"/>
+                                <Label styleClass="metric-copy" text="2 require manager review"/>
+                            </children>
+                        </VBox>
+                    </children>
+                </RXResponsiveCol>
+
+                <RXResponsiveCol fx:id="calloutCol">
+                    <children>
+                        <HBox spacing="14.0" styleClass="callout-card">
+                            <children>
+                                <VBox HBox.hgrow="ALWAYS" maxWidth="Infinity" spacing="3.0">
+                                    <children>
+                                        <Label styleClass="callout-title"
+                                               text="Offset column"/>
+                                        <Label styleClass="callout-copy"
+                                               text="A centered assignment strip keeps priority work visible without taking the full dashboard width."
+                                               wrapText="true"/>
+                                    </children>
+                                </VBox>
+                                <Button styleClass="callout-button" text="Assign"/>
+                            </children>
+                        </HBox>
+                    </children>
+                </RXResponsiveCol>
+            </children>
+        </RXResponsiveRow>
+    </content>
+</ScrollPane>
