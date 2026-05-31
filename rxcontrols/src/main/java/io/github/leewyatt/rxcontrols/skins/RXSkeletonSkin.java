@@ -9,6 +9,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
@@ -76,7 +77,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
 
     private final Rectangle shimmerBand = new Rectangle();
 
-    private final TreeShowingProperty treeShowing;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     private Timeline shimmerTimeline;
 
@@ -102,8 +103,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         super(control);
 
         initNodes();
-        treeShowing = new TreeShowingProperty(control);
-        disposer.registerDisposeTask(treeShowing::dispose);
+        treeShowing = controlTreeShowingProperty();
 
         registerListeners(control);
         applyBaseFill();

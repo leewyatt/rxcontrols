@@ -6,15 +6,14 @@ import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -79,8 +78,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     private boolean mouseHovering;
 
     // Tree-showing state
-    private final TreeShowingProperty treeShowing;
-    private ChangeListener<Boolean> treeShowingListener;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     // Handlers for dynamic nodes
     private final EventHandler<MouseEvent> navigatorFocusHandler = e -> getSkinnable().requestFocus();
@@ -93,7 +91,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     public CarouselSkin(RXCarousel carousel) {
         super(carousel);
 
-        treeShowing = new TreeShowingProperty(carousel);
+        treeShowing = controlTreeShowingProperty();
 
         contentPane = new StackPane();
         contentPane.getStyleClass().add("content-pane");
@@ -938,8 +936,8 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     // ==================== Tree Showing Detection ====================
 
     private void installTreeShowingListener(RXCarousel carousel) {
-        treeShowingListener = (obs, oldVal, newVal) -> onTreeShowingChanged(carousel, newVal);
-        treeShowing.addListener(treeShowingListener);
+        disposer.registerListener(treeShowing,
+                (obs, oldVal, newVal) -> onTreeShowingChanged(carousel, newVal));
     }
 
     private void onTreeShowingChanged(RXCarousel carousel, boolean showing) {
@@ -1074,9 +1072,6 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     protected void disposeSkin() {
         RXCarousel carousel = getSkinnable();
         stopAutoplay(carousel);
-
-        treeShowing.removeListener(treeShowingListener);
-        treeShowing.dispose();
 
         if (navigatorNode != null) {
             navigatorNode.removeEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);

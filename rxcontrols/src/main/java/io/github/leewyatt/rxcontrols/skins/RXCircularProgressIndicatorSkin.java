@@ -9,6 +9,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -86,7 +87,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
     private final DoubleProperty animatedStartOffset =
             new SimpleDoubleProperty(this, "animatedStartOffset", 0.0);
 
-    private final TreeShowingProperty treeShowing;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     private Timeline progressTween;
     private Timeline indeterminateTimeline;
@@ -101,8 +102,7 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         super(control);
 
         initNodes(control);
-        treeShowing = new TreeShowingProperty(control);
-        disposer.registerDisposeTask(treeShowing::dispose);
+        treeShowing = controlTreeShowingProperty();
 
         registerListeners(control);
         applyStrokeStyles();

@@ -10,6 +10,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -203,7 +204,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     private final DoubleProperty displayedProgress =
             new SimpleDoubleProperty(this, "displayedProgress", 0.0);
 
-    private final TreeShowingProperty treeShowing;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     private Timeline progressTween;
     private Timeline indeterminateTimeline;
@@ -251,8 +252,7 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         super(control);
 
         initNodes(control);
-        treeShowing = new TreeShowingProperty(control);
-        disposer.registerDisposeTask(treeShowing::dispose);
+        treeShowing = controlTreeShowingProperty();
 
         registerListeners(control);
         applyCenterContent();

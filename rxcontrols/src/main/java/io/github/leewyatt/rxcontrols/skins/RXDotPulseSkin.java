@@ -3,13 +3,13 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXDotPulse.AnimationMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
 import javafx.scene.layout.Region;
@@ -87,7 +87,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
      */
     private final DoubleProperty phase = new SimpleDoubleProperty(this, "phase", 0.0);
 
-    private final TreeShowingProperty treeShowing;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     private Timeline timeline;
 
@@ -99,8 +99,7 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
     public RXDotPulseSkin(RXDotPulse control) {
         super(control);
 
-        treeShowing = new TreeShowingProperty(control);
-        disposer.registerDisposeTask(treeShowing::dispose);
+        treeShowing = controlTreeShowingProperty();
 
         rebuildDots();
         registerListeners(control);

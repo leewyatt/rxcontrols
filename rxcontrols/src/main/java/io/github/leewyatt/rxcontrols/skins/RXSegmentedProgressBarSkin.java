@@ -2,13 +2,13 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
 import javafx.scene.layout.Region;
@@ -94,7 +94,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     private final DoubleProperty indeterminatePhase =
             new SimpleDoubleProperty(this, "indeterminatePhase", 0.0);
 
-    private final TreeShowingProperty treeShowing;
+    private final ReadOnlyBooleanProperty treeShowing;
 
     private Timeline progressTween;
     private Timeline indeterminateTimeline;
@@ -114,8 +114,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     public RXSegmentedProgressBarSkin(RXSegmentedProgressBar control) {
         super(control);
 
-        treeShowing = new TreeShowingProperty(control);
-        disposer.registerDisposeTask(treeShowing::dispose);
+        treeShowing = controlTreeShowingProperty();
 
         rebuildSegments();
         registerListeners(control);
