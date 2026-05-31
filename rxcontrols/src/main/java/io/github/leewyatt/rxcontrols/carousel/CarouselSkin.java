@@ -1,13 +1,11 @@
 package io.github.leewyatt.rxcontrols.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.Direction;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.carousel.animation.AnimNone;
 import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
-import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
+import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
@@ -17,9 +15,10 @@ import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -38,7 +37,7 @@ import java.util.Set;
 /**
  * Default skin for the {@link RXCarousel} control.
  */
-public class CarouselSkin extends SkinBase<RXCarousel> {
+public class CarouselSkin extends RXSkinBase<RXCarousel> {
 
     private static final Duration MIN_AUTOPLAY_INTERVAL = Duration.millis(100);
     private static final Duration FADE_DURATION = Duration.millis(200);
@@ -83,21 +82,8 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
     private final TreeShowingProperty treeShowing;
     private ChangeListener<Boolean> treeShowingListener;
 
-    // Stored listeners and handlers for dispose cleanup
-    private ChangeListener<Number> selectedIndexListener;
-    private ChangeListener<Number> pageCountListener;
-    private ChangeListener<Object> pageFactoryListener;
-    private ChangeListener<Boolean> circularListener;
-    private ChangeListener<Object> arrowDisplayModeListener;
-    private ChangeListener<Object> navigatorListener;
-    private ChangeListener<Object> navigatorDisplayModeListener;
-    private ChangeListener<Object> placeholderListener;
-    private ChangeListener<Boolean> autoPlayListener;
-    private ChangeListener<Object> autoPlayIntervalListener;
-    private ChangeListener<Object> animationListener;
-    private javafx.event.EventHandler<MouseEvent> mouseEnteredHandler;
-    private javafx.event.EventHandler<MouseEvent> mouseExitedHandler;
-    private javafx.event.EventHandler<KeyEvent> keyPressedHandler;
+    // Handlers for dynamic nodes
+    private final EventHandler<MouseEvent> navigatorFocusHandler = e -> getSkinnable().requestFocus();
 
     /**
      * Creates the default skin for the given carousel.
@@ -120,7 +106,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         prevArrow.getStyleClass().add("arrow");
         prevButton = new StackPane(prevArrow);
         prevButton.getStyleClass().add("prev-button");
-        prevButton.setOnMouseClicked(e -> {
+        disposer.registerEventHandler(prevButton, MouseEvent.MOUSE_CLICKED, e -> {
             carousel.previous();
             carousel.requestFocus();
         });
@@ -129,7 +115,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         nextArrow.getStyleClass().add("arrow");
         nextButton = new StackPane(nextArrow);
         nextButton.getStyleClass().add("next-button");
-        nextButton.setOnMouseClicked(e -> {
+        disposer.registerEventHandler(nextButton, MouseEvent.MOUSE_CLICKED, e -> {
             carousel.next();
             carousel.requestFocus();
         });
@@ -233,20 +219,18 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
     // ==================== Listeners ====================
 
-    @SuppressWarnings("unchecked")
     private void setupListeners(RXCarousel carousel) {
         // Selected index change -> play animation
-        selectedIndexListener = (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.selectedIndexProperty(), (obs, oldVal, newVal) -> {
             int oldIndex = oldVal.intValue();
             int newIndex = newVal.intValue();
             if (oldIndex != newIndex) {
                 onSelectedIndexChanged(oldIndex, newIndex, carousel);
             }
-        };
-        carousel.selectedIndexProperty().addListener(selectedIndexListener);
+        });
 
         // Page count change
-        pageCountListener = (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.pageCountProperty(), (obs, oldVal, newVal) -> {
             int count = newVal.intValue();
             if (shouldShowPlaceholder(carousel)) {
                 showPlaceholder(carousel);
@@ -259,11 +243,10 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
             }
             updateArrowDisabledState(carousel);
             notifyNavigator(-1, carousel);
-        };
-        carousel.pageCountProperty().addListener(pageCountListener);
+        });
 
         // Page factory change -> clear cache and reinitialize
-        pageFactoryListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.pageFactoryProperty(), (obs, oldVal, newVal) -> {
             clearAllPagesFromCache(carousel);
             if (shouldShowPlaceholder(carousel)) {
                 showPlaceholder(carousel);
@@ -271,11 +254,10 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
                 hidePlaceholder(carousel);
                 initializeCurrentPage(carousel);
             }
-        };
-        carousel.pageFactoryProperty().addListener(pageFactoryListener);
+        });
 
         // Circular mode change
-        circularListener = (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.circularProperty(), (obs, oldVal, newVal) -> {
             updateArrowDisabledState(carousel);
             // When switching back to circular while autoPlay is on and
             // the timer was stopped (e.g., at the last page in non-circular
@@ -283,51 +265,42 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
             if (newVal && carousel.isAutoPlay() && treeShowing.get() && !transitioning) {
                 startAutoplay(carousel);
             }
-        };
-        carousel.circularProperty().addListener(circularListener);
+        });
 
         // Arrow display mode
-        arrowDisplayModeListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.arrowDisplayModeProperty(), (obs, oldVal, newVal) -> {
             updateArrowVisibility(carousel);
-        };
-        carousel.arrowDisplayModeProperty().addListener(arrowDisplayModeListener);
+        });
 
         // Navigator
-        navigatorListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
-            updateNavigator((CarouselNavigator) oldVal, (CarouselNavigator) newVal, carousel);
-        };
-        carousel.navigatorProperty().addListener(navigatorListener);
+        disposer.registerListener(carousel.navigatorProperty(), (obs, oldVal, newVal) ->
+                updateNavigator(oldVal, newVal, carousel));
 
         // Navigator display mode
-        navigatorDisplayModeListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
-            updateNavigatorVisibility(carousel);
-        };
-        carousel.navigatorDisplayModeProperty().addListener(navigatorDisplayModeListener);
+        disposer.registerListener(carousel.navigatorDisplayModeProperty(),
+                (obs, oldVal, newVal) -> updateNavigatorVisibility(carousel));
 
         // Placeholder
-        placeholderListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.placeholderProperty(), (obs, oldVal, newVal) -> {
             if (shouldShowPlaceholder(carousel)) {
                 showPlaceholder(carousel);
             }
-        };
-        carousel.placeholderProperty().addListener(placeholderListener);
+        });
 
         // Auto play properties
-        autoPlayListener = (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.autoPlayProperty(), (obs, oldVal, newVal) -> {
             if (newVal && treeShowing.get()) {
                 startAutoplay(carousel);
             } else {
                 stopAutoplay(carousel);
             }
-        };
-        carousel.autoPlayProperty().addListener(autoPlayListener);
+        });
 
-        autoPlayIntervalListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.autoPlayIntervalProperty(), (obs, oldVal, newVal) -> {
             if (carousel.isAutoPlay()) {
                 restartAutoplay(carousel);
             }
-        };
-        carousel.autoPlayIntervalProperty().addListener(autoPlayIntervalListener);
+        });
 
         // Animation type change — deferred until the next transition.
         // If no animation is running, multi-page display animations need
@@ -335,13 +308,10 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         // If an animation IS running, we do nothing here; the running
         // animation plays to completion and onSelectedIndexChanged handles
         // the cleanup on the next page change (anim != usedAnimation check).
-        animationListener = (ChangeListener<Object>) (obs, oldVal, newVal) -> {
+        disposer.registerListener(carousel.animationProperty(), (obs, oldAnim, newAnim) -> {
             if (transitioning) {
                 return;
             }
-
-            CarouselAnimation oldAnim = (CarouselAnimation) oldVal;
-            CarouselAnimation newAnim = (CarouselAnimation) newVal;
 
             if (oldAnim != null && oldAnim.isMultiPageDisplay()) {
                 int idx = carousel.getSelectedIndex();
@@ -359,18 +329,16 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
                     newAnim.setupInitialLayout(ctx);
                 }
             }
-        };
-        carousel.animationProperty().addListener(animationListener);
+        });
 
         // Mouse enter/exit for hover effects
-        mouseEnteredHandler = e -> onMouseEntered(carousel);
-        carousel.addEventHandler(MouseEvent.MOUSE_ENTERED, mouseEnteredHandler);
-
-        mouseExitedHandler = e -> onMouseExited(carousel);
-        carousel.addEventHandler(MouseEvent.MOUSE_EXITED, mouseExitedHandler);
+        disposer.registerEventHandler(carousel, MouseEvent.MOUSE_ENTERED,
+                e -> onMouseEntered(carousel));
+        disposer.registerEventHandler(carousel, MouseEvent.MOUSE_EXITED,
+                e -> onMouseExited(carousel));
 
         // Keyboard navigation
-        keyPressedHandler = e -> {
+        disposer.registerEventHandler(carousel, KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.KP_LEFT) {
                 carousel.previous();
                 e.consume();
@@ -378,8 +346,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
                 carousel.next();
                 e.consume();
             }
-        };
-        carousel.addEventHandler(KeyEvent.KEY_PRESSED, keyPressedHandler);
+        });
 
         installTreeShowingListener(carousel);
     }
@@ -639,7 +606,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
         // Wrap the animation's own onFinished (which handles page visibility)
         // rather than overwriting it
-        javafx.event.EventHandler<javafx.event.ActionEvent> animHandler = transition.getOnFinished();
+        EventHandler<ActionEvent> animHandler = transition.getOnFinished();
         transition.setOnFinished(e -> {
             if (animHandler != null) {
                 animHandler.handle(e);
@@ -853,10 +820,12 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
     // ==================== Navigator ====================
 
-    private void updateNavigator(CarouselNavigator oldNav, CarouselNavigator newNav, RXCarousel carousel) {
+    private void updateNavigator(CarouselNavigator oldNav, CarouselNavigator newNav,
+                                 RXCarousel carousel) {
         if (oldNav != null) {
             oldNav.dispose();
             if (navigatorNode != null) {
+                navigatorNode.removeEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
                 getChildren().remove(navigatorNode);
                 navigatorNode = null;
             }
@@ -864,7 +833,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         if (newNav != null) {
             navigatorNode = newNav.createNode(carousel);
             if (navigatorNode != null) {
-                navigatorNode.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> carousel.requestFocus());
+                navigatorNode.addEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
                 getChildren().add(navigatorNode);
                 updateNavigatorVisibility(carousel);
                 newNav.onPageChanged(-1, carousel.getSelectedIndex(), carousel.getPageCount());
@@ -929,7 +898,8 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
         // Resume autoplay only if no animation is in progress.
         // If transitioning, autoplay will be restarted by onTransitionFinished.
-        if (carousel.isAutoPlay() && carousel.isHoverPause() && treeShowing.get() && !transitioning) {
+        if (carousel.isAutoPlay() && carousel.isHoverPause()
+                && treeShowing.get() && !transitioning) {
             startAutoplay(carousel);
         }
 
@@ -1100,32 +1070,17 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
     // ==================== Dispose ====================
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         RXCarousel carousel = getSkinnable();
         stopAutoplay(carousel);
-
-        // Remove all property listeners
-        carousel.selectedIndexProperty().removeListener(selectedIndexListener);
-        carousel.pageCountProperty().removeListener(pageCountListener);
-        carousel.pageFactoryProperty().removeListener(pageFactoryListener);
-        carousel.circularProperty().removeListener(circularListener);
-        carousel.arrowDisplayModeProperty().removeListener(arrowDisplayModeListener);
-        carousel.navigatorProperty().removeListener(navigatorListener);
-        carousel.navigatorDisplayModeProperty().removeListener(navigatorDisplayModeListener);
-        carousel.placeholderProperty().removeListener(placeholderListener);
-        carousel.autoPlayProperty().removeListener(autoPlayListener);
-        carousel.autoPlayIntervalProperty().removeListener(autoPlayIntervalListener);
-        carousel.animationProperty().removeListener(animationListener);
 
         treeShowing.removeListener(treeShowingListener);
         treeShowing.dispose();
 
-        // Remove event handlers
-        carousel.removeEventHandler(MouseEvent.MOUSE_ENTERED, mouseEnteredHandler);
-        carousel.removeEventHandler(MouseEvent.MOUSE_EXITED, mouseExitedHandler);
-        carousel.removeEventHandler(KeyEvent.KEY_PRESSED, keyPressedHandler);
+        if (navigatorNode != null) {
+            navigatorNode.removeEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
+        }
 
         CarouselNavigator nav = carousel.getNavigator();
         if (nav != null) {
@@ -1140,6 +1095,5 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
             usedAnimation = null;
         }
         pageCache.clear();
-        super.dispose();
     }
 }
