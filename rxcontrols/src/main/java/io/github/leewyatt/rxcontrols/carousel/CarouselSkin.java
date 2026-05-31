@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.carousel.animation.AnimNone;
 import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
+import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -17,7 +18,6 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
 import javafx.scene.input.KeyCode;
@@ -26,7 +26,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
-import javafx.stage.Window;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
@@ -80,11 +79,9 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
     // Mouse hover state (for hoverPause interaction with keyboard navigation)
     private boolean mouseHovering;
 
-    // Tree-showing state (scene != null && window != null && window.isShowing())
-    private boolean treeShowing;
-    private ChangeListener<Window> windowListener;
-    private ChangeListener<Boolean> windowShowingListener;
-    private Window currentWindow;
+    // Tree-showing state
+    private final TreeShowingProperty treeShowing;
+    private ChangeListener<Boolean> treeShowingListener;
 
     // Stored listeners and handlers for dispose cleanup
     private ChangeListener<Number> selectedIndexListener;
@@ -98,7 +95,6 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
     private ChangeListener<Boolean> autoPlayListener;
     private ChangeListener<Object> autoPlayIntervalListener;
     private ChangeListener<Object> animationListener;
-    private ChangeListener<Scene> sceneListener;
     private javafx.event.EventHandler<MouseEvent> mouseEnteredHandler;
     private javafx.event.EventHandler<MouseEvent> mouseExitedHandler;
     private javafx.event.EventHandler<KeyEvent> keyPressedHandler;
@@ -110,6 +106,8 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
      */
     public CarouselSkin(RXCarousel carousel) {
         super(carousel);
+
+        treeShowing = new TreeShowingProperty(carousel);
 
         contentPane = new StackPane();
         contentPane.getStyleClass().add("content-pane");
@@ -142,8 +140,8 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         autoPlayProgressInternal.addListener((obs, oldVal, newVal) ->
                 carousel.setAutoPlayProgress(newVal.doubleValue()));
 
-        initAutoPlayTimer(carousel);
         setupListeners(carousel);
+        initAutoPlayTimer(carousel);
         updateNavigator(null, carousel.getNavigator(), carousel);
         updateNavigatorVisibility(carousel);
         updateArrowVisibility(carousel);
@@ -282,7 +280,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
             // When switching back to circular while autoPlay is on and
             // the timer was stopped (e.g., at the last page in non-circular
             // mode), restart it so auto-play resumes.
-            if (newVal && carousel.isAutoPlay() && treeShowing && !transitioning) {
+            if (newVal && carousel.isAutoPlay() && treeShowing.get() && !transitioning) {
                 startAutoplay(carousel);
             }
         };
@@ -316,7 +314,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
         // Auto play properties
         autoPlayListener = (obs, oldVal, newVal) -> {
-            if (newVal && treeShowing) {
+            if (newVal && treeShowing.get()) {
                 startAutoplay(carousel);
             } else {
                 stopAutoplay(carousel);
@@ -383,7 +381,6 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         };
         carousel.addEventHandler(KeyEvent.KEY_PRESSED, keyPressedHandler);
 
-        // Tree-showing detection: scene -> window -> window.showing
         installTreeShowingListener(carousel);
     }
 
@@ -679,7 +676,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
                 currentTransition = null;
                 animatingFromIndex = -1;
                 animatingToIndex = -1;
-                if (carousel.isAutoPlay() && treeShowing
+                if (carousel.isAutoPlay() && treeShowing.get()
                         && !(mouseHovering && carousel.isHoverPause())) {
                     startAutoplay(carousel);
                 }
@@ -728,7 +725,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         // Do NOT restart if mouse is hovering and hoverPause is active,
         // because keyboard/programmatic navigation during hover should
         // not resume autoplay.
-        if (carousel.isAutoPlay() && treeShowing
+        if (carousel.isAutoPlay() && treeShowing.get()
                 && !(mouseHovering && carousel.isHoverPause())) {
             startAutoplay(carousel);
         }
@@ -932,7 +929,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
 
         // Resume autoplay only if no animation is in progress.
         // If transitioning, autoplay will be restarted by onTransitionFinished.
-        if (carousel.isAutoPlay() && carousel.isHoverPause() && treeShowing && !transitioning) {
+        if (carousel.isAutoPlay() && carousel.isHoverPause() && treeShowing.get() && !transitioning) {
             startAutoplay(carousel);
         }
 
@@ -971,70 +968,24 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
     // ==================== Tree Showing Detection ====================
 
     private void installTreeShowingListener(RXCarousel carousel) {
-        windowShowingListener = (obs, oldVal, newVal) -> updateTreeShowing(carousel);
-
-        windowListener = (obs, oldWindow, newWindow) -> {
-            uninstallShowingListener();
-            installShowingListener(newWindow);
-            updateTreeShowing(carousel);
-        };
-
-        sceneListener = (obs, oldScene, newScene) -> {
-            if (oldScene != null) {
-                oldScene.windowProperty().removeListener(windowListener);
-            }
-            uninstallShowingListener();
-            if (newScene != null) {
-                newScene.windowProperty().addListener(windowListener);
-                installShowingListener(newScene.getWindow());
-            }
-            updateTreeShowing(carousel);
-        };
-        carousel.sceneProperty().addListener(sceneListener);
-
-        // Attach to current scene/window if already present
-        Scene scene = carousel.getScene();
-        if (scene != null) {
-            scene.windowProperty().addListener(windowListener);
-            installShowingListener(scene.getWindow());
-        }
-        updateTreeShowing(carousel);
+        treeShowingListener = (obs, oldVal, newVal) -> onTreeShowingChanged(carousel, newVal);
+        treeShowing.addListener(treeShowingListener);
     }
 
-    private void installShowingListener(Window window) {
-        if (window != null) {
-            currentWindow = window;
-            window.showingProperty().addListener(windowShowingListener);
-        }
-    }
-
-    private void uninstallShowingListener() {
-        if (currentWindow != null) {
-            currentWindow.showingProperty().removeListener(windowShowingListener);
-            currentWindow = null;
-        }
-    }
-
-    private void updateTreeShowing(RXCarousel carousel) {
-        Scene scene = carousel.getScene();
-        Window window = scene != null ? scene.getWindow() : null;
-        boolean showing = window != null && window.isShowing();
-        if (showing != treeShowing) {
-            treeShowing = showing;
-            if (showing) {
-                if (carousel.isAutoPlay()) {
-                    startAutoplay(carousel);
-                }
-            } else {
-                pauseAutoplay();
+    private void onTreeShowingChanged(RXCarousel carousel, boolean showing) {
+        if (showing) {
+            if (carousel.isAutoPlay()) {
+                startAutoplay(carousel);
             }
+        } else {
+            pauseAutoplay();
         }
     }
 
     // ==================== Auto Play ====================
 
     private void initAutoPlayTimer(RXCarousel carousel) {
-        if (carousel.isAutoPlay() && treeShowing) {
+        if (carousel.isAutoPlay() && treeShowing.get()) {
             startAutoplay(carousel);
         }
     }
@@ -1075,7 +1026,7 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         );
         autoPlayTimeline.setOnFinished(e -> {
             autoPlayProgressInternal.set(0);
-            if (carousel.isAutoPlay() && treeShowing) {
+            if (carousel.isAutoPlay() && treeShowing.get()) {
                 carousel.next();
             }
         });
@@ -1168,13 +1119,8 @@ public class CarouselSkin extends SkinBase<RXCarousel> {
         carousel.autoPlayIntervalProperty().removeListener(autoPlayIntervalListener);
         carousel.animationProperty().removeListener(animationListener);
 
-        // Clean up tree-showing listener chain
-        carousel.sceneProperty().removeListener(sceneListener);
-        Scene scene = carousel.getScene();
-        if (scene != null) {
-            scene.windowProperty().removeListener(windowListener);
-        }
-        uninstallShowingListener();
+        treeShowing.removeListener(treeShowingListener);
+        treeShowing.dispose();
 
         // Remove event handlers
         carousel.removeEventHandler(MouseEvent.MOUSE_ENTERED, mouseEnteredHandler);
