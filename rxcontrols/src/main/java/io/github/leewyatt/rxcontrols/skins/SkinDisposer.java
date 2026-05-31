@@ -8,6 +8,7 @@ import javafx.beans.value.ObservableValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Collects cleanup actions to run when a skin is disposed. Designed for
@@ -48,7 +49,7 @@ public final class SkinDisposer {
      * @param task cleanup action; must not be {@code null}
      */
     public void registerDisposeTask(Runnable task) {
-        tasks.add(task);
+        tasks.add(Objects.requireNonNull(task, "task"));
     }
 
     /**
@@ -60,8 +61,10 @@ public final class SkinDisposer {
      * @param <T>    the property value type
      */
     public <T> void registerBinding(Property<T> target, ObservableValue<? extends T> source) {
-        target.bind(source);
-        tasks.add(target::unbind);
+        Property<T> checkedTarget = Objects.requireNonNull(target, "target");
+        ObservableValue<? extends T> checkedSource = Objects.requireNonNull(source, "source");
+        checkedTarget.bind(checkedSource);
+        tasks.add(checkedTarget::unbind);
     }
 
     /**
@@ -75,9 +78,11 @@ public final class SkinDisposer {
      * @param invalidationAction called on each invalidation
      */
     public void registerListener(Observable observable, Runnable invalidationAction) {
-        InvalidationListener listener = ignored -> invalidationAction.run();
-        observable.addListener(listener);
-        tasks.add(() -> observable.removeListener(listener));
+        Observable checkedObservable = Objects.requireNonNull(observable, "observable");
+        Runnable checkedAction = Objects.requireNonNull(invalidationAction, "invalidationAction");
+        InvalidationListener listener = ignored -> checkedAction.run();
+        checkedObservable.addListener(listener);
+        tasks.add(() -> checkedObservable.removeListener(listener));
     }
 
     /**
@@ -90,9 +95,12 @@ public final class SkinDisposer {
      * @param changeListener typed change listener
      * @param <T>            the observed value type
      */
-    public <T> void registerListener(ObservableValue<T> observable, ChangeListener<T> changeListener) {
-        observable.addListener(changeListener);
-        tasks.add(() -> observable.removeListener(changeListener));
+    public <T> void registerListener(ObservableValue<T> observable,
+                                     ChangeListener<? super T> changeListener) {
+        ObservableValue<T> checkedObservable = Objects.requireNonNull(observable, "observable");
+        ChangeListener<? super T> checkedListener = Objects.requireNonNull(changeListener, "changeListener");
+        checkedObservable.addListener(checkedListener);
+        tasks.add(() -> checkedObservable.removeListener(checkedListener));
     }
 
     /**
@@ -100,9 +108,24 @@ public final class SkinDisposer {
      * Safe to call more than once; subsequent calls are no-ops.
      */
     public void dispose() {
-        for (int i = tasks.size() - 1; i >= 0; i--) {
-            tasks.get(i).run();
+        RuntimeException error = null;
+        try {
+            for (int i = tasks.size() - 1; i >= 0; i--) {
+                try {
+                    tasks.get(i).run();
+                } catch (RuntimeException e) {
+                    if (error == null) {
+                        error = e;
+                    } else {
+                        error.addSuppressed(e);
+                    }
+                }
+            }
+        } finally {
+            tasks.clear();
         }
-        tasks.clear();
+        if (error != null) {
+            throw error;
+        }
     }
 }

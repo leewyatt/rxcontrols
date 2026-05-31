@@ -312,8 +312,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
     // ==================== Dispose ====================
 
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         clearSegments();
-        super.dispose();
     }
 }

@@ -466,17 +466,15 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
     // ==================== Dispose ====================
 
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         // Timelines are rebuilt many times during the skin's life; stop the
         // current one explicitly here. Listeners, bindings, transform and
-        // treeShowing teardown are handled by the embedded SkinDisposer in
-        // RXSkinBase.dispose().
+        // treeShowing teardown are handled by the base disposer.
         stopProgressTween();
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
             indeterminateTimeline = null;
         }
-        super.dispose();
     }
 
 }

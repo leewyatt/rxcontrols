@@ -6,7 +6,8 @@ import javafx.scene.control.SkinBase;
 /**
  * Convenience base for skins that extend {@link SkinBase} directly. Embeds a
  * {@link SkinDisposer} and disposes it automatically before delegating to
- * {@code super.dispose()}.
+ * {@code super.dispose()}. Subclasses override {@link #disposeSkin()} for
+ * their own cleanup.
  *
  * <p>For skins that must extend a JavaFX subclass (e.g. {@code TextFieldSkin},
  * {@code PaginationSkin}), use {@link SkinDisposer} directly via composition
@@ -33,12 +34,46 @@ public abstract class RXSkinBase<C extends Control> extends SkinBase<C> {
 
     /**
      * Runs all registered cleanup tasks via {@link SkinDisposer#dispose()},
-     * then delegates to {@link SkinBase#dispose()}. Subclasses overriding this
-     * method <b>must</b> call {@code super.dispose()}.
+     * then delegates to {@link SkinBase#dispose()}.
      */
     @Override
-    public void dispose() {
-        disposer.dispose();
-        super.dispose();
+    public final void dispose() {
+        RuntimeException error = null;
+        try {
+            disposeSkin();
+        } catch (RuntimeException e) {
+            error = e;
+        } finally {
+            try {
+                disposer.dispose();
+            } catch (RuntimeException e) {
+                if (error == null) {
+                    error = e;
+                } else {
+                    error.addSuppressed(e);
+                }
+            } finally {
+                try {
+                    super.dispose();
+                } catch (RuntimeException e) {
+                    if (error == null) {
+                        error = e;
+                    } else {
+                        error.addSuppressed(e);
+                    }
+                }
+            }
+        }
+        if (error != null) {
+            throw error;
+        }
+    }
+
+    /**
+     * Releases resources owned directly by the subclass before registered
+     * disposer tasks and {@link SkinBase} cleanup run. The default
+     * implementation does nothing.
+     */
+    protected void disposeSkin() {
     }
 }

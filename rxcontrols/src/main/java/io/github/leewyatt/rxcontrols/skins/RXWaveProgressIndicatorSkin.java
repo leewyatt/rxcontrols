@@ -814,17 +814,16 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
     // ==================== Dispose ====================
 
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         // The frame timer and the two timelines are not managed by the embedded
         // SkinDisposer; stop them explicitly. Listeners, bindings, clip and
-        // treeShowing teardown are handled by RXSkinBase.dispose().
+        // treeShowing teardown are handled by the base disposer.
         stopProgressTween();
         stopWaveTimer();
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
             indeterminateTimeline = null;
         }
-        super.dispose();
     }
 
 }

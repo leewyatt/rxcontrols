@@ -423,14 +423,13 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     // ==================== Dispose ====================
 
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         // Timelines are rebuilt many times during the skin's life; stop the
         // current one explicitly here. Listeners and treeShowing teardown are
-        // handled by the embedded SkinDisposer in RXSkinBase.dispose().
+        // handled by the base disposer.
         if (timeline != null) {
             timeline.stop();
             timeline = null;
         }
-        super.dispose();
     }
 }

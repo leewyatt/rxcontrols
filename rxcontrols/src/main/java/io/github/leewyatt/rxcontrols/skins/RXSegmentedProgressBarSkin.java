@@ -476,7 +476,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     // ==================== Dispose ====================
 
     @Override
-    public void dispose() {
+    protected void disposeSkin() {
         stopProgressTween();
         if (indeterminateTimeline != null) {
             indeterminateTimeline.stop();
@@ -487,7 +487,6 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         for (Region r : fillRegions) {
             r.setClip(null);
         }
-        super.dispose();
     }
 
 }
