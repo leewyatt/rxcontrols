@@ -50,7 +50,7 @@ import java.util.ResourceBundle;
 
 public class MainController {
 
-    private static final String CAROUSEL_DEMO_IMAGES = "/io/github/leewyatt/rxcontrols/samples/carousel/images/";
+    private static final String CAROUSEL_DEMO_IMAGES = "/io/github/leewyatt/rxcontrols/samples/demo/carousel/images/";
     private static final int CAROUSEL_DEMO_IMAGE_COUNT = 6;
 
     private static final String[] PAGE_FXML = {
