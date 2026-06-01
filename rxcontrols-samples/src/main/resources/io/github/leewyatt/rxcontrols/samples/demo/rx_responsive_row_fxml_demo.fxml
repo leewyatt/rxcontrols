@@ -20,7 +20,8 @@
             Grid:         24 columns; breakpoints xs(0) sm(768) md(992) lg(1200) xl(1920); no xxl.
             Mobile-first: a field unset at a breakpoint inherits the nearest smaller breakpoint,
                           finally the column base (span=24 = full width, offset=0, order=0, hidden=false).
-            DSL:          1st number = span, 2nd = offset; order/hidden via key=value (RXColSpec.valueOf).
+            DSL:          1st positional = span, 2nd positional = offset;
+                          key=value supports span/offset/order/hidden (RXColSpec.valueOf).
           An attribute that only repeats the inherited value can be dropped — see each column below.
         -->
         <RXResponsiveRow align="STRETCH" gutter="18.0" justify="START"
@@ -108,7 +109,7 @@
                 <!--
                   Median response — explicit element form (RXColSpec children, @NamedArg path).
                   Resolved: xs 24, sm 12, md 12, lg 8 (offset 0, order 2); xl+ inherits lg.
-                  Same thing in the recommended attribute form:
+                  Equivalent attribute shorthand:
                     <RXResponsiveCol xs="24" sm="12" md="12" lg="8,0,order=2">
                   md inherits sm's 12, so minimally:
                     <RXResponsiveCol xs="24" sm="12" lg="8,order=2">
