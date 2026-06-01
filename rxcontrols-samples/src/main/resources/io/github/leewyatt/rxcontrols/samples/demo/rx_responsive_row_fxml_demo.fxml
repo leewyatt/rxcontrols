@@ -15,9 +15,27 @@
             stylesheets="@rx_responsive_row_fxml_demo.css"
             xmlns="http://javafx.com/javafx/17">
     <content>
+        <!--
+          Layout context (default ELEMENT profile):
+            Grid:         24 columns; breakpoints xs(0) sm(768) md(992) lg(1200) xl(1920); no xxl.
+            Mobile-first: a field unset at a breakpoint inherits the nearest smaller breakpoint,
+                          finally the column base (span=24 = full width, offset=0, order=0, hidden=false).
+            DSL:          1st number = span, 2nd = offset; order/hidden via key=value (RXColSpec.valueOf).
+          An attribute that only repeats the inherited value can be dropped — see each column below.
+        -->
         <RXResponsiveRow align="STRETCH" gutter="18.0" justify="START"
                          rowGap="18.0" styleClass="responsive-fxml-page">
             <children>
+                <!--
+                  Hero — full width at the narrow breakpoints (xs/sm), 16 cols at md, 14 at lg+.
+                  Reading the syntax: the attribute name is the breakpoint, its value is the span.
+                  So xs="24" = "at xs, span 24 columns", and since the grid is 24 wide that is full width;
+                  md="16" = 16 of 24 columns at md, etc.
+                  As written:
+                    <RXResponsiveCol xs="24" sm="24" md="16" lg="14">
+                  sm inherits xs's 24, so equivalently:
+                    <RXResponsiveCol xs="24" md="16" lg="14">
+                -->
                 <RXResponsiveCol xs="24" sm="24" md="16" lg="14">
 
                     <children>
@@ -41,6 +59,13 @@
                     </children>
                 </RXResponsiveCol>
 
+                <!--
+                  Status — full width at the narrow breakpoints (xs/sm), 8 cols at md, 10 at lg+.
+                  As written:
+                    <RXResponsiveCol xs="24" sm="24" md="8" lg="10">
+                  sm inherits xs's 24, so equivalently:
+                    <RXResponsiveCol xs="24" md="8" lg="10">
+                -->
                 <RXResponsiveCol xs="24" sm="24" md="8" lg="10">
                     <children>
                         <VBox spacing="9.0" styleClass="status-card">
@@ -57,6 +82,16 @@
                     </children>
                 </RXResponsiveCol>
 
+                <!--
+                  SLA — full width at xs, 12 cols at sm/md, 8 at lg+; order=1 pulls it ahead at lg.
+                  Reading lg="8,0,order=1": a value may carry several fields separated by commas.
+                  The 1st number is span, the 2nd is offset; order/hidden are keyword-only.
+                  So 8 = span, 0 = offset, order=1 = visual order → span 8, offset 0, order 1 at lg.
+                  As written:
+                    <RXResponsiveCol xs="24" sm="12" md="12" lg="8,0,order=1">
+                  md inherits sm's 12, and offset 0 is a no-op (offset was never moved), so equivalently:
+                    <RXResponsiveCol xs="24" sm="12" lg="8,order=1">
+                -->
                 <RXResponsiveCol xs="24" sm="12" md="12" lg="8,0,order=1">
                     <children>
                         <VBox spacing="8.0" styleClass="metric-card">
@@ -70,6 +105,16 @@
                     </children>
                 </RXResponsiveCol>
 
+                <!--
+                  Median response — explicit element form (RXColSpec children, @NamedArg path).
+                  Resolved: xs 24, sm 12, md 12, lg 8 (offset 0, order 2); xl+ inherits lg.
+                  Same thing in the recommended attribute form:
+                    <RXResponsiveCol xs="24" sm="12" md="12" lg="8,0,order=2">
+                  md inherits sm's 12, so minimally:
+                    <RXResponsiveCol xs="24" sm="12" lg="8,order=2">
+                  Some IDEs may mark span/offset/order below as read-only; FXMLLoader uses RXColSpec's
+                  @NamedArg constructor at runtime, so it still loads correctly.
+                -->
                 <RXResponsiveCol>
                     <xs>
                         <RXColSpec span="24"/>
@@ -95,6 +140,15 @@
                     </children>
                 </RXResponsiveCol>
 
+                <!--
+                  Escalations — full width until lg, then 8 columns.
+                  As written:
+                    <RXResponsiveCol xs="24" sm="24" md="24" lg="8">
+                  sm/md inherit xs's 24:
+                    <RXResponsiveCol xs="24" lg="8">
+                  xs also only restates the base default (24 = full width), so minimally:
+                    <RXResponsiveCol lg="8">
+                -->
                 <RXResponsiveCol xs="24" sm="24" md="24" lg="8">
                     <children>
                         <VBox spacing="8.0" styleClass="metric-card">
@@ -108,6 +162,14 @@
                     </children>
                 </RXResponsiveCol>
 
+                <!--
+                  Callout — hidden at xs, shown from sm up; 20 cols (offset 2) at md, 18 (offset 3) at lg+.
+                  As written:
+                    <RXResponsiveCol xs="span=24,hidden=true" sm="span=24,hidden=false" md="20,2" lg="18,3">
+                  span=24 only restates the base default; xs/sm just toggle hidden, so equivalently:
+                    <RXResponsiveCol xs="hidden=true" sm="hidden=false" md="20,2" lg="18,3">
+                  Keep sm="hidden=false" — dropping it leaves the column hidden at sm and up.
+                -->
                 <RXResponsiveCol xs="span=24,hidden=true" sm="span=24,hidden=false"
                                  md="20,2" lg="18,3">
                     <children>
