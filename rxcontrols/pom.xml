@@ -39,7 +39,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <!-- javafx-fxml is test-scoped, so its helpers run from the test classpath. -->
+                    <!-- Test-scoped javafx-fxml runs from the classpath; its internal
+                         helpers need explicit access to JavaFX internals. -->
                     <argLine>
                         --add-exports javafx.graphics/com.sun.javafx.util=ALL-UNNAMED
                         --add-exports javafx.base/com.sun.javafx.reflect=ALL-UNNAMED
