@@ -70,7 +70,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_segmented_progress_bar_showcase.css").toExternalForm();
+        return getClass().getResource("rx-segmented-progress-bar-showcase.css").toExternalForm();
     }
 
     @Override

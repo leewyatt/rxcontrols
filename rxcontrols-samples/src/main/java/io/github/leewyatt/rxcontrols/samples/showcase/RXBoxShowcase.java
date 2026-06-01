@@ -79,7 +79,7 @@ public class RXBoxShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_box_showcase.css").toExternalForm();
+        return getClass().getResource("rx-box-showcase.css").toExternalForm();
     }
 
     @Override

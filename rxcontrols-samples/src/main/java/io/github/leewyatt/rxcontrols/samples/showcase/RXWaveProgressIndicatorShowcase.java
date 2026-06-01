@@ -86,7 +86,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_wave_progress_indicator_showcase.css").toExternalForm();
+        return getClass().getResource("rx-wave-progress-indicator-showcase.css").toExternalForm();
     }
 
     @Override

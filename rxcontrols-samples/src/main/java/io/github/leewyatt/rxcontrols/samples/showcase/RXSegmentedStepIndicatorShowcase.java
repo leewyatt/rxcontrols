@@ -63,7 +63,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_segmented_step_indicator_showcase.css").toExternalForm();
+        return getClass().getResource("rx-segmented-step-indicator-showcase.css").toExternalForm();
     }
 
     @Override

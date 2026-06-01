@@ -86,7 +86,7 @@ public class RXCircularProgressIndicatorShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_circular_progress_indicator_showcase.css").toExternalForm();
+        return getClass().getResource("rx-circular-progress-indicator-showcase.css").toExternalForm();
     }
 
     @Override

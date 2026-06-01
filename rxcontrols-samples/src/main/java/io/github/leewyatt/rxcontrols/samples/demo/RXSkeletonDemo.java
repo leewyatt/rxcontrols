@@ -51,7 +51,7 @@ public class RXSkeletonDemo extends Application {
         Scene scene = new Scene(scroll, 760.0, 640.0);
         scene.getStylesheets().add(
                 RXSkeletonDemo.class
-                        .getResource("rx_skeleton_demo.css")
+                        .getResource("rx-skeleton-demo.css")
                         .toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXSkeleton Demo");

@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0"
-            prefWidth="761.0" styleClass="avatar-page" stylesheets="@../css/pane_avatar.css"
+            prefWidth="761.0" styleClass="avatar-page" stylesheets="@../css/pane-avatar.css"
             xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <VBox layoutX="42.0" layoutY="24.0" prefWidth="677.0" spacing="14.0" AnchorPane.leftAnchor="42.0"

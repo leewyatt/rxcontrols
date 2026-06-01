@@ -14,7 +14,7 @@
 
 <AnchorPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneDigitController">
    <children>
-      <BorderPane id="bgPane" fx:id="bgPane" layoutX="156.0" layoutY="137.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="194.0" prefWidth="450.0" stylesheets="@../css/pane_digit.css">
+      <BorderPane id="bgPane" fx:id="bgPane" layoutX="156.0" layoutY="137.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="194.0" prefWidth="450.0" stylesheets="@../css/pane-digit.css">
          <center>
             <BorderPane id="centerPane" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="114.0" prefWidth="370.0">
                <top>

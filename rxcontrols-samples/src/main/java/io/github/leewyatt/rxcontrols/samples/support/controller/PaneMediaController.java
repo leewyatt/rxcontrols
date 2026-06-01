@@ -137,12 +137,12 @@ public class PaneMediaController {
 
         //实现切换样式功能
         String[] styleSheets = {
-                PaneMediaController.class.getResource("/css/spectrum_01.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum_02.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum_03.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum_04.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum_05.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum_06.css").toExternalForm()
+                PaneMediaController.class.getResource("/css/spectrum-01.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-02.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-03.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-04.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-05.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-06.css").toExternalForm()
                 };
         BoxBlur barEffect = new BoxBlur(2.5,2.5,1);
         Shape shape = new Polygon(5,0,0,5,15,10,15,10);

@@ -177,7 +177,7 @@ public class RXResponsiveLayoutDemo extends Application {
 
         Scene scene = new Scene(root, 1080.0, 720.0);
         scene.getStylesheets().add(
-                getClass().getResource("rx_responsive_layout_demo.css").toExternalForm());
+                getClass().getResource("rx-responsive-layout-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXResponsiveLayout Demo");

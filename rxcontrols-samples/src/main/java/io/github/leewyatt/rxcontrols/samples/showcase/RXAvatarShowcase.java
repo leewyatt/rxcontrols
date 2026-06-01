@@ -71,7 +71,7 @@ public class RXAvatarShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_avatar_showcase.css").toExternalForm();
+        return getClass().getResource("rx-avatar-showcase.css").toExternalForm();
     }
 
     @Override

@@ -63,7 +63,7 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_integer_field_showcase.css").toExternalForm();
+        return getClass().getResource("rx-integer-field-showcase.css").toExternalForm();
     }
 
     @Override

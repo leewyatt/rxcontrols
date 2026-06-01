@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane_field.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneFieldController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane-field.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneFieldController">
    <children>
       <Text id="login-title" layoutX="209.0" layoutY="46.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Welcome Login" />
       <Label layoutX="189.0" layoutY="139.0" styleClass="label-field" text="Password" />

@@ -31,7 +31,7 @@ public class PaneCssController {
     private String localUrl;
     @FXML
     void initialize() {
-        localUrl = getClass().getResource("/html/css_reference.html").toExternalForm();
+        localUrl = getClass().getResource("/html/css-reference.html").toExternalForm();
         webView.getEngine().load(localUrl);
     }
 }

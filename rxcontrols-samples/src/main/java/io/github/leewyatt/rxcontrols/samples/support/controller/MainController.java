@@ -54,18 +54,18 @@ public class MainController {
     private static final int CAROUSEL_DEMO_IMAGE_COUNT = 6;
 
     private static final String[] PAGE_FXML = {
-            "/fxml/pane_about.fxml",
-            "/fxml/pane_avatar.fxml",
-            "/fxml/pane_clip_path_image_view.fxml",
-            "/fxml/pane_buttons.fxml",
+            "/fxml/pane-about.fxml",
+            "/fxml/pane-avatar.fxml",
+            "/fxml/pane-clip-path-image-view.fxml",
+            "/fxml/pane-buttons.fxml",
             null, // carousel demo built dynamically
-            "/fxml/pane_digit.fxml",
-            "/fxml/pane_highlight_text.fxml",
-            "/fxml/pane_field.fxml",
-            "/fxml/pane_number_field.fxml",
-            "/fxml/pane_svgview.fxml",
-            "/fxml/pane_media.fxml",
-            "/fxml/pane_css_reference.fxml"
+            "/fxml/pane-digit.fxml",
+            "/fxml/pane-highlight-text.fxml",
+            "/fxml/pane-field.fxml",
+            "/fxml/pane-number-field.fxml",
+            "/fxml/pane-svgview.fxml",
+            "/fxml/pane-media.fxml",
+            "/fxml/pane-css-reference.fxml"
     };
 
     @FXML

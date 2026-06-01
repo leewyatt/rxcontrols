@@ -37,7 +37,7 @@ public class RXImageViewDemo extends Application {
 
         Scene scene = new Scene(root, 960.0, 640.0);
         scene.getStylesheets().add(
-                getClass().getResource("rx_image_view_demo.css").toExternalForm());
+                getClass().getResource("rx-image-view-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXImageView Demo");

@@ -75,7 +75,7 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_skeleton_showcase.css").toExternalForm();
+        return getClass().getResource("rx-skeleton-showcase.css").toExternalForm();
     }
 
     @Override

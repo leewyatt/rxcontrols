@@ -65,7 +65,7 @@ public class RXImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_image_view_showcase.css").toExternalForm();
+        return getClass().getResource("rx-image-view-showcase.css").toExternalForm();
     }
 
     @Override

@@ -93,7 +93,7 @@ public class RXBoxDemo extends Application {
 
         Scene scene = new Scene(root, 920.0, 620.0);
         scene.getStylesheets().add(
-                getClass().getResource("rx_box_demo.css").toExternalForm());
+                getClass().getResource("rx-box-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXBox Demo");

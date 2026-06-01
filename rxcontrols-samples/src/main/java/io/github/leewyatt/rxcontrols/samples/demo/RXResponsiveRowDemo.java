@@ -43,7 +43,7 @@ public class RXResponsiveRowDemo extends Application {
 
         Scene scene = new Scene(root, 1180.0, 760.0);
         scene.getStylesheets().add(
-                getClass().getResource("rx_responsive_row_demo.css").toExternalForm());
+                getClass().getResource("rx-responsive-row-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(360.0);

@@ -72,7 +72,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_dot_pulse_showcase.css").toExternalForm();
+        return getClass().getResource("rx-dot-pulse-showcase.css").toExternalForm();
     }
 
     @Override

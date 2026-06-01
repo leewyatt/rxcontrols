@@ -67,7 +67,7 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_formatted_number_field_showcase.css").toExternalForm();
+        return getClass().getResource("rx-formatted-number-field-showcase.css").toExternalForm();
     }
 
     @Override

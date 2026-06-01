@@ -95,7 +95,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_responsive_layout_showcase.css").toExternalForm();
+        return getClass().getResource("rx-responsive-layout-showcase.css").toExternalForm();
     }
 
     @Override

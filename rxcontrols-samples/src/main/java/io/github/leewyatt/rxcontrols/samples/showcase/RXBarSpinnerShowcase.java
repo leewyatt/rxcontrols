@@ -72,7 +72,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_bar_spinner_showcase.css").toExternalForm();
+        return getClass().getResource("rx-bar-spinner-showcase.css").toExternalForm();
     }
 
     @Override

@@ -74,7 +74,7 @@ public class RXImagePaneShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_image_pane_showcase.css").toExternalForm();
+        return getClass().getResource("rx-image-pane-showcase.css").toExternalForm();
     }
 
     @Override

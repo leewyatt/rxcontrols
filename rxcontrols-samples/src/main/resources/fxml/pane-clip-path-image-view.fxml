@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane styleClass="clip-path-image-view-page" stylesheets="@../css/pane_clip_path_image_view.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane styleClass="clip-path-image-view-page" stylesheets="@../css/pane-clip-path-image-view.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <children>
       <VBox layoutX="42.0" layoutY="30.0" prefWidth="677.0" spacing="18.0" AnchorPane.leftAnchor="42.0" AnchorPane.rightAnchor="42.0" AnchorPane.topAnchor="30.0">
          <children>

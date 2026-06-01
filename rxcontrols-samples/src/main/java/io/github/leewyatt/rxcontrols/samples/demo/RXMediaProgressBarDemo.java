@@ -185,7 +185,7 @@ public class RXMediaProgressBarDemo extends Application {
             });
         });
         Scene scene = new Scene(root, 1000, 620);
-        scene.getStylesheets().add(getClass().getResource("/css/test_bar.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/css/test-bar.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXMediaProgressBar Demo");

@@ -57,7 +57,7 @@ public class RXImagePaneDemo extends Application {
 
         Scene scene = new Scene(root, 900.0, 560.0);
         scene.getStylesheets().add(
-                getClass().getResource("rx_image_pane_demo.css").toExternalForm());
+                getClass().getResource("rx-image-pane-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXImagePane Demo");

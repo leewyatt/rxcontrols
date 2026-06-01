@@ -72,7 +72,7 @@ public class RXClipPathImageViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx_clip_path_image_view_showcase.css").toExternalForm();
+        return getClass().getResource("rx-clip-path-image-view-showcase.css").toExternalForm();
     }
 
     @Override
