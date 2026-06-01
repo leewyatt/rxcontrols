@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import io.github.leewyatt.rxcontrols.layout.RXColSpec?>
 <?import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol?>
 <?import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow?>
 <?import javafx.scene.control.Button?>
@@ -12,13 +13,12 @@
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" pannable="true"
             styleClass="responsive-fxml-scroll"
             stylesheets="@rx_responsive_row_fxml_demo.css"
-            xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="io.github.leewyatt.rxcontrols.samples.demo.RXResponsiveRowFXMLDemoController">
+            xmlns="http://javafx.com/javafx/17">
     <content>
         <RXResponsiveRow align="STRETCH" gutter="18.0" justify="START"
                          rowGap="18.0" styleClass="responsive-fxml-page">
             <children>
-                <RXResponsiveCol fx:id="heroCol">
+                <RXResponsiveCol xs="24" sm="24" md="16" lg="14">
 
                     <children>
                         <VBox spacing="10.0" styleClass="hero-card">
@@ -41,7 +41,7 @@
                     </children>
                 </RXResponsiveCol>
 
-                <RXResponsiveCol fx:id="statusCol">
+                <RXResponsiveCol xs="24" sm="24" md="8" lg="10">
                     <children>
                         <VBox spacing="9.0" styleClass="status-card">
                             <children>
@@ -57,7 +57,7 @@
                     </children>
                 </RXResponsiveCol>
 
-                <RXResponsiveCol fx:id="slaCol">
+                <RXResponsiveCol xs="24" sm="12" md="12" lg="8,0,order=1">
                     <children>
                         <VBox spacing="8.0" styleClass="metric-card">
                             <children>
@@ -70,7 +70,19 @@
                     </children>
                 </RXResponsiveCol>
 
-                <RXResponsiveCol fx:id="responseCol">
+                <RXResponsiveCol>
+                    <xs>
+                        <RXColSpec span="24"/>
+                    </xs>
+                    <sm>
+                        <RXColSpec span="12"/>
+                    </sm>
+                    <md>
+                        <RXColSpec span="12"/>
+                    </md>
+                    <lg>
+                        <RXColSpec span="8" offset="0" order="2"/>
+                    </lg>
                     <children>
                         <VBox spacing="8.0" styleClass="metric-card">
                             <children>
@@ -83,7 +95,7 @@
                     </children>
                 </RXResponsiveCol>
 
-                <RXResponsiveCol fx:id="escalationCol">
+                <RXResponsiveCol xs="24" sm="24" md="24" lg="8">
                     <children>
                         <VBox spacing="8.0" styleClass="metric-card">
                             <children>
@@ -96,7 +108,8 @@
                     </children>
                 </RXResponsiveCol>
 
-                <RXResponsiveCol fx:id="calloutCol">
+                <RXResponsiveCol xs="span=24,hidden=true" sm="span=24,hidden=false"
+                                 md="20,2" lg="18,3">
                     <children>
                         <HBox spacing="14.0" styleClass="callout-card">
                             <children>
