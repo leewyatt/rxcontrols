@@ -83,6 +83,14 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     private static final String LEFT_WRAPPER_CLASS = "left-wrapper";
     private static final String RIGHT_WRAPPER_CLASS = "right-wrapper";
 
+    /**
+     * Single cleanup channel for this skin and its subclasses. Subclasses
+     * register their own listeners / handlers here too, so the whole chain
+     * tears down through this base class's {@link #dispose()} in LIFO order
+     * (subclass-registered tasks first, then base, then {@code super}).
+     */
+    protected final SkinDisposer disposer = new SkinDisposer();
+
     private final TextField control;
     private final ObservableValue<Node> effectiveLeft;
     private final ObservableValue<Node> effectiveRight;
@@ -91,10 +99,6 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     private StackPane leftWrapper;
     private StackPane rightWrapper;
 
-    private final ChangeListener<Node> leftListener = (obs, oldVal, newVal) -> updateChildren();
-    private final ChangeListener<Node> rightListener = (obs, oldVal, newVal) -> updateChildren();
-    private final ChangeListener<Insets> textPaddingListener =
-            (obs, oldVal, newVal) -> getSkinnable().requestLayout();
     private final ChangeListener<Boolean> wrapperNeedsLayoutListener = (obs, oldVal, newVal) -> {
         if (Boolean.TRUE.equals(newVal)) {
             getSkinnable().requestLayout();
@@ -111,9 +115,19 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         this.effectiveRight = effectiveRight;
         this.effectiveTextPadding = effectiveTextPadding;
 
-        effectiveLeft.addListener(leftListener);
-        effectiveRight.addListener(rightListener);
-        effectiveTextPadding.addListener(textPaddingListener);
+        disposer.registerListener(effectiveLeft, (obs, oldVal, newVal) -> updateChildren());
+        disposer.registerListener(effectiveRight, (obs, oldVal, newVal) -> updateChildren());
+        disposer.registerListener(effectiveTextPadding,
+                (obs, oldVal, newVal) -> getSkinnable().requestLayout());
+        // Wrappers are rebuilt over the skin's lifetime, so the disposer reads
+        // the live fields at dispose time instead of capturing a stale wrapper.
+        // TextFieldSkin.dispose() removes its own children explicitly; we do the
+        // same for ours, otherwise on skin replacement the old wrappers stay
+        // attached and the next setLeft/setRight fails to re-parent.
+        disposer.registerDisposeTask(() -> {
+            leftWrapper = releaseWrapper(leftWrapper);
+            rightWrapper = releaseWrapper(rightWrapper);
+        });
 
         updateChildren();
     }
@@ -300,15 +314,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     @Override
     public void dispose() {
-        effectiveLeft.removeListener(leftListener);
-        effectiveRight.removeListener(rightListener);
-        effectiveTextPadding.removeListener(textPaddingListener);
-        // TextFieldSkin.dispose() removes its own children explicitly, so we do
-        // the same for ours — otherwise on skin replacement the old wrappers
-        // stay attached to the control and the user's nodes still parent to
-        // them, causing the next setLeft/setRight to fail re-parenting.
-        leftWrapper = releaseWrapper(leftWrapper);
-        rightWrapper = releaseWrapper(rightWrapper);
+        // Runs all registered cleanup (this skin's and any subclass's) in LIFO
+        // order, then lets TextFieldSkin tear down its own nodes.
+        disposer.dispose();
         super.dispose();
     }
 }

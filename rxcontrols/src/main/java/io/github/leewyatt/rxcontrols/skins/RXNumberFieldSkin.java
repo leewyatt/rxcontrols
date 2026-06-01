@@ -22,9 +22,6 @@ import javafx.event.EventHandler;
  */
 public class RXNumberFieldSkin extends RXFieldBaseSkin {
 
-    private final RXNumberField control;
-    private final EventHandler<ActionEvent> enterCommitHandler;
-
     /**
      * Creates a skin for the given number field.
      *
@@ -32,15 +29,7 @@ public class RXNumberFieldSkin extends RXFieldBaseSkin {
      */
     public RXNumberFieldSkin(RXNumberField control) {
         super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
-        this.control = control;
-
-        enterCommitHandler = e -> control.commitValue();
-        control.addEventHandler(ActionEvent.ACTION, enterCommitHandler);
-    }
-
-    @Override
-    public void dispose() {
-        control.removeEventHandler(ActionEvent.ACTION, enterCommitHandler);
-        super.dispose();
+        EventHandler<ActionEvent> enterCommitHandler = e -> control.commitValue();
+        disposer.registerEventHandler(control, ActionEvent.ACTION, enterCommitHandler);
     }
 }

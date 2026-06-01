@@ -36,14 +36,29 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     private boolean dynamicTextBindingFailed = false;
     private StringBinding displayTextBinding;
     private ChangeListener<Skin<?>> pendingSkinListener;
-    private final ChangeListener<Object> ineffectiveToggleListener =
-            (obs, oldVal, newVal) -> logIneffectiveToggle(obs);
 
     public RXPasswordFieldSkin(RXPasswordField control) {
         super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
-        control.showPasswordProperty().addListener(ineffectiveToggleListener);
-        control.echoCharProperty().addListener(ineffectiveToggleListener);
+        ChangeListener<Object> ineffectiveToggleListener =
+                (obs, oldVal, newVal) -> logIneffectiveToggle(obs);
+        disposer.registerListener(control.showPasswordProperty(), ineffectiveToggleListener);
+        disposer.registerListener(control.echoCharProperty(), ineffectiveToggleListener);
         tryInstallDynamicTextBinding(control);
+        // pendingSkinListener and displayTextBinding are installed / rebuilt
+        // dynamically, so the disposer reads the live fields at dispose time
+        // instead of capturing stale references. This runs before
+        // super.dispose(), leaving the parent text node intact for its own
+        // teardown.
+        disposer.registerDisposeTask(() -> {
+            if (pendingSkinListener != null) {
+                control.skinProperty().removeListener(pendingSkinListener);
+                pendingSkinListener = null;
+            }
+            if (displayTextBinding != null) {
+                displayTextBinding.dispose();
+                displayTextBinding = null;
+            }
+        });
     }
 
     @Override
@@ -161,23 +176,4 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
                 });
     }
 
-    // ==================== Lifecycle ====================
-
-    @Override
-    public void dispose() {
-        RXPasswordField control = (RXPasswordField) getSkinnable();
-        if (control != null) {
-            control.showPasswordProperty().removeListener(ineffectiveToggleListener);
-            control.echoCharProperty().removeListener(ineffectiveToggleListener);
-            if (pendingSkinListener != null) {
-                control.skinProperty().removeListener(pendingSkinListener);
-                pendingSkinListener = null;
-            }
-        }
-        if (displayTextBinding != null) {
-            displayTextBinding.dispose();
-            displayTextBinding = null;
-        }
-        super.dispose();
-    }
 }
