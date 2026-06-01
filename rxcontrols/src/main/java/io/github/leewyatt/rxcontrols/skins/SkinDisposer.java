@@ -148,21 +148,29 @@ public final class SkinDisposer {
      * Safe to call more than once; subsequent calls are no-ops.
      */
     public void dispose() {
-        RuntimeException error = null;
+        Runnable[] steps = new Runnable[tasks.size()];
+        for (int i = tasks.size() - 1, j = 0; i >= 0; i--, j++) {
+            steps[j] = tasks.get(i);
+        }
         try {
-            for (int i = tasks.size() - 1; i >= 0; i--) {
-                try {
-                    tasks.get(i).run();
-                } catch (RuntimeException e) {
-                    if (error == null) {
-                        error = e;
-                    } else {
-                        error.addSuppressed(e);
-                    }
-                }
-            }
+            disposeInOrder(steps);
         } finally {
             tasks.clear();
+        }
+    }
+
+    static void disposeInOrder(Runnable... steps) {
+        RuntimeException error = null;
+        for (Runnable step : steps) {
+            try {
+                Objects.requireNonNull(step, "step").run();
+            } catch (RuntimeException e) {
+                if (error == null) {
+                    error = e;
+                } else {
+                    error.addSuppressed(e);
+                }
+            }
         }
         if (error != null) {
             throw error;

@@ -316,7 +316,6 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     public void dispose() {
         // Runs all registered cleanup (this skin's and any subclass's) in LIFO
         // order, then lets TextFieldSkin tear down its own nodes.
-        disposer.dispose();
-        super.dispose();
+        SkinDisposer.disposeInOrder(disposer::dispose, super::dispose);
     }
 }

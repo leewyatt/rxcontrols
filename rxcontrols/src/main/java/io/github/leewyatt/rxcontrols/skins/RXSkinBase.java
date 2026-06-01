@@ -56,13 +56,7 @@ public abstract class RXSkinBase<C extends Control> extends SkinBase<C> {
      */
     @Override
     public final void dispose() {
-        RuntimeException error = null;
-        error = runDisposeStep(this::disposeSkin, error);
-        error = runDisposeStep(disposer::dispose, error);
-        error = runDisposeStep(super::dispose, error);
-        if (error != null) {
-            throw error;
-        }
+        SkinDisposer.disposeInOrder(this::disposeSkin, disposer::dispose, super::dispose);
     }
 
     /**
@@ -71,17 +65,5 @@ public abstract class RXSkinBase<C extends Control> extends SkinBase<C> {
      * implementation does nothing.
      */
     protected void disposeSkin() {
-    }
-
-    private RuntimeException runDisposeStep(Runnable step, RuntimeException error) {
-        try {
-            step.run();
-        } catch (RuntimeException e) {
-            if (error == null) {
-                return e;
-            }
-            error.addSuppressed(e);
-        }
-        return error;
     }
 }

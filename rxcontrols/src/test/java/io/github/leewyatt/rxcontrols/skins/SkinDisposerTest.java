@@ -58,6 +58,33 @@ public class SkinDisposerTest {
     }
 
     /**
+     * Verifies shared dispose sequencing keeps the first failure as primary
+     * when a later step also fails.
+     */
+    @Test
+    public void disposeInOrderKeepsFirstFailureAsPrimary() {
+        List<String> calls = new ArrayList<>();
+        RuntimeException primary = new RuntimeException("primary");
+        RuntimeException secondary = new RuntimeException("secondary");
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> SkinDisposer.disposeInOrder(
+                () -> {
+                    calls.add("first");
+                    throw primary;
+                },
+                () -> calls.add("second"),
+                () -> {
+                    calls.add("third");
+                    throw secondary;
+                }));
+
+        assertSame(primary, exception);
+        assertEquals(List.of("first", "second", "third"), calls);
+        assertEquals(1, exception.getSuppressed().length);
+        assertSame(secondary, exception.getSuppressed()[0]);
+    }
+
+    /**
      * Verifies null arguments fail at registration time.
      */
     @Test
