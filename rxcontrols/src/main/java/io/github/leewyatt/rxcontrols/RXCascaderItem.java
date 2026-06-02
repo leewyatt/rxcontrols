@@ -321,6 +321,12 @@ public class RXCascaderItem<T> {
     /**
      * Sets whether this item is checked.
      *
+     * <p>This method only updates this item. It does not cascade to children,
+     * roll up to ancestors, or refresh the owning panel's checked paths. Use it
+     * for initial state seeding before display; use
+     * {@code RXCascaderPanel.setCheckedCascade} or {@code toggleCheck} for
+     * runtime selection changes.
+     *
      * @param value {@code true} if checked
      */
     public final void setChecked(boolean value) {
@@ -357,6 +363,11 @@ public class RXCascaderItem<T> {
 
     /**
      * Sets whether this item is in the indeterminate state.
+     *
+     * <p>This method only updates this item. It does not cascade, roll up, or
+     * refresh the owning panel's checked paths. It is normally written by the
+     * panel's tri-state machine and should only be set directly for initial
+     * state seeding before display.
      *
      * @param value {@code true} if indeterminate
      */

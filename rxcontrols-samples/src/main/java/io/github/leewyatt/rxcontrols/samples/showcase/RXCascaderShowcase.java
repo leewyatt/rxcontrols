@@ -160,7 +160,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<String> path : checked) {
-                joiner.add("• " + String.join(SEPARATOR, path.getTexts()));
+                joiner.add("- " + String.join(SEPARATOR, path.getTexts()));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }

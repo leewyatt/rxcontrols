@@ -5,8 +5,10 @@ import io.github.leewyatt.rxcontrols.RXCascaderPanel;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -22,6 +24,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,6 +45,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
 
     private final HBox columnsBox = new HBox();
     private final List<ListView<RXCascaderItem<T>>> columns = new ArrayList<>();
+    private final List<WeakReference<RXCascaderColumnCell<T>>> cells = new ArrayList<>();
 
     // ==================== Constructor ====================
 
@@ -83,7 +87,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
     // ==================== Columns ====================
 
     private void rebuildColumns() {
-        columns.clear();
+        disposeColumns();
         List<ListView<RXCascaderItem<T>>> views = new ArrayList<>();
         addColumn(views, getSkinnable().getRootItems());
         for (RXCascaderItem<T> item : getSkinnable().getActivePath()) {
@@ -101,8 +105,37 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         ListView<RXCascaderItem<T>> listView = new ListView<>(items);
         listView.getStyleClass().add("rx-cascader-column");
         listView.setFocusTraversable(false);
-        listView.setCellFactory(view -> new RXCascaderColumnCell<>(getSkinnable()));
+        listView.setCellFactory(view -> {
+            RXCascaderColumnCell<T> cell = new RXCascaderColumnCell<>(getSkinnable());
+            registerCell(cell);
+            return cell;
+        });
         views.add(listView);
+    }
+
+    private void registerCell(RXCascaderColumnCell<T> cell) {
+        cells.removeIf(cellRef -> cellRef.get() == null);
+        cells.add(new WeakReference<>(cell));
+    }
+
+    private void disposeColumns() {
+        disposeCells();
+        for (ListView<RXCascaderItem<T>> column : columns) {
+            column.setCellFactory(null);
+            column.setItems(null);
+        }
+        columnsBox.getChildren().clear();
+        columns.clear();
+    }
+
+    private void disposeCells() {
+        for (WeakReference<RXCascaderColumnCell<T>> cellRef : cells) {
+            RXCascaderColumnCell<T> cell = cellRef.get();
+            if (cell != null) {
+                cell.disposeCell();
+            }
+        }
+        cells.clear();
     }
 
     private void applyColumnMetrics() {
@@ -124,12 +157,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
 
     @Override
     protected void disposeSkin() {
-        // Removing the columns detaches every list view from the scene, which
-        // lets each cell drop the item listeners it registered (see the cell's
-        // scene listener). Without this a disposed skin would be retained by the
-        // user-owned item tree through those listeners.
-        columnsBox.getChildren().clear();
-        columns.clear();
+        disposeColumns();
     }
 
     // ==================== Layout ====================
@@ -194,6 +222,12 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         private final InvalidationListener stateListener = observable -> updateState();
         private final InvalidationListener contentListener = observable -> updateContent();
         private final ListChangeListener<RXCascaderItem<T>> childrenListener = change -> updateState();
+        private final WeakInvalidationListener weakStateListener =
+                new WeakInvalidationListener(stateListener);
+        private final WeakInvalidationListener weakContentListener =
+                new WeakInvalidationListener(contentListener);
+        private final WeakListChangeListener<RXCascaderItem<T>> weakChildrenListener =
+                new WeakListChangeListener<>(childrenListener);
 
         private RXCascaderItem<T> observedItem;
 
@@ -201,14 +235,6 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
             this.panel = panel;
             initializeNodes();
             registerHandlers();
-            // A list view discarded by rebuildColumns() is never asked to update
-            // its cells to an empty item, so detach when the cell leaves the
-            // scene. Reused cells re-attach through updateItem().
-            sceneProperty().addListener((observable, oldScene, newScene) -> {
-                if (newScene == null) {
-                    detachObservedItem();
-                }
-            });
         }
 
         private void initializeNodes() {
@@ -272,27 +298,34 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         }
 
         private void attachObservedItem(RXCascaderItem<T> item) {
-            item.checkedProperty().addListener(stateListener);
-            item.indeterminateProperty().addListener(stateListener);
-            item.disabledProperty().addListener(stateListener);
-            item.loadingProperty().addListener(stateListener);
-            item.leafHintProperty().addListener(stateListener);
-            item.textProperty().addListener(contentListener);
-            item.getChildren().addListener(childrenListener);
+            item.checkedProperty().addListener(weakStateListener);
+            item.indeterminateProperty().addListener(weakStateListener);
+            item.disabledProperty().addListener(weakStateListener);
+            item.loadingProperty().addListener(weakStateListener);
+            item.leafHintProperty().addListener(weakStateListener);
+            item.textProperty().addListener(weakContentListener);
+            item.getChildren().addListener(weakChildrenListener);
         }
 
         private void detachObservedItem() {
             if (observedItem == null) {
                 return;
             }
-            observedItem.checkedProperty().removeListener(stateListener);
-            observedItem.indeterminateProperty().removeListener(stateListener);
-            observedItem.disabledProperty().removeListener(stateListener);
-            observedItem.loadingProperty().removeListener(stateListener);
-            observedItem.leafHintProperty().removeListener(stateListener);
-            observedItem.textProperty().removeListener(contentListener);
-            observedItem.getChildren().removeListener(childrenListener);
+            observedItem.checkedProperty().removeListener(weakStateListener);
+            observedItem.indeterminateProperty().removeListener(weakStateListener);
+            observedItem.disabledProperty().removeListener(weakStateListener);
+            observedItem.loadingProperty().removeListener(weakStateListener);
+            observedItem.leafHintProperty().removeListener(weakStateListener);
+            observedItem.textProperty().removeListener(weakContentListener);
+            observedItem.getChildren().removeListener(weakChildrenListener);
             observedItem = null;
+        }
+
+        private void disposeCell() {
+            detachObservedItem();
+            setText(null);
+            setGraphic(null);
+            contentPane.getChildren().clear();
         }
 
         private void updateContent() {
