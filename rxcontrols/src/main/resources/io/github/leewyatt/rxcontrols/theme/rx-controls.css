@@ -228,7 +228,7 @@
     -fx-alignment: center-left;
     -fx-background-color: -fx-control-inner-background;
     -fx-background-radius: 3px;
-    -fx-border-color: #c0c4cc;
+    -fx-border-color: -fx-box-border;
     -fx-border-radius: 3px;
     -fx-border-width: 1px;
     -fx-padding: 0 8px 0 8px;
@@ -246,7 +246,7 @@
 }
 
 .rx-cascader-display-text:empty {
-    -fx-text-fill: #909399;
+    -fx-text-fill: derive(-fx-text-base-color, 45%);
 }
 
 .rx-cascader-clear-button,
@@ -255,11 +255,11 @@
     -fx-min-width: 16px;
     -fx-pref-width: 16px;
     -fx-max-width: 16px;
-    -fx-text-fill: #909399;
+    -fx-text-fill: derive(-fx-text-base-color, 45%);
 }
 
 .rx-cascader-clear-button:hover {
-    -fx-text-fill: #606266;
+    -fx-text-fill: derive(-fx-text-base-color, 20%);
 }
 
 .rx-cascader-popup {
@@ -268,7 +268,7 @@
 
 .rx-cascader-panel {
     -fx-background-color: -fx-control-inner-background;
-    -fx-border-color: #dcdfe6;
+    -fx-border-color: -fx-box-border;
     -fx-border-width: 1px;
 }
 
@@ -280,7 +280,7 @@
     -fx-background-color: -fx-control-inner-background;
     -fx-background-insets: 0;
     -fx-padding: 0;
-    -fx-border-color: transparent #e4e7ed transparent transparent;
+    -fx-border-color: transparent derive(-fx-box-border, 30%) transparent transparent;
     -fx-border-width: 0 1px 0 0;
 }
 
@@ -290,13 +290,13 @@
 }
 
 .rx-cascader-column .list-cell:hover {
-    -fx-background-color: #f5f7fa;
+    -fx-background-color: derive(-fx-control-inner-background, -4%);
 }
 
 .rx-cascader-cell:in-active-path,
 .rx-cascader-cell:in-checked-path,
 .rx-cascader-cell:active {
-    -fx-background-color: #ecf5ff;
+    -fx-background-color: derive(-fx-accent, 80%);
 }
 
 .rx-cascader-cell:disabled {
@@ -313,7 +313,7 @@
 }
 
 .rx-cascader-cell-label {
-    -fx-text-fill: #606266;
+    -fx-text-fill: -fx-text-inner-color;
     -fx-text-overrun: ellipsis;
 }
 
@@ -324,7 +324,7 @@
 }
 
 .rx-cascader-cell-postfix {
-    -fx-text-fill: #909399;
+    -fx-text-fill: derive(-fx-text-base-color, 45%);
 }
 
 /*******************************************************************************

@@ -122,6 +122,16 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         }
     }
 
+    @Override
+    protected void disposeSkin() {
+        // Removing the columns detaches every list view from the scene, which
+        // lets each cell drop the item listeners it registered (see the cell's
+        // scene listener). Without this a disposed skin would be retained by the
+        // user-owned item tree through those listeners.
+        columnsBox.getChildren().clear();
+        columns.clear();
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -191,6 +201,14 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
             this.panel = panel;
             initializeNodes();
             registerHandlers();
+            // A list view discarded by rebuildColumns() is never asked to update
+            // its cells to an empty item, so detach when the cell leaves the
+            // scene. Reused cells re-attach through updateItem().
+            sceneProperty().addListener((observable, oldScene, newScene) -> {
+                if (newScene == null) {
+                    detachObservedItem();
+                }
+            });
         }
 
         private void initializeNodes() {

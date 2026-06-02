@@ -13,7 +13,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Sample application demonstrating {@link RXCascader}.
+ * Minimal sample application demonstrating {@link RXCascader} with single,
+ * multiple, and lazy-loaded configurations.
+ *
+ * <p>For the full property-driven explorer see
+ * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderShowcase}.
  */
 public class RXCascaderDemo extends Application {
 

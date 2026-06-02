@@ -4,7 +4,9 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderPanel;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
+import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -43,6 +45,11 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private final Label clearButton = new Label("x");
     private final Label arrow = new Label("v");
     private final PopupControl popup = new PopupControl();
+    private final EventHandler<WindowEvent> popupHiddenHandler = this::handlePopupHidden;
+
+    // ==================== State ====================
+
+    private boolean suppressReopen;
 
     // ==================== Constructor ====================
 
@@ -82,8 +89,8 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         popup.setAutoFix(true);
         popup.setHideOnEscape(true);
         popup.setSkin(new CascaderPopupSkin<>(popup, control.getPanel()));
-        popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, this::handlePopupHidden);
-        disposer.registerDisposeTask(() -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, this::handlePopupHidden));
+        popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
+        disposer.registerDisposeTask(() -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
     }
 
     private void registerListeners(RXCascader<T> control) {
@@ -112,7 +119,10 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         control.requestFocus();
         if (control.isShowing()) {
             control.hide();
-        } else {
+        } else if (!suppressReopen) {
+            // Guard against the auto-hide/reopen race: a press on the display
+            // can auto-hide the popup before this click runs, which would
+            // otherwise immediately reopen it.
             control.show();
         }
         event.consume();
@@ -146,6 +156,8 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     private void handlePopupHidden(WindowEvent event) {
         getSkinnable().hide();
+        suppressReopen = true;
+        Platform.runLater(() -> suppressReopen = false);
     }
 
     private void handleSelectionChanged(RXCascader<T> control) {

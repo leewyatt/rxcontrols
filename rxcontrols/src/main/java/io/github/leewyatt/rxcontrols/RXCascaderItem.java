@@ -296,6 +296,13 @@ public class RXCascaderItem<T> {
     /**
      * Whether this item is checked.
      *
+     * <p><strong>Writing this property directly only sets this single item.</strong>
+     * It does not cascade to children, roll up to ancestors, or refresh the
+     * owning panel's checked paths. Use it to seed an item's initial state (for
+     * example a pre-checked locked item) before the tree is shown; for runtime
+     * changes call {@code RXCascaderPanel.setCheckedCascade} or
+     * {@code toggleCheck} instead so the tri-state machine stays consistent.
+     *
      * @return checked property
      */
     public final BooleanProperty checkedProperty() {
@@ -327,6 +334,11 @@ public class RXCascaderItem<T> {
 
     /**
      * Whether this item is in the indeterminate state.
+     *
+     * <p>This is a derived display state normally written by the owning panel's
+     * tri-state machine. Setting it directly is not cascaded or rolled up and is
+     * generally only useful for seeding an item before the tree is shown; see
+     * {@link #checkedProperty()}.
      *
      * @return indeterminate property
      */

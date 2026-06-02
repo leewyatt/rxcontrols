@@ -1,0 +1,10 @@
+.field-readout {
+    -fx-text-fill: #5a6072;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 4px;
+}
+
+.hint {
+    -fx-text-fill: #8a90a0;
+    -fx-font-size: 11px;
+}
