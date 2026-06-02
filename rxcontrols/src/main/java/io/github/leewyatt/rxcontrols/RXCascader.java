@@ -24,8 +24,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 /**
- * Popup cascader control backed by a reusable {@link RXCascaderPanel}. The
- * control owns the popup shell and display text, while the panel owns path
+ * Popup cascader control backed by a reusable {@link RXCascaderView}. The
+ * control owns the popup shell and display text, while the view owns path
  * expansion, single selection, multiple checked paths, disabled inheritance,
  * lazy loading, and tri-state check logic.
  *
@@ -39,7 +39,7 @@ public class RXCascader<T> extends Control {
 
     // ==================== Fields ====================
 
-    private final RXCascaderPanel<T> panel = new RXCascaderPanel<>();
+    private final RXCascaderView<T> view = new RXCascaderView<>();
 
     // ==================== Constructor ====================
 
@@ -61,16 +61,17 @@ public class RXCascader<T> extends Control {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    // ==================== Panel ====================
+    // ==================== View ====================
 
     /**
-     * Returns the embedded panel owned by this cascader. The returned node is
-     * used as popup content and must not be inserted into another parent.
+     * Returns the embedded view owned by this cascader. The returned node is
+     * used as popup content and must not be inserted into another parent — for a
+     * standalone inline cascader, create a separate {@link RXCascaderView}.
      *
-     * @return embedded cascader panel
+     * @return embedded cascader view
      */
-    public final RXCascaderPanel<T> getPanel() {
-        return panel;
+    public final RXCascaderView<T> getView() {
+        return view;
     }
 
     /**
@@ -79,7 +80,7 @@ public class RXCascader<T> extends Control {
      * @return mutable root item list
      */
     public final ObservableList<RXCascaderItem<T>> getRootItems() {
-        return panel.getRootItems();
+        return view.getRootItems();
     }
 
     /**
@@ -88,7 +89,7 @@ public class RXCascader<T> extends Control {
      * @return read-only active path list
      */
     public final ObservableList<RXCascaderItem<T>> getActivePath() {
-        return panel.getActivePath();
+        return view.getActivePath();
     }
 
     // ==================== Selection Mode ====================
@@ -99,7 +100,7 @@ public class RXCascader<T> extends Control {
      * @return selection-mode property
      */
     public final ObjectProperty<RXCascaderSelectionMode> selectionModeProperty() {
-        return panel.selectionModeProperty();
+        return view.selectionModeProperty();
     }
 
     /**
@@ -108,7 +109,7 @@ public class RXCascader<T> extends Control {
      * @return selection mode
      */
     public final RXCascaderSelectionMode getSelectionMode() {
-        return panel.getSelectionMode();
+        return view.getSelectionMode();
     }
 
     /**
@@ -117,7 +118,7 @@ public class RXCascader<T> extends Control {
      * @param value selection mode
      */
     public final void setSelectionMode(RXCascaderSelectionMode value) {
-        panel.setSelectionMode(value);
+        view.setSelectionMode(value);
     }
 
     // ==================== Selected Path ====================
@@ -128,7 +129,7 @@ public class RXCascader<T> extends Control {
      * @return read-only selected-path property
      */
     public final ReadOnlyObjectProperty<RXCascaderPath<T>> selectedPathProperty() {
-        return panel.selectedPathProperty();
+        return view.selectedPathProperty();
     }
 
     /**
@@ -137,16 +138,16 @@ public class RXCascader<T> extends Control {
      * @return selected path, or {@code null}
      */
     public final RXCascaderPath<T> getSelectedPath() {
-        return panel.getSelectedPath();
+        return view.getSelectedPath();
     }
 
     /**
      * Checked leaf paths in multiple-selection mode.
      *
-     * @return read-only checked path list maintained by the panel
+     * @return read-only checked path list maintained by the view
      */
     public final ObservableList<RXCascaderPath<T>> getCheckedPaths() {
-        return panel.getCheckedPaths();
+        return view.getCheckedPaths();
     }
 
     // ==================== Prompt Text ====================
@@ -285,7 +286,7 @@ public class RXCascader<T> extends Control {
         showing.set(false);
     }
 
-    // ==================== Delegated Panel Properties ====================
+    // ==================== Delegated View Properties ====================
 
     /**
      * Preferred width for each popup column.
@@ -293,7 +294,7 @@ public class RXCascader<T> extends Control {
      * @return column-width property
      */
     public final DoubleProperty columnWidthProperty() {
-        return panel.columnWidthProperty();
+        return view.columnWidthProperty();
     }
 
     /**
@@ -302,7 +303,7 @@ public class RXCascader<T> extends Control {
      * @return preferred column width
      */
     public final double getColumnWidth() {
-        return panel.getColumnWidth();
+        return view.getColumnWidth();
     }
 
     /**
@@ -311,7 +312,7 @@ public class RXCascader<T> extends Control {
      * @param value preferred column width
      */
     public final void setColumnWidth(double value) {
-        panel.setColumnWidth(value);
+        view.setColumnWidth(value);
     }
 
     /**
@@ -320,7 +321,7 @@ public class RXCascader<T> extends Control {
      * @return row-height property
      */
     public final DoubleProperty rowHeightProperty() {
-        return panel.rowHeightProperty();
+        return view.rowHeightProperty();
     }
 
     /**
@@ -329,7 +330,7 @@ public class RXCascader<T> extends Control {
      * @return fixed row height
      */
     public final double getRowHeight() {
-        return panel.getRowHeight();
+        return view.getRowHeight();
     }
 
     /**
@@ -338,7 +339,7 @@ public class RXCascader<T> extends Control {
      * @param value fixed row height
      */
     public final void setRowHeight(double value) {
-        panel.setRowHeight(value);
+        view.setRowHeight(value);
     }
 
     /**
@@ -347,7 +348,7 @@ public class RXCascader<T> extends Control {
      * @return visible-row-count property
      */
     public final IntegerProperty visibleRowCountProperty() {
-        return panel.visibleRowCountProperty();
+        return view.visibleRowCountProperty();
     }
 
     /**
@@ -356,7 +357,7 @@ public class RXCascader<T> extends Control {
      * @return visible row count
      */
     public final int getVisibleRowCount() {
-        return panel.getVisibleRowCount();
+        return view.getVisibleRowCount();
     }
 
     /**
@@ -365,7 +366,7 @@ public class RXCascader<T> extends Control {
      * @param value visible row count
      */
     public final void setVisibleRowCount(int value) {
-        panel.setVisibleRowCount(value);
+        view.setVisibleRowCount(value);
     }
 
     /**
@@ -374,7 +375,7 @@ public class RXCascader<T> extends Control {
      * @return option-content factory property
      */
     public final ObjectProperty<Callback<RXCascaderItem<T>, Node>> optionContentFactoryProperty() {
-        return panel.optionContentFactoryProperty();
+        return view.optionContentFactoryProperty();
     }
 
     /**
@@ -383,7 +384,7 @@ public class RXCascader<T> extends Control {
      * @return option-content factory, or {@code null}
      */
     public final Callback<RXCascaderItem<T>, Node> getOptionContentFactory() {
-        return panel.getOptionContentFactory();
+        return view.getOptionContentFactory();
     }
 
     /**
@@ -392,7 +393,7 @@ public class RXCascader<T> extends Control {
      * @param value option-content factory, or {@code null}
      */
     public final void setOptionContentFactory(Callback<RXCascaderItem<T>, Node> value) {
-        panel.setOptionContentFactory(value);
+        view.setOptionContentFactory(value);
     }
 
     /**
@@ -402,7 +403,7 @@ public class RXCascader<T> extends Control {
      */
     public final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
             childrenLoaderProperty() {
-        return panel.childrenLoaderProperty();
+        return view.childrenLoaderProperty();
     }
 
     /**
@@ -411,7 +412,7 @@ public class RXCascader<T> extends Control {
      * @return children loader, or {@code null}
      */
     public final Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> getChildrenLoader() {
-        return panel.getChildrenLoader();
+        return view.getChildrenLoader();
     }
 
     /**
@@ -421,7 +422,7 @@ public class RXCascader<T> extends Control {
      */
     public final void setChildrenLoader(
             Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> value) {
-        panel.setChildrenLoader(value);
+        view.setChildrenLoader(value);
     }
 
     // ==================== Operations ====================
@@ -430,6 +431,6 @@ public class RXCascader<T> extends Control {
      * Clears both single and multiple selection state.
      */
     public final void clearSelection() {
-        panel.clearSelection();
+        view.clearSelection();
     }
 }

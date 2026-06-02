@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Immutable root-to-item path snapshot used by {@link RXCascaderPanel} and
+ * Immutable root-to-item path snapshot used by {@link RXCascaderView} and
  * {@link RXCascader}.
  *
  * @param <T> application value type

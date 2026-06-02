@@ -266,7 +266,7 @@
     -fx-background-color: transparent;
 }
 
-.rx-cascader-panel {
+.rx-cascader-view {
     -fx-background-color: -fx-control-inner-background;
     -fx-border-color: -fx-box-border;
     -fx-border-width: 1px;

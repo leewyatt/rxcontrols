@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCascader;
-import io.github.leewyatt.rxcontrols.RXCascaderPanel;
+import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import javafx.application.Platform;
@@ -88,7 +88,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         popup.setAutoHide(true);
         popup.setAutoFix(true);
         popup.setHideOnEscape(true);
-        popup.setSkin(new CascaderPopupSkin<>(popup, control.getPanel()));
+        popup.setSkin(new CascaderPopupSkin<>(popup, control.getView()));
         popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
         disposer.registerDisposeTask(() -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
     }
@@ -106,8 +106,8 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
         disposer.registerListener(control.pathTextFactoryProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
-        disposer.registerListener(control.getPanel().widthProperty(), this::positionPopupIfShowing);
-        disposer.registerListener(control.getPanel().heightProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.getView().widthProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.getView().heightProperty(), this::positionPopupIfShowing);
         // Keep the popup glued to the control when layout moves it. Mirrors
         // ComboBoxPopupControl, which reconfigures on the control's own
         // layoutX/layoutY/width/height (these change when a sibling grows and a
@@ -246,7 +246,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             return;
         }
 
-        control.getPanel().applyCss();
+        control.getView().applyCss();
 
         Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
         if (screenBounds == null) {
@@ -311,7 +311,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         private PopupControl popup;
         private Node content;
 
-        private CascaderPopupSkin(PopupControl popup, RXCascaderPanel<T> panel) {
+        private CascaderPopupSkin(PopupControl popup, RXCascaderView<T> panel) {
             this.popup = popup;
             this.content = panel;
         }

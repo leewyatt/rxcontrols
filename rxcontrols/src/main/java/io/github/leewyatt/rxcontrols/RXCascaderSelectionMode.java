@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * Selection mode used by {@link RXCascaderPanel} and {@link RXCascader}.
+ * Selection mode used by {@link RXCascaderView} and {@link RXCascader}.
  */
 public enum RXCascaderSelectionMode {
     /**

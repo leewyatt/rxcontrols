@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
-import io.github.leewyatt.rxcontrols.RXCascaderPanel;
+import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import javafx.beans.InvalidationListener;
@@ -29,11 +29,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXCascaderPanel}.
+ * Default skin for {@link RXCascaderView}.
  *
  * @param <T> application value type
  */
-public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
+public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     // ==================== Constants ====================
 
@@ -54,7 +54,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
      *
      * @param control the skinnable panel
      */
-    public RXCascaderPanelSkin(RXCascaderPanel<T> control) {
+    public RXCascaderViewSkin(RXCascaderView<T> control) {
         super(control);
         columnsBox.getStyleClass().add("rx-cascader-columns");
         getChildren().setAll(columnsBox);
@@ -62,7 +62,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         rebuildColumns();
     }
 
-    private void registerListeners(RXCascaderPanel<T> control) {
+    private void registerListeners(RXCascaderView<T> control) {
         disposer.registerListener(control.getRootItems(), this::rebuildColumns);
         disposer.registerListener(control.getActivePath(), this::rebuildColumns);
         disposer.registerListener(control.selectionModeProperty(), () -> {
@@ -183,7 +183,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
     private double sanitizedColumnWidth() {
         double value = getSkinnable().getColumnWidth();
         if (Double.isNaN(value) || Double.isInfinite(value) || value < MIN_COLUMN_WIDTH) {
-            return RXCascaderPanel.DEFAULT_COLUMN_WIDTH;
+            return RXCascaderView.DEFAULT_COLUMN_WIDTH;
         }
         return value;
     }
@@ -191,7 +191,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
     private double sanitizedRowHeight() {
         double value = getSkinnable().getRowHeight();
         if (Double.isNaN(value) || Double.isInfinite(value) || value < MIN_ROW_HEIGHT) {
-            return RXCascaderPanel.DEFAULT_ROW_HEIGHT;
+            return RXCascaderView.DEFAULT_ROW_HEIGHT;
         }
         return value;
     }
@@ -211,7 +211,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
         private static final PseudoClass LOADING = PseudoClass.getPseudoClass("loading");
         private static final PseudoClass LEAF = PseudoClass.getPseudoClass("leaf");
 
-        private final RXCascaderPanel<T> panel;
+        private final RXCascaderView<T> panel;
         private final HBox row = new HBox();
         private final CheckBox checkBox = new CheckBox();
         private final StackPane contentPane = new StackPane();
@@ -231,7 +231,7 @@ public class RXCascaderPanelSkin<T> extends RXSkinBase<RXCascaderPanel<T>> {
 
         private RXCascaderItem<T> observedItem;
 
-        private RXCascaderColumnCell(RXCascaderPanel<T> panel) {
+        private RXCascaderColumnCell(RXCascaderView<T> panel) {
             this.panel = panel;
             initializeNodes();
             registerHandlers();

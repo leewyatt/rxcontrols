@@ -14,7 +14,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 /**
- * Node model used by {@link RXCascaderPanel}. It wraps an application value
+ * Node model used by {@link RXCascaderView}. It wraps an application value
  * with display text, children, disabled state, lazy-loading hints, and
  * tri-state check state.
  *
@@ -300,7 +300,7 @@ public class RXCascaderItem<T> {
      * It does not cascade to children, roll up to ancestors, or refresh the
      * owning panel's checked paths. Use it to seed an item's initial state (for
      * example a pre-checked locked item) before the tree is shown; for runtime
-     * changes call {@code RXCascaderPanel.setCheckedCascade} or
+     * changes call {@code RXCascaderView.setCheckedCascade} or
      * {@code toggleCheck} instead so the tri-state machine stays consistent.
      *
      * @return checked property
@@ -324,7 +324,7 @@ public class RXCascaderItem<T> {
      * <p>This method only updates this item. It does not cascade to children,
      * roll up to ancestors, or refresh the owning panel's checked paths. Use it
      * for initial state seeding before display; use
-     * {@code RXCascaderPanel.setCheckedCascade} or {@code toggleCheck} for
+     * {@code RXCascaderView.setCheckedCascade} or {@code toggleCheck} for
      * runtime selection changes.
      *
      * @param value {@code true} if checked

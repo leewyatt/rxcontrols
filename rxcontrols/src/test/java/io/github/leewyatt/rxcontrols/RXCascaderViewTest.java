@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXCascaderPanel}.
+ * Tests for {@link RXCascaderView}.
  */
-public class RXCascaderPanelTest {
+public class RXCascaderViewTest {
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -43,7 +43,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void disabledUncheckedChildKeepsAncestorsIndeterminate() {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> china = item("china");
@@ -74,7 +74,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void disabledCheckedChildCountsAsChecked() {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
@@ -98,7 +98,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void toggleIndeterminateBranchUsesEnabledLeaves() {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
@@ -124,7 +124,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void partialChildCheckMakesParentIndeterminate() {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
@@ -147,7 +147,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void pendingCheckReplaysAfterLazyLoad() throws InterruptedException {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         root.setLoaded(false);
@@ -179,7 +179,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void failedLazyLoadClearsPendingCheck() throws InterruptedException {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         root.setLoaded(false);
@@ -203,7 +203,7 @@ public class RXCascaderPanelTest {
      */
     @Test
     public void singleSelectionActivationCreatesPath() {
-        RXCascaderPanel<String> panel = new RXCascaderPanel<>();
+        RXCascaderView<String> panel = new RXCascaderView<>();
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> child = item("child");
         root.getChildren().add(child);

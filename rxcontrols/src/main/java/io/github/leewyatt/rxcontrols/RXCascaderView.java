@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.skins.RXCascaderPanelSkin;
+import io.github.leewyatt.rxcontrols.skins.RXCascaderViewSkin;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
@@ -28,13 +28,18 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 /**
- * Standalone multi-column cascader panel. It owns the active path, single
+ * Standalone multi-column cascader view. It owns the active path, single
  * selection, multiple checked paths, disabled inheritance, and cascading
  * tri-state check logic.
  *
+ * <p>This control is usable on its own — drop it inline into any layout to get
+ * a multi-column cascader without an input field or popup, and observe
+ * {@link #selectedPathProperty()} / {@link #getCheckedPaths()} for the result.
+ * {@link RXCascader} reuses it as its popup content.
+ *
  * @param <T> application value type
  */
-public class RXCascaderPanel<T> extends Control {
+public class RXCascaderView<T> extends Control {
 
     /**
      * Default column width in pixels.
@@ -51,7 +56,7 @@ public class RXCascaderPanel<T> extends Control {
      */
     public static final int DEFAULT_VISIBLE_ROW_COUNT = 6;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-cascader-panel";
+    private static final String DEFAULT_STYLE_CLASS = "rx-cascader-view";
 
     private final ObservableList<RXCascaderItem<T>> rootItems =
             FXCollections.observableArrayList();
@@ -75,7 +80,7 @@ public class RXCascaderPanel<T> extends Control {
     /**
      * Creates an empty cascader panel.
      */
-    public RXCascaderPanel() {
+    public RXCascaderView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         rootItems.addListener((ListChangeListener<RXCascaderItem<T>>) change -> {
             while (change.next()) {
@@ -99,7 +104,7 @@ public class RXCascaderPanel<T> extends Control {
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new RXCascaderPanelSkin<>(this);
+        return new RXCascaderViewSkin<>(this);
     }
 
     @Override
