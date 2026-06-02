@@ -132,6 +132,54 @@ public class RXCascaderViewSkinTest {
         }
     }
 
+    /**
+     * Verifies author CSS targeting a single column ordinal class changes only
+     * that column's preferred width, and the view's preferred width is the sum of
+     * the per-column preferred widths plus the view insets.
+     *
+     * @throws Exception if the temp stylesheet cannot be created or the FX task fails
+     */
+    @Test
+    public void authorCssOverridesSingleColumnPrefWidth() throws Exception {
+        Path css = Files.createTempFile("rx-cascader-skin-width", ".css");
+        Files.writeString(css, ".rx-cascader-column-1 { -fx-pref-width: 300; }");
+        try {
+            runOnFx(() -> {
+                RXCascaderView<String> view = new RXCascaderView<>();
+                RXCascaderItem<String> asia = item("asia");
+                asia.getChildren().setAll(List.of(item("china"), item("japan")));
+                view.getRootItems().setAll(List.of(asia));
+
+                Scene scene = new Scene(new StackPane(view));
+                scene.getStylesheets().add(css.toUri().toString());
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+
+                view.expand(asia);
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+
+                ListView<?> col0 = (ListView<?>) view.lookup(".rx-cascader-column-0");
+                ListView<?> col1 = (ListView<?>) view.lookup(".rx-cascader-column-1");
+                assertNotNull(col0, "root column should exist");
+                assertNotNull(col1, "second column should exist after expand");
+
+                assertEquals(RXCascaderView.DEFAULT_COLUMN_WIDTH, col0.prefWidth(-1.0), 0.001,
+                        "first column keeps the default width");
+                assertEquals(300.0, col1.prefWidth(-1.0), 0.001,
+                        "author CSS should widen only the second column");
+
+                double expected = view.getInsets().getLeft()
+                        + col0.prefWidth(-1.0) + col1.prefWidth(-1.0)
+                        + view.getInsets().getRight();
+                assertEquals(expected, view.prefWidth(-1.0), 0.5,
+                        "view prefWidth should be the sum of column pref widths plus insets");
+            });
+        } finally {
+            Files.deleteIfExists(css);
+        }
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text, text);
     }

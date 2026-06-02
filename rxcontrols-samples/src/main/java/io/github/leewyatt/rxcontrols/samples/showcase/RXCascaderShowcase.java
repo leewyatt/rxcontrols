@@ -25,8 +25,9 @@ import java.util.StringJoiner;
  *
  * <p>Exercises the public knobs: single vs multiple selection, the clear
  * affordance, the path-to-text factory (full path / last level / first-to-last),
- * and the column-width / row-height / visible-row-count dimensions. The sample
- * tree contains a disabled leaf so the locked tri-state rollup is directly
+ * the visible-row-count, and CSS sizing presets (column width / row height are
+ * controlled by CSS via {@code .rx-cascader-column}, not Java properties). The
+ * sample tree contains a disabled leaf so the locked tri-state rollup is directly
  * observable: checking its enabled siblings leaves the ancestors indeterminate.
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderDemo}.

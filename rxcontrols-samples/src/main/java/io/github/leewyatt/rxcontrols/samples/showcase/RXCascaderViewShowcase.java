@@ -20,8 +20,9 @@ import java.util.StringJoiner;
 
 /**
  * Showcase application for {@link RXCascaderView} — the standalone inline
- * cascader panel (no input field, no popup). Exercises selection mode, the
- * column-width / row-height / visible-row-count dimensions, and a clear action.
+ * cascader view (no input field, no popup). Exercises selection mode, the
+ * visible-row-count, CSS sizing presets (column width / row height via
+ * {@code .rx-cascader-column} CSS, not Java properties), and a clear action.
  * The sample tree contains a disabled leaf so the locked tri-state rollup is
  * directly observable.
  *
