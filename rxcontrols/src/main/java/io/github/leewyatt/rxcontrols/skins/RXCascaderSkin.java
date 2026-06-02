@@ -108,11 +108,17 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
         disposer.registerListener(control.getPanel().widthProperty(), this::positionPopupIfShowing);
         disposer.registerListener(control.getPanel().heightProperty(), this::positionPopupIfShowing);
-        // Keep the popup glued to the control when surrounding layout moves it
-        // (e.g. a sibling node grows and shifts the control within its parent).
-        // The local-to-scene transform changes whenever any ancestor relayouts.
+        // Keep the popup glued to the control when layout moves it. Mirrors
+        // ComboBoxPopupControl, which reconfigures on the control's own
+        // layoutX/layoutY/width/height (these change when a sibling grows and a
+        // centering parent re-lays-out the control). localToSceneTransform is an
+        // extra net for ancestor-driven moves that leave the control's own
+        // layout bounds unchanged.
+        disposer.registerListener(control.layoutXProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.layoutYProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.widthProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.heightProperty(), this::positionPopupIfShowing);
         disposer.registerListener(control.localToSceneTransformProperty(), this::positionPopupIfShowing);
-        disposer.registerListener(control.boundsInLocalProperty(), this::positionPopupIfShowing);
     }
 
     // ==================== Events ====================

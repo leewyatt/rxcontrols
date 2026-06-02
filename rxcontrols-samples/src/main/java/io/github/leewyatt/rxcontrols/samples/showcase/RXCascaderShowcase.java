@@ -38,7 +38,6 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private static final double MAX_ROW_HEIGHT = 48.0;
     private static final double MIN_VISIBLE_ROWS = 3.0;
     private static final double MAX_VISIBLE_ROWS = 10.0;
-    private static final double READOUT_HEIGHT = 112.0;
     private static final String SEPARATOR = " / ";
 
     private RXCascader<String> cascader;
@@ -76,13 +75,6 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
         readout.setWrapText(true);
-        // A fixed-height readout keeps the preview block a constant size as
-        // checked paths accumulate, so the field does not bob (and the popup
-        // does not chase it) while the user toggles checkboxes.
-        readout.setAlignment(Pos.TOP_LEFT);
-        readout.setMinHeight(READOUT_HEIGHT);
-        readout.setPrefHeight(READOUT_HEIGHT);
-        readout.setMaxHeight(READOUT_HEIGHT);
         readout.textProperty().bind(Bindings.createStringBinding(
                 this::describeSelection,
                 cascader.selectedPathProperty(),
