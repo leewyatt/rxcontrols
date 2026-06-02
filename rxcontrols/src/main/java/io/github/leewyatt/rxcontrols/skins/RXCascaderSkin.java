@@ -108,6 +108,11 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
         disposer.registerListener(control.getPanel().widthProperty(), this::positionPopupIfShowing);
         disposer.registerListener(control.getPanel().heightProperty(), this::positionPopupIfShowing);
+        // Keep the popup glued to the control when surrounding layout moves it
+        // (e.g. a sibling node grows and shifts the control within its parent).
+        // The local-to-scene transform changes whenever any ancestor relayouts.
+        disposer.registerListener(control.localToSceneTransformProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(control.boundsInLocalProperty(), this::positionPopupIfShowing);
     }
 
     // ==================== Events ====================
@@ -257,8 +262,14 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     }
 
     private void positionPopupIfShowing() {
-        if (getSkinnable().isShowing()) {
-            showPopup();
+        if (!getSkinnable().isShowing() || !popup.isShowing()) {
+            return;
+        }
+        RXCascader<T> control = getSkinnable();
+        Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
+        if (screenBounds != null) {
+            popup.setAnchorX(screenBounds.getMinX());
+            popup.setAnchorY(screenBounds.getMaxY());
         }
     }
 
