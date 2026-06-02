@@ -30,10 +30,6 @@ import java.util.StringJoiner;
  */
 public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
-    private static final double MIN_COLUMN_WIDTH = 120.0;
-    private static final double MAX_COLUMN_WIDTH = 260.0;
-    private static final double MIN_ROW_HEIGHT = 24.0;
-    private static final double MAX_ROW_HEIGHT = 48.0;
     private static final double MIN_VISIBLE_ROWS = 3.0;
     private static final double MAX_VISIBLE_ROWS = 10.0;
     private static final String SEPARATOR = " / ";
@@ -114,23 +110,34 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildDimensionGrid() {
-        Slider columnWidth = createSlider(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, view.getColumnWidth());
-        view.columnWidthProperty().bind(columnWidth.valueProperty());
-        Label columnValue = createValueLabel(columnWidth, "%.0f px");
-
-        Slider rowHeight = createSlider(MIN_ROW_HEIGHT, MAX_ROW_HEIGHT, view.getRowHeight());
-        view.rowHeightProperty().bind(rowHeight.valueProperty());
-        Label rowValue = createValueLabel(rowHeight, "%.0f px");
-
         Slider visibleRows = createSlider(MIN_VISIBLE_ROWS, MAX_VISIBLE_ROWS, view.getVisibleRowCount());
         visibleRows.valueProperty().addListener((obs, oldV, newV) ->
                 view.setVisibleRowCount((int) Math.round(newV.doubleValue())));
         Label visibleValue = createValueLabel(visibleRows, "%.0f");
 
+        ComboBox<SizePreset> presetBox = new ComboBox<>();
+        presetBox.getItems().setAll(SizePreset.values());
+        presetBox.setValue(SizePreset.DEFAULT);
+        presetBox.setMaxWidth(Double.MAX_VALUE);
+        presetBox.valueProperty().addListener((obs, oldV, newV) -> applyPreset(newV));
+
+        Label hint = new Label("Column width / row height are controlled by CSS "
+                + "(.rx-cascader-column / .rx-cascader-column-N). The preset toggles "
+                + "demo style classes that override them.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+
         return createGrid(
-                row("Column width", columnWidth, columnValue),
-                row("Row height", rowHeight, rowValue),
-                row("Visible rows", visibleRows, visibleValue));
+                row("Visible rows", visibleRows, visibleValue),
+                row("CSS preset", presetBox),
+                row(hint));
+    }
+
+    private void applyPreset(SizePreset preset) {
+        view.getStyleClass().removeAll(SizePreset.WIDE_COL2.styleClass(), SizePreset.TALL_ROWS.styleClass());
+        if (preset != null && !preset.styleClass().isEmpty()) {
+            view.getStyleClass().add(preset.styleClass());
+        }
     }
 
     // ==================== Readout ====================
@@ -187,6 +194,31 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
     private static RXCascaderItem<String> item(String value, String text) {
         return new RXCascaderItem<>(value, text);
+    }
+
+    // ==================== Size preset ====================
+
+    private enum SizePreset {
+        DEFAULT("Default", ""),
+        WIDE_COL2("Second column 300px", "demo-wide-col2"),
+        TALL_ROWS("Row height 44px", "demo-tall");
+
+        private final String label;
+        private final String styleClass;
+
+        SizePreset(String label, String styleClass) {
+            this.label = label;
+            this.styleClass = styleClass;
+        }
+
+        String styleClass() {
+            return styleClass;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
     /**

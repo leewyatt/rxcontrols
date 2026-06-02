@@ -8,3 +8,11 @@
     -fx-text-fill: derive(-fx-text-base-color, 45%);
     -fx-font-size: 11px;
 }
+
+.demo-wide-col2 .rx-cascader-column-1 {
+    -fx-pref-width: 300px;
+}
+
+.demo-tall .rx-cascader-column {
+    -fx-fixed-cell-size: 44px;
+}

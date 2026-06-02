@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCascaderSkin;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -287,60 +286,6 @@ public class RXCascader<T> extends Control {
     }
 
     // ==================== Delegated View Properties ====================
-
-    /**
-     * Preferred width for each popup column.
-     *
-     * @return column-width property
-     */
-    public final DoubleProperty columnWidthProperty() {
-        return view.columnWidthProperty();
-    }
-
-    /**
-     * Returns the preferred column width.
-     *
-     * @return preferred column width
-     */
-    public final double getColumnWidth() {
-        return view.getColumnWidth();
-    }
-
-    /**
-     * Sets the preferred column width.
-     *
-     * @param value preferred column width
-     */
-    public final void setColumnWidth(double value) {
-        view.setColumnWidth(value);
-    }
-
-    /**
-     * Fixed row height for popup columns.
-     *
-     * @return row-height property
-     */
-    public final DoubleProperty rowHeightProperty() {
-        return view.rowHeightProperty();
-    }
-
-    /**
-     * Returns the fixed row height.
-     *
-     * @return fixed row height
-     */
-    public final double getRowHeight() {
-        return view.getRowHeight();
-    }
-
-    /**
-     * Sets the fixed row height.
-     *
-     * @param value fixed row height
-     */
-    public final void setRowHeight(double value) {
-        view.setRowHeight(value);
-    }
 
     /**
      * Number of visible popup rows used for preferred popup height.

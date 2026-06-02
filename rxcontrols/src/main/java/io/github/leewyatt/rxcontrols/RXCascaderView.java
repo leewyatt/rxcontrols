@@ -3,12 +3,10 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCascaderViewSkin;
 import javafx.application.Platform;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -47,9 +45,9 @@ public class RXCascaderView<T> extends Control {
     public static final double DEFAULT_COLUMN_WIDTH = 180.0;
 
     /**
-     * Default row height in pixels.
+     * Default fixed cell size (row height) in pixels.
      */
-    public static final double DEFAULT_ROW_HEIGHT = 34.0;
+    public static final double DEFAULT_FIXED_CELL_SIZE = 34.0;
 
     /**
      * Default visible row count.
@@ -78,7 +76,7 @@ public class RXCascaderView<T> extends Control {
     private long nextLoadGeneration;
 
     /**
-     * Creates an empty cascader panel.
+     * Creates an empty cascader view.
      */
     public RXCascaderView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
@@ -206,74 +204,10 @@ public class RXCascaderView<T> extends Control {
     /**
      * Checked leaf paths in multiple-selection mode.
      *
-     * @return read-only checked path list maintained by this panel
+     * @return read-only checked path list maintained by this view
      */
     public final ObservableList<RXCascaderPath<T>> getCheckedPaths() {
         return readOnlyCheckedPaths;
-    }
-
-    // ==================== Column Width ====================
-
-    private final DoubleProperty columnWidth =
-            new SimpleDoubleProperty(this, "columnWidth", DEFAULT_COLUMN_WIDTH);
-
-    /**
-     * Preferred width for each column.
-     *
-     * @return column-width property
-     */
-    public final DoubleProperty columnWidthProperty() {
-        return columnWidth;
-    }
-
-    /**
-     * Returns the preferred column width.
-     *
-     * @return preferred column width
-     */
-    public final double getColumnWidth() {
-        return columnWidth.get();
-    }
-
-    /**
-     * Sets the preferred column width.
-     *
-     * @param value preferred column width
-     */
-    public final void setColumnWidth(double value) {
-        columnWidth.set(value);
-    }
-
-    // ==================== Row Height ====================
-
-    private final DoubleProperty rowHeight =
-            new SimpleDoubleProperty(this, "rowHeight", DEFAULT_ROW_HEIGHT);
-
-    /**
-     * Fixed row height for all columns.
-     *
-     * @return row-height property
-     */
-    public final DoubleProperty rowHeightProperty() {
-        return rowHeight;
-    }
-
-    /**
-     * Returns the fixed row height.
-     *
-     * @return fixed row height
-     */
-    public final double getRowHeight() {
-        return rowHeight.get();
-    }
-
-    /**
-     * Sets the fixed row height.
-     *
-     * @param value fixed row height
-     */
-    public final void setRowHeight(double value) {
-        rowHeight.set(value);
     }
 
     // ==================== Visible Row Count ====================
@@ -282,7 +216,9 @@ public class RXCascaderView<T> extends Control {
             new SimpleIntegerProperty(this, "visibleRowCount", DEFAULT_VISIBLE_ROW_COUNT);
 
     /**
-     * Number of visible rows used for preferred panel height.
+     * Preferred visible row count: the panel shows this many row slots. Fewer
+     * items leave blank space, more items scroll within the column. (This is a
+     * fixed row-slot count, not an "at most N rows" cap.)
      *
      * @return visible-row-count property
      */

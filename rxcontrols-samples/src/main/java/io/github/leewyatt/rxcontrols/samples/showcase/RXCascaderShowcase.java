@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
+import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -32,10 +33,6 @@ import java.util.StringJoiner;
  */
 public class RXCascaderShowcase extends RXShowcaseApplication {
 
-    private static final double MIN_COLUMN_WIDTH = 120.0;
-    private static final double MAX_COLUMN_WIDTH = 260.0;
-    private static final double MIN_ROW_HEIGHT = 24.0;
-    private static final double MAX_ROW_HEIGHT = 48.0;
     private static final double MIN_VISIBLE_ROWS = 3.0;
     private static final double MAX_VISIBLE_ROWS = 10.0;
     private static final String SEPARATOR = " / ";
@@ -130,23 +127,35 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     }
 
     private Node buildDimensionGrid() {
-        Slider columnWidth = createSlider(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, cascader.getColumnWidth());
-        cascader.columnWidthProperty().bind(columnWidth.valueProperty());
-        Label columnValue = createValueLabel(columnWidth, "%.0f px");
-
-        Slider rowHeight = createSlider(MIN_ROW_HEIGHT, MAX_ROW_HEIGHT, cascader.getRowHeight());
-        cascader.rowHeightProperty().bind(rowHeight.valueProperty());
-        Label rowValue = createValueLabel(rowHeight, "%.0f px");
-
         Slider visibleRows = createSlider(MIN_VISIBLE_ROWS, MAX_VISIBLE_ROWS, cascader.getVisibleRowCount());
         visibleRows.valueProperty().addListener((obs, oldV, newV) ->
                 cascader.setVisibleRowCount((int) Math.round(newV.doubleValue())));
         Label visibleValue = createValueLabel(visibleRows, "%.0f");
 
+        ComboBox<SizePreset> presetBox = new ComboBox<>();
+        presetBox.getItems().setAll(SizePreset.values());
+        presetBox.setValue(SizePreset.DEFAULT);
+        presetBox.setMaxWidth(Double.MAX_VALUE);
+        presetBox.valueProperty().addListener((obs, oldV, newV) -> applyPreset(newV));
+
+        Label hint = new Label("Column width / row height are controlled by CSS "
+                + "(.rx-cascader-column / .rx-cascader-column-N). The preset toggles "
+                + "demo style classes that override them.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+
         return createGrid(
-                row("Column width", columnWidth, columnValue),
-                row("Row height", rowHeight, rowValue),
-                row("Visible rows", visibleRows, visibleValue));
+                row("Visible rows", visibleRows, visibleValue),
+                row("CSS preset", presetBox),
+                row(hint));
+    }
+
+    private void applyPreset(SizePreset preset) {
+        RXCascaderView<String> view = cascader.getView();
+        view.getStyleClass().removeAll(SizePreset.WIDE_COL2.styleClass(), SizePreset.TALL_ROWS.styleClass());
+        if (preset != null && !preset.styleClass().isEmpty()) {
+            view.getStyleClass().add(preset.styleClass());
+        }
     }
 
     // ==================== Readout ====================
@@ -242,6 +251,31 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         }
 
         abstract Callback<RXCascaderPath<String>, String> factory();
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    // ==================== Size preset ====================
+
+    private enum SizePreset {
+        DEFAULT("Default", ""),
+        WIDE_COL2("Second column 300px", "demo-wide-col2"),
+        TALL_ROWS("Row height 44px", "demo-tall");
+
+        private final String label;
+        private final String styleClass;
+
+        SizePreset(String label, String styleClass) {
+            this.label = label;
+            this.styleClass = styleClass;
+        }
+
+        String styleClass() {
+            return styleClass;
+        }
 
         @Override
         public String toString() {
