@@ -27,6 +27,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
     // ==================== Nodes ====================
 
+    private final Region hitArea = new Region();
     private final Region track = new Region();
     private final Region secondaryBar = new Region();
     private final Region bar = new Region();
@@ -54,6 +55,9 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     }
 
     private void initializeNodes() {
+        hitArea.setManaged(false);
+        hitArea.setPickOnBounds(true);
+
         track.getStyleClass().add("track");
         secondaryBar.getStyleClass().add("secondary-bar");
         bar.getStyleClass().add("bar");
@@ -63,16 +67,19 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         secondaryBar.setMouseTransparent(true);
         bar.setMouseTransparent(true);
 
-        getChildren().setAll(track, secondaryBar, bar, thumb);
+        getChildren().setAll(hitArea, track, secondaryBar, bar, thumb);
     }
 
     private void registerListeners(RXSeekBar control) {
-        disposer.registerListener(control.widthProperty(), control::requestLayout);
         disposer.registerListener(control.progressProperty(), control::requestLayout);
         disposer.registerListener(control.secondaryProgressProperty(), control::requestLayout);
     }
 
     private void registerPointerHandlers() {
+        disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_PRESSED, this::onHitAreaPressed);
+        disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_DRAGGED, this::onHitAreaDragged);
+        disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_RELEASED, this::onPointerReleased);
+
         disposer.registerEventHandler(track, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
         disposer.registerEventHandler(track, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
         disposer.registerEventHandler(track, MouseEvent.MOUSE_RELEASED, this::onPointerReleased);
@@ -88,15 +95,28 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
     // ==================== Pointer interaction ====================
 
+    private void onHitAreaPressed(MouseEvent event) {
+        beginPointerSeek();
+        setProgressFromNode(hitArea, event);
+        event.consume();
+    }
+
+    private void onHitAreaDragged(MouseEvent event) {
+        if (pointerSeeking) {
+            setProgressFromNode(hitArea, event);
+            event.consume();
+        }
+    }
+
     private void onTrackPressed(MouseEvent event) {
         beginPointerSeek();
-        setProgressFromTrack(event.getX());
+        setProgressFromNode(track, event);
         event.consume();
     }
 
     private void onTrackDragged(MouseEvent event) {
         if (pointerSeeking) {
-            setProgressFromTrack(event.getX());
+            setProgressFromNode(track, event);
             event.consume();
         }
     }
@@ -138,12 +158,17 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         control.setSeeking(true);
     }
 
-    private void setProgressFromTrack(double localX) {
+    private void setProgressFromNode(Node source, MouseEvent event) {
+        Point2D point = source.localToParent(event.getX(), event.getY());
+        setProgressFromSkinX(point.getX());
+    }
+
+    private void setProgressFromSkinX(double x) {
         double trackLength = track.getWidth();
         if (trackLength <= 0.0) {
             return;
         }
-        getSkinnable().setProgress(RXMath.clamp0To1(localX / trackLength));
+        getSkinnable().setProgress(RXMath.clamp0To1((x - track.getLayoutX()) / trackLength));
     }
 
     // ==================== Discrete interaction ====================
@@ -182,6 +207,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         double thumbH = snapSizeY(thumb.prefHeight(-1));
         double trackH = snapSizeY(track.prefHeight(-1));
         double barAreaH = Math.max(trackH, thumbH);
+        hitArea.resizeRelocate(x, y, Math.max(0.0, w), Math.max(0.0, h));
+
         double centerY = y + (h - barAreaH) * HALF;
         double trackTop = snapPositionY(centerY + (barAreaH - trackH) * HALF);
         double thumbTop = snapPositionY(centerY + (barAreaH - thumbH) * HALF);
