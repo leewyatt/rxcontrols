@@ -235,10 +235,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             return;
         }
 
-        RXCascaderPanel<T> panel = control.getPanel();
-        double ownerWidth = Math.max(control.getWidth(), control.prefWidth(-1.0));
-        panel.setMinWidth(Math.max(ownerWidth, panel.prefWidth(-1.0)));
-        panel.applyCss();
+        control.getPanel().applyCss();
 
         Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
         if (screenBounds == null) {
