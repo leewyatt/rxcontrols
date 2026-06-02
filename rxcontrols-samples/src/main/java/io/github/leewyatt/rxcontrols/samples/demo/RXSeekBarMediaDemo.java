@@ -37,7 +37,6 @@ public class RXSeekBarMediaDemo extends Application {
     private final Button playPauseButton = new Button("Play");
     private MediaPlayer player;
 
-    /** {@inheritDoc} */
     @Override
     public void start(Stage primaryStage) {
         fileChooser.getExtensionFilters().addAll(
@@ -153,7 +152,6 @@ public class RXSeekBarMediaDemo extends Application {
         return RXMath.clamp0To1(millis / totalMillis);
     }
 
-    /** {@inheritDoc} */
     @Override
     public void stop() {
         if (player != null) {
@@ -162,11 +160,6 @@ public class RXSeekBarMediaDemo extends Application {
         }
     }
 
-    /**
-     * Launches the demo.
-     *
-     * @param args command-line arguments
-     */
     public static void main(String[] args) {
         launch(args);
     }
