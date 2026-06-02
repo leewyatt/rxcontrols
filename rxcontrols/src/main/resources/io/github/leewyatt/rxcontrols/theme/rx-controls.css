@@ -113,44 +113,50 @@
     -fx-text-fill: red;
 }
 
-/* MediaProgressBar 多媒体播放进度条 */
-.rx-media-progress-bar {
-    /*进度条颜色*/
+/*******************************************************************************
+ *                                                                             *
+ * RXSeekBar                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.rx-seek-bar {
     -rx-track-fill: #eaeaea;
-    /*缓冲进度条颜色*/
-    -rx-buffer-fill: #dadada;
-    /*当前播放进度条颜色*/
-    -rx-current-fill: #1ecc94;
-    /*圆圈按钮的颜色*/
+    -rx-secondary-fill: #dadada;
+    -rx-bar-fill: #1ecc94;
     -rx-thumb-fill: #1fdba4;
 }
 
-.rx-media-progress-bar .track {
+.rx-seek-bar > .track {
     -fx-background-color: -rx-track-fill;
     -fx-background-radius: 3px;
+    -fx-pref-height: 4px;
 }
 
-.rx-media-progress-bar .buffer-track {
-    /*-fx-background-color: #f60a0a;*/
-    -fx-background-color: -rx-buffer-fill;
+.rx-seek-bar > .secondary-bar {
+    -fx-background-color: -rx-secondary-fill;
     -fx-background-radius: 3px;
 }
 
-.rx-media-progress-bar .current-track {
-    -fx-background-color: -rx-current-fill;
+.rx-seek-bar > .bar {
+    -fx-background-color: -rx-bar-fill;
     -fx-background-radius: 3px;
 }
 
-.rx-media-progress-bar .thumb {
+.rx-seek-bar > .thumb {
     -fx-background-color: -rx-thumb-fill;
     -fx-background-radius: 50%;
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
     -fx-effect: dropshadow(three-pass-box, #57b479, 5, 0.5, 0, 0);
 }
 
-.rx-media-progress-bar .thumb:hover {
+.rx-seek-bar > .thumb:hover {
     -fx-scale-x: 1.18;
     -fx-scale-y: 1.18;
     -fx-effect: dropshadow(three-pass-box, #4f9a8e, 5, 0.5, 0, 0);
+}
+
+.rx-seek-bar:focused > .thumb {
+    -fx-effect: dropshadow(three-pass-box, #1f8f76, 7, 0.5, 0, 0);
 }
 
 /* AudioSpectrum 声音频谱组件 */
