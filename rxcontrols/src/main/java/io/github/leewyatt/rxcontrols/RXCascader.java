@@ -1,0 +1,435 @@
+package io.github.leewyatt.rxcontrols;
+
+import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.skins.RXCascaderSkin;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import javafx.scene.control.Control;
+import javafx.scene.control.Skin;
+import javafx.util.Callback;
+
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+
+/**
+ * Popup cascader control backed by a reusable {@link RXCascaderPanel}. The
+ * control owns the popup shell and display text, while the panel owns path
+ * expansion, single selection, multiple checked paths, disabled inheritance,
+ * lazy loading, and tri-state check logic.
+ *
+ * @param <T> application value type
+ */
+public class RXCascader<T> extends Control {
+
+    // ==================== Constants ====================
+
+    private static final String DEFAULT_STYLE_CLASS = "rx-cascader";
+
+    // ==================== Fields ====================
+
+    private final RXCascaderPanel<T> panel = new RXCascaderPanel<>();
+
+    // ==================== Constructor ====================
+
+    /**
+     * Creates an empty cascader.
+     */
+    public RXCascader() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
+        setFocusTraversable(true);
+    }
+
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new RXCascaderSkin<>(this);
+    }
+
+    @Override
+    public String getUserAgentStylesheet() {
+        return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Panel ====================
+
+    /**
+     * Returns the embedded panel owned by this cascader. The returned node is
+     * used as popup content and must not be inserted into another parent.
+     *
+     * @return embedded cascader panel
+     */
+    public final RXCascaderPanel<T> getPanel() {
+        return panel;
+    }
+
+    /**
+     * Root items shown in the first cascader column.
+     *
+     * @return mutable root item list
+     */
+    public final ObservableList<RXCascaderItem<T>> getRootItems() {
+        return panel.getRootItems();
+    }
+
+    /**
+     * Expanded branch path.
+     *
+     * @return read-only active path list
+     */
+    public final ObservableList<RXCascaderItem<T>> getActivePath() {
+        return panel.getActivePath();
+    }
+
+    // ==================== Selection Mode ====================
+
+    /**
+     * Selection mode.
+     *
+     * @return selection-mode property
+     */
+    public final ObjectProperty<RXCascaderSelectionMode> selectionModeProperty() {
+        return panel.selectionModeProperty();
+    }
+
+    /**
+     * Returns the selection mode.
+     *
+     * @return selection mode
+     */
+    public final RXCascaderSelectionMode getSelectionMode() {
+        return panel.getSelectionMode();
+    }
+
+    /**
+     * Sets the selection mode.
+     *
+     * @param value selection mode
+     */
+    public final void setSelectionMode(RXCascaderSelectionMode value) {
+        panel.setSelectionMode(value);
+    }
+
+    // ==================== Selected Path ====================
+
+    /**
+     * Selected path in single-selection mode.
+     *
+     * @return read-only selected-path property
+     */
+    public final ReadOnlyObjectProperty<RXCascaderPath<T>> selectedPathProperty() {
+        return panel.selectedPathProperty();
+    }
+
+    /**
+     * Returns the selected path.
+     *
+     * @return selected path, or {@code null}
+     */
+    public final RXCascaderPath<T> getSelectedPath() {
+        return panel.getSelectedPath();
+    }
+
+    /**
+     * Checked leaf paths in multiple-selection mode.
+     *
+     * @return read-only checked path list maintained by the panel
+     */
+    public final ObservableList<RXCascaderPath<T>> getCheckedPaths() {
+        return panel.getCheckedPaths();
+    }
+
+    // ==================== Prompt Text ====================
+
+    private final StringProperty promptText =
+            new SimpleStringProperty(this, "promptText", "");
+
+    /**
+     * Placeholder text shown when no path is selected.
+     *
+     * @return prompt-text property
+     */
+    public final StringProperty promptTextProperty() {
+        return promptText;
+    }
+
+    /**
+     * Returns the prompt text.
+     *
+     * @return prompt text
+     */
+    public final String getPromptText() {
+        return promptText.get();
+    }
+
+    /**
+     * Sets the prompt text.
+     *
+     * @param value prompt text, or {@code null}
+     */
+    public final void setPromptText(String value) {
+        promptText.set(value);
+    }
+
+    // ==================== Path Text Factory ====================
+
+    private final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactory =
+            new SimpleObjectProperty<>(this, "pathTextFactory");
+
+    /**
+     * Optional converter from a path snapshot to display text.
+     *
+     * @return path-text factory property
+     */
+    public final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactoryProperty() {
+        return pathTextFactory;
+    }
+
+    /**
+     * Returns the path-text factory.
+     *
+     * @return path-text factory, or {@code null}
+     */
+    public final Callback<RXCascaderPath<T>, String> getPathTextFactory() {
+        return pathTextFactory.get();
+    }
+
+    /**
+     * Sets the path-text factory.
+     *
+     * @param value path-text factory, or {@code null}
+     */
+    public final void setPathTextFactory(Callback<RXCascaderPath<T>, String> value) {
+        pathTextFactory.set(value);
+    }
+
+    // ==================== Clearable ====================
+
+    private final BooleanProperty clearable =
+            new SimpleBooleanProperty(this, "clearable", false);
+
+    /**
+     * Whether a clear affordance is shown when a selection exists.
+     *
+     * @return clearable property
+     */
+    public final BooleanProperty clearableProperty() {
+        return clearable;
+    }
+
+    /**
+     * Returns whether the control is clearable.
+     *
+     * @return {@code true} if clearable
+     */
+    public final boolean isClearable() {
+        return clearable.get();
+    }
+
+    /**
+     * Sets whether the control is clearable.
+     *
+     * @param value {@code true} if clearable
+     */
+    public final void setClearable(boolean value) {
+        clearable.set(value);
+    }
+
+    // ==================== Showing ====================
+
+    private final ReadOnlyBooleanWrapper showing =
+            new ReadOnlyBooleanWrapper(this, "showing", false);
+
+    /**
+     * Whether the popup is showing.
+     *
+     * @return read-only showing property
+     */
+    public final ReadOnlyBooleanProperty showingProperty() {
+        return showing.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns whether the popup is showing.
+     *
+     * @return {@code true} if showing
+     */
+    public final boolean isShowing() {
+        return showing.get();
+    }
+
+    /**
+     * Requests the popup to show.
+     */
+    public final void show() {
+        if (isDisabled()) {
+            return;
+        }
+        showing.set(true);
+    }
+
+    /**
+     * Requests the popup to hide.
+     */
+    public final void hide() {
+        showing.set(false);
+    }
+
+    // ==================== Delegated Panel Properties ====================
+
+    /**
+     * Preferred width for each popup column.
+     *
+     * @return column-width property
+     */
+    public final DoubleProperty columnWidthProperty() {
+        return panel.columnWidthProperty();
+    }
+
+    /**
+     * Returns the preferred column width.
+     *
+     * @return preferred column width
+     */
+    public final double getColumnWidth() {
+        return panel.getColumnWidth();
+    }
+
+    /**
+     * Sets the preferred column width.
+     *
+     * @param value preferred column width
+     */
+    public final void setColumnWidth(double value) {
+        panel.setColumnWidth(value);
+    }
+
+    /**
+     * Fixed row height for popup columns.
+     *
+     * @return row-height property
+     */
+    public final DoubleProperty rowHeightProperty() {
+        return panel.rowHeightProperty();
+    }
+
+    /**
+     * Returns the fixed row height.
+     *
+     * @return fixed row height
+     */
+    public final double getRowHeight() {
+        return panel.getRowHeight();
+    }
+
+    /**
+     * Sets the fixed row height.
+     *
+     * @param value fixed row height
+     */
+    public final void setRowHeight(double value) {
+        panel.setRowHeight(value);
+    }
+
+    /**
+     * Number of visible popup rows used for preferred popup height.
+     *
+     * @return visible-row-count property
+     */
+    public final IntegerProperty visibleRowCountProperty() {
+        return panel.visibleRowCountProperty();
+    }
+
+    /**
+     * Returns the visible row count.
+     *
+     * @return visible row count
+     */
+    public final int getVisibleRowCount() {
+        return panel.getVisibleRowCount();
+    }
+
+    /**
+     * Sets the visible row count.
+     *
+     * @param value visible row count
+     */
+    public final void setVisibleRowCount(int value) {
+        panel.setVisibleRowCount(value);
+    }
+
+    /**
+     * Optional factory for the content area of a popup row.
+     *
+     * @return option-content factory property
+     */
+    public final ObjectProperty<Callback<RXCascaderItem<T>, Node>> optionContentFactoryProperty() {
+        return panel.optionContentFactoryProperty();
+    }
+
+    /**
+     * Returns the option-content factory.
+     *
+     * @return option-content factory, or {@code null}
+     */
+    public final Callback<RXCascaderItem<T>, Node> getOptionContentFactory() {
+        return panel.getOptionContentFactory();
+    }
+
+    /**
+     * Sets the option-content factory.
+     *
+     * @param value option-content factory, or {@code null}
+     */
+    public final void setOptionContentFactory(Callback<RXCascaderItem<T>, Node> value) {
+        panel.setOptionContentFactory(value);
+    }
+
+    /**
+     * Optional asynchronous loader used by unloaded branches.
+     *
+     * @return children-loader property
+     */
+    public final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
+            childrenLoaderProperty() {
+        return panel.childrenLoaderProperty();
+    }
+
+    /**
+     * Returns the children loader.
+     *
+     * @return children loader, or {@code null}
+     */
+    public final Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> getChildrenLoader() {
+        return panel.getChildrenLoader();
+    }
+
+    /**
+     * Sets the children loader.
+     *
+     * @param value children loader, or {@code null}
+     */
+    public final void setChildrenLoader(
+            Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> value) {
+        panel.setChildrenLoader(value);
+    }
+
+    // ==================== Operations ====================
+
+    /**
+     * Clears both single and multiple selection state.
+     */
+    public final void clearSelection() {
+        panel.clearSelection();
+    }
+}

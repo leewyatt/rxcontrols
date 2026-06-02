@@ -221,6 +221,114 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXCascader                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.rx-cascader > .rx-cascader-display {
+    -fx-alignment: center-left;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 3px;
+    -fx-border-color: #c0c4cc;
+    -fx-border-radius: 3px;
+    -fx-border-width: 1px;
+    -fx-padding: 0 8px 0 8px;
+    -fx-spacing: 6px;
+}
+
+.rx-cascader:focused > .rx-cascader-display,
+.rx-cascader:showing > .rx-cascader-display {
+    -fx-border-color: -fx-focus-color;
+}
+
+.rx-cascader-display-text {
+    -fx-text-fill: -fx-text-inner-color;
+    -fx-text-overrun: ellipsis;
+}
+
+.rx-cascader-display-text:empty {
+    -fx-text-fill: #909399;
+}
+
+.rx-cascader-clear-button,
+.rx-cascader-arrow {
+    -fx-alignment: center;
+    -fx-min-width: 16px;
+    -fx-pref-width: 16px;
+    -fx-max-width: 16px;
+    -fx-text-fill: #909399;
+}
+
+.rx-cascader-clear-button:hover {
+    -fx-text-fill: #606266;
+}
+
+.rx-cascader-popup {
+    -fx-background-color: transparent;
+}
+
+.rx-cascader-panel {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: #dcdfe6;
+    -fx-border-width: 1px;
+}
+
+.rx-cascader-columns {
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.rx-cascader-column {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-color: transparent #e4e7ed transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+}
+
+.rx-cascader-column .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.rx-cascader-column .list-cell:hover {
+    -fx-background-color: #f5f7fa;
+}
+
+.rx-cascader-cell:in-active-path,
+.rx-cascader-cell:in-checked-path,
+.rx-cascader-cell:active {
+    -fx-background-color: #ecf5ff;
+}
+
+.rx-cascader-cell:disabled {
+    -fx-opacity: 0.55;
+}
+
+.rx-cascader-cell-container {
+    -fx-padding: 0 10px 0 10px;
+    -fx-spacing: 6px;
+}
+
+.rx-cascader-cell-content {
+    -fx-alignment: center-left;
+}
+
+.rx-cascader-cell-label {
+    -fx-text-fill: #606266;
+    -fx-text-overrun: ellipsis;
+}
+
+.rx-cascader-cell:in-active-path .rx-cascader-cell-label,
+.rx-cascader-cell:in-checked-path .rx-cascader-cell-label,
+.rx-cascader-cell:active .rx-cascader-cell-label {
+    -fx-text-fill: -fx-accent;
+}
+
+.rx-cascader-cell-postfix {
+    -fx-text-fill: #909399;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXWaveProgressIndicator                                                     *
  *                                                                             *
  ******************************************************************************/
