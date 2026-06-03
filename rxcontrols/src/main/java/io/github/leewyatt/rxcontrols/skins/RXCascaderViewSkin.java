@@ -292,6 +292,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     private static final class RXCascaderColumnCell<T> extends ListCell<RXCascaderItem<T>> {
 
         private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
+        private static final PseudoClass IN_SELECTED_PATH = PseudoClass.getPseudoClass("in-selected-path");
         private static final PseudoClass IN_ACTIVE_PATH = PseudoClass.getPseudoClass("in-active-path");
         private static final PseudoClass IN_CHECKED_PATH = PseudoClass.getPseudoClass("in-checked-path");
         private static final PseudoClass INDETERMINATE = PseudoClass.getPseudoClass("indeterminate");
@@ -465,6 +466,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             boolean loading = item.isLoading();
             RXCascaderPath<T> selectedPath = panel.getSelectedPath();
             boolean active = selectedPath != null && selectedPath.getLeaf() == item;
+            boolean inSelectedPath = selectedPath != null && selectedPath.contains(item);
             boolean inActivePath = panel.getActivePath().contains(item);
             boolean inCheckedPath = isInCheckedPath(item);
 
@@ -484,6 +486,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             }
 
             pseudoClassStateChanged(ACTIVE, active);
+            pseudoClassStateChanged(IN_SELECTED_PATH, inSelectedPath);
             pseudoClassStateChanged(IN_ACTIVE_PATH, inActivePath);
             pseudoClassStateChanged(IN_CHECKED_PATH, inCheckedPath);
             pseudoClassStateChanged(INDETERMINATE, item.isIndeterminate());
@@ -503,6 +506,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
         private void resetPseudoClasses() {
             pseudoClassStateChanged(ACTIVE, false);
+            pseudoClassStateChanged(IN_SELECTED_PATH, false);
             pseudoClassStateChanged(IN_ACTIVE_PATH, false);
             pseudoClassStateChanged(IN_CHECKED_PATH, false);
             pseudoClassStateChanged(INDETERMINATE, false);

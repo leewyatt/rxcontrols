@@ -316,19 +316,29 @@
 }
 
 .rx-cascader-column .list-cell:filled:hover {
-    -fx-background-color: derive(-fx-control-inner-background, -5%);
+    -fx-background-color: derive(-fx-control-inner-background, -8%);
 }
 
-.rx-cascader-cell:in-active-path,
-.rx-cascader-cell:in-checked-path,
-.rx-cascader-cell:active {
+/* Navigation: the expanded breadcrumb path. Light grey, plain text — distinct
+   from a selection so "browsing a path" never reads the same as "picked it". */
+.rx-cascader-cell:in-active-path {
+    -fx-background-color: derive(-fx-control-inner-background, -4%);
+}
+
+/* Selection result: whole single-select path / multi-select checked path. Accent. */
+.rx-cascader-cell:in-selected-path,
+.rx-cascader-cell:in-checked-path {
     -fx-background-color: derive(-fx-accent, 80%);
 }
 
-.rx-cascader-cell:in-active-path > .container > .content > .label,
-.rx-cascader-cell:in-checked-path > .container > .content > .label,
-.rx-cascader-cell:active > .container > .content > .label {
+.rx-cascader-cell:in-selected-path > .container > .content > .label,
+.rx-cascader-cell:in-checked-path > .container > .content > .label {
     -fx-text-fill: -fx-accent;
+}
+
+/* Final picked leaf gets extra emphasis over the rest of its path. */
+.rx-cascader-cell:active > .container > .content > .label {
+    -fx-font-weight: bold;
 }
 
 .rx-cascader-cell:disabled {
