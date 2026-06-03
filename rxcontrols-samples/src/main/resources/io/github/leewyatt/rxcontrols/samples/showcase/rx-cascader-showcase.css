@@ -21,3 +21,8 @@
     -fx-alignment: top-center;
     -fx-padding: 16px;
 }
+
+.demo-cell-dot {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 50%;
+}

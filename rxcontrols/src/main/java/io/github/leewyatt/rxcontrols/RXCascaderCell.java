@@ -1,9 +1,11 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.AnimationTimer;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.WeakListChangeListener;
@@ -125,6 +127,9 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private final Region arrow = new Region();
     private final Region loadingGlyph = new Region();
 
+    /** True only when this cell is in a visible chain on a showing window. */
+    private final ReadOnlyBooleanProperty treeShowing = TreeShowingProperty.of(this);
+
     // ==================== Listeners ====================
 
     private final InvalidationListener stateListener = observable -> updateState();
@@ -149,7 +154,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         initializeNodes();
         registerHandlers();
         loadingGlyph.rotateProperty().bind(LOADING_ANGLE);
-        sceneProperty().addListener(observable -> updateSpinnerMembership());
+        treeShowing.addListener(observable -> updateSpinnerMembership());
     }
 
     private void initializeNodes() {
@@ -344,7 +349,10 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     }
 
     private void updateSpinnerMembership() {
-        if (loadingGlyph.isVisible() && getScene() != null) {
+        // tree-showing (not just scene): the popup attaches its scene to the view
+        // at skin construction, so a scene check would keep the timer running while
+        // the popup is hidden. tree-showing reacts to the window hiding too.
+        if (loadingGlyph.isVisible() && treeShowing.get()) {
             joinSpinners(this);
         } else {
             leaveSpinners(this);

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXCascader;
+import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
@@ -8,11 +9,14 @@ import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 
@@ -103,6 +107,10 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         CheckBox clearableBox = new CheckBox("Show clear button");
         clearableBox.selectedProperty().bindBidirectional(cascader.clearableProperty());
 
+        CheckBox customCell = new CheckBox("Custom cell (colored dot + text)");
+        customCell.selectedProperty().addListener((obs, was, on) ->
+                cascader.setCellFactory(on ? DotCell::new : null));
+
         Label hint = new Label("\"Disabled City\" under Asia / China is a locked "
                 + "leaf. In multiple mode it keeps China and Asia indeterminate "
                 + "even when every enabled sibling is checked.");
@@ -112,6 +120,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Mode", modeBox),
                 row(clearableBox),
+                row(customCell),
                 row(hint));
     }
 
@@ -212,6 +221,33 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
 
     private static RXCascaderItem<String> item(String value, String text) {
         return new RXCascaderItem<>(value, text);
+    }
+
+    // ==================== Custom cell ====================
+
+    /**
+     * Cell that overrides only the content area with a colored dot plus the item
+     * text, keeping the built-in check box / arrow / loading and interaction.
+     *
+     * @param <T> application value type
+     */
+    private static final class DotCell<T> extends RXCascaderCell<T> {
+
+        private DotCell(RXCascaderView<T> view) {
+            super(view);
+        }
+
+        @Override
+        protected Node createContent(RXCascaderItem<T> item) {
+            Region dot = new Region();
+            dot.getStyleClass().add("demo-cell-dot");
+            dot.setMinSize(8.0, 8.0);
+            dot.setPrefSize(8.0, 8.0);
+            dot.setMaxSize(8.0, 8.0);
+            HBox box = new HBox(8.0, dot, new Label(item.getText()));
+            box.setAlignment(Pos.CENTER_LEFT);
+            return box;
+        }
     }
 
     // ==================== Path format ====================
