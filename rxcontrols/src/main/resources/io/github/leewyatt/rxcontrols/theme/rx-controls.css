@@ -254,16 +254,16 @@
     -fx-alignment: center;
     -fx-padding: 4px;
     -fx-cursor: hand;
+    /* Transparent (not absent) fill so the whole padded button is pickable while
+       the inner mouse-transparent graphic keeps the button as the event target.
+       Mirrors modena's .combo-box-base > .arrow-button. */
+    -fx-background-color: transparent;
 }
 
 .rx-cascader > .display > .clear-button > .graphic {
     -fx-background-color: derive(-fx-text-base-color, 45%);
-    -fx-min-width: 8px;
     -fx-pref-width: 8px;
-    -fx-max-width: 8px;
-    -fx-min-height: 8px;
     -fx-pref-height: 8px;
-    -fx-max-height: 8px;
     -fx-shape: "M2,0 L5,3 L8,0 L10,2 L7,5 L10,8 L8,10 L5,7 L2,10 L0,8 L3,5 L0,2 Z";
 }
 
@@ -273,12 +273,8 @@
 
 .rx-cascader > .display > .arrow-button > .arrow {
     -fx-background-color: derive(-fx-text-base-color, 45%);
-    -fx-min-width: 8px;
     -fx-pref-width: 8px;
-    -fx-max-width: 8px;
-    -fx-min-height: 5px;
     -fx-pref-height: 5px;
-    -fx-max-height: 5px;
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
 }
 
@@ -350,24 +346,16 @@
 
 .rx-cascader-cell > .container > .arrow {
     -fx-background-color: derive(-fx-text-base-color, 45%);
-    -fx-min-width: 6px;
     -fx-pref-width: 6px;
-    -fx-max-width: 6px;
-    -fx-min-height: 9px;
     -fx-pref-height: 9px;
-    -fx-max-height: 9px;
     -fx-shape: "M 0 0 L 6 4.5 L 0 9 Z";
 }
 
 .rx-cascader-cell:loading > .container > .arrow {
     -fx-background-color: derive(-fx-text-base-color, 30%);
     -fx-scale-shape: false;
-    -fx-min-width: 10px;
     -fx-pref-width: 10px;
-    -fx-max-width: 10px;
-    -fx-min-height: 2px;
     -fx-pref-height: 2px;
-    -fx-max-height: 2px;
     -fx-shape: "M0,0 H2 V2 H0 Z M4,0 H6 V2 H4 Z M8,0 H10 V2 H8 Z";
 }
 

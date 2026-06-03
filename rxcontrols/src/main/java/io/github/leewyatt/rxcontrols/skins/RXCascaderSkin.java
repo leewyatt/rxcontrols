@@ -76,6 +76,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         textLabel.setMaxWidth(Double.MAX_VALUE);
 
         clearGraphic.getStyleClass().add("graphic");
+        clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);
