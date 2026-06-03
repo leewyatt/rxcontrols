@@ -261,6 +261,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
                 RXCascaderItem<T> item = getItem();
                 if (item != null && !panel.isEffectivelyDisabled(item)) {
                     panel.toggleCheck(item);
+                    // Also focus the operated item: expand a branch one level so
+                    // the displayed column path follows the checkbox we just
+                    // toggled, instead of staying on an unrelated expanded branch.
+                    if (!panel.isLeaf(item)) {
+                        panel.expand(item);
+                    }
                 }
                 event.consume();
             });

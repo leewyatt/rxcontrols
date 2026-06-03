@@ -217,6 +217,30 @@ public class RXCascaderViewTest {
         assertTrue(panel.getCheckedPaths().isEmpty());
     }
 
+    /**
+     * Verifies expanding another branch replaces the active path, so columns of
+     * an unrelated, previously expanded branch are dropped (the mechanism behind
+     * "checking a branch focuses it and hides unrelated child columns").
+     */
+    @Test
+    public void expandingAnotherBranchReplacesActivePath() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> asia = item("asia");
+        asia.getChildren().setAll(List.of(item("china"), item("japan")));
+        RXCascaderItem<String> germany = item("germany");
+        germany.getChildren().setAll(List.of(item("berlin"), item("munich")));
+        RXCascaderItem<String> europe = item("europe");
+        europe.getChildren().setAll(List.of(germany));
+        panel.getRootItems().setAll(List.of(asia, europe));
+
+        panel.expand(europe);
+        panel.expand(germany);
+        assertEquals(List.of(europe, germany), panel.getActivePath());
+
+        panel.expand(asia);
+        assertEquals(List.of(asia), panel.getActivePath());
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text, text);
     }
