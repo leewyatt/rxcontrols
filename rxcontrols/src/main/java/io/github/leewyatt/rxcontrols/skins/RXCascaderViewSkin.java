@@ -4,7 +4,9 @@ import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
+import javafx.animation.AnimationTimer;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.WeakInvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -39,12 +41,23 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     private static final String COLUMN_STYLE_CLASS = "rx-cascader-column";
     private static final int MIN_VISIBLE_ROW_COUNT = 1;
+    private static final long LOADING_SPINNER_CYCLE_NANOS = 900_000_000L;
 
     // ==================== Nodes ====================
 
     private final HBox columnsBox = new HBox();
     private final List<ListView<RXCascaderItem<T>>> columns = new ArrayList<>();
     private final List<WeakReference<RXCascaderColumnCell<T>>> cells = new ArrayList<>();
+    private final ReadOnlyBooleanProperty treeShowing;
+
+    private final AnimationTimer loadingSpinnerTimer = new AnimationTimer() {
+        @Override
+        public void handle(long now) {
+            onLoadingSpinnerFrame(now);
+        }
+    };
+
+    private boolean loadingSpinnerTimerRunning;
 
     // ==================== Constructor ====================
 
@@ -55,6 +68,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
      */
     public RXCascaderViewSkin(RXCascaderView<T> control) {
         super(control);
+        treeShowing = controlTreeShowingProperty();
         columnsBox.getStyleClass().add("columns");
         getChildren().setAll(columnsBox);
         registerListeners(control);
@@ -73,6 +87,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         disposer.registerListener(control.visibleRowCountProperty(), control::requestLayout);
         disposer.registerListener(control.optionContentFactoryProperty(), this::refreshColumns);
         disposer.registerListener(control.childrenLoaderProperty(), this::rebuildColumns);
+        disposer.registerListener(treeShowing, this::onTreeShowingChanged);
     }
 
     // ==================== Columns ====================
@@ -108,7 +123,8 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         listView.setPrefWidth(RXCascaderView.DEFAULT_COLUMN_WIDTH);
         listView.setFixedCellSize(RXCascaderView.DEFAULT_FIXED_CELL_SIZE);
         listView.setCellFactory(view -> {
-            RXCascaderColumnCell<T> cell = new RXCascaderColumnCell<>(getSkinnable());
+            RXCascaderColumnCell<T> cell =
+                    new RXCascaderColumnCell<>(getSkinnable(), this::requestLoadingSpinnerAnimation);
             registerCell(cell);
             return cell;
         });
@@ -138,6 +154,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             }
         }
         cells.clear();
+        stopLoadingSpinnerTimer();
     }
 
     private void refreshColumns() {
@@ -149,6 +166,72 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     @Override
     protected void disposeSkin() {
         disposeColumns();
+        stopLoadingSpinnerTimer();
+    }
+
+    // ==================== Loading Spinner ====================
+
+    private void onLoadingSpinnerFrame(long now) {
+        double angle = (now % LOADING_SPINNER_CYCLE_NANOS) * 360.0 / LOADING_SPINNER_CYCLE_NANOS;
+        boolean active = false;
+        for (WeakReference<RXCascaderColumnCell<T>> cellRef : cells) {
+            RXCascaderColumnCell<T> cell = cellRef.get();
+            if (cell != null && cell.isLoadingGlyphVisible()) {
+                cell.setLoadingRotate(angle);
+                active = true;
+            }
+        }
+        if (!active || !treeShowing.get()) {
+            stopLoadingSpinnerTimer();
+        }
+    }
+
+    private void requestLoadingSpinnerAnimation() {
+        if (treeShowing.get() && hasVisibleLoadingGlyph()) {
+            startLoadingSpinnerTimer();
+        } else {
+            stopLoadingSpinnerTimer();
+        }
+    }
+
+    private boolean hasVisibleLoadingGlyph() {
+        for (WeakReference<RXCascaderColumnCell<T>> cellRef : cells) {
+            RXCascaderColumnCell<T> cell = cellRef.get();
+            if (cell != null && cell.isLoadingGlyphVisible()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void startLoadingSpinnerTimer() {
+        if (loadingSpinnerTimerRunning) {
+            return;
+        }
+        loadingSpinnerTimerRunning = true;
+        loadingSpinnerTimer.start();
+    }
+
+    private void stopLoadingSpinnerTimer() {
+        if (!loadingSpinnerTimerRunning) {
+            return;
+        }
+        loadingSpinnerTimerRunning = false;
+        loadingSpinnerTimer.stop();
+        resetLoadingGlyphRotations();
+    }
+
+    private void resetLoadingGlyphRotations() {
+        for (WeakReference<RXCascaderColumnCell<T>> cellRef : cells) {
+            RXCascaderColumnCell<T> cell = cellRef.get();
+            if (cell != null) {
+                cell.setLoadingRotate(0.0);
+            }
+        }
+    }
+
+    private void onTreeShowingChanged() {
+        requestLoadingSpinnerAnimation();
     }
 
     // ==================== Layout ====================
@@ -221,6 +304,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         private final StackPane content = new StackPane();
         private final Label textLabel = new Label();
         private final Region arrow = new Region();
+        private final Region loadingGlyph = new Region();
 
         private final InvalidationListener stateListener = observable -> updateState();
         private final InvalidationListener contentListener = observable -> updateContent();
@@ -233,9 +317,11 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
                 new WeakListChangeListener<>(childrenListener);
 
         private RXCascaderItem<T> observedItem;
+        private Runnable spinnerStateChanged;
 
-        private RXCascaderColumnCell(RXCascaderView<T> panel) {
+        private RXCascaderColumnCell(RXCascaderView<T> panel, Runnable spinnerStateChanged) {
             this.panel = panel;
+            this.spinnerStateChanged = spinnerStateChanged;
             initializeNodes();
             registerHandlers();
         }
@@ -249,9 +335,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             arrow.getStyleClass().add("arrow");
             arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             arrow.setMouseTransparent(true);
+            loadingGlyph.getStyleClass().add("loading");
+            loadingGlyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            loadingGlyph.setMouseTransparent(true);
             HBox.setHgrow(content, Priority.ALWAYS);
             content.setMaxWidth(Double.MAX_VALUE);
-            container.getChildren().setAll(checkBox, content, arrow);
+            container.getChildren().setAll(checkBox, content, loadingGlyph, arrow);
         }
 
         private void registerHandlers() {
@@ -293,9 +382,13 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
                 checkBox.setDisable(false);
                 arrow.setVisible(false);
                 arrow.setManaged(false);
+                loadingGlyph.setVisible(false);
+                loadingGlyph.setManaged(false);
+                loadingGlyph.setRotate(0.0);
                 textLabel.setText(null);
                 content.getChildren().clear();
                 resetPseudoClasses();
+                notifySpinnerStateChanged();
                 return;
             }
 
@@ -335,7 +428,14 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             detachObservedItem();
             setText(null);
             setGraphic(null);
+            arrow.setVisible(false);
+            arrow.setManaged(false);
+            loadingGlyph.setVisible(false);
+            loadingGlyph.setManaged(false);
+            loadingGlyph.setRotate(0.0);
             content.getChildren().clear();
+            notifySpinnerStateChanged();
+            spinnerStateChanged = null;
         }
 
         private void updateContent() {
@@ -374,11 +474,14 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             checkBox.setSelected(item.isChecked());
             checkBox.setIndeterminate(item.isIndeterminate());
             setDisable(disabled);
-            // Postfix glyph: branch chevron, or a loading mark while children load.
-            // The :leaf / :loading pseudo-classes pick the shape in CSS.
-            boolean showArrow = !leaf || loading;
+            boolean showArrow = !loading && !leaf;
             arrow.setVisible(showArrow);
             arrow.setManaged(showArrow);
+            loadingGlyph.setVisible(loading);
+            loadingGlyph.setManaged(loading);
+            if (!loading) {
+                loadingGlyph.setRotate(0.0);
+            }
 
             pseudoClassStateChanged(ACTIVE, active);
             pseudoClassStateChanged(IN_ACTIVE_PATH, inActivePath);
@@ -386,6 +489,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             pseudoClassStateChanged(INDETERMINATE, item.isIndeterminate());
             pseudoClassStateChanged(LOADING, loading);
             pseudoClassStateChanged(LEAF, leaf);
+            notifySpinnerStateChanged();
         }
 
         private boolean isInCheckedPath(RXCascaderItem<T> item) {
@@ -404,6 +508,20 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             pseudoClassStateChanged(INDETERMINATE, false);
             pseudoClassStateChanged(LOADING, false);
             pseudoClassStateChanged(LEAF, false);
+        }
+
+        private boolean isLoadingGlyphVisible() {
+            return loadingGlyph.isVisible() && loadingGlyph.getScene() != null;
+        }
+
+        private void setLoadingRotate(double angle) {
+            loadingGlyph.setRotate(angle);
+        }
+
+        private void notifySpinnerStateChanged() {
+            if (spinnerStateChanged != null) {
+                spinnerStateChanged.run();
+            }
         }
     }
 }

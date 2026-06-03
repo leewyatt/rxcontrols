@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.ListView;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -178,6 +180,49 @@ public class RXCascaderViewSkinTest {
         } finally {
             Files.deleteIfExists(css);
         }
+    }
+
+    /**
+     * Verifies loading uses its own shape-backed region and hides the branch
+     * arrow until loading finishes.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void loadingGlyphIsSeparateFromBranchArrow() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> branch = item("branch");
+            branch.setLeafHint(false);
+            branch.setLoading(true);
+            view.getRootItems().setAll(List.of(branch));
+
+            Scene scene = new Scene(new StackPane(view), 260, 220);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> column = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(column, "root column should exist");
+            column.applyCss();
+            column.layout();
+
+            Region arrow = (Region) column.lookup(".rx-cascader-cell > .container > .arrow");
+            Region loading = (Region) column.lookup(".rx-cascader-cell > .container > .loading");
+            assertNotNull(arrow, "branch arrow region should exist");
+            assertNotNull(loading, "loading region should exist");
+            assertNotNull(arrow.getShape(), "arrow -fx-shape should be parsed and applied");
+            assertNotNull(loading.getShape(), "loading -fx-shape should be parsed and applied");
+
+            assertFalse(arrow.isVisible(), "arrow should be hidden while loading");
+            assertTrue(loading.isVisible(), "loading glyph should be visible while loading");
+
+            branch.setLoading(false);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            assertTrue(arrow.isVisible(), "arrow should reappear for a loaded branch");
+            assertFalse(loading.isVisible(), "loading glyph should hide after loading");
+        });
     }
 
     private static RXCascaderItem<String> item(String text) {
