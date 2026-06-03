@@ -11,7 +11,6 @@ import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -56,7 +55,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
      */
     public RXCascaderViewSkin(RXCascaderView<T> control) {
         super(control);
-        columnsBox.getStyleClass().add("rx-cascader-columns");
+        columnsBox.getStyleClass().add("columns");
         getChildren().setAll(columnsBox);
         registerListeners(control);
         rebuildColumns();
@@ -217,12 +216,11 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         private static final PseudoClass LEAF = PseudoClass.getPseudoClass("leaf");
 
         private final RXCascaderView<T> panel;
-        private final HBox row = new HBox();
+        private final HBox container = new HBox();
         private final CheckBox checkBox = new CheckBox();
-        private final StackPane contentPane = new StackPane();
+        private final StackPane content = new StackPane();
         private final Label textLabel = new Label();
-        private final Region spacer = new Region();
-        private final Label postfix = new Label();
+        private final Region arrow = new Region();
 
         private final InvalidationListener stateListener = observable -> updateState();
         private final InvalidationListener contentListener = observable -> updateContent();
@@ -244,16 +242,16 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
         private void initializeNodes() {
             getStyleClass().add("rx-cascader-cell");
-            row.getStyleClass().add("rx-cascader-cell-container");
-            row.setAlignment(Pos.CENTER_LEFT);
-            checkBox.getStyleClass().add("rx-cascader-cell-check-box");
+            container.getStyleClass().add("container");
             checkBox.setAllowIndeterminate(false);
             checkBox.setFocusTraversable(false);
-            contentPane.getStyleClass().add("rx-cascader-cell-content");
-            textLabel.getStyleClass().add("rx-cascader-cell-label");
-            postfix.getStyleClass().add("rx-cascader-cell-postfix");
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            row.getChildren().setAll(checkBox, contentPane, spacer, postfix);
+            content.getStyleClass().add("content");
+            arrow.getStyleClass().add("arrow");
+            arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            arrow.setMouseTransparent(true);
+            HBox.setHgrow(content, Priority.ALWAYS);
+            content.setMaxWidth(Double.MAX_VALUE);
+            container.getChildren().setAll(checkBox, content, arrow);
         }
 
         private void registerHandlers() {
@@ -293,9 +291,10 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
                 checkBox.setSelected(false);
                 checkBox.setIndeterminate(false);
                 checkBox.setDisable(false);
-                postfix.setText("");
+                arrow.setVisible(false);
+                arrow.setManaged(false);
                 textLabel.setText(null);
-                contentPane.getChildren().clear();
+                content.getChildren().clear();
                 resetPseudoClasses();
                 return;
             }
@@ -303,7 +302,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             observedItem = item;
             attachObservedItem(item);
             setText(null);
-            setGraphic(row);
+            setGraphic(container);
             updateContent();
             updateState();
         }
@@ -336,22 +335,22 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             detachObservedItem();
             setText(null);
             setGraphic(null);
-            contentPane.getChildren().clear();
+            content.getChildren().clear();
         }
 
         private void updateContent() {
             RXCascaderItem<T> item = getItem();
             if (item == null) {
-                contentPane.getChildren().clear();
+                content.getChildren().clear();
                 return;
             }
             Callback<RXCascaderItem<T>, Node> factory = panel.getOptionContentFactory();
-            Node content = factory == null ? null : factory.call(item);
-            if (content == null) {
+            Node custom = factory == null ? null : factory.call(item);
+            if (custom == null) {
                 textLabel.setText(item.getText());
-                contentPane.getChildren().setAll(textLabel);
+                content.getChildren().setAll(textLabel);
             } else {
-                contentPane.getChildren().setAll(content);
+                content.getChildren().setAll(custom);
             }
         }
 
@@ -375,7 +374,11 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             checkBox.setSelected(item.isChecked());
             checkBox.setIndeterminate(item.isIndeterminate());
             setDisable(disabled);
-            postfix.setText(loading ? "..." : (leaf ? "" : ">"));
+            // Postfix glyph: branch chevron, or a loading mark while children load.
+            // The :leaf / :loading pseudo-classes pick the shape in CSS.
+            boolean showArrow = !leaf || loading;
+            arrow.setVisible(showArrow);
+            arrow.setManaged(showArrow);
 
             pseudoClassStateChanged(ACTIVE, active);
             pseudoClassStateChanged(IN_ACTIVE_PATH, inActivePath);

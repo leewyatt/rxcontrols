@@ -8,7 +8,6 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.PopupControl;
@@ -19,6 +18,8 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
@@ -42,8 +43,10 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     private final HBox display = new HBox();
     private final Label textLabel = new Label();
-    private final Label clearButton = new Label("x");
-    private final Label arrow = new Label("v");
+    private final StackPane clearButton = new StackPane();
+    private final Region clearGraphic = new Region();
+    private final StackPane arrowButton = new StackPane();
+    private final Region arrow = new Region();
     private final PopupControl popup = new PopupControl();
     private final EventHandler<WindowEvent> popupHiddenHandler = this::handlePopupHidden;
 
@@ -69,14 +72,22 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     }
 
     private void initializeNodes(RXCascader<T> control) {
-        display.getStyleClass().add("rx-cascader-display");
-        display.setAlignment(Pos.CENTER_LEFT);
-        textLabel.getStyleClass().add("rx-cascader-display-text");
+        display.getStyleClass().add("display");
         textLabel.setMaxWidth(Double.MAX_VALUE);
-        clearButton.getStyleClass().add("rx-cascader-clear-button");
-        arrow.getStyleClass().add("rx-cascader-arrow");
+
+        clearGraphic.getStyleClass().add("graphic");
+        clearGraphic.setMouseTransparent(true);
+        clearButton.getStyleClass().add("clear-button");
+        clearButton.getChildren().add(clearGraphic);
+
+        arrow.getStyleClass().add("arrow");
+        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        arrow.setMouseTransparent(true);
+        arrowButton.getStyleClass().add("arrow-button");
+        arrowButton.getChildren().add(arrow);
+
         HBox.setHgrow(textLabel, Priority.ALWAYS);
-        display.getChildren().setAll(textLabel, clearButton, arrow);
+        display.getChildren().setAll(textLabel, clearButton, arrowButton);
 
         disposer.registerEventHandler(display, MouseEvent.MOUSE_CLICKED, event -> handleDisplayClicked(control, event));
         disposer.registerEventHandler(clearButton, MouseEvent.MOUSE_CLICKED, event -> handleClearClicked(control, event));
@@ -189,7 +200,6 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         textLabel.setText(displayText);
         clearButton.setVisible(control.isClearable() && hasSelection);
         clearButton.setManaged(control.isClearable() && hasSelection);
-        arrow.setText(control.isShowing() ? "^" : "v");
 
         control.pseudoClassStateChanged(EMPTY, !hasSelection);
         control.pseudoClassStateChanged(SHOWING, control.isShowing());
