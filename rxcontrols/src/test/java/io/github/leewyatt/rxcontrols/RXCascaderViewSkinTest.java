@@ -1,7 +1,10 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -222,6 +225,72 @@ public class RXCascaderViewSkinTest {
 
             assertTrue(arrow.isVisible(), "arrow should reappear for a loaded branch");
             assertFalse(loading.isVisible(), "loading glyph should hide after loading");
+        });
+    }
+
+    /**
+     * Verifies a {@link RXCascaderCell} subclass overriding {@code createContent}
+     * renders the custom node while keeping the cell's style class and contract.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void cellFactoryCreateContentOverrideRendersCustomNode() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setCellFactory(v -> new RXCascaderCell<>(v) {
+                @Override
+                protected Node createContent(RXCascaderItem<String> cellItem) {
+                    return new Label("X-" + cellItem.getText());
+                }
+            });
+            view.getRootItems().setAll(List.of(item("a")));
+
+            Scene scene = new Scene(new StackPane(view), 260, 220);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> column = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(column, "root column should exist");
+            column.applyCss();
+            column.layout();
+
+            Label content = (Label) column.lookup(".rx-cascader-cell .label");
+            assertNotNull(content, "custom content label should be present");
+            assertEquals("X-a", content.getText(), "createContent override should render");
+        });
+    }
+
+    /**
+     * Verifies the loose cell-factory type accepts a plain {@link ListCell}: it
+     * renders without the built-in contract and without the cell style class.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void nakedCellFactoryIsAccepted() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setCellFactory(v -> new ListCell<>() {
+                @Override
+                protected void updateItem(RXCascaderItem<String> cellItem, boolean empty) {
+                    super.updateItem(cellItem, empty);
+                    setText(empty || cellItem == null ? null : "naked:" + cellItem.getText());
+                }
+            });
+            view.getRootItems().setAll(List.of(item("a")));
+
+            Scene scene = new Scene(new StackPane(view), 260, 220);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> column = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(column, "root column should exist");
+            column.applyCss();
+            column.layout();
+
+            assertEquals(0, column.lookupAll(".rx-cascader-cell").size(),
+                    "a naked ListCell does not carry the rx-cascader-cell style class");
         });
     }
 

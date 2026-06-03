@@ -16,3 +16,8 @@
 .demo-tall .rx-cascader-column {
     -fx-fixed-cell-size: 44px;
 }
+
+.demo-cell-dot {
+    -fx-background-color: -fx-accent;
+    -fx-background-radius: 50%;
+}

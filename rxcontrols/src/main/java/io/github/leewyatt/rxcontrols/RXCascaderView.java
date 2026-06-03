@@ -12,8 +12,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
 import javafx.scene.control.Control;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
@@ -244,36 +244,39 @@ public class RXCascaderView<T> extends Control {
         visibleRowCount.set(value);
     }
 
-    // ==================== Option Content Factory ====================
+    // ==================== Cell Factory ====================
 
-    private final ObjectProperty<Callback<RXCascaderItem<T>, Node>> optionContentFactory =
-            new SimpleObjectProperty<>(this, "optionContentFactory");
+    private final ObjectProperty<Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>>> cellFactory =
+            new SimpleObjectProperty<>(this, "cellFactory");
 
     /**
-     * Optional factory for the content area of a row.
+     * Optional factory for the cells of each column. When {@code null} the view
+     * uses the built-in {@link RXCascaderCell}. The factory receives this view so
+     * a custom cell can route interaction back to it; it may return an
+     * {@link RXCascaderCell} subclass (recommended) or any {@link ListCell}.
      *
-     * @return option-content factory property
+     * @return cell-factory property
      */
-    public final ObjectProperty<Callback<RXCascaderItem<T>, Node>> optionContentFactoryProperty() {
-        return optionContentFactory;
+    public final ObjectProperty<Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>>> cellFactoryProperty() {
+        return cellFactory;
     }
 
     /**
-     * Returns the option-content factory.
+     * Returns the cell factory.
      *
-     * @return option-content factory, or {@code null}
+     * @return cell factory, or {@code null}
      */
-    public final Callback<RXCascaderItem<T>, Node> getOptionContentFactory() {
-        return optionContentFactory.get();
+    public final Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> getCellFactory() {
+        return cellFactory.get();
     }
 
     /**
-     * Sets the option-content factory.
+     * Sets the cell factory.
      *
-     * @param value option-content factory, or {@code null}
+     * @param value cell factory, or {@code null}
      */
-    public final void setOptionContentFactory(Callback<RXCascaderItem<T>, Node> value) {
-        optionContentFactory.set(value);
+    public final void setCellFactory(Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> value) {
+        cellFactory.set(value);
     }
 
     // ==================== Children Loader ====================

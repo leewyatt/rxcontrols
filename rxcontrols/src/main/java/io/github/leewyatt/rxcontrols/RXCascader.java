@@ -13,8 +13,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
 import javafx.scene.control.Control;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
@@ -315,30 +315,30 @@ public class RXCascader<T> extends Control {
     }
 
     /**
-     * Optional factory for the content area of a popup row.
+     * Optional factory for the cells of each popup column.
      *
-     * @return option-content factory property
+     * @return cell-factory property
      */
-    public final ObjectProperty<Callback<RXCascaderItem<T>, Node>> optionContentFactoryProperty() {
-        return view.optionContentFactoryProperty();
+    public final ObjectProperty<Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>>> cellFactoryProperty() {
+        return view.cellFactoryProperty();
     }
 
     /**
-     * Returns the option-content factory.
+     * Returns the cell factory.
      *
-     * @return option-content factory, or {@code null}
+     * @return cell factory, or {@code null}
      */
-    public final Callback<RXCascaderItem<T>, Node> getOptionContentFactory() {
-        return view.getOptionContentFactory();
+    public final Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> getCellFactory() {
+        return view.getCellFactory();
     }
 
     /**
-     * Sets the option-content factory.
+     * Sets the cell factory.
      *
-     * @param value option-content factory, or {@code null}
+     * @param value cell factory, or {@code null}
      */
-    public final void setOptionContentFactory(Callback<RXCascaderItem<T>, Node> value) {
-        view.setOptionContentFactory(value);
+    public final void setCellFactory(Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> value) {
+        view.setCellFactory(value);
     }
 
     /**
