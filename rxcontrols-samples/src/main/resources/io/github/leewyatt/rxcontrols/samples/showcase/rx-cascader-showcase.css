@@ -16,3 +16,8 @@
 .demo-tall .rx-cascader-column {
     -fx-fixed-cell-size: 44px;
 }
+
+.cascader-preview {
+    -fx-alignment: top-center;
+    -fx-padding: 16px;
+}

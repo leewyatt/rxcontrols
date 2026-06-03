@@ -8,7 +8,6 @@ import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -80,7 +79,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
                 cascader.selectionModeProperty()));
 
         VBox box = new VBox(16.0, cascader, readout);
-        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("cascader-preview");
         return box;
     }
 
