@@ -319,25 +319,20 @@
     -fx-background-color: derive(-fx-control-inner-background, -8%);
 }
 
-/* Navigation: the expanded breadcrumb path. Light grey, plain text — distinct
-   from a selection so "browsing a path" never reads the same as "picked it". */
+/* The expanded (active) path items get a subtle grey shade, mirroring
+   ElementUI where the focused node on the active path is shaded (grey, not
+   accent) — background is reserved for hover/focus, never for selection. */
 .rx-cascader-cell:in-active-path {
     -fx-background-color: derive(-fx-control-inner-background, -4%);
 }
 
-/* Selection result: whole single-select path / multi-select checked path. Accent. */
-.rx-cascader-cell:in-selected-path,
-.rx-cascader-cell:in-checked-path {
-    -fx-background-color: derive(-fx-accent, 80%);
-}
-
-.rx-cascader-cell:in-selected-path > .container > .content > .label,
-.rx-cascader-cell:in-checked-path > .container > .content > .label {
+/* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
+   (expanded) path, the single-select chosen leaf, and each checked leaf.
+   Branch check state is carried by the checkbox, not the text colour. */
+.rx-cascader-cell:in-active-path > .container > .content > .label,
+.rx-cascader-cell:active > .container > .content > .label,
+.rx-cascader-cell:leaf:in-checked-path > .container > .content > .label {
     -fx-text-fill: -fx-accent;
-}
-
-/* Final picked leaf gets extra emphasis over the rest of its path. */
-.rx-cascader-cell:active > .container > .content > .label {
     -fx-font-weight: bold;
 }
 
