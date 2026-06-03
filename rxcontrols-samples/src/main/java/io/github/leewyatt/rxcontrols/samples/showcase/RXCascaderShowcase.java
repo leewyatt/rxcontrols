@@ -22,6 +22,7 @@ import javafx.util.Callback;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Showcase application for {@link RXCascader}.
@@ -40,6 +41,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private static final double MIN_VISIBLE_ROWS = 3.0;
     private static final double MAX_VISIBLE_ROWS = 10.0;
     private static final String SEPARATOR = " / ";
+    private static final long LAZY_LOAD_DELAY_MILLIS = 800L;
 
     private RXCascader<String> cascader;
 
@@ -72,6 +74,22 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader.setClearable(true);
         cascader.setPathTextFactory(PathFormat.FULL_PATH.factory());
         cascader.getRootItems().setAll(sampleOptions());
+
+        // Mixed eager/lazy tree: the preloaded branches above coexist with this
+        // lazy one. A single childrenLoader is shared, but it only fires for nodes
+        // left unloaded (setLoaded(false)); the preloaded branches never hit it.
+        RXCascaderItem<String> lazy = item("lazy", "Lazy branch (async)");
+        lazy.setLoaded(false);
+        lazy.setLoading(true);
+        cascader.getRootItems().add(lazy);
+        cascader.setChildrenLoader(parent -> CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(LAZY_LOAD_DELAY_MILLIS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            return List.of(item("loaded-a", "Loaded A"), item("loaded-b", "Loaded B"));
+        }));
 
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
