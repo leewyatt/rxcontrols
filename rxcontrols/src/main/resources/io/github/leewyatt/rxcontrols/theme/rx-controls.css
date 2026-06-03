@@ -290,10 +290,9 @@
 }
 
 .rx-cascader-view {
-    -fx-background-color:
-        linear-gradient(to bottom, derive(-fx-color, -17%), derive(-fx-color, -30%)),
-        -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-box-border;
+    -fx-border-width: 1px;
 }
 
 .rx-cascader-popup > .rx-cascader-view {
@@ -306,29 +305,30 @@
 
 .rx-cascader-column {
     -fx-background-color: -fx-control-inner-background;
-    -fx-background-insets: 0;
-    -fx-padding: 0;
+    -fx-padding: 0.333em 0 0.333em 0; /* 4 0 4 0 */
     -fx-border-color: transparent derive(-fx-color, -17%) transparent transparent;
     -fx-border-width: 0 1px 0 0;
 }
 
 .rx-cascader-column .list-cell {
-    -fx-background: -fx-control-inner-background;
-    -fx-background-color: -fx-background;
+    -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
-.rx-cascader-column .list-cell:hover {
-    -fx-background: -fx-accent;
-    -fx-background-color: -fx-selection-bar;
+.rx-cascader-column .list-cell:filled:hover {
+    -fx-background-color: derive(-fx-control-inner-background, -5%);
 }
 
 .rx-cascader-cell:in-active-path,
 .rx-cascader-cell:in-checked-path,
 .rx-cascader-cell:active {
-    -fx-background: -fx-accent;
-    -fx-background-color: -fx-background, -fx-cell-focus-inner-border, -fx-background;
-    -fx-background-insets: 0, 1, 2;
+    -fx-background-color: derive(-fx-accent, 80%);
+}
+
+.rx-cascader-cell:in-active-path > .container > .content > .label,
+.rx-cascader-cell:in-checked-path > .container > .content > .label,
+.rx-cascader-cell:active > .container > .content > .label {
+    -fx-text-fill: -fx-accent;
 }
 
 .rx-cascader-cell:disabled {
