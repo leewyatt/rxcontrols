@@ -256,9 +256,6 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             control.hide();
             return;
         }
-
-        control.getView().applyCss();
-
         Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
         if (screenBounds == null) {
             control.hide();
