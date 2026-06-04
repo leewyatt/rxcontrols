@@ -16,33 +16,50 @@ import java.util.concurrent.CompletableFuture;
  * Minimal sample application demonstrating {@link RXCascader} with single,
  * multiple, and lazy-loaded configurations.
  *
+ * <p>The value type is a small {@link Option} record (a stand-in for a backend
+ * object carrying both id and label); the visible text comes from
+ * {@code setTextFactory(Option::label)}, not from the item — items no longer
+ * store text.
+ *
  * <p>For the full property-driven explorer see
  * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderShowcase}.
  */
 public class RXCascaderDemo extends Application {
+
+    /**
+     * Backend-style value carrying an id and a display label.
+     *
+     * @param id stable identifier (what you would send back)
+     * @param label human-facing text (what {@code textFactory} renders)
+     */
+    public record Option(String id, String label) {
+    }
 
     @Override
     public void start(Stage primaryStage) {
         VBox root = new VBox(16);
         root.setStyle("-fx-padding: 24; -fx-background-color: white;");
 
-        RXCascader<String> single = new RXCascader<>();
+        RXCascader<Option> single = new RXCascader<>();
         single.setPromptText("Choose a city");
         single.setClearable(true);
-        single.setPathTextFactory(path -> String.join(" -> ", path.getTexts()));
+        single.setTextFactory(Option::label);
+        single.setPathTextFactory(texts -> String.join(" -> ", texts));
         single.getRootItems().setAll(sampleOptions());
 
-        RXCascader<String> multiple = new RXCascader<>();
+        RXCascader<Option> multiple = new RXCascader<>();
         multiple.setPromptText("Choose multiple cities");
         multiple.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         multiple.setClearable(true);
-        multiple.setPathTextFactory(path -> path.getLeaf().getText());
+        multiple.setTextFactory(Option::label);
+        multiple.setPathTextFactory(texts -> texts.isEmpty() ? "" : texts.get(texts.size() - 1));
         multiple.getRootItems().setAll(sampleOptions());
 
-        RXCascader<String> lazy = new RXCascader<>();
+        RXCascader<Option> lazy = new RXCascader<>();
         lazy.setPromptText("Lazy load children");
         lazy.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         lazy.setClearable(true);
+        lazy.setTextFactory(Option::label);
         lazy.setChildrenLoader(item -> CompletableFuture.supplyAsync(() -> loadChildren(item)));
         lazy.getRootItems().setAll(lazyRoot());
 
@@ -58,14 +75,14 @@ public class RXCascaderDemo extends Application {
         primaryStage.show();
     }
 
-    private static List<RXCascaderItem<String>> sampleOptions() {
-        RXCascaderItem<String> asia = item("asia", "Asia");
-        RXCascaderItem<String> europe = item("europe", "Europe");
-        RXCascaderItem<String> china = item("china", "China");
-        RXCascaderItem<String> japan = item("japan", "Japan");
-        RXCascaderItem<String> germany = item("germany", "Germany");
-        RXCascaderItem<String> berlin = item("berlin", "Berlin");
-        RXCascaderItem<String> disabledCity = item("disabled", "Disabled City");
+    private static List<RXCascaderItem<Option>> sampleOptions() {
+        RXCascaderItem<Option> asia = item("asia", "Asia");
+        RXCascaderItem<Option> europe = item("europe", "Europe");
+        RXCascaderItem<Option> china = item("china", "China");
+        RXCascaderItem<Option> japan = item("japan", "Japan");
+        RXCascaderItem<Option> germany = item("germany", "Germany");
+        RXCascaderItem<Option> berlin = item("berlin", "Berlin");
+        RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
         disabledCity.setDisabled(true);
 
         china.getChildren().setAll(List.of(
@@ -83,32 +100,33 @@ public class RXCascaderDemo extends Application {
         return List.of(asia, europe);
     }
 
-    private static List<RXCascaderItem<String>> lazyRoot() {
+    private static List<RXCascaderItem<Option>> lazyRoot() {
         // Lazy mode: with a loader set, an unloaded node defaults to a branch
         // (Default B), so no flags are needed to make it expandable.
         return List.of(item("source", "Remote Source"));
     }
 
-    private static List<RXCascaderItem<String>> loadChildren(RXCascaderItem<String> item) {
+    private static List<RXCascaderItem<Option>> loadChildren(RXCascaderItem<Option> item) {
         sleep();
-        if ("source".equals(item.getValue())) {
+        Option value = item.getValue();
+        if ("source".equals(value.id())) {
             // Unloaded branches by Default B; expanding them loads again.
             return List.of(item("group-a", "Group A"), item("group-b", "Group B"));
         }
         // Known leaves must be marked in lazy mode, otherwise they would be
         // treated as unloaded branches and trigger a useless load on expand.
         return List.of(
-                leaf(item.getValue() + "-1", item.getText() + " 1"),
-                leaf(item.getValue() + "-2", item.getText() + " 2")
+                leaf(value.id() + "-1", value.label() + " 1"),
+                leaf(value.id() + "-2", value.label() + " 2")
         );
     }
 
-    private static RXCascaderItem<String> item(String value, String text) {
-        return new RXCascaderItem<>(value, text);
+    private static RXCascaderItem<Option> item(String id, String label) {
+        return new RXCascaderItem<>(new Option(id, label));
     }
 
-    private static RXCascaderItem<String> leaf(String value, String text) {
-        RXCascaderItem<String> leaf = item(value, text);
+    private static RXCascaderItem<Option> leaf(String id, String label) {
+        RXCascaderItem<Option> leaf = item(id, label);
         leaf.setLeafHint(true);
         return leaf;
     }

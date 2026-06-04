@@ -23,6 +23,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 /**
@@ -117,6 +118,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.selectionModeProperty(), this::updateDisplay);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
         disposer.registerListener(control.pathTextFactoryProperty(), this::updateDisplay);
+        disposer.registerListener(control.textFactoryProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
         disposer.registerListener(control.getView().widthProperty(), this::positionPopupIfShowing);
         disposer.registerListener(control.getView().heightProperty(), this::positionPopupIfShowing);
@@ -234,8 +236,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         if (path == null) {
             return "";
         }
-        Callback<RXCascaderPath<T>, String> factory = control.getPathTextFactory();
-        String text = factory == null ? path.toString() : factory.call(path);
+        List<String> texts = control.getView().getPathTexts(path);
+        Callback<List<String>, String> factory = control.getPathTextFactory();
+        String text = factory == null ? String.join(" / ", texts) : factory.call(texts);
         return text == null ? "" : text;
     }
 

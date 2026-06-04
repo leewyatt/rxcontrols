@@ -3,18 +3,25 @@ package io.github.leewyatt.rxcontrols;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
 
 /**
  * Immutable root-to-item path snapshot used by {@link RXCascaderView} and
  * {@link RXCascader}.
+ *
+ * <p>A path captures only its node identity chain ({@link #getItems() items}).
+ * That is what a path fundamentally is — which nodes were traversed — and it
+ * never goes stale: changing the view's {@code textFactory} or an item's value
+ * does not alter which nodes this path represents. Display text is a derived
+ * view, not part of the snapshot: resolve it from the items with whatever scheme
+ * you need (the view's {@code textFactory}, or {@link #toString()} as a
+ * value-based fallback).
  *
  * @param <T> application value type
  */
 public final class RXCascaderPath<T> {
 
     private final List<RXCascaderItem<T>> items;
-    private final List<T> values;
-    private final List<String> texts;
 
     /**
      * Creates a path snapshot from the given items.
@@ -22,17 +29,7 @@ public final class RXCascaderPath<T> {
      * @param items root-to-item sequence
      */
     public RXCascaderPath(List<RXCascaderItem<T>> items) {
-        List<RXCascaderItem<T>> itemCopy = new ArrayList<>(items);
-        List<T> valueCopy = new ArrayList<>(itemCopy.size());
-        List<String> textCopy = new ArrayList<>(itemCopy.size());
-        for (RXCascaderItem<T> item : itemCopy) {
-            valueCopy.add(item.getValue());
-            String text = item.getText();
-            textCopy.add(text == null ? "" : text);
-        }
-        this.items = Collections.unmodifiableList(itemCopy);
-        this.values = Collections.unmodifiableList(valueCopy);
-        this.texts = Collections.unmodifiableList(textCopy);
+        this.items = Collections.unmodifiableList(new ArrayList<>(items));
     }
 
     /**
@@ -45,21 +42,16 @@ public final class RXCascaderPath<T> {
     }
 
     /**
-     * Returns the path values.
+     * Returns the path values, derived from the items.
      *
      * @return immutable path values
      */
     public List<T> getValues() {
-        return values;
-    }
-
-    /**
-     * Returns the path display texts.
-     *
-     * @return immutable path texts
-     */
-    public List<String> getTexts() {
-        return texts;
+        List<T> values = new ArrayList<>(items.size());
+        for (RXCascaderItem<T> item : items) {
+            values.add(item.getValue());
+        }
+        return Collections.unmodifiableList(values);
     }
 
     /**
@@ -82,12 +74,20 @@ public final class RXCascaderPath<T> {
     }
 
     /**
-     * Returns the default slash-separated path text.
+     * Returns a slash-separated value-based fallback representation. This uses
+     * {@link RXCascaderItem#toString()} (the value), not the view's
+     * {@code textFactory}, so it is for debugging and not guaranteed to match the
+     * visible cascader text — resolve display text from {@link #getItems()} with
+     * the view's {@code textFactory} for that.
      *
-     * @return slash-separated path text
+     * @return slash-separated value-based path text
      */
     @Override
     public String toString() {
-        return String.join(" / ", texts);
+        StringJoiner joiner = new StringJoiner(" / ");
+        for (RXCascaderItem<T> item : items) {
+            joiner.add(String.valueOf(item));
+        }
+        return joiner.toString();
     }
 }

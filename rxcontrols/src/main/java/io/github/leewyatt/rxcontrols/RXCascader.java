@@ -182,17 +182,50 @@ public class RXCascader<T> extends Control {
         promptText.set(value);
     }
 
+    // ==================== Text Factory ====================
+
+    /**
+     * Converts an item value to its display text (single source of the visible
+     * node text). When {@code null}, {@code String.valueOf(value)} is used.
+     *
+     * @return text-factory property
+     */
+    public final ObjectProperty<Callback<T, String>> textFactoryProperty() {
+        return view.textFactoryProperty();
+    }
+
+    /**
+     * Returns the text factory.
+     *
+     * @return text factory, or {@code null}
+     */
+    public final Callback<T, String> getTextFactory() {
+        return view.getTextFactory();
+    }
+
+    /**
+     * Sets the text factory.
+     *
+     * @param value text factory, or {@code null}
+     */
+    public final void setTextFactory(Callback<T, String> value) {
+        view.setTextFactory(value);
+    }
+
     // ==================== Path Text Factory ====================
 
-    private final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactory =
+    private final ObjectProperty<Callback<List<String>, String>> pathTextFactory =
             new SimpleObjectProperty<>(this, "pathTextFactory");
 
     /**
-     * Optional converter from a path snapshot to display text.
+     * Optional formatter from a path's already-resolved per-node display texts
+     * (root-to-leaf, produced by {@link #getTextFactory() textFactory}) to the
+     * single string shown in the field. When {@code null} the node texts are
+     * joined with {@code " / "}.
      *
      * @return path-text factory property
      */
-    public final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactoryProperty() {
+    public final ObjectProperty<Callback<List<String>, String>> pathTextFactoryProperty() {
         return pathTextFactory;
     }
 
@@ -201,7 +234,7 @@ public class RXCascader<T> extends Control {
      *
      * @return path-text factory, or {@code null}
      */
-    public final Callback<RXCascaderPath<T>, String> getPathTextFactory() {
+    public final Callback<List<String>, String> getPathTextFactory() {
         return pathTextFactory.get();
     }
 
@@ -210,7 +243,7 @@ public class RXCascader<T> extends Control {
      *
      * @param value path-text factory, or {@code null}
      */
-    public final void setPathTextFactory(Callback<RXCascaderPath<T>, String> value) {
+    public final void setPathTextFactory(Callback<List<String>, String> value) {
         pathTextFactory.set(value);
     }
 

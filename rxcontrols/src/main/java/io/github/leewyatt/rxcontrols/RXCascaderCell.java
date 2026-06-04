@@ -216,7 +216,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
      * @return content node, or {@code null} for no content
      */
     protected Node createContent(RXCascaderItem<T> item) {
-        textLabel.setText(item.getText());
+        textLabel.setText(view.getDisplayText(item.getValue()));
         return textLabel;
     }
 
@@ -272,7 +272,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         item.disabledProperty().addListener(weakStateListener);
         item.loadingProperty().addListener(weakStateListener);
         item.leafHintProperty().addListener(weakStateListener);
-        item.textProperty().addListener(weakContentListener);
+        item.valueProperty().addListener(weakContentListener);
         item.getChildren().addListener(weakChildrenListener);
     }
 
@@ -285,7 +285,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         observedItem.disabledProperty().removeListener(weakStateListener);
         observedItem.loadingProperty().removeListener(weakStateListener);
         observedItem.leafHintProperty().removeListener(weakStateListener);
-        observedItem.textProperty().removeListener(weakContentListener);
+        observedItem.valueProperty().removeListener(weakContentListener);
         observedItem.getChildren().removeListener(weakChildrenListener);
         observedItem = null;
     }

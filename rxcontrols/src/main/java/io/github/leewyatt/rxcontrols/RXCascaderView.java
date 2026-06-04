@@ -290,6 +290,75 @@ public class RXCascaderView<T> extends Control {
         cellFactory.set(value);
     }
 
+    // ==================== Text Factory ====================
+
+    private final ObjectProperty<Callback<T, String>> textFactory =
+            new SimpleObjectProperty<>(this, "textFactory");
+
+    /**
+     * Converts an item value to its display text. When {@code null} the view
+     * falls back to {@code String.valueOf(value)}. Items do not store text; this
+     * is the single source of the visible node text, used by the built-in cell
+     * and by path text resolution.
+     *
+     * @return text-factory property
+     */
+    public final ObjectProperty<Callback<T, String>> textFactoryProperty() {
+        return textFactory;
+    }
+
+    /**
+     * Returns the text factory.
+     *
+     * @return text factory, or {@code null}
+     */
+    public final Callback<T, String> getTextFactory() {
+        return textFactory.get();
+    }
+
+    /**
+     * Sets the text factory.
+     *
+     * @param value text factory, or {@code null}
+     */
+    public final void setTextFactory(Callback<T, String> value) {
+        textFactory.set(value);
+    }
+
+    /**
+     * Resolves the display text for a value via {@link #getTextFactory()}, or
+     * {@code String.valueOf(value)} when no factory is set.
+     *
+     * @param value value to render
+     * @return display text, never {@code null}
+     */
+    public final String getDisplayText(T value) {
+        Callback<T, String> factory = getTextFactory();
+        if (factory == null) {
+            return value == null ? "" : String.valueOf(value);
+        }
+        String text = factory.call(value);
+        return text == null ? "" : text;
+    }
+
+    /**
+     * Resolves the per-node display texts of a path, in root-to-leaf order, using
+     * the current text factory.
+     *
+     * @param path path to resolve
+     * @return immutable list of node display texts
+     */
+    public final List<String> getPathTexts(RXCascaderPath<T> path) {
+        if (path == null) {
+            return Collections.emptyList();
+        }
+        List<String> texts = new ArrayList<>(path.getItems().size());
+        for (RXCascaderItem<T> item : path.getItems()) {
+            texts.add(getDisplayText(item.getValue()));
+        }
+        return Collections.unmodifiableList(texts);
+    }
+
     // ==================== Children Loader ====================
 
     private final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>

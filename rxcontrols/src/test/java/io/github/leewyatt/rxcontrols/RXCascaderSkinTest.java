@@ -50,7 +50,7 @@ public class RXCascaderSkinTest {
         runOnFx(() -> {
             RXCascader<String> cascader = new RXCascader<>();
             cascader.setClearable(true);
-            cascader.getRootItems().add(new RXCascaderItem<>("root", "root"));
+            cascader.getRootItems().add(new RXCascaderItem<>("root"));
 
             Scene scene = new Scene(new StackPane(cascader));
             scene.getRoot().applyCss();

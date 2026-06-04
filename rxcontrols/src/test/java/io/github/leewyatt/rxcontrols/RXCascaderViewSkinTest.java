@@ -242,7 +242,7 @@ public class RXCascaderViewSkinTest {
             view.setCellFactory(v -> new RXCascaderCell<>(v) {
                 @Override
                 protected Node createContent(RXCascaderItem<String> cellItem) {
-                    return new Label("X-" + cellItem.getText());
+                    return new Label("X-" + cellItem.getValue());
                 }
             });
             view.getRootItems().setAll(List.of(item("a")));
@@ -276,7 +276,7 @@ public class RXCascaderViewSkinTest {
                 @Override
                 protected void updateItem(RXCascaderItem<String> cellItem, boolean empty) {
                     super.updateItem(cellItem, empty);
-                    setText(empty || cellItem == null ? null : "naked:" + cellItem.getText());
+                    setText(empty || cellItem == null ? null : "naked:" + cellItem.getValue());
                 }
             });
             view.getRootItems().setAll(List.of(item("a")));
@@ -400,7 +400,7 @@ public class RXCascaderViewSkinTest {
     }
 
     private static RXCascaderItem<String> item(String text) {
-        return new RXCascaderItem<>(text, text);
+        return new RXCascaderItem<>(text);
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

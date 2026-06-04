@@ -30,6 +30,10 @@ import java.util.StringJoiner;
  * The sample tree contains a disabled leaf so the locked tri-state rollup is
  * directly observable.
  *
+ * <p>The value type is an {@link Option} record; visible node text comes from
+ * {@code setTextFactory(Option::label)} and path text from
+ * {@link RXCascaderView#getPathTexts(RXCascaderPath)}.
+ *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderViewDemo}.
  * For the popup/input-field wrapper, see {@link RXCascaderShowcase}.
  */
@@ -39,7 +43,16 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     private static final double MAX_VISIBLE_ROWS = 10.0;
     private static final String SEPARATOR = " / ";
 
-    private RXCascaderView<String> view;
+    private RXCascaderView<Option> view;
+
+    /**
+     * Backend-style value carrying an id and a display label.
+     *
+     * @param id stable identifier
+     * @param label human-facing text rendered by {@code textFactory}
+     */
+    public record Option(String id, String label) {
+    }
 
     // ==================== Showcase wiring ====================
 
@@ -66,6 +79,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         view = new RXCascaderView<>();
+        view.setTextFactory(Option::label);
         view.getRootItems().setAll(sampleOptions());
 
         Label readout = new Label();
@@ -154,56 +168,56 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
     private String describeSelection() {
         if (view.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
-            List<RXCascaderPath<String>> checked = view.getCheckedPaths();
+            List<RXCascaderPath<Option>> checked = view.getCheckedPaths();
             if (checked.isEmpty()) {
                 return "checked: (none)";
             }
             StringJoiner joiner = new StringJoiner("\n");
-            for (RXCascaderPath<String> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, path.getTexts()));
+            for (RXCascaderPath<Option> path : checked) {
+                joiner.add("- " + String.join(SEPARATOR, view.getPathTexts(path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
-        RXCascaderPath<String> path = view.getSelectedPath();
+        RXCascaderPath<Option> path = view.getSelectedPath();
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, path.getTexts());
+        return "selected: " + String.join(SEPARATOR, view.getPathTexts(path));
     }
 
     // ==================== Sample data ====================
 
-    private static List<RXCascaderItem<String>> sampleOptions() {
-        RXCascaderItem<String> disabledCity = item("disabled", "Disabled City");
+    private static List<RXCascaderItem<Option>> sampleOptions() {
+        RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
         disabledCity.setDisabled(true);
 
-        RXCascaderItem<String> china = item("china", "China");
+        RXCascaderItem<Option> china = item("china", "China");
         china.getChildren().setAll(List.of(
                 item("shanghai", "Shanghai"),
                 item("hangzhou", "Hangzhou"),
                 disabledCity));
 
-        RXCascaderItem<String> japan = item("japan", "Japan");
+        RXCascaderItem<Option> japan = item("japan", "Japan");
         japan.getChildren().setAll(List.of(
                 item("tokyo", "Tokyo"),
                 item("osaka", "Osaka")));
 
-        RXCascaderItem<String> asia = item("asia", "Asia");
+        RXCascaderItem<Option> asia = item("asia", "Asia");
         asia.getChildren().setAll(List.of(china, japan));
 
-        RXCascaderItem<String> germany = item("germany", "Germany");
+        RXCascaderItem<Option> germany = item("germany", "Germany");
         germany.getChildren().setAll(List.of(
                 item("berlin", "Berlin"),
                 item("munich", "Munich")));
 
-        RXCascaderItem<String> europe = item("europe", "Europe");
+        RXCascaderItem<Option> europe = item("europe", "Europe");
         europe.getChildren().setAll(List.of(germany));
 
         return List.of(asia, europe);
     }
 
-    private static RXCascaderItem<String> item(String value, String text) {
-        return new RXCascaderItem<>(value, text);
+    private static RXCascaderItem<Option> item(String id, String label) {
+        return new RXCascaderItem<>(new Option(id, label));
     }
 
     // ==================== Custom cell ====================
@@ -227,7 +241,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
             dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
             dot.setMaxSize(8.0, 8.0);
-            HBox box = new HBox(8.0, dot, new Label(item.getText()));
+            HBox box = new HBox(8.0, dot, new Label(getView().getDisplayText(item.getValue())));
             box.setAlignment(Pos.CENTER_LEFT);
             return box;
         }

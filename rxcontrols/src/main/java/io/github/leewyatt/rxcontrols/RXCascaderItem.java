@@ -9,8 +9,6 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -59,21 +57,21 @@ public class RXCascaderItem<T> {
     // ==================== Constructors ====================
 
     /**
-     * Creates an item with null value and empty text.
+     * Creates an item with null value.
      */
     public RXCascaderItem() {
-        this(null, "");
+        this(null);
     }
 
     /**
-     * Creates an item with the given value and text.
+     * Creates an item with the given value. Display text is derived from the
+     * value by the owning view's {@code textFactory} (or {@code value.toString()}
+     * as a fallback), not stored on the item.
      *
      * @param value application value
-     * @param text display text
      */
-    public RXCascaderItem(@NamedArg("value") T value, @NamedArg("text") String text) {
+    public RXCascaderItem(@NamedArg("value") T value) {
         setValue(value);
-        setText(text);
         children.addListener((ListChangeListener<RXCascaderItem<T>>) change -> {
             while (change.next()) {
                 for (RXCascaderItem<T> removed : change.getRemoved()) {
@@ -119,37 +117,6 @@ public class RXCascaderItem<T> {
      */
     public final void setValue(T value) {
         this.value.set(value);
-    }
-
-    // ==================== Text ====================
-
-    private final StringProperty text = new SimpleStringProperty(this, "text", "");
-
-    /**
-     * Display text used by default cells and path text factories.
-     *
-     * @return text property
-     */
-    public final StringProperty textProperty() {
-        return text;
-    }
-
-    /**
-     * Returns the display text.
-     *
-     * @return display text
-     */
-    public final String getText() {
-        return text.get();
-    }
-
-    /**
-     * Sets the display text.
-     *
-     * @param value display text
-     */
-    public final void setText(String value) {
-        text.set(value);
     }
 
     /**
@@ -419,12 +386,14 @@ public class RXCascaderItem<T> {
     }
 
     /**
-     * Returns the display text for debugging and default JavaFX renderers.
+     * Returns a debug representation based on the value. This is a fallback for
+     * loggers and {@code RXCascaderPath.toString()}; the visible cascader text is
+     * produced by the owning view's {@code textFactory}, not by this method.
      *
-     * @return display text
+     * @return {@code String.valueOf(getValue())}
      */
     @Override
     public String toString() {
-        return getText();
+        return String.valueOf(getValue());
     }
 }

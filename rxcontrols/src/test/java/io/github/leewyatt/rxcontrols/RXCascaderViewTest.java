@@ -224,7 +224,7 @@ public class RXCascaderViewTest {
         panel.activate(child);
 
         assertEquals(List.of(root, child), panel.getSelectedPath().getItems());
-        assertEquals(List.of("root", "child"), panel.getSelectedPath().getTexts());
+        assertEquals(List.of("root", "child"), panel.getPathTexts(panel.getSelectedPath()));
         assertTrue(panel.getCheckedPaths().isEmpty());
     }
 
@@ -538,12 +538,37 @@ public class RXCascaderViewTest {
         });
     }
 
+    /**
+     * Verifies display text is derived via the text factory, falling back to
+     * {@code String.valueOf(value)} when none is set, for both single values and
+     * whole paths.
+     */
+    @Test
+    public void textFactoryDrivesDisplayTextWithToStringFallback() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("bj");
+        RXCascaderItem<String> child = item("sh");
+        root.getChildren().add(child);
+        panel.getRootItems().add(root);
+
+        // No factory: fall back to String.valueOf(value).
+        assertEquals("bj", panel.getDisplayText("bj"));
+        panel.activate(root);
+        panel.activate(child);
+        assertEquals(List.of("bj", "sh"), panel.getPathTexts(panel.getSelectedPath()));
+
+        // Factory: derive text from value.
+        panel.setTextFactory(value -> value == null ? "" : value.toUpperCase());
+        assertEquals("BJ", panel.getDisplayText("bj"));
+        assertEquals(List.of("BJ", "SH"), panel.getPathTexts(panel.getSelectedPath()));
+    }
+
     private static RXCascaderItem<String> item(String text) {
-        return new RXCascaderItem<>(text, text);
+        return new RXCascaderItem<>(text);
     }
 
     private static RXCascaderItem<String> leaf(String text) {
-        RXCascaderItem<String> leaf = new RXCascaderItem<>(text, text);
+        RXCascaderItem<String> leaf = new RXCascaderItem<>(text);
         leaf.setLeafHint(true);
         return leaf;
     }

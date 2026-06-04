@@ -37,6 +37,11 @@ import java.util.function.Function;
  * sample tree contains a disabled leaf so the locked tri-state rollup is directly
  * observable: checking its enabled siblings leaves the ancestors indeterminate.
  *
+ * <p>The value type is an {@link Option} record carrying id + label; the visible
+ * node text comes from {@code setTextFactory(Option::label)}. The path field
+ * formatter ({@code pathTextFactory}) then receives the already-resolved per-node
+ * texts.
+ *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderDemo}.
  */
 public class RXCascaderShowcase extends RXShowcaseApplication {
@@ -46,10 +51,19 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private static final String SEPARATOR = " / ";
     private static final long LAZY_LOAD_DELAY_MILLIS = 800L;
 
-    private RXCascader<String> cascader;
-    private RXCascader<String> lazyCascader;
+    private RXCascader<Option> cascader;
+    private RXCascader<Option> lazyCascader;
     private CheckBox failLoadsBox;
     private Label lazyReadout;
+
+    /**
+     * Backend-style value carrying an id and a display label.
+     *
+     * @param id stable identifier
+     * @param label human-facing text rendered by {@code textFactory}
+     */
+    public record Option(String id, String label) {
+    }
 
     // ==================== Showcase wiring ====================
 
@@ -78,6 +92,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader = new RXCascader<>();
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
+        cascader.setTextFactory(Option::label);
         cascader.setPathTextFactory(PathFormat.FULL_PATH.factory());
         cascader.getRootItems().setAll(sampleOptions());
 
@@ -169,7 +184,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     }
 
     private void applyPreset(SizePreset preset) {
-        RXCascaderView<String> view = cascader.getView();
+        RXCascaderView<Option> view = cascader.getView();
         view.getStyleClass().removeAll(SizePreset.WIDE_COL2.styleClass(), SizePreset.TALL_ROWS.styleClass());
         if (preset != null && !preset.styleClass().isEmpty()) {
             view.getStyleClass().add(preset.styleClass());
@@ -186,13 +201,15 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         lazyCascader = new RXCascader<>();
         lazyCascader.setPromptText("Expand to load");
         lazyCascader.setClearable(true);
-        lazyCascader.setPathTextFactory(path -> String.join(SEPARATOR, path.getTexts()));
+        lazyCascader.setTextFactory(Option::label);
+        lazyCascader.setPathTextFactory(texts -> String.join(SEPARATOR, texts));
         lazyCascader.setOnChildrenLoadError((failedItem, error) -> lazyReadout.setText(
-                "Load failed for \"" + failedItem.getText() + "\": " + error.getMessage()
+                "Load failed for \"" + failedItem.getValue().label() + "\": " + error.getMessage()
                         + "\nUncheck \"Fail loads\" and click the row again to retry."));
         lazyCascader.selectedPathProperty().addListener((obs, oldPath, newPath) -> {
             if (newPath != null) {
-                lazyReadout.setText("selected: " + String.join(SEPARATOR, newPath.getTexts()));
+                lazyReadout.setText("selected: "
+                        + String.join(SEPARATOR, lazyCascader.getView().getPathTexts(newPath)));
             }
         });
         // Configure the loader before seeding roots (see RXCascader Javadoc): a
@@ -245,25 +262,26 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         }
     }
 
-    private Function<RXCascaderItem<String>, CompletionStage<List<RXCascaderItem<String>>>> lazyLoader() {
+    private Function<RXCascaderItem<Option>, CompletionStage<List<RXCascaderItem<Option>>>> lazyLoader() {
         return loadItem -> {
             boolean fail = failLoadsBox.isSelected();
+            Option value = loadItem.getValue();
             return CompletableFuture.supplyAsync(() -> {
                 sleepBriefly();
                 if (fail) {
                     throw new IllegalStateException("simulated network error");
                 }
-                if ("source".equals(loadItem.getValue())) {
+                if ("source".equals(value.id())) {
                     return List.of(item("group-a", "Group A"), item("group-b", "Group B"));
                 }
                 return List.of(
-                        leaf(loadItem.getValue() + "-1", loadItem.getText() + " 1"),
-                        leaf(loadItem.getValue() + "-2", loadItem.getText() + " 2"));
+                        leaf(value.id() + "-1", value.label() + " 1"),
+                        leaf(value.id() + "-2", value.label() + " 2"));
             });
         };
     }
 
-    private static List<RXCascaderItem<String>> lazyRoots() {
+    private static List<RXCascaderItem<Option>> lazyRoots() {
         // Unloaded with a loader set: a branch by Default B, no flags needed.
         return List.of(item("source", "Remote Source"));
     }
@@ -280,60 +298,60 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
 
     private String describeSelection() {
         if (cascader.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
-            List<RXCascaderPath<String>> checked = cascader.getCheckedPaths();
+            List<RXCascaderPath<Option>> checked = cascader.getCheckedPaths();
             if (checked.isEmpty()) {
                 return "checked: (none)";
             }
             StringJoiner joiner = new StringJoiner("\n");
-            for (RXCascaderPath<String> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, path.getTexts()));
+            for (RXCascaderPath<Option> path : checked) {
+                joiner.add("- " + String.join(SEPARATOR, cascader.getView().getPathTexts(path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
-        RXCascaderPath<String> path = cascader.getSelectedPath();
+        RXCascaderPath<Option> path = cascader.getSelectedPath();
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, path.getTexts());
+        return "selected: " + String.join(SEPARATOR, cascader.getView().getPathTexts(path));
     }
 
     // ==================== Sample data ====================
 
-    private static List<RXCascaderItem<String>> sampleOptions() {
-        RXCascaderItem<String> disabledCity = item("disabled", "Disabled City");
+    private static List<RXCascaderItem<Option>> sampleOptions() {
+        RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
         disabledCity.setDisabled(true);
 
-        RXCascaderItem<String> china = item("china", "China");
+        RXCascaderItem<Option> china = item("china", "China");
         china.getChildren().setAll(List.of(
                 item("shanghai", "Shanghai"),
                 item("hangzhou", "Hangzhou"),
                 disabledCity));
 
-        RXCascaderItem<String> japan = item("japan", "Japan");
+        RXCascaderItem<Option> japan = item("japan", "Japan");
         japan.getChildren().setAll(List.of(
                 item("tokyo", "Tokyo"),
                 item("osaka", "Osaka")));
 
-        RXCascaderItem<String> asia = item("asia", "Asia");
+        RXCascaderItem<Option> asia = item("asia", "Asia");
         asia.getChildren().setAll(List.of(china, japan));
 
-        RXCascaderItem<String> germany = item("germany", "Germany");
+        RXCascaderItem<Option> germany = item("germany", "Germany");
         germany.getChildren().setAll(List.of(
                 item("berlin", "Berlin"),
                 item("munich", "Munich")));
 
-        RXCascaderItem<String> europe = item("europe", "Europe");
+        RXCascaderItem<Option> europe = item("europe", "Europe");
         europe.getChildren().setAll(List.of(germany));
 
         return List.of(asia, europe);
     }
 
-    private static RXCascaderItem<String> item(String value, String text) {
-        return new RXCascaderItem<>(value, text);
+    private static RXCascaderItem<Option> item(String id, String label) {
+        return new RXCascaderItem<>(new Option(id, label));
     }
 
-    private static RXCascaderItem<String> leaf(String value, String text) {
-        RXCascaderItem<String> leaf = item(value, text);
+    private static RXCascaderItem<Option> leaf(String id, String label) {
+        RXCascaderItem<Option> leaf = item(id, label);
         leaf.setLeafHint(true);
         return leaf;
     }
@@ -359,7 +377,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
             dot.setMaxSize(8.0, 8.0);
-            HBox box = new HBox(8.0, dot, new Label(item.getText()));
+            HBox box = new HBox(8.0, dot, new Label(getView().getDisplayText(item.getValue())));
             box.setAlignment(Pos.CENTER_LEFT);
             return box;
         }
@@ -370,21 +388,20 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private enum PathFormat {
         FULL_PATH("Full path (A / B / C)") {
             @Override
-            Callback<RXCascaderPath<String>, String> factory() {
-                return path -> String.join(SEPARATOR, path.getTexts());
+            Callback<List<String>, String> factory() {
+                return texts -> String.join(SEPARATOR, texts);
             }
         },
         LAST_LEVEL("Last level only (C)") {
             @Override
-            Callback<RXCascaderPath<String>, String> factory() {
-                return path -> path.getLeaf() == null ? "" : path.getLeaf().getText();
+            Callback<List<String>, String> factory() {
+                return texts -> texts.isEmpty() ? "" : texts.get(texts.size() - 1);
             }
         },
         FIRST_TO_LAST("First -> last (A -> C)") {
             @Override
-            Callback<RXCascaderPath<String>, String> factory() {
-                return path -> {
-                    List<String> texts = path.getTexts();
+            Callback<List<String>, String> factory() {
+                return texts -> {
                     if (texts.isEmpty()) {
                         return "";
                     }
@@ -401,7 +418,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             this.label = label;
         }
 
-        abstract Callback<RXCascaderPath<String>, String> factory();
+        abstract Callback<List<String>, String> factory();
 
         @Override
         public String toString() {
