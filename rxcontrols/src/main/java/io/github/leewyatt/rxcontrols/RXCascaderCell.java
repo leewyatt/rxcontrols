@@ -122,6 +122,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private final RXCascaderView<T> view;
     private final HBox container = new HBox();
     private final CheckBox checkBox = new CheckBox();
+    private final Region selectedCheck = new Region();
     private final StackPane content = new StackPane();
     private final Label textLabel = new Label();
     private final Region arrow = new Region();
@@ -162,6 +163,12 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         container.getStyleClass().add("container");
         checkBox.setAllowIndeterminate(false);
         checkBox.setFocusTraversable(false);
+        // Single-selection check marker: occupies a fixed left slot so all rows
+        // align, shown only on the selected leaf. Mutually exclusive with the
+        // multiple-mode check box on the same side.
+        selectedCheck.getStyleClass().add("selected-check");
+        selectedCheck.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        selectedCheck.setMouseTransparent(true);
         content.getStyleClass().add("content");
         arrow.getStyleClass().add("arrow");
         arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -171,7 +178,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         loadingGlyph.setMouseTransparent(true);
         HBox.setHgrow(content, Priority.ALWAYS);
         content.setMaxWidth(Double.MAX_VALUE);
-        container.getChildren().setAll(checkBox, content, loadingGlyph, arrow);
+        container.getChildren().setAll(checkBox, selectedCheck, content, loadingGlyph, arrow);
     }
 
     private void registerHandlers() {
@@ -238,6 +245,8 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
             checkBox.setSelected(false);
             checkBox.setIndeterminate(false);
             checkBox.setDisable(false);
+            selectedCheck.setVisible(false);
+            selectedCheck.setManaged(false);
             arrow.setVisible(false);
             arrow.setManaged(false);
             loadingGlyph.setVisible(false);
@@ -314,6 +323,11 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         checkBox.setDisable(disabled);
         checkBox.setSelected(item.isChecked());
         checkBox.setIndeterminate(item.isIndeterminate());
+        // Single mode keeps the left slot reserved on every row (managed) and
+        // reveals the mark only on the selected leaf, so rows stay aligned.
+        boolean singleCheckSlot = !multiple;
+        selectedCheck.setManaged(singleCheckSlot);
+        selectedCheck.setVisible(singleCheckSlot && active);
         setDisable(disabled);
         boolean showArrow = !loading && !leaf;
         arrow.setVisible(showArrow);

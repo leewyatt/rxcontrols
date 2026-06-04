@@ -355,6 +355,13 @@
     -fx-text-overrun: ellipsis;
 }
 
+.rx-cascader-cell > .container > .selected-check {
+    -fx-background-color: -fx-accent;
+    -fx-pref-width: 0.85em; /* 10.2 */
+    -fx-pref-height: 0.7em; /* 8.4 */
+    -fx-shape: "M-0.25,6.083l1.768-1.768l2.65,2.65L9.51,0.5l1.768,1.768L4.176,8.916L-0.25,6.083z";
+}
+
 .rx-cascader-cell > .container > .arrow {
     -fx-background-color: derive(-fx-text-base-color, 45%);
     -fx-pref-width: 0.5em; /* 6 */

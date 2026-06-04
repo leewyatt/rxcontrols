@@ -194,7 +194,11 @@ public class RXCascaderViewTest {
         panel.getRootItems().add(root);
 
         panel.setCheckedCascade(root, true);
-        waitForFxCondition(() -> !root.isLoading());
+        // Wait on the callback's own product (AtomicReference, with happens-before)
+        // rather than the loading flag: completeLoad flips loading off just before
+        // firing the error callback, so polling !isLoading across threads can exit
+        // in that gap and observe a not-yet-fired callback.
+        waitForFxCondition(() -> erroredItem.get() != null);
 
         assertFalse(root.isLoaded());
         assertFalse(root.isLoading());

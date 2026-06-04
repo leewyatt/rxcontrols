@@ -337,6 +337,68 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    /**
+     * Verifies single-selection mode shows the check mark only on the selected
+     * leaf, while the left slot stays reserved (managed) on every row.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void singleSelectionShowsCheckOnSelectedLeaf() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> beijing = item("beijing");
+            RXCascaderItem<String> shanghai = item("shanghai");
+            asia.getChildren().setAll(List.of(beijing, shanghai));
+            view.getRootItems().setAll(List.of(asia));
+
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            view.expand(asia);
+            view.activate(beijing);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            var checks = view.lookupAll(".rx-cascader-cell > .container > .selected-check");
+            assertFalse(checks.isEmpty(), "selected-check nodes should be present");
+            assertEquals(1, checks.stream().filter(Node::isVisible).count(),
+                    "only the selected leaf shows the check mark");
+            assertTrue(checks.stream().allMatch(Node::isManaged),
+                    "single mode keeps the left slot reserved on every row");
+        });
+    }
+
+    /**
+     * Verifies multiple-selection mode neither shows nor reserves the
+     * single-selection check slot (the check box takes that side).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void multipleSelectionHidesSelectedCheckSlot() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+            RXCascaderItem<String> asia = item("asia");
+            asia.getChildren().setAll(List.of(item("beijing"), item("shanghai")));
+            view.getRootItems().setAll(List.of(asia));
+
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            var checks = view.lookupAll(".rx-cascader-cell > .container > .selected-check");
+            assertFalse(checks.isEmpty(), "selected-check nodes should be present");
+            assertTrue(checks.stream().noneMatch(Node::isVisible),
+                    "no check mark in multiple mode");
+            assertTrue(checks.stream().noneMatch(Node::isManaged),
+                    "multiple mode does not reserve the single-selection slot");
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text, text);
     }
