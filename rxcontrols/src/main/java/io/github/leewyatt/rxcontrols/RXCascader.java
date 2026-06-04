@@ -20,6 +20,7 @@ import javafx.util.Callback;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -370,7 +371,43 @@ public class RXCascader<T> extends Control {
         view.setChildrenLoader(value);
     }
 
+    /**
+     * Optional callback invoked on the JavaFX thread when a lazy children load
+     * fails.
+     *
+     * @return children-load-error callback property
+     */
+    public final ObjectProperty<BiConsumer<RXCascaderItem<T>, Throwable>> onChildrenLoadErrorProperty() {
+        return view.onChildrenLoadErrorProperty();
+    }
+
+    /**
+     * Returns the children-load-error callback.
+     *
+     * @return callback, or {@code null}
+     */
+    public final BiConsumer<RXCascaderItem<T>, Throwable> getOnChildrenLoadError() {
+        return view.getOnChildrenLoadError();
+    }
+
+    /**
+     * Sets the children-load-error callback.
+     *
+     * @param value callback, or {@code null}
+     */
+    public final void setOnChildrenLoadError(BiConsumer<RXCascaderItem<T>, Throwable> value) {
+        view.setOnChildrenLoadError(value);
+    }
+
     // ==================== Operations ====================
+
+    /**
+     * Forces a same-source reload of the whole lazy tree. In eager mode (no
+     * loader set) this is a no-op.
+     */
+    public final void reload() {
+        view.reload();
+    }
 
     /**
      * Clears both single and multiple selection state.

@@ -84,31 +84,33 @@ public class RXCascaderDemo extends Application {
     }
 
     private static List<RXCascaderItem<String>> lazyRoot() {
-        RXCascaderItem<String> source = item("source", "Remote Source");
-        source.setLeafHint(false);
-        source.setLoaded(false);
-        return List.of(source);
+        // Lazy mode: with a loader set, an unloaded node defaults to a branch
+        // (Default B), so no flags are needed to make it expandable.
+        return List.of(item("source", "Remote Source"));
     }
 
     private static List<RXCascaderItem<String>> loadChildren(RXCascaderItem<String> item) {
         sleep();
         if ("source".equals(item.getValue())) {
-            RXCascaderItem<String> groupA = item("group-a", "Group A");
-            RXCascaderItem<String> groupB = item("group-b", "Group B");
-            groupA.setLeafHint(false);
-            groupA.setLoaded(false);
-            groupB.setLeafHint(false);
-            groupB.setLoaded(false);
-            return List.of(groupA, groupB);
+            // Unloaded branches by Default B; expanding them loads again.
+            return List.of(item("group-a", "Group A"), item("group-b", "Group B"));
         }
+        // Known leaves must be marked in lazy mode, otherwise they would be
+        // treated as unloaded branches and trigger a useless load on expand.
         return List.of(
-                item(item.getValue() + "-1", item.getText() + " 1"),
-                item(item.getValue() + "-2", item.getText() + " 2")
+                leaf(item.getValue() + "-1", item.getText() + " 1"),
+                leaf(item.getValue() + "-2", item.getText() + " 2")
         );
     }
 
     private static RXCascaderItem<String> item(String value, String text) {
         return new RXCascaderItem<>(value, text);
+    }
+
+    private static RXCascaderItem<String> leaf(String value, String text) {
+        RXCascaderItem<String> leaf = item(value, text);
+        leaf.setLeafHint(true);
+        return leaf;
     }
 
     private static void sleep() {

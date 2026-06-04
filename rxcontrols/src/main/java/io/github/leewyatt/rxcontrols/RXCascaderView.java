@@ -23,6 +23,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -84,8 +85,6 @@ public class RXCascaderView<T> extends Control {
             while (change.next()) {
                 for (RXCascaderItem<T> removed : change.getRemoved()) {
                     removed.setParentItem(null);
-                    loadGenerations.remove(removed);
-                    pendingChecks.remove(removed);
                 }
                 for (RXCascaderItem<T> added : change.getAddedSubList()) {
                     if (added != null) {
@@ -93,10 +92,19 @@ public class RXCascaderView<T> extends Control {
                     }
                 }
             }
-            activePath.clear();
-            selectedPath.set(null);
+            // Swapping roots is one of the three reset entry points: drop all
+            // navigation and in-flight loads, but keep the new roots' children
+            // and any seeded check state, then rebuild the derived paths.
+            clearNavAndPending();
             refreshCheckedPaths();
             requestLayout();
+        });
+        childrenLoader.addListener((obs, oldLoader, newLoader) -> {
+            if (newLoader != null) {
+                resetTree();
+            } else {
+                switchToEager();
+            }
         });
     }
 
@@ -314,6 +322,42 @@ public class RXCascaderView<T> extends Control {
         childrenLoader.set(value);
     }
 
+    // ==================== Children Load Error ====================
+
+    private final ObjectProperty<BiConsumer<RXCascaderItem<T>, Throwable>> onChildrenLoadError =
+            new SimpleObjectProperty<>(this, "onChildrenLoadError");
+
+    /**
+     * Optional callback invoked on the JavaFX thread when a lazy children load
+     * fails, either because the loader stage completes exceptionally or because
+     * {@code childrenLoader.apply} throws synchronously. The failing item stays a
+     * retriable branch (no column is added); expanding it again retries. When
+     * {@code null} the failure is silent.
+     *
+     * @return children-load-error callback property
+     */
+    public final ObjectProperty<BiConsumer<RXCascaderItem<T>, Throwable>> onChildrenLoadErrorProperty() {
+        return onChildrenLoadError;
+    }
+
+    /**
+     * Returns the children-load-error callback.
+     *
+     * @return callback, or {@code null}
+     */
+    public final BiConsumer<RXCascaderItem<T>, Throwable> getOnChildrenLoadError() {
+        return onChildrenLoadError.get();
+    }
+
+    /**
+     * Sets the children-load-error callback.
+     *
+     * @param value callback, or {@code null}
+     */
+    public final void setOnChildrenLoadError(BiConsumer<RXCascaderItem<T>, Throwable> value) {
+        onChildrenLoadError.set(value);
+    }
+
     // ==================== Public Operations ====================
 
     /**
@@ -349,8 +393,11 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item) || isLeaf(item)) {
             return;
         }
-        activePath.setAll(pathItems(item));
+        // Establish the loading state before retargeting the active path, so the
+        // skin's first rebuild already sees a loading frontier (deferred column +
+        // frontier monitor attached) rather than an unloaded branch.
         loadChildren(item);
+        activePath.setAll(pathItems(item));
         requestLayout();
     }
 
@@ -376,7 +423,7 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item)) {
             return;
         }
-        if (!item.isLoaded() && getChildrenLoader() != null) {
+        if (needsLoad(item)) {
             pendingChecks.put(item, checked);
             item.setChecked(checked);
             item.setIndeterminate(false);
@@ -390,6 +437,19 @@ public class RXCascaderView<T> extends Control {
         updateUp(item.getParent());
         refreshCheckedPaths();
         requestLayout();
+    }
+
+    /**
+     * Forces a same-source reload of the whole lazy tree: every root is reset to
+     * an unloaded branch, navigation and selection are cleared, and children are
+     * lazily fetched again with the current loader. In eager mode (no loader set)
+     * this is a no-op.
+     */
+    public final void reload() {
+        if (getChildrenLoader() == null) {
+            return;
+        }
+        resetTree();
     }
 
     /**
@@ -432,10 +492,26 @@ public class RXCascaderView<T> extends Control {
         if (hint != null) {
             return hint;
         }
-        if (!item.isLoaded() && getChildrenLoader() != null) {
-            return false;
+        if (getChildrenLoader() == null) {
+            return item.getChildren().isEmpty();
         }
-        return item.getChildren().isEmpty();
+        return item.isLoaded() && item.getChildren().isEmpty();
+    }
+
+    /**
+     * Whether expanding or checking this item should trigger a lazy load: a
+     * loader is present, the item is an unloaded, not-yet-loading, childless
+     * branch that has not been declared a leaf.
+     *
+     * @param item item to test
+     * @return {@code true} if a lazy load is needed
+     */
+    private boolean needsLoad(RXCascaderItem<T> item) {
+        return getChildrenLoader() != null
+                && !item.isLoaded()
+                && !item.isLoading()
+                && item.getChildren().isEmpty()
+                && !Boolean.TRUE.equals(item.getLeafHint());
     }
 
     /**
@@ -444,10 +520,10 @@ public class RXCascaderView<T> extends Control {
      * @param item branch item to load
      */
     public final void loadChildren(RXCascaderItem<T> item) {
-        Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
-        if (item == null || loader == null || item.isLoaded() || item.isLoading()) {
+        if (item == null || !needsLoad(item)) {
             return;
         }
+        Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
 
         long generation = ++nextLoadGeneration;
         loadGenerations.put(item, generation);
@@ -457,9 +533,10 @@ public class RXCascaderView<T> extends Control {
         try {
             stage = loader.apply(item);
         } catch (RuntimeException e) {
-            item.setLoading(false);
-            loadGenerations.remove(item);
-            throw e;
+            // A synchronous throw routes to the same failure path as a stage
+            // error: a retriable branch plus the error callback, never rethrown.
+            completeLoad(item, generation, null, e);
+            return;
         }
 
         if (stage == null) {
@@ -486,7 +563,7 @@ public class RXCascaderView<T> extends Control {
         if (isEffectivelyDisabled(item)) {
             return;
         }
-        if (!item.isLoaded() && getChildrenLoader() != null) {
+        if (needsLoad(item)) {
             pendingChecks.put(item, checked);
             item.setChecked(checked);
             item.setIndeterminate(false);
@@ -547,7 +624,7 @@ public class RXCascaderView<T> extends Control {
         if (isEffectivelyDisabled(item)) {
             return new EnabledLeafSummary(false, true);
         }
-        if (isLeaf(item) || (!item.isLoaded() && getChildrenLoader() != null)) {
+        if (isLeaf(item) || needsLoad(item)) {
             return new EnabledLeafSummary(true, item.isChecked());
         }
 
@@ -575,15 +652,21 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         loadGenerations.remove(item);
-        item.setLoading(false);
 
         if (error != null) {
+            // Keep loaded=false so the branch can be retried; roll back any
+            // pending check and surface the failure through the callback.
+            item.setLoading(false);
             Boolean pendingCheck = pendingChecks.remove(item);
             if (pendingCheck != null) {
                 item.setChecked(false);
                 item.setIndeterminate(false);
                 updateUp(item.getParent());
                 refreshCheckedPaths();
+            }
+            BiConsumer<RXCascaderItem<T>, Throwable> handler = getOnChildrenLoadError();
+            if (handler != null) {
+                handler.accept(item, error);
             }
             requestLayout();
             return;
@@ -592,6 +675,9 @@ public class RXCascaderView<T> extends Control {
         List<RXCascaderItem<T>> loadedChildren = children == null ? Collections.emptyList() : children;
         item.getChildren().setAll(loadedChildren);
         item.setLoaded(true);
+        // Flip loading off last so the skin's frontier monitor, which rebuilds on
+        // this transition, observes the fully populated, loaded branch.
+        item.setLoading(false);
 
         Boolean pendingCheck = pendingChecks.remove(item);
         if (pendingCheck != null) {
@@ -616,6 +702,64 @@ public class RXCascaderView<T> extends Control {
         for (RXCascaderItem<T> child : item.getChildren()) {
             clearCheckState(child);
         }
+    }
+
+    // ==================== Reset and invalidation ====================
+
+    /**
+     * Cancels all in-flight loads: every node currently loading is reset to a
+     * stable {@code loading=false} before it can leave the tree (so a detached
+     * item never keeps a dangling loading flag), and the generation / pending
+     * maps are cleared so late callbacks bail in {@link #completeLoad}.
+     */
+    private void cancelInFlight() {
+        for (RXCascaderItem<T> item : loadGenerations.keySet()) {
+            item.setLoading(false);
+        }
+        loadGenerations.clear();
+        pendingChecks.clear();
+    }
+
+    /**
+     * Shared invalidation core for the three reset entry points: cancels
+     * in-flight loads and clears navigation. It intentionally leaves
+     * {@code checkedPaths} and each item's checked state alone — those are
+     * handled per entry point.
+     */
+    private void clearNavAndPending() {
+        cancelInFlight();
+        activePath.clear();
+        selectedPath.set(null);
+    }
+
+    /**
+     * Full-tree reset shared by {@link #reload()} and switching to a non-null
+     * loader: clears navigation and in-flight loads, then discards everything
+     * below the same roots and all check state so the tree returns to a blank
+     * slate ready to lazily reload.
+     */
+    private void resetTree() {
+        clearNavAndPending();
+        for (RXCascaderItem<T> root : rootItems) {
+            clearCheckState(root);
+            root.getChildren().clear();
+            root.setLoaded(false);
+            root.setLoading(false);
+        }
+        checkedPaths.clear();
+        requestLayout();
+    }
+
+    /**
+     * Switches to eager mode when the loader is cleared: cancels in-flight loads
+     * but keeps the current tree, navigation, and item check state as a static
+     * tree. The derived checked paths are recomputed because clearing the loader
+     * changes which nodes are leaves.
+     */
+    private void switchToEager() {
+        cancelInFlight();
+        refreshCheckedPaths();
+        requestLayout();
     }
 
     private void refreshCheckedPaths() {

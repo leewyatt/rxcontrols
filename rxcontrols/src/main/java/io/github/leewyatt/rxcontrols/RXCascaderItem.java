@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -197,8 +199,20 @@ public class RXCascaderItem<T> {
             new SimpleObjectProperty<>(this, "leafHint");
 
     /**
-     * Optional leaf hint. {@code null} means the panel derives leaf state from
-     * the child list.
+     * Tri-state leaf override consumed by the owning {@link RXCascaderView}.
+     *
+     * <ul>
+     *   <li>{@code true} — force this item to be a leaf: no expand arrow and no
+     *       lazy load. In lazy mode (a children loader is set) this is the
+     *       primary way to mark a node whose children are already known to be
+     *       empty.</li>
+     *   <li>{@code false} — force this item to be a branch even when it has no
+     *       children, so an empty eager node still shows as expandable (and
+     *       renders an empty column).</li>
+     *   <li>{@code null} (default) — the view derives leaf state: eager mode
+     *       uses {@code children.isEmpty()}; lazy mode treats an unloaded node
+     *       as a branch until it has been loaded.</li>
+     * </ul>
      *
      * @return leaf-hint property
      */
@@ -226,20 +240,24 @@ public class RXCascaderItem<T> {
 
     // ==================== Loaded ====================
 
-    private final BooleanProperty loaded =
-            new SimpleBooleanProperty(this, "loaded", true);
+    private final ReadOnlyBooleanWrapper loaded =
+            new ReadOnlyBooleanWrapper(this, "loaded", false);
 
     /**
-     * Whether this item's children are loaded.
+     * Whether a children loader has already populated this item, observable but
+     * not writable. It is meaningful only for lazy branches: it flips to
+     * {@code true} after the loader successfully returns children, and stays
+     * {@code false} when a load fails (so the branch can be retried). Eager and
+     * leaf items never go through the loader and remain {@code false}.
      *
-     * @return loaded property
+     * @return read-only loaded property
      */
-    public final BooleanProperty loadedProperty() {
-        return loaded;
+    public final ReadOnlyBooleanProperty loadedProperty() {
+        return loaded.getReadOnlyProperty();
     }
 
     /**
-     * Returns whether this item's children are loaded.
+     * Returns whether a children loader has populated this item.
      *
      * @return {@code true} if loaded
      */
@@ -247,27 +265,25 @@ public class RXCascaderItem<T> {
         return loaded.get();
     }
 
-    /**
-     * Sets whether this item's children are loaded.
-     *
-     * @param value {@code true} if loaded
-     */
-    public final void setLoaded(boolean value) {
+    final void setLoaded(boolean value) {
         loaded.set(value);
     }
 
     // ==================== Loading ====================
 
-    private final BooleanProperty loading =
-            new SimpleBooleanProperty(this, "loading", false);
+    private final ReadOnlyBooleanWrapper loading =
+            new ReadOnlyBooleanWrapper(this, "loading", false);
 
     /**
-     * Whether this item is currently loading children.
+     * Whether this item is currently running its children loader, observable but
+     * not writable. The owning {@link RXCascaderView} drives it: {@code true}
+     * while the loader stage is in flight, back to {@code false} on completion or
+     * failure.
      *
-     * @return loading property
+     * @return read-only loading property
      */
-    public final BooleanProperty loadingProperty() {
-        return loading;
+    public final ReadOnlyBooleanProperty loadingProperty() {
+        return loading.getReadOnlyProperty();
     }
 
     /**
@@ -279,12 +295,7 @@ public class RXCascaderItem<T> {
         return loading.get();
     }
 
-    /**
-     * Sets whether this item is currently loading children.
-     *
-     * @param value {@code true} if loading
-     */
-    public final void setLoading(boolean value) {
+    final void setLoading(boolean value) {
         loading.set(value);
     }
 

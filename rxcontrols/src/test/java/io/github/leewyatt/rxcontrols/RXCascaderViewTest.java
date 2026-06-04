@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -149,11 +150,10 @@ public class RXCascaderViewTest {
     public void pendingCheckReplaysAfterLazyLoad() throws InterruptedException {
         RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        // Default B: an unloaded node with a loader set is a branch, no flags.
         RXCascaderItem<String> root = item("root");
-        root.setLoaded(false);
-        root.setLeafHint(false);
-        RXCascaderItem<String> enabled = item("enabled");
-        RXCascaderItem<String> disabled = item("disabled");
+        RXCascaderItem<String> enabled = leaf("enabled");
+        RXCascaderItem<String> disabled = leaf("disabled");
         disabled.setDisabled(true);
         panel.setChildrenLoader(item ->
                 CompletableFuture.completedFuture(List.of(enabled, disabled)));
@@ -182,8 +182,12 @@ public class RXCascaderViewTest {
         RXCascaderView<String> panel = new RXCascaderView<>();
         panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
-        root.setLoaded(false);
-        root.setLeafHint(false);
+        AtomicReference<RXCascaderItem<String>> erroredItem = new AtomicReference<>();
+        AtomicReference<Throwable> erroredCause = new AtomicReference<>();
+        panel.setOnChildrenLoadError((failedItem, cause) -> {
+            erroredItem.set(failedItem);
+            erroredCause.set(cause);
+        });
         panel.setChildrenLoader(item ->
                 CompletableFuture.failedFuture(new IllegalStateException("load failed")));
         panel.getRootItems().add(root);
@@ -196,6 +200,8 @@ public class RXCascaderViewTest {
         assertFalse(root.isChecked());
         assertFalse(root.isIndeterminate());
         assertTrue(panel.getCheckedPaths().isEmpty());
+        assertSame(root, erroredItem.get());
+        assertTrue(erroredCause.get() instanceof IllegalStateException);
     }
 
     /**
@@ -241,8 +247,205 @@ public class RXCascaderViewTest {
         assertEquals(List.of(asia), panel.getActivePath());
     }
 
+    /**
+     * Verifies ragged eager trees of unequal depth work with zero flags: leaf
+     * state is derived purely from empty children.
+     */
+    @Test
+    public void raggedEagerTreeSupportsUnequalDepths() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> a = item("A");
+        RXCascaderItem<String> a1 = item("A1");
+        RXCascaderItem<String> a11 = item("A1-1");
+        a1.getChildren().add(a11);
+        a.getChildren().add(a1);
+        RXCascaderItem<String> b = item("B");
+        RXCascaderItem<String> b1 = item("B1");
+        b.getChildren().add(b1);
+        panel.getRootItems().setAll(List.of(a, b));
+
+        assertFalse(panel.isLeaf(a));
+        assertFalse(panel.isLeaf(a1));
+        assertTrue(panel.isLeaf(a11));
+        assertFalse(panel.isLeaf(b));
+        assertTrue(panel.isLeaf(b1));
+
+        panel.activate(a);
+        panel.activate(a1);
+        panel.activate(a11);
+        assertEquals(List.of(a, a1, a11), panel.getSelectedPath().getItems());
+
+        panel.activate(b);
+        panel.activate(b1);
+        assertEquals(List.of(b, b1), panel.getSelectedPath().getItems());
+    }
+
+    /**
+     * Verifies an unloaded node with a loader set is a branch (Default B) and
+     * expanding it loads children that flip {@code loaded} to true.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void lazyExpandLoadsChildrenMarkingLoaded() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        panel.setChildrenLoader(item ->
+                CompletableFuture.completedFuture(List.of(leaf("c1"), leaf("c2"))));
+        panel.getRootItems().add(root);
+
+        assertFalse(panel.isLeaf(root));
+        assertFalse(root.isLoaded());
+
+        panel.expand(root);
+        waitForFxCondition(root::isLoaded);
+
+        assertFalse(root.isLoading());
+        assertEquals(2, root.getChildren().size());
+        assertTrue(panel.isLeaf(root.getChildren().get(0)));
+    }
+
+    /**
+     * Verifies a {@code leafHint=null} lazy branch that loads to zero children
+     * becomes a leaf and adds no column.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void loadedEmptyLazyBranchBecomesLeaf() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        panel.setChildrenLoader(item -> CompletableFuture.completedFuture(List.of()));
+        panel.getRootItems().add(root);
+
+        assertFalse(panel.isLeaf(root));
+        panel.expand(root);
+        waitForFxCondition(root::isLoaded);
+
+        assertTrue(panel.isLeaf(root));
+    }
+
+    /**
+     * Verifies no-arg reload resets the lazy tree to a blank slate.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void reloadResetsLazyTree() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        panel.setChildrenLoader(item -> CompletableFuture.completedFuture(List.of(leaf("c1"))));
+        panel.getRootItems().add(root);
+        panel.expand(root);
+        waitForFxCondition(root::isLoaded);
+        assertEquals(1, root.getChildren().size());
+
+        panel.reload();
+
+        assertFalse(root.isLoaded());
+        assertTrue(root.getChildren().isEmpty());
+        assertTrue(panel.getActivePath().isEmpty());
+    }
+
+    /**
+     * Verifies no-arg reload is a no-op in eager mode (no loader set).
+     */
+    @Test
+    public void reloadIsNoOpInEagerMode() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> child = item("child");
+        root.getChildren().add(child);
+        panel.getRootItems().add(root);
+        panel.expand(root);
+
+        panel.reload();
+
+        assertEquals(List.of(child), root.getChildren());
+        assertEquals(List.of(root), panel.getActivePath());
+    }
+
+    /**
+     * Verifies swapping in a non-null loader resets the whole tree.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void changingLoaderToNonNullResetsTree() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        panel.setChildrenLoader(item -> CompletableFuture.completedFuture(List.of(leaf("c1"))));
+        panel.getRootItems().add(root);
+        panel.expand(root);
+        waitForFxCondition(root::isLoaded);
+        assertEquals(1, root.getChildren().size());
+
+        panel.setChildrenLoader(item -> CompletableFuture.completedFuture(List.of(leaf("d1"), leaf("d2"))));
+
+        assertFalse(root.isLoaded());
+        assertTrue(root.getChildren().isEmpty());
+        assertTrue(panel.getActivePath().isEmpty());
+    }
+
+    /**
+     * Verifies clearing the loader keeps the current tree and item check state
+     * but recomputes the derived checked paths: a pending-checked unloaded branch
+     * becomes an eager leaf that now belongs to the checked paths (Finding 1).
+     */
+    @Test
+    public void clearingLoaderKeepsTreeAndRefreshesPaths() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setChildrenLoader(item -> new CompletableFuture<>());
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> branch = item("branch");
+        root.getChildren().add(branch);
+        panel.getRootItems().setAll(List.of(root));
+
+        panel.setCheckedCascade(branch, true);
+        assertTrue(branch.isChecked());
+        assertTrue(branch.isLoading());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+
+        panel.setChildrenLoader(null);
+
+        assertFalse(branch.isLoading());
+        assertTrue(branch.isChecked());
+        assertTrue(panel.isLeaf(branch));
+        assertEquals(1, panel.getCheckedPaths().size());
+        assertSame(branch, panel.getCheckedPaths().get(0).getLeaf());
+    }
+
+    /**
+     * Verifies a synchronous throw from the loader is routed to the failure path
+     * (retriable, callback fired) instead of being rethrown.
+     */
+    @Test
+    public void synchronousLoaderThrowIsHandledNotRethrown() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        AtomicReference<Throwable> cause = new AtomicReference<>();
+        panel.setOnChildrenLoadError((item, error) -> cause.set(error));
+        panel.setChildrenLoader(item -> {
+            throw new IllegalStateException("boom");
+        });
+        panel.getRootItems().add(root);
+
+        panel.expand(root);
+
+        assertFalse(root.isLoading());
+        assertFalse(root.isLoaded());
+        assertTrue(cause.get() instanceof IllegalStateException);
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text, text);
+    }
+
+    private static RXCascaderItem<String> leaf(String text) {
+        RXCascaderItem<String> leaf = new RXCascaderItem<>(text, text);
+        leaf.setLeafHint(true);
+        return leaf;
     }
 
     private static void flushFxEvents() throws InterruptedException {

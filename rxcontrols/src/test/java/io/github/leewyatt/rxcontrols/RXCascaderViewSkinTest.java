@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -291,6 +292,48 @@ public class RXCascaderViewSkinTest {
 
             assertEquals(0, column.lookupAll(".rx-cascader-cell").size(),
                     "a naked ListCell does not carry the rx-cascader-cell style class");
+        });
+    }
+
+    /**
+     * Verifies deferred columns: while a lazy frontier is loading no next column
+     * appears, and the column shows up only once the load completes (driven by
+     * the skin's frontier monitor).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void loadingFrontierDefersNextColumn() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            CompletableFuture<List<RXCascaderItem<String>>> future = new CompletableFuture<>();
+            view.setChildrenLoader(item -> future);
+            RXCascaderItem<String> branch = item("branch");
+            view.getRootItems().setAll(List.of(branch));
+
+            Scene scene = new Scene(new StackPane(view), 320, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            view.expand(branch);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            assertTrue(branch.isLoading(), "frontier should be loading after expand");
+            assertEquals(0, view.lookupAll(".rx-cascader-column-1").size(),
+                    "no next column while the frontier is loading");
+
+            // Completing on the FX thread runs completeLoad inline; the frontier
+            // monitor then rebuilds and the second column appears.
+            RXCascaderItem<String> child = item("child");
+            child.setLeafHint(true);
+            future.complete(List.of(child));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            assertFalse(branch.isLoading(), "frontier should no longer be loading");
+            assertEquals(1, view.lookupAll(".rx-cascader-column-1").size(),
+                    "the next column appears once loading completes");
         });
     }
 

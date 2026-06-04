@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -23,6 +24,8 @@ import javafx.util.Callback;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 /**
  * Showcase application for {@link RXCascader}.
@@ -44,6 +47,9 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private static final long LAZY_LOAD_DELAY_MILLIS = 800L;
 
     private RXCascader<String> cascader;
+    private RXCascader<String> lazyCascader;
+    private CheckBox failLoadsBox;
+    private Label lazyReadout;
 
     // ==================== Showcase wiring ====================
 
@@ -75,22 +81,6 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader.setPathTextFactory(PathFormat.FULL_PATH.factory());
         cascader.getRootItems().setAll(sampleOptions());
 
-        // Mixed eager/lazy tree: the preloaded branches above coexist with this
-        // lazy one. A single childrenLoader is shared, but it only fires for nodes
-        // left unloaded (setLoaded(false)); the preloaded branches never hit it.
-        RXCascaderItem<String> lazy = item("lazy", "Lazy branch (async)");
-        lazy.setLoaded(false);
-        lazy.setLoading(true);
-        cascader.getRootItems().add(lazy);
-        cascader.setChildrenLoader(parent -> CompletableFuture.supplyAsync(() -> {
-            try {
-                Thread.sleep(LAZY_LOAD_DELAY_MILLIS);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
-            return List.of(item("loaded-a", "Loaded A"), item("loaded-b", "Loaded B"));
-        }));
-
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
         readout.setWrapText(true);
@@ -110,7 +100,8 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Selection", buildSelectionGrid()),
                 section("Display text", buildDisplayGrid()),
-                section("Dimensions", buildDimensionGrid()));
+                section("Dimensions", buildDimensionGrid()),
+                section("Lazy loading", buildLazyGrid()));
     }
 
     // ==================== Sections ====================
@@ -185,6 +176,106 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         }
     }
 
+    // ==================== Lazy loading ====================
+
+    private Node buildLazyGrid() {
+        lazyReadout = new Label("Expand \"Remote Source\" to load its children.");
+        lazyReadout.getStyleClass().add("field-readout");
+        lazyReadout.setWrapText(true);
+
+        lazyCascader = new RXCascader<>();
+        lazyCascader.setPromptText("Expand to load");
+        lazyCascader.setClearable(true);
+        lazyCascader.setPathTextFactory(path -> String.join(SEPARATOR, path.getTexts()));
+        lazyCascader.setOnChildrenLoadError((failedItem, error) -> lazyReadout.setText(
+                "Load failed for \"" + failedItem.getText() + "\": " + error.getMessage()
+                        + "\nUncheck \"Fail loads\" and click the row again to retry."));
+        lazyCascader.selectedPathProperty().addListener((obs, oldPath, newPath) -> {
+            if (newPath != null) {
+                lazyReadout.setText("selected: " + String.join(SEPARATOR, newPath.getTexts()));
+            }
+        });
+        // Configure the loader before seeding roots (see RXCascader Javadoc): a
+        // non-null loader resets the tree, so roots provided afterwards survive.
+        lazyCascader.setChildrenLoader(lazyLoader());
+        lazyCascader.getRootItems().setAll(lazyRoots());
+
+        failLoadsBox = new CheckBox("Fail loads (simulate a loader error)");
+
+        Button reload = new Button("Reload");
+        reload.setMaxWidth(Double.MAX_VALUE);
+        reload.setOnAction(event -> {
+            lazyCascader.reload();
+            lazyReadout.setText("Reloaded — expand \"Remote Source\" to fetch again.");
+        });
+
+        ComboBox<LoaderMode> modeBox = new ComboBox<>();
+        modeBox.getItems().setAll(LoaderMode.values());
+        modeBox.setValue(LoaderMode.LAZY);
+        modeBox.setMaxWidth(Double.MAX_VALUE);
+        modeBox.valueProperty().addListener((obs, oldMode, newMode) -> applyLoaderMode(newMode));
+
+        Label hint = new Label("A children loader makes this a lazy tree: unloaded "
+                + "nodes stay branches until expanded. \"Reload\" resets and "
+                + "refetches from the same loader. Switching to Eager clears the "
+                + "loader and keeps the current tree as a static one; switching "
+                + "back to Lazy resets the tree.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+
+        return createGrid(
+                row("Mode", modeBox),
+                row(lazyCascader),
+                row(failLoadsBox),
+                row(reload),
+                row(lazyReadout),
+                row(hint));
+    }
+
+    private void applyLoaderMode(LoaderMode mode) {
+        if (mode == null || mode == LoaderMode.LAZY) {
+            // A fresh non-null loader resets the tree; re-seed the roots after.
+            lazyCascader.setChildrenLoader(lazyLoader());
+            lazyCascader.getRootItems().setAll(lazyRoots());
+            lazyReadout.setText("Lazy mode — expand \"Remote Source\" to load.");
+        } else {
+            // Clearing the loader keeps the current tree as a static eager one.
+            lazyCascader.setChildrenLoader(null);
+            lazyReadout.setText("Eager mode — loader cleared, current tree kept static.");
+        }
+    }
+
+    private Function<RXCascaderItem<String>, CompletionStage<List<RXCascaderItem<String>>>> lazyLoader() {
+        return loadItem -> {
+            boolean fail = failLoadsBox.isSelected();
+            return CompletableFuture.supplyAsync(() -> {
+                sleepBriefly();
+                if (fail) {
+                    throw new IllegalStateException("simulated network error");
+                }
+                if ("source".equals(loadItem.getValue())) {
+                    return List.of(item("group-a", "Group A"), item("group-b", "Group B"));
+                }
+                return List.of(
+                        leaf(loadItem.getValue() + "-1", loadItem.getText() + " 1"),
+                        leaf(loadItem.getValue() + "-2", loadItem.getText() + " 2"));
+            });
+        };
+    }
+
+    private static List<RXCascaderItem<String>> lazyRoots() {
+        // Unloaded with a loader set: a branch by Default B, no flags needed.
+        return List.of(item("source", "Remote Source"));
+    }
+
+    private static void sleepBriefly() {
+        try {
+            Thread.sleep(LAZY_LOAD_DELAY_MILLIS);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     // ==================== Readout ====================
 
     private String describeSelection() {
@@ -239,6 +330,12 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
 
     private static RXCascaderItem<String> item(String value, String text) {
         return new RXCascaderItem<>(value, text);
+    }
+
+    private static RXCascaderItem<String> leaf(String value, String text) {
+        RXCascaderItem<String> leaf = item(value, text);
+        leaf.setLeafHint(true);
+        return leaf;
     }
 
     // ==================== Custom cell ====================
@@ -305,6 +402,24 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         }
 
         abstract Callback<RXCascaderPath<String>, String> factory();
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    // ==================== Loader mode ====================
+
+    private enum LoaderMode {
+        LAZY("Lazy (loader on)"),
+        EAGER("Eager (loader off)");
+
+        private final String label;
+
+        LoaderMode(String label) {
+            this.label = label;
+        }
 
         @Override
         public String toString() {
