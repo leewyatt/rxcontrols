@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -498,6 +499,38 @@ public class RXCascaderViewTest {
             assertEquals(List.of(root), panel.getActivePath());
             assertFalse(root.isLoading());
             assertFalse(root.isLoaded());
+        });
+    }
+
+    /**
+     * Verifies the loader is not invoked when the load is canceled between
+     * {@code startLoad} and {@code runLoad} — here an active-path listener calls
+     * {@code reload()} during {@code expand}, superseding the in-flight load.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void loaderSkippedWhenLoadCanceledMidExpand() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            int[] loaderCalls = {0};
+            panel.setChildrenLoader(item -> {
+                loaderCalls[0]++;
+                return new CompletableFuture<>();
+            });
+            RXCascaderItem<String> root = item("root");
+            panel.getRootItems().add(root);
+            panel.getActivePath().addListener((InvalidationListener) obs -> {
+                if (!panel.getActivePath().isEmpty() && loaderCalls[0] == 0) {
+                    panel.reload();
+                }
+            });
+
+            panel.expand(root);
+
+            assertEquals(0, loaderCalls[0],
+                    "a load canceled mid-expand must not invoke the loader");
+            assertFalse(root.isLoading());
         });
     }
 

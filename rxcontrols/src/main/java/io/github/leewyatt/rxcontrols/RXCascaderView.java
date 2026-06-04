@@ -577,6 +577,14 @@ public class RXCascaderView<T> extends Control {
      */
     private void runLoad(RXCascaderItem<T> item, long generation) {
         Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
+        Long current = loadGenerations.get(item);
+        if (loader == null || current == null || current != generation) {
+            // A listener that ran during the active-path update between startLoad
+            // and here (reload(), a loader swap, or a root change) already
+            // canceled this load and reset the item's loading flag; do not invoke
+            // the possibly side-effecting loader for a superseded request.
+            return;
+        }
 
         CompletionStage<List<RXCascaderItem<T>>> stage;
         try {
