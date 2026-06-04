@@ -438,6 +438,69 @@ public class RXCascaderViewTest {
         assertTrue(cause.get() instanceof IllegalStateException);
     }
 
+    /**
+     * Verifies a second check while a lazy branch is still loading overwrites the
+     * pending intent, so the replay after load honors the user's latest action
+     * instead of the stale first check.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void laterCheckWhileLoadingOverwritesPending() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        RXCascaderItem<String> enabled = leaf("enabled");
+        panel.setChildrenLoader(item -> gate);
+        RXCascaderItem<String> root = item("root");
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(root, true);
+        assertTrue(root.isLoading());
+        assertTrue(root.isChecked());
+
+        panel.setCheckedCascade(root, false);
+        assertTrue(root.isLoading());
+        assertFalse(root.isChecked());
+
+        gate.complete(List.of(enabled));
+        waitForFxCondition(root::isLoaded);
+
+        assertFalse(enabled.isChecked());
+        assertFalse(root.isChecked());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies a loader that fails inline on the FX thread fires the error
+     * callback after the active path has been retargeted, matching the async
+     * path (the callback observes the new active path, not the stale one).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void inlineFailingLoaderFiresErrorAfterActivePathUpdated() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            RXCascaderItem<String> root = item("root");
+            AtomicReference<Integer> activePathSizeAtError = new AtomicReference<>();
+            panel.setOnChildrenLoadError((item, error) ->
+                    activePathSizeAtError.set(panel.getActivePath().size()));
+            panel.setChildrenLoader(item -> {
+                throw new IllegalStateException("boom");
+            });
+            panel.getRootItems().add(root);
+
+            panel.expand(root);
+
+            assertEquals(Integer.valueOf(1), activePathSizeAtError.get(),
+                    "error callback should see the active path already containing the branch");
+            assertEquals(List.of(root), panel.getActivePath());
+            assertFalse(root.isLoading());
+            assertFalse(root.isLoaded());
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text, text);
     }
@@ -446,6 +509,30 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> leaf = new RXCascaderItem<>(text, text);
         leaf.setLeafHint(true);
         return leaf;
+    }
+
+    private static void runOnFx(Runnable action) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable t) {
+                error.set(t);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX task did not complete");
+        }
+        Throwable t = error.get();
+        if (t instanceof AssertionError) {
+            throw (AssertionError) t;
+        }
+        if (t != null) {
+            throw new AssertionError("FX task failed", t);
+        }
     }
 
     private static void flushFxEvents() throws InterruptedException {

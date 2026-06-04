@@ -72,6 +72,9 @@ public class RXCascaderView<T> extends Control {
     private final ObservableList<RXCascaderPath<T>> readOnlyCheckedPaths =
             FXCollections.unmodifiableObservableList(checkedPaths);
 
+    /** Sentinel returned by {@link #startLoad} when no load was started; live generations are >= 1. */
+    private static final long NO_LOAD = 0L;
+
     private final Map<RXCascaderItem<T>, Long> loadGenerations = new IdentityHashMap<>();
     private final Map<RXCascaderItem<T>, Boolean> pendingChecks = new IdentityHashMap<>();
     private long nextLoadGeneration;
@@ -393,11 +396,17 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item) || isLeaf(item)) {
             return;
         }
-        // Establish the loading state before retargeting the active path, so the
-        // skin's first rebuild already sees a loading frontier (deferred column +
-        // frontier monitor attached) rather than an unloaded branch.
-        loadChildren(item);
+        // Three-step order: (1) establish the loading state so the skin's first
+        // rebuild already sees a loading frontier (deferred column + frontier
+        // monitor), (2) retarget the active path, (3) only then invoke the loader.
+        // Invoking last means a loader that completes or fails inline runs its
+        // completion (and any error callback) after the active path is in place,
+        // matching the async path and avoiding a later setAll clobbering it.
+        long generation = startLoad(item);
         activePath.setAll(pathItems(item));
+        if (generation != NO_LOAD) {
+            runLoad(item, generation);
+        }
         requestLayout();
     }
 
@@ -423,7 +432,10 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item)) {
             return;
         }
-        if (needsLoad(item)) {
+        if (isUnresolvedLazyBranch(item)) {
+            // Record (or overwrite) the pending intent; loadChildren no-ops if a
+            // load is already in flight, so a second check while loading still
+            // updates the pending value to honor the user's latest action.
             pendingChecks.put(item, checked);
             item.setChecked(checked);
             item.setIndeterminate(false);
@@ -499,19 +511,32 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
-     * Whether expanding or checking this item should trigger a lazy load: a
-     * loader is present, the item is an unloaded, not-yet-loading, childless
-     * branch that has not been declared a leaf.
+     * Whether this is a lazy branch whose children are not yet available: a
+     * loader is present, the item is unloaded, childless, and not declared a
+     * leaf. A check on such a node is recorded as pending and replayed once the
+     * children arrive. Unlike {@link #needsLoad}, this stays {@code true} while
+     * the node is already loading, so a later check still overwrites the pending
+     * intent instead of being ignored.
      *
      * @param item item to test
-     * @return {@code true} if a lazy load is needed
+     * @return {@code true} if the children are not yet resolved
      */
-    private boolean needsLoad(RXCascaderItem<T> item) {
+    private boolean isUnresolvedLazyBranch(RXCascaderItem<T> item) {
         return getChildrenLoader() != null
                 && !item.isLoaded()
-                && !item.isLoading()
                 && item.getChildren().isEmpty()
                 && !Boolean.TRUE.equals(item.getLeafHint());
+    }
+
+    /**
+     * Whether expanding or checking this item should start a new lazy load: an
+     * unresolved lazy branch that is not already loading.
+     *
+     * @param item item to test
+     * @return {@code true} if a lazy load should be started
+     */
+    private boolean needsLoad(RXCascaderItem<T> item) {
+        return isUnresolvedLazyBranch(item) && !item.isLoading();
     }
 
     /**
@@ -520,14 +545,38 @@ public class RXCascaderView<T> extends Control {
      * @param item branch item to load
      */
     public final void loadChildren(RXCascaderItem<T> item) {
-        if (item == null || !needsLoad(item)) {
-            return;
+        long generation = startLoad(item);
+        if (generation != NO_LOAD) {
+            runLoad(item, generation);
         }
-        Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
+    }
 
+    /**
+     * Establishes the loading state for a branch that needs a lazy load: flips
+     * {@code loading} on and registers the generation, without yet invoking the
+     * loader. Returning the generation lets the caller defer the actual
+     * {@link #runLoad} until after navigation is in place (see {@link #expand}).
+     *
+     * @param item branch item to load
+     * @return the load generation, or {@link #NO_LOAD} if no load is needed
+     */
+    private long startLoad(RXCascaderItem<T> item) {
+        if (item == null || !needsLoad(item)) {
+            return NO_LOAD;
+        }
         long generation = ++nextLoadGeneration;
         loadGenerations.put(item, generation);
         item.setLoading(true);
+        return generation;
+    }
+
+    /**
+     * Invokes the loader and routes its result (or failure) to
+     * {@link #completeLoad}. Must be paired with a prior {@link #startLoad} that
+     * returned {@code generation}.
+     */
+    private void runLoad(RXCascaderItem<T> item, long generation) {
+        Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
 
         CompletionStage<List<RXCascaderItem<T>>> stage;
         try {
@@ -563,7 +612,7 @@ public class RXCascaderView<T> extends Control {
         if (isEffectivelyDisabled(item)) {
             return;
         }
-        if (needsLoad(item)) {
+        if (isUnresolvedLazyBranch(item)) {
             pendingChecks.put(item, checked);
             item.setChecked(checked);
             item.setIndeterminate(false);
@@ -624,7 +673,7 @@ public class RXCascaderView<T> extends Control {
         if (isEffectivelyDisabled(item)) {
             return new EnabledLeafSummary(false, true);
         }
-        if (isLeaf(item) || needsLoad(item)) {
+        if (isLeaf(item) || isUnresolvedLazyBranch(item)) {
             return new EnabledLeafSummary(true, item.isChecked());
         }
 
