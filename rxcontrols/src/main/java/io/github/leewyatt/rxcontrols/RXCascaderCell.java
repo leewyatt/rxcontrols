@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
 import javafx.animation.AnimationTimer;
 import javafx.beans.InvalidationListener;
@@ -20,7 +21,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.util.Callback;
 
 import java.util.Collections;
 import java.util.Set;
@@ -224,7 +224,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
 
     /**
      * Resolves the display text for a value using the view's
-     * {@link RXCascaderView#getTextFactory() textFactory}, falling back to
+     * {@link RXCascaderView#getItemTextFactory() itemTextFactory}, falling back to
      * {@code String.valueOf(value)} when none is set. A {@code null} value, or a
      * factory that returns {@code null}, yields the empty string. For use by
      * subclasses overriding {@link #createContent(RXCascaderItem)}.
@@ -233,12 +233,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
      * @return display text, never {@code null}
      */
     protected final String getDisplayText(T value) {
-        Callback<T, String> factory = view.getTextFactory();
-        if (factory == null) {
-            return value == null ? "" : String.valueOf(value);
-        }
-        String text = factory.call(value);
-        return text == null ? "" : text;
+        return CascaderText.resolve(view.getItemTextFactory(), value);
     }
 
     /**

@@ -21,8 +21,8 @@ import java.util.StringJoiner;
  * paths to react to selection.
  *
  * <p>The value type is an {@link Option} record; visible text comes from
- * {@code setTextFactory(Option::label)}, and path text is resolved with
- * {@link RXCascaderView#getPathTexts(RXCascaderPath)}.
+ * {@code setItemTextFactory(Option::label)}, and path text is joined from the
+ * per-node texts in a local helper.
  *
  * <p>For the full property-driven explorer see
  * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderViewShowcase}.
@@ -34,7 +34,7 @@ public class RXCascaderViewDemo extends Application {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier
-     * @param label human-facing text rendered by {@code textFactory}
+     * @param label human-facing text rendered by {@code itemTextFactory}
      */
     public record Option(String id, String label) {
     }
@@ -43,7 +43,7 @@ public class RXCascaderViewDemo extends Application {
     public void start(Stage primaryStage) {
         RXCascaderView<Option> view = new RXCascaderView<>();
         view.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
-        view.setTextFactory(Option::label);
+        view.setItemTextFactory(Option::label);
         view.getRootItems().setAll(sampleOptions());
 
         Label result = new Label("(nothing checked)");
@@ -69,7 +69,15 @@ public class RXCascaderViewDemo extends Application {
         }
         StringJoiner joiner = new StringJoiner("\n");
         for (RXCascaderPath<Option> path : view.getCheckedPaths()) {
-            joiner.add("- " + String.join(" / ", view.getPathTexts(path)));
+            joiner.add("- " + pathText(path));
+        }
+        return joiner.toString();
+    }
+
+    private static String pathText(RXCascaderPath<Option> path) {
+        StringJoiner joiner = new StringJoiner(" / ");
+        for (Option value : path.getValues()) {
+            joiner.add(value == null ? "" : value.label());
         }
         return joiner.toString();
     }

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
+import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -18,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p>The value type is a small {@link Option} record (a stand-in for a backend
  * object carrying both id and label); the visible text comes from
- * {@code setTextFactory(Option::label)}, not from the item — items no longer
+ * {@code setItemTextFactory(Option::label)}, not from the item — items no longer
  * store text.
  *
  * <p>For the full property-driven explorer see
@@ -30,7 +31,7 @@ public class RXCascaderDemo extends Application {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier (what you would send back)
-     * @param label human-facing text (what {@code textFactory} renders)
+     * @param label human-facing text (what {@code itemTextFactory} renders)
      */
     public record Option(String id, String label) {
     }
@@ -43,17 +44,17 @@ public class RXCascaderDemo extends Application {
         RXCascader<Option> single = new RXCascader<>();
         single.setPromptText("Choose a city");
         single.setClearable(true);
-        single.setTextFactory(Option::label);
-        single.setPathTextFactory(path -> String.join(" -> ", single.getView().getPathTexts(path)));
+        single.setItemTextFactory(Option::label);
+        single.setPathTextFactory(path -> String.join(" -> ", pathTexts(path)));
         single.getRootItems().setAll(sampleOptions());
 
         RXCascader<Option> multiple = new RXCascader<>();
         multiple.setPromptText("Choose multiple cities");
         multiple.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         multiple.setClearable(true);
-        multiple.setTextFactory(Option::label);
+        multiple.setItemTextFactory(Option::label);
         multiple.setPathTextFactory(path -> {
-            List<String> texts = multiple.getView().getPathTexts(path);
+            List<String> texts = pathTexts(path);
             return texts.isEmpty() ? "" : texts.get(texts.size() - 1);
         });
         multiple.getRootItems().setAll(sampleOptions());
@@ -62,7 +63,7 @@ public class RXCascaderDemo extends Application {
         lazy.setPromptText("Lazy load children");
         lazy.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         lazy.setClearable(true);
-        lazy.setTextFactory(Option::label);
+        lazy.setItemTextFactory(Option::label);
         lazy.setChildrenLoader(item -> CompletableFuture.supplyAsync(() -> loadChildren(item)));
         lazy.getRootItems().setAll(lazyRoot());
 
@@ -76,6 +77,12 @@ public class RXCascaderDemo extends Application {
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXCascader Demo");
         primaryStage.show();
+    }
+
+    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+        return path.getValues().stream()
+                .map(value -> value == null ? "" : value.label())
+                .toList();
     }
 
     private static List<RXCascaderItem<Option>> sampleOptions() {

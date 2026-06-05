@@ -71,7 +71,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         disposer.registerListener(control.visibleRowCountProperty(), control::requestLayout);
         disposer.registerListener(control.cellFactoryProperty(), this::rebuildColumns);
         disposer.registerListener(control.childrenLoaderProperty(), this::rebuildColumns);
-        disposer.registerListener(control.textFactoryProperty(), this::refreshColumns);
+        disposer.registerListener(control.itemTextFactoryProperty(), this::refreshColumns);
     }
 
     // ==================== Columns ====================

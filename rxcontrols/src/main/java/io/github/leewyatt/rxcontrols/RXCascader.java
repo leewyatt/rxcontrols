@@ -182,34 +182,34 @@ public class RXCascader<T> extends Control {
         promptText.set(value);
     }
 
-    // ==================== Text Factory ====================
+    // ==================== Item Text Factory ====================
 
     /**
      * Converts an item value to its display text (single source of the visible
      * node text). When {@code null}, {@code String.valueOf(value)} is used.
      *
-     * @return text-factory property
+     * @return item-text-factory property
      */
-    public final ObjectProperty<Callback<T, String>> textFactoryProperty() {
-        return view.textFactoryProperty();
+    public final ObjectProperty<Callback<T, String>> itemTextFactoryProperty() {
+        return view.itemTextFactoryProperty();
     }
 
     /**
-     * Returns the text factory.
+     * Returns the item text factory.
      *
-     * @return text factory, or {@code null}
+     * @return item text factory, or {@code null}
      */
-    public final Callback<T, String> getTextFactory() {
-        return view.getTextFactory();
+    public final Callback<T, String> getItemTextFactory() {
+        return view.getItemTextFactory();
     }
 
     /**
-     * Sets the text factory.
+     * Sets the item text factory.
      *
-     * @param value text factory, or {@code null}
+     * @param value item text factory, or {@code null}
      */
-    public final void setTextFactory(Callback<T, String> value) {
-        view.setTextFactory(value);
+    public final void setItemTextFactory(Callback<T, String> value) {
+        view.setItemTextFactory(value);
     }
 
     // ==================== Path Text Factory ====================
@@ -220,13 +220,12 @@ public class RXCascader<T> extends Control {
     /**
      * Optional formatter from a selected path to the single string shown in the
      * field. When {@code null}, the field shows the per-node display texts
-     * (resolved by {@link #getTextFactory() textFactory}) joined with
+     * (resolved by {@link #getItemTextFactory() itemTextFactory}) joined with
      * {@code " / "}.
      *
      * <p>To keep the field consistent with the columns, resolve node text from
-     * the value via the same text factory — {@code getView().getPathTexts(path)}
-     * returns the already-resolved per-node texts — rather than calling
-     * {@code value.toString()}, which bypasses the text factory.
+     * each item's value via the same {@link #getItemTextFactory() itemTextFactory}
+     * rather than {@code value.toString()}, which bypasses it.
      *
      * @return path-text factory property
      */

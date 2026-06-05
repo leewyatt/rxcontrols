@@ -290,68 +290,39 @@ public class RXCascaderView<T> extends Control {
         cellFactory.set(value);
     }
 
-    // ==================== Text Factory ====================
+    // ==================== Item Text Factory ====================
 
-    private final ObjectProperty<Callback<T, String>> textFactory =
-            new SimpleObjectProperty<>(this, "textFactory");
+    private final ObjectProperty<Callback<T, String>> itemTextFactory =
+            new SimpleObjectProperty<>(this, "itemTextFactory");
 
     /**
      * Converts an item value to its display text. When {@code null} the view
      * falls back to {@code String.valueOf(value)}. Items do not store text; this
      * is the single source of the visible node text, used by the built-in cell
-     * and by path text resolution.
+     * and by the field's default path text.
      *
-     * @return text-factory property
+     * @return item-text-factory property
      */
-    public final ObjectProperty<Callback<T, String>> textFactoryProperty() {
-        return textFactory;
+    public final ObjectProperty<Callback<T, String>> itemTextFactoryProperty() {
+        return itemTextFactory;
     }
 
     /**
-     * Returns the text factory.
+     * Returns the item text factory.
      *
-     * @return text factory, or {@code null}
+     * @return item text factory, or {@code null}
      */
-    public final Callback<T, String> getTextFactory() {
-        return textFactory.get();
+    public final Callback<T, String> getItemTextFactory() {
+        return itemTextFactory.get();
     }
 
     /**
-     * Sets the text factory.
+     * Sets the item text factory.
      *
-     * @param value text factory, or {@code null}
+     * @param value item text factory, or {@code null}
      */
-    public final void setTextFactory(Callback<T, String> value) {
-        textFactory.set(value);
-    }
-
-    /**
-     * Resolves the per-node display texts of a path, in root-to-leaf order, using
-     * the current text factory (falling back to {@code String.valueOf(value)},
-     * with {@code null} value / result yielding the empty string).
-     *
-     * <p>Note: turning a value into display text is a rendering concern owned by
-     * the cell ({@link RXCascaderCell#getDisplayText}); this path-level helper
-     * lives on the view only as a convenience for the field/skin and is a
-     * candidate to move out later.
-     *
-     * @param path path to resolve
-     * @return immutable list of node display texts
-     */
-    public final List<String> getPathTexts(RXCascaderPath<T> path) {
-        if (path == null) {
-            return Collections.emptyList();
-        }
-        Callback<T, String> factory = getTextFactory();
-        List<String> texts = new ArrayList<>(path.getItems().size());
-        for (RXCascaderItem<T> item : path.getItems()) {
-            T value = item.getValue();
-            String text = factory == null
-                    ? (value == null ? "" : String.valueOf(value))
-                    : factory.call(value);
-            texts.add(text == null ? "" : text);
-        }
-        return Collections.unmodifiableList(texts);
+    public final void setItemTextFactory(Callback<T, String> value) {
+        itemTextFactory.set(value);
     }
 
     // ==================== Children Loader ====================

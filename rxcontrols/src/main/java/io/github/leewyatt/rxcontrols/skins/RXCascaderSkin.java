@@ -1,9 +1,11 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCascader;
+import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
+import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
@@ -117,7 +119,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.selectionModeProperty(), this::updateDisplay);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
         disposer.registerListener(control.pathTextFactoryProperty(), this::updateDisplay);
-        disposer.registerListener(control.textFactoryProperty(), this::updateDisplay);
+        disposer.registerListener(control.itemTextFactoryProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
         disposer.registerListener(control.getView().widthProperty(), this::positionPopupIfShowing);
         disposer.registerListener(control.getView().heightProperty(), this::positionPopupIfShowing);
@@ -237,9 +239,18 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         }
         Callback<RXCascaderPath<T>, String> factory = control.getPathTextFactory();
         String text = factory == null
-                ? String.join(" / ", control.getView().getPathTexts(path))
+                ? defaultPathText(control, path)
                 : factory.call(path);
         return text == null ? "" : text;
+    }
+
+    private String defaultPathText(RXCascader<T> control, RXCascaderPath<T> path) {
+        Callback<T, String> itemTextFactory = control.getItemTextFactory();
+        StringJoiner joiner = new StringJoiner(" / ");
+        for (RXCascaderItem<T> item : path.getItems()) {
+            joiner.add(CascaderText.resolve(itemTextFactory, item.getValue()));
+        }
+        return joiner.toString();
     }
 
     // ==================== Popup ====================

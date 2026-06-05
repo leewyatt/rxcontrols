@@ -18,7 +18,7 @@ import javafx.collections.ObservableList;
  * children, disabled state, lazy-loading hints, and tri-state check state.
  *
  * <p>Display text is not stored on the item: the owning view derives it from
- * the value via its {@code textFactory} (falling back to
+ * the value via its {@code itemTextFactory} (falling back to
  * {@code String.valueOf(value)}).
  *
  * @param <T> application value type
@@ -68,7 +68,7 @@ public class RXCascaderItem<T> {
 
     /**
      * Creates an item with the given value. Display text is derived from the
-     * value by the owning view's {@code textFactory} (or {@code value.toString()}
+     * value by the owning view's {@code itemTextFactory} (or {@code value.toString()}
      * as a fallback), not stored on the item.
      *
      * @param value application value
@@ -391,7 +391,7 @@ public class RXCascaderItem<T> {
     /**
      * Returns a debug representation based on the value. This is a fallback for
      * loggers and {@code RXCascaderPath.toString()}; the visible cascader text is
-     * produced by the owning view's {@code textFactory}, not by this method.
+     * produced by the owning view's {@code itemTextFactory}, not by this method.
      *
      * @return {@code String.valueOf(getValue())}
      */

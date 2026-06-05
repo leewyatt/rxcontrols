@@ -31,8 +31,7 @@ import java.util.StringJoiner;
  * directly observable.
  *
  * <p>The value type is an {@link Option} record; visible node text comes from
- * {@code setTextFactory(Option::label)} and path text from
- * {@link RXCascaderView#getPathTexts(RXCascaderPath)}.
+ * {@code setItemTextFactory(Option::label)} and path text from a local helper.
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderViewDemo}.
  * For the popup/input-field wrapper, see {@link RXCascaderShowcase}.
@@ -49,7 +48,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier
-     * @param label human-facing text rendered by {@code textFactory}
+     * @param label human-facing text rendered by {@code itemTextFactory}
      */
     public record Option(String id, String label) {
     }
@@ -79,7 +78,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         view = new RXCascaderView<>();
-        view.setTextFactory(Option::label);
+        view.setItemTextFactory(Option::label);
         view.getRootItems().setAll(sampleOptions());
 
         Label readout = new Label();
@@ -174,7 +173,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<Option> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, view.getPathTexts(path)));
+                joiner.add("- " + String.join(SEPARATOR, pathTexts(path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
@@ -182,7 +181,13 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, view.getPathTexts(path));
+        return "selected: " + String.join(SEPARATOR, pathTexts(path));
+    }
+
+    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+        return path.getValues().stream()
+                .map(value -> value == null ? "" : value.label())
+                .toList();
     }
 
     // ==================== Sample data ====================

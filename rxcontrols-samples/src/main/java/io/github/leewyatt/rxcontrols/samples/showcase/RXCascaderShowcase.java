@@ -38,7 +38,7 @@ import java.util.function.Function;
  * observable: checking its enabled siblings leaves the ancestors indeterminate.
  *
  * <p>The value type is an {@link Option} record carrying id + label; the visible
- * node text comes from {@code setTextFactory(Option::label)}. The path field
+ * node text comes from {@code setItemTextFactory(Option::label)}. The path field
  * formatter ({@code pathTextFactory}) then receives the already-resolved per-node
  * texts.
  *
@@ -60,7 +60,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier
-     * @param label human-facing text rendered by {@code textFactory}
+     * @param label human-facing text rendered by {@code itemTextFactory}
      */
     public record Option(String id, String label) {
     }
@@ -92,7 +92,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader = new RXCascader<>();
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
-        cascader.setTextFactory(Option::label);
+        cascader.setItemTextFactory(Option::label);
         cascader.setPathTextFactory(pathFactory(PathFormat.FULL_PATH));
         cascader.getRootItems().setAll(sampleOptions());
 
@@ -161,12 +161,18 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
 
     /**
      * Wraps a {@link PathFormat} into a path-text factory: it resolves each
-     * node's display text through the cascader's {@code textFactory} (via
-     * {@code getPathTexts}, so the field stays consistent with the columns) and
-     * lets the format join them.
+     * node's display text through the cascader's {@code itemTextFactory} (a local
+     * helper, so the field stays consistent with the columns) and lets the format
+     * join them.
      */
     private Callback<RXCascaderPath<Option>, String> pathFactory(PathFormat format) {
-        return path -> format.format(cascader.getView().getPathTexts(path));
+        return path -> format.format(pathTexts(path));
+    }
+
+    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+        return path.getValues().stream()
+                .map(value -> value == null ? "" : value.label())
+                .toList();
     }
 
     private Node buildDimensionGrid() {
@@ -211,16 +217,16 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         lazyCascader = new RXCascader<>();
         lazyCascader.setPromptText("Expand to load");
         lazyCascader.setClearable(true);
-        lazyCascader.setTextFactory(Option::label);
+        lazyCascader.setItemTextFactory(Option::label);
         lazyCascader.setPathTextFactory(path ->
-                String.join(SEPARATOR, lazyCascader.getView().getPathTexts(path)));
+                String.join(SEPARATOR, pathTexts(path)));
         lazyCascader.setOnChildrenLoadError((failedItem, error) -> lazyReadout.setText(
                 "Load failed for \"" + failedItem.getValue().label() + "\": " + error.getMessage()
                         + "\nUncheck \"Fail loads\" and click the row again to retry."));
         lazyCascader.selectedPathProperty().addListener((obs, oldPath, newPath) -> {
             if (newPath != null) {
                 lazyReadout.setText("selected: "
-                        + String.join(SEPARATOR, lazyCascader.getView().getPathTexts(newPath)));
+                        + String.join(SEPARATOR, pathTexts(newPath)));
             }
         });
         // Configure the loader before seeding roots (see RXCascader Javadoc): a
@@ -315,7 +321,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<Option> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, cascader.getView().getPathTexts(path)));
+                joiner.add("- " + String.join(SEPARATOR, pathTexts(path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
@@ -323,7 +329,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, cascader.getView().getPathTexts(path));
+        return "selected: " + String.join(SEPARATOR, pathTexts(path));
     }
 
     // ==================== Sample data ====================

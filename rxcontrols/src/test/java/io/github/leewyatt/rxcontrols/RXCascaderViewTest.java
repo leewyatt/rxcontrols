@@ -224,7 +224,7 @@ public class RXCascaderViewTest {
         panel.activate(child);
 
         assertEquals(List.of(root, child), panel.getSelectedPath().getItems());
-        assertEquals(List.of("root", "child"), panel.getPathTexts(panel.getSelectedPath()));
+        assertEquals(List.of("root", "child"), panel.getSelectedPath().getValues());
         assertTrue(panel.getCheckedPaths().isEmpty());
     }
 
@@ -536,29 +536,6 @@ public class RXCascaderViewTest {
                     "a load canceled mid-expand must not invoke the loader");
             assertFalse(root.isLoading());
         });
-    }
-
-    /**
-     * Verifies path texts are derived via the text factory, falling back to
-     * {@code String.valueOf(value)} when none is set.
-     */
-    @Test
-    public void textFactoryDrivesPathTextsWithToStringFallback() {
-        RXCascaderView<String> panel = new RXCascaderView<>();
-        RXCascaderItem<String> root = item("bj");
-        RXCascaderItem<String> child = item("sh");
-        root.getChildren().add(child);
-        panel.getRootItems().add(root);
-
-        panel.activate(root);
-        panel.activate(child);
-
-        // No factory: fall back to String.valueOf(value).
-        assertEquals(List.of("bj", "sh"), panel.getPathTexts(panel.getSelectedPath()));
-
-        // Factory: derive text from value.
-        panel.setTextFactory(value -> value == null ? "" : value.toUpperCase());
-        assertEquals(List.of("BJ", "SH"), panel.getPathTexts(panel.getSelectedPath()));
     }
 
     private static RXCascaderItem<String> item(String text) {
