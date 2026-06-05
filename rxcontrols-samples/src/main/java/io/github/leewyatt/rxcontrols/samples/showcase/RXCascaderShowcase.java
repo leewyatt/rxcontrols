@@ -4,8 +4,8 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import javafx.scene.control.SelectionMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -32,8 +32,8 @@ import java.util.function.Function;
  *
  * <p>Exercises the public knobs: single vs multiple selection, the clear
  * affordance, the path-to-text factory (full path / last level / first-to-last),
- * the visible-row-count, and CSS sizing presets (column width / row height are
- * controlled by CSS via {@code .rx-cascader-column}, not Java properties). The
+ * and the visible-row-count (column width / row height are controlled by CSS via
+ * {@code .rx-cascader-column}, not Java properties). The
  * sample tree contains a disabled leaf so the locked tri-state rollup is directly
  * observable: checking its enabled siblings leaves the ancestors indeterminate.
  *
@@ -122,8 +122,8 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildSelectionGrid() {
-        ComboBox<RXCascaderSelectionMode> modeBox = new ComboBox<>();
-        modeBox.getItems().setAll(RXCascaderSelectionMode.values());
+        ComboBox<SelectionMode> modeBox = new ComboBox<>();
+        modeBox.getItems().setAll(SelectionMode.values());
         modeBox.setValue(cascader.getSelectionMode());
         modeBox.setMaxWidth(Double.MAX_VALUE);
         cascader.selectionModeProperty().bind(modeBox.valueProperty());
@@ -181,30 +181,14 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
                 cascader.setVisibleRowCount((int) Math.round(newV.doubleValue())));
         Label visibleValue = createValueLabel(visibleRows, "%.0f");
 
-        ComboBox<SizePreset> presetBox = new ComboBox<>();
-        presetBox.getItems().setAll(SizePreset.values());
-        presetBox.setValue(SizePreset.DEFAULT);
-        presetBox.setMaxWidth(Double.MAX_VALUE);
-        presetBox.valueProperty().addListener((obs, oldV, newV) -> applyPreset(newV));
-
         Label hint = new Label("Column width / row height are controlled by CSS "
-                + "(.rx-cascader-column / .rx-cascader-column-N). The preset toggles "
-                + "demo style classes that override them.");
+                + "(.rx-cascader-column / .rx-cascader-column-N).");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
         return createGrid(
                 row("Visible rows", visibleRows, visibleValue),
-                row("CSS preset", presetBox),
                 row(hint));
-    }
-
-    private void applyPreset(SizePreset preset) {
-        RXCascaderView<Option> view = cascader.getView();
-        view.getStyleClass().removeAll(SizePreset.WIDE_COL2.styleClass(), SizePreset.TALL_ROWS.styleClass());
-        if (preset != null && !preset.styleClass().isEmpty()) {
-            view.getStyleClass().add(preset.styleClass());
-        }
     }
 
     // ==================== Lazy loading ====================
@@ -314,7 +298,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     // ==================== Readout ====================
 
     private String describeSelection() {
-        if (cascader.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
+        if (cascader.getSelectionMode() == SelectionMode.MULTIPLE) {
             List<RXCascaderPath<Option>> checked = cascader.getCheckedPaths();
             if (checked.isEmpty()) {
                 return "checked: (none)";
@@ -451,31 +435,6 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
 
         LoaderMode(String label) {
             this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-
-    // ==================== Size preset ====================
-
-    private enum SizePreset {
-        DEFAULT("Default", ""),
-        WIDE_COL2("Second column 300px", "demo-wide-col2"),
-        TALL_ROWS("Row height 44px", "demo-tall");
-
-        private final String label;
-        private final String styleClass;
-
-        SizePreset(String label, String styleClass) {
-            this.label = label;
-            this.styleClass = styleClass;
-        }
-
-        String styleClass() {
-            return styleClass;
         }
 
         @Override

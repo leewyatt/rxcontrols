@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -13,6 +12,7 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.PopupControl;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -54,6 +54,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     // ==================== State ====================
 
+    /** The embedded view used as popup content, injected by the control. */
+    private final RXCascaderView<T> view;
+
     private boolean suppressReopen;
 
     // ==================== Constructor ====================
@@ -62,11 +65,13 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
      * Creates a skin for the given cascader.
      *
      * @param control the skinnable cascader
+     * @param view    the embedded view to host as popup content
      */
-    public RXCascaderSkin(RXCascader<T> control) {
+    public RXCascaderSkin(RXCascader<T> control, RXCascaderView<T> view) {
         super(control);
+        this.view = view;
         initializeNodes(control);
-        initializePopup(control);
+        initializePopup();
         registerListeners(control);
         getChildren().setAll(display);
         updateDisplay();
@@ -97,12 +102,12 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, event -> handleKeyPressed(control, event));
     }
 
-    private void initializePopup(RXCascader<T> control) {
+    private void initializePopup() {
         popup.getStyleClass().add("rx-cascader-popup");
         popup.setAutoHide(true);
         popup.setAutoFix(true);
         popup.setHideOnEscape(true);
-        popup.setSkin(new CascaderPopupSkin<>(popup, control.getView()));
+        popup.setSkin(new CascaderPopupSkin<>(popup, view));
         popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
         disposer.registerDisposeTask(() -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
     }
@@ -121,8 +126,8 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.pathTextFactoryProperty(), this::updateDisplay);
         disposer.registerListener(control.itemTextFactoryProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
-        disposer.registerListener(control.getView().widthProperty(), this::positionPopupIfShowing);
-        disposer.registerListener(control.getView().heightProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(view.widthProperty(), this::positionPopupIfShowing);
+        disposer.registerListener(view.heightProperty(), this::positionPopupIfShowing);
         // Keep the popup glued to the control when layout moves it. Mirrors
         // ComboBoxPopupControl, which reconfigures on the control's own
         // layoutX/layoutY/width/height (these change when a sibling grows and a
@@ -188,7 +193,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     private void handleSelectionChanged(RXCascader<T> control) {
         updateDisplay();
-        if (control.getSelectionMode() == RXCascaderSelectionMode.SINGLE
+        if (control.getSelectionMode() == SelectionMode.SINGLE
                 && control.getSelectedPath() != null) {
             control.hide();
         }
@@ -211,14 +216,14 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     }
 
     private boolean hasSelection(RXCascader<T> control) {
-        if (control.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
+        if (control.getSelectionMode() == SelectionMode.MULTIPLE) {
             return !control.getCheckedPaths().isEmpty();
         }
         return control.getSelectedPath() != null;
     }
 
     private String selectedText(RXCascader<T> control) {
-        if (control.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
+        if (control.getSelectionMode() == SelectionMode.MULTIPLE) {
             StringJoiner joiner = new StringJoiner(", ");
             for (RXCascaderPath<T> path : control.getCheckedPaths()) {
                 joiner.add(formatPath(control, path));

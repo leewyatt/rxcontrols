@@ -8,13 +8,16 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
@@ -24,10 +27,18 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
- * Popup cascader control backed by a reusable {@link RXCascaderView}. The
- * control owns the popup shell and display text, while the view owns path
- * expansion, single selection, multiple checked paths, disabled inheritance,
- * lazy loading, and tri-state check logic.
+ * Popup cascader control backed by a reusable {@link RXCascaderView}. The control
+ * owns the popup shell, the display field, and its own configuration properties;
+ * the embedded view (kept private and used as popup content) owns path expansion,
+ * single selection, multiple checked paths, disabled inheritance, lazy loading,
+ * and tri-state check logic.
+ *
+ * <p>Configuration properties declared here ({@code selectionMode},
+ * {@code itemTextFactory}, {@code visibleRowCount}, {@code cellFactory},
+ * {@code childrenLoader}, {@code onChildrenLoadError}) drive the embedded view
+ * through one-way bindings; the read-only {@code selectedPath} mirrors it back.
+ * Each property's bean is this control, per the JavaFX convention. The root item
+ * and result lists are the embedded view's own lists, shared directly.
  *
  * @param <T> application value type
  */
@@ -49,11 +60,21 @@ public class RXCascader<T> extends Control {
     public RXCascader() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(true);
+        // Configuration flows down into the embedded popup view; the result
+        // (selected path) flows back up into a read-only mirror. The item and
+        // result lists are shared directly (see the getters), not bound here.
+        view.selectionModeProperty().bind(selectionMode);
+        view.itemTextFactoryProperty().bind(itemTextFactory);
+        view.visibleRowCountProperty().bind(visibleRowCount);
+        view.cellFactoryProperty().bind(cellFactory);
+        view.childrenLoaderProperty().bind(childrenLoader);
+        view.onChildrenLoadErrorProperty().bind(onChildrenLoadError);
+        selectedPath.bind(view.selectedPathProperty());
     }
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new RXCascaderSkin<>(this);
+        return new RXCascaderSkin<>(this, view);
     }
 
     @Override
@@ -61,18 +82,7 @@ public class RXCascader<T> extends Control {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    // ==================== View ====================
-
-    /**
-     * Returns the embedded view owned by this cascader. The returned node is
-     * used as popup content and must not be inserted into another parent — for a
-     * standalone inline cascader, create a separate {@link RXCascaderView}.
-     *
-     * @return embedded cascader view
-     */
-    public final RXCascaderView<T> getView() {
-        return view;
-    }
+    // ==================== Items ====================
 
     /**
      * Root items shown in the first cascader column.
@@ -94,13 +104,34 @@ public class RXCascader<T> extends Control {
 
     // ==================== Selection Mode ====================
 
+    private final ObjectProperty<SelectionMode> selectionMode =
+            new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
+                private SelectionMode lastValid = SelectionMode.SINGLE;
+
+                @Override
+                protected void invalidated() {
+                    SelectionMode value = get();
+                    if (value == null) {
+                        if (!isBound()) {
+                            set(lastValid);
+                        }
+                        throw new NullPointerException("selectionMode cannot be null");
+                    }
+                    lastValid = value;
+                }
+            };
+
     /**
-     * Selection mode.
+     * Selection mode. {@link SelectionMode#SINGLE SINGLE} selects a single leaf
+     * path (observe {@link #selectedPathProperty()}); {@link SelectionMode#MULTIPLE
+     * MULTIPLE} checks multiple paths with cascading tri-state check boxes (observe
+     * {@link #getCheckedPaths()}). This is the cascader's own meaning of the shared
+     * JavaFX {@link SelectionMode} enum, not the row multi-select of a list view.
      *
      * @return selection-mode property
      */
-    public final ObjectProperty<RXCascaderSelectionMode> selectionModeProperty() {
-        return view.selectionModeProperty();
+    public final ObjectProperty<SelectionMode> selectionModeProperty() {
+        return selectionMode;
     }
 
     /**
@@ -108,8 +139,8 @@ public class RXCascader<T> extends Control {
      *
      * @return selection mode
      */
-    public final RXCascaderSelectionMode getSelectionMode() {
-        return view.getSelectionMode();
+    public final SelectionMode getSelectionMode() {
+        return selectionMode.get();
     }
 
     /**
@@ -117,11 +148,14 @@ public class RXCascader<T> extends Control {
      *
      * @param value selection mode
      */
-    public final void setSelectionMode(RXCascaderSelectionMode value) {
-        view.setSelectionMode(value);
+    public final void setSelectionMode(SelectionMode value) {
+        selectionMode.set(value);
     }
 
     // ==================== Selected Path ====================
+
+    private final ReadOnlyObjectWrapper<RXCascaderPath<T>> selectedPath =
+            new ReadOnlyObjectWrapper<>(this, "selectedPath");
 
     /**
      * Selected path in single-selection mode.
@@ -129,7 +163,7 @@ public class RXCascader<T> extends Control {
      * @return read-only selected-path property
      */
     public final ReadOnlyObjectProperty<RXCascaderPath<T>> selectedPathProperty() {
-        return view.selectedPathProperty();
+        return selectedPath.getReadOnlyProperty();
     }
 
     /**
@@ -138,13 +172,13 @@ public class RXCascader<T> extends Control {
      * @return selected path, or {@code null}
      */
     public final RXCascaderPath<T> getSelectedPath() {
-        return view.getSelectedPath();
+        return selectedPath.get();
     }
 
     /**
      * Checked leaf paths in multiple-selection mode.
      *
-     * @return read-only checked path list maintained by the view
+     * @return read-only checked path list maintained by the embedded view
      */
     public final ObservableList<RXCascaderPath<T>> getCheckedPaths() {
         return view.getCheckedPaths();
@@ -184,6 +218,9 @@ public class RXCascader<T> extends Control {
 
     // ==================== Item Text Factory ====================
 
+    private final ObjectProperty<Callback<T, String>> itemTextFactory =
+            new SimpleObjectProperty<>(this, "itemTextFactory");
+
     /**
      * Converts an item value to its display text (single source of the visible
      * node text). When {@code null}, {@code String.valueOf(value)} is used. A
@@ -193,7 +230,7 @@ public class RXCascader<T> extends Control {
      * @return item-text-factory property
      */
     public final ObjectProperty<Callback<T, String>> itemTextFactoryProperty() {
-        return view.itemTextFactoryProperty();
+        return itemTextFactory;
     }
 
     /**
@@ -202,7 +239,7 @@ public class RXCascader<T> extends Control {
      * @return item text factory, or {@code null}
      */
     public final Callback<T, String> getItemTextFactory() {
-        return view.getItemTextFactory();
+        return itemTextFactory.get();
     }
 
     /**
@@ -211,7 +248,7 @@ public class RXCascader<T> extends Control {
      * @param value item text factory, or {@code null}
      */
     public final void setItemTextFactory(Callback<T, String> value) {
-        view.setItemTextFactory(value);
+        itemTextFactory.set(value);
     }
 
     // ==================== Path Text Factory ====================
@@ -325,15 +362,18 @@ public class RXCascader<T> extends Control {
         showing.set(false);
     }
 
-    // ==================== Delegated View Properties ====================
+    // ==================== Visible Row Count ====================
+
+    private final IntegerProperty visibleRowCount =
+            new SimpleIntegerProperty(this, "visibleRowCount", RXCascaderView.DEFAULT_VISIBLE_ROW_COUNT);
 
     /**
-     * Number of visible popup rows used for preferred popup height.
+     * Number of visible popup rows used for the preferred popup height.
      *
      * @return visible-row-count property
      */
     public final IntegerProperty visibleRowCountProperty() {
-        return view.visibleRowCountProperty();
+        return visibleRowCount;
     }
 
     /**
@@ -342,7 +382,7 @@ public class RXCascader<T> extends Control {
      * @return visible row count
      */
     public final int getVisibleRowCount() {
-        return view.getVisibleRowCount();
+        return visibleRowCount.get();
     }
 
     /**
@@ -351,8 +391,13 @@ public class RXCascader<T> extends Control {
      * @param value visible row count
      */
     public final void setVisibleRowCount(int value) {
-        view.setVisibleRowCount(value);
+        visibleRowCount.set(value);
     }
+
+    // ==================== Cell Factory ====================
+
+    private final ObjectProperty<Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>>> cellFactory =
+            new SimpleObjectProperty<>(this, "cellFactory");
 
     /**
      * Optional factory for the cells of each popup column.
@@ -360,7 +405,7 @@ public class RXCascader<T> extends Control {
      * @return cell-factory property
      */
     public final ObjectProperty<Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>>> cellFactoryProperty() {
-        return view.cellFactoryProperty();
+        return cellFactory;
     }
 
     /**
@@ -369,7 +414,7 @@ public class RXCascader<T> extends Control {
      * @return cell factory, or {@code null}
      */
     public final Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> getCellFactory() {
-        return view.getCellFactory();
+        return cellFactory.get();
     }
 
     /**
@@ -378,8 +423,13 @@ public class RXCascader<T> extends Control {
      * @param value cell factory, or {@code null}
      */
     public final void setCellFactory(Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> value) {
-        view.setCellFactory(value);
+        cellFactory.set(value);
     }
+
+    // ==================== Children Loader ====================
+
+    private final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
+            childrenLoader = new SimpleObjectProperty<>(this, "childrenLoader");
 
     /**
      * Optional asynchronous loader used by unloaded branches.
@@ -388,7 +438,7 @@ public class RXCascader<T> extends Control {
      */
     public final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
             childrenLoaderProperty() {
-        return view.childrenLoaderProperty();
+        return childrenLoader;
     }
 
     /**
@@ -397,7 +447,7 @@ public class RXCascader<T> extends Control {
      * @return children loader, or {@code null}
      */
     public final Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> getChildrenLoader() {
-        return view.getChildrenLoader();
+        return childrenLoader.get();
     }
 
     /**
@@ -407,8 +457,13 @@ public class RXCascader<T> extends Control {
      */
     public final void setChildrenLoader(
             Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> value) {
-        view.setChildrenLoader(value);
+        childrenLoader.set(value);
     }
+
+    // ==================== Children Load Error ====================
+
+    private final ObjectProperty<BiConsumer<RXCascaderItem<T>, Throwable>> onChildrenLoadError =
+            new SimpleObjectProperty<>(this, "onChildrenLoadError");
 
     /**
      * Optional callback invoked on the JavaFX thread when a lazy children load
@@ -417,7 +472,7 @@ public class RXCascader<T> extends Control {
      * @return children-load-error callback property
      */
     public final ObjectProperty<BiConsumer<RXCascaderItem<T>, Throwable>> onChildrenLoadErrorProperty() {
-        return view.onChildrenLoadErrorProperty();
+        return onChildrenLoadError;
     }
 
     /**
@@ -426,7 +481,7 @@ public class RXCascader<T> extends Control {
      * @return callback, or {@code null}
      */
     public final BiConsumer<RXCascaderItem<T>, Throwable> getOnChildrenLoadError() {
-        return view.getOnChildrenLoadError();
+        return onChildrenLoadError.get();
     }
 
     /**
@@ -435,7 +490,7 @@ public class RXCascader<T> extends Control {
      * @param value callback, or {@code null}
      */
     public final void setOnChildrenLoadError(BiConsumer<RXCascaderItem<T>, Throwable> value) {
-        view.setOnChildrenLoadError(value);
+        onChildrenLoadError.set(value);
     }
 
     // ==================== Operations ====================
@@ -453,5 +508,29 @@ public class RXCascader<T> extends Control {
      */
     public final void clearSelection() {
         view.clearSelection();
+    }
+
+    /**
+     * Programmatically sets the single selection to the path ending at the given
+     * leaf (single-selection mode). Ignored when the item is {@code null},
+     * effectively disabled, or not a leaf.
+     *
+     * @param leaf leaf item to select
+     */
+    public final void select(RXCascaderItem<T> leaf) {
+        view.select(leaf);
+    }
+
+    /**
+     * Sets a cascading check state in multiple-selection mode: the item and its
+     * enabled descendants are (un)checked and ancestors roll up to the matching
+     * tri-state. Use this for programmatic checking instead of writing
+     * {@link RXCascaderItem#setChecked} directly.
+     *
+     * @param item    item to update
+     * @param checked target checked state
+     */
+    public final void setCheckedCascade(RXCascaderItem<T> item, boolean checked) {
+        view.setCheckedCascade(item, checked);
     }
 }

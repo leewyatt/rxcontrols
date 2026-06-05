@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import javafx.scene.control.SelectionMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -105,8 +105,8 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildSelectionGrid() {
-        ComboBox<RXCascaderSelectionMode> modeBox = new ComboBox<>();
-        modeBox.getItems().setAll(RXCascaderSelectionMode.values());
+        ComboBox<SelectionMode> modeBox = new ComboBox<>();
+        modeBox.getItems().setAll(SelectionMode.values());
         modeBox.setValue(view.getSelectionMode());
         modeBox.setMaxWidth(Double.MAX_VALUE);
         view.selectionModeProperty().bind(modeBox.valueProperty());
@@ -166,7 +166,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     // ==================== Readout ====================
 
     private String describeSelection() {
-        if (view.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
+        if (view.getSelectionMode() == SelectionMode.MULTIPLE) {
             List<RXCascaderPath<Option>> checked = view.getCheckedPaths();
             if (checked.isEmpty()) {
                 return "checked: (none)";

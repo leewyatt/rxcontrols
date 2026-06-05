@@ -2,8 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import javafx.scene.control.SelectionMode;
 import javafx.application.Application;
 import javafx.collections.ListChangeListener;
 import javafx.scene.Scene;
@@ -42,7 +42,7 @@ public class RXCascaderViewDemo extends Application {
     @Override
     public void start(Stage primaryStage) {
         RXCascaderView<Option> view = new RXCascaderView<>();
-        view.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        view.setSelectionMode(SelectionMode.MULTIPLE);
         view.setItemTextFactory(Option::label);
         view.getRootItems().setAll(sampleOptions());
 

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.scene.control.SelectionMode;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +47,7 @@ public class RXCascaderViewTest {
     @Test
     public void disabledUncheckedChildKeepsAncestorsIndeterminate() {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> china = item("china");
         RXCascaderItem<String> japan = item("japan");
@@ -77,7 +78,7 @@ public class RXCascaderViewTest {
     @Test
     public void disabledCheckedChildCountsAsChecked() {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
         RXCascaderItem<String> disabled = item("disabled");
@@ -101,7 +102,7 @@ public class RXCascaderViewTest {
     @Test
     public void toggleIndeterminateBranchUsesEnabledLeaves() {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
         RXCascaderItem<String> second = item("second");
@@ -127,7 +128,7 @@ public class RXCascaderViewTest {
     @Test
     public void partialChildCheckMakesParentIndeterminate() {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
         RXCascaderItem<String> second = item("second");
@@ -150,7 +151,7 @@ public class RXCascaderViewTest {
     @Test
     public void pendingCheckReplaysAfterLazyLoad() throws InterruptedException {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         // Default B: an unloaded node with a loader set is a branch, no flags.
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> enabled = leaf("enabled");
@@ -181,7 +182,7 @@ public class RXCascaderViewTest {
     @Test
     public void failedLazyLoadClearsPendingCheck() throws InterruptedException {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         RXCascaderItem<String> root = item("root");
         AtomicReference<RXCascaderItem<String>> erroredItem = new AtomicReference<>();
         AtomicReference<Throwable> erroredCause = new AtomicReference<>();
@@ -400,7 +401,7 @@ public class RXCascaderViewTest {
     @Test
     public void clearingLoaderKeepsTreeAndRefreshesPaths() {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         panel.setChildrenLoader(item -> new CompletableFuture<>());
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> branch = item("branch");
@@ -453,7 +454,7 @@ public class RXCascaderViewTest {
     @Test
     public void laterCheckWhileLoadingOverwritesPending() throws InterruptedException {
         RXCascaderView<String> panel = new RXCascaderView<>();
-        panel.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
         CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
         RXCascaderItem<String> enabled = leaf("enabled");
         panel.setChildrenLoader(item -> gate);

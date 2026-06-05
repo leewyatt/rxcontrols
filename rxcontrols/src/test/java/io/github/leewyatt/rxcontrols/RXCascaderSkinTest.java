@@ -90,7 +90,7 @@ public class RXCascaderSkinTest {
             Label field = (Label) cascader.lookup(".display .label");
             assertNotNull(field, "display label should exist");
 
-            cascader.getView().activate(child);
+            cascader.select(child);
             // No factory: fall back to String.valueOf(value), joined with " / ".
             assertEquals("bj / sh", field.getText());
 

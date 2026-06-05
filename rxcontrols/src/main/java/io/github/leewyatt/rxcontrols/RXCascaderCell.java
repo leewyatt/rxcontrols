@@ -15,6 +15,7 @@ import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -325,7 +326,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         if (item == null) {
             return;
         }
-        boolean multiple = view.getSelectionMode() == RXCascaderSelectionMode.MULTIPLE;
+        boolean multiple = view.getSelectionMode() == SelectionMode.MULTIPLE;
         boolean disabled = view.isEffectivelyDisabled(item);
         boolean leaf = view.isLeaf(item);
         boolean loading = item.isLoading();

@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -381,7 +382,7 @@ public class RXCascaderViewSkinTest {
     public void multipleSelectionHidesSelectedCheckSlot() throws InterruptedException {
         runOnFx(() -> {
             RXCascaderView<String> view = new RXCascaderView<>();
-            view.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+            view.setSelectionMode(SelectionMode.MULTIPLE);
             RXCascaderItem<String> asia = item("asia");
             asia.getChildren().setAll(List.of(item("beijing"), item("shanghai")));
             view.getRootItems().setAll(List.of(asia));

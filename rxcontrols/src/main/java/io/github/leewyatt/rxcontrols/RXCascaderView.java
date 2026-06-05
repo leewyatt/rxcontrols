@@ -14,6 +14,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
@@ -143,13 +144,13 @@ public class RXCascaderView<T> extends Control {
 
     // ==================== Selection Mode ====================
 
-    private final ObjectProperty<RXCascaderSelectionMode> selectionMode =
-            new SimpleObjectProperty<>(this, "selectionMode", RXCascaderSelectionMode.SINGLE) {
-                private RXCascaderSelectionMode lastValid = RXCascaderSelectionMode.SINGLE;
+    private final ObjectProperty<SelectionMode> selectionMode =
+            new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
+                private SelectionMode lastValid = SelectionMode.SINGLE;
 
                 @Override
                 protected void invalidated() {
-                    RXCascaderSelectionMode value = get();
+                    SelectionMode value = get();
                     if (value == null) {
                         if (!isBound()) {
                             set(lastValid);
@@ -163,11 +164,15 @@ public class RXCascaderView<T> extends Control {
             };
 
     /**
-     * Selection mode.
+     * Selection mode. {@link SelectionMode#SINGLE SINGLE} selects a single leaf
+     * path (observe {@link #selectedPathProperty()}); {@link SelectionMode#MULTIPLE
+     * MULTIPLE} checks multiple paths with cascading tri-state check boxes (observe
+     * {@link #getCheckedPaths()}). This is the cascader's own meaning of the shared
+     * JavaFX {@link SelectionMode} enum, not the row multi-select of a list view.
      *
      * @return selection-mode property
      */
-    public final ObjectProperty<RXCascaderSelectionMode> selectionModeProperty() {
+    public final ObjectProperty<SelectionMode> selectionModeProperty() {
         return selectionMode;
     }
 
@@ -176,7 +181,7 @@ public class RXCascaderView<T> extends Control {
      *
      * @return selection mode
      */
-    public final RXCascaderSelectionMode getSelectionMode() {
+    public final SelectionMode getSelectionMode() {
         return selectionMode.get();
     }
 
@@ -185,7 +190,7 @@ public class RXCascaderView<T> extends Control {
      *
      * @param value selection mode
      */
-    public final void setSelectionMode(RXCascaderSelectionMode value) {
+    public final void setSelectionMode(SelectionMode value) {
         selectionMode.set(value);
     }
 
@@ -408,7 +413,7 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item)) {
             return;
         }
-        if (getSelectionMode() == RXCascaderSelectionMode.MULTIPLE) {
+        if (getSelectionMode() == SelectionMode.MULTIPLE) {
             if (isLeaf(item)) {
                 toggleCheck(item);
             } else {
@@ -447,12 +452,28 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
+     * Programmatically sets the single selection to the path ending at the given
+     * leaf. Ignored when the item is {@code null}, effectively disabled, or not a
+     * leaf. Unlike {@link #activate}, this is independent of the selection mode and
+     * never expands a branch — it is the programmatic counterpart of clicking a
+     * leaf in single-selection mode.
+     *
+     * @param leaf leaf item to select
+     */
+    public final void select(RXCascaderItem<T> leaf) {
+        if (leaf == null || isEffectivelyDisabled(leaf) || !isLeaf(leaf)) {
+            return;
+        }
+        selectedPath.set(createPath(leaf));
+    }
+
+    /**
      * Toggles a check state in multiple-selection mode.
      *
      * @param item item to toggle
      */
     public final void toggleCheck(RXCascaderItem<T> item) {
-        if (item == null || getSelectionMode() != RXCascaderSelectionMode.MULTIPLE) {
+        if (item == null || getSelectionMode() != SelectionMode.MULTIPLE) {
             return;
         }
         setCheckedCascade(item, !areEnabledLeavesChecked(item));

@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXCascaderSelectionMode;
 import javafx.application.Application;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -50,7 +50,7 @@ public class RXCascaderDemo extends Application {
 
         RXCascader<Option> multiple = new RXCascader<>();
         multiple.setPromptText("Choose multiple cities");
-        multiple.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        multiple.setSelectionMode(SelectionMode.MULTIPLE);
         multiple.setClearable(true);
         multiple.setItemTextFactory(Option::label);
         multiple.setPathTextFactory(path -> {
@@ -61,7 +61,7 @@ public class RXCascaderDemo extends Application {
 
         RXCascader<Option> lazy = new RXCascader<>();
         lazy.setPromptText("Lazy load children");
-        lazy.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
+        lazy.setSelectionMode(SelectionMode.MULTIPLE);
         lazy.setClearable(true);
         lazy.setItemTextFactory(Option::label);
         lazy.setChildrenLoader(item -> CompletableFuture.supplyAsync(() -> loadChildren(item)));
