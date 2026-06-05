@@ -20,6 +20,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Callback;
 
 import java.util.Collections;
 import java.util.Set;
@@ -37,7 +38,7 @@ import java.util.WeakHashMap;
  * <p><strong>Customizing the content.</strong> Subclass this cell and override
  * {@link #createContent(RXCascaderItem)} to render a custom node in the middle
  * content area while keeping the contract above. The content is built once per
- * item (it is rebuilt when the item or its text changes, not on every state
+ * item (it is rebuilt when the item or its value changes, not on every state
  * change); to make content react to state, target the cell pseudo classes from
  * CSS, for example:
  *
@@ -208,16 +209,36 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
 
     /**
      * Returns the node rendered in the middle content area for the given item.
-     * Called once per item (and when the item text changes), not on every state
-     * change. The default returns a reused {@link Label} bound to the item text.
-     * Returning {@code null} renders an empty content area.
+     * Called once per item (and when the item value changes), not on every state
+     * change. The default returns a reused {@link Label} set to
+     * {@link #getDisplayText(Object) getDisplayText(item.getValue())}. Returning
+     * {@code null} renders an empty content area.
      *
      * @param item item to render content for
      * @return content node, or {@code null} for no content
      */
     protected Node createContent(RXCascaderItem<T> item) {
-        textLabel.setText(view.getDisplayText(item.getValue()));
+        textLabel.setText(getDisplayText(item.getValue()));
         return textLabel;
+    }
+
+    /**
+     * Resolves the display text for a value using the view's
+     * {@link RXCascaderView#getTextFactory() textFactory}, falling back to
+     * {@code String.valueOf(value)} when none is set. A {@code null} value, or a
+     * factory that returns {@code null}, yields the empty string. For use by
+     * subclasses overriding {@link #createContent(RXCascaderItem)}.
+     *
+     * @param value value to render
+     * @return display text, never {@code null}
+     */
+    protected final String getDisplayText(T value) {
+        Callback<T, String> factory = view.getTextFactory();
+        if (factory == null) {
+            return value == null ? "" : String.valueOf(value);
+        }
+        String text = factory.call(value);
+        return text == null ? "" : text;
     }
 
     /**

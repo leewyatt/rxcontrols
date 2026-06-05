@@ -326,24 +326,14 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
-     * Resolves the display text for a value via {@link #getTextFactory()}, or
-     * {@code String.valueOf(value)} when no factory is set.
-     *
-     * @param value value to render
-     * @return display text, never {@code null}
-     */
-    public final String getDisplayText(T value) {
-        Callback<T, String> factory = getTextFactory();
-        if (factory == null) {
-            return value == null ? "" : String.valueOf(value);
-        }
-        String text = factory.call(value);
-        return text == null ? "" : text;
-    }
-
-    /**
      * Resolves the per-node display texts of a path, in root-to-leaf order, using
-     * the current text factory.
+     * the current text factory (falling back to {@code String.valueOf(value)},
+     * with {@code null} value / result yielding the empty string).
+     *
+     * <p>Note: turning a value into display text is a rendering concern owned by
+     * the cell ({@link RXCascaderCell#getDisplayText}); this path-level helper
+     * lives on the view only as a convenience for the field/skin and is a
+     * candidate to move out later.
      *
      * @param path path to resolve
      * @return immutable list of node display texts
@@ -352,9 +342,14 @@ public class RXCascaderView<T> extends Control {
         if (path == null) {
             return Collections.emptyList();
         }
+        Callback<T, String> factory = getTextFactory();
         List<String> texts = new ArrayList<>(path.getItems().size());
         for (RXCascaderItem<T> item : path.getItems()) {
-            texts.add(getDisplayText(item.getValue()));
+            T value = item.getValue();
+            String text = factory == null
+                    ? (value == null ? "" : String.valueOf(value))
+                    : factory.call(value);
+            texts.add(text == null ? "" : text);
         }
         return Collections.unmodifiableList(texts);
     }

@@ -241,7 +241,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
             dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
             dot.setMaxSize(8.0, 8.0);
-            HBox box = new HBox(8.0, dot, new Label(getView().getDisplayText(item.getValue())));
+            HBox box = new HBox(8.0, dot, new Label(getDisplayText(item.getValue())));
             box.setAlignment(Pos.CENTER_LEFT);
             return box;
         }

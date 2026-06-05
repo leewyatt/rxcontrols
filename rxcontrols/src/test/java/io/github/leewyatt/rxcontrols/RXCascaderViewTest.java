@@ -539,27 +539,25 @@ public class RXCascaderViewTest {
     }
 
     /**
-     * Verifies display text is derived via the text factory, falling back to
-     * {@code String.valueOf(value)} when none is set, for both single values and
-     * whole paths.
+     * Verifies path texts are derived via the text factory, falling back to
+     * {@code String.valueOf(value)} when none is set.
      */
     @Test
-    public void textFactoryDrivesDisplayTextWithToStringFallback() {
+    public void textFactoryDrivesPathTextsWithToStringFallback() {
         RXCascaderView<String> panel = new RXCascaderView<>();
         RXCascaderItem<String> root = item("bj");
         RXCascaderItem<String> child = item("sh");
         root.getChildren().add(child);
         panel.getRootItems().add(root);
 
-        // No factory: fall back to String.valueOf(value).
-        assertEquals("bj", panel.getDisplayText("bj"));
         panel.activate(root);
         panel.activate(child);
+
+        // No factory: fall back to String.valueOf(value).
         assertEquals(List.of("bj", "sh"), panel.getPathTexts(panel.getSelectedPath()));
 
         // Factory: derive text from value.
         panel.setTextFactory(value -> value == null ? "" : value.toUpperCase());
-        assertEquals("BJ", panel.getDisplayText("bj"));
         assertEquals(List.of("BJ", "SH"), panel.getPathTexts(panel.getSelectedPath()));
     }
 
@@ -607,8 +605,15 @@ public class RXCascaderViewTest {
 
     private static void waitForFxCondition(BooleanSupplier condition) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (!condition.getAsBoolean() && System.nanoTime() < deadline) {
+        while (System.nanoTime() < deadline) {
+            // Flush first so every check sits behind the flush latch's
+            // happens-before barrier and observes a fully-applied completeLoad
+            // (loaded set AND loading cleared), not a half-visible intermediate
+            // state across the JUnit/FX thread boundary.
             flushFxEvents();
+            if (condition.getAsBoolean()) {
+                return;
+            }
             Thread.sleep(10);
         }
         if (!condition.getAsBoolean()) {

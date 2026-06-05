@@ -44,7 +44,7 @@ public class RXCascaderDemo extends Application {
         single.setPromptText("Choose a city");
         single.setClearable(true);
         single.setTextFactory(Option::label);
-        single.setPathTextFactory(texts -> String.join(" -> ", texts));
+        single.setPathTextFactory(path -> String.join(" -> ", single.getView().getPathTexts(path)));
         single.getRootItems().setAll(sampleOptions());
 
         RXCascader<Option> multiple = new RXCascader<>();
@@ -52,7 +52,10 @@ public class RXCascaderDemo extends Application {
         multiple.setSelectionMode(RXCascaderSelectionMode.MULTIPLE);
         multiple.setClearable(true);
         multiple.setTextFactory(Option::label);
-        multiple.setPathTextFactory(texts -> texts.isEmpty() ? "" : texts.get(texts.size() - 1));
+        multiple.setPathTextFactory(path -> {
+            List<String> texts = multiple.getView().getPathTexts(path);
+            return texts.isEmpty() ? "" : texts.get(texts.size() - 1);
+        });
         multiple.getRootItems().setAll(sampleOptions());
 
         RXCascader<Option> lazy = new RXCascader<>();

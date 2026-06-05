@@ -214,18 +214,23 @@ public class RXCascader<T> extends Control {
 
     // ==================== Path Text Factory ====================
 
-    private final ObjectProperty<Callback<List<String>, String>> pathTextFactory =
+    private final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactory =
             new SimpleObjectProperty<>(this, "pathTextFactory");
 
     /**
-     * Optional formatter from a path's already-resolved per-node display texts
-     * (root-to-leaf, produced by {@link #getTextFactory() textFactory}) to the
-     * single string shown in the field. When {@code null} the node texts are
-     * joined with {@code " / "}.
+     * Optional formatter from a selected path to the single string shown in the
+     * field. When {@code null}, the field shows the per-node display texts
+     * (resolved by {@link #getTextFactory() textFactory}) joined with
+     * {@code " / "}.
+     *
+     * <p>To keep the field consistent with the columns, resolve node text from
+     * the value via the same text factory — {@code getView().getPathTexts(path)}
+     * returns the already-resolved per-node texts — rather than calling
+     * {@code value.toString()}, which bypasses the text factory.
      *
      * @return path-text factory property
      */
-    public final ObjectProperty<Callback<List<String>, String>> pathTextFactoryProperty() {
+    public final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactoryProperty() {
         return pathTextFactory;
     }
 
@@ -234,7 +239,7 @@ public class RXCascader<T> extends Control {
      *
      * @return path-text factory, or {@code null}
      */
-    public final Callback<List<String>, String> getPathTextFactory() {
+    public final Callback<RXCascaderPath<T>, String> getPathTextFactory() {
         return pathTextFactory.get();
     }
 
@@ -243,7 +248,7 @@ public class RXCascader<T> extends Control {
      *
      * @param value path-text factory, or {@code null}
      */
-    public final void setPathTextFactory(Callback<List<String>, String> value) {
+    public final void setPathTextFactory(Callback<RXCascaderPath<T>, String> value) {
         pathTextFactory.set(value);
     }
 

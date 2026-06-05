@@ -93,7 +93,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
         cascader.setTextFactory(Option::label);
-        cascader.setPathTextFactory(PathFormat.FULL_PATH.factory());
+        cascader.setPathTextFactory(pathFactory(PathFormat.FULL_PATH));
         cascader.getRootItems().setAll(sampleOptions());
 
         Label readout = new Label();
@@ -154,9 +154,19 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         formatBox.setValue(PathFormat.FULL_PATH);
         formatBox.setMaxWidth(Double.MAX_VALUE);
         formatBox.valueProperty().addListener((obs, oldV, newV) ->
-                cascader.setPathTextFactory(newV == null ? null : newV.factory()));
+                cascader.setPathTextFactory(newV == null ? null : pathFactory(newV)));
 
         return createGrid(row("Path text", formatBox));
+    }
+
+    /**
+     * Wraps a {@link PathFormat} into a path-text factory: it resolves each
+     * node's display text through the cascader's {@code textFactory} (via
+     * {@code getPathTexts}, so the field stays consistent with the columns) and
+     * lets the format join them.
+     */
+    private Callback<RXCascaderPath<Option>, String> pathFactory(PathFormat format) {
+        return path -> format.format(cascader.getView().getPathTexts(path));
     }
 
     private Node buildDimensionGrid() {
@@ -202,7 +212,8 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         lazyCascader.setPromptText("Expand to load");
         lazyCascader.setClearable(true);
         lazyCascader.setTextFactory(Option::label);
-        lazyCascader.setPathTextFactory(texts -> String.join(SEPARATOR, texts));
+        lazyCascader.setPathTextFactory(path ->
+                String.join(SEPARATOR, lazyCascader.getView().getPathTexts(path)));
         lazyCascader.setOnChildrenLoadError((failedItem, error) -> lazyReadout.setText(
                 "Load failed for \"" + failedItem.getValue().label() + "\": " + error.getMessage()
                         + "\nUncheck \"Fail loads\" and click the row again to retry."));
@@ -377,7 +388,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
             dot.setMaxSize(8.0, 8.0);
-            HBox box = new HBox(8.0, dot, new Label(getView().getDisplayText(item.getValue())));
+            HBox box = new HBox(8.0, dot, new Label(getDisplayText(item.getValue())));
             box.setAlignment(Pos.CENTER_LEFT);
             return box;
         }
@@ -388,27 +399,25 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     private enum PathFormat {
         FULL_PATH("Full path (A / B / C)") {
             @Override
-            Callback<List<String>, String> factory() {
-                return texts -> String.join(SEPARATOR, texts);
+            String format(List<String> texts) {
+                return String.join(SEPARATOR, texts);
             }
         },
         LAST_LEVEL("Last level only (C)") {
             @Override
-            Callback<List<String>, String> factory() {
-                return texts -> texts.isEmpty() ? "" : texts.get(texts.size() - 1);
+            String format(List<String> texts) {
+                return texts.isEmpty() ? "" : texts.get(texts.size() - 1);
             }
         },
         FIRST_TO_LAST("First -> last (A -> C)") {
             @Override
-            Callback<List<String>, String> factory() {
-                return texts -> {
-                    if (texts.isEmpty()) {
-                        return "";
-                    }
-                    String first = texts.get(0);
-                    String last = texts.get(texts.size() - 1);
-                    return first.equals(last) ? first : first + " -> " + last;
-                };
+            String format(List<String> texts) {
+                if (texts.isEmpty()) {
+                    return "";
+                }
+                String first = texts.get(0);
+                String last = texts.get(texts.size() - 1);
+                return first.equals(last) ? first : first + " -> " + last;
             }
         };
 
@@ -418,7 +427,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             this.label = label;
         }
 
-        abstract Callback<List<String>, String> factory();
+        abstract String format(List<String> texts);
 
         @Override
         public String toString() {

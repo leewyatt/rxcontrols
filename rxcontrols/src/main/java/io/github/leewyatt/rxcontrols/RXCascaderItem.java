@@ -14,9 +14,12 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 /**
- * Node model used by {@link RXCascaderView}. It wraps an application value
- * with display text, children, disabled state, lazy-loading hints, and
- * tri-state check state.
+ * Node model used by {@link RXCascaderView}. It wraps an application value with
+ * children, disabled state, lazy-loading hints, and tri-state check state.
+ *
+ * <p>Display text is not stored on the item: the owning view derives it from
+ * the value via its {@code textFactory} (falling back to
+ * {@code String.valueOf(value)}).
  *
  * @param <T> application value type
  */
