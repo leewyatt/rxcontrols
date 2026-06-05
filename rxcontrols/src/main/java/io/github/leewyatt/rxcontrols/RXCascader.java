@@ -512,8 +512,8 @@ public class RXCascader<T> extends Control {
 
     /**
      * Programmatically sets the single selection to the path ending at the given
-     * leaf (single-selection mode). Ignored when the item is {@code null},
-     * effectively disabled, or not a leaf.
+     * leaf. Applies only in single-selection mode; ignored in multiple mode, or
+     * when the item is {@code null}, effectively disabled, or not a leaf.
      *
      * @param leaf leaf item to select
      */
@@ -522,10 +522,10 @@ public class RXCascader<T> extends Control {
     }
 
     /**
-     * Sets a cascading check state in multiple-selection mode: the item and its
-     * enabled descendants are (un)checked and ancestors roll up to the matching
-     * tri-state. Use this for programmatic checking instead of writing
-     * {@link RXCascaderItem#setChecked} directly.
+     * Sets a cascading check state: the item and its enabled descendants are
+     * (un)checked and ancestors roll up to the matching tri-state. Applies only in
+     * multiple-selection mode; ignored in single mode. Use this for programmatic
+     * checking instead of writing {@link RXCascaderItem#setChecked} directly.
      *
      * @param item    item to update
      * @param checked target checked state

@@ -62,10 +62,13 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     // ==================== Constructor ====================
 
     /**
-     * Creates a skin for the given cascader.
+     * Creates a skin for the given cascader. Intended to be created by the
+     * control's {@code createDefaultSkin()}: {@code view} must be that control's
+     * own embedded popup view, otherwise the popup is wired to a foreign view and
+     * will not reflect the control's state.
      *
      * @param control the skinnable cascader
-     * @param view    the embedded view to host as popup content
+     * @param view    the control's embedded view to host as popup content
      */
     public RXCascaderSkin(RXCascader<T> control, RXCascaderView<T> view) {
         super(control);

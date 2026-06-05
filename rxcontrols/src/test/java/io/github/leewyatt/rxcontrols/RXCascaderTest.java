@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -109,5 +110,28 @@ public class RXCascaderTest {
         cascader.setCheckedCascade(child, true);
         assertEquals(1, cascader.getCheckedPaths().size());
         assertEquals(List.of(root, child), cascader.getCheckedPaths().get(0).getItems());
+    }
+
+    /**
+     * Verifies each programmatic entry is ignored outside its own mode:
+     * {@code setCheckedCascade} no-ops in single mode, {@code select} no-ops in
+     * multiple mode, so public state never holds a result foreign to the mode.
+     */
+    @Test
+    public void programmaticEntriesRespectSelectionMode() {
+        RXCascader<String> cascader = new RXCascader<>();
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> child = new RXCascaderItem<>("child");
+        root.getChildren().add(child);
+        cascader.getRootItems().add(root);
+
+        // SINGLE mode: setCheckedCascade is ignored, so checked paths stay empty.
+        cascader.setCheckedCascade(child, true);
+        assertTrue(cascader.getCheckedPaths().isEmpty());
+
+        // MULTIPLE mode: select is ignored, so the single path stays null.
+        cascader.setSelectionMode(SelectionMode.MULTIPLE);
+        cascader.select(child);
+        assertNull(cascader.getSelectedPath());
     }
 }

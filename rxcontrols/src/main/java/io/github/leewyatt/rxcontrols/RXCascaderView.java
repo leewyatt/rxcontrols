@@ -453,15 +453,16 @@ public class RXCascaderView<T> extends Control {
 
     /**
      * Programmatically sets the single selection to the path ending at the given
-     * leaf. Ignored when the item is {@code null}, effectively disabled, or not a
-     * leaf. Unlike {@link #activate}, this is independent of the selection mode and
-     * never expands a branch — it is the programmatic counterpart of clicking a
-     * leaf in single-selection mode.
+     * leaf. Applies only in single-selection mode; ignored in multiple mode, or
+     * when the item is {@code null}, effectively disabled, or not a leaf. Unlike
+     * {@link #activate} it never expands a branch — it is the programmatic
+     * counterpart of clicking a leaf in single-selection mode.
      *
      * @param leaf leaf item to select
      */
     public final void select(RXCascaderItem<T> leaf) {
-        if (leaf == null || isEffectivelyDisabled(leaf) || !isLeaf(leaf)) {
+        if (getSelectionMode() != SelectionMode.SINGLE
+                || leaf == null || isEffectivelyDisabled(leaf) || !isLeaf(leaf)) {
             return;
         }
         selectedPath.set(createPath(leaf));
@@ -480,13 +481,15 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
-     * Sets a check state in multiple-selection mode.
+     * Sets a cascading check state. Applies only in multiple-selection mode;
+     * ignored in single mode, or when the item is {@code null} or effectively
+     * disabled.
      *
      * @param item item to update
      * @param checked target checked state
      */
     public final void setCheckedCascade(RXCascaderItem<T> item, boolean checked) {
-        if (item == null || isEffectivelyDisabled(item)) {
+        if (getSelectionMode() != SelectionMode.MULTIPLE || item == null || isEffectivelyDisabled(item)) {
             return;
         }
         if (isUnresolvedLazyBranch(item)) {
