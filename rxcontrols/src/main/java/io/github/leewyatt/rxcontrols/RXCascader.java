@@ -186,7 +186,9 @@ public class RXCascader<T> extends Control {
 
     /**
      * Converts an item value to its display text (single source of the visible
-     * node text). When {@code null}, {@code String.valueOf(value)} is used.
+     * node text). When {@code null}, {@code String.valueOf(value)} is used. A
+     * {@code null} value, or a factory that returns {@code null}, yields the empty
+     * string.
      *
      * @return item-text-factory property
      */

@@ -297,9 +297,10 @@ public class RXCascaderView<T> extends Control {
 
     /**
      * Converts an item value to its display text. When {@code null} the view
-     * falls back to {@code String.valueOf(value)}. Items do not store text; this
-     * is the single source of the visible node text, used by the built-in cell
-     * and by the field's default path text.
+     * falls back to {@code String.valueOf(value)}. A {@code null} value, or a
+     * factory that returns {@code null}, yields the empty string. Items do not
+     * store text; this is the single source of the visible node text, used by the
+     * built-in cell and by the field's default path text.
      *
      * @return item-text-factory property
      */

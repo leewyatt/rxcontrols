@@ -39,8 +39,8 @@ import java.util.function.Function;
  *
  * <p>The value type is an {@link Option} record carrying id + label; the visible
  * node text comes from {@code setItemTextFactory(Option::label)}. The path field
- * formatter ({@code pathTextFactory}) then receives the already-resolved per-node
- * texts.
+ * formatter ({@code pathTextFactory}) receives the path; this showcase resolves
+ * the per-node labels locally.
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderDemo}.
  */
