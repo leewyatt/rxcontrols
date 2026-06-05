@@ -37,6 +37,15 @@ import java.util.function.Function;
  * {@link #selectedPathProperty()} / {@link #getCheckedPaths()} for the result.
  * {@link RXCascader} reuses it as its popup content.
  *
+ * <p><strong>Tree mutation contract.</strong> Structural change is observed at the
+ * root level ({@link #getRootItems()}): swapping roots, swapping the children
+ * loader, and {@link #reload()} are the supported reset points. Mutating a deep
+ * branch that is currently expanded or lazily loading is not a supported runtime
+ * operation — the view defends against a late load completing on a branch that was
+ * detached from the tree (its result is dropped), but does not otherwise prune the
+ * active path for such edits. Like {@link javafx.scene.control.TreeItem}, the item
+ * tree must be acyclic and each node must have a single parent.
+ *
  * @param <T> application value type
  */
 public class RXCascaderView<T> extends Control {
@@ -156,6 +165,11 @@ public class RXCascaderView<T> extends Control {
                             set(lastValid);
                         }
                         throw new NullPointerException("selectionMode cannot be null");
+                    }
+                    if (value == lastValid) {
+                        // A no-op change — notably the rollback after a rejected
+                        // null — must not wipe the current selection.
+                        return;
                     }
                     lastValid = value;
                     clearSelection();
@@ -770,6 +784,15 @@ public class RXCascaderView<T> extends Control {
         }
         loadGenerations.remove(item);
 
+        if (!isInCurrentTree(item)) {
+            // The branch left the current tree (a deep ancestor list was mutated
+            // outside the supported reset points) while loading: drop the result
+            // and the loading flag rather than populating a detached subtree.
+            item.setLoading(false);
+            pendingChecks.remove(item);
+            return;
+        }
+
         if (error != null) {
             // Keep loaded=false so the branch can be retried; roll back any
             // pending check and surface the failure through the callback.
@@ -907,5 +930,18 @@ public class RXCascaderView<T> extends Control {
             current = current.getParent();
         }
         return path;
+    }
+
+    /**
+     * Whether the item is still reachable from the current roots: its topmost
+     * ancestor is one of {@link #getRootItems()}. Used to drop a lazy load that
+     * completes after its branch was detached from the tree.
+     */
+    private boolean isInCurrentTree(RXCascaderItem<T> item) {
+        RXCascaderItem<T> current = item;
+        while (current.getParent() != null) {
+            current = current.getParent();
+        }
+        return rootItems.contains(current);
     }
 }
