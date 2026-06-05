@@ -13,8 +13,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -133,5 +135,25 @@ public class RXCascaderTest {
         cascader.setSelectionMode(SelectionMode.MULTIPLE);
         cascader.select(child);
         assertNull(cascader.getSelectedPath());
+    }
+
+    /**
+     * Verifies a rejected {@code null} selection mode on the wrapper throws, rolls
+     * the mode back, and does not wipe the existing selection.
+     */
+    @Test
+    public void setSelectionModeNullRejectedWithoutClearingSelection() {
+        RXCascader<String> cascader = new RXCascader<>();
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> child = new RXCascaderItem<>("child");
+        root.getChildren().add(child);
+        cascader.getRootItems().add(root);
+        cascader.select(child);
+        assertNotNull(cascader.getSelectedPath());
+
+        assertThrows(NullPointerException.class, () -> cascader.setSelectionMode(null));
+
+        assertEquals(SelectionMode.SINGLE, cascader.getSelectionMode());
+        assertNotNull(cascader.getSelectedPath(), "rejected null must not clear the selection");
     }
 }

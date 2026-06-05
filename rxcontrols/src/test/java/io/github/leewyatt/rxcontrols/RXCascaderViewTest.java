@@ -15,7 +15,10 @@ import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -537,6 +540,121 @@ public class RXCascaderViewTest {
                     "a load canceled mid-expand must not invoke the loader");
             assertFalse(root.isLoading());
         });
+    }
+
+    /**
+     * Verifies a rejected {@code null} selection mode throws but rolls the mode
+     * back and does not wipe the existing selection.
+     */
+    @Test
+    public void setSelectionModeNullRejectedWithoutClearingSelection() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> child = item("child");
+        root.getChildren().add(child);
+        panel.getRootItems().add(root);
+        panel.activate(root);
+        panel.activate(child);
+        assertNotNull(panel.getSelectedPath());
+
+        assertThrows(NullPointerException.class, () -> panel.setSelectionMode(null));
+
+        assertEquals(SelectionMode.SINGLE, panel.getSelectionMode());
+        assertNotNull(panel.getSelectedPath(), "rejected null must not clear the selection");
+    }
+
+    /**
+     * Verifies a lazy load that completes after its branch was detached from the
+     * tree is dropped: the detached branch is neither populated nor marked loaded,
+     * and no checked paths leak.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void lazyLoadIgnoredWhenBranchDetachedWhileLoading() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> branch = item("branch");
+        root.getChildren().add(branch);
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        panel.setChildrenLoader(it -> it == branch ? gate : CompletableFuture.completedFuture(List.of()));
+        panel.getRootItems().add(root);
+
+        panel.expand(branch);
+        assertTrue(branch.isLoading());
+
+        // Detach the loading branch WITHOUT going through a reset entry point.
+        root.getChildren().remove(branch);
+        assertNull(branch.getParent());
+
+        gate.complete(List.of(leaf("x"), leaf("y")));
+        waitForFxCondition(() -> !branch.isLoading());
+
+        assertFalse(branch.isLoaded(), "detached branch must not be marked loaded");
+        assertTrue(branch.getChildren().isEmpty(), "detached branch must not be populated");
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies the tri-state machine never leaves a node both checked and
+     * indeterminate, across eager rollup with a disabled sibling.
+     */
+    @Test
+    public void checkedAndIndeterminateAreNeverBothTrue() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> a = item("a");
+        RXCascaderItem<String> b = item("b");
+        RXCascaderItem<String> a1 = leaf("a1");
+        RXCascaderItem<String> a2 = leaf("a2");
+        a2.setDisabled(true);
+        a.getChildren().addAll(List.of(a1, a2));
+        RXCascaderItem<String> b1 = leaf("b1");
+        b.getChildren().add(b1);
+        root.getChildren().addAll(List.of(a, b));
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(a1, true);
+        panel.setCheckedCascade(b1, true);
+        panel.setCheckedCascade(a, true);
+
+        for (RXCascaderItem<String> node : List.of(root, a, b, a1, a2, b1)) {
+            assertFalse(node.isChecked() && node.isIndeterminate(),
+                    node.getValue() + " must not be both checked and indeterminate");
+        }
+    }
+
+    /**
+     * Verifies a lazy load completing on a real background thread is correctly
+     * marshaled back to the FX thread (the {@code runOnFxThread} path).
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void lazyLoadCompletesFromBackgroundThread() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        CountDownLatch release = new CountDownLatch(1);
+        panel.setChildrenLoader(it -> CompletableFuture.supplyAsync(() -> {
+            try {
+                release.await(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return List.of(leaf("c1"), leaf("c2"));
+        }));
+        panel.getRootItems().add(root);
+
+        panel.expand(root);
+        assertTrue(root.isLoading());
+
+        release.countDown();
+        waitForFxCondition(root::isLoaded);
+
+        assertFalse(root.isLoading());
+        assertEquals(2, root.getChildren().size());
     }
 
     private static RXCascaderItem<String> item(String text) {

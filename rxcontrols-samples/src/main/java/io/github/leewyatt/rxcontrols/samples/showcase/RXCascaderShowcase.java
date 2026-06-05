@@ -166,12 +166,12 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
      * join them.
      */
     private Callback<RXCascaderPath<Option>, String> pathFactory(PathFormat format) {
-        return path -> format.format(pathTexts(path));
+        return path -> format.format(pathTexts(cascader.getItemTextFactory(), path));
     }
 
-    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+    private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         return path.getValues().stream()
-                .map(value -> value == null ? "" : value.label())
+                .map(value -> itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value))
                 .toList();
     }
 
@@ -203,14 +203,14 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         lazyCascader.setClearable(true);
         lazyCascader.setItemTextFactory(Option::label);
         lazyCascader.setPathTextFactory(path ->
-                String.join(SEPARATOR, pathTexts(path)));
+                String.join(SEPARATOR, pathTexts(lazyCascader.getItemTextFactory(), path)));
         lazyCascader.setOnChildrenLoadError((failedItem, error) -> lazyReadout.setText(
                 "Load failed for \"" + failedItem.getValue().label() + "\": " + error.getMessage()
                         + "\nUncheck \"Fail loads\" and click the row again to retry."));
         lazyCascader.selectedPathProperty().addListener((obs, oldPath, newPath) -> {
             if (newPath != null) {
                 lazyReadout.setText("selected: "
-                        + String.join(SEPARATOR, pathTexts(newPath)));
+                        + String.join(SEPARATOR, pathTexts(lazyCascader.getItemTextFactory(), newPath)));
             }
         });
         // Configure the loader before seeding roots (see RXCascader Javadoc): a
@@ -305,7 +305,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<Option> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, pathTexts(path)));
+                joiner.add("- " + String.join(SEPARATOR, pathTexts(cascader.getItemTextFactory(), path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
@@ -313,7 +313,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, pathTexts(path));
+        return "selected: " + String.join(SEPARATOR, pathTexts(cascader.getItemTextFactory(), path));
     }
 
     // ==================== Sample data ====================

@@ -10,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -69,15 +70,15 @@ public class RXCascaderViewDemo extends Application {
         }
         StringJoiner joiner = new StringJoiner("\n");
         for (RXCascaderPath<Option> path : view.getCheckedPaths()) {
-            joiner.add("- " + pathText(path));
+            joiner.add("- " + pathText(view.getItemTextFactory(), path));
         }
         return joiner.toString();
     }
 
-    private static String pathText(RXCascaderPath<Option> path) {
+    private static String pathText(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         StringJoiner joiner = new StringJoiner(" / ");
         for (Option value : path.getValues()) {
-            joiner.add(value == null ? "" : value.label());
+            joiner.add(itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value));
         }
         return joiner.toString();
     }

@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +46,7 @@ public class RXCascaderDemo extends Application {
         single.setPromptText("Choose a city");
         single.setClearable(true);
         single.setItemTextFactory(Option::label);
-        single.setPathTextFactory(path -> String.join(" -> ", pathTexts(path)));
+        single.setPathTextFactory(path -> String.join(" -> ", pathTexts(single.getItemTextFactory(), path)));
         single.getRootItems().setAll(sampleOptions());
 
         RXCascader<Option> multiple = new RXCascader<>();
@@ -54,7 +55,7 @@ public class RXCascaderDemo extends Application {
         multiple.setClearable(true);
         multiple.setItemTextFactory(Option::label);
         multiple.setPathTextFactory(path -> {
-            List<String> texts = pathTexts(path);
+            List<String> texts = pathTexts(multiple.getItemTextFactory(), path);
             return texts.isEmpty() ? "" : texts.get(texts.size() - 1);
         });
         multiple.getRootItems().setAll(sampleOptions());
@@ -79,9 +80,9 @@ public class RXCascaderDemo extends Application {
         primaryStage.show();
     }
 
-    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+    private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         return path.getValues().stream()
-                .map(value -> value == null ? "" : value.label())
+                .map(value -> itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value))
                 .toList();
     }
 

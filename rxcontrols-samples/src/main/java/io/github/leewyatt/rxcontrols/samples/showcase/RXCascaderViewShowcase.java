@@ -18,6 +18,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -173,7 +174,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<Option> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, pathTexts(path)));
+                joiner.add("- " + String.join(SEPARATOR, pathTexts(view.getItemTextFactory(), path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
@@ -181,12 +182,12 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
         if (path == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, pathTexts(path));
+        return "selected: " + String.join(SEPARATOR, pathTexts(view.getItemTextFactory(), path));
     }
 
-    private static List<String> pathTexts(RXCascaderPath<Option> path) {
+    private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         return path.getValues().stream()
-                .map(value -> value == null ? "" : value.label())
+                .map(value -> itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value))
                 .toList();
     }
 
