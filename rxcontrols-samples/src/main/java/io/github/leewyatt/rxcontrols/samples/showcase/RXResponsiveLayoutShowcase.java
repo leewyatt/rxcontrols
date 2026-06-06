@@ -137,7 +137,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
             if (breakpoint == null) {
                 return "breakpoint ?";
             }
-            return "bp-" + breakpoint.getName() + " >= " + Math.round(breakpoint.getMinWidth());
+            return breakpoint.getName() + " >= " + Math.round(breakpoint.getMinWidth());
         }, row.activeBreakpointProperty()));
 
         Label widthLabel = new Label();

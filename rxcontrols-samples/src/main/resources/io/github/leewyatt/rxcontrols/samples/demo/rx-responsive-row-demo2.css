@@ -58,7 +58,7 @@
     -rx-row-gap: 20px;
 }
 
-.energy-dashboard:bp-xs {
+.energy-dashboard:xs {
     -fx-padding: 16px;
     -rx-gutter: 14px;
     -rx-row-gap: 14px;
@@ -93,7 +93,7 @@
     -fx-line-spacing: 3px;
 }
 
-.energy-dashboard:bp-xs .hero-title {
+.energy-dashboard:xs .hero-title {
     -fx-font-size: 25px;
 }
 
@@ -126,7 +126,7 @@
     -fx-padding: 8px 0 0 0;
 }
 
-.energy-dashboard:bp-xs .telemetry-row {
+.energy-dashboard:xs .telemetry-row {
     -fx-spacing: 8px;
 }
 

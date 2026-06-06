@@ -3,21 +3,20 @@ package io.github.leewyatt.rxcontrols.layout;
 import javafx.css.PseudoClass;
 
 /**
- * Shared breakpoint resolution and {@code :bp-<name>} pseudo-class management for
+ * Shared breakpoint resolution and {@code :<name>} pseudo-class management for
  * responsive RX layout panes such as {@link RXResponsiveRow} and
  * {@link RXMasonryPane}.
  *
- * <p>Centralizes the pseudo-class prefix and the swap logic so each pane does not
- * reimplement it. Because {@code Node.pseudoClassStateChanged} is protected, the
- * owning pane passes a {@link PseudoClassApplier} bound to its own method
- * reference; this helper only decides when to flip which pseudo-class.</p>
+ * <p>Centralizes the swap logic so each pane does not reimplement it. Because
+ * {@code Node.pseudoClassStateChanged} is protected, the owning pane passes a
+ * {@link PseudoClassApplier} bound to its own method reference; this helper only
+ * decides when to flip which pseudo-class.</p>
+ *
+ * <p>The pseudo-class is the bare breakpoint name (e.g. {@code :md}), so avoid
+ * breakpoint names that collide with JavaFX built-in pseudo-classes such as
+ * {@code hover}, {@code focused}, {@code pressed} or {@code disabled}.</p>
  */
 final class RXBreakpointSupport {
-
-    /**
-     * Prefix for the active-breakpoint pseudo-class, e.g. {@code :bp-md}.
-     */
-    static final String PSEUDO_CLASS_PREFIX = "bp-";
 
     /**
      * Applies a pseudo-class state on the owning node.
@@ -37,13 +36,13 @@ final class RXBreakpointSupport {
     private PseudoClass activePseudoClass;
 
     /**
-     * Returns the pseudo-class for a breakpoint, e.g. {@code bp-md} for "md".
+     * Returns the pseudo-class for a breakpoint, e.g. {@code md} for "md".
      *
      * @param breakpoint the breakpoint
      * @return the pseudo-class
      */
     static PseudoClass pseudoClassFor(RXBreakpoint breakpoint) {
-        return PseudoClass.getPseudoClass(PSEUDO_CLASS_PREFIX + breakpoint.getName());
+        return PseudoClass.getPseudoClass(breakpoint.getName());
     }
 
     /**

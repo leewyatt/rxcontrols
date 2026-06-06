@@ -12,19 +12,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link RXBreakpointSupport}, the shared breakpoint resolution and
- * {@code :bp-<name>} pseudo-class swapper.
+ * {@code :<name>} pseudo-class swapper.
  */
 public class RXBreakpointSupportTest {
 
     /**
-     * Verifies the pseudo-class name uses the {@code bp-} prefix.
+     * Verifies the pseudo-class is the bare breakpoint name (no prefix).
      */
     @Test
-    public void pseudoClassUsesBpPrefix() {
+    public void pseudoClassUsesBreakpointName() {
         RXBreakpoint breakpoint = new RXBreakpoint("md", 992.0);
-        assertSame(PseudoClass.getPseudoClass("bp-md"),
+        assertSame(PseudoClass.getPseudoClass("md"),
                 RXBreakpointSupport.pseudoClassFor(breakpoint));
-        assertEquals("bp-", RXBreakpointSupport.PSEUDO_CLASS_PREFIX);
     }
 
     /**
@@ -39,7 +38,7 @@ public class RXBreakpointSupportTest {
 
         assertEquals("xs", resolved.getName());
         assertEquals(1, applier.calls.size());
-        applier.assertCall(0, "bp-xs", true);
+        applier.assertCall(0, "xs", true);
     }
 
     /**
@@ -69,9 +68,9 @@ public class RXBreakpointSupportTest {
 
         assertEquals("md", resolved.getName());
         assertEquals(3, applier.calls.size());
-        applier.assertCall(0, "bp-xs", true);
-        applier.assertCall(1, "bp-xs", false);
-        applier.assertCall(2, "bp-md", true);
+        applier.assertCall(0, "xs", true);
+        applier.assertCall(1, "xs", false);
+        applier.assertCall(2, "md", true);
     }
 
     private static final class RecordingApplier implements RXBreakpointSupport.PseudoClassApplier {

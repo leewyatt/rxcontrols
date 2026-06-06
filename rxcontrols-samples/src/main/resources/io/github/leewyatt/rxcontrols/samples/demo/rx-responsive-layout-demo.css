@@ -40,20 +40,20 @@
     -fx-border-radius: 8px;
 }
 
-.demo-row:bp-xs {
+.demo-row:xs {
     -fx-background-color: #fef7ed;
 }
 
-.demo-row:bp-sm {
+.demo-row:sm {
     -fx-background-color: #f0fdf4;
 }
 
-.demo-row:bp-md {
+.demo-row:md {
     -fx-background-color: #eff6ff;
 }
 
-.demo-row:bp-lg,
-.demo-row:bp-xl {
+.demo-row:lg,
+.demo-row:xl {
     -fx-background-color: #f8fafc;
 }
 

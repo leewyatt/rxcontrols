@@ -1097,7 +1097,7 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Breakpoint resolved during the most recent layout pass, or {@code null}
-     * before the pane is first laid out. Drives the {@code :bp-<name>} pseudo-class
+     * before the pane is first laid out. Drives the {@code :<name>} pseudo-class
      * and can be observed for breakpoint-dependent behavior.
      *
      * @return the active breakpoint property

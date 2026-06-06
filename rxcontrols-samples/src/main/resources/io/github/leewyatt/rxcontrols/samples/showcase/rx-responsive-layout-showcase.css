@@ -32,24 +32,24 @@
     -fx-background-radius: 8px;
 }
 
-.showcase-row:bp-xs {
+.showcase-row:xs {
     -fx-background-color: #fff7ed;
 }
 
-.showcase-row:bp-sm {
+.showcase-row:sm {
     -fx-background-color: #ecfdf3;
 }
 
-.showcase-row:bp-md {
+.showcase-row:md {
     -fx-background-color: #eff6ff;
 }
 
-.showcase-row:bp-lg {
+.showcase-row:lg {
     -fx-background-color: #f8fafc;
 }
 
-.showcase-row:bp-xl,
-.showcase-row:bp-xxl {
+.showcase-row:xl,
+.showcase-row:xxl {
     -fx-background-color: #f5f3ff;
 }
 

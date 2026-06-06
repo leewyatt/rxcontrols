@@ -12,7 +12,7 @@
     -fx-background-color: #eef3f7;
 }
 
-.responsive-fxml-page:bp-xs {
+.responsive-fxml-page:xs {
     -fx-padding: 14px;
 }
 
@@ -45,7 +45,7 @@
     -fx-font-weight: bold;
 }
 
-.responsive-fxml-page:bp-xs .hero-title {
+.responsive-fxml-page:xs .hero-title {
     -fx-font-size: 22px;
 }
 
