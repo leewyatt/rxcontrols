@@ -1,0 +1,34 @@
+.masonry-scroll {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 8px;
+    -fx-padding: 0;
+}
+
+.masonry-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.showcase-masonry {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 8px;
+}
+
+.masonry-card {
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 8, 0.1, 0, 2);
+}
+
+.masonry-card-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-alignment: center;
+}
+
+.resolved-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #334155;
+    -fx-padding: 6px 0 0 0;
+}
