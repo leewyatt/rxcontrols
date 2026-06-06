@@ -13,6 +13,12 @@ public final class RXBreakpoint implements Comparable<RXBreakpoint> {
     /**
      * Creates a breakpoint.
      *
+     * <p>The name is used verbatim as a bare CSS pseudo-class (e.g. {@code :md}).
+     * Prefer a lowercase CSS identifier — letters, digits and hyphens, not
+     * starting with a digit and without spaces (join words with {@code -}) — and
+     * avoid names that collide with JavaFX built-in pseudo-classes such as
+     * {@code hover}, {@code focused}, {@code pressed} or {@code disabled}.</p>
+     *
      * @param name     the breakpoint name, also used as the row pseudo-class
      * @param minWidth the inclusive minimum width for this breakpoint
      * @throws NullPointerException     if {@code name} is {@code null}
