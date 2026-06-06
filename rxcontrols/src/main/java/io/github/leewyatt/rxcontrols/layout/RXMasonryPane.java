@@ -1557,7 +1557,9 @@ public class RXMasonryPane extends Pane {
         if (!Double.isFinite(childHeight) || childHeight < 0.0) {
             childHeight = 0.0;
         }
-        return marginTop + snapSizeY(childHeight) + marginBottom;
+        // Negative margins are valid in JavaFX, so the block (margins + height) can
+        // go negative; clamp it so the engine never receives a negative extent.
+        return Math.max(0.0, marginTop + snapSizeY(childHeight) + marginBottom);
     }
 
     private double boundedChildWidth(Node child, double contentWidth) {

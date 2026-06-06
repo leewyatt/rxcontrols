@@ -292,6 +292,24 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a negative margin (valid in JavaFX) clamps the block instead of
+     * driving a negative block height that crashes the layout pass.
+     */
+    @Test
+    public void negativeMarginDoesNotCrashLayout() {
+        Region card = card(80.0, 50.0);
+        Region next = card(80.0, 40.0);
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, card, next);
+        pane.setColumnCount(1);
+        RXMasonryPane.setMargin(card, new Insets(-50.0));
+
+        layout(pane, 250.0, 1000.0);
+
+        double prefHeight = pane.prefHeight(250.0);
+        assertTrue(Double.isFinite(prefHeight) && prefHeight >= 0.0, "finite non-negative pref height");
+    }
+
+    /**
      * Verifies an empty pane reports zero content height.
      */
     @Test
