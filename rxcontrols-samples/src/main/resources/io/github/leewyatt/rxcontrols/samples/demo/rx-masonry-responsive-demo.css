@@ -1,0 +1,87 @@
+.root {
+    -fx-background-color: #f1f5f9;
+}
+
+.demo-header {
+    -fx-padding: 18 24 10 24;
+}
+
+.demo-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.demo-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.page-scroll {
+    -fx-background-color: transparent;
+}
+
+.page-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.section-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #94a3b8;
+}
+
+.region-aside {
+    -fx-background-color: #e2e8f0;
+    -fx-background-radius: 12;
+    -fx-padding: 14;
+}
+
+.note-card {
+    -fx-spacing: 7;
+    -fx-padding: 16;
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 10, 0.08, 0, 3);
+}
+
+.note-category {
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 999;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.note-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.note-body {
+    -fx-font-size: 13px;
+    -fx-text-fill: #475569;
+    -fx-line-spacing: 2;
+}
+
+.aside-card {
+    -fx-padding: 14;
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #2563eb;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-radius: 10;
+}
+
+.aside-card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.aside-card-body {
+    -fx-font-size: 12px;
+    -fx-text-fill: #475569;
+    -fx-line-spacing: 2;
+}
