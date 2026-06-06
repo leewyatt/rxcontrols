@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,6 +25,7 @@ public class MasonryAnimatorTest {
 
     private static final double EPSILON = 1.0e-9;
     private static final Duration DURATION = Duration.millis(100.0);
+    private static final Duration SHORT = Duration.millis(40.0);
 
     /**
      * Starts the JavaFX toolkit so {@code Timeline.play()} can run.
@@ -115,6 +117,136 @@ public class MasonryAnimatorTest {
             assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX snapped");
             assertEquals(1.0, node.getOpacity(), EPSILON, "opacity snapped");
         });
+    }
+
+    /**
+     * Verifies an animated relayout resets transforms to their final values once
+     * the timeline finishes.
+     */
+    @Test
+    public void relayoutFinishResetsTransforms() throws Exception {
+        MasonryAnimator animator = new MasonryAnimator();
+        Region node = new Region();
+
+        runOnFx(() -> {
+            node.setTranslateX(20.0);
+            node.setOpacity(0.0);
+            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 20.0, 0.0, true)),
+                    true, SHORT, Interpolator.EASE_BOTH);
+        });
+        waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON && node.getOpacity() > 1.0 - EPSILON);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX");
+            assertEquals(0.0, node.getTranslateY(), EPSILON, "translateY");
+            assertEquals(1.0, node.getOpacity(), EPSILON, "opacity");
+        });
+    }
+
+    /**
+     * Verifies an animated exit runs to completion: the node is removed and reset.
+     */
+    @Test
+    public void exitFinishRemovesAndResets() throws Exception {
+        MasonryAnimator animator = new MasonryAnimator();
+        Region node = new Region();
+        AtomicBoolean removed = new AtomicBoolean(false);
+
+        runOnFx(() -> {
+            node.setTranslateX(10.0);
+            animator.runExit(node, true, SHORT, Interpolator.EASE_BOTH, -8.0, () -> removed.set(true));
+        });
+        waitUntil(removed::get);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX");
+            assertEquals(0.0, node.getTranslateY(), EPSILON, "translateY");
+            assertEquals(1.0, node.getOpacity(), EPSILON, "opacity restored");
+        });
+    }
+
+    /**
+     * Verifies a superseded relayout still settles the node at its final transform.
+     */
+    @Test
+    public void supersededRelayoutSettlesAtFinal() throws Exception {
+        MasonryAnimator animator = new MasonryAnimator();
+        Region node = new Region();
+
+        runOnFx(() -> {
+            node.setTranslateX(30.0);
+            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 30.0, 0.0, false)),
+                    true, Duration.millis(120.0), Interpolator.EASE_BOTH);
+            node.setTranslateX(15.0);
+            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 15.0, 0.0, false)),
+                    true, SHORT, Interpolator.EASE_BOTH);
+        });
+        waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON);
+
+        runOnFx(() -> assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX settled"));
+    }
+
+    /**
+     * Verifies removing a node mid-relayout exits it cleanly while the surviving
+     * node keeps animating and settles at its final transform.
+     */
+    @Test
+    public void exitDuringRelayoutKeepsSurvivorClean() throws Exception {
+        MasonryAnimator animator = new MasonryAnimator();
+        Region survivor = new Region();
+        Region leaving = new Region();
+        AtomicBoolean removed = new AtomicBoolean(false);
+
+        runOnFx(() -> {
+            survivor.setTranslateX(20.0);
+            leaving.setTranslateX(25.0);
+            animator.runRelayout(List.of(
+                    new MasonryAnimator.Move(survivor, 20.0, 0.0, false),
+                    new MasonryAnimator.Move(leaving, 25.0, 0.0, false)),
+                    true, Duration.millis(120.0), Interpolator.EASE_BOTH);
+            animator.runExit(leaving, true, SHORT, Interpolator.EASE_BOTH, -8.0, () -> removed.set(true));
+        });
+        waitUntil(() -> removed.get() && Math.abs(survivor.getTranslateX()) < EPSILON);
+
+        runOnFx(() -> {
+            assertTrue(removed.get(), "leaving exited");
+            assertEquals(0.0, survivor.getTranslateX(), EPSILON, "survivor settled");
+            assertEquals(0.0, leaving.getTranslateX(), EPSILON, "leaving reset");
+        });
+    }
+
+    private static void waitUntil(Callable<Boolean> conditionOnFx) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            if (Boolean.TRUE.equals(callOnFx(conditionOnFx))) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+        throw new AssertionError("condition not met within timeout");
+    }
+
+    private static <T> T callOnFx(Callable<T> task) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<T> result = new AtomicReference<>();
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                result.set(task.call());
+            } catch (Throwable throwable) {
+                error.set(throwable);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX task timed out");
+        }
+        Throwable thrown = error.get();
+        if (thrown != null) {
+            throw new RuntimeException(thrown);
+        }
+        return result.get();
     }
 
     private static void runOnFx(Runnable action) throws Exception {
