@@ -332,6 +332,11 @@ public class RXMasonryPane extends Pane {
      * Target column width that drives the responsive column count. Must be a
      * finite positive number.
      *
+     * <p>Column width is authoritative: a child wider than its resolved track
+     * (for example a {@code minWidth} larger than the column) overflows into the
+     * next column. Choose a {@code columnWidth} that accommodates the widest
+     * child, or give that child a {@code columnSpan}.</p>
+     *
      * @return the column width property
      */
     public final DoubleProperty columnWidthProperty() {
@@ -646,7 +651,8 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Upper bound on the resolved column count. {@code 0} (the default) means
-     * unbounded.
+     * unbounded, subject only to an internal safety ceiling that guards against a
+     * pathological {@code columnWidth} or {@code columnCount}.
      *
      * @return the max columns property
      */
@@ -1545,12 +1551,14 @@ public class RXMasonryPane extends Pane {
         double contentWidth = Math.max(0.0, areaWidth - leftSpace(margin) - rightSpace(margin));
         double childHeight;
         if (child.isResizable()) {
-            // Measure height at the width the child will actually be resized to,
-            // matching layoutInArea's bounded width, so height-for-width children
-            // are never measured at a width that differs from their final width.
-            double width = boundedChildWidth(child, contentWidth);
-            childHeight = boundedSize(child.minHeight(width), child.prefHeight(width),
-                    child.maxHeight(width));
+            // Only a horizontal content bias makes height depend on width; for a
+            // vertical or null bias, measure at -1 so the result matches what
+            // layoutInArea will give the child (height is the independent axis).
+            double heightHint = child.getContentBias() == Orientation.HORIZONTAL
+                    ? boundedChildWidth(child, contentWidth)
+                    : -1.0;
+            childHeight = boundedSize(child.minHeight(heightHint), child.prefHeight(heightHint),
+                    child.maxHeight(heightHint));
         } else {
             childHeight = child.getLayoutBounds().getHeight();
         }

@@ -292,6 +292,24 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a vertical content-bias child is measured at its intrinsic height
+     * (not at a width-dependent height), matching layoutInArea, so the next card
+     * does not leave a phantom gap.
+     */
+    @Test
+    public void verticalBiasChildMeasuredAtIntrinsicHeight() {
+        VerticalBiasedRegion biased = new VerticalBiasedRegion();
+        Region next = card(80.0, 40.0);
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, biased, next);
+        pane.setColumnCount(1);
+
+        layout(pane, 250.0, 1000.0);
+
+        assertClose(50.0, biased.getHeight(), "biased laid out at intrinsic height");
+        assertClose(50.0, next.getLayoutY(), "next card directly below, no phantom gap");
+    }
+
+    /**
      * Verifies a negative margin (valid in JavaFX) clamps the block instead of
      * driving a negative block height that crashes the layout pass.
      */
@@ -543,6 +561,39 @@ public class RXMasonryPaneTest {
         @Override
         protected double computeMaxHeight(double width) {
             return computePrefHeight(width);
+        }
+    }
+
+    /**
+     * A vertical content-bias region whose intrinsic height (width {@code -1}) is
+     * 50 but reports 200 when queried with a width, exposing a width-vs-bias
+     * measurement mismatch.
+     */
+    private static final class VerticalBiasedRegion extends Region {
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.VERTICAL;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return width < 0.0 ? 50.0 : 200.0;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return computePrefHeight(width);
+        }
+
+        @Override
+        protected double computeMaxHeight(double width) {
+            return computePrefHeight(width);
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return 80.0;
         }
     }
 }
