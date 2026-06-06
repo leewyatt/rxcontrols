@@ -24,10 +24,12 @@ import java.util.Set;
  * without snapping; exit animations run on their own timelines so surviving
  * children can reflow at the same time.</p>
  *
- * <p>All termination paths converge on the same cleanup: {@code translateX} /
- * {@code translateY} return to {@code 0} and {@code opacity} to {@code 1} (or the
- * node is removed for exits). A node owned by an in-flight exit is never clobbered
- * by a relayout finish.</p>
+ * <p>When a node leaves relayout ownership (an exit starts, or the node is removed
+ * externally) the shared relayout timeline is rebuilt for the remaining nodes from
+ * their current transforms, so no two timelines ever write the same node and a
+ * removed node is not retained by a running timeline. All termination paths
+ * converge on the same cleanup: {@code translateX} / {@code translateY} return to
+ * {@code 0} and {@code opacity} to {@code 1} (or the node is removed for exits).</p>
  */
 final class MasonryAnimator {
 
@@ -44,9 +46,12 @@ final class MasonryAnimator {
 
     private static final double MOVE_EPSILON = 0.5;
 
-    private final Set<Node> activeMoves = new HashSet<>();
+    // node -> whether its relayout animation also fades opacity in
+    private final Map<Node, Boolean> activeMoves = new HashMap<>();
     private final Map<Node, ExitState> exits = new HashMap<>();
     private Timeline relayoutTimeline;
+    private Duration lastDuration = Duration.ZERO;
+    private Interpolator lastInterpolator = Interpolator.LINEAR;
 
     private record ExitState(Timeline timeline, Runnable onRemoved) {
     }
@@ -64,7 +69,7 @@ final class MasonryAnimator {
         for (Move move : moves) {
             passNodes.add(move.node());
         }
-        for (Node node : new ArrayList<>(activeMoves)) {
+        for (Node node : new ArrayList<>(activeMoves.keySet())) {
             if (!passNodes.contains(node)) {
                 finalizeMove(node);
             }
@@ -80,6 +85,8 @@ final class MasonryAnimator {
             return;
         }
 
+        lastDuration = duration;
+        lastInterpolator = interpolator;
         List<KeyValue> keyValues = new ArrayList<>();
         List<Node> animated = new ArrayList<>();
         for (Move move : moves) {
@@ -98,24 +105,13 @@ final class MasonryAnimator {
             }
             keyValues.add(new KeyValue(node.translateXProperty(), 0.0, interpolator));
             keyValues.add(new KeyValue(node.translateYProperty(), 0.0, interpolator));
-            activeMoves.add(node);
+            activeMoves.put(node, move.fade());
             animated.add(node);
         }
         if (keyValues.isEmpty()) {
             return;
         }
-
-        Timeline timeline = new Timeline(new KeyFrame(duration, keyValues.toArray(new KeyValue[0])));
-        timeline.setOnFinished(event -> {
-            for (Node node : animated) {
-                finalizeMove(node);
-            }
-            if (relayoutTimeline == timeline) {
-                relayoutTimeline = null;
-            }
-        });
-        relayoutTimeline = timeline;
-        timeline.play();
+        relayoutTimeline = playRelayout(keyValues, animated, duration);
     }
 
     /**
@@ -131,7 +127,7 @@ final class MasonryAnimator {
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
                  double exitTranslateY, Runnable onRemoved) {
         // The exit takes ownership of this node's transforms away from any relayout.
-        activeMoves.remove(node);
+        releaseFromRelayout(node);
         ExitState existing = exits.remove(node);
         if (existing != null) {
             existing.timeline().stop();
@@ -141,6 +137,7 @@ final class MasonryAnimator {
             return;
         }
 
+        node.setTranslateX(0.0);
         node.setTranslateY(0.0);
         node.setOpacity(1.0);
         Timeline timeline = new Timeline(new KeyFrame(duration,
@@ -158,7 +155,7 @@ final class MasonryAnimator {
      * @param node the node to forget
      */
     void forget(Node node) {
-        activeMoves.remove(node);
+        releaseFromRelayout(node);
         ExitState exit = exits.remove(node);
         if (exit != null) {
             exit.timeline().stop();
@@ -177,7 +174,7 @@ final class MasonryAnimator {
             relayoutTimeline.stop();
             relayoutTimeline = null;
         }
-        for (Node node : new ArrayList<>(activeMoves)) {
+        for (Node node : new ArrayList<>(activeMoves.keySet())) {
             finalizeMove(node);
         }
         activeMoves.clear();
@@ -186,12 +183,54 @@ final class MasonryAnimator {
         }
     }
 
+    // Removes a node from the shared relayout timeline by stopping it and rebuilding
+    // it for the remaining nodes from their current transforms, so the released node
+    // is no longer written or retained while the others keep animating smoothly.
+    private void releaseFromRelayout(Node node) {
+        if (activeMoves.remove(node) == null) {
+            return;
+        }
+        if (relayoutTimeline == null) {
+            return;
+        }
+        relayoutTimeline.stop();
+        relayoutTimeline = null;
+        if (activeMoves.isEmpty()) {
+            return;
+        }
+        List<KeyValue> keyValues = new ArrayList<>();
+        List<Node> animated = new ArrayList<>(activeMoves.keySet());
+        for (Node remaining : animated) {
+            keyValues.add(new KeyValue(remaining.translateXProperty(), 0.0, lastInterpolator));
+            keyValues.add(new KeyValue(remaining.translateYProperty(), 0.0, lastInterpolator));
+            if (Boolean.TRUE.equals(activeMoves.get(remaining))) {
+                keyValues.add(new KeyValue(remaining.opacityProperty(), 1.0, lastInterpolator));
+            }
+        }
+        relayoutTimeline = playRelayout(keyValues, animated, lastDuration);
+    }
+
+    private Timeline playRelayout(List<KeyValue> keyValues, List<Node> animated, Duration duration) {
+        Timeline timeline = new Timeline(new KeyFrame(duration, keyValues.toArray(new KeyValue[0])));
+        timeline.setOnFinished(event -> {
+            for (Node node : animated) {
+                finalizeMove(node);
+            }
+            if (relayoutTimeline == timeline) {
+                relayoutTimeline = null;
+            }
+        });
+        timeline.play();
+        return timeline;
+    }
+
     private void finishExit(Node node) {
         ExitState state = exits.remove(node);
         if (state == null) {
             return;
         }
         state.timeline().stop();
+        node.setTranslateX(0.0);
         node.setTranslateY(0.0);
         node.setOpacity(1.0);
         state.onRemoved().run();

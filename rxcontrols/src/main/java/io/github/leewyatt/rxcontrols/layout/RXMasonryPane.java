@@ -139,6 +139,7 @@ public class RXMasonryPane extends Pane {
     private static final String COLUMN_SPAN_CONSTRAINT = "rx-masonry-column-span";
     private static final double ENTER_TRANSLATE_MIN = 4.0;
     private static final double ENTER_TRANSLATE_MAX = 12.0;
+    private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     // ==================== Constraints ====================
 
@@ -229,7 +230,8 @@ public class RXMasonryPane extends Pane {
 
     private final MasonryAnimator animator = new MasonryAnimator();
     private final Set<Node> enteringNodes = new HashSet<>();
-    private final Set<Node> leavingNodes = new HashSet<>();
+    // leaving node -> its managed state before the exit animation, restored on finish
+    private final Map<Node, Boolean> leavingNodes = new HashMap<>();
     private boolean firstLayoutDone;
 
     private final ListChangeListener<Node> childrenListener = change -> {
@@ -255,6 +257,11 @@ public class RXMasonryPane extends Pane {
     public RXMasonryPane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getChildren().addListener(childrenListener);
+        // Resolve the active breakpoint outside the layout pass (width/insets feed
+        // the content width), mirroring RXResponsiveRow rather than mutating CSS
+        // pseudo-class state inside layoutChildren.
+        widthProperty().addListener((obs, oldWidth, newWidth) -> updateActiveBreakpoint());
+        insetsProperty().addListener((obs, oldInsets, newInsets) -> updateActiveBreakpoint());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
@@ -861,6 +868,10 @@ public class RXMasonryPane extends Pane {
                                 "animationDuration must be a finite non-negative duration");
                     }
                     lastValid = value;
+                    if (value.lessThanOrEqualTo(Duration.ZERO)) {
+                        // Disabling animation mid-flight must snap, matching animated=false.
+                        animator.stopAll();
+                    }
                 }
 
                 @Override
@@ -977,8 +988,7 @@ public class RXMasonryPane extends Pane {
             getChildren().remove(child);
             return true;
         }
-        leavingNodes.add(child);
-        child.setManaged(false);
+        markLeaving(child);
         requestLayout();
         animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
                 -enterTranslateY(), () -> finishLeaving(child));
@@ -996,9 +1006,7 @@ public class RXMasonryPane extends Pane {
         }
         List<Node> snapshot = new ArrayList<>(getChildren());
         for (Node child : snapshot) {
-            if (leavingNodes.add(child)) {
-                child.setManaged(false);
-            }
+            markLeaving(child);
         }
         requestLayout();
         for (Node child : snapshot) {
@@ -1007,9 +1015,19 @@ public class RXMasonryPane extends Pane {
         }
     }
 
+    private void markLeaving(Node child) {
+        // Remember the original managed state and unmanage the node so survivors
+        // reflow into the freed space; restored verbatim in finishLeaving.
+        if (leavingNodes.putIfAbsent(child, child.isManaged()) == null) {
+            child.setManaged(false);
+        }
+    }
+
     private void finishLeaving(Node child) {
-        leavingNodes.remove(child);
-        child.setManaged(true);
+        Boolean wasManaged = leavingNodes.remove(child);
+        if (wasManaged != null) {
+            child.setManaged(wasManaged);
+        }
         getChildren().remove(child);
     }
 
@@ -1051,6 +1069,7 @@ public class RXMasonryPane extends Pane {
                         throw new NullPointerException("breakpointProfile cannot be null");
                     }
                     lastValid = value;
+                    updateActiveBreakpoint();
                     requestLayout();
                 }
             };
@@ -1096,9 +1115,10 @@ public class RXMasonryPane extends Pane {
             new ReadOnlyObjectWrapper<>(this, "activeBreakpoint");
 
     /**
-     * Breakpoint resolved during the most recent layout pass, or {@code null}
-     * before the pane is first laid out. Drives the {@code :<name>} pseudo-class
-     * and can be observed for breakpoint-dependent behavior.
+     * Breakpoint resolved from the pane's current content width, or {@code null}
+     * before the pane is given a width. Updated when the width, insets or profile
+     * change. Drives the {@code :<name>} pseudo-class and can be observed for
+     * breakpoint-dependent behavior.
      *
      * @return the active breakpoint property
      */
@@ -1109,13 +1129,14 @@ public class RXMasonryPane extends Pane {
     /**
      * Returns the active breakpoint.
      *
-     * @return the active breakpoint, or {@code null} before the first layout
+     * @return the active breakpoint, or {@code null} before the pane is given a width
      */
     public final RXBreakpoint getActiveBreakpoint() {
         return activeBreakpoint.get();
     }
 
-    private void updateActiveBreakpoint(double contentWidth) {
+    private void updateActiveBreakpoint() {
+        double contentWidth = Math.max(0.0, getWidth() - snappedLeftInset() - snappedRightInset());
         RXBreakpoint breakpoint = breakpointSupport.update(breakpointProfileOrDefault(), contentWidth,
                 this::pseudoClassStateChanged);
         if (!Objects.equals(activeBreakpoint.get(), breakpoint)) {
@@ -1133,10 +1154,13 @@ public class RXMasonryPane extends Pane {
      * @param breakpointName the breakpoint name (e.g. {@code "md"})
      * @param columns        the column count, or {@code null} to clear
      * @throws NullPointerException     if {@code breakpointName} is {@code null}
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @throws IllegalArgumentException if {@code breakpointName} is blank or {@code columns} is less than one
      */
     public final void setBreakpointColumns(String breakpointName, Integer columns) {
         Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
+        if (breakpointName.isBlank()) {
+            throw new IllegalArgumentException("breakpointName cannot be blank");
+        }
         if (columns != null && columns < 1) {
             throw new IllegalArgumentException("columns must be at least 1");
         }
@@ -1378,7 +1402,6 @@ public class RXMasonryPane extends Pane {
         double contentWidth = Math.max(0.0, getWidth() - left - right);
         double contentHeight = Math.max(0.0, getHeight() - top - bottom);
 
-        updateActiveBreakpoint(contentWidth);
         LayoutMetrics metrics = computeMetrics(contentWidth);
         if (actualColumnCount.get() != metrics.columns()) {
             actualColumnCount.set(metrics.columns());
@@ -1486,6 +1509,11 @@ public class RXMasonryPane extends Pane {
         if (max > 0 && columns > max) {
             columns = max;
         }
+        // Defensive hard cap: a pathological tiny columnWidth or huge forced count
+        // must never allocate an unbounded column array.
+        if (columns > MAX_RESOLVED_COLUMNS) {
+            columns = MAX_RESOLVED_COLUMNS;
+        }
         return columns;
     }
 
@@ -1510,18 +1538,24 @@ public class RXMasonryPane extends Pane {
         double contentWidth = Math.max(0.0, areaWidth - leftSpace(margin) - rightSpace(margin));
         double childHeight;
         if (child.isResizable()) {
-            double widthHint;
-            if (isFillWidth()) {
-                widthHint = contentWidth;
-            } else {
-                widthHint = Math.min(contentWidth, snapSizeX(child.prefWidth(-1)));
-            }
-            childHeight = boundedSize(child.minHeight(widthHint),
-                    child.prefHeight(widthHint), child.maxHeight(widthHint));
+            // Measure height at the width the child will actually be resized to,
+            // matching layoutInArea's bounded width, so height-for-width children
+            // are never measured at a width that differs from their final width.
+            double width = boundedChildWidth(child, contentWidth);
+            childHeight = boundedSize(child.minHeight(width), child.prefHeight(width),
+                    child.maxHeight(width));
         } else {
             childHeight = child.getLayoutBounds().getHeight();
         }
+        if (!Double.isFinite(childHeight) || childHeight < 0.0) {
+            childHeight = 0.0;
+        }
         return marginTop + snapSizeY(childHeight) + marginBottom;
+    }
+
+    private double boundedChildWidth(Node child, double contentWidth) {
+        double pref = isFillWidth() ? contentWidth : Math.min(contentWidth, child.prefWidth(-1));
+        return boundedSize(child.minWidth(-1), pref, child.maxWidth(-1));
     }
 
     private double computeXOffset(double width, double contentWidth, HPos hpos) {

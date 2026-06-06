@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal;
 
+import java.util.Objects;
+
 /**
  * Stateless shortest-column placement engine for masonry / waterfall layouts.
  *
@@ -40,6 +42,14 @@ public final class MasonryLayoutEngine {
      * @return the placement result
      */
     public static Result place(int columns, double vgap, int[] spans, double[] blockHeights) {
+        Objects.requireNonNull(spans, "spans cannot be null");
+        Objects.requireNonNull(blockHeights, "blockHeights cannot be null");
+        if (spans.length != blockHeights.length) {
+            throw new IllegalArgumentException("spans and blockHeights must have the same length");
+        }
+        if (!Double.isFinite(vgap) || vgap < 0.0) {
+            throw new IllegalArgumentException("vgap must be finite and non-negative");
+        }
         int columnCount = Math.max(1, columns);
         int itemCount = blockHeights.length;
         int[] startColumns = new int[itemCount];

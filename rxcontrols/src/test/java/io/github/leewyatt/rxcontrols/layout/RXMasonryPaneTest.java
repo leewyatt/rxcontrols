@@ -225,6 +225,26 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a height-for-width child whose width is clamped by maxWidth is
+     * measured at its real (clamped) width, so the next card never overlaps it.
+     */
+    @Test
+    public void boundedWidthChildIsMeasuredAtItsActualWidth() {
+        // Capped at maxWidth=100 inside a 250px column; height = 20000 / width,
+        // so the measured height must use width 100 (height 200), not 250 (height 80).
+        BoundedWidthBiasedRegion biased = new BoundedWidthBiasedRegion();
+        Region next = card(80.0, 50.0);
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, biased, next);
+        pane.setColumnCount(1);
+
+        layout(pane, 250.0, 1000.0);
+
+        assertClose(100.0, biased.getWidth(), "biased width clamped");
+        assertClose(200.0, biased.getHeight(), "biased height at clamped width");
+        assertClose(200.0, next.getLayoutY(), "next card sits below, no overlap");
+    }
+
+    /**
      * Verifies an empty pane reports zero content height.
      */
     @Test
@@ -401,5 +421,39 @@ public class RXMasonryPaneTest {
     }
 
     private static final class FixedRegion extends Region {
+    }
+
+    /**
+     * A horizontal content-bias region whose height grows as its width shrinks,
+     * capped at {@code maxWidth=100} below its preferred width.
+     */
+    private static final class BoundedWidthBiasedRegion extends Region {
+
+        private BoundedWidthBiasedRegion() {
+            setMinWidth(0.0);
+            setPrefWidth(300.0);
+            setMaxWidth(100.0);
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            double resolved = width <= 0.0 ? prefWidth(-1.0) : width;
+            return 20000.0 / resolved;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return computePrefHeight(width);
+        }
+
+        @Override
+        protected double computeMaxHeight(double width) {
+            return computePrefHeight(width);
+        }
     }
 }
