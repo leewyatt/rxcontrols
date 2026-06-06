@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for {@link MasonryLayoutEngine}, locking the shortest-column placement
@@ -134,5 +135,26 @@ public class MasonryLayoutEngineTest {
         assertArrayEquals(new int[]{0, 0}, result.startColumns());
         assertArrayEquals(new double[]{0.0, 15.0}, result.tops(), DELTA);
         assertEquals(35.0, result.contentHeight(), DELTA);
+    }
+
+    /**
+     * Verifies the engine rejects malformed input rather than producing garbage.
+     */
+    @Test
+    public void placeRejectsInvalidInput() {
+        assertThrows(NullPointerException.class,
+                () -> MasonryLayoutEngine.place(3, 0.0, null, new double[]{1.0}));
+        assertThrows(NullPointerException.class,
+                () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1}, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1, 1}, new double[]{1.0}));
+        assertThrows(IllegalArgumentException.class,
+                () -> MasonryLayoutEngine.place(3, Double.NaN, new int[]{1}, new double[]{1.0}));
+        assertThrows(IllegalArgumentException.class,
+                () -> MasonryLayoutEngine.place(3, -1.0, new int[]{1}, new double[]{1.0}));
+        assertThrows(IllegalArgumentException.class,
+                () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1}, new double[]{Double.NaN}));
+        assertThrows(IllegalArgumentException.class,
+                () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1}, new double[]{-5.0}));
     }
 }

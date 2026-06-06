@@ -1,14 +1,22 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,6 +29,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RXMasonryPaneTest {
 
     private static final double EPSILON = 0.0001;
+
+    /**
+     * Starts the JavaFX toolkit so the animated-removal path can play a timeline.
+     *
+     * @throws InterruptedException if the startup wait is interrupted
+     */
+    @BeforeAll
+    public static void startToolkit() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        try {
+            Platform.startup(latch::countDown);
+        } catch (IllegalStateException ex) {
+            latch.countDown();
+        }
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("JavaFX toolkit did not start");
+        }
+    }
 
     /**
      * Verifies default property values, the style class, and child constraints.
@@ -245,6 +271,27 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies removing a leaving child externally (mid-exit) restores its
+     * original managed state instead of leaving it stuck unmanaged.
+     */
+    @Test
+    public void externalRemoveDuringExitRestoresManaged() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane();
+            Region card = new Region();
+            pane.getChildren().add(card);
+            new Scene(pane);
+
+            assertTrue(card.isManaged(), "managed before");
+            pane.removeAnimated(card);
+            assertFalse(card.isManaged(), "unmanaged during exit");
+
+            pane.getChildren().remove(card);
+            assertTrue(card.isManaged(), "managed restored after external remove");
+        });
+    }
+
+    /**
      * Verifies an empty pane reports zero content height.
      */
     @Test
@@ -413,6 +460,30 @@ public class RXMasonryPaneTest {
     private static void layout(Region region, double width, double height) {
         region.resize(width, height);
         region.layout();
+    }
+
+    private static void runOnFx(Runnable action) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable throwable) {
+                error.set(throwable);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX task timed out");
+        }
+        Throwable thrown = error.get();
+        if (thrown instanceof AssertionError assertionError) {
+            throw assertionError;
+        }
+        if (thrown != null) {
+            throw new RuntimeException(thrown);
+        }
     }
 
     private static boolean hasCssProperty(String property) {

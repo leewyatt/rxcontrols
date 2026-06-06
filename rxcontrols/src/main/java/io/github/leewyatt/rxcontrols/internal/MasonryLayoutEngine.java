@@ -40,6 +40,10 @@ public final class MasonryLayoutEngine {
      * @param spans        the column span per item, each clamped to {@code [1, columns]}
      * @param blockHeights the vertical extent per item, including its margins
      * @return the placement result
+     * @throws NullPointerException     if {@code spans} or {@code blockHeights} is {@code null}
+     * @throws IllegalArgumentException if the arrays differ in length, {@code vgap} is not
+     *                                  finite and non-negative, or any block height is not
+     *                                  finite and non-negative
      */
     public static Result place(int columns, double vgap, int[] spans, double[] blockHeights) {
         Objects.requireNonNull(spans, "spans cannot be null");
@@ -49,6 +53,11 @@ public final class MasonryLayoutEngine {
         }
         if (!Double.isFinite(vgap) || vgap < 0.0) {
             throw new IllegalArgumentException("vgap must be finite and non-negative");
+        }
+        for (double blockHeight : blockHeights) {
+            if (!Double.isFinite(blockHeight) || blockHeight < 0.0) {
+                throw new IllegalArgumentException("block heights must be finite and non-negative");
+            }
         }
         int columnCount = Math.max(1, columns);
         int itemCount = blockHeights.length;

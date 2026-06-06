@@ -139,6 +139,8 @@ public class RXMasonryPane extends Pane {
     private static final String COLUMN_SPAN_CONSTRAINT = "rx-masonry-column-span";
     private static final double ENTER_TRANSLATE_MIN = 4.0;
     private static final double ENTER_TRANSLATE_MAX = 12.0;
+    // Defensive ceiling on the resolved column count; far beyond any real layout,
+    // it only bounds the column array against a pathological columnWidth/columnCount.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     // ==================== Constraints ====================
@@ -242,7 +244,12 @@ public class RXMasonryPane extends Pane {
             if (change.wasRemoved()) {
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
-                    leavingNodes.remove(removed);
+                    // A node removed externally mid-exit never reaches finishLeaving,
+                    // so restore its original managed state here.
+                    Boolean wasManaged = leavingNodes.remove(removed);
+                    if (wasManaged != null) {
+                        removed.setManaged(wasManaged);
+                    }
                     animator.forget(removed);
                 }
             }
