@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import io.github.leewyatt.rxcontrols.layout.RXMasonryPane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.Region?>
+
+<ScrollPane fitToWidth="true" hbarPolicy="NEVER" pannable="true"
+            style="-fx-background-color: #f4f7fb; -fx-background: #f4f7fb;"
+            xmlns="http://javafx.com/javafx/17">
+    <content>
+        <RXMasonryPane columnWidth="150.0" hgap="12.0" maxColumns="4" vgap="12.0"
+                       style="-fx-background-color: #f4f7fb;">
+            <padding>
+                <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+            </padding>
+            <children>
+                <Region prefHeight="130.0"
+                        style="-fx-background-color: #2563eb; -fx-background-radius: 8px;"
+                        />
+                <Region prefHeight="90.0"
+                        style="-fx-background-color: #16a34a; -fx-background-radius: 8px;"/>
+                <Region prefHeight="160.0"
+                        style="-fx-background-color: #d97706; -fx-background-radius: 8px;"/>
+                <Region prefHeight="110.0"
+                        style="-fx-background-color: #7c3aed; -fx-background-radius: 8px;"/>
+                <Region prefHeight="180.0"
+                        style="-fx-background-color: #dc2626; -fx-background-radius: 8px;"
+                        RXMasonryPane.columnSpan="2"/>
+                <Region prefHeight="80.0"
+                        style="-fx-background-color: #0891b2; -fx-background-radius: 8px;"/>
+                <Region prefHeight="140.0"
+                        style="-fx-background-color: #db2777; -fx-background-radius: 8px;"/>
+                <Region prefHeight="100.0"
+                        style="-fx-background-color: #64748b; -fx-background-radius: 8px;"/>
+            </children>
+        </RXMasonryPane>
+    </content>
+</ScrollPane>
