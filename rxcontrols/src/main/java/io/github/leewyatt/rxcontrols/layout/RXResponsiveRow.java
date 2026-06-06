@@ -122,6 +122,9 @@ public class RXResponsiveRow extends Pane {
         getChildren().addAll(children);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -1128,6 +1131,11 @@ public class RXResponsiveRow extends Pane {
         return StyleableProperties.STYLEABLES;
     }
 
+    /**
+     * Returns the CSS metadata associated with this instance.
+     *
+     * @return the CSS metadata
+     */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
         return getClassCssMetaData();
