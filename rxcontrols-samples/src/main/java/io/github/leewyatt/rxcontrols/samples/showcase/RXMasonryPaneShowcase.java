@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
+import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
@@ -22,6 +24,7 @@ import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 
 /**
  * Showcase application for {@link RXMasonryPane}.
@@ -110,6 +113,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Columns", buildColumnsGrid()),
                 section("Gaps", buildGapsGrid()),
+                section("Responsive (breakpoints, 0 = auto)", buildResponsiveGrid()),
                 section("Animation", buildAnimationGrid()),
                 section("Content", buildContentGrid()));
     }
@@ -149,6 +153,64 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Hgap", hgapSlider, createValueLabel(hgapSlider, "%.0f px")),
                 row("Vgap", vgapSlider, createValueLabel(vgapSlider, "%.0f px")));
+    }
+
+    private Node buildResponsiveGrid() {
+        ComboBox<RXBreakpointProfile> profileBox = new ComboBox<>(FXCollections.observableArrayList(
+                RXBreakpointProfile.ELEMENT, RXBreakpointProfile.BOOTSTRAP));
+        profileBox.setValue(RXMasonryPane.DEFAULT_BREAKPOINT_PROFILE);
+        profileBox.setMaxWidth(Double.MAX_VALUE);
+        profileBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(RXBreakpointProfile profile) {
+                return profileName(profile);
+            }
+
+            @Override
+            public RXBreakpointProfile fromString(String string) {
+                return null;
+            }
+        });
+        masonry.breakpointProfileProperty().bind(profileBox.valueProperty());
+
+        Label activeLabel = new Label();
+        activeLabel.getStyleClass().add("resolved-label");
+        activeLabel.textProperty().bind(Bindings.createStringBinding(
+                () -> "Active breakpoint: " + breakpointName(masonry.getActiveBreakpoint()),
+                masonry.activeBreakpointProperty()));
+
+        return createGrid(
+                row("Profile", profileBox, new Label()),
+                breakpointRow("xs", masonry::setXs),
+                breakpointRow("sm", masonry::setSm),
+                breakpointRow("md", masonry::setMd),
+                breakpointRow("lg", masonry::setLg),
+                breakpointRow("xl", masonry::setXl),
+                breakpointRow("xxl", masonry::setXxl),
+                row(activeLabel));
+    }
+
+    private Node[] breakpointRow(String breakpointName, Consumer<Integer> setter) {
+        Slider slider = integerSlider(0.0, 8.0, 0.0);
+        slider.valueProperty().addListener((obs, oldV, newV) -> {
+            int value = (int) Math.round(newV.doubleValue());
+            setter.accept(value == 0 ? null : value);
+        });
+        return row(breakpointName + " columns", slider, createValueLabel(slider, "%.0f"));
+    }
+
+    private String profileName(RXBreakpointProfile profile) {
+        if (profile == RXBreakpointProfile.ELEMENT) {
+            return "ELEMENT (xs..xl)";
+        }
+        if (profile == RXBreakpointProfile.BOOTSTRAP) {
+            return "BOOTSTRAP (xs..xxl)";
+        }
+        return String.valueOf(profile);
+    }
+
+    private String breakpointName(RXBreakpoint breakpoint) {
+        return breakpoint == null ? "—" : breakpoint.getName();
     }
 
     private Node buildAnimationGrid() {

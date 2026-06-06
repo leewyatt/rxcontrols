@@ -10,6 +10,8 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.css.CssMetaData;
@@ -35,8 +37,10 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -104,6 +108,11 @@ public class RXMasonryPane extends Pane {
      * Default content alignment.
      */
     public static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
+
+    /**
+     * Default breakpoint profile used to resolve the active breakpoint.
+     */
+    public static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ELEMENT;
 
     /**
      * Default column span constraint for a child.
@@ -1023,6 +1032,256 @@ public class RXMasonryPane extends Pane {
         return Math.min(ENTER_TRANSLATE_MAX, Math.max(ENTER_TRANSLATE_MIN, getVgap()));
     }
 
+    // ==================== Breakpoint Profile ====================
+
+    private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
+    private final Map<String, Integer> breakpointColumns = new HashMap<>();
+
+    private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
+            new SimpleObjectProperty<>(this, "breakpointProfile", DEFAULT_BREAKPOINT_PROFILE) {
+                private RXBreakpointProfile lastValid = DEFAULT_BREAKPOINT_PROFILE;
+
+                @Override
+                protected void invalidated() {
+                    RXBreakpointProfile value = get();
+                    if (value == null) {
+                        if (!isBound()) {
+                            set(lastValid);
+                        }
+                        throw new NullPointerException("breakpointProfile cannot be null");
+                    }
+                    lastValid = value;
+                    requestLayout();
+                }
+            };
+
+    /**
+     * Breakpoint profile used to resolve the active breakpoint from the pane's
+     * content width. Cannot be set to {@code null}. Only the profile's breakpoint
+     * set and {@code resolve} are used; its grid column count is ignored.
+     *
+     * @return the breakpoint profile property
+     */
+    public final ObjectProperty<RXBreakpointProfile> breakpointProfileProperty() {
+        return breakpointProfile;
+    }
+
+    /**
+     * Returns the breakpoint profile.
+     *
+     * @return the breakpoint profile
+     */
+    public final RXBreakpointProfile getBreakpointProfile() {
+        return breakpointProfile.get();
+    }
+
+    /**
+     * Sets the breakpoint profile.
+     *
+     * @param value the breakpoint profile
+     * @throws NullPointerException if {@code value} is {@code null}
+     */
+    public final void setBreakpointProfile(RXBreakpointProfile value) {
+        breakpointProfile.set(value);
+    }
+
+    private RXBreakpointProfile breakpointProfileOrDefault() {
+        RXBreakpointProfile value = getBreakpointProfile();
+        return value == null ? DEFAULT_BREAKPOINT_PROFILE : value;
+    }
+
+    // ==================== Active Breakpoint ====================
+
+    private final ReadOnlyObjectWrapper<RXBreakpoint> activeBreakpoint =
+            new ReadOnlyObjectWrapper<>(this, "activeBreakpoint");
+
+    /**
+     * Breakpoint resolved during the most recent layout pass, or {@code null}
+     * before the pane is first laid out. Drives the {@code :bp-<name>} pseudo-class
+     * and can be observed for breakpoint-dependent behavior.
+     *
+     * @return the active breakpoint property
+     */
+    public final ReadOnlyObjectProperty<RXBreakpoint> activeBreakpointProperty() {
+        return activeBreakpoint.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the active breakpoint.
+     *
+     * @return the active breakpoint, or {@code null} before the first layout
+     */
+    public final RXBreakpoint getActiveBreakpoint() {
+        return activeBreakpoint.get();
+    }
+
+    private void updateActiveBreakpoint(double contentWidth) {
+        RXBreakpoint breakpoint = breakpointSupport.update(breakpointProfileOrDefault(), contentWidth,
+                this::pseudoClassStateChanged);
+        if (!Objects.equals(activeBreakpoint.get(), breakpoint)) {
+            activeBreakpoint.set(breakpoint);
+        }
+    }
+
+    // ==================== Breakpoint Columns ====================
+
+    /**
+     * Sets the column count for a named breakpoint, overriding the
+     * {@link #columnWidthProperty() columnWidth} auto-calculation while that
+     * breakpoint is active. Setting {@code null} clears the override.
+     *
+     * @param breakpointName the breakpoint name (e.g. {@code "md"})
+     * @param columns        the column count, or {@code null} to clear
+     * @throws NullPointerException     if {@code breakpointName} is {@code null}
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setBreakpointColumns(String breakpointName, Integer columns) {
+        Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
+        if (columns != null && columns < 1) {
+            throw new IllegalArgumentException("columns must be at least 1");
+        }
+        if (columns == null) {
+            breakpointColumns.remove(breakpointName);
+        } else {
+            breakpointColumns.put(breakpointName, columns);
+        }
+        requestLayout();
+    }
+
+    /**
+     * Returns the column count override for a named breakpoint.
+     *
+     * @param breakpointName the breakpoint name
+     * @return the column count, or {@code null} if none is set
+     * @throws NullPointerException if {@code breakpointName} is {@code null}
+     */
+    public final Integer getBreakpointColumns(String breakpointName) {
+        Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
+        return breakpointColumns.get(breakpointName);
+    }
+
+    /**
+     * Sets the column count for the {@code xs} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setXs(Integer columns) {
+        setBreakpointColumns("xs", columns);
+    }
+
+    /**
+     * Returns the {@code xs} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getXs() {
+        return getBreakpointColumns("xs");
+    }
+
+    /**
+     * Sets the column count for the {@code sm} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setSm(Integer columns) {
+        setBreakpointColumns("sm", columns);
+    }
+
+    /**
+     * Returns the {@code sm} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getSm() {
+        return getBreakpointColumns("sm");
+    }
+
+    /**
+     * Sets the column count for the {@code md} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setMd(Integer columns) {
+        setBreakpointColumns("md", columns);
+    }
+
+    /**
+     * Returns the {@code md} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getMd() {
+        return getBreakpointColumns("md");
+    }
+
+    /**
+     * Sets the column count for the {@code lg} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setLg(Integer columns) {
+        setBreakpointColumns("lg", columns);
+    }
+
+    /**
+     * Returns the {@code lg} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getLg() {
+        return getBreakpointColumns("lg");
+    }
+
+    /**
+     * Sets the column count for the {@code xl} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setXl(Integer columns) {
+        setBreakpointColumns("xl", columns);
+    }
+
+    /**
+     * Returns the {@code xl} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getXl() {
+        return getBreakpointColumns("xl");
+    }
+
+    /**
+     * Sets the column count for the {@code xxl} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setXxl(Integer columns) {
+        setBreakpointColumns("xxl", columns);
+    }
+
+    /**
+     * Returns the {@code xxl} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getXxl() {
+        return getBreakpointColumns("xxl");
+    }
+
+    private Integer resolveBreakpointColumns(double contentWidth) {
+        if (breakpointColumns.isEmpty()) {
+            return null;
+        }
+        RXBreakpoint breakpoint = breakpointProfileOrDefault().resolve(contentWidth);
+        return breakpointColumns.get(breakpoint.getName());
+    }
+
     // ==================== Actual Column Count ====================
 
     private final ReadOnlyIntegerWrapper actualColumnCount =
@@ -1119,6 +1378,7 @@ public class RXMasonryPane extends Pane {
         double contentWidth = Math.max(0.0, getWidth() - left - right);
         double contentHeight = Math.max(0.0, getHeight() - top - bottom);
 
+        updateActiveBreakpoint(contentWidth);
         LayoutMetrics metrics = computeMetrics(contentWidth);
         if (actualColumnCount.get() != metrics.columns()) {
             actualColumnCount.set(metrics.columns());
@@ -1210,9 +1470,14 @@ public class RXMasonryPane extends Pane {
         if (forced >= 1) {
             columns = forced;
         } else {
-            double track = snapSizeX(getColumnWidth());
-            double gap = snapSpaceX(getHgap());
-            columns = (int) Math.floor((contentWidth + gap) / (track + gap));
+            Integer breakpointColumnCount = resolveBreakpointColumns(contentWidth);
+            if (breakpointColumnCount != null) {
+                columns = breakpointColumnCount;
+            } else {
+                double track = snapSizeX(getColumnWidth());
+                double gap = snapSpaceX(getHgap());
+                columns = (int) Math.floor((contentWidth + gap) / (track + gap));
+            }
         }
         if (columns < 1) {
             columns = 1;

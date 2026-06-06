@@ -9,7 +9,6 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
-import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableIntegerProperty;
@@ -93,10 +92,9 @@ public class RXResponsiveRow extends Pane {
     public static final double DEFAULT_ROW_GAP = 0.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-responsive-row";
-    private static final String BREAKPOINT_PSEUDO_CLASS_PREFIX = "bp-";
     private static final Logger LOGGER = Logger.getLogger(RXResponsiveRow.class.getName());
 
-    private PseudoClass activeBreakpointPseudoClass;
+    private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
     private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
     private final Map<RXResponsiveCol, ResponsiveHiddenState> responsiveHiddenStates =
             new IdentityHashMap<>();
@@ -912,18 +910,12 @@ public class RXResponsiveRow extends Pane {
     }
 
     private void updateActiveBreakpoint(double width) {
-        RXBreakpoint next = resolveBreakpoint(width);
-        RXBreakpoint current = getActiveBreakpoint();
-        if (Objects.equals(next, current)) {
+        RXBreakpoint next = breakpointSupport.update(breakpointProfileOrDefault(), width,
+                this::pseudoClassStateChanged);
+        if (Objects.equals(next, getActiveBreakpoint())) {
             return;
         }
-        if (activeBreakpointPseudoClass != null) {
-            pseudoClassStateChanged(activeBreakpointPseudoClass, false);
-        }
         setActiveBreakpoint(next);
-        activeBreakpointPseudoClass =
-                PseudoClass.getPseudoClass(BREAKPOINT_PSEUDO_CLASS_PREFIX + next.getName());
-        pseudoClassStateChanged(activeBreakpointPseudoClass, true);
         requestLayout();
     }
 
