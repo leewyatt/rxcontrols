@@ -1,0 +1,54 @@
+.root {
+    -fx-background-color: #f1f5f9;
+}
+
+.demo-header {
+    -fx-padding: 18 20 12 20;
+}
+
+.demo-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.demo-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.notes-scroll {
+    -fx-background-color: transparent;
+}
+
+.notes-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.note-card {
+    -fx-spacing: 7;
+    -fx-padding: 16;
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 10, 0.08, 0, 3);
+}
+
+.note-category {
+    -fx-padding: 2 8 2 8;
+    -fx-background-radius: 999;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.note-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.note-body {
+    -fx-font-size: 13px;
+    -fx-text-fill: #475569;
+    -fx-line-spacing: 2;
+}
