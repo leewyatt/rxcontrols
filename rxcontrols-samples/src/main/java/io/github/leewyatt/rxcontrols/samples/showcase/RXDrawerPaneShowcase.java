@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -68,7 +67,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         drawer.setContent(createMainContent());
         drawer.setDrawerContent(createDrawerContent());
         drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
-                e.getEventType().getName() + (e.getReason() == null ? "" : " (" + e.getReason() + ")")));
+                e.getEventType().getName()));
         return drawer;
     }
 
@@ -102,7 +101,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         title.getStyleClass().add("drawer-title");
 
         Button close = new Button("Close");
-        close.setOnAction(e -> drawer.requestClose(CloseReason.CLOSE_BUTTON));
+        close.setOnAction(e -> drawer.close());
 
         BorderPane header = new BorderPane();
         header.getStyleClass().add("drawer-header");

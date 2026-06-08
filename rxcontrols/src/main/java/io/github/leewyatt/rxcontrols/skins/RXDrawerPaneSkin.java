@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
@@ -108,20 +107,20 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         // subtree and never escape (capturing filter takes over traversal).
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleTabTrap);
 
-        // Clicking the overlay pane requests an OVERLAY_PANE_CLICK close (it is
-        // pickable only while open and modal, so the guard is belt-and-suspenders).
+        // Clicking the overlay pane requests a close (it is pickable only while
+        // open and modal, so the guard is belt-and-suspenders).
         disposer.registerEventHandler(overlayPane, MouseEvent.MOUSE_CLICKED, event -> {
             if (control.isCloseOnOverlayPaneClick() && overlayPaneActive() && control.isShowing()) {
-                control.requestClose(CloseReason.OVERLAY_PANE_CLICK);
+                control.close();
                 event.consume();
             }
         });
 
-        // ESC anywhere in the drawer subtree requests an ESC close. A capturing filter
+        // ESC anywhere in the drawer subtree requests a close. A capturing filter
         // catches it before the focused descendant consumes it.
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ESCAPE && control.isCloseOnEsc() && control.isShowing()) {
-                control.requestClose(CloseReason.ESC);
+                control.close();
                 event.consume();
             }
         });
@@ -311,18 +310,18 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             closeInFlight = false;
             applyDrawerWrapperRest(true);
             moveFocusIntoDrawer();
-            fireLifecycle(RXDrawerEvent.OPENING, null);
+            fireLifecycle(RXDrawerEvent.OPENING);
             playOpen();
         } else {
             closeInFlight = true;
             openInFlight = false;
-            fireLifecycle(RXDrawerEvent.CLOSING, getSkinnable().getActiveCloseReason());
+            fireLifecycle(RXDrawerEvent.CLOSING);
             playClose();
         }
     }
 
-    private void fireLifecycle(EventType<RXDrawerEvent> type, CloseReason reason) {
-        getSkinnable().fireEvent(new RXDrawerEvent(type, getSkinnable(), reason));
+    private void fireLifecycle(EventType<RXDrawerEvent> type) {
+        getSkinnable().fireEvent(new RXDrawerEvent(type, getSkinnable()));
     }
 
     private void playOpen() {
@@ -396,7 +395,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         applyOverlayPaneRest(true);
         if (openInFlight) {
             openInFlight = false;
-            fireLifecycle(RXDrawerEvent.OPENED, null);
+            fireLifecycle(RXDrawerEvent.OPENED);
         }
     }
 
@@ -423,7 +422,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
         applyDrawerWrapperRest(false);
         if (wasCloseInFlight) {
-            fireLifecycle(RXDrawerEvent.CLOSED, getSkinnable().getActiveCloseReason());
+            fireLifecycle(RXDrawerEvent.CLOSED);
         }
     }
 

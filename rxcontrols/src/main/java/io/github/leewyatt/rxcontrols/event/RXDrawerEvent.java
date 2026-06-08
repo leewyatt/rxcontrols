@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.event;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 
 import javafx.event.Event;
 import javafx.event.EventType;
@@ -19,9 +18,7 @@ import javafx.event.EventType;
  * {@link Event#consume() consumed} to abort it — the drawer-equivalent of
  * {@code Stage.setOnCloseRequest}. The other four are pure notifications:
  * {@link #OPENING} / {@link #CLOSING} when the slide starts, {@link #OPENED} /
- * {@link #CLOSED} when it finishes. The {@link #getReason() reason} is meaningful
- * only on the close events ({@code CLOSE_REQUEST} / {@code CLOSING} /
- * {@code CLOSED}); it is {@code null} on {@code OPENING} / {@code OPENED}.</p>
+ * {@link #CLOSED} when it finishes.</p>
  */
 public class RXDrawerEvent extends Event {
 
@@ -57,19 +54,16 @@ public class RXDrawerEvent extends Event {
     public static final EventType<RXDrawerEvent> CLOSED = new EventType<>(ANY, "CLOSED");
 
     private final transient RXDrawerPane drawer;
-    private final CloseReason reason;
 
     /**
      * Creates a drawer event whose source and target are the drawer itself.
      *
      * @param eventType the specific event type
      * @param drawer    the drawer firing the event
-     * @param reason    the close reason, meaningful only for the close events; {@code null} otherwise
      */
-    public RXDrawerEvent(EventType<RXDrawerEvent> eventType, RXDrawerPane drawer, CloseReason reason) {
+    public RXDrawerEvent(EventType<RXDrawerEvent> eventType, RXDrawerPane drawer) {
         super(drawer, drawer, eventType);
         this.drawer = drawer;
-        this.reason = reason;
     }
 
     /**
@@ -79,15 +73,5 @@ public class RXDrawerEvent extends Event {
      */
     public RXDrawerPane getDrawer() {
         return drawer;
-    }
-
-    /**
-     * Returns why the drawer was asked to close, or {@code null} for the open
-     * events.
-     *
-     * @return the close reason, or {@code null}
-     */
-    public CloseReason getReason() {
-        return reason;
     }
 }

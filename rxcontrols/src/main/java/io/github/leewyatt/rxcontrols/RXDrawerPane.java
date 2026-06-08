@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
@@ -64,7 +63,7 @@ import java.util.List;
  * over a dimming, click-catching overlay pane that makes it modal) or
  * {@link RXDrawerMode#PUSH push} it aside. Closing flows through a vetoable
  * {@code CLOSE_REQUEST} {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent}
- * (ESC, overlay-pane click, custom close button, or programmatic). Drawer content
+ * before any close proceeds. Drawer content
  * is rendered directly; applications own any header, body, footer, scrolling, and
  * close-button layout they need.</p>
  */
@@ -385,9 +384,6 @@ public class RXDrawerPane extends Control {
     // Set while close() has already arbitrated the veto, so the showing
     // invalidated path does not fire a second CLOSE_REQUEST.
     private boolean vetoBypass;
-    // The reason for the close currently being processed; read by the skin when it
-    // fires the CLOSING / CLOSED events.
-    private CloseReason activeCloseReason = CloseReason.PROGRAMMATIC;
 
     private final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", DEFAULT_SHOWING) {
         @Override
@@ -397,8 +393,7 @@ public class RXDrawerPane extends Control {
             }
             // A direct setShowing(false) (or a binding pushing false) still passes
             // through the CLOSE_REQUEST veto; close() handles its own arbitration.
-            activeCloseReason = CloseReason.PROGRAMMATIC;
-            if (fireCloseRequest(CloseReason.PROGRAMMATIC) && !isBound()) {
+            if (fireCloseRequest() && !isBound()) {
                 // Vetoed and revertible: stay open. A bound showing cannot be
                 // reverted, so a vetoed bound-close proceeds (documented contract).
                 set(true);
@@ -738,8 +733,7 @@ public class RXDrawerPane extends Control {
             };
 
     /**
-     * Whether clicking the overlay pane requests a close (with reason
-     * {@link io.github.leewyatt.rxcontrols.enums.CloseReason#OVERLAY_PANE_CLICK OVERLAY_PANE_CLICK}).
+     * Whether clicking the overlay pane requests a close.
      *
      * @return the close-on-overlay-pane-click property
      */
@@ -785,8 +779,7 @@ public class RXDrawerPane extends Control {
     };
 
     /**
-     * Whether pressing ESC while the drawer is open requests a close (with reason
-     * {@link io.github.leewyatt.rxcontrols.enums.CloseReason#ESC ESC}).
+     * Whether pressing ESC while the drawer is open requests a close.
      *
      * @return the close-on-esc property
      */
@@ -828,24 +821,10 @@ public class RXDrawerPane extends Control {
      * no-op when already closed or closing.
      */
     public final void close() {
-        requestClose(CloseReason.PROGRAMMATIC);
-    }
-
-    /**
-     * Requests a close with a specific {@link CloseReason} through the
-     * {@code CLOSE_REQUEST} veto. This method is intended to be used by experts,
-     * primarily by those implementing Skins or Behaviors, to wire close triggers
-     * (close button, ESC, overlay-pane click); ordinary code calls {@link #close()}. A no-op
-     * when already closed or closing.
-     *
-     * @param reason why the close was requested
-     */
-    public final void requestClose(CloseReason reason) {
         if (!isShowing()) {
             return;
         }
-        activeCloseReason = reason;
-        if (fireCloseRequest(reason)) {
+        if (fireCloseRequest()) {
             return;
         }
         vetoBypass = true;
@@ -873,25 +852,12 @@ public class RXDrawerPane extends Control {
     /**
      * Fires a {@code CLOSE_REQUEST} and reports whether a handler vetoed it.
      *
-     * @param reason why the close was requested
      * @return {@code true} if a handler consumed the event (close vetoed)
      */
-    private boolean fireCloseRequest(CloseReason reason) {
-        RXDrawerEvent event = new RXDrawerEvent(RXDrawerEvent.CLOSE_REQUEST, this, reason);
+    private boolean fireCloseRequest() {
+        RXDrawerEvent event = new RXDrawerEvent(RXDrawerEvent.CLOSE_REQUEST, this);
         fireEvent(event);
         return event.isConsumed();
-    }
-
-    /**
-     * Returns the reason for the close currently being processed. This method is
-     * intended to be used by experts, primarily by those implementing new Skins or
-     * Behaviors, to tag the {@code CLOSING} / {@code CLOSED} events; ordinary code
-     * reads {@link RXDrawerEvent#getReason()} from a handler instead.
-     *
-     * @return the active close reason
-     */
-    public final CloseReason getActiveCloseReason() {
-        return activeCloseReason;
     }
 
     // ==================== Events ====================

@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
@@ -46,7 +45,7 @@ public class RXDrawerPaneDemo extends Application {
         drawer.setContent(createMainPage(drawer));
         drawer.setDrawerContent(createDrawerPanel(drawer));
         drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
-                e.getEventType().getName() + (e.getReason() == null ? "" : " (" + e.getReason() + ")")));
+                e.getEventType().getName()));
 
         Scene scene = new Scene(drawer, 900.0, 600.0);
         scene.getStylesheets().add(
@@ -102,7 +101,7 @@ public class RXDrawerPaneDemo extends Application {
 
         Button close = new Button("Close");
         close.getStyleClass().add("ghost-button");
-        close.setOnAction(e -> drawer.requestClose(CloseReason.CLOSE_BUTTON));
+        close.setOnAction(e -> drawer.close());
 
         BorderPane header = new BorderPane();
         header.getStyleClass().add("drawer-header");

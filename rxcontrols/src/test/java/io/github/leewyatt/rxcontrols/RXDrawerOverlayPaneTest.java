@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for the overlay pane (modal backdrop) and ESC behavior of
  * {@link RXDrawerPane}: overlay-pane visibility/pickability across open/close,
  * {@code overlayPaneVisible} / {@code closeOnOverlayPaneClick} / {@code closeOnEsc},
- * overlay-pane click → OVERLAY_PANE_CLICK close, and ESC → ESC close, both vetoable.
+ * overlay-pane click close, and ESC close, both vetoable.
  * The dim level itself is CSS (the {@code .overlay-pane} background), so the node's
  * opacity is just animated between 0 and 1.
  */
@@ -98,7 +98,7 @@ public class RXDrawerOverlayPaneTest {
     // ==================== Overlay pane click ====================
 
     @Test
-    public void overlayPaneClickRequestsOverlayPaneClickClose() throws Exception {
+    public void overlayPaneClickRequestsClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -111,8 +111,7 @@ public class RXDrawerOverlayPaneTest {
 
             assertFalse(pane.isShowing(), "overlay-pane click closes the drawer");
             assertEquals(List.of(
-                    "CLOSE_REQUEST:OVERLAY_PANE_CLICK", "CLOSING:OVERLAY_PANE_CLICK",
-                    "CLOSED:OVERLAY_PANE_CLICK"), log);
+                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
         });
     }
 
@@ -150,7 +149,7 @@ public class RXDrawerOverlayPaneTest {
     // ==================== ESC ====================
 
     @Test
-    public void escRequestsEscClose() throws Exception {
+    public void escRequestsClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -163,7 +162,7 @@ public class RXDrawerOverlayPaneTest {
 
             assertFalse(pane.isShowing(), "ESC closes the drawer");
             assertEquals(List.of(
-                    "CLOSE_REQUEST:ESC", "CLOSING:ESC", "CLOSED:ESC"), log);
+                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
         });
     }
 
@@ -230,7 +229,7 @@ public class RXDrawerOverlayPaneTest {
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
         pane.addEventHandler(RXDrawerEvent.ANY,
-                e -> log.add(e.getEventType().getName() + ":" + e.getReason()));
+                e -> log.add(e.getEventType().getName()));
         return log;
     }
 

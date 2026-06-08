@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
@@ -28,8 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for the PR2 surface of {@link RXDrawerPane}: the {@link RXDrawerEvent}
  * lifecycle (OPENING/OPENED/CLOSING/CLOSED), the vetoable {@code CLOSE_REQUEST}
- * across all programmatic close paths, {@link CloseReason} tagging, and the
- * {@code onXxx} handler properties.
+ * across all close paths, and the {@code onXxx} handler properties.
  */
 public class RXDrawerEventTest {
 
@@ -69,8 +67,8 @@ public class RXDrawerEventTest {
             pane.close();
 
             assertEquals(List.of(
-                    "OPENING:null", "OPENED:null",
-                    "CLOSE_REQUEST:PROGRAMMATIC", "CLOSING:PROGRAMMATIC", "CLOSED:PROGRAMMATIC"), log);
+                    "OPENING", "OPENED",
+                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
         });
     }
 
@@ -131,7 +129,7 @@ public class RXDrawerEventTest {
             pane.close();
 
             assertTrue(pane.isShowing(), "vetoed close stays open");
-            assertEquals(List.of("CLOSE_REQUEST:PROGRAMMATIC"), log, "no CLOSING/CLOSED after veto");
+            assertEquals(List.of("CLOSE_REQUEST"), log, "no CLOSING/CLOSED after veto");
         });
     }
 
@@ -181,7 +179,7 @@ public class RXDrawerEventTest {
             source.set(false);
             assertFalse(pane.isShowing(), "bound close proceeds despite the veto");
             assertEquals(List.of(
-                    "CLOSE_REQUEST:PROGRAMMATIC", "CLOSING:PROGRAMMATIC", "CLOSED:PROGRAMMATIC"), log);
+                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
         });
     }
 
@@ -230,11 +228,11 @@ public class RXDrawerEventTest {
             pane.layout();
 
             pane.open();
-            assertEquals(List.of("OPENING:null"), log, "OPENING while the slide is animating");
+            assertEquals(List.of("OPENING"), log, "OPENING while the slide is animating");
             // A side change mid-slide settles the open exactly once; it must not leave a
             // stale inFlight flag that a later detach would fire as a spurious OPENED.
             pane.setSide(Side.LEFT);
-            assertEquals(List.of("OPENING:null", "OPENED:null"), log, "side change settles the open");
+            assertEquals(List.of("OPENING", "OPENED"), log, "side change settles the open");
             log.clear();
             scene.setRoot(new Region());
             assertTrue(log.isEmpty(), "no spurious event on detach after a side change");
@@ -246,7 +244,7 @@ public class RXDrawerEventTest {
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
         pane.addEventHandler(RXDrawerEvent.ANY,
-                e -> log.add(e.getEventType().getName() + ":" + e.getReason()));
+                e -> log.add(e.getEventType().getName()));
         return log;
     }
 
