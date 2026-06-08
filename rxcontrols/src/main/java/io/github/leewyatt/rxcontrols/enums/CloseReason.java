@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.enums;
 
 /**
- * Why an {@link io.github.leewyatt.rxcontrols.RXDrawerPane} was asked to close.
- * Carried by the {@code CLOSE_REQUEST} / {@code CLOSING} / {@code CLOSED}
- * {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent} so a veto handler can
- * decide based on the trigger.
+ * Why an {@link io.github.leewyatt.rxcontrols.RXDrawerPane RXDrawerPane} was asked
+ * to close. Carried by the {@code CLOSE_REQUEST} / {@code CLOSING} / {@code CLOSED}
+ * {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent RXDrawerEvent} so a veto
+ * handler can decide based on the trigger.
  *
  * <p>The drawer's overlay-sliding increment produces only {@link #PROGRAMMATIC}.
  * {@link #ESC}, {@link #SCRIM_CLICK} and {@link #CLOSE_BUTTON} are produced once
