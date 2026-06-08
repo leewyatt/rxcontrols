@@ -669,9 +669,12 @@
  *                                                                             *
  ******************************************************************************/
 
+.rx-drawer-pane > .scrim {
+    -fx-background-color: black;
+}
+
 .rx-drawer-pane > .drawer {
     -fx-background-color: -fx-background;
-    -fx-padding: 16;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 16, 0, 0, 0);
 }
 
@@ -689,6 +692,10 @@
 
 .rx-drawer-pane:bottom > .drawer {
     -fx-background-radius: 8 8 0 0;
+}
+
+.rx-drawer-pane:push > .drawer {
+    -fx-effect: null;
 }
 
 .rx-drawer-pane > .drawer > .header {

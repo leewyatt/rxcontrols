@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.animation.Animation;
@@ -10,14 +11,18 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventType;
 import javafx.geometry.HPos;
 import javafx.geometry.Side;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -26,6 +31,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Skin for {@link RXDrawerPane}. Stacks a fill-the-area content layer under an
@@ -53,6 +61,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
 
     private final StackPane contentPane = new StackPane();
+    private final Region scrim = new Region();
     private final BorderPane drawerPane = new BorderPane();
     private final HBox header = new HBox();
     private final Label titleLabel = new Label();
@@ -69,6 +78,17 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     // OPENING/CLOSING transition is in flight, never on a redundant settle.
     private boolean openInFlight;
     private boolean closeInFlight;
+    // The focus owner captured when a modal drawer opened, restored when it closes.
+    private Node prevFocusOwner;
+
+    // PUSH expand ratio in [0, 1]: 0 = collapsed, 1 = fully open. Only PUSH tweens
+    // it; its change relayouts so the content makes room (the PUSH cost).
+    private final DoubleProperty progress = new SimpleDoubleProperty(this, "progress", 0.0) {
+        @Override
+        protected void invalidated() {
+            getSkinnable().requestLayout();
+        }
+    };
 
     /**
      * Creates the skin, assembles the content layer and the drawer panel chrome
@@ -81,6 +101,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         super(control);
 
         drawerPane.getStyleClass().add("drawer");
+        scrim.getStyleClass().add("scrim");
         header.getStyleClass().add("header");
         body.getStyleClass().add("body");
         footerContainer.getStyleClass().add("footer");
@@ -98,15 +119,21 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         closeGraphic.setMouseTransparent(true);
         closeButton.getChildren().add(closeGraphic);
         closeButton.setAccessibleText("Close");
+        closeButton.setFocusTraversable(true);
 
         scrollPane.setFitToWidth(true);
+        // The drawer panel is the last-resort focus target when modal and nothing
+        // inside is focusable.
+        drawerPane.setFocusTraversable(true);
         drawerPane.setCenter(body);
 
-        getChildren().setAll(contentPane, drawerPane);
+        // z-order: content (bottom) → scrim (middle) → drawer (top).
+        getChildren().setAll(contentPane, scrim, drawerPane);
         updateContent();
         updateBody();
         updateHeader();
         updateFooter();
+        applyScrimRest(control.isShowing());
 
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
@@ -116,17 +143,50 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             event.consume();
         });
 
+        // The close button is a non-Control focusable, so wire keyboard activation.
+        disposer.registerEventHandler(closeButton, KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+                control.requestClose(CloseReason.CLOSE_BUTTON);
+                event.consume();
+            }
+        });
+
+        // Focus trap: while modal and open, Tab / Shift+Tab cycle within the drawer
+        // subtree and never escape (capturing filter takes over traversal).
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleTabTrap);
+
+        // Clicking the scrim requests a SCRIM_CLICK close (the scrim is pickable only
+        // while open and modal, so the guard is belt-and-suspenders).
+        disposer.registerEventHandler(scrim, MouseEvent.MOUSE_CLICKED, event -> {
+            if (control.isDismissOnScrimClick() && scrimActive() && control.isShowing()) {
+                control.requestClose(CloseReason.SCRIM_CLICK);
+                event.consume();
+            }
+        });
+
+        // ESC anywhere in the drawer subtree requests an ESC close. A capturing filter
+        // catches it before the focused descendant consumes it.
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE && control.isCloseOnEsc() && control.isShowing()) {
+                control.requestClose(CloseReason.ESC);
+                event.consume();
+            }
+        });
+
         // A ChangeListener (not invalidation): a vetoed close that reverts
         // showing true→false→true reports old == new and is correctly skipped.
         disposer.registerListener(control.showingProperty(),
                 (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.sideProperty(), this::onSideChanged);
+        disposer.registerListener(control.drawerModeProperty(), this::onModeChanged);
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.drawerContentProperty(), this::updateBody);
         disposer.registerListener(control.scrollableProperty(), this::updateBody);
         disposer.registerListener(control.titleProperty(), this::updateHeader);
         disposer.registerListener(control.showCloseButtonProperty(), this::updateHeader);
         disposer.registerListener(control.footerProperty(), this::updateFooter);
+        disposer.registerListener(control.scrimProperty(), this::onScrimChanged);
+        disposer.registerListener(control.scrimOpacityProperty(), this::onScrimChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimatedChanged);
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationDurationChanged);
         disposer.registerListener(control.prefDrawerWidthProperty(), this::onThicknessChanged);
@@ -199,6 +259,26 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         double drawerW = horizontal ? thickness : contentWidth;
         double drawerH = horizontal ? contentHeight : thickness;
 
+        // The scrim always fills; it is only visible while modal (see applyScrimRest).
+        layoutInArea(scrim, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
+
+        if (isPush()) {
+            layoutPush(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
+        } else {
+            layoutOverlay(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
+        }
+
+        if (!initialized && !isAnimationRunning()) {
+            snapToShowing();
+            initialized = true;
+        }
+        resetClip();
+    }
+
+    // OVERLAY: content fills, the panel rests at its open (edge-attached) position;
+    // the closed state and the slide are expressed purely by translate.
+    private void layoutOverlay(double contentX, double contentY, double contentWidth,
+                               double contentHeight, double drawerW, double drawerH) {
         layoutInArea(contentPane, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
         double areaX = contentX;
@@ -211,12 +291,44 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             }
         }
         layoutInArea(drawerPane, areaX, areaY, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
+    }
 
-        if (!initialized && !isAnimationRunning()) {
-            snapToShowing();
-            initialized = true;
+    // PUSH: the panel and the shrunken content are both positioned directly from
+    // progress p — the panel does not translate.
+    private void layoutPush(double contentX, double contentY, double contentWidth,
+                            double contentHeight, double drawerW, double drawerH) {
+        double p = progress.get();
+        double cx = contentX;
+        double cy = contentY;
+        double cw = contentWidth;
+        double ch = contentHeight;
+        double dx = contentX;
+        double dy = contentY;
+        switch (sideOrDefault()) {
+            case LEFT -> {
+                cx = contentX + drawerW * p;
+                cw = contentWidth - drawerW * p;
+                dx = contentX + drawerW * (p - 1.0);
+            }
+            case RIGHT -> {
+                cw = contentWidth - drawerW * p;
+                dx = contentX + contentWidth - drawerW * p;
+            }
+            case TOP -> {
+                cy = contentY + drawerH * p;
+                ch = contentHeight - drawerH * p;
+                dy = contentY + drawerH * (p - 1.0);
+            }
+            case BOTTOM -> {
+                ch = contentHeight - drawerH * p;
+                dy = contentY + contentHeight - drawerH * p;
+            }
+            default -> {
+                // unreachable
+            }
         }
-        resetClip();
+        layoutInArea(contentPane, cx, cy, Math.max(0.0, cw), Math.max(0.0, ch), 0, HPos.LEFT, VPos.TOP);
+        layoutInArea(drawerPane, dx, dy, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
     }
 
     private void resetClip() {
@@ -280,6 +392,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         if (showing) {
             openInFlight = true;
             closeInFlight = false;
+            moveFocusIntoDrawer();
             fireLifecycle(RXDrawerEvent.OPENING, null);
             playOpen();
         } else {
@@ -301,14 +414,20 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             return;
         }
         Interpolator interpolator = interpolatorOrDefault();
-        Timeline timeline = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration(),
-                new KeyValue(axisTranslate(), 0.0, interpolator)));
-        timeline.setOnFinished(event -> {
-            if (animation == timeline) {
-                animation = null;
+        List<KeyValue> keyValues = new ArrayList<>();
+        if (isPush()) {
+            keyValues.add(new KeyValue(progress, 1.0, interpolator));
+        } else {
+            keyValues.add(new KeyValue(axisTranslate(), 0.0, interpolator));
+            if (scrimActive()) {
+                // Make the scrim pickable and fade it in along the same KeyFrame.
+                scrim.setVisible(true);
+                scrim.setMouseTransparent(false);
+                keyValues.add(new KeyValue(scrim.opacityProperty(),
+                        getSkinnable().getScrimOpacity(), interpolator));
             }
-            finalizeOpen();
-        });
+        }
+        Timeline timeline = playTimeline(keyValues, this::finalizeOpen);
         animation = timeline;
         timeline.play();
     }
@@ -320,21 +439,43 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             return;
         }
         Interpolator interpolator = interpolatorOrDefault();
-        Timeline timeline = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration(),
-                new KeyValue(axisTranslate(), closedTranslate(), interpolator)));
-        timeline.setOnFinished(event -> {
-            if (animation == timeline) {
-                animation = null;
+        List<KeyValue> keyValues = new ArrayList<>();
+        if (isPush()) {
+            keyValues.add(new KeyValue(progress, 0.0, interpolator));
+        } else {
+            keyValues.add(new KeyValue(axisTranslate(), closedTranslate(), interpolator));
+            if (scrimActive()) {
+                keyValues.add(new KeyValue(scrim.opacityProperty(), 0.0, interpolator));
             }
-            finalizeClose();
-        });
+        }
+        Timeline timeline = playTimeline(keyValues, this::finalizeClose);
         animation = timeline;
         timeline.play();
     }
 
+    private Timeline playTimeline(List<KeyValue> keyValues, Runnable onFinish) {
+        Timeline timeline = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration(),
+                keyValues.toArray(new KeyValue[0])));
+        timeline.setOnFinished(event -> {
+            if (animation == timeline) {
+                animation = null;
+            }
+            onFinish.run();
+        });
+        return timeline;
+    }
+
     private void finalizeOpen() {
-        drawerPane.setTranslateX(0.0);
-        drawerPane.setTranslateY(0.0);
+        if (isPush()) {
+            // PUSH positions the panel from progress; keep translate neutral.
+            drawerPane.setTranslateX(0.0);
+            drawerPane.setTranslateY(0.0);
+            progress.set(1.0);
+        } else {
+            drawerPane.setTranslateX(0.0);
+            drawerPane.setTranslateY(0.0);
+        }
+        applyScrimRest(true);
         if (openInFlight) {
             openInFlight = false;
             fireLifecycle(RXDrawerEvent.OPENED, null);
@@ -342,28 +483,186 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     private void finalizeClose() {
-        double closed = closedTranslate();
-        if (isHorizontal()) {
-            drawerPane.setTranslateX(closed);
-            drawerPane.setTranslateY(0.0);
-        } else {
-            drawerPane.setTranslateY(closed);
+        if (isPush()) {
             drawerPane.setTranslateX(0.0);
+            drawerPane.setTranslateY(0.0);
+            progress.set(0.0);
+        } else {
+            double closed = closedTranslate();
+            if (isHorizontal()) {
+                drawerPane.setTranslateX(closed);
+                drawerPane.setTranslateY(0.0);
+            } else {
+                drawerPane.setTranslateY(closed);
+                drawerPane.setTranslateX(0.0);
+            }
         }
+        applyScrimRest(false);
         if (closeInFlight) {
             closeInFlight = false;
+            restoreFocus();
             fireLifecycle(RXDrawerEvent.CLOSED, getSkinnable().getActiveCloseReason());
         }
     }
 
-    private void snapToShowing() {
-        double target = getSkinnable().isShowing() ? 0.0 : closedTranslate();
-        if (isHorizontal()) {
-            drawerPane.setTranslateX(target);
-            drawerPane.setTranslateY(0.0);
+    // ==================== Focus (a11y) ====================
+
+    /**
+     * Captures the current focus owner and moves focus into the drawer, only when
+     * modal (a non-modal drawer leaves the page interactive and does not steal focus).
+     */
+    private void moveFocusIntoDrawer() {
+        if (!scrimActive()) {
+            return;
+        }
+        Scene scene = getSkinnable().getScene();
+        if (scene == null) {
+            return;
+        }
+        prevFocusOwner = scene.getFocusOwner();
+        Node target = firstFocusTarget();
+        if (target != null) {
+            target.requestFocus();
+        }
+    }
+
+    private void restoreFocus() {
+        if (prevFocusOwner != null && prevFocusOwner.getScene() != null) {
+            prevFocusOwner.requestFocus();
+        }
+        prevFocusOwner = null;
+    }
+
+    private Node firstFocusTarget() {
+        // Discovery order: first focusable in drawerContent → close button → the panel.
+        Node inContent = firstFocusableIn(getSkinnable().getDrawerContent());
+        if (inContent != null) {
+            return inContent;
+        }
+        if (header.getChildren().contains(closeButton)) {
+            return closeButton;
+        }
+        return drawerPane;
+    }
+
+    private static Node firstFocusableIn(Node root) {
+        if (root == null || !root.isVisible() || root.isDisabled()) {
+            return null;
+        }
+        if (root.isFocusTraversable()) {
+            return root;
+        }
+        if (root instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                Node found = firstFocusableIn(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void handleTabTrap(KeyEvent event) {
+        if (event.getCode() != KeyCode.TAB || !scrimActive() || !getSkinnable().isShowing()) {
+            return;
+        }
+        Scene scene = getSkinnable().getScene();
+        if (scene == null) {
+            return;
+        }
+        List<Node> focusables = new ArrayList<>();
+        for (Node child : drawerPane.getChildrenUnmodifiable()) {
+            collectFocusable(child, focusables);
+        }
+        // Take over traversal entirely so focus can never leave the modal drawer.
+        event.consume();
+        if (focusables.isEmpty()) {
+            return;
+        }
+        int index = focusables.indexOf(scene.getFocusOwner());
+        int next;
+        if (event.isShiftDown()) {
+            next = index <= 0 ? focusables.size() - 1 : index - 1;
         } else {
-            drawerPane.setTranslateY(target);
+            next = (index < 0 || index >= focusables.size() - 1) ? 0 : index + 1;
+        }
+        focusables.get(next).requestFocus();
+    }
+
+    private static void collectFocusable(Node node, List<Node> out) {
+        if (node == null || !node.isVisible() || node.isDisabled()) {
+            return;
+        }
+        if (node.isFocusTraversable()) {
+            out.add(node);
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                collectFocusable(child, out);
+            }
+        }
+    }
+
+    private void snapToShowing() {
+        boolean open = getSkinnable().isShowing();
+        if (isPush()) {
             drawerPane.setTranslateX(0.0);
+            drawerPane.setTranslateY(0.0);
+            progress.set(open ? 1.0 : 0.0);
+        } else {
+            double target = open ? 0.0 : closedTranslate();
+            if (isHorizontal()) {
+                drawerPane.setTranslateX(target);
+                drawerPane.setTranslateY(0.0);
+            } else {
+                drawerPane.setTranslateY(target);
+                drawerPane.setTranslateX(0.0);
+            }
+        }
+        applyScrimRest(open);
+    }
+
+    private RXDrawerMode drawerModeOrDefault() {
+        RXDrawerMode mode = getSkinnable().getDrawerMode();
+        return mode == null ? RXDrawerPane.DEFAULT_DRAWER_MODE : mode;
+    }
+
+    private boolean isPush() {
+        return drawerModeOrDefault() == RXDrawerMode.PUSH;
+    }
+
+    /**
+     * Whether the scrim participates: only when overlaying with the scrim enabled.
+     * PUSH is never modal.
+     */
+    private boolean scrimActive() {
+        return drawerModeOrDefault() == RXDrawerMode.OVERLAY && getSkinnable().isScrim();
+    }
+
+    /**
+     * Settles the scrim to its resting pose: dimmed and pickable when open and
+     * active, fully transparent and click-through otherwise.
+     *
+     * @param open whether the drawer rests open
+     */
+    private void applyScrimRest(boolean open) {
+        if (open && scrimActive()) {
+            scrim.setVisible(true);
+            scrim.setMouseTransparent(false);
+            scrim.setOpacity(getSkinnable().getScrimOpacity());
+        } else {
+            scrim.setVisible(false);
+            scrim.setMouseTransparent(true);
+            scrim.setOpacity(0.0);
+        }
+    }
+
+    private void onScrimChanged() {
+        // A scrim/scrimOpacity change re-settles the resting pose unless an animation
+        // currently owns the scrim opacity.
+        if (!isAnimationRunning()) {
+            applyScrimRest(getSkinnable().isShowing());
         }
     }
 
@@ -393,11 +692,21 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     // ==================== Property reactions ====================
 
     private void onSideChanged() {
-        // A side change retargets the axis. Stop any slide and settle the in-flight
-        // transition to its terminal — the inFlight guard fires the matching
-        // OPENED/CLOSED at most once and is cleared, so a later detach cannot fire a
-        // stale event. The listener runs after the side updates, so finalize* already
-        // uses the new axis. Layout then re-snaps for good measure.
+        // A side change retargets the axis; settle for the new axis.
+        settleAndRelayout();
+    }
+
+    private void onModeChanged() {
+        // A mode change switches the geometry channel (translate vs progress);
+        // settle the current transition for the new mode and re-snap.
+        settleAndRelayout();
+    }
+
+    // Stop any slide and settle the in-flight transition to its terminal — the
+    // inFlight guard fires the matching OPENED/CLOSED at most once and is cleared, so
+    // a later detach cannot fire a stale event. The listener runs after the property
+    // updates, so finalize* already uses the new side/mode. Layout then re-snaps.
+    private void settleAndRelayout() {
         stopAnimation();
         if (getSkinnable().isShowing()) {
             finalizeOpen();

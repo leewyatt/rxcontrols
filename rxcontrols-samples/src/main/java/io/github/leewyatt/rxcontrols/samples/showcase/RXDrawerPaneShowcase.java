@@ -1,0 +1,241 @@
+package io.github.leewyatt.rxcontrols.samples.showcase;
+
+import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
+import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+
+import javafx.animation.Interpolator;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.geometry.Pos;
+import javafx.geometry.Side;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.util.Duration;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * Showcase application for {@link RXDrawerPane}.
+ *
+ * <p>Hosts a drawer with placeholder content and a placeholder form, and a control
+ * panel that drives every configurable property — side, mode, scrim group, chrome
+ * (title / close button / scrollable / footer), animation, and drawer thickness —
+ * plus open/close/toggle buttons and a live read-out of {@code showing} and the
+ * last {@link RXDrawerEvent}.</p>
+ */
+public class RXDrawerPaneShowcase extends RXShowcaseApplication {
+
+    private static final double DEFAULT_THICKNESS = 320.0;
+
+    private RXDrawerPane drawer;
+    private final StringProperty lastEvent = new SimpleStringProperty("—");
+
+    @Override
+    protected String title() {
+        return "RXDrawerPane";
+    }
+
+    @Override
+    protected String subtitle() {
+        return "An overlay / push content drawer with scrim, veto, chrome and a11y.";
+    }
+
+    @Override
+    protected String stylesheetPath() {
+        return getClass().getResource("rx-drawer-pane-showcase.css").toExternalForm();
+    }
+
+    @Override
+    protected Node createPreview() {
+        drawer = new RXDrawerPane();
+        drawer.setContent(createMainContent());
+        drawer.setDrawerContent(createForm());
+        drawer.setTitle("Edit item");
+        drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
+                e.getEventType().getName() + (e.getReason() == null ? "" : " (" + e.getReason() + ")")));
+        return drawer;
+    }
+
+    private Region createMainContent() {
+        Label heading = new Label("Main content");
+        heading.getStyleClass().add("preview-heading");
+        Label hint = new Label("Use the panel on the right to drive every property, "
+                + "then open the drawer.");
+        hint.getStyleClass().add("preview-hint");
+        hint.setWrapText(true);
+        VBox box = new VBox(10.0, heading, hint);
+        box.getStyleClass().add("preview-content");
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+
+    private Region createForm() {
+        VBox form = new VBox(10.0);
+        form.getChildren().add(new Label("A form lives in the drawer body."));
+        for (int i = 1; i <= 8; i++) {
+            TextField field = new TextField();
+            field.setPromptText("Field " + i);
+            form.getChildren().add(field);
+        }
+        return form;
+    }
+
+    @Override
+    protected List<Section> createSections() {
+        return List.of(
+                section("Layout", layoutGrid()),
+                section("Scrim & dismissal", scrimGrid()),
+                section("Chrome", chromeGrid()),
+                section("Animation", animationGrid()),
+                section("State & actions", actionsBox()));
+    }
+
+    private Node layoutGrid() {
+        ComboBox<Side> side = new ComboBox<>(FXCollections.observableArrayList(
+                Side.TOP, Side.RIGHT, Side.BOTTOM, Side.LEFT));
+        side.setValue(drawer.getSide());
+        side.valueProperty().addListener((obs, old, value) -> drawer.setSide(value));
+        side.setMaxWidth(Double.MAX_VALUE);
+
+        ComboBox<RXDrawerMode> mode = new ComboBox<>(FXCollections.observableArrayList(
+                RXDrawerMode.OVERLAY, RXDrawerMode.PUSH));
+        mode.setValue(drawer.getDrawerMode());
+        mode.valueProperty().addListener((obs, old, value) -> drawer.setDrawerMode(value));
+        mode.setMaxWidth(Double.MAX_VALUE);
+
+        Slider width = createSlider(120.0, 460.0, DEFAULT_THICKNESS);
+        width.valueProperty().addListener((obs, old, value) -> drawer.setPrefDrawerWidth(value.doubleValue()));
+        drawer.setPrefDrawerWidth(DEFAULT_THICKNESS);
+
+        Slider height = createSlider(120.0, 460.0, DEFAULT_THICKNESS);
+        height.valueProperty().addListener((obs, old, value) -> drawer.setPrefDrawerHeight(value.doubleValue()));
+        drawer.setPrefDrawerHeight(DEFAULT_THICKNESS);
+
+        return createGrid(
+                row("Side", side),
+                row("Mode", mode),
+                row("Pref width", width, createValueLabel(width, "%.0f")),
+                row("Pref height", height, createValueLabel(height, "%.0f")));
+    }
+
+    private Node scrimGrid() {
+        CheckBox scrim = checkBox("Scrim (modal)", drawer.isScrim(), drawer::setScrim);
+        Slider opacity = createSlider(0.0, 1.0, drawer.getScrimOpacity());
+        opacity.valueProperty().addListener((obs, old, value) -> drawer.setScrimOpacity(value.doubleValue()));
+        CheckBox dismiss = checkBox("Dismiss on scrim click", drawer.isDismissOnScrimClick(),
+                drawer::setDismissOnScrimClick);
+        CheckBox esc = checkBox("Close on ESC", drawer.isCloseOnEsc(), drawer::setCloseOnEsc);
+
+        return createGrid(
+                row(scrim),
+                row("Opacity", opacity, createValueLabel(opacity, "%.2f")),
+                row(dismiss),
+                row(esc));
+    }
+
+    private Node chromeGrid() {
+        TextField title = new TextField(drawer.getTitle());
+        title.textProperty().addListener((obs, old, value) -> drawer.setTitle(value));
+        title.setMaxWidth(Double.MAX_VALUE);
+
+        CheckBox closeButton = checkBox("Show close button", drawer.isShowCloseButton(),
+                drawer::setShowCloseButton);
+        CheckBox scrollable = checkBox("Scrollable body", drawer.isScrollable(), drawer::setScrollable);
+        CheckBox footer = checkBox("Show footer", false, show -> drawer.setFooter(show ? createFooter() : null));
+
+        return createGrid(
+                row("Title", title),
+                row(closeButton),
+                row(scrollable),
+                row(footer));
+    }
+
+    private Region createFooter() {
+        Button cancel = new Button("Cancel");
+        cancel.setOnAction(e -> drawer.close());
+        Button save = new Button("Save");
+        HBox footer = new HBox(8.0, cancel, save);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        return footer;
+    }
+
+    private Node animationGrid() {
+        CheckBox animated = checkBox("Animated", drawer.isAnimated(), drawer::setAnimated);
+
+        Slider duration = createSlider(0.0, 600.0, drawer.getAnimationDuration().toMillis());
+        duration.valueProperty().addListener(
+                (obs, old, value) -> drawer.setAnimationDuration(Duration.millis(value.doubleValue())));
+
+        ComboBox<String> interpolator = new ComboBox<>(FXCollections.observableArrayList(
+                "EASE_BOTH", "LINEAR", "EASE_IN", "EASE_OUT"));
+        interpolator.setValue("EASE_BOTH");
+        interpolator.valueProperty().addListener(
+                (obs, old, value) -> drawer.setAnimationInterpolator(interpolatorFor(value)));
+        interpolator.setMaxWidth(Double.MAX_VALUE);
+
+        return createGrid(
+                row(animated),
+                row("Duration", duration, createValueLabel(duration, "%.0f ms")),
+                row("Easing", interpolator));
+    }
+
+    private static Interpolator interpolatorFor(String name) {
+        return switch (name) {
+            case "LINEAR" -> Interpolator.LINEAR;
+            case "EASE_IN" -> Interpolator.EASE_IN;
+            case "EASE_OUT" -> Interpolator.EASE_OUT;
+            default -> Interpolator.EASE_BOTH;
+        };
+    }
+
+    private Node actionsBox() {
+        Button open = new Button("open()");
+        open.setOnAction(e -> drawer.open());
+        Button close = new Button("close()");
+        close.setOnAction(e -> drawer.close());
+        Button toggle = new Button("toggle()");
+        toggle.setOnAction(e -> drawer.toggle());
+        HBox buttons = new HBox(8.0, open, close, toggle);
+
+        Label showing = new Label();
+        showing.getStyleClass().add("value-label");
+        showing.textProperty().bind(Bindings.createStringBinding(
+                () -> "showing: " + drawer.isShowing(), drawer.showingProperty()));
+
+        Label event = new Label();
+        event.getStyleClass().add("value-label");
+        event.textProperty().bind(Bindings.createStringBinding(
+                () -> "last event: " + lastEvent.get(), lastEvent));
+
+        return new VBox(10.0, buttons, showing, event);
+    }
+
+    private static CheckBox checkBox(String text, boolean selected, Consumer<Boolean> onChange) {
+        CheckBox box = new CheckBox(text);
+        box.setSelected(selected);
+        box.selectedProperty().addListener((obs, old, value) -> onChange.accept(value));
+        return box;
+    }
+
+    /**
+     * Launches the showcase.
+     *
+     * @param args command-line arguments
+     */
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
