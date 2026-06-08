@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.drawer.RXDrawerState;
 import javafx.application.Application;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -18,11 +18,11 @@ import javafx.stage.Stage;
 /**
  * Compact demo for {@link RXDrawerPane}: a right-sliding detail panel over a main
  * page. A button toggles the drawer; a side picker shows the slide working from
- * all four edges; a live label echoes the {@link RXDrawerState} machine.
+ * all four edges; a live label echoes the {@code showing} state.
  *
  * <p>Everything here uses only the public API — {@code open}/{@code close}/
- * {@code toggle}, {@code showing} and the read-only {@code state} — to keep the
- * demo an honest illustration of the control's surface.</p>
+ * {@code toggle} and the bindable {@code showing} property — to keep the demo an
+ * honest illustration of the control's surface.</p>
  */
 public class RXDrawerPaneDemo extends Application {
 
@@ -62,11 +62,12 @@ public class RXDrawerPaneDemo extends Application {
             }
         });
 
-        Label state = new Label();
-        state.getStyleClass().add("state-label");
-        state.textProperty().bind(drawer.stateProperty().asString("state: %s"));
+        Label showing = new Label();
+        showing.getStyleClass().add("state-label");
+        showing.textProperty().bind(Bindings.createStringBinding(
+                () -> "showing: " + drawer.isShowing(), drawer.showingProperty()));
 
-        HBox controls = new HBox(12.0, toggle, new Label("Side:"), sidePicker, state);
+        HBox controls = new HBox(12.0, toggle, new Label("Side:"), sidePicker, showing);
         controls.setAlignment(Pos.CENTER_LEFT);
 
         VBox page = new VBox(16.0, title, hint, controls);

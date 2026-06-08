@@ -1,7 +1,6 @@
-package io.github.leewyatt.rxcontrols.drawer;
+package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -29,13 +28,16 @@ import javafx.util.Duration;
  * {@link #animation} field is stopped and replaced rather than reused, every
  * termination path converges on {@link #finalizeOpen()} / {@link #finalizeClose()},
  * and because the field is rebuilt repeatedly it is stopped explicitly in
- * {@link #disposeSkin()} instead of being registered with the disposer.</p>
+ * {@link #disposeSkin()} instead of being registered with the disposer. The
+ * authoritative open/close intent is the control's
+ * {@link RXDrawerPane#showingProperty() showing} property; the skin never invents
+ * a parallel state.</p>
  */
 public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     /**
      * Default drawer thickness used when {@code prefDrawerWidth} /
-     * {@code prefDrawerHeight} are not a positive value. Sits in the
+     * {@code prefDrawerHeight} are not a finite positive value. Sits in the
      * Fluent-small / Naive / antd thickness band.
      */
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
@@ -49,8 +51,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     /**
      * Creates the skin, assembles the content and drawer layers, installs the
-     * clip, syncs the initial state from {@code showing}, and registers all
-     * listeners with the disposer.
+     * clip, and registers all listeners with the disposer.
      *
      * @param control the drawer pane this skin is attached to
      */
@@ -64,10 +65,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
-
-        // Match the authoritative state to the current intent without animating;
-        // first layout snaps the translate once the thickness is known.
-        control.setState(control.isShowing() ? RXDrawerState.OPEN : RXDrawerState.CLOSED);
 
         disposer.registerListener(control.showingProperty(),
                 () -> handleShowingChanged(control.isShowing()));
@@ -117,7 +114,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
         double areaX = contentX;
         double areaY = contentY;
-        switch (getSkinnable().getSide()) {
+        switch (sideOrDefault()) {
             case RIGHT -> areaX = contentX + contentWidth - drawerW;
             case BOTTOM -> areaY = contentY + contentHeight - drawerH;
             default -> {
@@ -127,7 +124,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         layoutInArea(drawerPane, areaX, areaY, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
 
         if (!initialized && !isAnimationRunning()) {
-            snapToState();
+            snapToShowing();
             initialized = true;
         }
         resetClip();
@@ -192,10 +189,8 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     private void handleShowingChanged(boolean showing) {
         if (showing) {
-            getSkinnable().setState(RXDrawerState.OPENING);
             playOpen();
         } else {
-            getSkinnable().setState(RXDrawerState.CLOSING);
             playClose();
         }
     }
@@ -241,7 +236,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private void finalizeOpen() {
         drawerPane.setTranslateX(0.0);
         drawerPane.setTranslateY(0.0);
-        getSkinnable().setState(RXDrawerState.OPEN);
     }
 
     private void finalizeClose() {
@@ -253,13 +247,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             drawerPane.setTranslateY(closed);
             drawerPane.setTranslateX(0.0);
         }
-        getSkinnable().setState(RXDrawerState.CLOSED);
     }
 
-    private void snapToState() {
-        RXDrawerState current = getSkinnable().getState();
-        boolean open = current == RXDrawerState.OPEN || current == RXDrawerState.OPENING;
-        double target = open ? 0.0 : closedTranslate();
+    private void snapToShowing() {
+        double target = getSkinnable().isShowing() ? 0.0 : closedTranslate();
         if (isHorizontal()) {
             drawerPane.setTranslateX(target);
             drawerPane.setTranslateY(0.0);
@@ -278,17 +269,16 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     /**
      * Stops the running animation and settles to the terminal pose of the current
-     * state, used when animation is disabled mid-flight.
+     * {@code showing} intent, used when animation is disabled mid-flight.
      */
     private void snapRunningToTerminal() {
         if (animation == null) {
             return;
         }
         stopAnimation();
-        RXDrawerState current = getSkinnable().getState();
-        if (current == RXDrawerState.OPENING) {
+        if (getSkinnable().isShowing()) {
             finalizeOpen();
-        } else if (current == RXDrawerState.CLOSING) {
+        } else {
             finalizeClose();
         }
     }
@@ -296,15 +286,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     // ==================== Property reactions ====================
 
     private void onSideChanged() {
+        // A side change retargets the axis; stop any slide and re-snap for the new
+        // axis on the next layout pass.
         stopAnimation();
-        // A side change while mid-flight settles to a terminal state, then re-snaps
-        // for the new axis on the next layout pass.
-        RXDrawerState current = getSkinnable().getState();
-        if (current == RXDrawerState.OPENING) {
-            getSkinnable().setState(RXDrawerState.OPEN);
-        } else if (current == RXDrawerState.CLOSING) {
-            getSkinnable().setState(RXDrawerState.CLOSED);
-        }
         initialized = false;
         getSkinnable().requestLayout();
     }
@@ -335,8 +319,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             return;
         }
         stopAnimation();
-        RXDrawerState current = getSkinnable().getState();
-        if (current == RXDrawerState.OPENING || current == RXDrawerState.OPEN) {
+        if (getSkinnable().isShowing()) {
             finalizeOpen();
         } else {
             finalizeClose();
@@ -345,19 +328,27 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     // ==================== Geometry helpers ====================
 
-    private boolean isHorizontal() {
+    // A-party fallback: a bound side source can momentarily yield null (the
+    // control rejects it but cannot revert a bound property), so geometry reads
+    // the side through this helper, mirroring RXMasonryPane.alignmentOrDefault().
+    private Side sideOrDefault() {
         Side current = getSkinnable().getSide();
+        return current == null ? RXDrawerPane.DEFAULT_SIDE : current;
+    }
+
+    private boolean isHorizontal() {
+        Side current = sideOrDefault();
         return current == Side.LEFT || current == Side.RIGHT;
     }
 
     private double thickness() {
         RXDrawerPane control = getSkinnable();
         double pref = isHorizontal() ? control.getPrefDrawerWidth() : control.getPrefDrawerHeight();
-        return pref > 0 ? pref : DEFAULT_DRAWER_THICKNESS;
+        return Double.isFinite(pref) && pref > 0 ? pref : DEFAULT_DRAWER_THICKNESS;
     }
 
     private double closedTranslate() {
-        Side current = getSkinnable().getSide();
+        Side current = sideOrDefault();
         double sign = (current == Side.LEFT || current == Side.TOP) ? -1.0 : 1.0;
         return sign * thickness();
     }

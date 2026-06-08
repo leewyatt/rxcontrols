@@ -1,15 +1,12 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.drawer.RXDrawerPaneSkin;
-import io.github.leewyatt.rxcontrols.drawer.RXDrawerState;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.skins.RXDrawerPaneSkin;
 
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -45,9 +42,9 @@ import java.util.List;
  *
  * <p>The slide is a pure {@code translate} animation: layout always places the
  * panel at its open (edge-attached) position, and the closed state is expressed
- * by translating the panel off its edge. The read-only
- * {@link #stateProperty() state} ({@link RXDrawerState}) is the authoritative
- * lifecycle state; queries never inspect the transient translate value.</p>
+ * by translating the panel off its edge. {@link #showingProperty() showing} is the
+ * single source of truth (as in {@code ComboBoxBase}); queries never inspect the
+ * transient translate value.</p>
  *
  * <pre>{@code
  * RXDrawerPane drawer = new RXDrawerPane();
@@ -119,7 +116,7 @@ public class RXDrawerPane extends Control {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAccessibleRole(AccessibleRole.DIALOG);
         updateDirectionPseudoClass();
-        state.addListener((obs, oldState, newState) -> updateOpenPseudoClass(newState));
+        showing.addListener((obs, wasShowing, isShowing) -> updateOpenPseudoClass(isShowing));
     }
 
     /**
@@ -286,7 +283,7 @@ public class RXDrawerPane extends Control {
      * The single source of truth for whether the drawer is requested open
      * ({@code true}) or closed ({@code false}). Bindable; equivalent to the web
      * {@code open} / {@code v-model:visible}. The skin observes this property and
-     * drives the {@link #stateProperty() state} machine and the slide animation.
+     * drives the slide animation; the {@code :open} pseudo-class tracks it.
      *
      * @return the showing property
      */
@@ -310,42 +307,6 @@ public class RXDrawerPane extends Control {
      */
     public final void setShowing(boolean value) {
         showing.set(value);
-    }
-
-    // ==================== State ====================
-
-    private final ReadOnlyObjectWrapper<RXDrawerState> state =
-            new ReadOnlyObjectWrapper<>(this, "state", RXDrawerState.CLOSED);
-
-    /**
-     * The authoritative open/close lifecycle state. Read-only to ordinary callers;
-     * the skin advances it through {@link #setState(RXDrawerState)}.
-     *
-     * @return the state property
-     */
-    public final ReadOnlyObjectProperty<RXDrawerState> stateProperty() {
-        return state.getReadOnlyProperty();
-    }
-
-    /**
-     * Returns the current lifecycle state.
-     *
-     * @return the current state
-     */
-    public final RXDrawerState getState() {
-        return state.get();
-    }
-
-    /**
-     * Sets the lifecycle state. This method is intended to be used by experts,
-     * primarily by those implementing new Skins or Behaviors. It is not common
-     * for developers to access this method directly; read {@link #getState()}
-     * instead.
-     *
-     * @param value the new state
-     */
-    public final void setState(RXDrawerState value) {
-        state.set(value);
     }
 
     // ==================== Animated ====================
@@ -597,16 +558,12 @@ public class RXDrawerPane extends Control {
     }
 
     /**
-     * Toggles the drawer, derived from {@link #getState() state}: closes when open
-     * or opening, opens when closed or closing.
+     * Toggles the drawer, derived from the {@link #showingProperty() showing}
+     * intent: a mid-slide toggle reverses cleanly because the request — not the
+     * transient translate — decides the direction.
      */
     public final void toggle() {
-        RXDrawerState current = getState();
-        if (current == RXDrawerState.OPEN || current == RXDrawerState.OPENING) {
-            close();
-        } else {
-            open();
-        }
+        setShowing(!isShowing());
     }
 
     // ==================== PseudoClass ====================
@@ -619,9 +576,8 @@ public class RXDrawerPane extends Control {
         pseudoClassStateChanged(BOTTOM_PSEUDO_CLASS, current == Side.BOTTOM);
     }
 
-    private void updateOpenPseudoClass(RXDrawerState current) {
-        pseudoClassStateChanged(OPEN_PSEUDO_CLASS,
-                current == RXDrawerState.OPEN || current == RXDrawerState.OPENING);
+    private void updateOpenPseudoClass(boolean showing) {
+        pseudoClassStateChanged(OPEN_PSEUDO_CLASS, showing);
     }
 
     // ==================== CSS ====================

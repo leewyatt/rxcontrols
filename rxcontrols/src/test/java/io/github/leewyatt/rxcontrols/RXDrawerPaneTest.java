@@ -1,6 +1,4 @@
-package io.github.leewyatt.rxcontrols.drawer;
-
-import io.github.leewyatt.rxcontrols.RXDrawerPane;
+package io.github.leewyatt.rxcontrols;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
@@ -29,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXDrawerPane} and {@link RXDrawerPaneSkin}, covering the PR1
- * surface: slots, the {@code showing}/{@code state} machine, open/close/toggle,
- * overlay translate sliding (snap and real-Timeline paths), the four directions,
+ * Tests for {@link RXDrawerPane} and its skin, covering the PR1 surface: slots,
+ * {@code showing} as the single source of truth, open/close/toggle, overlay
+ * translate sliding (snap and real-Timeline paths), the four directions,
  * pseudo-classes, the self-clip, and disposal.
  */
 public class RXDrawerPaneTest {
@@ -39,6 +37,7 @@ public class RXDrawerPaneTest {
     private static final double EPSILON = 1.0e-6;
     private static final double WIDTH = 400.0;
     private static final double HEIGHT = 300.0;
+    private static final double THICKNESS = 200.0;
 
     private static final PseudoClass OPEN = PseudoClass.getPseudoClass("open");
     private static final PseudoClass LEFT = PseudoClass.getPseudoClass("left");
@@ -75,7 +74,6 @@ public class RXDrawerPaneTest {
             assertEquals(Duration.millis(250.0), pane.getAnimationDuration());
             assertEquals(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
             assertFalse(pane.isShowing());
-            assertEquals(RXDrawerState.CLOSED, pane.getState());
             assertNull(pane.getContent());
             assertNull(pane.getDrawerContent());
         });
@@ -113,8 +111,7 @@ public class RXDrawerPaneTest {
             attach(pane);
 
             assertTrue(isDescendant(content, pane), "content is mounted");
-            Region drawer = (Region) pane.lookup(".drawer");
-            assertNotNull(drawer, "drawer panel exists");
+            Region drawer = drawerPanel(pane);
             assertTrue(drawer.getChildrenUnmodifiable().contains(drawerContent),
                     "drawerContent sits inside the .drawer panel");
         });
@@ -135,62 +132,67 @@ public class RXDrawerPaneTest {
     // ==================== open / close / toggle ====================
 
     @Test
-    public void openAndCloseDriveStateWhenSnapped() throws Exception {
+    public void openAndCloseDriveShowingAndTranslate() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
+            RXDrawerPane pane = rightDrawer();
             attach(pane);
+            Region drawer = drawerPanel(pane);
 
             pane.open();
             assertTrue(pane.isShowing());
-            assertEquals(RXDrawerState.OPEN, pane.getState());
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "open parks at the edge");
 
             pane.close();
             assertFalse(pane.isShowing());
-            assertEquals(RXDrawerState.CLOSED, pane.getState());
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "closed pushes off the right");
         });
     }
 
     @Test
-    public void toggleIsDerivedFromState() throws Exception {
+    public void toggleFlipsShowing() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
+            RXDrawerPane pane = rightDrawer();
             attach(pane);
 
             pane.toggle();
-            assertEquals(RXDrawerState.OPEN, pane.getState());
+            assertTrue(pane.isShowing());
             pane.toggle();
-            assertEquals(RXDrawerState.CLOSED, pane.getState());
+            assertFalse(pane.isShowing());
         });
     }
 
     @Test
-    public void toggleWhileOpeningCloses() throws Exception {
+    public void toggleWhileSlidingReverses() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
+            RXDrawerPane pane = rightDrawer();
+            pane.setAnimated(true);
             pane.setAnimationDuration(Duration.millis(500.0));
             attach(pane);
+            Region drawer = drawerPanel(pane);
 
             pane.open();
-            assertEquals(RXDrawerState.OPENING, pane.getState());
-            // Mid-animation toggle must derive "close" from OPENING, not from translate.
+            assertTrue(pane.isShowing());
+            // Mid-slide toggle reverses from the request, not from the translate.
             pane.toggle();
-            assertEquals(RXDrawerState.CLOSING, pane.getState());
+            assertFalse(pane.isShowing());
+            // Settle deterministically: the superseded open Timeline must not corrupt
+            // the final pose — the reversal lands fully closed.
+            pane.setAnimated(false);
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "reversal lands closed");
         });
     }
 
     @Test
     public void showingIsTheSourceOfTruth() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
+            RXDrawerPane pane = rightDrawer();
             attach(pane);
+            Region drawer = drawerPanel(pane);
 
             pane.setShowing(true);
-            assertEquals(RXDrawerState.OPEN, pane.getState());
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON);
             pane.setShowing(false);
-            assertEquals(RXDrawerState.CLOSED, pane.getState());
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON);
         });
     }
 
@@ -216,9 +218,9 @@ public class RXDrawerPaneTest {
             pane.setPrefDrawerHeight(thickness);
         }
         attach(pane);
+        Region drawer = drawerPanel(pane);
 
         pane.open();
-        Region drawer = (Region) pane.lookup(".drawer");
         assertEquals(0.0, horizontal ? drawer.getTranslateX() : drawer.getTranslateY(), EPSILON,
                 side + " open offset is zero");
 
@@ -248,16 +250,31 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void openPseudoClassReflectsState() throws Exception {
+    public void openPseudoClassReflectsShowing() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
+            RXDrawerPane pane = rightDrawer();
             attach(pane);
             assertFalse(pane.getPseudoClassStates().contains(OPEN));
 
             pane.open();
             assertTrue(pane.getPseudoClassStates().contains(OPEN));
 
+            pane.close();
+            assertFalse(pane.getPseudoClassStates().contains(OPEN));
+        });
+    }
+
+    @Test
+    public void openPseudoClassActivatesImmediatelyWhenAnimated() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setAnimationDuration(Duration.millis(500.0));
+            attach(pane);
+
+            // :open tracks the request, so it flips the instant open()/close() is
+            // called — not when the slide finishes.
+            pane.open();
+            assertTrue(pane.getPseudoClassStates().contains(OPEN));
             pane.close();
             assertFalse(pane.getPseudoClassStates().contains(OPEN));
         });
@@ -287,47 +304,74 @@ public class RXDrawerPaneTest {
     // ==================== Real animation path ====================
 
     @Test
-    public void animatedOpenReachesOpenViaTimeline() throws Exception {
-        AtomicReference<RXDrawerPane> ref = new AtomicReference<>();
-        CountDownLatch opened = new CountDownLatch(1);
+    public void animatedOpenSlidesToTheEdge() throws Exception {
+        AtomicReference<Region> drawerRef = new AtomicReference<>();
+        CountDownLatch arrived = new CountDownLatch(1);
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(60.0));
             attach(pane);
-            pane.stateProperty().addListener((obs, oldState, newState) -> {
-                if (newState == RXDrawerState.OPEN) {
-                    opened.countDown();
+            Region drawer = drawerPanel(pane);
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "starts closed");
+            // finalizeOpen() parks the panel at exactly 0; the tween only reaches
+            // there on its final frame, so wait for that rather than any midpoint.
+            drawer.translateXProperty().addListener((obs, oldX, newX) -> {
+                if (newX.doubleValue() == 0.0) {
+                    arrived.countDown();
                 }
             });
             pane.open();
-            // Animation in flight: transient OPENING before the Timeline finishes.
-            assertEquals(RXDrawerState.OPENING, pane.getState());
-            ref.set(pane);
+            // Intent flips immediately; the Timeline carries the translate to zero.
+            assertTrue(pane.isShowing());
+            drawerRef.set(drawer);
         });
-        assertTrue(opened.await(3, TimeUnit.SECONDS), "animated open reaches OPEN");
-        runOnFx(() -> assertEquals(RXDrawerState.OPEN, ref.get().getState()));
+        assertTrue(arrived.await(3, TimeUnit.SECONDS), "animated open slides to the edge");
+        runOnFx(() -> assertEquals(0.0, drawerRef.get().getTranslateX(), EPSILON));
     }
 
     @Test
-    public void disablingAnimationMidFlightSnaps() throws Exception {
+    public void disablingAnimationMidSlideSnaps() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(500.0));
             attach(pane);
+            Region drawer = drawerPanel(pane);
+
             pane.open();
-            assertEquals(RXDrawerState.OPENING, pane.getState());
+            assertTrue(pane.isShowing());
             pane.setAnimated(false);
-            assertEquals(RXDrawerState.OPEN, pane.getState());
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "disabling animation snaps open");
         });
     }
 
-    // ==================== Dispose ====================
+    @Test
+    public void zeroDurationMidSlideSnaps() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setPrefDrawerWidth(THICKNESS);
+            pane.setAnimationDuration(Duration.millis(500.0));
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+
+            pane.open();
+            assertTrue(pane.isShowing());
+            // Dropping the duration to ZERO mid-slide snaps to the open pose.
+            pane.setAnimationDuration(Duration.ZERO);
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "zero duration snaps open");
+        });
+    }
+
+    // ==================== Dispose / scene removal ====================
 
     @Test
     public void disposeClearsClipAndIsClean() throws Exception {
         runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
+            RXDrawerPane pane = rightDrawer();
             attach(pane);
             pane.open();
             pane.close();
@@ -340,24 +384,41 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void sceneRemovalSettlesState() throws Exception {
+    public void sceneRemovalSettlesTheSlide() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(500.0));
             Scene scene = new Scene(pane);
             pane.resize(WIDTH, HEIGHT);
             pane.applyCss();
             pane.layout();
+            Region drawer = drawerPanel(pane);
 
             pane.open();
-            assertEquals(RXDrawerState.OPENING, pane.getState());
-            // Detaching mid-animation must stop the Timeline and settle the state.
+            assertTrue(pane.isShowing());
+            // Detaching mid-slide stops the Timeline and settles to the open pose.
             scene.setRoot(new Region());
-            assertEquals(RXDrawerState.OPEN, pane.getState());
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON);
         });
     }
 
     // ==================== Helpers ====================
+
+    private static RXDrawerPane rightDrawer() {
+        RXDrawerPane pane = new RXDrawerPane();
+        pane.setSide(Side.RIGHT);
+        pane.setPrefDrawerWidth(THICKNESS);
+        pane.setAnimated(false);
+        return pane;
+    }
+
+    private static Region drawerPanel(RXDrawerPane pane) {
+        Region drawer = (Region) pane.lookup(".drawer");
+        assertNotNull(drawer, "drawer panel exists");
+        return drawer;
+    }
 
     private static void attach(RXDrawerPane pane) {
         new Scene(pane);
