@@ -6,10 +6,6 @@ package io.github.leewyatt.rxcontrols.enums;
  * {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent RXDrawerEvent} so a veto
  * handler can decide based on the trigger.
  *
- * <p>The drawer's overlay-sliding increment produces only {@link #PROGRAMMATIC}.
- * {@link #ESC}, {@link #SCRIM_CLICK} and {@link #CLOSE_BUTTON} are produced once
- * their respective triggers (ESC key handling, scrim, header close button) are
- * added in later increments.</p>
  */
 public enum CloseReason {
 
@@ -19,9 +15,9 @@ public enum CloseReason {
     ESC,
 
     /**
-     * The user clicked the scrim (the dimmed backdrop) outside the drawer.
+     * The user clicked the overlay pane (the dimmed backdrop) outside the drawer.
      */
-    SCRIM_CLICK,
+    OVERLAY_PANE_CLICK,
 
     /**
      * The user activated the drawer's built-in close button.

@@ -669,8 +669,8 @@
  *                                                                             *
  ******************************************************************************/
 
-.rx-drawer-pane > .scrim {
-    -fx-background-color: black;
+.rx-drawer-pane > .overlay-pane {
+    -fx-background-color: rgba(0, 0, 0, 0.32);
 }
 
 .rx-drawer-pane > .drawer {

@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * Showcase application for {@link RXDrawerPane}.
  *
  * <p>Hosts a drawer with placeholder content and a placeholder form, and a control
- * panel that drives every configurable property — side, mode, scrim group, chrome
+ * panel that drives every configurable property — side, mode, overlay-pane group, chrome
  * (title / close button / scrollable / footer), animation, and drawer thickness —
  * plus open/close/toggle buttons and a live read-out of {@code showing} and the
  * last {@link RXDrawerEvent}.</p>
@@ -50,7 +50,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "An overlay / push content drawer with scrim, veto, chrome and a11y.";
+        return "An overlay / push content drawer with a backdrop, veto, chrome and a11y.";
     }
 
     @Override
@@ -97,7 +97,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Layout", layoutGrid()),
-                section("Scrim & dismissal", scrimGrid()),
+                section("Overlay pane & dismissal", overlayPaneGrid()),
                 section("Chrome", chromeGrid()),
                 section("Animation", animationGrid()),
                 section("State & actions", actionsBox()));
@@ -131,18 +131,18 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
                 row("Pref height", height, createValueLabel(height, "%.0f")));
     }
 
-    private Node scrimGrid() {
-        CheckBox scrim = checkBox("Scrim (modal)", drawer.isScrim(), drawer::setScrim);
-        Slider opacity = createSlider(0.0, 1.0, drawer.getScrimOpacity());
-        opacity.valueProperty().addListener((obs, old, value) -> drawer.setScrimOpacity(value.doubleValue()));
-        CheckBox dismiss = checkBox("Dismiss on scrim click", drawer.isDismissOnScrimClick(),
-                drawer::setDismissOnScrimClick);
+    private Node overlayPaneGrid() {
+        // The dim level itself is CSS (the .overlay-pane background), so there is no
+        // opacity control here.
+        CheckBox visible = checkBox("Overlay pane (modal)", drawer.isOverlayPaneVisible(),
+                drawer::setOverlayPaneVisible);
+        CheckBox click = checkBox("Close on overlay-pane click", drawer.isCloseOnOverlayPaneClick(),
+                drawer::setCloseOnOverlayPaneClick);
         CheckBox esc = checkBox("Close on ESC", drawer.isCloseOnEsc(), drawer::setCloseOnEsc);
 
         return createGrid(
-                row(scrim),
-                row("Opacity", opacity, createValueLabel(opacity, "%.2f")),
-                row(dismiss),
+                row(visible),
+                row(click),
                 row(esc));
     }
 

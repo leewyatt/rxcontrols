@@ -94,7 +94,7 @@ public class RXDrawerA11yTest {
     @Test
     public void nonModalOpenDoesNotStealFocus() throws Exception {
         onScene(pane -> {
-            pane.setScrim(false);
+            pane.setOverlayPaneVisible(false);
             Button trigger = new Button("open");
             pane.setContent(trigger);
             pane.setDrawerContent(new TextField());

@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for the PR6 PUSH mode of {@link RXDrawerPane}: the {@code drawerMode}
  * property and its {@code :push} pseudo-class, the content-squeezing PUSH layout
- * (vs the unaffected OVERLAY content), PUSH being non-modal (no scrim), and mode
+ * (vs the unaffected OVERLAY content), PUSH being non-modal (no overlay pane), and mode
  * switching re-snapping.
  */
 public class RXDrawerPushTest {
@@ -143,11 +143,11 @@ public class RXDrawerPushTest {
     public void pushIsNeverModal() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = pushDrawer(Side.RIGHT);
-            // scrim is enabled by default, but PUSH ignores it.
+            // the overlay pane is enabled by default, but PUSH ignores it.
             attach(pane);
             pane.open();
             pane.layout();
-            assertFalse(scrimLayer(pane).isVisible(), "PUSH shows no scrim");
+            assertFalse(overlayPaneLayer(pane).isVisible(), "PUSH shows no overlay pane");
         });
     }
 
@@ -168,8 +168,8 @@ public class RXDrawerPushTest {
             pane.layout();
             assertEquals(WIDTH - THICKNESS, contentLayer(pane).getWidth(), EPSILON,
                     "switching to PUSH while open squeezes the content");
-            assertFalse(scrimLayer(pane).isVisible(),
-                    "switching to PUSH disables the scrim (PUSH is never modal)");
+            assertFalse(overlayPaneLayer(pane).isVisible(),
+                    "switching to PUSH disables the overlay pane (PUSH is never modal)");
         });
     }
 
@@ -189,7 +189,7 @@ public class RXDrawerPushTest {
         return (Region) pane.getChildrenUnmodifiable().get(0);
     }
 
-    private static Region scrimLayer(RXDrawerPane pane) {
+    private static Region overlayPaneLayer(RXDrawerPane pane) {
         return (Region) pane.getChildrenUnmodifiable().get(1);
     }
 

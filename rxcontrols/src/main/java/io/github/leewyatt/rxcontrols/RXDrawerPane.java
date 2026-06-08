@@ -20,13 +20,11 @@ import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
-import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
-import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Orientation;
@@ -64,9 +62,13 @@ import java.util.List;
  * openButton.setOnAction(e -> drawer.open());
  * }</pre>
  *
- * <p>This is the first increment of the drawer: overlay sliding only. Scrim,
- * the {@code CLOSE_REQUEST} veto event, {@code PUSH} mode, header/footer chrome,
- * focus trapping and ESC handling are layered on in later increments.</p>
+ * <p>The drawer can {@link RXDrawerMode#OVERLAY overlay} the content (optionally
+ * over a dimming, click-catching overlay pane that makes it modal) or
+ * {@link RXDrawerMode#PUSH push} it aside. Closing flows through a vetoable
+ * {@code CLOSE_REQUEST} {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent}
+ * (ESC, overlay-pane click, close button, or programmatic). Optional chrome
+ * (title, close button, footer, scrollable body) and modal focus management round
+ * it out.</p>
  */
 public class RXDrawerPane extends Control {
 
@@ -132,19 +134,14 @@ public class RXDrawerPane extends Control {
     public static final boolean DEFAULT_SHOW_CLOSE_BUTTON = true;
 
     /**
-     * Default for whether the scrim (dimmed backdrop) is shown.
+     * Default for whether the overlay pane (dimmed backdrop) is shown.
      */
-    public static final boolean DEFAULT_SCRIM = true;
+    public static final boolean DEFAULT_OVERLAY_PANE_VISIBLE = true;
 
     /**
-     * Default scrim opacity when open. The Material scrim convention.
+     * Default for whether clicking the overlay pane requests a close.
      */
-    public static final double DEFAULT_SCRIM_OPACITY = 0.32;
-
-    /**
-     * Default for whether clicking the scrim requests a close.
-     */
-    public static final boolean DEFAULT_DISMISS_ON_SCRIM_CLICK = true;
+    public static final boolean DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK = true;
 
     /**
      * Default for whether pressing ESC requests a close.
@@ -831,127 +828,13 @@ public class RXDrawerPane extends Control {
         showCloseButton.set(value);
     }
 
-    // ==================== Scrim ====================
+    // ==================== Overlay Pane ====================
 
-    private final BooleanProperty scrim = new StyleableBooleanProperty(DEFAULT_SCRIM) {
-        @Override
-        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-            return StyleableProperties.SCRIM;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXDrawerPane.this;
-        }
-
-        @Override
-        public String getName() {
-            return "scrim";
-        }
-    };
-
-    /**
-     * Whether a scrim (dimmed, click-catching backdrop) is shown behind the open
-     * drawer. The scrim makes the drawer modal; turning it off yields a
-     * non-modal overlay.
-     *
-     * @return the scrim property
-     */
-    public final BooleanProperty scrimProperty() {
-        return scrim;
-    }
-
-    /**
-     * Returns whether the scrim is shown.
-     *
-     * @return whether the scrim is shown
-     */
-    public final boolean isScrim() {
-        return scrim.get();
-    }
-
-    /**
-     * Sets whether the scrim is shown.
-     *
-     * @param value whether the scrim is shown
-     */
-    public final void setScrim(boolean value) {
-        scrim.set(value);
-    }
-
-    // ==================== Scrim Opacity ====================
-
-    private final DoubleProperty scrimOpacity = new StyleableDoubleProperty(DEFAULT_SCRIM_OPACITY) {
-        @Override
-        protected void invalidated() {
-            if (isBound()) {
-                return;
-            }
-            double value = get();
-            double clamped = clampOpacity(value);
-            if (clamped != value) {
-                set(clamped);
-            }
-        }
-
-        @Override
-        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
-            return StyleableProperties.SCRIM_OPACITY;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXDrawerPane.this;
-        }
-
-        @Override
-        public String getName() {
-            return "scrimOpacity";
-        }
-    };
-
-    /**
-     * The scrim opacity when the drawer is open, clamped to {@code [0, 1]} (a
-     * non-finite value falls back to {@value #DEFAULT_SCRIM_OPACITY}).
-     *
-     * @return the scrim opacity property
-     */
-    public final DoubleProperty scrimOpacityProperty() {
-        return scrimOpacity;
-    }
-
-    /**
-     * Returns the scrim opacity.
-     *
-     * @return the scrim opacity
-     */
-    public final double getScrimOpacity() {
-        return scrimOpacity.get();
-    }
-
-    /**
-     * Sets the scrim opacity. Out-of-range values are clamped to {@code [0, 1]}.
-     *
-     * @param value the scrim opacity
-     */
-    public final void setScrimOpacity(double value) {
-        scrimOpacity.set(value);
-    }
-
-    private static double clampOpacity(double value) {
-        if (!Double.isFinite(value)) {
-            return DEFAULT_SCRIM_OPACITY;
-        }
-        return Math.max(0.0, Math.min(1.0, value));
-    }
-
-    // ==================== Dismiss On Scrim Click ====================
-
-    private final BooleanProperty dismissOnScrimClick =
-            new StyleableBooleanProperty(DEFAULT_DISMISS_ON_SCRIM_CLICK) {
+    private final BooleanProperty overlayPaneVisible =
+            new StyleableBooleanProperty(DEFAULT_OVERLAY_PANE_VISIBLE) {
                 @Override
                 public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-                    return StyleableProperties.DISMISS_ON_SCRIM_CLICK;
+                    return StyleableProperties.OVERLAY_PANE_VISIBLE;
                 }
 
                 @Override
@@ -961,36 +844,87 @@ public class RXDrawerPane extends Control {
 
                 @Override
                 public String getName() {
-                    return "dismissOnScrimClick";
+                    return "overlayPaneVisible";
                 }
             };
 
     /**
-     * Whether clicking the scrim requests a close (with reason
-     * {@link io.github.leewyatt.rxcontrols.enums.CloseReason#SCRIM_CLICK SCRIM_CLICK}).
+     * Whether the overlay pane (the dimmed, click-catching backdrop) is shown
+     * behind the open drawer. Only effective in {@link RXDrawerMode#OVERLAY} mode:
+     * showing it makes the drawer modal; hiding it yields a non-modal overlay. The
+     * dim level is styled on {@code .overlay-pane} via {@code -fx-background-color}
+     * (e.g. {@code rgba(0,0,0,0.32)}), so there is no opacity property.
      *
-     * @return the dismiss-on-scrim-click property
+     * @return the overlay pane visible property
      */
-    public final BooleanProperty dismissOnScrimClickProperty() {
-        return dismissOnScrimClick;
+    public final BooleanProperty overlayPaneVisibleProperty() {
+        return overlayPaneVisible;
     }
 
     /**
-     * Returns whether clicking the scrim requests a close.
+     * Returns whether the overlay pane is shown.
      *
-     * @return whether a scrim click dismisses the drawer
+     * @return whether the overlay pane is shown
      */
-    public final boolean isDismissOnScrimClick() {
-        return dismissOnScrimClick.get();
+    public final boolean isOverlayPaneVisible() {
+        return overlayPaneVisible.get();
     }
 
     /**
-     * Sets whether clicking the scrim requests a close.
+     * Sets whether the overlay pane is shown.
      *
-     * @param value whether a scrim click dismisses the drawer
+     * @param value whether the overlay pane is shown
      */
-    public final void setDismissOnScrimClick(boolean value) {
-        dismissOnScrimClick.set(value);
+    public final void setOverlayPaneVisible(boolean value) {
+        overlayPaneVisible.set(value);
+    }
+
+    // ==================== Close On Overlay Pane Click ====================
+
+    private final BooleanProperty closeOnOverlayPaneClick =
+            new StyleableBooleanProperty(DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK) {
+                @Override
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.CLOSE_ON_OVERLAY_PANE_CLICK;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXDrawerPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "closeOnOverlayPaneClick";
+                }
+            };
+
+    /**
+     * Whether clicking the overlay pane requests a close (with reason
+     * {@link io.github.leewyatt.rxcontrols.enums.CloseReason#OVERLAY_PANE_CLICK OVERLAY_PANE_CLICK}).
+     *
+     * @return the close-on-overlay-pane-click property
+     */
+    public final BooleanProperty closeOnOverlayPaneClickProperty() {
+        return closeOnOverlayPaneClick;
+    }
+
+    /**
+     * Returns whether clicking the overlay pane requests a close.
+     *
+     * @return whether an overlay-pane click closes the drawer
+     */
+    public final boolean isCloseOnOverlayPaneClick() {
+        return closeOnOverlayPaneClick.get();
+    }
+
+    /**
+     * Sets whether clicking the overlay pane requests a close.
+     *
+     * @param value whether an overlay-pane click closes the drawer
+     */
+    public final void setCloseOnOverlayPaneClick(boolean value) {
+        closeOnOverlayPaneClick.set(value);
     }
 
     // ==================== Close On Esc ====================
@@ -1063,7 +997,7 @@ public class RXDrawerPane extends Control {
      * Requests a close with a specific {@link CloseReason} through the
      * {@code CLOSE_REQUEST} veto. This method is intended to be used by experts,
      * primarily by those implementing Skins or Behaviors, to wire close triggers
-     * (close button, ESC, scrim); ordinary code calls {@link #close()}. A no-op
+     * (close button, ESC, overlay-pane click); ordinary code calls {@link #close()}. A no-op
      * when already closed or closing.
      *
      * @param reason why the close was requested
@@ -1405,46 +1339,33 @@ public class RXDrawerPane extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXDrawerPane, Boolean> SCRIM =
-                new CssMetaData<>("-rx-scrim", BooleanConverter.getInstance(), DEFAULT_SCRIM) {
+        private static final CssMetaData<RXDrawerPane, Boolean> OVERLAY_PANE_VISIBLE =
+                new CssMetaData<>("-rx-overlay-pane-visible",
+                        BooleanConverter.getInstance(), DEFAULT_OVERLAY_PANE_VISIBLE) {
                     @Override
                     public boolean isSettable(RXDrawerPane node) {
-                        return !node.scrim.isBound();
+                        return !node.overlayPaneVisible.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Boolean>) node.scrimProperty();
+                        return (StyleableProperty<Boolean>) node.overlayPaneVisibleProperty();
                     }
                 };
 
-        private static final CssMetaData<RXDrawerPane, Number> SCRIM_OPACITY =
-                new CssMetaData<>("-rx-scrim-opacity", SizeConverter.getInstance(), DEFAULT_SCRIM_OPACITY) {
+        private static final CssMetaData<RXDrawerPane, Boolean> CLOSE_ON_OVERLAY_PANE_CLICK =
+                new CssMetaData<>("-rx-close-on-overlay-pane-click",
+                        BooleanConverter.getInstance(), DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK) {
                     @Override
                     public boolean isSettable(RXDrawerPane node) {
-                        return !node.scrimOpacity.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Number>) node.scrimOpacityProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXDrawerPane, Boolean> DISMISS_ON_SCRIM_CLICK =
-                new CssMetaData<>("-rx-dismiss-on-scrim-click",
-                        BooleanConverter.getInstance(), DEFAULT_DISMISS_ON_SCRIM_CLICK) {
-                    @Override
-                    public boolean isSettable(RXDrawerPane node) {
-                        return !node.dismissOnScrimClick.isBound();
+                        return !node.closeOnOverlayPaneClick.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Boolean>) node.dismissOnScrimClickProperty();
+                        return (StyleableProperty<Boolean>) node.closeOnOverlayPaneClickProperty();
                     }
                 };
 
@@ -1472,9 +1393,8 @@ public class RXDrawerPane extends Control {
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
             styleables.add(SHOW_CLOSE_BUTTON);
-            styleables.add(SCRIM);
-            styleables.add(SCRIM_OPACITY);
-            styleables.add(DISMISS_ON_SCRIM_CLICK);
+            styleables.add(OVERLAY_PANE_VISIBLE);
+            styleables.add(CLOSE_ON_OVERLAY_PANE_CLICK);
             styleables.add(CLOSE_ON_ESC);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

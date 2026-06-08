@@ -26,19 +26,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the PR4 scrim and ESC behavior of {@link RXDrawerPane}: scrim
- * visibility/opacity across open/close, {@code scrim}/{@code scrimOpacity}/
- * {@code dismissOnScrimClick}/{@code closeOnEsc}, scrim-click → SCRIM_CLICK close,
- * and ESC → ESC close, both vetoable.
+ * Tests for the overlay pane (modal backdrop) and ESC behavior of
+ * {@link RXDrawerPane}: overlay-pane visibility/pickability across open/close,
+ * {@code overlayPaneVisible} / {@code closeOnOverlayPaneClick} / {@code closeOnEsc},
+ * overlay-pane click → OVERLAY_PANE_CLICK close, and ESC → ESC close, both vetoable.
+ * The dim level itself is CSS (the {@code .overlay-pane} background), so the node's
+ * opacity is just animated between 0 and 1.
  */
-public class RXDrawerScrimTest {
+public class RXDrawerOverlayPaneTest {
 
     private static final double EPSILON = 1.0e-6;
     private static final double WIDTH = 400.0;
     private static final double HEIGHT = 300.0;
 
     /**
-     * Starts the JavaFX toolkit so the skin can build the scrim.
+     * Starts the JavaFX toolkit so the skin can build the overlay pane.
      *
      * @throws InterruptedException if the startup wait is interrupted
      */
@@ -55,65 +57,48 @@ public class RXDrawerScrimTest {
         }
     }
 
-    // ==================== Scrim visibility ====================
+    // ==================== Overlay pane visibility ====================
 
     @Test
-    public void scrimDimsAndCatchesClicksWhenOpen() throws Exception {
+    public void overlayPaneCatchesClicksWhenOpen() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
             attach(pane);
-            Region scrim = scrim(pane);
+            Region overlay = overlayPane(pane);
 
             pane.open();
-            assertTrue(scrim.isVisible(), "scrim visible when open");
-            assertFalse(scrim.isMouseTransparent(), "scrim catches clicks when open");
-            assertEquals(RXDrawerPane.DEFAULT_SCRIM_OPACITY, scrim.getOpacity(), EPSILON);
+            assertTrue(overlay.isVisible(), "overlay pane visible when open");
+            assertFalse(overlay.isMouseTransparent(), "overlay pane catches clicks when open");
+            assertEquals(1.0, overlay.getOpacity(), EPSILON, "node opacity is 1; dim comes from CSS");
 
             pane.close();
-            assertFalse(scrim.isVisible(), "scrim hidden when closed");
-            assertTrue(scrim.isMouseTransparent(), "scrim is click-through when closed");
-            assertEquals(0.0, scrim.getOpacity(), EPSILON);
+            assertFalse(overlay.isVisible(), "overlay pane hidden when closed");
+            assertTrue(overlay.isMouseTransparent(), "overlay pane is click-through when closed");
+            assertEquals(0.0, overlay.getOpacity(), EPSILON);
         });
     }
 
     @Test
-    public void scrimDisabledStaysHiddenWhenOpen() throws Exception {
+    public void overlayPaneHiddenStaysHiddenWhenOpen() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
-            pane.setScrim(false);
+            pane.setOverlayPaneVisible(false);
             attach(pane);
-            Region scrim = scrim(pane);
+            Region overlay = overlayPane(pane);
 
             pane.open();
-            assertFalse(scrim.isVisible(), "non-modal: scrim stays hidden");
-            assertTrue(scrim.isMouseTransparent(), "non-modal: clicks pass through");
-            assertEquals(0.0, scrim.getOpacity(), EPSILON);
+            assertFalse(overlay.isVisible(), "non-modal: overlay pane stays hidden");
+            assertTrue(overlay.isMouseTransparent(), "non-modal: clicks pass through");
+            assertEquals(0.0, overlay.getOpacity(), EPSILON);
         });
     }
 
-    @Test
-    public void scrimOpacityIsClampedAndApplied() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setScrimOpacity(1.5);
-            assertEquals(1.0, pane.getScrimOpacity(), EPSILON, "clamped above 1");
-            pane.setScrimOpacity(-0.5);
-            assertEquals(0.0, pane.getScrimOpacity(), EPSILON, "clamped below 0");
-
-            pane.setScrimOpacity(0.5);
-            pane.setAnimated(false);
-            attach(pane);
-            pane.open();
-            assertEquals(0.5, scrim(pane).getOpacity(), EPSILON, "open scrim uses scrimOpacity");
-        });
-    }
-
-    // ==================== Scrim click ====================
+    // ==================== Overlay pane click ====================
 
     @Test
-    public void scrimClickRequestsScrimClickClose() throws Exception {
+    public void overlayPaneClickRequestsOverlayPaneClickClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -122,16 +107,17 @@ public class RXDrawerScrimTest {
             pane.open();
             log.clear();
 
-            fireClick(scrim(pane));
+            fireClick(overlayPane(pane));
 
-            assertFalse(pane.isShowing(), "scrim click closes the drawer");
+            assertFalse(pane.isShowing(), "overlay-pane click closes the drawer");
             assertEquals(List.of(
-                    "CLOSE_REQUEST:SCRIM_CLICK", "CLOSING:SCRIM_CLICK", "CLOSED:SCRIM_CLICK"), log);
+                    "CLOSE_REQUEST:OVERLAY_PANE_CLICK", "CLOSING:OVERLAY_PANE_CLICK",
+                    "CLOSED:OVERLAY_PANE_CLICK"), log);
         });
     }
 
     @Test
-    public void scrimClickIsVetoable() throws Exception {
+    public void overlayPaneClickIsVetoable() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -139,25 +125,25 @@ public class RXDrawerScrimTest {
             pane.open();
             pane.setOnCloseRequest(Event::consume);
 
-            fireClick(scrim(pane));
-            assertTrue(pane.isShowing(), "a consumed scrim-click CLOSE_REQUEST keeps it open");
+            fireClick(overlayPane(pane));
+            assertTrue(pane.isShowing(), "a consumed overlay-pane CLOSE_REQUEST keeps it open");
         });
     }
 
     @Test
-    public void dismissOnScrimClickFalseDoesNotClose() throws Exception {
+    public void closeOnOverlayPaneClickFalseDoesNotClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
-            pane.setDismissOnScrimClick(false);
+            pane.setCloseOnOverlayPaneClick(false);
             List<String> log = recordEvents(pane);
             attach(pane);
             pane.open();
             log.clear();
 
-            fireClick(scrim(pane));
-            assertTrue(pane.isShowing(), "scrim click ignored");
-            assertTrue(log.isEmpty(), "no CLOSE_REQUEST when dismissOnScrimClick is false");
+            fireClick(overlayPane(pane));
+            assertTrue(pane.isShowing(), "overlay-pane click ignored");
+            assertTrue(log.isEmpty(), "no CLOSE_REQUEST when closeOnOverlayPaneClick is false");
         });
     }
 
@@ -224,10 +210,10 @@ public class RXDrawerScrimTest {
 
     // ==================== Helpers ====================
 
-    private static Region scrim(RXDrawerPane pane) {
-        Region scrim = (Region) pane.lookup(".scrim");
-        assertNotNull(scrim, "scrim layer exists");
-        return scrim;
+    private static Region overlayPane(RXDrawerPane pane) {
+        Region overlay = (Region) pane.lookup(".overlay-pane");
+        assertNotNull(overlay, "overlay pane exists");
+        return overlay;
     }
 
     private static void fireClick(Node node) {

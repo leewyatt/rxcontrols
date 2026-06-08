@@ -149,11 +149,11 @@ public class RXDrawerPaneTest {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             attach(pane);
-            // The skin's children are content (bottom) → scrim (middle) → drawer (top).
+            // The skin's children are content (bottom) → overlay pane (middle) → drawer (top).
             assertEquals(3, pane.getChildrenUnmodifiable().size());
             Node middle = pane.getChildrenUnmodifiable().get(1);
             Node top = pane.getChildrenUnmodifiable().get(2);
-            assertTrue(middle.getStyleClass().contains("scrim"), "scrim is the middle layer");
+            assertTrue(middle.getStyleClass().contains("overlay-pane"), "overlay pane is the middle layer");
             assertTrue(top.getStyleClass().contains("drawer"), "drawer is the top layer");
         });
     }
