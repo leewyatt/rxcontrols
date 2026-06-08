@@ -188,7 +188,7 @@ public class RXDrawerPaneTest {
             assertTrue(isDescendant(content, pane), "content is mounted");
             Region drawer = drawerPanel(pane);
             assertTrue(isDescendant(drawerContent, drawer),
-                    "drawerContent is mounted inside the .drawer panel");
+                    "drawerContent is mounted inside the .drawer-wrapper panel");
             assertTrue(drawer.getChildrenUnmodifiable().contains(drawerContent),
                     "drawerContent is mounted directly in the drawer panel");
         });
@@ -204,7 +204,7 @@ public class RXDrawerPaneTest {
             Node middle = pane.getChildrenUnmodifiable().get(1);
             Node top = pane.getChildrenUnmodifiable().get(2);
             assertTrue(middle.getStyleClass().contains("overlay-pane"), "overlay pane is the middle layer");
-            assertTrue(top.getStyleClass().contains("drawer"), "drawer is the top layer");
+            assertTrue(top.getStyleClass().contains("drawer-wrapper"), "drawer wrapper is the top layer");
         });
     }
 
@@ -494,8 +494,8 @@ public class RXDrawerPaneTest {
     }
 
     private static Region drawerPanel(RXDrawerPane pane) {
-        Region drawer = (Region) pane.lookup(".drawer");
-        assertNotNull(drawer, "drawer panel exists");
+        Region drawer = (Region) pane.lookup(".drawer-wrapper");
+        assertNotNull(drawer, "drawer wrapper exists");
         return drawer;
     }
 

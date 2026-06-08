@@ -673,27 +673,27 @@
     -fx-background-color: rgba(0, 0, 0, 0.32);
 }
 
-.rx-drawer-pane > .drawer {
+.rx-drawer-pane > .drawer-wrapper {
     -fx-background-color: -fx-background;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 16, 0, 0, 0);
 }
 
-.rx-drawer-pane:right > .drawer {
+.rx-drawer-pane:right > .drawer-wrapper {
     -fx-background-radius: 8 0 0 8;
 }
 
-.rx-drawer-pane:left > .drawer {
+.rx-drawer-pane:left > .drawer-wrapper {
     -fx-background-radius: 0 8 8 0;
 }
 
-.rx-drawer-pane:top > .drawer {
+.rx-drawer-pane:top > .drawer-wrapper {
     -fx-background-radius: 0 0 8 8;
 }
 
-.rx-drawer-pane:bottom > .drawer {
+.rx-drawer-pane:bottom > .drawer-wrapper {
     -fx-background-radius: 8 8 0 0;
 }
 
-.rx-drawer-pane:push > .drawer {
+.rx-drawer-pane:push > .drawer-wrapper {
     -fx-effect: null;
 }

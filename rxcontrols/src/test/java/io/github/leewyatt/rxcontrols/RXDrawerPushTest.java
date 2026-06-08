@@ -269,7 +269,7 @@ public class RXDrawerPushTest {
     }
 
     private static Region drawerLayer(RXDrawerPane pane) {
-        return (Region) pane.lookup(".drawer");
+        return (Region) pane.lookup(".drawer-wrapper");
     }
 
     private static void attach(RXDrawerPane pane) {

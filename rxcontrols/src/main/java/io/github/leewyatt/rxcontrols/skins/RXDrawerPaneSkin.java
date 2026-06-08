@@ -57,7 +57,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     private final StackPane contentPane = new StackPane();
     private final Region overlayPane = new Region();
-    private final StackPane drawerPane = new StackPane();
+    private final StackPane drawerWrapper = new StackPane();
     private final Rectangle clipRect = new Rectangle();
 
     private Timeline animation;
@@ -87,18 +87,18 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     public RXDrawerPaneSkin(RXDrawerPane control) {
         super(control);
 
-        drawerPane.getStyleClass().add("drawer");
+        drawerWrapper.getStyleClass().add("drawer-wrapper");
         overlayPane.getStyleClass().add("overlay-pane");
 
-        // The drawer panel is the last-resort focus target when modal and nothing
+        // The drawer wrapper is the last-resort focus target when modal and nothing
         // inside is focusable.
-        drawerPane.setFocusTraversable(true);
+        drawerWrapper.setFocusTraversable(true);
 
         // z-order: content (bottom) → overlay pane (middle) → drawer (top).
-        getChildren().setAll(contentPane, overlayPane, drawerPane);
+        getChildren().setAll(contentPane, overlayPane, drawerWrapper);
         updateContent();
         updateDrawerContent();
-        applyDrawerPaneRest(control.isShowing());
+        applyDrawerWrapperRest(control.isShowing());
         applyOverlayPaneRest(control.isShowing());
 
         control.setClip(clipRect);
@@ -157,9 +157,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private void updateDrawerContent() {
         Node content = getSkinnable().getDrawerContent();
         if (content == null) {
-            drawerPane.getChildren().clear();
+            drawerWrapper.getChildren().clear();
         } else {
-            drawerPane.getChildren().setAll(content);
+            drawerWrapper.getChildren().setAll(content);
         }
     }
 
@@ -207,7 +207,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 // LEFT / TOP attach at the content origin.
             }
         }
-        layoutInArea(drawerPane, areaX, areaY, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
+        layoutInArea(drawerWrapper, areaX, areaY, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
     }
 
     // PUSH: the panel and the shrunken content are both positioned directly from
@@ -245,7 +245,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             }
         }
         layoutInArea(contentPane, cx, cy, Math.max(0.0, cw), Math.max(0.0, ch), 0, HPos.LEFT, VPos.TOP);
-        layoutInArea(drawerPane, dx, dy, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
+        layoutInArea(drawerWrapper, dx, dy, drawerW, drawerH, 0, HPos.LEFT, VPos.TOP);
     }
 
     private void resetClip() {
@@ -309,7 +309,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         if (showing) {
             openInFlight = true;
             closeInFlight = false;
-            applyDrawerPaneRest(true);
+            applyDrawerWrapperRest(true);
             moveFocusIntoDrawer();
             fireLifecycle(RXDrawerEvent.OPENING, null);
             playOpen();
@@ -385,14 +385,14 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private void finalizeOpen() {
         if (isPush()) {
             // PUSH positions the panel from progress; keep translate neutral.
-            drawerPane.setTranslateX(0.0);
-            drawerPane.setTranslateY(0.0);
+            drawerWrapper.setTranslateX(0.0);
+            drawerWrapper.setTranslateY(0.0);
             progress.set(1.0);
         } else {
-            drawerPane.setTranslateX(0.0);
-            drawerPane.setTranslateY(0.0);
+            drawerWrapper.setTranslateX(0.0);
+            drawerWrapper.setTranslateY(0.0);
         }
-        applyDrawerPaneRest(true);
+        applyDrawerWrapperRest(true);
         applyOverlayPaneRest(true);
         if (openInFlight) {
             openInFlight = false;
@@ -402,17 +402,17 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     private void finalizeClose() {
         if (isPush()) {
-            drawerPane.setTranslateX(0.0);
-            drawerPane.setTranslateY(0.0);
+            drawerWrapper.setTranslateX(0.0);
+            drawerWrapper.setTranslateY(0.0);
             progress.set(0.0);
         } else {
             double closed = closedTranslate();
             if (isHorizontal()) {
-                drawerPane.setTranslateX(closed);
-                drawerPane.setTranslateY(0.0);
+                drawerWrapper.setTranslateX(closed);
+                drawerWrapper.setTranslateY(0.0);
             } else {
-                drawerPane.setTranslateY(closed);
-                drawerPane.setTranslateX(0.0);
+                drawerWrapper.setTranslateY(closed);
+                drawerWrapper.setTranslateX(0.0);
             }
         }
         applyOverlayPaneRest(false);
@@ -421,7 +421,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             closeInFlight = false;
             restoreFocus();
         }
-        applyDrawerPaneRest(false);
+        applyDrawerWrapperRest(false);
         if (wasCloseInFlight) {
             fireLifecycle(RXDrawerEvent.CLOSED, getSkinnable().getActiveCloseReason());
         }
@@ -461,7 +461,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         if (inContent != null) {
             return inContent;
         }
-        return drawerPane;
+        return drawerWrapper;
     }
 
     private static Node firstFocusableIn(Node root) {
@@ -491,7 +491,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             return;
         }
         List<Node> focusables = new ArrayList<>();
-        for (Node child : drawerPane.getChildrenUnmodifiable()) {
+        for (Node child : drawerWrapper.getChildrenUnmodifiable()) {
             collectFocusable(child, focusables);
         }
         // Take over traversal entirely so focus can never leave the modal drawer.
@@ -526,21 +526,21 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private void snapToShowing() {
         boolean open = getSkinnable().isShowing();
         if (isPush()) {
-            drawerPane.setTranslateX(0.0);
-            drawerPane.setTranslateY(0.0);
+            drawerWrapper.setTranslateX(0.0);
+            drawerWrapper.setTranslateY(0.0);
             progress.set(open ? 1.0 : 0.0);
         } else {
             double target = open ? 0.0 : closedTranslate();
             if (isHorizontal()) {
-                drawerPane.setTranslateX(target);
-                drawerPane.setTranslateY(0.0);
+                drawerWrapper.setTranslateX(target);
+                drawerWrapper.setTranslateY(0.0);
             } else {
-                drawerPane.setTranslateY(target);
-                drawerPane.setTranslateX(0.0);
+                drawerWrapper.setTranslateY(target);
+                drawerWrapper.setTranslateX(0.0);
             }
         }
         applyOverlayPaneRest(open);
-        applyDrawerPaneRest(open);
+        applyDrawerWrapperRest(open);
     }
 
     private RXDrawerMode drawerModeOrDefault() {
@@ -579,9 +579,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
     }
 
-    private void applyDrawerPaneRest(boolean open) {
-        drawerPane.setVisible(open);
-        drawerPane.setMouseTransparent(!open);
+    private void applyDrawerWrapperRest(boolean open) {
+        drawerWrapper.setVisible(open);
+        drawerWrapper.setMouseTransparent(!open);
     }
 
     private void onOverlayPaneChanged() {
@@ -704,7 +704,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     private DoubleProperty axisTranslate() {
-        return isHorizontal() ? drawerPane.translateXProperty() : drawerPane.translateYProperty();
+        return isHorizontal() ? drawerWrapper.translateXProperty() : drawerWrapper.translateYProperty();
     }
 
     // ==================== Animation gating ====================

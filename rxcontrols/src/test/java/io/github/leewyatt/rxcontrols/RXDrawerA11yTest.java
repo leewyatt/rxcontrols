@@ -100,7 +100,7 @@ public class RXDrawerA11yTest {
             pane.setContent(trigger);
             pane.setDrawerContent(field);
             relayout(pane);
-            Region drawer = (Region) pane.lookup(".drawer");
+            Region drawer = (Region) pane.lookup(".drawer-wrapper");
             assertNotNull(drawer);
             assertFalse(drawer.isVisible(), "closed drawer subtree is hidden");
             assertTrue(drawer.isMouseTransparent(), "closed drawer subtree does not catch mouse input");
@@ -133,7 +133,7 @@ public class RXDrawerA11yTest {
             pane.setDrawerContent(new VBox(new TextField(), new TextField()));
             relayout(pane);
             pane.open();
-            Region drawer = (Region) pane.lookup(".drawer");
+            Region drawer = (Region) pane.lookup(".drawer-wrapper");
             assertNotNull(drawer);
 
             // Tab repeatedly; focus must cycle and never escape the drawer subtree.
@@ -173,7 +173,7 @@ public class RXDrawerA11yTest {
         onScene(pane -> {
             pane.setDrawerContent(new Region());
             relayout(pane);
-            Region drawer = (Region) pane.lookup(".drawer");
+            Region drawer = (Region) pane.lookup(".drawer-wrapper");
             assertNotNull(drawer);
 
             pane.open();
