@@ -8,7 +8,7 @@ public enum RXDrawerMode {
 
     /**
      * The panel floats over the content (which stays put) — a pure
-     * {@code translate} slide, optionally over a scrim. The default; zero relayout.
+     * {@code translate} slide, optionally over an overlay pane. The default; zero relayout.
      */
     OVERLAY,
 

@@ -1,10 +1,14 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
+import javafx.css.Styleable;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -20,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -122,6 +128,51 @@ public class RXDrawerPaneTest {
             assertThrows(IllegalArgumentException.class,
                     () -> pane.setAnimationDuration(Duration.millis(-10.0)));
             assertEquals(Duration.millis(250.0), pane.getAnimationDuration());
+        });
+    }
+
+    @Test
+    public void cssMetadataExposesDrawerProperties() throws Exception {
+        runOnFx(() -> {
+            Set<String> customProperties = RXDrawerPane.getClassCssMetaData().stream()
+                    .map(CssMetaData<? extends Styleable, ?>::getProperty)
+                    .filter(property -> property.startsWith("-rx-"))
+                    .collect(Collectors.toSet());
+            assertEquals(Set.of(
+                    "-rx-side",
+                    "-rx-drawer-mode",
+                    "-rx-animated",
+                    "-rx-animation-duration",
+                    "-rx-show-close-button",
+                    "-rx-overlay-pane-visible",
+                    "-rx-close-on-overlay-pane-click",
+                    "-rx-close-on-esc"), customProperties);
+        });
+    }
+
+    @Test
+    public void cssAppliesStyleableDrawerProperties() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setStyle("-rx-side: left;"
+                    + "-rx-drawer-mode: push;"
+                    + "-rx-animated: false;"
+                    + "-rx-animation-duration: 75ms;"
+                    + "-rx-show-close-button: false;"
+                    + "-rx-overlay-pane-visible: false;"
+                    + "-rx-close-on-overlay-pane-click: false;"
+                    + "-rx-close-on-esc: false;");
+
+            attach(pane);
+
+            assertEquals(Side.LEFT, pane.getSide());
+            assertEquals(RXDrawerMode.PUSH, pane.getDrawerMode());
+            assertFalse(pane.isAnimated());
+            assertEquals(Duration.millis(75.0), pane.getAnimationDuration());
+            assertFalse(pane.isShowCloseButton());
+            assertFalse(pane.isOverlayPaneVisible());
+            assertFalse(pane.isCloseOnOverlayPaneClick());
+            assertFalse(pane.isCloseOnEsc());
         });
     }
 

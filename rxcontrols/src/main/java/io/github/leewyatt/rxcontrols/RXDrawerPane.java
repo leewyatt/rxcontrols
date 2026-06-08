@@ -340,13 +340,15 @@ public class RXDrawerPane extends Control {
                 @Override
                 protected void invalidated() {
                     RXDrawerMode value = get();
-                    if (value == null && !isBound()) {
-                        set(lastValid);
+                    if (value == null) {
+                        if (!isBound()) {
+                            set(lastValid);
+                        }
+                        updatePushPseudoClass();
+                        requestLayout();
                         throw new NullPointerException("drawerMode cannot be null");
                     }
-                    if (value != null) {
-                        lastValid = value;
-                    }
+                    lastValid = value;
                     updatePushPseudoClass();
                     requestLayout();
                 }

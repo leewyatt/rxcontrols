@@ -16,6 +16,7 @@ import javafx.event.EventType;
 import javafx.geometry.HPos;
 import javafx.geometry.Side;
 import javafx.geometry.VPos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -118,6 +119,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         closeGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         closeGraphic.setMouseTransparent(true);
         closeButton.getChildren().add(closeGraphic);
+        closeButton.setAccessibleRole(AccessibleRole.BUTTON);
         closeButton.setAccessibleText("Close");
         closeButton.setFocusTraversable(true);
 
@@ -133,6 +135,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         updateBody();
         updateHeader();
         updateFooter();
+        applyDrawerPaneRest(control.isShowing());
         applyOverlayPaneRest(control.isShowing());
 
         control.setClip(clipRect);
@@ -391,6 +394,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         if (showing) {
             openInFlight = true;
             closeInFlight = false;
+            applyDrawerPaneRest(true);
             moveFocusIntoDrawer();
             fireLifecycle(RXDrawerEvent.OPENING, null);
             playOpen();
@@ -473,6 +477,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             drawerPane.setTranslateX(0.0);
             drawerPane.setTranslateY(0.0);
         }
+        applyDrawerPaneRest(true);
         applyOverlayPaneRest(true);
         if (openInFlight) {
             openInFlight = false;
@@ -496,9 +501,13 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             }
         }
         applyOverlayPaneRest(false);
-        if (closeInFlight) {
+        boolean wasCloseInFlight = closeInFlight;
+        if (wasCloseInFlight) {
             closeInFlight = false;
             restoreFocus();
+        }
+        applyDrawerPaneRest(false);
+        if (wasCloseInFlight) {
             fireLifecycle(RXDrawerEvent.CLOSED, getSkinnable().getActiveCloseReason());
         }
     }
@@ -619,6 +628,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             }
         }
         applyOverlayPaneRest(open);
+        applyDrawerPaneRest(open);
     }
 
     private RXDrawerMode drawerModeOrDefault() {
@@ -655,6 +665,11 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             overlayPane.setMouseTransparent(true);
             overlayPane.setOpacity(0.0);
         }
+    }
+
+    private void applyDrawerPaneRest(boolean open) {
+        drawerPane.setVisible(open);
+        drawerPane.setMouseTransparent(!open);
     }
 
     private void onOverlayPaneChanged() {

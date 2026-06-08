@@ -4,11 +4,14 @@ import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
 import javafx.event.Event;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -119,6 +122,19 @@ public class RXDrawerChromeTest {
     }
 
     @Test
+    public void closeButtonHasButtonAccessibility() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            attach(pane);
+            Node closeButton = pane.lookup(".close-button");
+            assertNotNull(closeButton);
+            assertEquals(AccessibleRole.BUTTON, closeButton.getAccessibleRole());
+            assertEquals("Close", closeButton.getAccessibleText());
+            assertTrue(closeButton.isFocusTraversable());
+        });
+    }
+
+    @Test
     public void closeButtonClickRequestsCloseWithCloseButtonReason() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
@@ -133,6 +149,14 @@ public class RXDrawerChromeTest {
             assertFalse(pane.isShowing(), "close button closes the drawer");
             assertEquals(List.of(
                     "CLOSE_REQUEST:CLOSE_BUTTON", "CLOSING:CLOSE_BUTTON", "CLOSED:CLOSE_BUTTON"), log);
+        });
+    }
+
+    @Test
+    public void closeButtonKeyboardActivationRequestsClose() throws Exception {
+        runOnFx(() -> {
+            assertCloseButtonKeyCloses(KeyCode.ENTER);
+            assertCloseButtonKeyCloses(KeyCode.SPACE);
         });
     }
 
@@ -181,6 +205,30 @@ public class RXDrawerChromeTest {
         });
     }
 
+    @Test
+    public void scrollableCanToggleAtRuntime() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            Label content = new Label("body");
+            pane.setDrawerContent(content);
+            attach(pane);
+
+            Node scrollPane = pane.lookup(".body > .scroll-pane");
+            assertNotNull(scrollPane, "starts scrollable");
+            assertTrue(isDescendant(content, (Parent) scrollPane));
+
+            pane.setScrollable(false);
+            assertNull(pane.lookup(".scroll-pane"), "runtime false removes the ScrollPane");
+            Region body = (Region) pane.lookup(".body");
+            assertTrue(body.getChildrenUnmodifiable().contains(content));
+
+            pane.setScrollable(true);
+            Node restoredScrollPane = pane.lookup(".body > .scroll-pane");
+            assertNotNull(restoredScrollPane, "runtime true restores the ScrollPane");
+            assertTrue(isDescendant(content, (Parent) restoredScrollPane));
+        });
+    }
+
     // ==================== Footer ====================
 
     @Test
@@ -213,6 +261,26 @@ public class RXDrawerChromeTest {
         node.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
                 MouseButton.PRIMARY, 1, false, false, false, false,
                 true, false, false, true, false, false, null));
+    }
+
+    private static void fireKey(Node node, KeyCode code) {
+        assertNotNull(node, "key target exists");
+        node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
+    }
+
+    private static void assertCloseButtonKeyCloses(KeyCode code) {
+        RXDrawerPane pane = new RXDrawerPane();
+        pane.setAnimated(false);
+        List<String> log = recordEvents(pane);
+        attach(pane);
+        pane.open();
+        log.clear();
+
+        fireKey(pane.lookup(".close-button"), code);
+
+        assertFalse(pane.isShowing(), code + " closes the drawer");
+        assertEquals(List.of(
+                "CLOSE_REQUEST:CLOSE_BUTTON", "CLOSING:CLOSE_BUTTON", "CLOSED:CLOSE_BUTTON"), log);
     }
 
     private static List<String> recordEvents(RXDrawerPane pane) {

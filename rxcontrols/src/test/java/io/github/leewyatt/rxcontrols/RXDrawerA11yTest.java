@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -92,6 +93,32 @@ public class RXDrawerA11yTest {
     }
 
     @Test
+    public void closedDrawerSubtreeIsHiddenAndCannotTakeFocus() throws Exception {
+        onScene(pane -> {
+            Button trigger = new Button("open");
+            TextField field = new TextField();
+            pane.setContent(trigger);
+            pane.setDrawerContent(field);
+            relayout(pane);
+            Region drawer = (Region) pane.lookup(".drawer");
+            assertNotNull(drawer);
+            assertFalse(drawer.isVisible(), "closed drawer subtree is hidden");
+            assertTrue(drawer.isMouseTransparent(), "closed drawer subtree does not catch mouse input");
+
+            trigger.requestFocus();
+            field.requestFocus();
+            assertSame(trigger, pane.getScene().getFocusOwner(),
+                    "closed drawer content cannot become focus owner");
+
+            Node closeButton = pane.lookup(".close-button");
+            assertNotNull(closeButton);
+            closeButton.requestFocus();
+            assertSame(trigger, pane.getScene().getFocusOwner(),
+                    "closed close button cannot become focus owner");
+        });
+    }
+
+    @Test
     public void nonModalOpenDoesNotStealFocus() throws Exception {
         onScene(pane -> {
             pane.setOverlayPaneVisible(false);
@@ -125,6 +152,50 @@ public class RXDrawerA11yTest {
         });
     }
 
+    @Test
+    public void modalTabTrapWrapsForwardAndBackwardInOrder() throws Exception {
+        onScene(pane -> {
+            TextField first = new TextField();
+            TextField second = new TextField();
+            pane.setTitle("");
+            pane.setShowCloseButton(false);
+            pane.setScrollable(false);
+            pane.setDrawerContent(new VBox(first, second));
+            relayout(pane);
+
+            pane.open();
+            assertSame(first, pane.getScene().getFocusOwner(), "open focuses the first field");
+
+            fireTab(pane, false);
+            assertSame(second, pane.getScene().getFocusOwner(), "Tab advances");
+            fireTab(pane, false);
+            assertSame(first, pane.getScene().getFocusOwner(), "Tab wraps forward");
+            fireTab(pane, true);
+            assertSame(second, pane.getScene().getFocusOwner(), "Shift+Tab wraps backward");
+            fireTab(pane, true);
+            assertSame(first, pane.getScene().getFocusOwner(), "Shift+Tab moves backward");
+        });
+    }
+
+    @Test
+    public void modalOpenFallsBackToDrawerPaneWhenNoFocusableChild() throws Exception {
+        onScene(pane -> {
+            pane.setTitle("");
+            pane.setShowCloseButton(false);
+            pane.setDrawerContent(new Region());
+            relayout(pane);
+            Region drawer = (Region) pane.lookup(".drawer");
+            assertNotNull(drawer);
+
+            pane.open();
+            assertSame(drawer, pane.getScene().getFocusOwner(),
+                    "drawer panel is the last-resort focus target");
+            fireTab(pane, false);
+            assertSame(drawer, pane.getScene().getFocusOwner(),
+                    "empty focus cycle keeps focus on the fallback target");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static void onScene(Consumer<RXDrawerPane> body) throws Exception {
@@ -150,6 +221,11 @@ public class RXDrawerA11yTest {
             current = current.getParent();
         }
         return false;
+    }
+
+    private static void fireTab(RXDrawerPane pane, boolean shiftDown) {
+        pane.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.TAB,
+                shiftDown, false, false, false));
     }
 
     private static void runOnFx(Runnable action) throws Exception {

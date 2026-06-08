@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
 import javafx.geometry.Side;
 import javafx.scene.Scene;
@@ -16,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,6 +69,37 @@ public class RXDrawerPushTest {
             pane.setDrawerMode(RXDrawerMode.PUSH);
             assertThrows(NullPointerException.class, () -> pane.setDrawerMode(null));
             assertEquals(RXDrawerMode.PUSH, pane.getDrawerMode(), "reverted to last valid");
+        });
+    }
+
+    @Test
+    public void boundNullDrawerModeThrowsAndFallsBackToOverlay() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setAnimated(false);
+            pane.setPrefDrawerWidth(THICKNESS);
+            ObjectProperty<RXDrawerMode> source = new SimpleObjectProperty<>(RXDrawerMode.PUSH);
+            pane.drawerModeProperty().bind(source);
+            assertTrue(pane.getPseudoClassStates().contains(PUSH));
+
+            AtomicReference<Throwable> uncaught = new AtomicReference<>();
+            Thread current = Thread.currentThread();
+            Thread.UncaughtExceptionHandler oldHandler = current.getUncaughtExceptionHandler();
+            current.setUncaughtExceptionHandler((thread, throwable) -> uncaught.set(throwable));
+            try {
+                source.set(null);
+            } finally {
+                current.setUncaughtExceptionHandler(oldHandler);
+            }
+            assertTrue(uncaught.get() instanceof NullPointerException, "bound null is reported as an error");
+            assertNull(pane.getDrawerMode(), "bound invalid value cannot be reverted");
+            assertFalse(pane.getPseudoClassStates().contains(PUSH), "effective fallback is OVERLAY");
+
+            attach(pane);
+            pane.open();
+            pane.layout();
+            assertEquals(WIDTH, contentLayer(pane).getWidth(), EPSILON,
+                    "bound-null fallback lays out as OVERLAY");
         });
     }
 
@@ -121,6 +155,47 @@ public class RXDrawerPushTest {
             pane.layout();
             assertEquals(0.0, content.getLayoutX(), EPSILON, "content restored");
             assertEquals(-THICKNESS, drawer.getLayoutX(), EPSILON, "panel pushed off the left");
+        });
+    }
+
+    @Test
+    public void pushTopSqueezesContentAndPlacesPanel() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = pushDrawer(Side.TOP);
+            attach(pane);
+            Region content = contentLayer(pane);
+            Region drawer = drawerLayer(pane);
+
+            pane.open();
+            pane.layout();
+            assertEquals(THICKNESS, content.getLayoutY(), EPSILON, "content pushed down");
+            assertEquals(HEIGHT - THICKNESS, content.getHeight(), EPSILON, "content shrinks");
+            assertEquals(0.0, drawer.getLayoutY(), EPSILON, "panel rests at the top edge");
+
+            pane.close();
+            pane.layout();
+            assertEquals(0.0, content.getLayoutY(), EPSILON, "content restored");
+            assertEquals(-THICKNESS, drawer.getLayoutY(), EPSILON, "panel pushed off the top");
+        });
+    }
+
+    @Test
+    public void pushBottomSqueezesContentAndPlacesPanel() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = pushDrawer(Side.BOTTOM);
+            attach(pane);
+            Region content = contentLayer(pane);
+            Region drawer = drawerLayer(pane);
+
+            pane.open();
+            pane.layout();
+            assertEquals(HEIGHT - THICKNESS, content.getHeight(), EPSILON, "content shrinks from the bottom");
+            assertEquals(HEIGHT - THICKNESS, drawer.getLayoutY(), EPSILON, "panel rests at the bottom edge");
+
+            pane.close();
+            pane.layout();
+            assertEquals(HEIGHT, content.getHeight(), EPSILON, "content restored");
+            assertEquals(HEIGHT, drawer.getLayoutY(), EPSILON, "panel pushed off the bottom");
         });
     }
 
