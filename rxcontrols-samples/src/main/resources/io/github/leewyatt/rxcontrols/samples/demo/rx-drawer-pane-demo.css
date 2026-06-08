@@ -1,0 +1,48 @@
+.main-page {
+    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);
+}
+
+.page-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.page-hint {
+    -fx-font-size: 14px;
+    -fx-text-fill: #475569;
+}
+
+.state-label {
+    -fx-font-family: "monospace";
+    -fx-text-fill: #6366f1;
+}
+
+.primary-button {
+    -fx-background-color: #6366f1;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-padding: 8 18;
+    -fx-cursor: hand;
+}
+
+.ghost-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 6;
+    -fx-text-fill: #334155;
+    -fx-padding: 6 16;
+    -fx-cursor: hand;
+}
+
+.drawer-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.drawer-body {
+    -fx-font-size: 14px;
+    -fx-text-fill: #475569;
+}
