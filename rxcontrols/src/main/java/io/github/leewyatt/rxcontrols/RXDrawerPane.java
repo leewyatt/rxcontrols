@@ -219,13 +219,18 @@ public class RXDrawerPane extends Control {
         @Override
         protected void invalidated() {
             Side value = get();
-            if (value == null) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
+            if (value == null && !isBound()) {
+                // A direct set(null) is a recoverable programmer error: revert and signal it.
+                set(lastValid);
                 throw new NullPointerException("side cannot be null");
             }
-            lastValid = value;
+            if (value != null) {
+                lastValid = value;
+            }
+            // A bound source may yield null, which cannot be reverted; the effective
+            // side then falls back to the default for both the pseudo-class and the
+            // skin's geometry (see RXDrawerPaneSkin.sideOrDefault), rather than
+            // throwing back into the binding's own evaluation.
             updateDirectionPseudoClass();
             requestLayout();
         }
@@ -569,7 +574,12 @@ public class RXDrawerPane extends Control {
     // ==================== PseudoClass ====================
 
     private void updateDirectionPseudoClass() {
+        // Mirror the skin's sideOrDefault: a null (bound) side resolves to the
+        // default so the pseudo-class never disagrees with the rendered geometry.
         Side current = getSide();
+        if (current == null) {
+            current = DEFAULT_SIDE;
+        }
         pseudoClassStateChanged(LEFT_PSEUDO_CLASS, current == Side.LEFT);
         pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, current == Side.RIGHT);
         pseudoClassStateChanged(TOP_PSEUDO_CLASS, current == Side.TOP);

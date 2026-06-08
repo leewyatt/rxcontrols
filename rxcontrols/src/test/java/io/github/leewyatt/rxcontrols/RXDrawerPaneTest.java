@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -85,6 +87,31 @@ public class RXDrawerPaneTest {
             RXDrawerPane pane = new RXDrawerPane();
             assertThrows(NullPointerException.class, () -> pane.setSide(null));
             assertEquals(Side.RIGHT, pane.getSide());
+            assertTrue(pane.getPseudoClassStates().contains(RIGHT), "revert keeps :right");
+        });
+    }
+
+    @Test
+    public void boundNullSideDegradesToDefault() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            ObjectProperty<Side> source = new SimpleObjectProperty<>(Side.LEFT);
+            pane.sideProperty().bind(source);
+            assertEquals(Side.LEFT, pane.getSide());
+            assertTrue(pane.getPseudoClassStates().contains(LEFT));
+
+            // A bound source going null cannot be reverted: it must not throw back
+            // into the source mutation, and both the pseudo-class and the geometry
+            // must fall to the default side rather than going stale or crashing.
+            source.set(null);
+            assertFalse(pane.getPseudoClassStates().contains(LEFT), ":left clears");
+            assertTrue(pane.getPseudoClassStates().contains(RIGHT), "effective side is the default");
+
+            pane.setAnimated(false);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+            pane.open();
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "default-side geometry stays sane");
         });
     }
 
