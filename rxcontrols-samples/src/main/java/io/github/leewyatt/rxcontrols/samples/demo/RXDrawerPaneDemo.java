@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
@@ -14,8 +15,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -94,14 +97,21 @@ public class RXDrawerPaneDemo extends Application {
     }
 
     private Region createDrawerPanel(RXDrawerPane drawer) {
-        // Header (title + close button) and footer are built-in chrome now; the
-        // drawerContent is just the body form, which the body scrolls if it overflows.
-        drawer.setTitle("Edit task");
+        Label title = new Label("Edit task");
+        title.getStyleClass().add("drawer-title");
+
+        Button close = new Button("Close");
+        close.getStyleClass().add("ghost-button");
+        close.setOnAction(e -> drawer.requestClose(CloseReason.CLOSE_BUTTON));
+
+        BorderPane header = new BorderPane();
+        header.getStyleClass().add("drawer-header");
+        header.setLeft(title);
+        header.setRight(close);
 
         Label intro = new Label(
-                "The header title and close button, and the footer below, are built-in "
-                        + "chrome. This form is the drawerContent — the body scrolls it when "
-                        + "it overflows.");
+                "The drawerContent is a regular BorderPane. Header, footer, scrolling, "
+                        + "and close actions are owned by the application layout.");
         intro.getStyleClass().add("drawer-body");
         intro.setWrapText(true);
 
@@ -112,9 +122,8 @@ public class RXDrawerPaneDemo extends Application {
         notes.setPrefRowCount(4);
 
         CheckBox dirty = new CheckBox("Unsaved changes (veto close)");
-        // Every close path — header close button, Cancel, toggle, ESC later — fires
-        // CLOSE_REQUEST first; consuming it keeps the drawer open, the library's key
-        // improvement over the web frameworks.
+        // Every close path - custom close button, Cancel, toggle, ESC later - fires
+        // CLOSE_REQUEST first; consuming it keeps the drawer open.
         drawer.setOnCloseRequest(e -> {
             if (dirty.isSelected()) {
                 e.consume();
@@ -123,6 +132,11 @@ public class RXDrawerPaneDemo extends Application {
 
         VBox form = new VBox(12.0, intro, name, notes, dirty);
         form.setFillWidth(true);
+        form.setPadding(new Insets(20.0));
+
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.getStyleClass().add("drawer-scroll");
+        scroll.setFitToWidth(true);
 
         Button cancel = new Button("Cancel");
         cancel.getStyleClass().add("ghost-button");
@@ -131,10 +145,15 @@ public class RXDrawerPaneDemo extends Application {
         save.getStyleClass().add("primary-button");
         save.setOnAction(e -> dirty.setSelected(false));
         HBox footer = new HBox(8.0, cancel, save);
+        footer.getStyleClass().add("drawer-footer");
         footer.setAlignment(Pos.CENTER_RIGHT);
-        drawer.setFooter(footer);
 
-        return form;
+        BorderPane panel = new BorderPane();
+        panel.getStyleClass().add("drawer-panel");
+        panel.setTop(header);
+        panel.setCenter(scroll);
+        panel.setBottom(footer);
+        return panel;
     }
 
     /**

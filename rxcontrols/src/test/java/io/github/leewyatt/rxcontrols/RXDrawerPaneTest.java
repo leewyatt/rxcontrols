@@ -143,7 +143,6 @@ public class RXDrawerPaneTest {
                     "-rx-drawer-mode",
                     "-rx-animated",
                     "-rx-animation-duration",
-                    "-rx-show-close-button",
                     "-rx-overlay-pane-visible",
                     "-rx-close-on-overlay-pane-click",
                     "-rx-close-on-esc"), customProperties);
@@ -158,7 +157,6 @@ public class RXDrawerPaneTest {
                     + "-rx-drawer-mode: push;"
                     + "-rx-animated: false;"
                     + "-rx-animation-duration: 75ms;"
-                    + "-rx-show-close-button: false;"
                     + "-rx-overlay-pane-visible: false;"
                     + "-rx-close-on-overlay-pane-click: false;"
                     + "-rx-close-on-esc: false;");
@@ -169,7 +167,6 @@ public class RXDrawerPaneTest {
             assertEquals(RXDrawerMode.PUSH, pane.getDrawerMode());
             assertFalse(pane.isAnimated());
             assertEquals(Duration.millis(75.0), pane.getAnimationDuration());
-            assertFalse(pane.isShowCloseButton());
             assertFalse(pane.isOverlayPaneVisible());
             assertFalse(pane.isCloseOnOverlayPaneClick());
             assertFalse(pane.isCloseOnEsc());
@@ -191,7 +188,9 @@ public class RXDrawerPaneTest {
             assertTrue(isDescendant(content, pane), "content is mounted");
             Region drawer = drawerPanel(pane);
             assertTrue(isDescendant(drawerContent, drawer),
-                    "drawerContent is mounted inside the .drawer panel chrome");
+                    "drawerContent is mounted inside the .drawer panel");
+            assertTrue(drawer.getChildrenUnmodifiable().contains(drawerContent),
+                    "drawerContent is mounted directly in the drawer panel");
         });
     }
 

@@ -109,12 +109,6 @@ public class RXDrawerA11yTest {
             field.requestFocus();
             assertSame(trigger, pane.getScene().getFocusOwner(),
                     "closed drawer content cannot become focus owner");
-
-            Node closeButton = pane.lookup(".close-button");
-            assertNotNull(closeButton);
-            closeButton.requestFocus();
-            assertSame(trigger, pane.getScene().getFocusOwner(),
-                    "closed close button cannot become focus owner");
         });
     }
 
@@ -157,9 +151,6 @@ public class RXDrawerA11yTest {
         onScene(pane -> {
             TextField first = new TextField();
             TextField second = new TextField();
-            pane.setTitle("");
-            pane.setShowCloseButton(false);
-            pane.setScrollable(false);
             pane.setDrawerContent(new VBox(first, second));
             relayout(pane);
 
@@ -180,8 +171,6 @@ public class RXDrawerA11yTest {
     @Test
     public void modalOpenFallsBackToDrawerPaneWhenNoFocusableChild() throws Exception {
         onScene(pane -> {
-            pane.setTitle("");
-            pane.setShowCloseButton(false);
             pane.setDrawerContent(new Region());
             relayout(pane);
             Region drawer = (Region) pane.lookup(".drawer");

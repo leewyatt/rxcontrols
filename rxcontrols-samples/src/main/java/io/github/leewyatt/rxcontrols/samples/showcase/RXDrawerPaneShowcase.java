@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -10,6 +11,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -17,8 +19,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -30,11 +34,11 @@ import java.util.function.Consumer;
 /**
  * Showcase application for {@link RXDrawerPane}.
  *
- * <p>Hosts a drawer with placeholder content and a placeholder form, and a control
- * panel that drives every configurable property — side, mode, overlay-pane group, chrome
- * (title / close button / scrollable / footer), animation, and drawer thickness —
- * plus open/close/toggle buttons and a live read-out of {@code showing} and the
- * last {@link RXDrawerEvent}.</p>
+ * <p>Hosts a drawer with placeholder content and a composed drawer content tree,
+ * and a control panel that drives every configurable property: side, mode,
+ * overlay-pane group, animation, and drawer thickness, plus open/close/toggle
+ * buttons and a live read-out of {@code showing} and the last
+ * {@link RXDrawerEvent}.</p>
  */
 public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
@@ -50,7 +54,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "An overlay / push content drawer with a backdrop, veto, chrome and a11y.";
+        return "An overlay / push content drawer with a backdrop, veto, custom content and a11y.";
     }
 
     @Override
@@ -62,8 +66,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         drawer = new RXDrawerPane();
         drawer.setContent(createMainContent());
-        drawer.setDrawerContent(createForm());
-        drawer.setTitle("Edit item");
+        drawer.setDrawerContent(createDrawerContent());
         drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
                 e.getEventType().getName() + (e.getReason() == null ? "" : " (" + e.getReason() + ")")));
         return drawer;
@@ -84,13 +87,46 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
     private Region createForm() {
         VBox form = new VBox(10.0);
-        form.getChildren().add(new Label("A form lives in the drawer body."));
+        form.getChildren().add(new Label("A user-supplied form lives inside drawerContent."));
         for (int i = 1; i <= 8; i++) {
             TextField field = new TextField();
             field.setPromptText("Field " + i);
             form.getChildren().add(field);
         }
+        form.setPadding(new Insets(18.0));
         return form;
+    }
+
+    private Region createDrawerContent() {
+        Label title = new Label("Edit item");
+        title.getStyleClass().add("drawer-title");
+
+        Button close = new Button("Close");
+        close.setOnAction(e -> drawer.requestClose(CloseReason.CLOSE_BUTTON));
+
+        BorderPane header = new BorderPane();
+        header.getStyleClass().add("drawer-header");
+        header.setLeft(title);
+        header.setRight(close);
+
+        ScrollPane scroll = new ScrollPane(createForm());
+        scroll.getStyleClass().add("drawer-scroll");
+        scroll.setFitToWidth(true);
+
+        Button cancel = new Button("Cancel");
+        cancel.setOnAction(e -> drawer.close());
+        Button save = new Button("Save");
+        save.setOnAction(e -> drawer.close());
+        HBox footer = new HBox(8.0, cancel, save);
+        footer.getStyleClass().add("drawer-footer");
+        footer.setAlignment(Pos.CENTER_RIGHT);
+
+        BorderPane panel = new BorderPane();
+        panel.getStyleClass().add("drawer-panel");
+        panel.setTop(header);
+        panel.setCenter(scroll);
+        panel.setBottom(footer);
+        return panel;
     }
 
     @Override
@@ -98,7 +134,6 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Layout", layoutGrid()),
                 section("Overlay pane & dismissal", overlayPaneGrid()),
-                section("Chrome", chromeGrid()),
                 section("Animation", animationGrid()),
                 section("State & actions", actionsBox()));
     }
@@ -144,32 +179,6 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
                 row(visible),
                 row(click),
                 row(esc));
-    }
-
-    private Node chromeGrid() {
-        TextField title = new TextField(drawer.getTitle());
-        title.textProperty().addListener((obs, old, value) -> drawer.setTitle(value));
-        title.setMaxWidth(Double.MAX_VALUE);
-
-        CheckBox closeButton = checkBox("Show close button", drawer.isShowCloseButton(),
-                drawer::setShowCloseButton);
-        CheckBox scrollable = checkBox("Scrollable body", drawer.isScrollable(), drawer::setScrollable);
-        CheckBox footer = checkBox("Show footer", false, show -> drawer.setFooter(show ? createFooter() : null));
-
-        return createGrid(
-                row("Title", title),
-                row(closeButton),
-                row(scrollable),
-                row(footer));
-    }
-
-    private Region createFooter() {
-        Button cancel = new Button("Cancel");
-        cancel.setOnAction(e -> drawer.close());
-        Button save = new Button("Save");
-        HBox footer = new HBox(8.0, cancel, save);
-        footer.setAlignment(Pos.CENTER_RIGHT);
-        return footer;
     }
 
     private Node animationGrid() {
