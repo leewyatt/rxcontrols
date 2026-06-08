@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDrawerPaneSkin;
 
@@ -7,6 +9,7 @@ import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -19,6 +22,8 @@ import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Orientation;
 import javafx.geometry.Side;
 import javafx.scene.AccessibleRole;
@@ -282,7 +287,29 @@ public class RXDrawerPane extends Control {
 
     // ==================== Showing ====================
 
-    private final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", DEFAULT_SHOWING);
+    // Set while close() has already arbitrated the veto, so the showing
+    // invalidated path does not fire a second CLOSE_REQUEST.
+    private boolean vetoBypass;
+    // The reason for the close currently being processed; read by the skin when it
+    // fires the CLOSING / CLOSED events.
+    private CloseReason activeCloseReason = CloseReason.PROGRAMMATIC;
+
+    private final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", DEFAULT_SHOWING) {
+        @Override
+        protected void invalidated() {
+            if (get() || vetoBypass) {
+                return;
+            }
+            // A direct setShowing(false) (or a binding pushing false) still passes
+            // through the CLOSE_REQUEST veto; close() handles its own arbitration.
+            activeCloseReason = CloseReason.PROGRAMMATIC;
+            if (fireCloseRequest(CloseReason.PROGRAMMATIC) && !isBound()) {
+                // Vetoed and revertible: stay open. A bound showing cannot be
+                // reverted, so a vetoed bound-close proceeds (documented contract).
+                set(true);
+            }
+        }
+    };
 
     /**
      * The single source of truth for whether the drawer is requested open
@@ -555,20 +582,245 @@ public class RXDrawerPane extends Control {
     }
 
     /**
-     * Requests the drawer closed. Equivalent to {@code setShowing(false)}; a no-op
-     * when already closed or closing.
+     * Requests the drawer closed through the {@code CLOSE_REQUEST} veto: a handler
+     * may {@link javafx.event.Event#consume() consume} the event to keep it open. A
+     * no-op when already closed or closing.
      */
     public final void close() {
-        setShowing(false);
+        if (!isShowing()) {
+            return;
+        }
+        activeCloseReason = CloseReason.PROGRAMMATIC;
+        if (fireCloseRequest(CloseReason.PROGRAMMATIC)) {
+            return;
+        }
+        vetoBypass = true;
+        try {
+            setShowing(false);
+        } finally {
+            vetoBypass = false;
+        }
     }
 
     /**
      * Toggles the drawer, derived from the {@link #showingProperty() showing}
      * intent: a mid-slide toggle reverses cleanly because the request — not the
-     * transient translate — decides the direction.
+     * transient translate — decides the direction. Toggling a shown drawer closed
+     * goes through the {@code CLOSE_REQUEST} veto.
      */
     public final void toggle() {
-        setShowing(!isShowing());
+        if (isShowing()) {
+            close();
+        } else {
+            open();
+        }
+    }
+
+    /**
+     * Fires a {@code CLOSE_REQUEST} and reports whether a handler vetoed it.
+     *
+     * @param reason why the close was requested
+     * @return {@code true} if a handler consumed the event (close vetoed)
+     */
+    private boolean fireCloseRequest(CloseReason reason) {
+        RXDrawerEvent event = new RXDrawerEvent(RXDrawerEvent.CLOSE_REQUEST, this, reason);
+        fireEvent(event);
+        return event.isConsumed();
+    }
+
+    /**
+     * Returns the reason for the close currently being processed. This method is
+     * intended to be used by experts, primarily by those implementing new Skins or
+     * Behaviors, to tag the {@code CLOSING} / {@code CLOSED} events; ordinary code
+     * reads {@link RXDrawerEvent#getReason()} from a handler instead.
+     *
+     * @return the active close reason
+     */
+    public final CloseReason getActiveCloseReason() {
+        return activeCloseReason;
+    }
+
+    // ==================== Events ====================
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onOpening;
+
+    /**
+     * Handler called when an open slide starts.
+     *
+     * @return the onOpening property
+     */
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onOpeningProperty() {
+        if (onOpening == null) {
+            onOpening = newHandlerProperty("onOpening", RXDrawerEvent.OPENING);
+        }
+        return onOpening;
+    }
+
+    /**
+     * Returns the onOpening handler.
+     *
+     * @return the onOpening handler, or {@code null}
+     */
+    public final EventHandler<RXDrawerEvent> getOnOpening() {
+        return onOpening == null ? null : onOpening.get();
+    }
+
+    /**
+     * Sets the onOpening handler.
+     *
+     * @param value the handler, or {@code null} to clear
+     */
+    public final void setOnOpening(EventHandler<RXDrawerEvent> value) {
+        onOpeningProperty().set(value);
+    }
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onOpened;
+
+    /**
+     * Handler called when an open slide has fully completed.
+     *
+     * @return the onOpened property
+     */
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onOpenedProperty() {
+        if (onOpened == null) {
+            onOpened = newHandlerProperty("onOpened", RXDrawerEvent.OPENED);
+        }
+        return onOpened;
+    }
+
+    /**
+     * Returns the onOpened handler.
+     *
+     * @return the onOpened handler, or {@code null}
+     */
+    public final EventHandler<RXDrawerEvent> getOnOpened() {
+        return onOpened == null ? null : onOpened.get();
+    }
+
+    /**
+     * Sets the onOpened handler.
+     *
+     * @param value the handler, or {@code null} to clear
+     */
+    public final void setOnOpened(EventHandler<RXDrawerEvent> value) {
+        onOpenedProperty().set(value);
+    }
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onCloseRequest;
+
+    /**
+     * Handler called before any close proceeds; {@link javafx.event.Event#consume()
+     * consuming} the event keeps the drawer open.
+     *
+     * @return the onCloseRequest property
+     */
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onCloseRequestProperty() {
+        if (onCloseRequest == null) {
+            onCloseRequest = newHandlerProperty("onCloseRequest", RXDrawerEvent.CLOSE_REQUEST);
+        }
+        return onCloseRequest;
+    }
+
+    /**
+     * Returns the onCloseRequest handler.
+     *
+     * @return the onCloseRequest handler, or {@code null}
+     */
+    public final EventHandler<RXDrawerEvent> getOnCloseRequest() {
+        return onCloseRequest == null ? null : onCloseRequest.get();
+    }
+
+    /**
+     * Sets the onCloseRequest handler.
+     *
+     * @param value the handler, or {@code null} to clear
+     */
+    public final void setOnCloseRequest(EventHandler<RXDrawerEvent> value) {
+        onCloseRequestProperty().set(value);
+    }
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onClosing;
+
+    /**
+     * Handler called when a close slide starts (the close was not vetoed).
+     *
+     * @return the onClosing property
+     */
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onClosingProperty() {
+        if (onClosing == null) {
+            onClosing = newHandlerProperty("onClosing", RXDrawerEvent.CLOSING);
+        }
+        return onClosing;
+    }
+
+    /**
+     * Returns the onClosing handler.
+     *
+     * @return the onClosing handler, or {@code null}
+     */
+    public final EventHandler<RXDrawerEvent> getOnClosing() {
+        return onClosing == null ? null : onClosing.get();
+    }
+
+    /**
+     * Sets the onClosing handler.
+     *
+     * @param value the handler, or {@code null} to clear
+     */
+    public final void setOnClosing(EventHandler<RXDrawerEvent> value) {
+        onClosingProperty().set(value);
+    }
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onClosed;
+
+    /**
+     * Handler called when a close slide has fully completed.
+     *
+     * @return the onClosed property
+     */
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onClosedProperty() {
+        if (onClosed == null) {
+            onClosed = newHandlerProperty("onClosed", RXDrawerEvent.CLOSED);
+        }
+        return onClosed;
+    }
+
+    /**
+     * Returns the onClosed handler.
+     *
+     * @return the onClosed handler, or {@code null}
+     */
+    public final EventHandler<RXDrawerEvent> getOnClosed() {
+        return onClosed == null ? null : onClosed.get();
+    }
+
+    /**
+     * Sets the onClosed handler.
+     *
+     * @param value the handler, or {@code null} to clear
+     */
+    public final void setOnClosed(EventHandler<RXDrawerEvent> value) {
+        onClosedProperty().set(value);
+    }
+
+    private ObjectProperty<EventHandler<RXDrawerEvent>> newHandlerProperty(String name,
+                                                                          EventType<RXDrawerEvent> type) {
+        return new ObjectPropertyBase<>() {
+            @Override
+            protected void invalidated() {
+                setEventHandler(type, get());
+            }
+
+            @Override
+            public Object getBean() {
+                return RXDrawerPane.this;
+            }
+
+            @Override
+            public String getName() {
+                return name;
+            }
+        };
     }
 
     // ==================== PseudoClass ====================

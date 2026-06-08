@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -8,6 +10,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.event.EventType;
 import javafx.geometry.HPos;
 import javafx.geometry.Side;
 import javafx.geometry.VPos;
@@ -48,6 +51,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     private Timeline animation;
     private boolean initialized;
+    // Guard lifecycle-event firing: OPENED/CLOSED fire only when a matching
+    // OPENING/CLOSING transition is in flight, never on a redundant settle.
+    private boolean openInFlight;
+    private boolean closeInFlight;
 
     /**
      * Creates the skin, assembles the content and drawer layers, installs the
@@ -66,8 +73,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
 
+        // A ChangeListener (not invalidation): a vetoed close that reverts
+        // showing true→false→true reports old == new and is correctly skipped.
         disposer.registerListener(control.showingProperty(),
-                () -> handleShowingChanged(control.isShowing()));
+                (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.sideProperty(), this::onSideChanged);
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.drawerContentProperty(), this::updateDrawerContent);
@@ -189,10 +198,20 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     private void handleShowingChanged(boolean showing) {
         if (showing) {
+            openInFlight = true;
+            closeInFlight = false;
+            fireLifecycle(RXDrawerEvent.OPENING, null);
             playOpen();
         } else {
+            closeInFlight = true;
+            openInFlight = false;
+            fireLifecycle(RXDrawerEvent.CLOSING, getSkinnable().getActiveCloseReason());
             playClose();
         }
+    }
+
+    private void fireLifecycle(EventType<RXDrawerEvent> type, CloseReason reason) {
+        getSkinnable().fireEvent(new RXDrawerEvent(type, getSkinnable(), reason));
     }
 
     private void playOpen() {
@@ -236,6 +255,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private void finalizeOpen() {
         drawerPane.setTranslateX(0.0);
         drawerPane.setTranslateY(0.0);
+        if (openInFlight) {
+            openInFlight = false;
+            fireLifecycle(RXDrawerEvent.OPENED, null);
+        }
     }
 
     private void finalizeClose() {
@@ -246,6 +269,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         } else {
             drawerPane.setTranslateY(closed);
             drawerPane.setTranslateX(0.0);
+        }
+        if (closeInFlight) {
+            closeInFlight = false;
+            fireLifecycle(RXDrawerEvent.CLOSED, getSkinnable().getActiveCloseReason());
         }
     }
 
@@ -286,9 +313,17 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     // ==================== Property reactions ====================
 
     private void onSideChanged() {
-        // A side change retargets the axis; stop any slide and re-snap for the new
-        // axis on the next layout pass.
+        // A side change retargets the axis. Stop any slide and settle the in-flight
+        // transition to its terminal — the inFlight guard fires the matching
+        // OPENED/CLOSED at most once and is cleared, so a later detach cannot fire a
+        // stale event. The listener runs after the side updates, so finalize* already
+        // uses the new axis. Layout then re-snaps for good measure.
         stopAnimation();
+        if (getSkinnable().isShowing()) {
+            finalizeOpen();
+        } else {
+            finalizeClose();
+        }
         initialized = false;
         getSkinnable().requestLayout();
     }
