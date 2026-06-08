@@ -818,13 +818,18 @@ public class RXDrawerPane extends Control {
     /**
      * Requests the drawer closed through the {@code CLOSE_REQUEST} veto: a handler
      * may {@link javafx.event.Event#consume() consume} the event to keep it open. A
-     * no-op when already closed or closing.
+     * no-op when already closed or closing. If {@link #showingProperty() showing}
+     * is bound, the close request is still fired, but the bound value is not
+     * written; update the binding source to complete the close.
      */
     public final void close() {
         if (!isShowing()) {
             return;
         }
         if (fireCloseRequest()) {
+            return;
+        }
+        if (showing.isBound()) {
             return;
         }
         vetoBypass = true;

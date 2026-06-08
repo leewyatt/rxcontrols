@@ -184,6 +184,24 @@ public class RXDrawerEventTest {
     }
 
     @Test
+    public void closeRequestDoesNotWriteBoundShowing() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setAnimated(false);
+            BooleanProperty source = new SimpleBooleanProperty(true);
+            pane.showingProperty().bind(source);
+            attach(pane);
+            List<String> log = recordEvents(pane);
+
+            pane.close();
+
+            assertTrue(pane.isShowing(), "bound showing remains controlled by its source");
+            assertTrue(source.get(), "close() does not write a bound source");
+            assertEquals(List.of("CLOSE_REQUEST"), log, "no close lifecycle without a showing change");
+        });
+    }
+
+    @Test
     public void closeWhenClosedFiresNoCloseRequest() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
