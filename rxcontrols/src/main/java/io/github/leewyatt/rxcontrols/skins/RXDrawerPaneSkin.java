@@ -16,6 +16,13 @@ import javafx.geometry.Side;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
@@ -46,7 +53,14 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
 
     private final StackPane contentPane = new StackPane();
-    private final StackPane drawerPane = new StackPane();
+    private final BorderPane drawerPane = new BorderPane();
+    private final HBox header = new HBox();
+    private final Label titleLabel = new Label();
+    private final StackPane closeButton = new StackPane();
+    private final Region closeGraphic = new Region();
+    private final StackPane body = new StackPane();
+    private final ScrollPane scrollPane = new ScrollPane();
+    private final StackPane footerContainer = new StackPane();
     private final Rectangle clipRect = new Rectangle();
 
     private Timeline animation;
@@ -57,8 +71,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private boolean closeInFlight;
 
     /**
-     * Creates the skin, assembles the content and drawer layers, installs the
-     * clip, and registers all listeners with the disposer.
+     * Creates the skin, assembles the content layer and the drawer panel chrome
+     * (header / body / footer), installs the clip, and registers all listeners with
+     * the disposer.
      *
      * @param control the drawer pane this skin is attached to
      */
@@ -66,12 +81,40 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         super(control);
 
         drawerPane.getStyleClass().add("drawer");
+        header.getStyleClass().add("header");
+        body.getStyleClass().add("body");
+        footerContainer.getStyleClass().add("footer");
+        closeButton.getStyleClass().add("close-button");
+        closeGraphic.getStyleClass().add("graphic");
+
+        // Title takes the leading space so the close button rests at the trailing edge.
+        HBox.setHgrow(titleLabel, Priority.ALWAYS);
+        titleLabel.setMaxWidth(Double.MAX_VALUE);
+        header.getChildren().add(titleLabel);
+
+        // Icon: a -fx-shape Region, pinned to its pref size so it never stretches; the
+        // transparent wrapper is what gets picked, the icon itself is click-through.
+        closeGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        closeGraphic.setMouseTransparent(true);
+        closeButton.getChildren().add(closeGraphic);
+        closeButton.setAccessibleText("Close");
+
+        scrollPane.setFitToWidth(true);
+        drawerPane.setCenter(body);
+
         getChildren().setAll(contentPane, drawerPane);
         updateContent();
-        updateDrawerContent();
+        updateBody();
+        updateHeader();
+        updateFooter();
 
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
+
+        disposer.registerEventHandler(closeButton, MouseEvent.MOUSE_CLICKED, event -> {
+            control.requestClose(CloseReason.CLOSE_BUTTON);
+            event.consume();
+        });
 
         // A ChangeListener (not invalidation): a vetoed close that reverts
         // showing true→false→true reports old == new and is correctly skipped.
@@ -79,7 +122,11 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.sideProperty(), this::onSideChanged);
         disposer.registerListener(control.contentProperty(), this::updateContent);
-        disposer.registerListener(control.drawerContentProperty(), this::updateDrawerContent);
+        disposer.registerListener(control.drawerContentProperty(), this::updateBody);
+        disposer.registerListener(control.scrollableProperty(), this::updateBody);
+        disposer.registerListener(control.titleProperty(), this::updateHeader);
+        disposer.registerListener(control.showCloseButtonProperty(), this::updateHeader);
+        disposer.registerListener(control.footerProperty(), this::updateFooter);
         disposer.registerListener(control.animatedProperty(), this::onAnimatedChanged);
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationDurationChanged);
         disposer.registerListener(control.prefDrawerWidthProperty(), this::onThicknessChanged);
@@ -88,21 +135,54 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 (obs, oldScene, newScene) -> onSceneChanged(newScene));
     }
 
-    // ==================== Slots ====================
+    // ==================== Slots & chrome ====================
 
     private void updateContent() {
-        setSingleChild(contentPane, getSkinnable().getContent());
-    }
-
-    private void updateDrawerContent() {
-        setSingleChild(drawerPane, getSkinnable().getDrawerContent());
-    }
-
-    private static void setSingleChild(StackPane host, Node child) {
-        if (child == null) {
-            host.getChildren().clear();
+        Node content = getSkinnable().getContent();
+        if (content == null) {
+            contentPane.getChildren().clear();
         } else {
-            host.getChildren().setAll(child);
+            contentPane.getChildren().setAll(content);
+        }
+    }
+
+    private void updateBody() {
+        Node content = getSkinnable().getDrawerContent();
+        if (content == null) {
+            scrollPane.setContent(null);
+            body.getChildren().clear();
+        } else if (getSkinnable().isScrollable()) {
+            scrollPane.setContent(content);
+            body.getChildren().setAll(scrollPane);
+        } else {
+            scrollPane.setContent(null);
+            body.getChildren().setAll(content);
+        }
+    }
+
+    private void updateHeader() {
+        String title = getSkinnable().getTitle();
+        titleLabel.setText(title == null ? "" : title);
+        boolean showClose = getSkinnable().isShowCloseButton();
+        boolean closeInHeader = header.getChildren().contains(closeButton);
+        if (showClose && !closeInHeader) {
+            header.getChildren().add(closeButton);
+        } else if (!showClose && closeInHeader) {
+            header.getChildren().remove(closeButton);
+        }
+        // Render the header only when it carries something: a title or the close button.
+        boolean needsHeader = showClose || !titleLabel.getText().isEmpty();
+        drawerPane.setTop(needsHeader ? header : null);
+    }
+
+    private void updateFooter() {
+        Node footer = getSkinnable().getFooter();
+        if (footer == null) {
+            footerContainer.getChildren().clear();
+            drawerPane.setBottom(null);
+        } else {
+            footerContainer.getChildren().setAll(footer);
+            drawerPane.setBottom(footerContainer);
         }
     }
 

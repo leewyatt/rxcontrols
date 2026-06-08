@@ -14,6 +14,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -92,32 +94,47 @@ public class RXDrawerPaneDemo extends Application {
     }
 
     private Region createDrawerPanel(RXDrawerPane drawer) {
-        Label heading = new Label("Task details");
-        heading.getStyleClass().add("drawer-title");
+        // Header (title + close button) and footer are built-in chrome now; the
+        // drawerContent is just the body form, which the body scrolls if it overflows.
+        drawer.setTitle("Edit task");
 
-        Label body = new Label(
-                "This panel slides over the page as a pure translate animation. "
-                        + "Layout always parks it at the open position, so it reopens "
-                        + "from exactly the right place — even mid-slide.");
-        body.getStyleClass().add("drawer-body");
-        body.setWrapText(true);
+        Label intro = new Label(
+                "The header title and close button, and the footer below, are built-in "
+                        + "chrome. This form is the drawerContent — the body scrolls it when "
+                        + "it overflows.");
+        intro.getStyleClass().add("drawer-body");
+        intro.setWrapText(true);
+
+        TextField name = new TextField();
+        name.setPromptText("Task name");
+        TextArea notes = new TextArea();
+        notes.setPromptText("Notes");
+        notes.setPrefRowCount(4);
 
         CheckBox dirty = new CheckBox("Unsaved changes (veto close)");
-        // Any close path — Close button, toggle, ESC later — fires CLOSE_REQUEST first;
-        // consuming it keeps the drawer open, the library's key improvement over the web.
+        // Every close path — header close button, Cancel, toggle, ESC later — fires
+        // CLOSE_REQUEST first; consuming it keeps the drawer open, the library's key
+        // improvement over the web frameworks.
         drawer.setOnCloseRequest(e -> {
             if (dirty.isSelected()) {
                 e.consume();
             }
         });
 
-        Button close = new Button("Close");
-        close.getStyleClass().add("ghost-button");
-        close.setOnAction(e -> drawer.close());
+        VBox form = new VBox(12.0, intro, name, notes, dirty);
+        form.setFillWidth(true);
 
-        VBox panel = new VBox(16.0, heading, body, dirty, close);
-        panel.setFillWidth(true);
-        return panel;
+        Button cancel = new Button("Cancel");
+        cancel.getStyleClass().add("ghost-button");
+        cancel.setOnAction(e -> drawer.close());
+        Button save = new Button("Save");
+        save.getStyleClass().add("primary-button");
+        save.setOnAction(e -> dirty.setSelected(false));
+        HBox footer = new HBox(8.0, cancel, save);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        drawer.setFooter(footer);
+
+        return form;
     }
 
     /**

@@ -690,3 +690,41 @@
 .rx-drawer-pane:bottom > .drawer {
     -fx-background-radius: 8 8 0 0;
 }
+
+.rx-drawer-pane > .drawer > .header {
+    -fx-padding: 16;
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.rx-drawer-pane > .drawer > .header > .label {
+    -fx-font-size: 1.1em;
+    -fx-font-weight: bold;
+}
+
+.rx-drawer-pane > .drawer > .body {
+    -fx-padding: 0 16 0 16;
+}
+
+.rx-drawer-pane > .drawer > .body > .scroll-pane,
+.rx-drawer-pane > .drawer > .body > .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.rx-drawer-pane > .drawer > .footer {
+    -fx-padding: 12 16 16 16;
+    -fx-alignment: center-right;
+}
+
+.rx-drawer-pane > .drawer > .header > .close-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+    -fx-cursor: hand;
+}
+
+.rx-drawer-pane > .drawer > .header > .close-button > .graphic {
+    -fx-pref-width: 12;
+    -fx-pref-height: 12;
+    -fx-background-color: -fx-text-base-color;
+    -fx-shape: "M2,0 L5,3 L8,0 L10,2 L7,5 L10,8 L8,10 L5,7 L2,10 L0,8 L3,5 L0,2 Z";
+}

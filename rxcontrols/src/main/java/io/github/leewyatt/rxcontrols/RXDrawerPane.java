@@ -13,6 +13,8 @@ import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
@@ -103,6 +105,23 @@ public class RXDrawerPane extends Control {
      * skin supply a default thickness for {@link Side#TOP} / {@link Side#BOTTOM}.
      */
     public static final double DEFAULT_PREF_DRAWER_HEIGHT = Region.USE_COMPUTED_SIZE;
+
+    /**
+     * Default header title (empty). This is the constructed initial value; a later
+     * {@code setTitle(null)} is a legal pass-through and is normalized to empty only
+     * at render time.
+     */
+    public static final String DEFAULT_TITLE = "";
+
+    /**
+     * Default for whether the body wraps its content in a {@code ScrollPane}.
+     */
+    public static final boolean DEFAULT_SCROLLABLE = true;
+
+    /**
+     * Default for whether the header shows a close button.
+     */
+    public static final boolean DEFAULT_SHOW_CLOSE_BUTTON = true;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-drawer-pane";
 
@@ -571,6 +590,151 @@ public class RXDrawerPane extends Control {
         prefDrawerHeight.set(value);
     }
 
+    // ==================== Title ====================
+
+    private final StringProperty title = new SimpleStringProperty(this, "title", DEFAULT_TITLE);
+
+    /**
+     * The header title text. Accepts {@code null} (pure pass-through; the skin
+     * renders {@code null} as an empty title).
+     *
+     * @return the title property
+     */
+    public final StringProperty titleProperty() {
+        return title;
+    }
+
+    /**
+     * Returns the header title.
+     *
+     * @return the title, possibly {@code null}
+     */
+    public final String getTitle() {
+        return title.get();
+    }
+
+    /**
+     * Sets the header title.
+     *
+     * @param value the title, or {@code null}
+     */
+    public final void setTitle(String value) {
+        title.set(value);
+    }
+
+    // ==================== Footer ====================
+
+    private final ObjectProperty<Node> footer = new SimpleObjectProperty<>(this, "footer");
+
+    /**
+     * The node hosted in the footer area, typically an action bar. {@code null}
+     * (the default) renders no footer.
+     *
+     * @return the footer property
+     */
+    public final ObjectProperty<Node> footerProperty() {
+        return footer;
+    }
+
+    /**
+     * Returns the footer node.
+     *
+     * @return the footer node, or {@code null}
+     */
+    public final Node getFooter() {
+        return footer.get();
+    }
+
+    /**
+     * Sets the footer node.
+     *
+     * @param value the footer node, or {@code null}
+     */
+    public final void setFooter(Node value) {
+        footer.set(value);
+    }
+
+    // ==================== Scrollable ====================
+
+    private final BooleanProperty scrollable = new SimpleBooleanProperty(this, "scrollable", DEFAULT_SCROLLABLE);
+
+    /**
+     * Whether the body wraps its content in a {@code ScrollPane}. When {@code true}
+     * (the default) long content scrolls; when {@code false} the body is a bare
+     * container and the content decides its own scrolling.
+     *
+     * @return the scrollable property
+     */
+    public final BooleanProperty scrollableProperty() {
+        return scrollable;
+    }
+
+    /**
+     * Returns whether the body is scrollable.
+     *
+     * @return whether the body wraps a {@code ScrollPane}
+     */
+    public final boolean isScrollable() {
+        return scrollable.get();
+    }
+
+    /**
+     * Sets whether the body is scrollable.
+     *
+     * @param value whether the body wraps a {@code ScrollPane}
+     */
+    public final void setScrollable(boolean value) {
+        scrollable.set(value);
+    }
+
+    // ==================== Show Close Button ====================
+
+    private final BooleanProperty showCloseButton = new StyleableBooleanProperty(DEFAULT_SHOW_CLOSE_BUTTON) {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.SHOW_CLOSE_BUTTON;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDrawerPane.this;
+        }
+
+        @Override
+        public String getName() {
+            return "showCloseButton";
+        }
+    };
+
+    /**
+     * Whether the header shows a close button that requests a
+     * {@link io.github.leewyatt.rxcontrols.enums.CloseReason#CLOSE_BUTTON CLOSE_BUTTON}
+     * close when clicked.
+     *
+     * @return the show close button property
+     */
+    public final BooleanProperty showCloseButtonProperty() {
+        return showCloseButton;
+    }
+
+    /**
+     * Returns whether the header shows a close button.
+     *
+     * @return whether the close button is shown
+     */
+    public final boolean isShowCloseButton() {
+        return showCloseButton.get();
+    }
+
+    /**
+     * Sets whether the header shows a close button.
+     *
+     * @param value whether the close button is shown
+     */
+    public final void setShowCloseButton(boolean value) {
+        showCloseButton.set(value);
+    }
+
     // ==================== Open / Close / Toggle ====================
 
     /**
@@ -587,11 +751,24 @@ public class RXDrawerPane extends Control {
      * no-op when already closed or closing.
      */
     public final void close() {
+        requestClose(CloseReason.PROGRAMMATIC);
+    }
+
+    /**
+     * Requests a close with a specific {@link CloseReason} through the
+     * {@code CLOSE_REQUEST} veto. This method is intended to be used by experts,
+     * primarily by those implementing Skins or Behaviors, to wire close triggers
+     * (close button, ESC, scrim); ordinary code calls {@link #close()}. A no-op
+     * when already closed or closing.
+     *
+     * @param reason why the close was requested
+     */
+    public final void requestClose(CloseReason reason) {
         if (!isShowing()) {
             return;
         }
-        activeCloseReason = CloseReason.PROGRAMMATIC;
-        if (fireCloseRequest(CloseReason.PROGRAMMATIC)) {
+        activeCloseReason = reason;
+        if (fireCloseRequest(reason)) {
             return;
         }
         vetoBypass = true;
@@ -889,6 +1066,21 @@ public class RXDrawerPane extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXDrawerPane, Boolean> SHOW_CLOSE_BUTTON =
+                new CssMetaData<>("-rx-show-close-button",
+                        BooleanConverter.getInstance(), DEFAULT_SHOW_CLOSE_BUTTON) {
+                    @Override
+                    public boolean isSettable(RXDrawerPane node) {
+                        return !node.showCloseButton.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
+                        return (StyleableProperty<Boolean>) node.showCloseButtonProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -897,6 +1089,7 @@ public class RXDrawerPane extends Control {
             styleables.add(SIDE);
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
+            styleables.add(SHOW_CLOSE_BUTTON);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

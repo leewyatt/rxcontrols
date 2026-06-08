@@ -139,8 +139,8 @@ public class RXDrawerPaneTest {
 
             assertTrue(isDescendant(content, pane), "content is mounted");
             Region drawer = drawerPanel(pane);
-            assertTrue(drawer.getChildrenUnmodifiable().contains(drawerContent),
-                    "drawerContent sits inside the .drawer panel");
+            assertTrue(isDescendant(drawerContent, drawer),
+                    "drawerContent is mounted inside the .drawer panel chrome");
         });
     }
 
