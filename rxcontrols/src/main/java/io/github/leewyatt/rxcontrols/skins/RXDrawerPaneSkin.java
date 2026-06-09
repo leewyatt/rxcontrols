@@ -67,6 +67,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private boolean closeInFlight;
     // The focus owner captured when a modal drawer opened, restored when it closes.
     private Node prevFocusOwner;
+    // The main-axis drawer thickness from the last layout pass; the panel layout and
+    // the closed-state translate both read it so off-screen parking always matches the
+    // rendered panel size.
+    private double drawerThickness = DEFAULT_DRAWER_THICKNESS;
 
     // PUSH expand ratio in [0, 1]: 0 = collapsed, 1 = fully open. Only PUSH tweens
     // it; its change relayouts so the content makes room (the PUSH cost).
@@ -171,9 +175,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
         boolean horizontal = isHorizontal();
-        double thickness = thickness();
-        double drawerW = horizontal ? thickness : contentWidth;
-        double drawerH = horizontal ? contentHeight : thickness;
+        drawerThickness = computeThickness(horizontal ? contentHeight : contentWidth);
+        double drawerW = horizontal ? drawerThickness : contentWidth;
+        double drawerH = horizontal ? contentHeight : drawerThickness;
 
         // The overlay pane always fills; it is only visible while modal (see applyOverlayPaneRest).
         layoutInArea(overlayPane, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
@@ -690,16 +694,44 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         return current == Side.LEFT || current == Side.RIGHT;
     }
 
-    private double thickness() {
+    // The main-axis panel thickness for the current side. An explicit
+    // prefDrawer{Width,Height} wins; otherwise the drawerContent's preferred main-axis
+    // size is used (DEFAULT_DRAWER_THICKNESS only when it has none). The result is then
+    // bounded by the content's min/max exactly like JavaFX sizing, so the panel never
+    // truncates below the content's min and never overshoots its max. crossExtent is the
+    // panel's fixed cross-axis size (host height for LEFT/RIGHT, host width for TOP/BOTTOM).
+    private double computeThickness(double crossExtent) {
         RXDrawerPane control = getSkinnable();
-        double pref = isHorizontal() ? control.getPrefDrawerWidth() : control.getPrefDrawerHeight();
-        return Double.isFinite(pref) && pref > 0 ? pref : DEFAULT_DRAWER_THICKNESS;
+        boolean horizontal = isHorizontal();
+        double appPref = horizontal ? control.getPrefDrawerWidth() : control.getPrefDrawerHeight();
+        Node content = control.getDrawerContent();
+        double contentMin = content == null ? 0.0
+                : (horizontal ? content.minWidth(crossExtent) : content.minHeight(crossExtent));
+        double contentPref = content == null ? 0.0
+                : (horizontal ? content.prefWidth(crossExtent) : content.prefHeight(crossExtent));
+        double contentMax = content == null ? 0.0
+                : (horizontal ? content.maxWidth(crossExtent) : content.maxHeight(crossExtent));
+        if (contentMax <= 0.0) {
+            // 0 / unset / non-resizable content carries no meaningful upper bound.
+            contentMax = Double.MAX_VALUE;
+        }
+        double pref = appPref > 0.0 ? appPref
+                : (contentPref > 0.0 ? contentPref : DEFAULT_DRAWER_THICKNESS);
+        return clampSize(contentMin, pref, contentMax);
+    }
+
+    // Mirrors the package-private Region.boundedSize: clamp pref into [min, max] with
+    // min taking precedence when min > max, so the content min is never violated.
+    private static double clampSize(double min, double pref, double max) {
+        double atLeastMin = Math.max(pref, min);
+        double cap = min >= max ? min : max;
+        return Math.min(atLeastMin, cap);
     }
 
     private double closedTranslate() {
         Side current = sideOrDefault();
         double sign = (current == Side.LEFT || current == Side.TOP) ? -1.0 : 1.0;
-        return sign * thickness();
+        return sign * drawerThickness;
     }
 
     private DoubleProperty axisTranslate() {

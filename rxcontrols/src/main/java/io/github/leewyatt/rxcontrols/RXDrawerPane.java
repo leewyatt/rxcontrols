@@ -103,14 +103,14 @@ public class RXDrawerPane extends Control {
     public static final boolean DEFAULT_SHOWING = false;
 
     /**
-     * Default preferred drawer width. {@link Region#USE_COMPUTED_SIZE} lets the
-     * skin supply a default thickness for {@link Side#LEFT} / {@link Side#RIGHT}.
+     * Default preferred drawer width. {@link Region#USE_COMPUTED_SIZE} lets the skin
+     * size the {@link Side#LEFT} / {@link Side#RIGHT} panel to fit its content.
      */
     public static final double DEFAULT_PREF_DRAWER_WIDTH = Region.USE_COMPUTED_SIZE;
 
     /**
-     * Default preferred drawer height. {@link Region#USE_COMPUTED_SIZE} lets the
-     * skin supply a default thickness for {@link Side#TOP} / {@link Side#BOTTOM}.
+     * Default preferred drawer height. {@link Region#USE_COMPUTED_SIZE} lets the skin
+     * size the {@link Side#TOP} / {@link Side#BOTTOM} panel to fit its content.
      */
     public static final double DEFAULT_PREF_DRAWER_HEIGHT = Region.USE_COMPUTED_SIZE;
 
@@ -575,8 +575,11 @@ public class RXDrawerPane extends Control {
 
     /**
      * The drawer panel thickness for {@link Side#LEFT} / {@link Side#RIGHT}. A
-     * value of {@code 0} or less (including the default
-     * {@link Region#USE_COMPUTED_SIZE}) defers to the skin's default thickness.
+     * positive value pins the width. The default {@link Region#USE_COMPUTED_SIZE}
+     * (or any value {@code <= 0}) fits the {@link #drawerContentProperty()
+     * drawerContent}'s preferred width, bounded by its min/max so the panel is never
+     * narrower than the content's minimum nor wider than its maximum; it falls back
+     * to the skin's default thickness only when the content has no preferred width.
      *
      * @return the preferred drawer width property
      */
@@ -596,7 +599,7 @@ public class RXDrawerPane extends Control {
     /**
      * Sets the preferred drawer width.
      *
-     * @param value the preferred drawer width, or {@code <= 0} for the default
+     * @param value the preferred drawer width, or {@code <= 0} to fit the drawer content
      */
     public final void setPrefDrawerWidth(double value) {
         prefDrawerWidth.set(value);
@@ -614,8 +617,11 @@ public class RXDrawerPane extends Control {
 
     /**
      * The drawer panel thickness for {@link Side#TOP} / {@link Side#BOTTOM}. A
-     * value of {@code 0} or less (including the default
-     * {@link Region#USE_COMPUTED_SIZE}) defers to the skin's default thickness.
+     * positive value pins the height. The default {@link Region#USE_COMPUTED_SIZE}
+     * (or any value {@code <= 0}) fits the {@link #drawerContentProperty()
+     * drawerContent}'s preferred height, bounded by its min/max so the panel is never
+     * shorter than the content's minimum nor taller than its maximum; it falls back
+     * to the skin's default thickness only when the content has no preferred height.
      *
      * @return the preferred drawer height property
      */
@@ -635,7 +641,7 @@ public class RXDrawerPane extends Control {
     /**
      * Sets the preferred drawer height.
      *
-     * @param value the preferred drawer height, or {@code <= 0} for the default
+     * @param value the preferred drawer height, or {@code <= 0} to fit the drawer content
      */
     public final void setPrefDrawerHeight(double value) {
         prefDrawerHeight.set(value);

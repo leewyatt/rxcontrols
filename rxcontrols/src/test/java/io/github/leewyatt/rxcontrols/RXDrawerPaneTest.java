@@ -366,6 +366,77 @@ public class RXDrawerPaneTest {
         });
     }
 
+    // ==================== Thickness / content sizing ====================
+
+    @Test
+    public void computedThicknessFitsDrawerContent() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setAnimated(false);
+            // prefDrawerWidth left at USE_COMPUTED_SIZE: the panel fits the content.
+            Region content = new Region();
+            content.setMinWidth(600.0);
+            content.setPrefWidth(600.0);
+            content.setMaxWidth(600.0);
+            pane.setDrawerContent(content);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+
+            pane.open();
+            pane.layout();
+            assertEquals(600.0, drawer.getWidth(), EPSILON, "panel fits the content, not the 320 default");
+            pane.close();
+            assertEquals(600.0, drawer.getTranslateX(), EPSILON, "closed offset matches the panel width");
+        });
+    }
+
+    @Test
+    public void explicitThicknessPinsButNeverTruncatesBelowContentMin() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setAnimated(false);
+            Region content = new Region();
+            content.setMinWidth(500.0);
+            pane.setDrawerContent(content);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+
+            // An explicit width below the content min is floored at the min (no truncation).
+            pane.setPrefDrawerWidth(360.0);
+            pane.open();
+            pane.layout();
+            assertEquals(500.0, drawer.getWidth(), EPSILON, "thickness floored at the content min");
+
+            // An explicit width above the content min pins exactly.
+            pane.close();
+            pane.setPrefDrawerWidth(700.0);
+            pane.open();
+            pane.layout();
+            assertEquals(700.0, drawer.getWidth(), EPSILON, "explicit width wider than the min pins");
+        });
+    }
+
+    @Test
+    public void thicknessIsCappedByDrawerContentMax() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setAnimated(false);
+            pane.setPrefDrawerWidth(900.0);
+            Region content = new Region();
+            content.setMaxWidth(400.0);
+            pane.setDrawerContent(content);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+
+            pane.open();
+            pane.layout();
+            assertEquals(400.0, drawer.getWidth(), EPSILON, "thickness capped at the content max");
+        });
+    }
+
     // ==================== Clip ====================
 
     @Test
