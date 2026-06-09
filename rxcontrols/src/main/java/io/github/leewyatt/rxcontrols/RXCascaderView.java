@@ -462,7 +462,7 @@ public class RXCascaderView<T> extends Control {
      * @param leaf leaf item to select
      */
     public final void select(RXCascaderItem<T> leaf) {
-        if (getSelectionMode() != SelectionMode.SINGLE
+        if (getSelectionMode() == SelectionMode.MULTIPLE
                 || leaf == null || isEffectivelyDisabled(leaf) || !isLeaf(leaf)) {
             return;
         }

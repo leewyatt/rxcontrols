@@ -59,6 +59,10 @@ public class RXBoxTest {
         box.setOrientation(null);
 
         layout(box, 100.0, 100.0);
+
+        // null orientation resolves to the default (HORIZONTAL): children form a row.
+        assertTrue(second.getLayoutX() > first.getLayoutX(),
+                "null orientation lays out as the default (horizontal)");
     }
 
     /**

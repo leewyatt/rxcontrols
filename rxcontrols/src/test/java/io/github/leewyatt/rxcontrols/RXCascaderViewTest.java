@@ -564,6 +564,21 @@ public class RXCascaderViewTest {
         assertTrue(panel.getCheckedPaths().isEmpty());
     }
 
+    @Test
+    public void nullSelectionModeAllowsSelectViaSelectMethod() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> child = item("child");
+        root.getChildren().add(child);
+        panel.getRootItems().add(root);
+
+        panel.setSelectionMode(null);
+        // null mode resolves to single-selection: select(leaf) must select (the guard
+        // used != SINGLE, which wrongly rejected null).
+        panel.select(child);
+        assertNotNull(panel.getSelectedPath(), "null mode select(leaf) selects the path");
+    }
+
     /**
      * Verifies a lazy load that completes after its branch was detached from the
      * tree is dropped: the detached branch is neither populated nor marked loaded,

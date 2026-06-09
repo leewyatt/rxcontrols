@@ -956,8 +956,18 @@ public class RXMasonryPane extends Pane {
         return value == null ? DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
+    private double sanitizedHgap() {
+        double g = getHgap();
+        return Double.isFinite(g) && g >= 0.0 ? g : 0.0;
+    }
+
+    private double sanitizedVgap() {
+        double g = getVgap();
+        return Double.isFinite(g) && g >= 0.0 ? g : 0.0;
+    }
+
     private double enterTranslateY() {
-        return Math.min(ENTER_TRANSLATE_MAX, Math.max(ENTER_TRANSLATE_MIN, getVgap()));
+        return Math.min(ENTER_TRANSLATE_MAX, Math.max(ENTER_TRANSLATE_MIN, sanitizedVgap()));
     }
 
     // ==================== Breakpoint Profile ====================
@@ -1272,12 +1282,12 @@ public class RXMasonryPane extends Pane {
 
     @Override
     protected double computePrefWidth(double height) {
-        int columns = getPrefColumns();
+        int columns = Math.max(1, getPrefColumns());
         int max = getMaxColumns();
         if (max > 0 && columns > max) {
             columns = max;
         }
-        double content = columns * snapSizeX(getColumnWidth()) + (columns - 1) * snapSpaceX(getHgap());
+        double content = columns * snapSizeX(getColumnWidth()) + (columns - 1) * snapSpaceX(sanitizedHgap());
         return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
     }
 
@@ -1355,7 +1365,7 @@ public class RXMasonryPane extends Pane {
         }
 
         int columns = computeColumns(contentWidth);
-        double gap = snapSpaceX(getHgap());
+        double gap = snapSpaceX(sanitizedHgap());
         double trackWidth;
         if (isFillWidth()) {
             trackWidth = Math.max(0.0, (contentWidth - (columns - 1) * gap) / columns);
@@ -1377,7 +1387,7 @@ public class RXMasonryPane extends Pane {
         }
 
         MasonryLayoutEngine.Result result =
-                MasonryLayoutEngine.place(columns, snapSpaceY(getVgap()), spans, blockHeights);
+                MasonryLayoutEngine.place(columns, snapSpaceY(sanitizedVgap()), spans, blockHeights);
         double usedWidth = columns * trackWidth + (columns - 1) * gap;
 
         LayoutMetrics metrics = new LayoutMetrics(columns, trackWidth, usedWidth, gap,
@@ -1398,7 +1408,7 @@ public class RXMasonryPane extends Pane {
                 columns = breakpointColumnCount;
             } else {
                 double track = snapSizeX(getColumnWidth());
-                double gap = snapSpaceX(getHgap());
+                double gap = snapSpaceX(sanitizedHgap());
                 columns = (int) Math.floor((contentWidth + gap) / (track + gap));
             }
         }

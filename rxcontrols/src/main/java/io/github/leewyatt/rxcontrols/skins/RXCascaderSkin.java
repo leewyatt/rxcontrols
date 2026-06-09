@@ -196,7 +196,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     private void handleSelectionChanged(RXCascader<T> control) {
         updateDisplay();
-        if (control.getSelectionMode() == SelectionMode.SINGLE
+        if (control.getSelectionMode() != SelectionMode.MULTIPLE
                 && control.getSelectedPath() != null) {
             control.hide();
         }

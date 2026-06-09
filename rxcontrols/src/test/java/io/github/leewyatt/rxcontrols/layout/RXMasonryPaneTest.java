@@ -422,6 +422,23 @@ public class RXMasonryPaneTest {
         assertEquals(-2, pane.getMaxColumns(), "maxColumns accepted");
     }
 
+    @Test
+    public void invalidGapsAndPrefColumnsSurviveLayout() {
+        RXMasonryPane pane = pane(100.0, 0.0, 10.0, card(80.0, 100.0), card(80.0, 50.0));
+
+        // A negative / non-finite gap must not crash the masonry engine or the pref math.
+        pane.setVgap(-5.0);
+        pane.setHgap(Double.NaN);
+        layout(pane, 300.0, 200.0);
+        double ph = pane.prefHeight(300.0);
+        assertTrue(Double.isFinite(ph) && ph >= 0.0, "finite non-negative pref height despite invalid gaps");
+
+        // prefColumns <= 0 still yields a sane preferred width.
+        pane.setPrefColumns(0);
+        double pw = pane.prefWidth(-1.0);
+        assertTrue(Double.isFinite(pw) && pw >= 0.0, "finite non-negative pref width for prefColumns <= 0");
+    }
+
     /**
      * Verifies tolerant object and animation properties accept null and otherwise
      * invalid durations, while the per-child span and breakpoint counts still reject

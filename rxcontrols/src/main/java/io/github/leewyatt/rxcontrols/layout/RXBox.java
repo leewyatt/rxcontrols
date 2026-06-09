@@ -614,7 +614,12 @@ public class RXBox extends Pane {
     }
 
     private boolean isHorizontal() {
-        return getOrientation() == Orientation.HORIZONTAL;
+        return orientationOrDefault() == Orientation.HORIZONTAL;
+    }
+
+    private Orientation orientationOrDefault() {
+        Orientation o = getOrientation();
+        return o == null ? DEFAULT_ORIENTATION : o;
     }
 
     private double computeWidth(double height, boolean minimum) {
