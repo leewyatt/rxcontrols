@@ -466,6 +466,33 @@ public class RXDrawerPaneTest {
         });
     }
 
+    @Test
+    public void closedTranslateTracksSameNodePrefChange() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setAnimated(false);
+            Region content = new Region();
+            content.setMinWidth(300.0);
+            content.setPrefWidth(300.0);
+            content.setMaxWidth(300.0);
+            pane.setDrawerContent(content);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+            assertEquals(300.0, drawer.getTranslateX(), EPSILON, "closed offset matches the initial content width");
+
+            // Resize the SAME content node (no swap) while closed: the layout-level
+            // thickness check must still re-snap the closed pose.
+            content.setMinWidth(700.0);
+            content.setPrefWidth(700.0);
+            content.setMaxWidth(700.0);
+            pane.layout();
+            assertEquals(700.0, drawer.getWidth(), EPSILON, "panel grew to the resized content width");
+            assertEquals(700.0, drawer.getTranslateX(), EPSILON,
+                    "closed offset re-snaps after a same-node resize");
+        });
+    }
+
     // ==================== Clip ====================
 
     @Test
