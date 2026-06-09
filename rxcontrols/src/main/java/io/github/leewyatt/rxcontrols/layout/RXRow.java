@@ -35,20 +35,26 @@ import java.util.logging.Logger;
 /**
  * JavaFX-native responsive row layout driven by the row's own width.
  *
- * <p><b>Despite the name, an {@code RXResponsiveRow} is not a single horizontal
+ * <p><b>Despite the name, an {@code RXRow} is not a single horizontal
  * row.</b> It is a column-based responsive grid container (24 columns by the
  * default {@link RXBreakpointProfile#ELEMENT} profile, 12 by
  * {@link RXBreakpointProfile#BOOTSTRAP}) that automatically wraps its child
- * {@link RXResponsiveCol} instances onto multiple visual rows whenever their
+ * {@link RXCol} instances onto multiple visual rows whenever their
  * combined spans exceed {@link #columnsProperty() columns}. The {@code Row}
  * naming follows the web convention shared by Element UI, Element Plus,
  * Bootstrap, Ant Design and similar frameworks, where a single {@code <el-row>}
  * / {@code <div class="row">} can wrap into many visual rows. Add columns
  * directly to {@link #getChildren()}; there is no separate "add a new row" step.</p>
  *
- * <p>Children are expected to be {@link RXResponsiveCol} wrappers. Plain
+ * <p>Children are expected to be {@link RXCol} wrappers. Plain
  * {@link Node} children are accepted as full-width columns for convenience, but
- * only {@code RXResponsiveCol} supports breakpoint-specific specs.</p>
+ * only {@code RXCol} supports breakpoint-specific specs.</p>
+ *
+ * <p><b>{@code RXRow}/{@code RXCol} vs {@link RXBox}:</b> use {@code RXBox} for
+ * a simple one-dimensional linear layout (a single horizontal or vertical run of
+ * nodes, like {@code HBox}/{@code VBox}). Use {@code RXRow}/{@code RXCol} when
+ * you need a breakpoint-driven 12/24-column responsive grid with span, offset,
+ * order, hidden and automatic wrapping.</p>
  *
  * <p>The row's minimum width is measured with the profile's narrowest
  * breakpoint so shrink-wrapping parents can still allocate a width that lets
@@ -61,11 +67,11 @@ import java.util.logging.Logger;
  *
  * <p>Minimal example:</p>
  * <pre>{@code
- * RXResponsiveRow row = new RXResponsiveRow();
+ * RXRow row = new RXRow();
  * row.setGutter(16);
  * row.setRowGap(16);
  * for (int i = 0; i < 5; i++) {
- *     RXResponsiveCol col = new RXResponsiveCol();
+ *     RXCol col = new RXCol();
  *     col.setXs(RXColSpec.of(24));   // narrow: 1 column per visual row
  *     col.setMd(RXColSpec.of(12));   // medium: 2 columns per visual row
  *     col.setLg(RXColSpec.of(6));    // wide:   4 columns per visual row
@@ -74,7 +80,7 @@ import java.util.logging.Logger;
  * }
  * }</pre>
  */
-public class RXResponsiveRow extends Pane {
+public class RXRow extends Pane {
 
     /**
      * Default column count from the Element-style profile.
@@ -91,12 +97,12 @@ public class RXResponsiveRow extends Pane {
      */
     public static final double DEFAULT_ROW_GAP = 0.0;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-responsive-row";
-    private static final Logger LOGGER = Logger.getLogger(RXResponsiveRow.class.getName());
+    private static final String DEFAULT_STYLE_CLASS = "rx-row";
+    private static final Logger LOGGER = Logger.getLogger(RXRow.class.getName());
 
     private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
     private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
-    private final Map<RXResponsiveCol, ResponsiveHiddenState> responsiveHiddenStates =
+    private final Map<RXCol, ResponsiveHiddenState> responsiveHiddenStates =
             new IdentityHashMap<>();
     private boolean columnsExplicitlySet;
     private boolean updatingColumnsFromProfile;
@@ -106,7 +112,7 @@ public class RXResponsiveRow extends Pane {
     /**
      * Creates an empty responsive row.
      */
-    public RXResponsiveRow() {
+    public RXRow() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         widthProperty().addListener(obs -> updateActiveBreakpoint(getWidth()));
         updateActiveBreakpoint(getWidth());
@@ -117,7 +123,7 @@ public class RXResponsiveRow extends Pane {
      *
      * @param children the initial children
      */
-    public RXResponsiveRow(Node... children) {
+    public RXRow(Node... children) {
         this();
         getChildren().addAll(children);
     }
@@ -155,7 +161,7 @@ public class RXResponsiveRow extends Pane {
 
         @Override
         public Object getBean() {
-            return RXResponsiveRow.this;
+            return RXRow.this;
         }
 
         @Override
@@ -210,7 +216,7 @@ public class RXResponsiveRow extends Pane {
 
         @Override
         public Object getBean() {
-            return RXResponsiveRow.this;
+            return RXRow.this;
         }
 
         @Override
@@ -221,7 +227,7 @@ public class RXResponsiveRow extends Pane {
 
     /**
      * Horizontal space between adjacent column content areas. Each
-     * {@link RXResponsiveCol} receives half of this value on each side.
+     * {@link RXCol} receives half of this value on each side.
      *
      * @return the gutter property
      */
@@ -262,7 +268,7 @@ public class RXResponsiveRow extends Pane {
 
         @Override
         public Object getBean() {
-            return RXResponsiveRow.this;
+            return RXRow.this;
         }
 
         @Override
@@ -314,7 +320,7 @@ public class RXResponsiveRow extends Pane {
 
                 @Override
                 public Object getBean() {
-                    return RXResponsiveRow.this;
+                    return RXRow.this;
                 }
 
                 @Override
@@ -369,7 +375,7 @@ public class RXResponsiveRow extends Pane {
 
                 @Override
                 public Object getBean() {
-                    return RXResponsiveRow.this;
+                    return RXRow.this;
                 }
 
                 @Override
@@ -617,7 +623,7 @@ public class RXResponsiveRow extends Pane {
         for (int i = 0; i < children.size(); i++) {
             Node child = children.get(i);
             EffectiveSpec spec = resolveSpec(child, breakpoint, columnsCount);
-            if (child instanceof RXResponsiveCol col) {
+            if (child instanceof RXCol col) {
                 if (applyHiddenState) {
                     updateResponsiveHidden(col, spec.hidden());
                 }
@@ -640,7 +646,7 @@ public class RXResponsiveRow extends Pane {
     }
 
     private boolean isEffectivelyManaged(Node child) {
-        if (child instanceof RXResponsiveCol col) {
+        if (child instanceof RXCol col) {
             ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
             if (hiddenState != null) {
                 return hiddenState.managedBefore();
@@ -649,7 +655,7 @@ public class RXResponsiveRow extends Pane {
         return child.isManaged();
     }
 
-    private void updateResponsiveHidden(RXResponsiveCol col, boolean hidden) {
+    private void updateResponsiveHidden(RXCol col, boolean hidden) {
         if (hidden) {
             ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
             if (hiddenState == null) {
@@ -662,7 +668,7 @@ public class RXResponsiveRow extends Pane {
         }
     }
 
-    private void applyResponsiveHidden(RXResponsiveCol col, ResponsiveHiddenState hiddenState) {
+    private void applyResponsiveHidden(RXCol col, ResponsiveHiddenState hiddenState) {
         if (col.visibleProperty().isBound()) {
             warnResponsiveHiddenBinding(col, "visible", hiddenState);
         } else if (col.isVisible()) {
@@ -676,7 +682,7 @@ public class RXResponsiveRow extends Pane {
         col.resizeRelocate(0.0, 0.0, 0.0, 0.0);
     }
 
-    private void restoreResponsiveHidden(RXResponsiveCol col) {
+    private void restoreResponsiveHidden(RXCol col) {
         ResponsiveHiddenState hiddenState = responsiveHiddenStates.remove(col);
         if (hiddenState == null) {
             return;
@@ -697,18 +703,18 @@ public class RXResponsiveRow extends Pane {
         if (responsiveHiddenStates.isEmpty()) {
             return;
         }
-        List<RXResponsiveCol> removed = new ArrayList<>();
-        for (RXResponsiveCol col : responsiveHiddenStates.keySet()) {
+        List<RXCol> removed = new ArrayList<>();
+        for (RXCol col : responsiveHiddenStates.keySet()) {
             if (!children.contains(col)) {
                 removed.add(col);
             }
         }
-        for (RXResponsiveCol col : removed) {
+        for (RXCol col : removed) {
             restoreResponsiveHidden(col);
         }
     }
 
-    private void warnResponsiveHiddenBinding(RXResponsiveCol col, String propertyName,
+    private void warnResponsiveHiddenBinding(RXCol col, String propertyName,
                                              ResponsiveHiddenState hiddenState) {
         if ("visible".equals(propertyName)) {
             if (hiddenState.visibleWarningLogged()) {
@@ -733,13 +739,13 @@ public class RXResponsiveRow extends Pane {
     }
 
     private EffectiveSpec resolveSpec(Node child, RXBreakpoint breakpoint, int columnsCount) {
-        int span = child instanceof RXResponsiveCol col ? col.getSpan() : columnsCount;
-        int offset = child instanceof RXResponsiveCol col ? col.getOffset() : 0;
-        int order = child instanceof RXResponsiveCol col
+        int span = child instanceof RXCol col ? col.getSpan() : columnsCount;
+        int offset = child instanceof RXCol col ? col.getOffset() : 0;
+        int order = child instanceof RXCol col
                 ? col.getOrder()
-                : RXResponsiveCol.DEFAULT_ORDER;
-        boolean hidden = child instanceof RXResponsiveCol col && col.isHidden();
-        if (child instanceof RXResponsiveCol col) {
+                : RXCol.DEFAULT_ORDER;
+        boolean hidden = child instanceof RXCol col && col.isHidden();
+        if (child instanceof RXCol col) {
             RXBreakpointProfile profile = breakpointProfileOrDefault();
             double activeMinWidth = breakpoint == null ? 0.0 : breakpoint.getMinWidth();
             for (RXBreakpoint profileBreakpoint : profile.getBreakpoints()) {
@@ -788,11 +794,11 @@ public class RXResponsiveRow extends Pane {
         if (coercedSpan == span && coercedOffset == offset) {
             return false;
         }
-        return span != RXResponsiveCol.DEFAULT_SPAN || offset != 0 || coercedSpan != columnsCount;
+        return span != RXCol.DEFAULT_SPAN || offset != 0 || coercedSpan != columnsCount;
     }
 
     private double computeChildPrefHeight(Node child, double width, double gutterValue) {
-        double prefHeight = child instanceof RXResponsiveCol col
+        double prefHeight = child instanceof RXCol col
                 ? col.computeResponsivePrefHeight(width, gutterValue)
                 : child.prefHeight(width);
         if (!child.isResizable()) {
@@ -802,7 +808,7 @@ public class RXResponsiveRow extends Pane {
     }
 
     private double computeChildPrefWidth(Node child, double height, double gutterValue) {
-        double prefWidth = child instanceof RXResponsiveCol col
+        double prefWidth = child instanceof RXCol col
                 ? col.computeResponsivePrefWidth(height, gutterValue)
                 : child.prefWidth(height);
         if (!child.isResizable()) {
@@ -846,7 +852,7 @@ public class RXResponsiveRow extends Pane {
     }
 
     private double computeChildMinWidth(Node child, double height, double gutterValue) {
-        double minWidth = child instanceof RXResponsiveCol col
+        double minWidth = child instanceof RXCol col
                 ? col.computeResponsiveMinWidth(height, gutterValue)
                 : child.minWidth(height);
         return snapSizeX(minWidth);
@@ -894,7 +900,7 @@ public class RXResponsiveRow extends Pane {
 
     private void requestColumnLayouts() {
         for (Node child : getChildren()) {
-            if (child instanceof RXResponsiveCol col) {
+            if (child instanceof RXCol col) {
                 col.requestLayout();
             }
         }
@@ -976,74 +982,74 @@ public class RXResponsiveRow extends Pane {
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
-        private static final CssMetaData<RXResponsiveRow, Number> COLUMNS =
+        private static final CssMetaData<RXRow, Number> COLUMNS =
                 new CssMetaData<>("-rx-columns", SizeConverter.getInstance(), DEFAULT_COLUMNS) {
                     @Override
-                    public boolean isSettable(RXResponsiveRow row) {
+                    public boolean isSettable(RXRow row) {
                         return !row.columns.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXResponsiveRow row) {
+                    public StyleableProperty<Number> getStyleableProperty(RXRow row) {
                         return (StyleableProperty<Number>) row.columnsProperty();
                     }
                 };
 
-        private static final CssMetaData<RXResponsiveRow, Number> GUTTER =
+        private static final CssMetaData<RXRow, Number> GUTTER =
                 new CssMetaData<>("-rx-gutter", SizeConverter.getInstance(), DEFAULT_GUTTER) {
                     @Override
-                    public boolean isSettable(RXResponsiveRow row) {
+                    public boolean isSettable(RXRow row) {
                         return !row.gutter.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXResponsiveRow row) {
+                    public StyleableProperty<Number> getStyleableProperty(RXRow row) {
                         return (StyleableProperty<Number>) row.gutterProperty();
                     }
                 };
 
-        private static final CssMetaData<RXResponsiveRow, Number> ROW_GAP =
+        private static final CssMetaData<RXRow, Number> ROW_GAP =
                 new CssMetaData<>("-rx-row-gap", SizeConverter.getInstance(), DEFAULT_ROW_GAP) {
                     @Override
-                    public boolean isSettable(RXResponsiveRow row) {
+                    public boolean isSettable(RXRow row) {
                         return !row.rowGap.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXResponsiveRow row) {
+                    public StyleableProperty<Number> getStyleableProperty(RXRow row) {
                         return (StyleableProperty<Number>) row.rowGapProperty();
                     }
                 };
 
-        private static final CssMetaData<RXResponsiveRow, RXRowJustify> JUSTIFY =
+        private static final CssMetaData<RXRow, RXRowJustify> JUSTIFY =
                 new CssMetaData<>("-rx-justify",
                         new EnumConverter<>(RXRowJustify.class), RXRowJustify.START) {
                     @Override
-                    public boolean isSettable(RXResponsiveRow row) {
+                    public boolean isSettable(RXRow row) {
                         return !row.justify.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXRowJustify> getStyleableProperty(RXResponsiveRow row) {
+                    public StyleableProperty<RXRowJustify> getStyleableProperty(RXRow row) {
                         return (StyleableProperty<RXRowJustify>) row.justifyProperty();
                     }
                 };
 
-        private static final CssMetaData<RXResponsiveRow, RXRowAlign> ALIGN =
+        private static final CssMetaData<RXRow, RXRowAlign> ALIGN =
                 new CssMetaData<>("-rx-align",
                         new EnumConverter<>(RXRowAlign.class), RXRowAlign.TOP) {
                     @Override
-                    public boolean isSettable(RXResponsiveRow row) {
+                    public boolean isSettable(RXRow row) {
                         return !row.align.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXRowAlign> getStyleableProperty(RXResponsiveRow row) {
+                    public StyleableProperty<RXRowAlign> getStyleableProperty(RXRow row) {
                         return (StyleableProperty<RXRowAlign>) row.alignProperty();
                     }
                 };

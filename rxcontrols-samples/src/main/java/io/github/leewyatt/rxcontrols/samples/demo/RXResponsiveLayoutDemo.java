@@ -4,8 +4,8 @@ import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow;
+import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
 import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
 import javafx.application.Application;
@@ -33,7 +33,7 @@ import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
 /**
- * Demo for {@link RXResponsiveRow} and {@link RXResponsiveCol}.
+ * Demo for {@link RXRow} and {@link RXCol}.
  */
 public class RXResponsiveLayoutDemo extends Application {
 
@@ -45,13 +45,13 @@ public class RXResponsiveLayoutDemo extends Application {
     @Override
     public void start(Stage primaryStage) {
         ResponsiveDemoNodes demoNodes = createResponsiveRow();
-        RXResponsiveRow row = demoNodes.row();
+        RXRow row = demoNodes.row();
 
         ComboBox<ProfilePreset> profileBox =
                 new ComboBox<>(FXCollections.observableArrayList(ProfilePreset.values()));
         profileBox.setValue(ProfilePreset.ELEMENT);
 
-        Slider columnsSlider = new Slider(4.0, 24.0, RXResponsiveRow.DEFAULT_COLUMNS);
+        Slider columnsSlider = new Slider(4.0, 24.0, RXRow.DEFAULT_COLUMNS);
         columnsSlider.setSnapToTicks(true);
         columnsSlider.setMajorTickUnit(4.0);
         columnsSlider.setMinorTickCount(3);
@@ -185,35 +185,35 @@ public class RXResponsiveLayoutDemo extends Application {
     }
 
     private ResponsiveDemoNodes createResponsiveRow() {
-        RXResponsiveRow row = new RXResponsiveRow();
+        RXRow row = new RXRow();
         row.getStyleClass().add("demo-row");
         row.setPadding(new Insets(16.0));
 
-        RXResponsiveCol summary = col("Summary", buildStatusButton("Open"),
+        RXCol summary = col("Summary", buildStatusButton("Open"),
                 RXColSpec.of(24), RXColSpec.of(12), RXColSpec.of(8), RXColSpec.of(6));
-        RXResponsiveCol image = col("Image", buildImage(),
+        RXCol image = col("Image", buildImage(),
                 RXColSpec.of(24), RXColSpec.of(12), RXColSpec.of(8), RXColSpec.of(6));
-        RXResponsiveCol chart = col("Region", buildRegion(),
+        RXCol chart = col("Region", buildRegion(),
                 RXColSpec.of(24), RXColSpec.of(24), RXColSpec.of(8), RXColSpec.of(12));
-        RXResponsiveCol shape = col("Shape", buildShape(),
+        RXCol shape = col("Shape", buildShape(),
                 RXColSpec.of(24), RXColSpec.of(12, 0), RXColSpec.of(8, 0), RXColSpec.of(6, 0));
-        RXResponsiveCol base = col("Base span", buildStatusButton("Base"));
+        RXCol base = col("Base span", buildStatusButton("Base"));
         base.setSpan(6);
 
         row.getChildren().addAll(summary, image, chart, shape, base);
         return new ResponsiveDemoNodes(row, image, shape);
     }
 
-    private void setImageLgHidden(RXResponsiveCol image, boolean hidden) {
+    private void setImageLgHidden(RXCol image, boolean hidden) {
         image.setLg(RXColSpec.builder()
                 .span(6)
                 .hidden(hidden)
                 .build());
     }
 
-    private RXResponsiveCol col(String title, Node body, RXColSpec xs, RXColSpec sm,
+    private RXCol col(String title, Node body, RXColSpec xs, RXColSpec sm,
                                 RXColSpec md, RXColSpec lg) {
-        RXResponsiveCol col = col(title, body);
+        RXCol col = col(title, body);
         col.setXs(xs);
         col.setSm(sm);
         col.setMd(md);
@@ -221,13 +221,13 @@ public class RXResponsiveLayoutDemo extends Application {
         return col;
     }
 
-    private RXResponsiveCol col(String title, Node body) {
-        RXResponsiveCol col = new RXResponsiveCol();
+    private RXCol col(String title, Node body) {
+        RXCol col = new RXCol();
         col.getChildren().add(tile(title, body, col));
         return col;
     }
 
-    private Node tile(String title, Node body, RXResponsiveCol owner) {
+    private Node tile(String title, Node body, RXCol owner) {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("tile-title");
         Label orderLabel = new Label();
@@ -321,7 +321,7 @@ public class RXResponsiveLayoutDemo extends Application {
         }
     }
 
-    private record ResponsiveDemoNodes(RXResponsiveRow row, RXResponsiveCol image,
-                                       RXResponsiveCol shape) {
+    private record ResponsiveDemoNodes(RXRow row, RXCol image,
+                                       RXCol shape) {
     }
 }

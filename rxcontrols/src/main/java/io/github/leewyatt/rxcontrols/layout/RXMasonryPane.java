@@ -265,7 +265,7 @@ public class RXMasonryPane extends Pane {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getChildren().addListener(childrenListener);
         // Resolve the active breakpoint outside the layout pass (width/insets feed
-        // the content width), mirroring RXResponsiveRow rather than mutating CSS
+        // the content width), mirroring RXRow rather than mutating CSS
         // pseudo-class state inside layoutChildren.
         widthProperty().addListener((obs, oldWidth, newWidth) -> updateActiveBreakpoint());
         insetsProperty().addListener((obs, oldInsets, newInsets) -> updateActiveBreakpoint());

@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXResponsiveRow}.
+ * Tests for {@link RXRow}.
  */
-public class RXResponsiveRowTest {
+public class RXRowTest {
 
     private static final double EPSILON = 0.0001;
 
@@ -18,8 +18,8 @@ public class RXResponsiveRowTest {
      */
     @Test
     public void minWidthUsesNarrowestBreakpointSpecs() {
-        RXResponsiveRow row = new RXResponsiveRow();
-        RXResponsiveCol col = new RXResponsiveCol(
+        RXRow row = new RXRow();
+        RXCol col = new RXCol(
                 fixedRegion(120.0, 10.0, 240.0, 20.0));
         col.setXs(RXColSpec.of(24));
         col.setLg(RXColSpec.of(4));
@@ -35,8 +35,8 @@ public class RXResponsiveRowTest {
      */
     @Test
     public void negativeGutterIsNotClampedOnColumns() {
-        RXResponsiveRow row = new RXResponsiveRow();
-        RXResponsiveCol col = new RXResponsiveCol(fixedRegion(120.0, 10.0, 240.0, 20.0));
+        RXRow row = new RXRow();
+        RXCol col = new RXCol(fixedRegion(120.0, 10.0, 240.0, 20.0));
         col.setXs(RXColSpec.of(24));
         row.getChildren().add(col);
 
@@ -55,9 +55,9 @@ public class RXResponsiveRowTest {
      */
     @Test
     public void minWidthIgnoresColumnsHiddenAtNarrowestBreakpoint() {
-        RXResponsiveRow row = new RXResponsiveRow();
+        RXRow row = new RXRow();
 
-        RXResponsiveCol hiddenUntilLg = new RXResponsiveCol(
+        RXCol hiddenUntilLg = new RXCol(
                 fixedRegion(500.0, 10.0, 600.0, 20.0));
         hiddenUntilLg.setXs(RXColSpec.builder()
                 .span(24)
@@ -68,7 +68,7 @@ public class RXResponsiveRowTest {
                 .hidden(false)
                 .build());
 
-        RXResponsiveCol visible = new RXResponsiveCol(
+        RXCol visible = new RXCol(
                 fixedRegion(80.0, 10.0, 120.0, 20.0));
         visible.setXs(RXColSpec.of(24));
 
@@ -83,8 +83,8 @@ public class RXResponsiveRowTest {
      */
     @Test
     public void layoutUsesBreakpointResolvedFromAllocatedWidth() {
-        RXResponsiveRow row = new RXResponsiveRow();
-        RXResponsiveCol col = new RXResponsiveCol(
+        RXRow row = new RXRow();
+        RXCol col = new RXCol(
                 fixedRegion(40.0, 10.0, 80.0, 20.0));
         col.setXs(RXColSpec.of(24));
         col.setLg(RXColSpec.of(6));

@@ -28,7 +28,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Column wrapper used by {@link RXResponsiveRow}.
+ * Column wrapper used by {@link RXRow}.
+ *
+ * <p>Despite the {@code Col} name, this is a grid <em>cell</em> laid out
+ * horizontally within its {@code RXRow}, following the web {@code Row}/{@code Col}
+ * convention (Element UI, Bootstrap, Ant Design). It is not a vertical stacking
+ * box; for that, use {@link RXBox} in vertical orientation. As a
+ * {@link StackPane} it lays its own children on top of each other and occupies a
+ * {@link #spanProperty() span} of the row's columns.</p>
  *
  * <p>The base {@link #spanProperty() span} and {@link #offsetProperty() offset}
  * are used until a responsive {@link RXColSpec} for the active row breakpoint
@@ -41,12 +48,12 @@ import java.util.Map;
  * not change the parent row's child list order or the default focus traversal
  * order.</p>
  *
- * <p>{@link #hiddenProperty() hidden} is managed by {@link RXResponsiveRow} on
+ * <p>{@link #hiddenProperty() hidden} is managed by {@link RXRow} on
  * this wrapper. Do not bind this column's {@code visible} or {@code managed}
  * properties for responsive visibility; put business visibility on content
  * inside the column or on an outer wrapper instead.</p>
  */
-public class RXResponsiveCol extends StackPane {
+public class RXCol extends StackPane {
 
     /**
      * Default base span. Rows with fewer columns clamp this value to the row's
@@ -69,7 +76,7 @@ public class RXResponsiveCol extends StackPane {
      */
     public static final boolean DEFAULT_HIDDEN = false;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-responsive-col";
+    private static final String DEFAULT_STYLE_CLASS = "rx-col";
 
     private final Map<String, RXColSpec> namedSpecs = new HashMap<>();
 
@@ -78,7 +85,7 @@ public class RXResponsiveCol extends StackPane {
     /**
      * Creates an empty responsive column.
      */
-    public RXResponsiveCol() {
+    public RXCol() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
@@ -87,7 +94,7 @@ public class RXResponsiveCol extends StackPane {
      *
      * @param children the initial children
      */
-    public RXResponsiveCol(Node... children) {
+    public RXCol(Node... children) {
         this();
         getChildren().addAll(children);
     }
@@ -112,7 +119,7 @@ public class RXResponsiveCol extends StackPane {
 
         @Override
         public Object getBean() {
-            return RXResponsiveCol.this;
+            return RXCol.this;
         }
 
         @Override
@@ -166,7 +173,7 @@ public class RXResponsiveCol extends StackPane {
 
         @Override
         public Object getBean() {
-            return RXResponsiveCol.this;
+            return RXCol.this;
         }
 
         @Override
@@ -254,7 +261,7 @@ public class RXResponsiveCol extends StackPane {
     /**
      * Responsive hidden state before breakpoint overrides. This property is
      * distinct from {@link #visibleProperty()} and {@link #managedProperty()}.
-     * The parent {@link RXResponsiveRow} applies the effective value to this
+     * The parent {@link RXRow} applies the effective value to this
      * wrapper while preserving the state it changes.
      *
      * @return the hidden property
@@ -660,7 +667,7 @@ public class RXResponsiveCol extends StackPane {
 
     private double resolveEffectiveGutter() {
         Parent parent = getParent();
-        if (parent instanceof RXResponsiveRow row) {
+        if (parent instanceof RXRow row) {
             return normalizeGutter(row.getGutter());
         }
         return 0.0;
@@ -693,36 +700,36 @@ public class RXResponsiveCol extends StackPane {
     }
 
     private static double normalizeGutter(double value) {
-        return Double.isFinite(value) ? value : RXResponsiveRow.DEFAULT_GUTTER;
+        return Double.isFinite(value) ? value : RXRow.DEFAULT_GUTTER;
     }
 
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
-        private static final CssMetaData<RXResponsiveCol, Number> SPAN =
+        private static final CssMetaData<RXCol, Number> SPAN =
                 new CssMetaData<>("-rx-span", SizeConverter.getInstance(), DEFAULT_SPAN) {
                     @Override
-                    public boolean isSettable(RXResponsiveCol col) {
+                    public boolean isSettable(RXCol col) {
                         return !col.span.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXResponsiveCol col) {
+                    public StyleableProperty<Number> getStyleableProperty(RXCol col) {
                         return (StyleableProperty<Number>) col.spanProperty();
                     }
                 };
 
-        private static final CssMetaData<RXResponsiveCol, Number> OFFSET =
+        private static final CssMetaData<RXCol, Number> OFFSET =
                 new CssMetaData<>("-rx-offset", SizeConverter.getInstance(), DEFAULT_OFFSET) {
                     @Override
-                    public boolean isSettable(RXResponsiveCol col) {
+                    public boolean isSettable(RXCol col) {
                         return !col.offset.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXResponsiveCol col) {
+                    public StyleableProperty<Number> getStyleableProperty(RXCol col) {
                         return (StyleableProperty<Number>) col.offsetProperty();
                     }
                 };

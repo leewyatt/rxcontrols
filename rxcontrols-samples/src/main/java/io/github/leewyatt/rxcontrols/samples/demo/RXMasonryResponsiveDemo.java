@@ -2,8 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow;
+import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXRow;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -15,11 +15,11 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Combined demo for {@link RXResponsiveRow} and {@link RXMasonryPane} showing the
+ * Combined demo for {@link RXRow} and {@link RXMasonryPane} showing the
  * classic gallery page: a responsive row splits the page into a main column and an
  * aside, and the main column hosts a masonry gallery.
  *
- * <p>The two responsive systems do orthogonal jobs. {@code RXResponsiveRow} decides
+ * <p>The two responsive systems do orthogonal jobs. {@code RXRow} decides
  * the page regions — below the {@code md} breakpoint the aside is hidden and the
  * gallery goes full width. {@code RXMasonryPane} decides how many waterfall columns
  * fit inside the main column. Resize the window to see both react at once.</p>
@@ -40,7 +40,7 @@ public class RXMasonryResponsiveDemo extends Application {
                     "Each card drops into whichever column is currently shortest, so the "
                             + "bottom edge stays roughly even."),
             new Note("TIP", "Two systems, one page",
-                    "The page columns come from RXResponsiveRow; the card columns come "
+                    "The page columns come from RXRow; the card columns come "
                             + "from RXMasonryPane. They never fight."),
             new Note("PERF", "Cheap reflow",
                     "Placement is linear in items times columns over a flat array of "
@@ -76,16 +76,16 @@ public class RXMasonryResponsiveDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXResponsiveCol mainCol = new RXResponsiveCol(buildMain());
+        RXCol mainCol = new RXCol(buildMain());
         mainCol.setSpan(24);                       // base: full width on small screens
         mainCol.setMd(RXColSpec.of(16));           // md and up: 16 / 24
 
-        RXResponsiveCol asideCol = new RXResponsiveCol(buildAside());
+        RXCol asideCol = new RXCol(buildAside());
         asideCol.setSpan(8);                       // span used when visible
         asideCol.setXs(RXColSpec.builder().hidden(true).build());          // hidden from xs up...
         asideCol.setMd(RXColSpec.builder().span(8).hidden(false).build()); // ...visible again at md
 
-        RXResponsiveRow row = new RXResponsiveRow(mainCol, asideCol);
+        RXRow row = new RXRow(mainCol, asideCol);
         row.setGutter(GAP);
         row.setRowGap(GAP);
         row.setPadding(new Insets(8.0, 24.0, 24.0, 24.0));
@@ -104,7 +104,7 @@ public class RXMasonryResponsiveDemo extends Application {
                 getClass().getResource("rx-masonry-responsive-demo.css").toExternalForm());
 
         primaryStage.setScene(scene);
-        primaryStage.setTitle("RXMasonryPane + RXResponsiveRow");
+        primaryStage.setTitle("RXMasonryPane + RXRow");
         primaryStage.show();
     }
 
@@ -112,7 +112,7 @@ public class RXMasonryResponsiveDemo extends Application {
         Label title = new Label("Gallery page");
         title.getStyleClass().add("demo-title");
         Label subtitle = new Label(
-                "RXResponsiveRow lays out the page; RXMasonryPane fills the gallery — resize to see both react");
+                "RXRow lays out the page; RXMasonryPane fills the gallery — resize to see both react");
         subtitle.getStyleClass().add("demo-subtitle");
         VBox header = new VBox(2.0, title, subtitle);
         header.getStyleClass().add("demo-header");
@@ -139,7 +139,7 @@ public class RXMasonryResponsiveDemo extends Application {
         VBox aside = new VBox(10.0,
                 sectionLabel("ASIDE · HIDDEN BELOW md"),
                 asideCard("Page layout",
-                        "RXResponsiveRow splits this page into a main column and this "
+                        "RXRow splits this page into a main column and this "
                                 + "aside. Below md the aside is hidden and the gallery "
                                 + "spans the full width."),
                 asideCard("The gallery",

@@ -4,8 +4,8 @@ import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow;
+import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
 import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
 import io.github.leewyatt.rxcontrols.samples.demo.RXResponsiveLayoutDemo;
@@ -33,7 +33,7 @@ import javafx.scene.shape.Circle;
 import java.util.List;
 
 /**
- * Showcase application for {@link RXResponsiveRow} and {@link RXResponsiveCol}.
+ * Showcase application for {@link RXRow} and {@link RXCol}.
  *
  * <p>Exercises the Row/Col layout surface: profile, columns, width, gutter,
  * row gap, justify, align, base span, offset, order, responsive order, and
@@ -49,12 +49,12 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
             1199.0, 1200.0, 1399.0, 1400.0, 1919.0, 1920.0
     };
 
-    private RXResponsiveRow row;
-    private RXResponsiveCol summaryCol;
-    private RXResponsiveCol imageCol;
-    private RXResponsiveCol regionCol;
-    private RXResponsiveCol shapeCol;
-    private RXResponsiveCol baseCol;
+    private RXRow row;
+    private RXCol summaryCol;
+    private RXCol imageCol;
+    private RXCol regionCol;
+    private RXCol shapeCol;
+    private RXCol baseCol;
     private ProfilePreset profilePreset = ProfilePreset.ELEMENT;
     private Slider baseSpanSlider;
     private Slider mdOffsetSlider;
@@ -100,7 +100,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        row = new RXResponsiveRow();
+        row = new RXRow();
         row.getStyleClass().add("showcase-row");
         row.setPadding(new Insets(16.0));
         row.setGutter(16.0);
@@ -291,13 +291,13 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
 
     // ==================== Preview helpers ====================
 
-    private RXResponsiveCol createCol(String title, Node body) {
-        RXResponsiveCol col = new RXResponsiveCol();
+    private RXCol createCol(String title, Node body) {
+        RXCol col = new RXCol();
         col.getChildren().add(createTile(title, body, col));
         return col;
     }
 
-    private Node createTile(String title, Node body, RXResponsiveCol owner) {
+    private Node createTile(String title, Node body, RXCol owner) {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("tile-title");
 
@@ -416,7 +416,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
                 .build());
     }
 
-    private int resolveEffectiveOrder(RXResponsiveCol col) {
+    private int resolveEffectiveOrder(RXCol col) {
         int order = col.getOrder();
         RXBreakpoint active = row.getActiveBreakpoint();
         if (active == null) {
@@ -435,7 +435,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
         return order;
     }
 
-    private RXColSpec specFor(RXResponsiveCol col, String breakpointName) {
+    private RXColSpec specFor(RXCol col, String breakpointName) {
         return switch (breakpointName) {
             case "xs" -> col.getXs();
             case "sm" -> col.getSm();

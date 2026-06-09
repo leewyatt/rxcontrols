@@ -4,7 +4,7 @@ import javafx.css.PseudoClass;
 
 /**
  * Shared breakpoint resolution and {@code :<name>} pseudo-class management for
- * responsive RX layout panes such as {@link RXResponsiveRow} and
+ * responsive RX layout panes such as {@link RXRow} and
  * {@link RXMasonryPane}.
  *
  * <p>Centralizes the swap logic so each pane does not reimplement it. Because

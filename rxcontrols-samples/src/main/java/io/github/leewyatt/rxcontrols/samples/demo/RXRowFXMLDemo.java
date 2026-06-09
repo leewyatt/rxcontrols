@@ -12,7 +12,7 @@ import java.net.URL;
 /**
  * Minimal FXML-based demo for the responsive row layout.
  */
-public class RXResponsiveRowFXMLDemo extends Application {
+public class RXRowFXMLDemo extends Application {
 
     /**
      * Starts the demo.
@@ -29,7 +29,7 @@ public class RXResponsiveRowFXMLDemo extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(360.0);
         primaryStage.setMinHeight(480.0);
-        primaryStage.setTitle("RXResponsiveRow FXML Demo");
+        primaryStage.setTitle("RXRow FXML Demo");
         primaryStage.show();
     }
 

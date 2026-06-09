@@ -2,8 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveCol;
-import io.github.leewyatt.rxcontrols.layout.RXResponsiveRow;
+import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
 import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
 import javafx.application.Application;
@@ -22,9 +22,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Power industry dashboard demo for {@link RXResponsiveRow}.
+ * Power industry dashboard demo for {@link RXRow}.
  */
-public class RXResponsiveRowDemo2 extends Application {
+public class RXRowDemo2 extends Application {
 
     /**
      * Starts the demo.
@@ -33,7 +33,7 @@ public class RXResponsiveRowDemo2 extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
-        RXResponsiveRow dashboard = createDashboard();
+        RXRow dashboard = createDashboard();
         ScrollPane root = new ScrollPane(dashboard);
         root.getStyleClass().add("energy-dashboard-scroll");
         root.setFitToWidth(true);
@@ -48,12 +48,12 @@ public class RXResponsiveRowDemo2 extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(360.0);
         primaryStage.setMinHeight(520.0);
-        primaryStage.setTitle("RXResponsiveRow Demo 2");
+        primaryStage.setTitle("RXRow Demo 2");
         primaryStage.show();
     }
 
-    private RXResponsiveRow createDashboard() {
-        RXResponsiveRow row = new RXResponsiveRow();
+    private RXRow createDashboard() {
+        RXRow row = new RXRow();
         row.getStyleClass().add("energy-dashboard");
         row.setAlign(RXRowAlign.STRETCH);
         row.setJustify(RXRowJustify.START);
@@ -275,9 +275,9 @@ public class RXResponsiveRowDemo2 extends Application {
         return divider;
     }
 
-    private RXResponsiveCol col(Node content, RXColSpec xs, RXColSpec sm,
+    private RXCol col(Node content, RXColSpec xs, RXColSpec sm,
                                 RXColSpec md, RXColSpec lg) {
-        RXResponsiveCol col = new RXResponsiveCol(content);
+        RXCol col = new RXCol(content);
         col.setXs(xs);
         col.setSm(sm);
         col.setMd(md);
