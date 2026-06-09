@@ -17,7 +17,7 @@
     <content>
         <!--
           Layout context (default ANT_DESIGN profile):
-            Grid:         24 columns; breakpoints xs(0) sm(576) md(768) lg(992) xl(1200) xxl(1600).
+            Grid:         24 columns; breakpoints xs(0) sm(576) md(768) lg(992) xl(1200) xxl(1600) xxxl(1920).
             Mobile-first: a field unset at a breakpoint inherits the nearest smaller breakpoint,
                           finally the column base (span=24 = full width, offset=0, order=0, hidden=false).
             DSL:          1st positional = span, 2nd positional = offset;

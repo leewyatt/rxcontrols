@@ -475,6 +475,39 @@ public class RXCol extends StackPane {
         xxl.set(value);
     }
 
+    // ==================== XXXL ====================
+
+    private final ObjectProperty<RXColSpec> xxxl = createSpecProperty("xxxl");
+
+    /**
+     * Responsive spec for the {@code xxxl} breakpoint. It is used when the
+     * active row profile contains a breakpoint named {@code xxxl}, such as the
+     * default {@link RXBreakpointProfile#ANT_DESIGN} profile.
+     *
+     * @return the xxxl spec property
+     */
+    public final ObjectProperty<RXColSpec> xxxlProperty() {
+        return xxxl;
+    }
+
+    /**
+     * Returns the {@code xxxl} breakpoint spec.
+     *
+     * @return the spec, or {@code null} to inherit
+     */
+    public final RXColSpec getXxxl() {
+        return xxxl.get();
+    }
+
+    /**
+     * Sets the {@code xxxl} breakpoint spec.
+     *
+     * @param value the spec, or {@code null} to inherit
+     */
+    public final void setXxxl(RXColSpec value) {
+        xxxl.set(value);
+    }
+
     // ==================== Named Specs ====================
 
     /**
@@ -492,8 +525,8 @@ public class RXCol extends StackPane {
      * Registers a spec for an arbitrary breakpoint name. Passing {@code null}
      * removes the registered spec.
      *
-     * <p>The typed xs/sm/md/lg/xl/xxl properties take precedence when both APIs
-     * define the same breakpoint name.</p>
+     * <p>The typed xs/sm/md/lg/xl/xxl/xxxl properties take precedence when both
+     * APIs define the same breakpoint name.</p>
      *
      * @param breakpointName the breakpoint name
      * @param spec           the spec, or {@code null} to remove it
@@ -633,6 +666,7 @@ public class RXCol extends StackPane {
             case "lg" -> getLg();
             case "xl" -> getXl();
             case "xxl" -> getXxl();
+            case "xxxl" -> getXxxl();
             default -> null;
         };
         return standardSpec == null ? namedSpecs.get(breakpointName) : standardSpec;

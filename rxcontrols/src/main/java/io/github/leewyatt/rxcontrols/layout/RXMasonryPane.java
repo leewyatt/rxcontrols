@@ -1058,8 +1058,10 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Sets the column count for a named breakpoint, overriding the
-     * {@link #columnWidthProperty() columnWidth} auto-calculation while that
-     * breakpoint is active. Setting {@code null} clears the override.
+     * {@link #columnWidthProperty() columnWidth} auto-calculation. Overrides are
+     * mobile-first: a value set at one breakpoint stays in effect for wider
+     * breakpoints until another override replaces it. Setting {@code null}
+     * clears the override.
      *
      * @param breakpointName the breakpoint name (e.g. {@code "md"})
      * @param columns        the column count, or {@code null} to clear
@@ -1208,12 +1210,42 @@ public class RXMasonryPane extends Pane {
         return getBreakpointColumns("xxl");
     }
 
+    /**
+     * Sets the column count for the {@code xxxl} breakpoint.
+     *
+     * @param columns the column count, or {@code null} to clear
+     * @throws IllegalArgumentException if {@code columns} is less than one
+     */
+    public final void setXxxl(Integer columns) {
+        setBreakpointColumns("xxxl", columns);
+    }
+
+    /**
+     * Returns the {@code xxxl} breakpoint column count.
+     *
+     * @return the column count, or {@code null} if none is set
+     */
+    public final Integer getXxxl() {
+        return getBreakpointColumns("xxxl");
+    }
+
     private Integer resolveBreakpointColumns(double contentWidth) {
         if (breakpointColumns.isEmpty()) {
             return null;
         }
-        RXBreakpoint breakpoint = breakpointProfileOrDefault().resolve(contentWidth);
-        return breakpointColumns.get(breakpoint.getName());
+        RXBreakpointProfile profile = breakpointProfileOrDefault();
+        double activeMinWidth = profile.resolve(contentWidth).getMinWidth();
+        Integer resolved = null;
+        for (RXBreakpoint breakpoint : profile.getBreakpoints()) {
+            if (breakpoint.getMinWidth() > activeMinWidth) {
+                break;
+            }
+            Integer columns = breakpointColumns.get(breakpoint.getName());
+            if (columns != null) {
+                resolved = columns;
+            }
+        }
+        return resolved;
     }
 
     // ==================== Actual Column Count ====================

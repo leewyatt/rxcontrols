@@ -39,7 +39,7 @@ public class RXResponsiveLayoutDemo extends Application {
 
     private static final double[] WIDTH_PRESETS = {
             360.0, 575.0, 576.0, 767.0, 768.0, 991.0, 992.0,
-            1199.0, 1200.0, 1399.0, 1400.0, 1919.0, 1920.0
+            1199.0, 1200.0, 1399.0, 1400.0, 1599.0, 1600.0, 1919.0, 1920.0
     };
 
     @Override

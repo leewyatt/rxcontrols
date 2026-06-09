@@ -187,6 +187,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
                 breakpointRow("lg", masonry::setLg),
                 breakpointRow("xl", masonry::setXl),
                 breakpointRow("xxl", masonry::setXxl),
+                breakpointRow("xxxl", masonry::setXxxl),
                 row(activeLabel));
     }
 
@@ -201,7 +202,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
 
     private String profileName(RXBreakpointProfile profile) {
         if (profile == RXBreakpointProfile.ANT_DESIGN) {
-            return "ANT DESIGN (xs..xxl)";
+            return "ANT DESIGN (xs..xxxl)";
         }
         if (profile == RXBreakpointProfile.ELEMENT) {
             return "ELEMENT (xs..xl)";

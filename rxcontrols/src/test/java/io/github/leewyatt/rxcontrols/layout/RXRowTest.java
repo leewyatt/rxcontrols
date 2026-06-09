@@ -101,6 +101,25 @@ public class RXRowTest {
         assertClose(250.0, col.getWidth(), "lg width");
     }
 
+    /**
+     * Verifies an xxl spec keeps applying at xxxl widths (mobile-first cascade)
+     * when no xxxl spec is set, using the default ANT_DESIGN profile.
+     */
+    @Test
+    public void xxlSpecCascadesIntoXxxlWidth() {
+        RXRow row = new RXRow();
+        RXCol col = new RXCol(
+                fixedRegion(40.0, 10.0, 80.0, 20.0));
+        col.setXs(RXColSpec.of(24));
+        col.setXxl(RXColSpec.of(6));
+        row.getChildren().add(col);
+
+        layout(row, 2000.0, 40.0);
+
+        assertEquals("xxxl", row.getActiveBreakpoint().getName());
+        assertClose(500.0, col.getWidth(), "xxxl inherits xxl span 6");
+    }
+
     private FixedRegion fixedRegion(double minWidth, double minHeight,
                                     double prefWidth, double prefHeight) {
         return new FixedRegion(minWidth, minHeight, prefWidth, prefHeight);

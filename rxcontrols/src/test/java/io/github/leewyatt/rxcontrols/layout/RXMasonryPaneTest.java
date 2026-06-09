@@ -230,6 +230,38 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a breakpoint column override cascades to wider breakpoints
+     * (mobile-first) rather than only applying in its own band.
+     */
+    @Test
+    public void breakpointColumnsCascadeToWiderBreakpoint() {
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
+        pane.setMd(3);
+
+        layout(pane, 1500.0, 1000.0);
+
+        // 1500 resolves to "xl"; with no xl override the md=3 override cascades
+        // up instead of falling back to auto floor(1500 / 100) = 15.
+        assertEquals("xl", pane.getActiveBreakpoint().getName());
+        assertEquals(3, pane.getActualColumnCount());
+    }
+
+    /**
+     * Verifies an xxl override keeps applying at xxxl widths under the default
+     * ANT_DESIGN profile when no xxxl override is set.
+     */
+    @Test
+    public void xxlColumnsCascadeIntoXxxlWidth() {
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
+        pane.setXxl(4);
+
+        layout(pane, 2000.0, 1000.0);
+
+        assertEquals("xxxl", pane.getActiveBreakpoint().getName());
+        assertEquals(4, pane.getActualColumnCount());
+    }
+
+    /**
      * Verifies a child pref-height change at constant width re-packs the layout,
      * guarding against the JFoenix column-count-only stale-cache bug.
      */
