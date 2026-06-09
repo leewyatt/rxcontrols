@@ -59,7 +59,7 @@ public class RXCol extends StackPane {
      * Default base span. Rows with fewer columns clamp this value to the row's
      * current column count during measurement and layout.
      */
-    public static final int DEFAULT_SPAN = RXBreakpointProfile.ELEMENT.getColumns();
+    public static final int DEFAULT_SPAN = RXBreakpointProfile.ANT_DESIGN.getColumns();
 
     /**
      * Default left offset.

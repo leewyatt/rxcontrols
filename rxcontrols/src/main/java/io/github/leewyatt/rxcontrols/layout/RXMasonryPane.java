@@ -112,7 +112,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Default breakpoint profile used to resolve the active breakpoint.
      */
-    public static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ELEMENT;
+    public static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ANT_DESIGN;
 
     /**
      * Default column span constraint for a child.

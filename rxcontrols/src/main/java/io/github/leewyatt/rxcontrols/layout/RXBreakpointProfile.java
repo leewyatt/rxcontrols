@@ -9,8 +9,52 @@ import java.util.Set;
 
 /**
  * Defines the column count and ordered breakpoints used by a responsive row.
+ *
+ * <p>Three built-in presets are provided. {@link #ANT_DESIGN} is the default
+ * because it matches this library's grid API (24 columns, {@code xs..xxl}).
+ * {@link #ELEMENT} and {@link #BOOTSTRAP} mirror those frameworks. Any other
+ * convention can be built with {@link #of(int, List)} or {@link #builder()}.</p>
+ *
+ * <p>Built-in presets:</p>
+ * <pre>
+ *                cols  xs   sm    md    lg     xl     xxl
+ *   ANT_DESIGN    24   0    576   768   992    1200   1600
+ *   ELEMENT       24   0    768   992   1200   1920   --
+ *   BOOTSTRAP     12   0    576   768   992    1200   1400
+ * </pre>
+ *
+ * <p>Other ecosystems, for reference (build via {@link #of(int, List)}; values
+ * in CSS pixels). Note that frameworks reuse the same names for different
+ * widths, so port pixels deliberately rather than assuming {@code md} is one
+ * fixed value:</p>
+ * <pre>
+ *                cols  breakpoints (px)
+ *   Tailwind     (12)  sm 640 / md 768 / lg 1024 / xl 1280 / 2xl 1536   (no xs; base = mobile)
+ *   MUI v5        12   xs 0 / sm 600 / md 900 / lg 1200 / xl 1536
+ *   Foundation    12   small 0 / medium 640 / large 1024 / xlarge 1200 / xxlarge 1440
+ *   Bulma         12   mobile 0 / tablet 769 / desktop 1024 / widescreen 1216 / fullhd 1408
+ *   Material 3    --   Compact 0 / Medium 600 / Expanded 840 / Large 1200 / ExtraLarge 1600
+ * </pre>
+ *
+ * <p>Profiles that use non-{@code xs..xxl} names (Foundation, Bulma, Material)
+ * are still fully supported, but the typed {@code RXCol.xsProperty()..xxlProperty()}
+ * accessors only apply to profiles using those names; otherwise use
+ * {@link RXCol#setBreakpointSpec(String, RXColSpec)}.</p>
  */
 public final class RXBreakpointProfile {
+
+    /**
+     * Ant Design-style profile and library default: 24 columns and
+     * xs/sm/md/lg/xl/xxl breakpoints. Shares the xs..xl thresholds with
+     * {@link #BOOTSTRAP}; only the column count and {@code xxl} differ.
+     */
+    public static final RXBreakpointProfile ANT_DESIGN = RXBreakpointProfile.of(24, List.of(
+            new RXBreakpoint("xs", 0.0),
+            new RXBreakpoint("sm", 576.0),
+            new RXBreakpoint("md", 768.0),
+            new RXBreakpoint("lg", 992.0),
+            new RXBreakpoint("xl", 1200.0),
+            new RXBreakpoint("xxl", 1600.0)));
 
     /**
      * Element-style profile: 24 columns and xs/sm/md/lg/xl breakpoints.

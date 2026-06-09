@@ -55,7 +55,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
     private RXCol regionCol;
     private RXCol shapeCol;
     private RXCol baseCol;
-    private ProfilePreset profilePreset = ProfilePreset.ELEMENT;
+    private ProfilePreset profilePreset = ProfilePreset.ANT_DESIGN;
     private Slider baseSpanSlider;
     private Slider mdOffsetSlider;
     private Slider mdOrderSlider;
@@ -494,6 +494,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
     }
 
     private enum ProfilePreset {
+        ANT_DESIGN("Ant Design 24", RXBreakpointProfile.ANT_DESIGN),
         ELEMENT("Element 24", RXBreakpointProfile.ELEMENT),
         BOOTSTRAP("Bootstrap 12", RXBreakpointProfile.BOOTSTRAP);
 

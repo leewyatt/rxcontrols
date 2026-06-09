@@ -49,7 +49,7 @@ public class RXResponsiveLayoutDemo extends Application {
 
         ComboBox<ProfilePreset> profileBox =
                 new ComboBox<>(FXCollections.observableArrayList(ProfilePreset.values()));
-        profileBox.setValue(ProfilePreset.ELEMENT);
+        profileBox.setValue(ProfilePreset.ANT_DESIGN);
 
         Slider columnsSlider = new Slider(4.0, 24.0, RXRow.DEFAULT_COLUMNS);
         columnsSlider.setSnapToTicks(true);
@@ -292,6 +292,8 @@ public class RXResponsiveLayoutDemo extends Application {
     }
 
     private enum ProfilePreset {
+        ANT_DESIGN("Ant Design 24", RXBreakpointProfile.ANT_DESIGN,
+                RXBreakpointProfile.ANT_DESIGN.getColumns()),
         ELEMENT("Element 24", RXBreakpointProfile.ELEMENT,
                 RXBreakpointProfile.ELEMENT.getColumns()),
         BOOTSTRAP("Bootstrap 12", RXBreakpointProfile.BOOTSTRAP,

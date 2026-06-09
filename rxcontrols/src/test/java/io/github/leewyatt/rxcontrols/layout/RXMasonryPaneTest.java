@@ -68,7 +68,7 @@ public class RXMasonryPaneTest {
         assertTrue(pane.isAnimated());
         assertEquals(Duration.millis(220.0), pane.getAnimationDuration());
         assertSame(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
-        assertSame(RXBreakpointProfile.ELEMENT, pane.getBreakpointProfile());
+        assertSame(RXBreakpointProfile.ANT_DESIGN, pane.getBreakpointProfile());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
 
         assertNull(RXMasonryPane.getMargin(card));
@@ -192,10 +192,10 @@ public class RXMasonryPaneTest {
         RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
         pane.setMd(3);
 
-        layout(pane, 1000.0, 1000.0);
+        layout(pane, 800.0, 1000.0);
 
-        // ELEMENT resolves 1000 to "md"; the md override forces 3 columns
-        // instead of the auto floor(1000 / 100) = 10.
+        // ANT_DESIGN resolves 800 to "md"; the md override forces 3 columns
+        // instead of the auto floor(800 / 100) = 8.
         assertEquals("md", pane.getActiveBreakpoint().getName());
         assertEquals(3, pane.getActualColumnCount());
     }
@@ -208,11 +208,11 @@ public class RXMasonryPaneTest {
         RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
         pane.setMd(3);
 
-        layout(pane, 800.0, 1000.0);
+        layout(pane, 600.0, 1000.0);
 
-        // 800 resolves to "sm"; no sm override -> auto floor(800 / 100) = 8.
+        // 600 resolves to "sm"; no sm override -> auto floor(600 / 100) = 6.
         assertEquals("sm", pane.getActiveBreakpoint().getName());
-        assertEquals(8, pane.getActualColumnCount());
+        assertEquals(6, pane.getActualColumnCount());
     }
 
     /**

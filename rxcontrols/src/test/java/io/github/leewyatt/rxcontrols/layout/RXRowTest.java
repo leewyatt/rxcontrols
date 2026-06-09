@@ -95,10 +95,10 @@ public class RXRowTest {
         assertEquals("xs", row.getActiveBreakpoint().getName());
         assertClose(360.0, col.getWidth(), "xs width");
 
-        layout(row, 1200.0, 40.0);
+        layout(row, 1000.0, 40.0);
 
         assertEquals("lg", row.getActiveBreakpoint().getName());
-        assertClose(300.0, col.getWidth(), "lg width");
+        assertClose(250.0, col.getWidth(), "lg width");
     }
 
     private FixedRegion fixedRegion(double minWidth, double minHeight,

@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  *
  * <p><b>Despite the name, an {@code RXRow} is not a single horizontal
  * row.</b> It is a column-based responsive grid container (24 columns by the
- * default {@link RXBreakpointProfile#ELEMENT} profile, 12 by
+ * default {@link RXBreakpointProfile#ANT_DESIGN} profile, 12 by
  * {@link RXBreakpointProfile#BOOTSTRAP}) that automatically wraps its child
  * {@link RXCol} instances onto multiple visual rows whenever their
  * combined spans exceed {@link #columnsProperty() columns}. The {@code Row}
@@ -83,9 +83,9 @@ import java.util.logging.Logger;
 public class RXRow extends Pane {
 
     /**
-     * Default column count from the Element-style profile.
+     * Default column count from the default Ant Design-style profile.
      */
-    public static final int DEFAULT_COLUMNS = RXBreakpointProfile.ELEMENT.getColumns();
+    public static final int DEFAULT_COLUMNS = RXBreakpointProfile.ANT_DESIGN.getColumns();
 
     /**
      * Default horizontal gutter.
@@ -415,7 +415,7 @@ public class RXRow extends Pane {
     // ==================== Breakpoint Profile ====================
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
-            new SimpleObjectProperty<>(this, "breakpointProfile", RXBreakpointProfile.ELEMENT) {
+            new SimpleObjectProperty<>(this, "breakpointProfile", RXBreakpointProfile.ANT_DESIGN) {
                 @Override
                 protected void invalidated() {
                     syncColumnsWithProfile(breakpointProfileOrDefault());
@@ -923,7 +923,7 @@ public class RXRow extends Pane {
 
     private RXBreakpointProfile breakpointProfileOrDefault() {
         RXBreakpointProfile value = getBreakpointProfile();
-        return value == null ? RXBreakpointProfile.ELEMENT : value;
+        return value == null ? RXBreakpointProfile.ANT_DESIGN : value;
     }
 
     private void syncColumnsWithProfile(RXBreakpointProfile profile) {

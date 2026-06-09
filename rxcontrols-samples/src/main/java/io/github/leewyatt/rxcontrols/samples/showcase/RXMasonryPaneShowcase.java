@@ -157,7 +157,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
 
     private Node buildResponsiveGrid() {
         ComboBox<RXBreakpointProfile> profileBox = new ComboBox<>(FXCollections.observableArrayList(
-                RXBreakpointProfile.ELEMENT, RXBreakpointProfile.BOOTSTRAP));
+                RXBreakpointProfile.ANT_DESIGN, RXBreakpointProfile.ELEMENT, RXBreakpointProfile.BOOTSTRAP));
         profileBox.setValue(RXMasonryPane.DEFAULT_BREAKPOINT_PROFILE);
         profileBox.setMaxWidth(Double.MAX_VALUE);
         profileBox.setConverter(new StringConverter<>() {
@@ -200,6 +200,9 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     }
 
     private String profileName(RXBreakpointProfile profile) {
+        if (profile == RXBreakpointProfile.ANT_DESIGN) {
+            return "ANT DESIGN (xs..xxl)";
+        }
         if (profile == RXBreakpointProfile.ELEMENT) {
             return "ELEMENT (xs..xl)";
         }
