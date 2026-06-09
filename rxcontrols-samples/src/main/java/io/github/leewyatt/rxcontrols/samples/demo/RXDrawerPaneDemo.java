@@ -30,7 +30,7 @@ import javafx.stage.Stage;
  * {@link RXDrawerEvent}; an "unsaved changes" check box vetoes the close.
  *
  * <p>Everything here uses only the public API — {@code open}/{@code close}/
- * {@code toggle}, the bindable {@code showing} property, and the
+ * {@code toggle}, the read-only {@code showing} state, and the
  * {@code CLOSE_REQUEST} veto — to keep the demo an honest illustration of the
  * control's surface.</p>
  */

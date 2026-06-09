@@ -125,8 +125,8 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             }
         });
 
-        // A ChangeListener (not invalidation): a vetoed close that reverts
-        // showing true→false→true reports old == new and is correctly skipped.
+        // A ChangeListener observes only committed value changes; vetoed or
+        // redundant close requests leave showing unchanged and do not restart transitions.
         disposer.registerListener(control.showingProperty(),
                 (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.sideProperty(), this::onSideChanged);
