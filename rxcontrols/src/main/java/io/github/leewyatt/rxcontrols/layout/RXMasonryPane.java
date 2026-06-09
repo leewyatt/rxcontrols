@@ -115,6 +115,16 @@ public class RXMasonryPane extends Pane {
     public static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ANT_DESIGN;
 
     /**
+     * Sentinel breakpoint column count that restores
+     * {@link #columnWidthProperty() columnWidth} auto-calculation. Passing this
+     * to {@link #setBreakpointColumns(String, Integer)} or a typed setter sets
+     * an explicit auto override that breaks the mobile-first cascade and resumes
+     * auto column counting from that breakpoint up, in contrast to {@code null}
+     * which simply clears the override so the breakpoint inherits.
+     */
+    public static final int AUTO_COLUMNS = 0;
+
+    /**
      * Default column span constraint for a child.
      */
     public static final int DEFAULT_COLUMN_SPAN = 1;
@@ -1060,21 +1070,25 @@ public class RXMasonryPane extends Pane {
      * Sets the column count for a named breakpoint, overriding the
      * {@link #columnWidthProperty() columnWidth} auto-calculation. Overrides are
      * mobile-first: a value set at one breakpoint stays in effect for wider
-     * breakpoints until another override replaces it. Setting {@code null}
-     * clears the override.
+     * breakpoints until another override replaces it. Passing
+     * {@link #AUTO_COLUMNS} sets an explicit auto override that breaks the
+     * cascade and restores columnWidth auto-calculation from that breakpoint up,
+     * until a wider breakpoint sets a positive count again. Setting {@code null}
+     * clears the override entirely so the breakpoint inherits.
      *
      * @param breakpointName the breakpoint name (e.g. {@code "md"})
-     * @param columns        the column count, or {@code null} to clear
+     * @param columns        a positive column count, {@link #AUTO_COLUMNS} for
+     *                       explicit auto, or {@code null} to clear
      * @throws NullPointerException     if {@code breakpointName} is {@code null}
-     * @throws IllegalArgumentException if {@code breakpointName} is blank or {@code columns} is less than one
+     * @throws IllegalArgumentException if {@code breakpointName} is blank or {@code columns} is negative
      */
     public final void setBreakpointColumns(String breakpointName, Integer columns) {
         Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
         if (breakpointName.isBlank()) {
             throw new IllegalArgumentException("breakpointName cannot be blank");
         }
-        if (columns != null && columns < 1) {
-            throw new IllegalArgumentException("columns must be at least 1");
+        if (columns != null && columns < 0) {
+            throw new IllegalArgumentException("columns cannot be negative");
         }
         if (columns == null) {
             breakpointColumns.remove(breakpointName);
@@ -1099,8 +1113,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code xs} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXs(Integer columns) {
         setBreakpointColumns("xs", columns);
@@ -1118,8 +1133,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code sm} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setSm(Integer columns) {
         setBreakpointColumns("sm", columns);
@@ -1137,8 +1153,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code md} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setMd(Integer columns) {
         setBreakpointColumns("md", columns);
@@ -1156,8 +1173,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code lg} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setLg(Integer columns) {
         setBreakpointColumns("lg", columns);
@@ -1175,8 +1193,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code xl} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXl(Integer columns) {
         setBreakpointColumns("xl", columns);
@@ -1194,8 +1213,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code xxl} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXxl(Integer columns) {
         setBreakpointColumns("xxl", columns);
@@ -1213,8 +1233,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the column count for the {@code xxxl} breakpoint.
      *
-     * @param columns the column count, or {@code null} to clear
-     * @throws IllegalArgumentException if {@code columns} is less than one
+     * @param columns a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                auto, or {@code null} to clear the override
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXxxl(Integer columns) {
         setBreakpointColumns("xxxl", columns);
@@ -1244,6 +1265,11 @@ public class RXMasonryPane extends Pane {
             if (columns != null) {
                 resolved = columns;
             }
+        }
+        // An explicit AUTO_COLUMNS override breaks the cascade; returning null
+        // lets computeColumns fall back to the columnWidth auto-calculation.
+        if (resolved != null && resolved == AUTO_COLUMNS) {
+            return null;
         }
         return resolved;
     }

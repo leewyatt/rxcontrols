@@ -59,7 +59,7 @@ public class RXMasonryPaneDemo extends Application {
                     "With fill-width on, columns stretch to consume the whole pane, so "
                             + "there is never an awkward gap on the right edge."),
             new Note("TIP", "Breakpoints optional",
-                    "Pin a column count per breakpoint — xs, sm, md, lg, xl — or just "
+                    "Pin a column count per breakpoint — xs through xxxl — or just "
                             + "let the target column width do the work."),
             new Note("PERF", "Measure once",
                     "The packed layout is cached per width and shared between the height "

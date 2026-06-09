@@ -262,6 +262,58 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies an AUTO_COLUMNS override breaks the mobile-first cascade and
+     * restores columnWidth auto-calculation from that breakpoint up.
+     */
+    @Test
+    public void autoColumnsSentinelRestoresAutoColumnCount() {
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
+        pane.setMd(3);
+        pane.setXl(RXMasonryPane.AUTO_COLUMNS);
+
+        layout(pane, 800.0, 1000.0);   // md -> fixed 3
+        assertEquals(3, pane.getActualColumnCount());
+
+        layout(pane, 1100.0, 1000.0);  // lg inherits md=3
+        assertEquals(3, pane.getActualColumnCount());
+
+        layout(pane, 1500.0, 1000.0);  // xl is explicit AUTO -> floor(1500 / 100) = 15
+        assertEquals("xl", pane.getActiveBreakpoint().getName());
+        assertEquals(15, pane.getActualColumnCount());
+    }
+
+    /**
+     * Verifies a positive override at a breakpoint wider than an AUTO_COLUMNS
+     * reset takes effect again.
+     */
+    @Test
+    public void positiveOverrideAfterAutoSentinelTakesEffect() {
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, card(80.0, 50.0));
+        pane.setMd(3);
+        pane.setXl(RXMasonryPane.AUTO_COLUMNS);
+        pane.setXxl(5);
+
+        layout(pane, 1500.0, 1000.0);  // xl AUTO -> floor = 15
+        assertEquals(15, pane.getActualColumnCount());
+
+        layout(pane, 1700.0, 1000.0);  // xxl -> fixed 5
+        assertEquals("xxl", pane.getActiveBreakpoint().getName());
+        assertEquals(5, pane.getActualColumnCount());
+    }
+
+    /**
+     * Verifies AUTO_COLUMNS (0) is accepted while negative counts are rejected.
+     */
+    @Test
+    public void autoColumnsAcceptedNegativeRejected() {
+        RXMasonryPane pane = new RXMasonryPane();
+        pane.setXs(RXMasonryPane.AUTO_COLUMNS);
+        assertEquals(Integer.valueOf(RXMasonryPane.AUTO_COLUMNS), pane.getXs());
+        assertThrows(IllegalArgumentException.class,
+                () -> pane.setBreakpointColumns("md", -1));
+    }
+
+    /**
      * Verifies a child pref-height change at constant width re-packs the layout,
      * guarding against the JFoenix column-count-only stale-cache bug.
      */
@@ -523,7 +575,7 @@ public class RXMasonryPaneTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> RXMasonryPane.setColumnSpan(card(10.0, 10.0), 0));
-        assertThrows(IllegalArgumentException.class, () -> pane.setBreakpointColumns("md", 0));
+        assertThrows(IllegalArgumentException.class, () -> pane.setBreakpointColumns("md", -1));
     }
 
     /**

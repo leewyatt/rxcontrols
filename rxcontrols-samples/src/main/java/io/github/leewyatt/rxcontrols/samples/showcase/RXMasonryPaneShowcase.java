@@ -191,13 +191,30 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
                 row(activeLabel));
     }
 
+    private static final int CONTROL_INHERIT = -1;
+
     private Node[] breakpointRow(String breakpointName, Consumer<Integer> setter) {
-        Slider slider = integerSlider(0.0, 8.0, 0.0);
-        slider.valueProperty().addListener((obs, oldV, newV) -> {
-            int value = (int) Math.round(newV.doubleValue());
-            setter.accept(value == 0 ? null : value);
+        ComboBox<Integer> box = new ComboBox<>(FXCollections.observableArrayList(
+                CONTROL_INHERIT, RXMasonryPane.AUTO_COLUMNS, 1, 2, 3, 4, 5, 6, 7, 8));
+        box.setValue(CONTROL_INHERIT);
+        box.setMaxWidth(Double.MAX_VALUE);
+        box.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Integer value) {
+                if (value == null || value == CONTROL_INHERIT) {
+                    return "Inherit";
+                }
+                return value == RXMasonryPane.AUTO_COLUMNS ? "Auto" : String.valueOf(value);
+            }
+
+            @Override
+            public Integer fromString(String string) {
+                return CONTROL_INHERIT;
+            }
         });
-        return row(breakpointName + " columns", slider, createValueLabel(slider, "%.0f"));
+        box.valueProperty().addListener((obs, oldV, newV) ->
+                setter.accept(newV == null || newV == CONTROL_INHERIT ? null : newV));
+        return row(breakpointName + " columns", box, new Label());
     }
 
     private String profileName(RXBreakpointProfile profile) {
