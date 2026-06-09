@@ -43,6 +43,8 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     private static final double MAX_CARD_HEIGHT = 260.0;
     private static final int SPAN_TWO_EVERY = 6;
     private static final long RANDOM_SEED = 42L;
+    // "Inherit" selection value for the per-breakpoint column ComboBox.
+    private static final int CONTROL_INHERIT = -1;
 
     private static final String[] PALETTE = {
             "#8F3F7E", "#B5305F", "#CE584A", "#DB8D5C", "#E9AB44", "#99C286",
@@ -190,8 +192,6 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
                 breakpointRow("xxxl", masonry::setXxxl),
                 row(activeLabel));
     }
-
-    private static final int CONTROL_INHERIT = -1;
 
     private Node[] breakpointRow(String breakpointName, Consumer<Integer> setter) {
         ComboBox<Integer> box = new ComboBox<>(FXCollections.observableArrayList(

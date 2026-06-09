@@ -53,7 +53,9 @@
 }
 
 .demo-row:lg,
-.demo-row:xl {
+.demo-row:xl,
+.demo-row:xxl,
+.demo-row:xxxl {
     -fx-background-color: #f8fafc;
 }
 
