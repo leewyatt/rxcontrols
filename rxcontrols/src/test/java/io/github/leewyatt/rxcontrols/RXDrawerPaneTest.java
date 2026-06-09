@@ -437,6 +437,35 @@ public class RXDrawerPaneTest {
         });
     }
 
+    @Test
+    public void closedTranslateTracksDrawerContentSizeChange() throws Exception {
+        runOnFx(() -> {
+            RXDrawerPane pane = new RXDrawerPane();
+            pane.setSide(Side.RIGHT);
+            pane.setAnimated(false);
+            Region narrow = new Region();
+            narrow.setMinWidth(300.0);
+            narrow.setPrefWidth(300.0);
+            narrow.setMaxWidth(300.0);
+            pane.setDrawerContent(narrow);
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+            assertEquals(300.0, drawer.getTranslateX(), EPSILON, "closed offset parks the initial panel off-screen");
+
+            // Swapping to a wider content while closed must re-snap the closed pose, so
+            // the panel stays fully off-screen instead of exposing a sliver.
+            Region wide = new Region();
+            wide.setMinWidth(700.0);
+            wide.setPrefWidth(700.0);
+            wide.setMaxWidth(700.0);
+            pane.setDrawerContent(wide);
+            pane.layout();
+            assertEquals(700.0, drawer.getWidth(), EPSILON, "panel grew to the new content width");
+            assertEquals(700.0, drawer.getTranslateX(), EPSILON,
+                    "closed offset re-snaps to the new width (panel fully off-screen)");
+        });
+    }
+
     // ==================== Clip ====================
 
     @Test

@@ -175,7 +175,12 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
         boolean horizontal = isHorizontal();
-        drawerThickness = computeThickness(horizontal ? contentHeight : contentWidth);
+        double newThickness = computeThickness(horizontal ? contentHeight : contentWidth);
+        // A thickness change (drawerContent swapped or resized) must re-snap the resting
+        // pose: otherwise a closed panel keeps its previous off-screen offset and shows a
+        // sliver, and a later animated open starts half-exposed.
+        boolean thicknessChanged = newThickness != drawerThickness;
+        drawerThickness = newThickness;
         double drawerW = horizontal ? drawerThickness : contentWidth;
         double drawerH = horizontal ? contentHeight : drawerThickness;
 
@@ -188,7 +193,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             layoutOverlay(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
         }
 
-        if (!initialized && !isAnimationRunning()) {
+        if ((!initialized || thicknessChanged) && !isAnimationRunning()) {
             snapToShowing();
             initialized = true;
         }
@@ -715,7 +720,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             // 0 / unset / non-resizable content carries no meaningful upper bound.
             contentMax = Double.MAX_VALUE;
         }
-        double pref = appPref > 0.0 ? appPref
+        double pref = (Double.isFinite(appPref) && appPref > 0.0) ? appPref
                 : (contentPref > 0.0 ? contentPref : DEFAULT_DRAWER_THICKNESS);
         return clampSize(contentMin, pref, contentMax);
     }

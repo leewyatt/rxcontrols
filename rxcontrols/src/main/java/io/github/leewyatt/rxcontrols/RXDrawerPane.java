@@ -575,11 +575,12 @@ public class RXDrawerPane extends Control {
 
     /**
      * The drawer panel thickness for {@link Side#LEFT} / {@link Side#RIGHT}. A
-     * positive value pins the width. The default {@link Region#USE_COMPUTED_SIZE}
-     * (or any value {@code <= 0}) fits the {@link #drawerContentProperty()
-     * drawerContent}'s preferred width, bounded by its min/max so the panel is never
-     * narrower than the content's minimum nor wider than its maximum; it falls back
-     * to the skin's default thickness only when the content has no preferred width.
+     * positive value is the preferred width; the default {@link Region#USE_COMPUTED_SIZE}
+     * (or any value {@code <= 0}) instead takes the {@link #drawerContentProperty()
+     * drawerContent}'s preferred width, falling back to the skin's default thickness only
+     * when the content has none. Either way the result is bounded by the content's
+     * min/max, so the panel is never narrower than the content's minimum nor wider than
+     * its maximum.
      *
      * @return the preferred drawer width property
      */
@@ -617,11 +618,12 @@ public class RXDrawerPane extends Control {
 
     /**
      * The drawer panel thickness for {@link Side#TOP} / {@link Side#BOTTOM}. A
-     * positive value pins the height. The default {@link Region#USE_COMPUTED_SIZE}
-     * (or any value {@code <= 0}) fits the {@link #drawerContentProperty()
-     * drawerContent}'s preferred height, bounded by its min/max so the panel is never
-     * shorter than the content's minimum nor taller than its maximum; it falls back
-     * to the skin's default thickness only when the content has no preferred height.
+     * positive value is the preferred height; the default {@link Region#USE_COMPUTED_SIZE}
+     * (or any value {@code <= 0}) instead takes the {@link #drawerContentProperty()
+     * drawerContent}'s preferred height, falling back to the skin's default thickness only
+     * when the content has none. Either way the result is bounded by the content's
+     * min/max, so the panel is never shorter than the content's minimum nor taller than
+     * its maximum.
      *
      * @return the preferred drawer height property
      */
