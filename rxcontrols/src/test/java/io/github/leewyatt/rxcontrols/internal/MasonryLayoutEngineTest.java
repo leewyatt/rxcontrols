@@ -166,4 +166,16 @@ public class MasonryLayoutEngineTest {
         assertArrayEquals(new double[]{0.0, 80.0}, result.tops(), DELTA);
         assertEquals(130.0, result.contentHeight(), DELTA);
     }
+
+    @Test
+    public void negativeVgapDoesNotInflateContentHeight() {
+        // A single item has no inter-item gap; content height is the item's own
+        // height (10), not a phantom |vgap| of 20.
+        Result single = MasonryLayoutEngine.place(1, -20.0, new int[]{1}, new double[]{10.0});
+        assertEquals(10.0, single.contentHeight(), DELTA, "single item has no phantom gap");
+
+        // Overlap larger than the item height does not inflate the reported height.
+        Result pair = MasonryLayoutEngine.place(1, -20.0, new int[]{1, 1}, new double[]{10.0, 10.0});
+        assertEquals(10.0, pair.contentHeight(), DELTA, "deep overlap does not inflate height");
+    }
 }

@@ -4,6 +4,7 @@ import javafx.scene.layout.Region;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link RXResponsiveRow}.
@@ -26,6 +27,26 @@ public class RXResponsiveRowTest {
 
         assertClose(120.0, row.minWidth(-1.0), "min width");
         assertClose(1440.0, row.prefWidth(-1.0), "pref width");
+    }
+
+    /**
+     * Verifies a finite negative gutter is preserved into the column's own layout
+     * (overlap) rather than being clamped to zero on the column side.
+     */
+    @Test
+    public void negativeGutterIsNotClampedOnColumns() {
+        RXResponsiveRow row = new RXResponsiveRow();
+        RXResponsiveCol col = new RXResponsiveCol(fixedRegion(120.0, 10.0, 240.0, 20.0));
+        col.setXs(RXColSpec.of(24));
+        row.getChildren().add(col);
+
+        row.setGutter(0.0);
+        double prefZeroGutter = row.prefWidth(-1.0);
+        row.setGutter(-20.0);
+        double prefNegativeGutter = row.prefWidth(-1.0);
+
+        assertTrue(prefNegativeGutter < prefZeroGutter,
+                "negative gutter reaches column layout, not clamped to 0");
     }
 
     /**

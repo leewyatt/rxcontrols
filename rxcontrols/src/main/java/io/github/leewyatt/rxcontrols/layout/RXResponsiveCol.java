@@ -693,10 +693,7 @@ public class RXResponsiveCol extends StackPane {
     }
 
     private static double normalizeGutter(double value) {
-        if (!Double.isFinite(value) || value < 0.0) {
-            return 0.0;
-        }
-        return value;
+        return Double.isFinite(value) ? value : RXResponsiveRow.DEFAULT_GUTTER;
     }
 
     // ==================== CSS Metadata ====================

@@ -64,6 +64,7 @@ public final class MasonryLayoutEngine {
         int[] startColumns = new int[itemCount];
         double[] tops = new double[itemCount];
         double[] columnBottoms = new double[columnCount];
+        double maxItemBottom = 0.0;
 
         for (int i = 0; i < itemCount; i++) {
             int span = clampSpan(spans[i], columnCount);
@@ -79,19 +80,17 @@ public final class MasonryLayoutEngine {
             }
             startColumns[i] = bestStart;
             tops[i] = bestTop;
-            double newBottom = bestTop + blockHeights[i] + vgap;
+            double itemBottom = bestTop + blockHeights[i];
+            if (itemBottom > maxItemBottom) {
+                maxItemBottom = itemBottom;
+            }
+            double newBottom = itemBottom + vgap;
             for (int c = bestStart; c < bestStart + span; c++) {
                 columnBottoms[c] = newBottom;
             }
         }
 
-        double maxBottom = 0.0;
-        for (double bottom : columnBottoms) {
-            if (bottom > maxBottom) {
-                maxBottom = bottom;
-            }
-        }
-        return new Result(startColumns, tops, Math.max(0.0, maxBottom - vgap));
+        return new Result(startColumns, tops, maxItemBottom);
     }
 
     private static int clampSpan(int span, int columnCount) {
