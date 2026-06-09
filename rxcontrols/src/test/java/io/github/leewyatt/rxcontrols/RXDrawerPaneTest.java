@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -262,16 +263,22 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void showingIsTheSourceOfTruth() throws Exception {
+    public void showingIsReadOnlyAndDrivenByOpenClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = rightDrawer();
             attach(pane);
             Region drawer = drawerPanel(pane);
 
-            pane.setShowing(true);
-            assertEquals(0.0, drawer.getTranslateX(), EPSILON);
-            pane.setShowing(false);
-            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON);
+            // showing is exposed read-only (like ComboBoxBase): no public writer or
+            // binding, only open()/close()/toggle() drive it.
+            assertFalse(pane.showingProperty() instanceof Property, "showing is exposed read-only");
+
+            pane.open();
+            assertTrue(pane.isShowing());
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "open parks at the edge");
+            pane.close();
+            assertFalse(pane.isShowing());
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "closed pushes off the right");
         });
     }
 

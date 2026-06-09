@@ -3,8 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.Event;
 import javafx.geometry.Side;
 import javafx.scene.Scene;
@@ -21,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -134,21 +131,6 @@ public class RXDrawerEventTest {
     }
 
     @Test
-    public void directSetShowingFalseGoesThroughVetoAndReverts() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
-            attach(pane);
-            pane.open();
-            pane.setOnCloseRequest(Event::consume);
-
-            // Bypassing close() must not bypass the veto.
-            pane.setShowing(false);
-            assertTrue(pane.isShowing(), "vetoed direct close reverts showing to true");
-        });
-    }
-
-    @Test
     public void toggleCloseHonoursVeto() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
@@ -159,45 +141,6 @@ public class RXDrawerEventTest {
 
             pane.toggle();
             assertTrue(pane.isShowing(), "toggle-close is vetoable too");
-        });
-    }
-
-    @Test
-    public void boundShowingCannotRevertSoVetoedCloseProceeds() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
-            BooleanProperty source = new SimpleBooleanProperty(true);
-            pane.showingProperty().bind(source);
-            List<String> log = recordEvents(pane);
-            attach(pane);
-            pane.setOnCloseRequest(Event::consume);
-
-            // A bound showing cannot be reverted, so the documented contract is:
-            // fire CLOSE_REQUEST but proceed with the close regardless of the veto —
-            // and the skin still runs the full close lifecycle.
-            source.set(false);
-            assertFalse(pane.isShowing(), "bound close proceeds despite the veto");
-            assertEquals(List.of(
-                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
-        });
-    }
-
-    @Test
-    public void closeRequestDoesNotWriteBoundShowing() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
-            BooleanProperty source = new SimpleBooleanProperty(true);
-            pane.showingProperty().bind(source);
-            attach(pane);
-            List<String> log = recordEvents(pane);
-
-            pane.close();
-
-            assertTrue(pane.isShowing(), "bound showing remains controlled by its source");
-            assertTrue(source.get(), "close() does not write a bound source");
-            assertEquals(List.of("CLOSE_REQUEST"), log, "no close lifecycle without a showing change");
         });
     }
 

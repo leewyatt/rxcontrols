@@ -10,7 +10,8 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -42,8 +43,8 @@ import java.util.List;
  * lays a main {@link #contentProperty() content} node over the whole area and
  * slides a {@link #drawerContentProperty() drawerContent} panel in from one edge
  * on top of it. The panel is shown and hidden through the single boolean source
- * of truth {@link #showingProperty() showing}, exposed for binding and driven
- * imperatively by {@link #open()} / {@link #close()} / {@link #toggle()}.
+ * of truth {@link #showingProperty() showing}, a read-only state driven by
+ * {@link #open()} / {@link #close()} / {@link #toggle()}.
  *
  * <p>The slide is a pure {@code translate} animation: layout always places the
  * panel at its open (edge-attached) position, and the closed state is expressed
@@ -147,7 +148,6 @@ public class RXDrawerPane extends Control {
         setAccessibleRole(AccessibleRole.DIALOG);
         updateDirectionPseudoClass();
         updatePushPseudoClass();
-        showing.addListener((obs, wasShowing, isShowing) -> updateOpenPseudoClass(isShowing));
     }
 
     /**
@@ -381,54 +381,34 @@ public class RXDrawerPane extends Control {
 
     // ==================== Showing ====================
 
-    // Set while close() has already arbitrated the veto, so the showing
-    // invalidated path does not fire a second CLOSE_REQUEST.
-    private boolean vetoBypass;
-
-    private final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", DEFAULT_SHOWING) {
-        @Override
-        protected void invalidated() {
-            if (get() || vetoBypass) {
-                return;
-            }
-            // A direct setShowing(false) (or a binding pushing false) still passes
-            // through the CLOSE_REQUEST veto; close() handles its own arbitration.
-            if (fireCloseRequest() && !isBound()) {
-                // Vetoed and revertible: stay open. A bound showing cannot be
-                // reverted, so a vetoed bound-close proceeds (documented contract).
-                set(true);
-            }
-        }
-    };
+    private final ReadOnlyBooleanWrapper showing =
+            new ReadOnlyBooleanWrapper(this, "showing", DEFAULT_SHOWING) {
+                @Override
+                protected void invalidated() {
+                    updateOpenPseudoClass(get());
+                }
+            };
 
     /**
-     * The single source of truth for whether the drawer is requested open
-     * ({@code true}) or closed ({@code false}). Bindable; equivalent to the web
-     * {@code open} / {@code v-model:visible}. The skin observes this property and
-     * drives the slide animation; the {@code :open} pseudo-class tracks it.
+     * Whether the drawer is open ({@code true}) or closed ({@code false}). This is
+     * the read-only, committed source of truth, mirroring {@code ComboBoxBase.showing}:
+     * it is driven through {@link #open()} / {@link #close()} / {@link #toggle()}, not
+     * written directly. The skin observes it to run the slide and the {@code :open}
+     * pseudo-class tracks it.
      *
-     * @return the showing property
+     * @return the read-only showing property
      */
-    public final BooleanProperty showingProperty() {
-        return showing;
+    public final ReadOnlyBooleanProperty showingProperty() {
+        return showing.getReadOnlyProperty();
     }
 
     /**
-     * Returns whether the drawer is requested open.
+     * Returns whether the drawer is open.
      *
-     * @return {@code true} if the drawer is requested open
+     * @return {@code true} if the drawer is open
      */
     public final boolean isShowing() {
         return showing.get();
-    }
-
-    /**
-     * Requests the drawer open ({@code true}) or closed ({@code false}).
-     *
-     * @param value the requested showing state
-     */
-    public final void setShowing(boolean value) {
-        showing.set(value);
     }
 
     // ==================== Animated ====================
@@ -808,19 +788,18 @@ public class RXDrawerPane extends Control {
     // ==================== Open / Close / Toggle ====================
 
     /**
-     * Requests the drawer open. Equivalent to {@code setShowing(true)}; a no-op
-     * when already open or opening.
+     * Opens the drawer. A no-op when already open.
      */
     public final void open() {
-        setShowing(true);
+        if (!isShowing()) {
+            showing.set(true);
+        }
     }
 
     /**
      * Requests the drawer closed through the {@code CLOSE_REQUEST} veto: a handler
      * may {@link javafx.event.Event#consume() consume} the event to keep it open. A
-     * no-op when already closed or closing. If {@link #showingProperty() showing}
-     * is bound, the close request is still fired, but the bound value is not
-     * written; update the binding source to complete the close.
+     * no-op when already closed.
      */
     public final void close() {
         if (!isShowing()) {
@@ -829,22 +808,14 @@ public class RXDrawerPane extends Control {
         if (fireCloseRequest()) {
             return;
         }
-        if (showing.isBound()) {
-            return;
-        }
-        vetoBypass = true;
-        try {
-            setShowing(false);
-        } finally {
-            vetoBypass = false;
-        }
+        showing.set(false);
     }
 
     /**
-     * Toggles the drawer, derived from the {@link #showingProperty() showing}
-     * intent: a mid-slide toggle reverses cleanly because the request — not the
-     * transient translate — decides the direction. Toggling a shown drawer closed
-     * goes through the {@code CLOSE_REQUEST} veto.
+     * Toggles the drawer: opens it when closed, or requests a close — through the
+     * {@code CLOSE_REQUEST} veto — when open. A mid-slide toggle reverses cleanly
+     * because the committed {@link #showingProperty() showing} state, not the
+     * transient translate, decides the direction.
      */
     public final void toggle() {
         if (isShowing()) {

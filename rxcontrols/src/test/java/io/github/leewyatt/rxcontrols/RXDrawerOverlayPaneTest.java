@@ -3,8 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -148,23 +146,6 @@ public class RXDrawerOverlayPaneTest {
         });
     }
 
-    @Test
-    public void overlayPaneClickDoesNotWriteBoundShowing() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
-            BooleanProperty source = new SimpleBooleanProperty(true);
-            pane.showingProperty().bind(source);
-            attach(pane);
-            List<String> log = recordEvents(pane);
-
-            fireClick(overlayPane(pane));
-
-            assertTrue(pane.isShowing(), "bound showing remains controlled by its source");
-            assertEquals(List.of("CLOSE_REQUEST"), log, "overlay click only requests a bound close");
-        });
-    }
-
     // ==================== ESC ====================
 
     @Test
@@ -210,23 +191,6 @@ public class RXDrawerOverlayPaneTest {
 
             fireKey(pane, KeyCode.ESCAPE);
             assertTrue(pane.isShowing(), "ESC ignored when closeOnEsc is false");
-        });
-    }
-
-    @Test
-    public void escDoesNotWriteBoundShowing() throws Exception {
-        runOnFx(() -> {
-            RXDrawerPane pane = new RXDrawerPane();
-            pane.setAnimated(false);
-            BooleanProperty source = new SimpleBooleanProperty(true);
-            pane.showingProperty().bind(source);
-            attach(pane);
-            List<String> log = recordEvents(pane);
-
-            fireKey(pane, KeyCode.ESCAPE);
-
-            assertTrue(pane.isShowing(), "bound showing remains controlled by its source");
-            assertEquals(List.of("CLOSE_REQUEST"), log, "ESC only requests a bound close");
         });
     }
 
