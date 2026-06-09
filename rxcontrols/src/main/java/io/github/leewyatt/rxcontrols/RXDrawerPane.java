@@ -12,6 +12,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -703,22 +704,7 @@ public class RXDrawerPane extends Control {
     // ==================== Close On Overlay Pane Click ====================
 
     private final BooleanProperty closeOnOverlayPaneClick =
-            new StyleableBooleanProperty(DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK) {
-                @Override
-                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-                    return StyleableProperties.CLOSE_ON_OVERLAY_PANE_CLICK;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXDrawerPane.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "closeOnOverlayPaneClick";
-                }
-            };
+            new SimpleBooleanProperty(this, "closeOnOverlayPaneClick", DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK);
 
     /**
      * Whether clicking the overlay pane requests a close.
@@ -749,22 +735,8 @@ public class RXDrawerPane extends Control {
 
     // ==================== Close On Esc ====================
 
-    private final BooleanProperty closeOnEsc = new StyleableBooleanProperty(DEFAULT_CLOSE_ON_ESC) {
-        @Override
-        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-            return StyleableProperties.CLOSE_ON_ESC;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXDrawerPane.this;
-        }
-
-        @Override
-        public String getName() {
-            return "closeOnEsc";
-        }
-    };
+    private final BooleanProperty closeOnEsc =
+            new SimpleBooleanProperty(this, "closeOnEsc", DEFAULT_CLOSE_ON_ESC);
 
     /**
      * Whether pressing ESC while the drawer is open requests a close.
@@ -1127,35 +1099,6 @@ public class RXDrawerPane extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXDrawerPane, Boolean> CLOSE_ON_OVERLAY_PANE_CLICK =
-                new CssMetaData<>("-rx-close-on-overlay-pane-click",
-                        BooleanConverter.getInstance(), DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK) {
-                    @Override
-                    public boolean isSettable(RXDrawerPane node) {
-                        return !node.closeOnOverlayPaneClick.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Boolean>) node.closeOnOverlayPaneClickProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXDrawerPane, Boolean> CLOSE_ON_ESC =
-                new CssMetaData<>("-rx-close-on-esc", BooleanConverter.getInstance(), DEFAULT_CLOSE_ON_ESC) {
-                    @Override
-                    public boolean isSettable(RXDrawerPane node) {
-                        return !node.closeOnEsc.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Boolean>) node.closeOnEscProperty();
-                    }
-                };
-
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -1166,8 +1109,6 @@ public class RXDrawerPane extends Control {
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
             styleables.add(OVERLAY_PANE_VISIBLE);
-            styleables.add(CLOSE_ON_OVERLAY_PANE_CLICK);
-            styleables.add(CLOSE_ON_ESC);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

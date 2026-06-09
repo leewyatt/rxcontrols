@@ -85,6 +85,9 @@ public class RXDrawerPaneTest {
             assertFalse(pane.isShowing());
             assertNull(pane.getContent());
             assertNull(pane.getDrawerContent());
+            assertTrue(pane.isOverlayPaneVisible());
+            assertTrue(pane.isCloseOnOverlayPaneClick());
+            assertTrue(pane.isCloseOnEsc());
         });
     }
 
@@ -144,9 +147,7 @@ public class RXDrawerPaneTest {
                     "-rx-drawer-mode",
                     "-rx-animated",
                     "-rx-animation-duration",
-                    "-rx-overlay-pane-visible",
-                    "-rx-close-on-overlay-pane-click",
-                    "-rx-close-on-esc"), customProperties);
+                    "-rx-overlay-pane-visible"), customProperties);
         });
     }
 
@@ -158,9 +159,7 @@ public class RXDrawerPaneTest {
                     + "-rx-drawer-mode: push;"
                     + "-rx-animated: false;"
                     + "-rx-animation-duration: 75ms;"
-                    + "-rx-overlay-pane-visible: false;"
-                    + "-rx-close-on-overlay-pane-click: false;"
-                    + "-rx-close-on-esc: false;");
+                    + "-rx-overlay-pane-visible: false;");
 
             attach(pane);
 
@@ -169,8 +168,6 @@ public class RXDrawerPaneTest {
             assertFalse(pane.isAnimated());
             assertEquals(Duration.millis(75.0), pane.getAnimationDuration());
             assertFalse(pane.isOverlayPaneVisible());
-            assertFalse(pane.isCloseOnOverlayPaneClick());
-            assertFalse(pane.isCloseOnEsc());
         });
     }
 
