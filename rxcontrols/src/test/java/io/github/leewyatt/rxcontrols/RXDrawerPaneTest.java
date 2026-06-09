@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -542,37 +543,49 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void disablingAnimationMidSlideSnaps() throws Exception {
+    public void disablingAnimationMidSlideDoesNotSnapAndAppliesNext() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setSide(Side.RIGHT);
             pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(500.0));
+            AtomicBoolean opened = new AtomicBoolean(false);
+            pane.setOnOpened(e -> opened.set(true));
             attach(pane);
             Region drawer = drawerPanel(pane);
 
             pane.open();
-            assertTrue(pane.isShowing());
+            // Disabling animation mid-slide no longer force-settles the running slide:
+            // the open Timeline is still in flight, so OPENED has not fired.
             pane.setAnimated(false);
-            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "disabling animation snaps open");
+            assertFalse(opened.get(), "disabling animation mid-slide does not settle the running slide");
+
+            // The new setting applies to the next transition: the close is instant.
+            pane.close();
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "next transition is instant once disabled");
         });
     }
 
     @Test
-    public void zeroDurationMidSlideSnaps() throws Exception {
+    public void zeroDurationMidSlideDoesNotSnapAndAppliesNext() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setSide(Side.RIGHT);
             pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(500.0));
+            AtomicBoolean opened = new AtomicBoolean(false);
+            pane.setOnOpened(e -> opened.set(true));
             attach(pane);
             Region drawer = drawerPanel(pane);
 
             pane.open();
-            assertTrue(pane.isShowing());
-            // Dropping the duration to ZERO mid-slide snaps to the open pose.
+            // Dropping the duration to ZERO mid-slide does not settle the running slide either.
             pane.setAnimationDuration(Duration.ZERO);
-            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "zero duration snaps open");
+            assertFalse(opened.get(), "zero duration mid-slide does not settle the running slide");
+
+            // ZERO duration disables animation for the next transition: the close is instant.
+            pane.close();
+            assertEquals(THICKNESS, drawer.getTranslateX(), EPSILON, "next transition is instant at zero duration");
         });
     }
 

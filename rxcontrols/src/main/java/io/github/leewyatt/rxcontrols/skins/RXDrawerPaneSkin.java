@@ -138,8 +138,9 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.drawerContentProperty(), this::updateDrawerContent);
         disposer.registerListener(control.overlayPaneVisibleProperty(), this::onOverlayPaneChanged);
-        disposer.registerListener(control.animatedProperty(), this::onAnimatedChanged);
-        disposer.registerListener(control.animationDurationProperty(), this::onAnimationDurationChanged);
+        // animated / animationDuration / animationInterpolator are intentionally NOT
+        // observed: they are read at play time, so a change applies to the next
+        // transition and never disturbs an in-flight slide.
         disposer.registerListener(control.prefDrawerWidthProperty(), this::onThicknessChanged);
         disposer.registerListener(control.prefDrawerHeightProperty(), this::onThicknessChanged);
         disposer.registerListener(control.sceneProperty(),
@@ -607,22 +608,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
     }
 
-    /**
-     * Stops the running animation and settles to the terminal pose of the current
-     * {@code showing} intent, used when animation is disabled mid-flight.
-     */
-    private void snapRunningToTerminal() {
-        if (animation == null) {
-            return;
-        }
-        stopAnimation();
-        if (getSkinnable().isShowing()) {
-            finalizeOpen();
-        } else {
-            finalizeClose();
-        }
-    }
-
     // ==================== Property reactions ====================
 
     private void onSideChanged() {
@@ -649,18 +634,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
         initialized = false;
         getSkinnable().requestLayout();
-    }
-
-    private void onAnimatedChanged() {
-        if (!getSkinnable().isAnimated()) {
-            snapRunningToTerminal();
-        }
-    }
-
-    private void onAnimationDurationChanged() {
-        if (!isAnimationDurationPositive()) {
-            snapRunningToTerminal();
-        }
     }
 
     private void onThicknessChanged() {
