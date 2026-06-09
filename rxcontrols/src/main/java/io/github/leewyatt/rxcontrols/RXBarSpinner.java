@@ -176,20 +176,6 @@ public class RXBarSpinner extends Control {
     // ==================== Animation Mode ====================
 
     private final ObjectProperty<AnimationMode> animationMode = new StyleableObjectProperty<>(DEFAULT_ANIMATION_MODE) {
-        private AnimationMode lastValid = DEFAULT_ANIMATION_MODE;
-
-        @Override
-        protected void invalidated() {
-            AnimationMode v = get();
-            if (v == null) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new NullPointerException("animationMode cannot be null");
-            }
-            lastValid = v;
-        }
-
         @Override
         public Object getBean() {
             return RXBarSpinner.this;
@@ -207,9 +193,8 @@ public class RXBarSpinner extends Control {
     };
 
     /**
-     * Animation variant. Cannot be set to {@code null} — doing so throws
-     * {@link NullPointerException} and rolls back to the previous value
-     * (unless the property is currently bound).
+     * Animation variant. A {@code null} value is not rejected; it resolves to
+     * the default {@link #DEFAULT_ANIMATION_MODE} at the use site.
      *
      * @return the animation-mode property
      */
@@ -229,8 +214,7 @@ public class RXBarSpinner extends Control {
     /**
      * Sets the animation mode.
      *
-     * @param value the animation mode; cannot be {@code null}
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the animation mode, or {@code null} to fall back to the default
      */
     public final void setAnimationMode(AnimationMode value) {
         animationMode.set(value);

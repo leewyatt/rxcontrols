@@ -105,16 +105,14 @@ public class RXCarousel extends Control {
 
     // ==================== Page Management ====================
 
-    private int oldPageCount = 0;
-
     private final IntegerProperty pageCount = new SimpleIntegerProperty(this, "pageCount", 0) {
         @Override
         protected void invalidated() {
-            if (!isBound()) {
-                if (get() < 0) {
-                    set(oldPageCount);
+            if (get() < 0) {
+                if (!isBound()) {
+                    set(0);
                 }
-                oldPageCount = get();
+                throw new IllegalArgumentException("pageCount cannot be negative");
             }
         }
     };
@@ -141,6 +139,7 @@ public class RXCarousel extends Control {
      * Sets the total number of pages in the carousel.
      *
      * @param value the page count
+     * @throws IllegalArgumentException if {@code value} is negative
      */
     public final void setPageCount(int value) {
         pageCount.set(value);

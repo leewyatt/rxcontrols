@@ -177,10 +177,7 @@ public class RXSkeleton extends Control {
      * Creates a skeleton with the given variant.
      *
      * @param variant the initial variant; {@code null} falls back to
-     *                {@link #DEFAULT_VARIANT}. This constructor is lenient for
-     *                {@link NamedArg} / FXML-style creation; later writes through
-     *                {@link #setVariant(Variant)} or {@link #variantProperty()}
-     *                still reject {@code null}
+     *                {@link #DEFAULT_VARIANT}
      */
     public RXSkeleton(@NamedArg("variant") Variant variant) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
@@ -210,20 +207,6 @@ public class RXSkeleton extends Control {
     // / Ant Design conventions for the same concept.
 
     private final ObjectProperty<Variant> variant = new StyleableObjectProperty<>(DEFAULT_VARIANT) {
-        private Variant lastValid = DEFAULT_VARIANT;
-
-        @Override
-        protected void invalidated() {
-            Variant v = get();
-            if (v == null) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new NullPointerException("variant cannot be null");
-            }
-            lastValid = v;
-        }
-
         @Override
         public Object getBean() {
             return RXSkeleton.this;
@@ -241,9 +224,8 @@ public class RXSkeleton extends Control {
     };
 
     /**
-     * Geometric form of the placeholder. Cannot be set to {@code null} — doing
-     * so throws {@link NullPointerException} and rolls back to the previous
-     * value (unless the property is currently bound).
+     * Geometric form of the placeholder. A {@code null} value is not rejected;
+     * it resolves to the default {@link #DEFAULT_VARIANT} at the use site.
      *
      * @return the variant property
      */
@@ -263,8 +245,7 @@ public class RXSkeleton extends Control {
     /**
      * Sets the geometric variant.
      *
-     * @param value the variant; cannot be {@code null}
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the variant, or {@code null} to fall back to the default
      */
     public final void setVariant(Variant value) {
         variant.set(value);

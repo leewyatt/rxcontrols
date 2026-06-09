@@ -246,23 +246,8 @@ public class RXDrawerPane extends Control {
     // ==================== Side ====================
 
     private final ObjectProperty<Side> side = new StyleableObjectProperty<>(DEFAULT_SIDE) {
-        private Side lastValid = DEFAULT_SIDE;
-
         @Override
         protected void invalidated() {
-            Side value = get();
-            if (value == null && !isBound()) {
-                // A direct set(null) is a recoverable programmer error: revert and signal it.
-                set(lastValid);
-                throw new NullPointerException("side cannot be null");
-            }
-            if (value != null) {
-                lastValid = value;
-            }
-            // A bound source may yield null, which cannot be reverted; the effective
-            // side then falls back to the default for both the pseudo-class and the
-            // skin's geometry (see RXDrawerPaneSkin.sideOrDefault), rather than
-            // throwing back into the binding's own evaluation.
             updateDirectionPseudoClass();
             requestLayout();
         }
@@ -284,8 +269,8 @@ public class RXDrawerPane extends Control {
     };
 
     /**
-     * The edge the drawer attaches to and slides from. Cannot be set to
-     * {@code null}.
+     * The edge the drawer attaches to and slides from. A {@code null} value is not
+     * rejected; it resolves to the default {@link #DEFAULT_SIDE} at the use site.
      *
      * @return the side property
      */
@@ -305,8 +290,7 @@ public class RXDrawerPane extends Control {
     /**
      * Sets the side.
      *
-     * @param value the side
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the side, or {@code null} to fall back to the default
      */
     public final void setSide(Side value) {
         side.set(value);
@@ -316,20 +300,8 @@ public class RXDrawerPane extends Control {
 
     private final ObjectProperty<RXDrawerMode> drawerMode =
             new StyleableObjectProperty<>(DEFAULT_DRAWER_MODE) {
-                private RXDrawerMode lastValid = DEFAULT_DRAWER_MODE;
-
                 @Override
                 protected void invalidated() {
-                    RXDrawerMode value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        updatePushPseudoClass();
-                        requestLayout();
-                        throw new NullPointerException("drawerMode cannot be null");
-                    }
-                    lastValid = value;
                     updatePushPseudoClass();
                     requestLayout();
                 }
@@ -352,8 +324,9 @@ public class RXDrawerPane extends Control {
 
     /**
      * Whether the drawer overlays the content ({@link RXDrawerMode#OVERLAY}, the
-     * default) or pushes it aside ({@link RXDrawerMode#PUSH}). Cannot be set to
-     * {@code null}.
+     * default) or pushes it aside ({@link RXDrawerMode#PUSH}). A {@code null} value
+     * is not rejected; it resolves to the default {@link #DEFAULT_DRAWER_MODE} at the
+     * use site.
      *
      * @return the drawer mode property
      */
@@ -373,8 +346,7 @@ public class RXDrawerPane extends Control {
     /**
      * Sets the drawer mode.
      *
-     * @param value the drawer mode
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the drawer mode, or {@code null} to fall back to the default
      */
     public final void setDrawerMode(RXDrawerMode value) {
         drawerMode.set(value);
@@ -463,27 +435,6 @@ public class RXDrawerPane extends Control {
 
     private final ObjectProperty<Duration> animationDuration =
             new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
-                private Duration lastValid = DEFAULT_ANIMATION_DURATION;
-
-                @Override
-                protected void invalidated() {
-                    Duration value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("animationDuration cannot be null");
-                    }
-                    if (value.isUnknown() || value.isIndefinite() || value.lessThan(Duration.ZERO)) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new IllegalArgumentException(
-                                "animationDuration must be a finite non-negative duration");
-                    }
-                    lastValid = value;
-                }
-
                 @Override
                 public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
                     return StyleableProperties.ANIMATION_DURATION;
@@ -501,8 +452,9 @@ public class RXDrawerPane extends Control {
             };
 
     /**
-     * Duration of a single open/close transition. Must be a finite non-negative
-     * duration; {@link Duration#ZERO} disables animation like {@code animated=false}.
+     * Duration of a single open/close transition. A {@code null}, non-positive,
+     * unknown, or indefinite value is not rejected; it disables animation (the
+     * transition snaps), like {@code animated=false} or {@link Duration#ZERO}.
      *
      * @return the animation duration property
      */
@@ -522,9 +474,7 @@ public class RXDrawerPane extends Control {
     /**
      * Sets the animation duration.
      *
-     * @param value the animation duration
-     * @throws NullPointerException     if {@code value} is {@code null}
-     * @throws IllegalArgumentException if {@code value} is indefinite, unknown, or negative
+     * @param value the animation duration; {@code null} or any non-positive value disables animation
      */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);

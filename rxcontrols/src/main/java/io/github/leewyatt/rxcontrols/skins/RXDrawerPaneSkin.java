@@ -659,9 +659,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     // ==================== Geometry helpers ====================
 
-    // A-party fallback: a bound side source can momentarily yield null (the
-    // control rejects it but cannot revert a bound property), so geometry reads
-    // the side through this helper, mirroring RXMasonryPane.alignmentOrDefault().
     private Side sideOrDefault() {
         Side current = getSkinnable().getSide();
         return current == null ? RXDrawerPane.DEFAULT_SIDE : current;

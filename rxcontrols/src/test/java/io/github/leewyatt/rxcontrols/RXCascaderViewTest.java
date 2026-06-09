@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -543,24 +542,26 @@ public class RXCascaderViewTest {
     }
 
     /**
-     * Verifies a rejected {@code null} selection mode throws but rolls the mode
-     * back and does not wipe the existing selection.
+     * Verifies a {@code null} selection mode is accepted without throwing and
+     * degrades to single-selection behavior at the use site.
      */
     @Test
-    public void setSelectionModeNullRejectedWithoutClearingSelection() {
+    public void setSelectionModeNullDegradesToSingle() {
         RXCascaderView<String> panel = new RXCascaderView<>();
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> child = item("child");
         root.getChildren().add(child);
         panel.getRootItems().add(root);
+
+        panel.setSelectionMode(null);
+        assertNull(panel.getSelectionMode());
+
+        // A null mode resolves to single-selection behavior: activating a leaf
+        // selects its path rather than toggling a check.
         panel.activate(root);
         panel.activate(child);
-        assertNotNull(panel.getSelectedPath());
-
-        assertThrows(NullPointerException.class, () -> panel.setSelectionMode(null));
-
-        assertEquals(SelectionMode.SINGLE, panel.getSelectionMode());
-        assertNotNull(panel.getSelectedPath(), "rejected null must not clear the selection");
+        assertNotNull(panel.getSelectedPath(), "null mode must behave as single-selection");
+        assertTrue(panel.getCheckedPaths().isEmpty());
     }
 
     /**

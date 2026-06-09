@@ -100,18 +100,8 @@ public class RXResponsiveCol extends StackPane {
     // ==================== Span ====================
 
     private final IntegerProperty span = new StyleableIntegerProperty(DEFAULT_SPAN) {
-        private int lastValid = DEFAULT_SPAN;
-
         @Override
         protected void invalidated() {
-            int value = get();
-            if (value < 0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("span cannot be negative");
-            }
-            lastValid = value;
             requestRowLayout();
         }
 
@@ -156,7 +146,6 @@ public class RXResponsiveCol extends StackPane {
      * Sets the base span.
      *
      * @param value the base span
-     * @throws IllegalArgumentException if {@code value < 0}
      */
     public final void setSpan(int value) {
         span.set(value);
@@ -165,18 +154,8 @@ public class RXResponsiveCol extends StackPane {
     // ==================== Offset ====================
 
     private final IntegerProperty offset = new StyleableIntegerProperty(DEFAULT_OFFSET) {
-        private int lastValid = DEFAULT_OFFSET;
-
         @Override
         protected void invalidated() {
-            int value = get();
-            if (value < 0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("offset cannot be negative");
-            }
-            lastValid = value;
             requestRowLayout();
         }
 
@@ -219,7 +198,6 @@ public class RXResponsiveCol extends StackPane {
      * Sets the base offset.
      *
      * @param value the base offset
-     * @throws IllegalArgumentException if {@code value < 0}
      */
     public final void setOffset(int value) {
         offset.set(value);

@@ -70,10 +70,6 @@ public class RXImageView extends Region {
 
     private final RXImageRenderer imageRenderer;
 
-    private ImageFit lastValidImageFit = DEFAULT_IMAGE_FIT;
-    private Insets lastValidImageInsets = DEFAULT_IMAGE_INSETS;
-    private double lastValidImageRadius = DEFAULT_IMAGE_RADIUS;
-
     // ==================== Constructors ====================
 
     /**
@@ -161,14 +157,6 @@ public class RXImageView extends Region {
             new StyleableObjectProperty<>(DEFAULT_IMAGE_FIT) {
                 @Override
                 protected void invalidated() {
-                    ImageFit value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValidImageFit);
-                        }
-                        throw new NullPointerException("imageFit cannot be null");
-                    }
-                    lastValidImageFit = value;
                     requestLayout();
                 }
 
@@ -189,9 +177,8 @@ public class RXImageView extends Region {
             };
 
     /**
-     * Image fitting mode. Cannot be set to {@code null}; if a bound value
-     * becomes {@code null}, an exception is thrown and layout falls back to the
-     * last valid value until the binding source is fixed.
+     * Image fitting mode. A {@code null} value is not rejected; it resolves to
+     * the default {@link #DEFAULT_IMAGE_FIT} at the use site.
      *
      * @return the image fit property
      */
@@ -211,8 +198,7 @@ public class RXImageView extends Region {
     /**
      * Sets the image fitting mode.
      *
-     * @param value the image fitting mode
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the image fitting mode, or {@code null} to fall back to the default
      */
     public final void setImageFit(ImageFit value) {
         imageFit.set(value);
@@ -227,17 +213,16 @@ public class RXImageView extends Region {
                     Insets value = get();
                     if (value == null) {
                         if (!isBound()) {
-                            set(lastValidImageInsets);
+                            set(DEFAULT_IMAGE_INSETS);
                         }
                         throw new NullPointerException("imageInsets cannot be null");
                     }
                     if (!isFiniteInsets(value)) {
                         if (!isBound()) {
-                            set(lastValidImageInsets);
+                            set(DEFAULT_IMAGE_INSETS);
                         }
                         throw new IllegalArgumentException("imageInsets must be finite");
                     }
-                    lastValidImageInsets = value;
                     requestLayout();
                 }
 
@@ -294,14 +279,6 @@ public class RXImageView extends Region {
             new StyleableDoubleProperty(DEFAULT_IMAGE_RADIUS) {
                 @Override
                 protected void invalidated() {
-                    double value = get();
-                    if (!isValidRadius(value)) {
-                        if (!isBound()) {
-                            set(lastValidImageRadius);
-                        }
-                        throw new IllegalArgumentException("imageRadius must be finite and non-negative");
-                    }
-                    lastValidImageRadius = value;
                     requestLayout();
                 }
 
@@ -322,8 +299,9 @@ public class RXImageView extends Region {
             };
 
     /**
-     * Fixed-pixel radius used to round the rendered image area. Cannot be
-     * negative, {@code NaN}, or infinite.
+     * Fixed-pixel radius used to round the rendered image area. A negative,
+     * {@code NaN}, or infinite value is not rejected; it is clamped to a valid
+     * radius at the use site.
      *
      * @return the image radius property
      */
@@ -344,7 +322,6 @@ public class RXImageView extends Region {
      * Sets the fixed-pixel image corner radius.
      *
      * @param value the image corner radius
-     * @throws IllegalArgumentException if {@code value} is negative, {@code NaN}, or infinite
      */
     public final void setImageRadius(double value) {
         imageRadius.set(value);
@@ -411,17 +388,17 @@ public class RXImageView extends Region {
 
     private ImageFit imageFitOrDefault() {
         ImageFit value = getImageFit();
-        return value == null ? lastValidImageFit : value;
+        return value == null ? DEFAULT_IMAGE_FIT : value;
     }
 
     private Insets imageInsetsOrDefault() {
         Insets value = getImageInsets();
-        return value != null && isFiniteInsets(value) ? value : lastValidImageInsets;
+        return value != null && isFiniteInsets(value) ? value : DEFAULT_IMAGE_INSETS;
     }
 
     private double imageRadiusOrDefault() {
         double value = getImageRadius();
-        return isValidRadius(value) ? value : lastValidImageRadius;
+        return isValidRadius(value) ? value : DEFAULT_IMAGE_RADIUS;
     }
 
     private static boolean isFiniteInsets(Insets value) {

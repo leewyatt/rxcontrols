@@ -105,21 +105,7 @@ public class RXCascader<T> extends Control {
     // ==================== Selection Mode ====================
 
     private final ObjectProperty<SelectionMode> selectionMode =
-            new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
-                private SelectionMode lastValid = SelectionMode.SINGLE;
-
-                @Override
-                protected void invalidated() {
-                    SelectionMode value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("selectionMode cannot be null");
-                    }
-                    lastValid = value;
-                }
-            };
+            new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE);
 
     /**
      * Selection mode. {@link SelectionMode#SINGLE SINGLE} selects a single leaf

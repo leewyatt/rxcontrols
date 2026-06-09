@@ -88,20 +88,26 @@ public class RXSkeletonTest {
     }
 
     /**
-     * Verifies the lenient FXML-style constructor fallback and strict later writes.
+     * Verifies the lenient FXML-style constructor fallback and that later
+     * {@code null} writes are stored rather than rejected.
      */
     @Test
-    public void variantNullHandling() {
+    public void variantNullDegradesToDefault() {
         RXSkeleton skeleton = new RXSkeleton(null);
         assertSame(RXSkeleton.DEFAULT_VARIANT, skeleton.getVariant());
 
         skeleton.setVariant(Variant.TEXT);
-
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> skeleton.setVariant(null));
-
-        assertEquals("variant cannot be null", exception.getMessage());
         assertSame(Variant.TEXT, skeleton.getVariant());
+
+        skeleton.setVariant(null);
+        assertNull(skeleton.getVariant(), "null is stored, not rejected");
+
+        // The skin must tolerate a null variant at layout time: it resolves to the
+        // default and lays out without an NPE.
+        installSkin(skeleton);
+        layout(skeleton, 200.0, 100.0);
+        assertTrue(baseLayer(skeleton).getChildren().size() > 0,
+                "null variant lays out as the default (no NPE)");
     }
 
     /**

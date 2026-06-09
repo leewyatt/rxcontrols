@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -93,12 +92,14 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void sideRejectsNullAndReverts() throws Exception {
+    public void sideNullDegradesToDefault() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
-            assertThrows(NullPointerException.class, () -> pane.setSide(null));
-            assertEquals(Side.RIGHT, pane.getSide());
-            assertTrue(pane.getPseudoClassStates().contains(RIGHT), "revert keeps :right");
+            // Lenient: null is not rejected; it is stored and the effective side falls
+            // back to the default everywhere (pseudo-class and skin geometry).
+            pane.setSide(null);
+            assertNull(pane.getSide(), "null is stored, not rejected");
+            assertTrue(pane.getPseudoClassStates().contains(RIGHT), "effective side is the default");
         });
     }
 
@@ -127,12 +128,19 @@ public class RXDrawerPaneTest {
     }
 
     @Test
-    public void animationDurationRejectsNegative() throws Exception {
+    public void negativeAnimationDurationDisablesAnimation() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
-            assertThrows(IllegalArgumentException.class,
-                    () -> pane.setAnimationDuration(Duration.millis(-10.0)));
-            assertEquals(Duration.millis(250.0), pane.getAnimationDuration());
+            pane.setSide(Side.RIGHT);
+            pane.setPrefDrawerWidth(THICKNESS);
+            // Lenient: a negative duration is accepted (no throw); at the use site a
+            // non-positive duration simply disables animation (the slide snaps).
+            pane.setAnimationDuration(Duration.millis(-10.0));
+            assertEquals(Duration.millis(-10.0), pane.getAnimationDuration(), "negative is stored, not rejected");
+            attach(pane);
+            Region drawer = drawerPanel(pane);
+            pane.open();
+            assertEquals(0.0, drawer.getTranslateX(), EPSILON, "non-positive duration snaps (no animation)");
         });
     }
 

@@ -392,54 +392,61 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies size and gap properties reject invalid values and keep the last valid one.
+     * Verifies columnWidth rejects invalid values and coerces to the default, while
+     * the tolerant gap and column-count properties accept any value.
      */
     @Test
-    public void sizePropertiesRejectInvalidValues() {
+    public void sizePropertiesHandleInvalidValues() {
         RXMasonryPane pane = new RXMasonryPane();
 
         pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(0.0));
+        assertClose(RXMasonryPane.DEFAULT_COLUMN_WIDTH, pane.getColumnWidth(), "columnWidth coerced to default");
+        pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(-1.0));
+        assertClose(RXMasonryPane.DEFAULT_COLUMN_WIDTH, pane.getColumnWidth(), "columnWidth coerced to default");
+        pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(Double.NaN));
-        assertClose(120.0, pane.getColumnWidth(), "columnWidth kept");
+        assertClose(RXMasonryPane.DEFAULT_COLUMN_WIDTH, pane.getColumnWidth(), "columnWidth coerced to default");
 
-        pane.setHgap(4.0);
-        assertThrows(IllegalArgumentException.class, () -> pane.setHgap(-1.0));
-        assertThrows(IllegalArgumentException.class, () -> pane.setHgap(Double.POSITIVE_INFINITY));
-        assertClose(4.0, pane.getHgap(), "hgap kept");
+        pane.setHgap(-1.0);
+        assertClose(-1.0, pane.getHgap(), "hgap accepted");
 
-        pane.setColumnCount(3);
-        assertThrows(IllegalArgumentException.class, () -> pane.setColumnCount(-1));
-        assertEquals(3, pane.getColumnCount());
+        pane.setColumnCount(-1);
+        assertEquals(-1, pane.getColumnCount(), "columnCount accepted");
 
-        pane.setPrefColumns(4);
-        assertThrows(IllegalArgumentException.class, () -> pane.setPrefColumns(0));
-        assertEquals(4, pane.getPrefColumns());
+        pane.setPrefColumns(0);
+        assertEquals(0, pane.getPrefColumns(), "prefColumns accepted");
 
-        assertThrows(IllegalArgumentException.class, () -> pane.setMaxColumns(-2));
+        pane.setMaxColumns(-2);
+        assertEquals(-2, pane.getMaxColumns(), "maxColumns accepted");
     }
 
     /**
-     * Verifies object and animation properties reject null and invalid durations.
+     * Verifies tolerant object and animation properties accept null and otherwise
+     * invalid durations, while the per-child span and breakpoint counts still reject
+     * non-positive values.
      */
     @Test
-    public void objectPropertiesRejectNullAndInvalidValues() {
+    public void objectPropertiesHandleNullAndInvalidValues() {
         RXMasonryPane pane = new RXMasonryPane();
 
-        pane.setAlignment(Pos.CENTER);
-        assertThrows(NullPointerException.class, () -> pane.setAlignment(null));
-        assertSame(Pos.CENTER, pane.getAlignment());
+        pane.setAlignment(null);
+        assertNull(pane.getAlignment(), "alignment accepts null");
 
-        assertThrows(NullPointerException.class, () -> pane.setBreakpointProfile(null));
-        assertSame(RXBreakpointProfile.ELEMENT, pane.getBreakpointProfile());
+        pane.setBreakpointProfile(null);
+        assertNull(pane.getBreakpointProfile(), "breakpointProfile accepts null");
 
-        assertThrows(NullPointerException.class, () -> pane.setAnimationDuration(null));
-        assertThrows(IllegalArgumentException.class,
-                () -> pane.setAnimationDuration(Duration.millis(-1.0)));
-        assertThrows(IllegalArgumentException.class,
-                () -> pane.setAnimationDuration(Duration.INDEFINITE));
-        assertThrows(NullPointerException.class, () -> pane.setAnimationInterpolator(null));
+        pane.setAnimationDuration(null);
+        assertNull(pane.getAnimationDuration(), "animationDuration accepts null");
+        Duration negative = Duration.millis(-1.0);
+        pane.setAnimationDuration(negative);
+        assertSame(negative, pane.getAnimationDuration(), "animationDuration accepts negative");
+        pane.setAnimationDuration(Duration.INDEFINITE);
+        assertSame(Duration.INDEFINITE, pane.getAnimationDuration(), "animationDuration accepts indefinite");
+
+        pane.setAnimationInterpolator(null);
+        assertNull(pane.getAnimationInterpolator(), "animationInterpolator accepts null");
 
         assertThrows(IllegalArgumentException.class,
                 () -> RXMasonryPane.setColumnSpan(card(10.0, 10.0), 0));

@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -63,17 +62,19 @@ public class RXDrawerPushTest {
     }
 
     @Test
-    public void drawerModeRejectsNullAndReverts() throws Exception {
+    public void drawerModeNullDegradesToDefault() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setDrawerMode(RXDrawerMode.PUSH);
-            assertThrows(NullPointerException.class, () -> pane.setDrawerMode(null));
-            assertEquals(RXDrawerMode.PUSH, pane.getDrawerMode(), "reverted to last valid");
+            // Lenient: null is not rejected; the effective mode falls back to the default.
+            pane.setDrawerMode(null);
+            assertNull(pane.getDrawerMode(), "null is stored, not rejected");
+            assertFalse(pane.getPseudoClassStates().contains(PUSH), "effective mode is the default (not push)");
         });
     }
 
     @Test
-    public void boundNullDrawerModeThrowsAndFallsBackToOverlay() throws Exception {
+    public void boundNullDrawerModeDegradesToOverlay() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -82,17 +83,10 @@ public class RXDrawerPushTest {
             pane.drawerModeProperty().bind(source);
             assertTrue(pane.getPseudoClassStates().contains(PUSH));
 
-            AtomicReference<Throwable> uncaught = new AtomicReference<>();
-            Thread current = Thread.currentThread();
-            Thread.UncaughtExceptionHandler oldHandler = current.getUncaughtExceptionHandler();
-            current.setUncaughtExceptionHandler((thread, throwable) -> uncaught.set(throwable));
-            try {
-                source.set(null);
-            } finally {
-                current.setUncaughtExceptionHandler(oldHandler);
-            }
-            assertTrue(uncaught.get() instanceof NullPointerException, "bound null is reported as an error");
-            assertNull(pane.getDrawerMode(), "bound invalid value cannot be reverted");
+            // Lenient (consistent with side): a bound null is accepted without throwing;
+            // the effective mode falls back to OVERLAY everywhere.
+            source.set(null);
+            assertNull(pane.getDrawerMode(), "bound null is stored, not rejected");
             assertFalse(pane.getPseudoClassStates().contains(PUSH), "effective fallback is OVERLAY");
 
             attach(pane);

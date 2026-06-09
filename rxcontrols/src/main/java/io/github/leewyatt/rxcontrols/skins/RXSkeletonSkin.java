@@ -269,7 +269,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
             return;
         }
 
-        List<Block> blocks = computeBlocks(getSkinnable().getVariant(), contentWidth, contentHeight);
+        List<Block> blocks = computeBlocks(variantOrDefault(), contentWidth, contentHeight);
         syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor(),
                 BASE_BLOCK_STYLE_CLASS);
         syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK, CLIP_BLOCK_STYLE_CLASS);
@@ -286,6 +286,11 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         shimmerBand.setHeight(0.0);
         cachedBandWidth = 0.0;
         rebuildShimmerTimeline();
+    }
+
+    private Variant variantOrDefault() {
+        Variant v = getSkinnable().getVariant();
+        return v == null ? RXSkeleton.DEFAULT_VARIANT : v;
     }
 
     private List<Block> computeBlocks(Variant variant, double cw, double ch) {
@@ -394,7 +399,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        Variant variant = getSkinnable().getVariant();
+        Variant variant = variantOrDefault();
         double inner = switch (variant) {
             case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
             case ROUNDED_RECTANGLE, TEXT -> DEFAULT_PREF_WIDTH;
@@ -405,7 +410,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        Variant variant = getSkinnable().getVariant();
+        Variant variant = variantOrDefault();
         double inner = switch (variant) {
             case TEXT -> {
                 int n = Math.max(1, getSkinnable().getLineCount());

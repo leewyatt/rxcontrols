@@ -297,18 +297,15 @@ public class RXMasonryPane extends Pane {
     // ==================== Column Width ====================
 
     private final DoubleProperty columnWidth = new StyleableDoubleProperty(DEFAULT_COLUMN_WIDTH) {
-        private double lastValid = DEFAULT_COLUMN_WIDTH;
-
         @Override
         protected void invalidated() {
             double value = get();
             if (!Double.isFinite(value) || value <= 0.0) {
                 if (!isBound()) {
-                    set(lastValid);
+                    set(DEFAULT_COLUMN_WIDTH);
                 }
                 throw new IllegalArgumentException("columnWidth must be a finite positive number");
             }
-            lastValid = value;
             requestLayout();
         }
 
@@ -365,18 +362,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Hgap ====================
 
     private final DoubleProperty hgap = new StyleableDoubleProperty(DEFAULT_HGAP) {
-        private double lastValid = DEFAULT_HGAP;
-
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value < 0.0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("hgap must be a finite non-negative number");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -397,7 +384,7 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Horizontal gap between columns. Must be a finite non-negative number.
+     * Horizontal gap between columns.
      *
      * @return the hgap property
      */
@@ -418,7 +405,6 @@ public class RXMasonryPane extends Pane {
      * Sets the horizontal gap.
      *
      * @param value the horizontal gap
-     * @throws IllegalArgumentException if {@code value} is not a finite non-negative number
      */
     public final void setHgap(double value) {
         hgap.set(value);
@@ -427,18 +413,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Vgap ====================
 
     private final DoubleProperty vgap = new StyleableDoubleProperty(DEFAULT_VGAP) {
-        private double lastValid = DEFAULT_VGAP;
-
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value < 0.0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("vgap must be a finite non-negative number");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -459,8 +435,7 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Vertical gap between stacked children in a column. Must be a finite
-     * non-negative number.
+     * Vertical gap between stacked children in a column.
      *
      * @return the vgap property
      */
@@ -481,7 +456,6 @@ public class RXMasonryPane extends Pane {
      * Sets the vertical gap.
      *
      * @param value the vertical gap
-     * @throws IllegalArgumentException if {@code value} is not a finite non-negative number
      */
     public final void setVgap(double value) {
         vgap.set(value);
@@ -490,18 +464,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Column Count ====================
 
     private final IntegerProperty columnCount = new StyleableIntegerProperty(DEFAULT_COLUMN_COUNT) {
-        private int lastValid = DEFAULT_COLUMN_COUNT;
-
         @Override
         protected void invalidated() {
-            int value = get();
-            if (value < 0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("columnCount cannot be negative");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -545,7 +509,6 @@ public class RXMasonryPane extends Pane {
      * Sets the forced column count.
      *
      * @param value the forced column count, or {@code 0} for automatic
-     * @throws IllegalArgumentException if {@code value} is negative
      */
     public final void setColumnCount(int value) {
         columnCount.set(value);
@@ -554,18 +517,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Pref Columns ====================
 
     private final IntegerProperty prefColumns = new StyleableIntegerProperty(DEFAULT_PREF_COLUMNS) {
-        private int lastValid = DEFAULT_PREF_COLUMNS;
-
         @Override
         protected void invalidated() {
-            int value = get();
-            if (value < 1) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("prefColumns must be at least 1");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -588,7 +541,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Number of columns used by {@link #computePrefWidth(double)} when the pane is
      * measured without a width constraint. Does not affect the actual column count
-     * used during layout. Must be at least one.
+     * used during layout.
      *
      * @return the pref columns property
      */
@@ -609,7 +562,6 @@ public class RXMasonryPane extends Pane {
      * Sets the preferred column count.
      *
      * @param value the preferred column count
-     * @throws IllegalArgumentException if {@code value} is less than one
      */
     public final void setPrefColumns(int value) {
         prefColumns.set(value);
@@ -618,18 +570,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Max Columns ====================
 
     private final IntegerProperty maxColumns = new StyleableIntegerProperty(DEFAULT_MAX_COLUMNS) {
-        private int lastValid = DEFAULT_MAX_COLUMNS;
-
         @Override
         protected void invalidated() {
-            int value = get();
-            if (value < 0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("maxColumns cannot be negative");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -673,7 +615,6 @@ public class RXMasonryPane extends Pane {
      * Sets the maximum column count.
      *
      * @param value the maximum column count, or {@code 0} for unbounded
-     * @throws IllegalArgumentException if {@code value} is negative
      */
     public final void setMaxColumns(int value) {
         maxColumns.set(value);
@@ -736,18 +677,8 @@ public class RXMasonryPane extends Pane {
     // ==================== Alignment ====================
 
     private final ObjectProperty<Pos> alignment = new StyleableObjectProperty<>(DEFAULT_ALIGNMENT) {
-        private Pos lastValid = DEFAULT_ALIGNMENT;
-
         @Override
         protected void invalidated() {
-            Pos value = get();
-            if (value == null) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new NullPointerException("alignment cannot be null");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -768,10 +699,11 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Alignment of the content block within the pane. Cannot be set to
-     * {@code null}. The horizontal component also aligns a child within its column
-     * when {@link #fillWidthProperty() fillWidth} is {@code false}; the vertical
-     * component only takes effect when the pane is taller than its content.
+     * Alignment of the content block within the pane. The horizontal component also
+     * aligns a child within its column when {@link #fillWidthProperty() fillWidth} is
+     * {@code false}; the vertical component only takes effect when the pane is taller
+     * than its content. A {@code null} value is not rejected; it resolves to the
+     * default at the use site.
      *
      * @return the alignment property
      */
@@ -791,8 +723,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the alignment.
      *
-     * @param value the alignment
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the alignment, or {@code null} to fall back to the default
      */
     public final void setAlignment(Pos value) {
         alignment.set(value);
@@ -862,26 +793,9 @@ public class RXMasonryPane extends Pane {
 
     private final ObjectProperty<Duration> animationDuration =
             new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
-                private Duration lastValid = DEFAULT_ANIMATION_DURATION;
-
                 @Override
                 protected void invalidated() {
-                    Duration value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("animationDuration cannot be null");
-                    }
-                    if (value.isUnknown() || value.isIndefinite() || value.lessThan(Duration.ZERO)) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new IllegalArgumentException(
-                                "animationDuration must be a finite non-negative duration");
-                    }
-                    lastValid = value;
-                    if (value.lessThanOrEqualTo(Duration.ZERO)) {
+                    if (!isAnimationDurationPositive()) {
                         // Disabling animation mid-flight must snap, matching animated=false.
                         animator.stopAll();
                     }
@@ -904,9 +818,9 @@ public class RXMasonryPane extends Pane {
             };
 
     /**
-     * Duration of a single relayout / insertion / removal animation. Must be a
-     * finite non-negative duration; a value of {@link Duration#ZERO} disables
-     * animation just like {@code animated=false}.
+     * Duration of a single relayout / insertion / removal animation. A {@code null},
+     * non-positive, unknown, or indefinite value is not rejected; it disables
+     * animation just like {@code animated=false} or {@link Duration#ZERO}.
      *
      * @return the animation duration property
      */
@@ -926,9 +840,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the animation duration.
      *
-     * @param value the animation duration
-     * @throws NullPointerException     if {@code value} is {@code null}
-     * @throws IllegalArgumentException if {@code value} is indefinite, unknown, or negative
+     * @param value the animation duration; {@code null} or any non-positive value disables animation
      */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);
@@ -937,26 +849,12 @@ public class RXMasonryPane extends Pane {
     // ==================== Animation Interpolator ====================
 
     private final ObjectProperty<Interpolator> animationInterpolator =
-            new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR) {
-                private Interpolator lastValid = DEFAULT_ANIMATION_INTERPOLATOR;
-
-                @Override
-                protected void invalidated() {
-                    Interpolator value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("animationInterpolator cannot be null");
-                    }
-                    lastValid = value;
-                }
-            };
+            new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
 
     /**
-     * Interpolator used for layout animations. Cannot be set to {@code null}. This
-     * property is not styleable because there is no stable public CSS converter for
-     * an arbitrary {@link Interpolator}.
+     * Interpolator used for layout animations. Accepts {@code null}, which the
+     * animator treats as {@link #DEFAULT_ANIMATION_INTERPOLATOR}. Not styleable:
+     * there is no stable public CSS converter for an arbitrary {@link Interpolator}.
      *
      * @return the animation interpolator property
      */
@@ -976,8 +874,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the animation interpolator.
      *
-     * @param value the animation interpolator
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the animation interpolator, or {@code null} for the default
      */
     public final void setAnimationInterpolator(Interpolator value) {
         animationInterpolator.set(value);
@@ -1070,18 +967,8 @@ public class RXMasonryPane extends Pane {
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
             new SimpleObjectProperty<>(this, "breakpointProfile", DEFAULT_BREAKPOINT_PROFILE) {
-                private RXBreakpointProfile lastValid = DEFAULT_BREAKPOINT_PROFILE;
-
                 @Override
                 protected void invalidated() {
-                    RXBreakpointProfile value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("breakpointProfile cannot be null");
-                    }
-                    lastValid = value;
                     updateActiveBreakpoint();
                     requestLayout();
                 }
@@ -1089,8 +976,9 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Breakpoint profile used to resolve the active breakpoint from the pane's
-     * content width. Cannot be set to {@code null}. Only the profile's breakpoint
-     * set and {@code resolve} are used; its grid column count is ignored.
+     * content width. Only the profile's breakpoint set and {@code resolve} are used;
+     * its grid column count is ignored. A {@code null} value is not rejected; it
+     * resolves to the default at the use site.
      *
      * @return the breakpoint profile property
      */
@@ -1110,8 +998,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Sets the breakpoint profile.
      *
-     * @param value the breakpoint profile
-     * @throws NullPointerException if {@code value} is {@code null}
+     * @param value the breakpoint profile, or {@code null} to fall back to the default
      */
     public final void setBreakpointProfile(RXBreakpointProfile value) {
         breakpointProfile.set(value);

@@ -196,7 +196,6 @@ public class RXBox extends Pane {
      * Creates an RXBox with the given orientation.
      *
      * @param orientation the orientation
-     * @throws NullPointerException if {@code orientation} is {@code null}
      */
     public RXBox(Orientation orientation) {
         this();
@@ -208,7 +207,6 @@ public class RXBox extends Pane {
      *
      * @param orientation the orientation
      * @param children the initial children
-     * @throws NullPointerException if {@code orientation} is {@code null}
      */
     public RXBox(Orientation orientation, Node... children) {
         this(orientation);
@@ -220,7 +218,6 @@ public class RXBox extends Pane {
      *
      * @param spacing the child spacing
      * @param children the initial children
-     * @throws IllegalArgumentException if {@code spacing} is not finite
      */
     public RXBox(double spacing, Node... children) {
         this(children);
@@ -233,8 +230,6 @@ public class RXBox extends Pane {
      * @param orientation the orientation
      * @param spacing the child spacing
      * @param children the initial children
-     * @throws NullPointerException if {@code orientation} is {@code null}
-     * @throws IllegalArgumentException if {@code spacing} is not finite
      */
     public RXBox(Orientation orientation, double spacing, Node... children) {
         this(orientation, children);
@@ -253,18 +248,8 @@ public class RXBox extends Pane {
 
     private final ObjectProperty<Orientation> orientation =
             new StyleableObjectProperty<>(DEFAULT_ORIENTATION) {
-                private Orientation lastValid = DEFAULT_ORIENTATION;
-
                 @Override
                 protected void invalidated() {
-                    Orientation value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("orientation cannot be null");
-                    }
-                    lastValid = value;
                     requestLayout();
                 }
 
@@ -285,7 +270,8 @@ public class RXBox extends Pane {
             };
 
     /**
-     * Orientation of the main layout axis. Cannot be set to {@code null}.
+     * Orientation of the main layout axis. A {@code null} value is not rejected;
+     * it resolves to the default at the use site.
      *
      * @return the orientation property
      */
@@ -306,7 +292,6 @@ public class RXBox extends Pane {
      * Sets the orientation.
      *
      * @param value the orientation
-     * @throws NullPointerException if {@code value} is {@code null}
      */
     public final void setOrientation(Orientation value) {
         orientation.set(value);
@@ -315,18 +300,8 @@ public class RXBox extends Pane {
     // ==================== Spacing ====================
 
     private final DoubleProperty spacing = new StyleableDoubleProperty(DEFAULT_SPACING) {
-        private double lastValid = DEFAULT_SPACING;
-
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value)) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("spacing must be finite");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -368,28 +343,22 @@ public class RXBox extends Pane {
      * Sets the spacing.
      *
      * @param value the spacing
-     * @throws IllegalArgumentException if {@code value} is not finite
      */
     public final void setSpacing(double value) {
         spacing.set(value);
+    }
+
+    private double spacingOrDefault() {
+        double value = getSpacing();
+        return Double.isFinite(value) ? value : DEFAULT_SPACING;
     }
 
     // ==================== Alignment ====================
 
     private final ObjectProperty<Pos> alignment =
             new StyleableObjectProperty<>(DEFAULT_ALIGNMENT) {
-                private Pos lastValid = DEFAULT_ALIGNMENT;
-
                 @Override
                 protected void invalidated() {
-                    Pos value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("alignment cannot be null");
-                    }
-                    lastValid = value;
                     requestLayout();
                 }
 
@@ -410,9 +379,10 @@ public class RXBox extends Pane {
             };
 
     /**
-     * Overall alignment of children within this pane. Cannot be set to
-     * {@code null}. {@link VPos#BASELINE} is honored in horizontal orientation
-     * and treated as top alignment in vertical orientation.
+     * Overall alignment of children within this pane. {@link VPos#BASELINE} is
+     * honored in horizontal orientation and treated as top alignment in vertical
+     * orientation. A {@code null} value is not rejected; it resolves to the
+     * default at the use site.
      *
      * @return the alignment property
      */
@@ -433,7 +403,6 @@ public class RXBox extends Pane {
      * Sets the alignment.
      *
      * @param value the alignment
-     * @throws NullPointerException if {@code value} is {@code null}
      */
     public final void setAlignment(Pos value) {
         alignment.set(value);
@@ -616,7 +585,7 @@ public class RXBox extends Pane {
             double[] areaWidths = computeAreaWidths(managed, height, false);
             double contentMain = adjustAreaSizes(managed, areaWidths, contentWidth, contentHeight, true);
             double x = left + computeXOffset(contentWidth, contentMain, hpos);
-            double space = snapSpaceX(getSpacing());
+            double space = snapSpaceX(spacingOrDefault());
             boolean fillCrossAxis = shouldFillCrossAxis();
             double baselineOffset = vpos == VPos.BASELINE
                     ? computeAreaBaselineOffset(managed, areaWidths, contentHeight)
@@ -632,7 +601,7 @@ public class RXBox extends Pane {
             double[] areaHeights = computeAreaHeights(managed, width, false);
             double contentMain = adjustAreaSizes(managed, areaHeights, contentHeight, contentWidth, false);
             double y = top + computeYOffset(contentHeight, contentMain, vpos);
-            double space = snapSpaceY(getSpacing());
+            double space = snapSpaceY(spacingOrDefault());
             boolean fillCrossAxis = shouldFillCrossAxis();
             for (int i = 0, size = managed.size(); i < size; i++) {
                 Node child = managed.get(i);
@@ -1020,7 +989,7 @@ public class RXBox extends Pane {
         if (childCount <= 1) {
             return 0.0;
         }
-        double spacingSize = horizontal ? snapSpaceX(getSpacing()) : snapSpaceY(getSpacing());
+        double spacingSize = horizontal ? snapSpaceX(spacingOrDefault()) : snapSpaceY(spacingOrDefault());
         return (childCount - 1) * spacingSize;
     }
 

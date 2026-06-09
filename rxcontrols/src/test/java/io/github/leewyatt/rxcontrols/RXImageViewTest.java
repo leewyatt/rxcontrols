@@ -48,28 +48,36 @@ public class RXImageViewTest {
     }
 
     /**
-     * Verifies imageFit rejects null and keeps the last valid value.
+     * Verifies imageFit accepts null and resolves it to the default at the use site.
      */
     @Test
-    public void imageFitRejectsNullAndKeepsLastValidValue() {
-        RXImageView view = new RXImageView();
+    public void imageFitNullDegradesToDefault() {
+        RXImageView view = new RXImageView(new WritableImage(200, 100));
         view.setImageFit(ImageFit.CONTAIN);
 
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> view.setImageFit(null));
+        view.setImageFit(null);
 
-        assertEquals("imageFit cannot be null", exception.getMessage());
-        assertSame(ImageFit.CONTAIN, view.getImageFit());
+        assertNull(view.getImageFit());
+
+        layout(view, 100.0, 100.0);
+
+        ImageView imageView = childImageView(view);
+        Rectangle2D viewport = imageView.getViewport();
+        assertClose(100.0, imageView.getFitWidth(), "fit width");
+        assertClose(100.0, imageView.getFitHeight(), "fit height");
+        assertClose(50.0, viewport.getMinX(), "viewport x");
+        assertClose(100.0, viewport.getWidth(), "viewport width");
+        assertClose(100.0, viewport.getHeight(), "viewport height");
     }
 
     /**
-     * Verifies imageInsets accepts finite negative values and rejects invalid values.
+     * Verifies imageInsets accepts finite negative values, rejects invalid values,
+     * and coerces to the default on an unbound invalid set.
      */
     @Test
-    public void imageInsetsRejectsNullAndNonFiniteValues() {
+    public void imageInsetsRejectsNullAndNonFiniteValuesAndCoercesToDefault() {
         RXImageView view = new RXImageView();
-        Insets lastValid = new Insets(-1.0, 2.0, -3.0, 4.0);
-        view.setImageInsets(lastValid);
+        view.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
 
         NullPointerException nullException = assertThrows(NullPointerException.class,
                 () -> view.setImageInsets(null));
@@ -81,28 +89,31 @@ public class RXImageViewTest {
         assertEquals("imageInsets cannot be null", nullException.getMessage());
         assertEquals("imageInsets must be finite", nanException.getMessage());
         assertEquals("imageInsets must be finite", infiniteException.getMessage());
-        assertEquals(lastValid, view.getImageInsets());
+        assertSame(Insets.EMPTY, view.getImageInsets());
     }
 
     /**
-     * Verifies imageRadius rejects negative and non-finite values.
+     * Verifies imageRadius accepts negative and non-finite values and clamps them at
+     * the use site so no rounded clip is produced.
      */
     @Test
-    public void imageRadiusRejectsInvalidValues() {
-        RXImageView view = new RXImageView();
-        view.setImageRadius(12.0);
+    public void imageRadiusClampsInvalidValues() {
+        RXImageView view = new RXImageView(new WritableImage(100, 100));
 
-        IllegalArgumentException negativeException = assertThrows(IllegalArgumentException.class,
-                () -> view.setImageRadius(-1.0));
-        IllegalArgumentException nanException = assertThrows(IllegalArgumentException.class,
-                () -> view.setImageRadius(Double.NaN));
-        IllegalArgumentException infiniteException = assertThrows(IllegalArgumentException.class,
-                () -> view.setImageRadius(Double.POSITIVE_INFINITY));
+        view.setImageRadius(-1.0);
+        assertClose(-1.0, view.getImageRadius(), "image radius");
+        layout(view, 100.0, 100.0);
+        assertNull(childImageView(view).getClip());
 
-        assertEquals("imageRadius must be finite and non-negative", negativeException.getMessage());
-        assertEquals("imageRadius must be finite and non-negative", nanException.getMessage());
-        assertEquals("imageRadius must be finite and non-negative", infiniteException.getMessage());
-        assertClose(12.0, view.getImageRadius(), "image radius");
+        view.setImageRadius(Double.NaN);
+        assertTrue(Double.isNaN(view.getImageRadius()));
+        layout(view, 100.0, 100.0);
+        assertNull(childImageView(view).getClip());
+
+        view.setImageRadius(Double.POSITIVE_INFINITY);
+        assertClose(Double.POSITIVE_INFINITY, view.getImageRadius(), "image radius");
+        layout(view, 100.0, 100.0);
+        assertNull(childImageView(view).getClip());
     }
 
     /**

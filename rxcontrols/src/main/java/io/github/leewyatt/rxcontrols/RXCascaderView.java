@@ -155,23 +155,8 @@ public class RXCascaderView<T> extends Control {
 
     private final ObjectProperty<SelectionMode> selectionMode =
             new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
-                private SelectionMode lastValid = SelectionMode.SINGLE;
-
                 @Override
                 protected void invalidated() {
-                    SelectionMode value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("selectionMode cannot be null");
-                    }
-                    if (value == lastValid) {
-                        // A no-op change — notably the rollback after a rejected
-                        // null — must not wipe the current selection.
-                        return;
-                    }
-                    lastValid = value;
                     clearSelection();
                     requestLayout();
                 }
@@ -183,6 +168,8 @@ public class RXCascaderView<T> extends Control {
      * MULTIPLE} checks multiple paths with cascading tri-state check boxes (observe
      * {@link #getCheckedPaths()}). This is the cascader's own meaning of the shared
      * JavaFX {@link SelectionMode} enum, not the row multi-select of a list view.
+     * A {@code null} value is not rejected; it resolves to single-selection
+     * behavior at the use site.
      *
      * @return selection-mode property
      */

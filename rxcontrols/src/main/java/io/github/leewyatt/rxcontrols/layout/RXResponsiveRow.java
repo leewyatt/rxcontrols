@@ -133,18 +133,15 @@ public class RXResponsiveRow extends Pane {
     // ==================== Columns ====================
 
     private final IntegerProperty columns = new StyleableIntegerProperty(DEFAULT_COLUMNS) {
-        private int lastValid = DEFAULT_COLUMNS;
-
         @Override
         protected void invalidated() {
             int value = get();
             if (value <= 0) {
                 if (!isBound()) {
-                    set(lastValid);
+                    set(DEFAULT_COLUMNS);
                 }
                 throw new IllegalArgumentException("columns must be greater than zero");
             }
-            lastValid = value;
             if (!updatingColumnsFromProfile) {
                 columnsExplicitlySet = true;
             }
@@ -200,18 +197,8 @@ public class RXResponsiveRow extends Pane {
     // ==================== Gutter ====================
 
     private final DoubleProperty gutter = new StyleableDoubleProperty(DEFAULT_GUTTER) {
-        private double lastValid = DEFAULT_GUTTER;
-
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value < 0.0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("gutter must be finite and non-negative");
-            }
-            lastValid = value;
             requestLayout();
             requestColumnLayouts();
         }
@@ -255,8 +242,6 @@ public class RXResponsiveRow extends Pane {
      * Sets the horizontal gutter.
      *
      * @param value the gutter
-     * @throws IllegalArgumentException if the value is not finite and
-     *                                  non-negative
      */
     public final void setGutter(double value) {
         gutter.set(value);
@@ -265,18 +250,8 @@ public class RXResponsiveRow extends Pane {
     // ==================== Row Gap ====================
 
     private final DoubleProperty rowGap = new StyleableDoubleProperty(DEFAULT_ROW_GAP) {
-        private double lastValid = DEFAULT_ROW_GAP;
-
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value < 0.0) {
-                if (!isBound()) {
-                    set(lastValid);
-                }
-                throw new IllegalArgumentException("rowGap must be finite and non-negative");
-            }
-            lastValid = value;
             requestLayout();
         }
 
@@ -318,8 +293,6 @@ public class RXResponsiveRow extends Pane {
      * Sets the row gap.
      *
      * @param value the row gap
-     * @throws IllegalArgumentException if the value is not finite and
-     *                                  non-negative
      */
     public final void setRowGap(double value) {
         rowGap.set(value);
@@ -329,18 +302,8 @@ public class RXResponsiveRow extends Pane {
 
     private final ObjectProperty<RXRowJustify> justify =
             new StyleableObjectProperty<>(RXRowJustify.START) {
-                private RXRowJustify lastValid = RXRowJustify.START;
-
                 @Override
                 protected void invalidated() {
-                    RXRowJustify value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("justify cannot be null");
-                    }
-                    lastValid = value;
                     requestLayout();
                 }
 
@@ -361,10 +324,10 @@ public class RXResponsiveRow extends Pane {
             };
 
     /**
-     * Horizontal distribution of remaining space for each line. Cannot be set
-     * to {@code null}. Column offsets participate in the occupied line width,
-     * matching flexbox margin semantics; justify does not cancel or redistribute
-     * an explicit offset.
+     * Horizontal distribution of remaining space for each line. Column offsets
+     * participate in the occupied line width, matching flexbox margin semantics;
+     * justify does not cancel or redistribute an explicit offset. A {@code null}
+     * value is not rejected; it resolves to the default at the use site.
      *
      * @return the justify property
      */
@@ -385,7 +348,6 @@ public class RXResponsiveRow extends Pane {
      * Sets the row justification.
      *
      * @param value the justification
-     * @throws NullPointerException if {@code value} is {@code null}
      */
     public final void setJustify(RXRowJustify value) {
         justify.set(value);
@@ -395,18 +357,8 @@ public class RXResponsiveRow extends Pane {
 
     private final ObjectProperty<RXRowAlign> align =
             new StyleableObjectProperty<>(RXRowAlign.TOP) {
-                private RXRowAlign lastValid = RXRowAlign.TOP;
-
                 @Override
                 protected void invalidated() {
-                    RXRowAlign value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("align cannot be null");
-                    }
-                    lastValid = value;
                     requestLayout();
                 }
 
@@ -427,8 +379,8 @@ public class RXResponsiveRow extends Pane {
             };
 
     /**
-     * Vertical alignment of columns inside each wrapped line. Cannot be set to
-     * {@code null}.
+     * Vertical alignment of columns inside each wrapped line. A {@code null}
+     * value is not rejected; it resolves to the default at the use site.
      *
      * @return the align property
      */
@@ -449,7 +401,6 @@ public class RXResponsiveRow extends Pane {
      * Sets the row alignment.
      *
      * @param value the alignment
-     * @throws NullPointerException if {@code value} is {@code null}
      */
     public final void setAlign(RXRowAlign value) {
         align.set(value);
@@ -459,19 +410,9 @@ public class RXResponsiveRow extends Pane {
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
             new SimpleObjectProperty<>(this, "breakpointProfile", RXBreakpointProfile.ELEMENT) {
-                private RXBreakpointProfile lastValid = RXBreakpointProfile.ELEMENT;
-
                 @Override
                 protected void invalidated() {
-                    RXBreakpointProfile value = get();
-                    if (value == null) {
-                        if (!isBound()) {
-                            set(lastValid);
-                        }
-                        throw new NullPointerException("breakpointProfile cannot be null");
-                    }
-                    lastValid = value;
-                    syncColumnsWithProfile(value);
+                    syncColumnsWithProfile(breakpointProfileOrDefault());
                     updateActiveBreakpoint(getWidth());
                     requestLayout();
                 }
@@ -479,9 +420,9 @@ public class RXResponsiveRow extends Pane {
 
     /**
      * Breakpoint profile used to resolve active breakpoint and mobile-first
-     * column specs. Cannot be set to {@code null}. Changing the profile also
-     * updates {@link #columnsProperty()} while columns is still using the
-     * profile default.
+     * column specs. Changing the profile also updates {@link #columnsProperty()}
+     * while columns is still using the profile default. A {@code null} value is
+     * not rejected; it resolves to the default at the use site.
      *
      * @return the breakpoint profile property
      */
@@ -502,7 +443,6 @@ public class RXResponsiveRow extends Pane {
      * Sets the breakpoint profile.
      *
      * @param value the breakpoint profile
-     * @throws NullPointerException if {@code value} is {@code null}
      */
     public final void setBreakpointProfile(RXBreakpointProfile value) {
         breakpointProfile.set(value);

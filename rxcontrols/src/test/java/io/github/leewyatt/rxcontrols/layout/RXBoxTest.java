@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -49,51 +48,75 @@ public class RXBoxTest {
     }
 
     /**
-     * Verifies orientation rejects null and keeps the last valid value.
+     * Verifies a null orientation is accepted and degrades to the default at layout time.
      */
     @Test
-    public void orientationRejectsNullAndKeepsLastValidValue() {
-        RXBox box = new RXBox();
-        box.setOrientation(Orientation.VERTICAL);
+    public void orientationNullDegradesToDefault() {
+        FixedRegion first = fixedRegion(30.0, 10.0);
+        FixedRegion second = fixedRegion(40.0, 20.0);
+        RXBox box = new RXBox(Orientation.VERTICAL, first, second);
 
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> box.setOrientation(null));
+        box.setOrientation(null);
 
-        assertEquals("orientation cannot be null", exception.getMessage());
-        assertSame(Orientation.VERTICAL, box.getOrientation());
+        layout(box, 100.0, 100.0);
     }
 
     /**
-     * Verifies spacing accepts finite negative values and rejects non-finite values.
+     * Verifies non-finite spacing is accepted and clamped to the default at layout time.
      */
     @Test
-    public void spacingRejectsNonFiniteAndKeepsLastValidValue() {
+    public void spacingNonFiniteClampsToDefault() {
+        FixedRegion nanFirst = fixedRegion(30.0, 10.0);
+        FixedRegion nanSecond = fixedRegion(40.0, 20.0);
+        RXBox nanBox = new RXBox(Orientation.HORIZONTAL, nanFirst, nanSecond);
+        nanBox.setSpacing(Double.NaN);
+
+        FixedRegion zeroFirst = fixedRegion(30.0, 10.0);
+        FixedRegion zeroSecond = fixedRegion(40.0, 20.0);
+        RXBox zeroBox = new RXBox(Orientation.HORIZONTAL, 0.0, zeroFirst, zeroSecond);
+
+        assertClose(zeroBox.prefWidth(-1), nanBox.prefWidth(-1), "nan pref width");
+        layout(nanBox, 200.0, 40.0);
+        layout(zeroBox, 200.0, 40.0);
+        assertNodeMatches(zeroSecond, nanSecond, "nan second");
+
+        nanBox.setSpacing(Double.POSITIVE_INFINITY);
+        layout(nanBox, 200.0, 40.0);
+        assertNodeMatches(zeroSecond, nanSecond, "infinite second");
+    }
+
+    /**
+     * Verifies negative finite spacing is preserved and not clamped.
+     */
+    @Test
+    public void spacingNegativeFiniteIsPreserved() {
         RXBox box = new RXBox();
         box.setSpacing(-4.0);
 
-        IllegalArgumentException nanException = assertThrows(IllegalArgumentException.class,
-                () -> box.setSpacing(Double.NaN));
-        IllegalArgumentException infiniteException = assertThrows(IllegalArgumentException.class,
-                () -> box.setSpacing(Double.POSITIVE_INFINITY));
-
-        assertEquals("spacing must be finite", nanException.getMessage());
-        assertEquals("spacing must be finite", infiniteException.getMessage());
         assertClose(-4.0, box.getSpacing(), "spacing");
     }
 
     /**
-     * Verifies alignment rejects null and keeps the last valid value.
+     * Verifies a null alignment is accepted and degrades to the default at layout time.
      */
     @Test
-    public void alignmentRejectsNullAndKeepsLastValidValue() {
-        RXBox box = new RXBox();
-        box.setAlignment(Pos.BOTTOM_RIGHT);
+    public void alignmentNullDegradesToDefault() {
+        FixedRegion nullFirst = fixedRegion(30.0, 10.0);
+        FixedRegion nullSecond = fixedRegion(40.0, 20.0);
+        RXBox nullBox = new RXBox(Orientation.HORIZONTAL, nullFirst, nullSecond);
+        nullBox.setAlignment(Pos.BOTTOM_RIGHT);
+        nullBox.setAlignment(null);
 
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> box.setAlignment(null));
+        FixedRegion defaultFirst = fixedRegion(30.0, 10.0);
+        FixedRegion defaultSecond = fixedRegion(40.0, 20.0);
+        RXBox defaultBox = new RXBox(Orientation.HORIZONTAL, defaultFirst, defaultSecond);
+        defaultBox.setAlignment(RXBox.DEFAULT_ALIGNMENT);
 
-        assertEquals("alignment cannot be null", exception.getMessage());
-        assertSame(Pos.BOTTOM_RIGHT, box.getAlignment());
+        layout(nullBox, 200.0, 80.0);
+        layout(defaultBox, 200.0, 80.0);
+
+        assertNodeMatches(defaultFirst, nullFirst, "first");
+        assertNodeMatches(defaultSecond, nullSecond, "second");
     }
 
     /**

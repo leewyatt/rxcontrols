@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.enums.ImageFit;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -101,61 +103,77 @@ public class RXImagePaneTest {
     }
 
     /**
-     * Verifies imageFit rejects null and keeps the last valid value.
+     * Verifies a null imageFit is accepted and resolves to the default when rendered.
      */
     @Test
-    public void imageFitRejectsNullAndKeepsLastValidValue() {
+    public void imageFitNullDegradesToDefault() {
+        WritableImage image = new WritableImage(200, 100);
         RXImagePane pane = new RXImagePane();
+        pane.setImage(image);
         pane.setImageFit(ImageFit.STRETCH);
 
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> pane.setImageFit(null));
+        pane.setImageFit(null);
 
-        assertEquals("imageFit cannot be null", exception.getMessage());
-        assertSame(ImageFit.STRETCH, pane.getImageFit());
+        assertNull(pane.getImageFit());
+
+        layout(pane, 100.0, 100.0);
+
+        ImageView imageLayer = imageLayer(pane);
+        Rectangle2D viewport = imageLayer.getViewport();
+        assertNotNull(viewport);
+        assertClose(50.0, viewport.getMinX(), "viewport x");
+        assertClose(0.0, viewport.getMinY(), "viewport y");
+        assertClose(100.0, viewport.getWidth(), "viewport width");
+        assertClose(100.0, viewport.getHeight(), "viewport height");
+        assertClose(100.0, imageLayer.getFitWidth(), "image layer width");
+        assertClose(100.0, imageLayer.getFitHeight(), "image layer height");
     }
 
     /**
-     * Verifies imageInsets accepts finite negative values and rejects invalid values.
+     * Verifies imageInsets rejects null and non-finite values and coerces to the default.
      */
     @Test
-    public void imageInsetsRejectsNullAndNonFiniteValues() {
+    public void imageInsetsNullAndNonFiniteCoerceToDefault() {
         RXImagePane pane = new RXImagePane();
-        Insets lastValid = new Insets(-1.0, 2.0, -3.0, 4.0);
-        pane.setImageInsets(lastValid);
+        pane.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
 
         NullPointerException nullException = assertThrows(NullPointerException.class,
                 () -> pane.setImageInsets(null));
+
+        assertEquals("imageInsets cannot be null", nullException.getMessage());
+        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
+
+        pane.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
         IllegalArgumentException nanException = assertThrows(IllegalArgumentException.class,
                 () -> pane.setImageInsets(new Insets(Double.NaN, 0.0, 0.0, 0.0)));
+
+        assertEquals("imageInsets must be finite", nanException.getMessage());
+        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
+
+        pane.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
         IllegalArgumentException infiniteException = assertThrows(IllegalArgumentException.class,
                 () -> pane.setImageInsets(new Insets(0.0, Double.POSITIVE_INFINITY, 0.0, 0.0)));
 
-        assertEquals("imageInsets cannot be null", nullException.getMessage());
-        assertEquals("imageInsets must be finite", nanException.getMessage());
         assertEquals("imageInsets must be finite", infiniteException.getMessage());
-        assertEquals(lastValid, pane.getImageInsets());
+        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
     }
 
     /**
-     * Verifies imageRadius rejects negative and non-finite values.
+     * Verifies invalid imageRadius values are accepted and clamp to the default when rendered.
      */
     @Test
-    public void imageRadiusRejectsInvalidValues() {
+    public void imageRadiusInvalidValuesClampToDefault() {
+        WritableImage image = new WritableImage(200, 100);
         RXImagePane pane = new RXImagePane();
-        pane.setImageRadius(12.0);
+        pane.setImage(image);
 
-        IllegalArgumentException negativeException = assertThrows(IllegalArgumentException.class,
-                () -> pane.setImageRadius(-1.0));
-        IllegalArgumentException nanException = assertThrows(IllegalArgumentException.class,
-                () -> pane.setImageRadius(Double.NaN));
-        IllegalArgumentException infiniteException = assertThrows(IllegalArgumentException.class,
-                () -> pane.setImageRadius(Double.POSITIVE_INFINITY));
+        for (double invalid : new double[] {-1.0, Double.NaN, Double.POSITIVE_INFINITY}) {
+            pane.setImageRadius(invalid);
+            layout(pane, 100.0, 100.0);
 
-        assertEquals("imageRadius must be finite and non-negative", negativeException.getMessage());
-        assertEquals("imageRadius must be finite and non-negative", nanException.getMessage());
-        assertEquals("imageRadius must be finite and non-negative", infiniteException.getMessage());
-        assertClose(12.0, pane.getImageRadius(), "image radius");
+            ImageView imageLayer = imageLayer(pane);
+            assertNull(imageLayer.getClip());
+        }
     }
 
     /**
