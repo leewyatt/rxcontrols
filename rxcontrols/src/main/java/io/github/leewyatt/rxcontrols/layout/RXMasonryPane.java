@@ -958,12 +958,12 @@ public class RXMasonryPane extends Pane {
 
     private double sanitizedHgap() {
         double g = getHgap();
-        return Double.isFinite(g) && g >= 0.0 ? g : 0.0;
+        return Double.isFinite(g) ? g : DEFAULT_HGAP;
     }
 
     private double sanitizedVgap() {
         double g = getVgap();
-        return Double.isFinite(g) && g >= 0.0 ? g : 0.0;
+        return Double.isFinite(g) ? g : DEFAULT_VGAP;
     }
 
     private double enterTranslateY() {

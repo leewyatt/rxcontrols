@@ -151,10 +151,19 @@ public class MasonryLayoutEngineTest {
         assertThrows(IllegalArgumentException.class,
                 () -> MasonryLayoutEngine.place(3, Double.NaN, new int[]{1}, new double[]{1.0}));
         assertThrows(IllegalArgumentException.class,
-                () -> MasonryLayoutEngine.place(3, -1.0, new int[]{1}, new double[]{1.0}));
-        assertThrows(IllegalArgumentException.class,
                 () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1}, new double[]{Double.NaN}));
         assertThrows(IllegalArgumentException.class,
                 () -> MasonryLayoutEngine.place(3, 0.0, new int[]{1}, new double[]{-5.0}));
+    }
+
+    @Test
+    public void placeAcceptsNegativeVgapForOverlap() {
+        // A finite negative vgap overlaps items vertically (like HBox/VBox negative
+        // spacing): item B sits at 100 + (-20) = 80, content height = 80 + 50 = 130.
+        Result result = MasonryLayoutEngine.place(1, -20.0,
+                new int[]{1, 1}, new double[]{100.0, 50.0});
+
+        assertArrayEquals(new double[]{0.0, 80.0}, result.tops(), DELTA);
+        assertEquals(130.0, result.contentHeight(), DELTA);
     }
 }

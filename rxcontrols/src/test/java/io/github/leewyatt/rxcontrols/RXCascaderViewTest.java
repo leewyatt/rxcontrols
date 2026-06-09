@@ -579,6 +579,23 @@ public class RXCascaderViewTest {
         assertNotNull(panel.getSelectedPath(), "null mode select(leaf) selects the path");
     }
 
+    @Test
+    public void singleSelectionPreservedWhenSetToNull() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> child = item("child");
+        root.getChildren().add(child);
+        panel.getRootItems().add(root);
+
+        panel.select(child);
+        assertNotNull(panel.getSelectedPath(), "precondition: a single selection exists");
+
+        // SINGLE -> null is an effective no-op (null resolves to SINGLE), so the
+        // existing selection must be preserved, not cleared.
+        panel.setSelectionMode(null);
+        assertNotNull(panel.getSelectedPath(), "SINGLE -> null keeps the single selection");
+    }
+
     /**
      * Verifies a lazy load that completes after its branch was detached from the
      * tree is dropped: the detached branch is neither populated nor marked loaded,

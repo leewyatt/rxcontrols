@@ -889,7 +889,7 @@ public class RXResponsiveRow extends Pane {
 
     private double gutterOrDefault() {
         double value = getGutter();
-        return Double.isFinite(value) && value >= 0.0 ? value : DEFAULT_GUTTER;
+        return Double.isFinite(value) ? value : DEFAULT_GUTTER;
     }
 
     private void requestColumnLayouts() {
@@ -902,7 +902,7 @@ public class RXResponsiveRow extends Pane {
 
     private double rowGapOrDefault() {
         double value = getRowGap();
-        return Double.isFinite(value) && value >= 0.0 ? value : DEFAULT_ROW_GAP;
+        return Double.isFinite(value) ? value : DEFAULT_ROW_GAP;
     }
 
     private RXRowJustify justifyOrDefault() {

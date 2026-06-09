@@ -153,14 +153,27 @@ public class RXCascaderView<T> extends Control {
 
     // ==================== Selection Mode ====================
 
+    private SelectionMode effectiveSelectionMode = SelectionMode.SINGLE;
+
     private final ObjectProperty<SelectionMode> selectionMode =
             new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
                 @Override
                 protected void invalidated() {
-                    clearSelection();
+                    // Clear only when the effective mode actually changes; null resolves
+                    // to SINGLE, so SINGLE <-> null keeps the current selection.
+                    SelectionMode mode = selectionModeOrDefault();
+                    if (mode != effectiveSelectionMode) {
+                        effectiveSelectionMode = mode;
+                        clearSelection();
+                    }
                     requestLayout();
                 }
             };
+
+    private SelectionMode selectionModeOrDefault() {
+        SelectionMode mode = getSelectionMode();
+        return mode == null ? SelectionMode.SINGLE : mode;
+    }
 
     /**
      * Selection mode. {@link SelectionMode#SINGLE SINGLE} selects a single leaf

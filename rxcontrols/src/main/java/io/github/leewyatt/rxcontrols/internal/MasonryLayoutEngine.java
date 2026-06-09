@@ -36,14 +36,14 @@ public final class MasonryLayoutEngine {
      * Places items into columns using the stable shortest-column strategy.
      *
      * @param columns      the number of columns; values below one are treated as one
-     * @param vgap         the vertical gap inserted below each placed item
+     * @param vgap         the vertical gap inserted below each placed item; may be negative to overlap
      * @param spans        the column span per item, each clamped to {@code [1, columns]}
      * @param blockHeights the vertical extent per item, including its margins
      * @return the placement result
      * @throws NullPointerException     if {@code spans} or {@code blockHeights} is {@code null}
      * @throws IllegalArgumentException if the arrays differ in length, {@code vgap} is not
-     *                                  finite and non-negative, or any block height is not
-     *                                  finite and non-negative
+     *                                  finite, or any block height is not finite and
+     *                                  non-negative
      */
     public static Result place(int columns, double vgap, int[] spans, double[] blockHeights) {
         Objects.requireNonNull(spans, "spans cannot be null");
@@ -51,8 +51,8 @@ public final class MasonryLayoutEngine {
         if (spans.length != blockHeights.length) {
             throw new IllegalArgumentException("spans and blockHeights must have the same length");
         }
-        if (!Double.isFinite(vgap) || vgap < 0.0) {
-            throw new IllegalArgumentException("vgap must be finite and non-negative");
+        if (!Double.isFinite(vgap)) {
+            throw new IllegalArgumentException("vgap must be finite");
         }
         for (double blockHeight : blockHeights) {
             if (!Double.isFinite(blockHeight) || blockHeight < 0.0) {

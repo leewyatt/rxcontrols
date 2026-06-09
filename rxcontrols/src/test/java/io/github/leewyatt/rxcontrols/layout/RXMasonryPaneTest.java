@@ -439,6 +439,16 @@ public class RXMasonryPaneTest {
         assertTrue(Double.isFinite(pw) && pw >= 0.0, "finite non-negative pref width for prefColumns <= 0");
     }
 
+    @Test
+    public void negativeVgapOverlapsItems() {
+        RXMasonryPane pane = pane(100.0, 0.0, -20.0, card(80.0, 100.0), card(80.0, 50.0));
+        pane.setColumnCount(1);
+
+        // A finite negative vgap overlaps items (like HBox/VBox negative spacing),
+        // it is not clamped to 0: 100 + (-20) + 50 = 130 (vs 150 at a 0 gap).
+        assertClose(130.0, pane.prefHeight(300.0), "negative vgap overlaps, not clamped");
+    }
+
     /**
      * Verifies tolerant object and animation properties accept null and otherwise
      * invalid durations, while the per-child span and breakpoint counts still reject
