@@ -440,6 +440,20 @@ public class RXMasonryPaneTest {
     }
 
     @Test
+    public void nullObjectPropertiesSurviveLayout() {
+        RXMasonryPane pane = pane(100.0, 0.0, 10.0, card(80.0, 100.0), card(80.0, 50.0));
+        pane.setAlignment(null);
+        pane.setBreakpointProfile(null);
+        pane.setAnimationInterpolator(null);
+        pane.setAnimationDuration(null);
+
+        // Each null resolves to its default at the use site, so layout and measurement
+        // must not throw (guards against a raw-deref regression like the RXSkeleton one).
+        layout(pane, 300.0, 200.0);
+        assertTrue(Double.isFinite(pane.prefHeight(300.0)), "null object properties lay out without throwing");
+    }
+
+    @Test
     public void negativeVgapOverlapsItems() {
         RXMasonryPane pane = pane(100.0, 0.0, -20.0, card(80.0, 100.0), card(80.0, 50.0));
         pane.setColumnCount(1);

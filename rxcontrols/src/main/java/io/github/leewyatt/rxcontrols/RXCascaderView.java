@@ -159,8 +159,6 @@ public class RXCascaderView<T> extends Control {
             new SimpleObjectProperty<>(this, "selectionMode", SelectionMode.SINGLE) {
                 @Override
                 protected void invalidated() {
-                    // Clear only when the effective mode actually changes; null resolves
-                    // to SINGLE, so SINGLE <-> null keeps the current selection.
                     SelectionMode mode = selectionModeOrDefault();
                     if (mode != effectiveSelectionMode) {
                         effectiveSelectionMode = mode;

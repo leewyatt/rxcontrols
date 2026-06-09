@@ -952,8 +952,6 @@ public class RXDrawerPane extends Control {
     // ==================== PseudoClass ====================
 
     private void updateDirectionPseudoClass() {
-        // Mirror the skin's sideOrDefault: a null (bound) side resolves to the
-        // default so the pseudo-class never disagrees with the rendered geometry.
         Side current = getSide();
         if (current == null) {
             current = DEFAULT_SIDE;
