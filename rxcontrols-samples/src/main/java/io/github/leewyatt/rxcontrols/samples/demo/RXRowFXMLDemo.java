@@ -22,7 +22,7 @@ public class RXRowFXMLDemo extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws IOException {
-        URL fxml = getClass().getResource("rx-responsive-row-fxml-demo.fxml");
+        URL fxml = getClass().getResource("rx-row-fxml-demo.fxml");
         Parent root = FXMLLoader.load(fxml);
         Scene scene = new Scene(root, 920.0, 640.0);
 

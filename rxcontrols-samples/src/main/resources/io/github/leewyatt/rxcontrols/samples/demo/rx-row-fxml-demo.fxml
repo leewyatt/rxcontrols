@@ -12,7 +12,7 @@
 
 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" pannable="true"
             styleClass="responsive-fxml-scroll"
-            stylesheets="@rx-responsive-row-fxml-demo.css"
+            stylesheets="@rx-row-fxml-demo.css"
             xmlns="http://javafx.com/javafx/17">
     <content>
         <!--
