@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.support.controller;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
-import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
+import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.StyleUtil;
 import javafx.beans.binding.Bindings;
@@ -69,7 +69,7 @@ public class PaneMediaController {
 
             if(player!=null){
                 player.dispose();
-                lrcPane.setLrcDoc(null);
+                lrcPane.setDocument(null);
                 lrcPane.currentTimeProperty().unbind();
             }
 
@@ -158,8 +158,10 @@ public class PaneMediaController {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            lrcPane.setLrcDoc(LrcDoc.parseLrcDoc(lrc));
+            lrcPane.setDocument(RXLrcParser.parse(lrc).document());
             lrcPane.currentTimeProperty().bind(player.currentTimeProperty());
+        } else {
+            lrcPane.setDocument(null);
         }
     }
 
@@ -173,6 +175,11 @@ public class PaneMediaController {
         progressBar.seekingProperty().addListener((ob, wasSeeking, seeking) -> {
             if (wasSeeking && !seeking) {
                 commitSeek();
+            }
+        });
+        lrcPane.setOnLineClicked(event -> {
+            if (player != null) {
+                player.seek(event.getTime());
             }
         });
 

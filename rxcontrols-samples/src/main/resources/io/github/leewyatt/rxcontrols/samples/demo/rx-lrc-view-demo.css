@@ -1,0 +1,68 @@
+.lrc-demo {
+    -fx-background-color: linear-gradient(to bottom, #f7f8fa, #e8edf2);
+}
+
+.lrc-demo .player {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d5dce5;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.14), 18, 0, 0, 6);
+}
+
+.lrc-demo .track-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+
+.lrc-demo .rx-lrc-view {
+    -rx-animation-duration: 260ms;
+    -rx-current-line-position: 0.44;
+    -rx-line-spacing: 9px;
+    -rx-current-line-scale: 1.08;
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d9e0e8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 12px;
+}
+
+.lrc-demo .rx-lrc-view > .viewport > .content > .line > .text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #59636f;
+}
+
+.lrc-demo .rx-lrc-view > .viewport > .content > .line:current > .text {
+    -fx-text-fill: #087f5b;
+}
+
+.lrc-demo .rx-seek-bar {
+    -rx-track-fill: #dfe5ec;
+    -rx-secondary-fill: #cbd5df;
+    -rx-bar-fill: #0f766e;
+    -rx-thumb-fill: #14b8a6;
+}
+
+.lrc-demo .transport-row {
+    -fx-padding: 2px 0 0 0;
+}
+
+.lrc-demo .button {
+    -fx-background-color: #f2f4f7;
+    -fx-border-color: #cfd5df;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 6px 14px;
+    -fx-text-fill: #344054;
+}
+
+.lrc-demo .button:hover {
+    -fx-background-color: #e9edf3;
+}
+
+.lrc-demo .time-label {
+    -fx-text-fill: #667085;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+}

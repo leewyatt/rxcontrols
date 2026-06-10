@@ -4,10 +4,6 @@
 .rx-seek-bar {
     -rx-thumb-fill: #ffffff;
 }
-.lrcPane {
-    -fx-border-width: 0px;
-}
-
 .spectrum {
     -fx-border-width: 0px;
 }

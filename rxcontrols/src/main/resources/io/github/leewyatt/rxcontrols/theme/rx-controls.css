@@ -99,18 +99,39 @@
     -rx-image-radius: 0;
 }
 
-/* LrcView 歌词显示组件*/
+/*******************************************************************************
+ *                                                                             *
+ * RXLrcView                                                                   *
+ *                                                                             *
+ ******************************************************************************/
 .rx-lrc-view {
-    -fx-border-color: #BFBFBF;
-    -fx-border-width: 1.0;
+    -rx-animation-duration: 300ms;
+    -rx-current-line-position: 0.45;
+    -rx-line-spacing: 8;
+    -rx-current-line-scale: 1.1;
+    -fx-background-color: transparent;
 }
 
-.rx-lrc-view .lrc-line {
+.rx-lrc-view > .viewport > .content > .line > .text {
     -fx-alignment: center;
+    -fx-opacity: 0.58;
+    -fx-padding: 2px 8px;
+    -fx-text-fill: -fx-text-base-color;
 }
 
-.rx-lrc-view .lrc-line:playing {
-    -fx-text-fill: red;
+.rx-lrc-view > .viewport > .content > .line {
+    -fx-cursor: hand;
+}
+
+.rx-lrc-view > .viewport > .content > .line:current > .text {
+    -fx-font-weight: bold;
+    -fx-opacity: 1;
+    -fx-text-fill: -fx-accent;
+}
+
+.rx-lrc-view > .viewport > .placeholder {
+    -fx-opacity: 0.62;
+    -fx-text-fill: -fx-mid-text-color;
 }
 
 /*******************************************************************************

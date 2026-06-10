@@ -1,604 +1,819 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXLrcView;
-import io.github.leewyatt.rxcontrols.pojo.LrcDoc;
-import io.github.leewyatt.rxcontrols.pojo.LrcLine;
-import javafx.animation.*;
-import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
+import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
-import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
-import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.control.Control;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 /**
- * <p>
- * 歌词组件的皮肤
+ * Skin for {@link RXLrcView}.
  */
-public class RXLrcViewSkin extends SkinBase<RXLrcView> {
+public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
-    private RXLrcView control;
-    private Pane lrcPane;
-    private final Pane root;
-    private final Label tipLabel;
-    private int currentIndex;
-    private Timeline lrcPaneMoveAnim;
-    private ParallelTransition moveAndScaleAnim;
-    private Timeline reboundUp;
-    private Timeline reboundDown;
+    // ==================== Constants ====================
 
-    /**
-     * 回弹用时
-     */
-    private final static Duration REBOUND_DURATION = Duration.millis(150);
-    /**
-     * 开始拖动的Y坐标
-     */
-    private double startDragY;
-    /**
-     * 上一次移动距离
-     */
-    private double lastMoveDis;
-    /**
-     * 歌词行移动 (尝试过整体移动,性能上并没有比单行移动的效果强...)
-     */
-    private TranslateTransition[] lineMove;
-    /**
-     * 变小动画
-     */
-    private ScaleTransition smallST;
-    /**
-     * 变大动画
-     */
-    private ScaleTransition bigST;
+    private static final int NO_LINE_INDEX = -1;
+    private static final int SEEK_JUMP_THRESHOLD = 1;
+    private static final double DEFAULT_PREF_WIDTH = 280.0;
+    private static final double DEFAULT_PREF_HEIGHT = 360.0;
+    private static final double BOUNDARY_RESISTANCE = 0.35;
+    private static final double CLICK_SUPPRESSION_DISTANCE = 3.0;
+    private static final Duration REBOUND_DURATION = Duration.millis(180.0);
+    private static final Interpolator INTERPOLATOR =
+            Interpolator.SPLINE(0.25, 0.1, 0.25, 1.0);
+    private static final PseudoClass CURRENT_PSEUDO_CLASS =
+            PseudoClass.getPseudoClass("current");
 
-    private final ChangeListener<LrcDoc> lrcDocChangeListener = (observable, oldValue, newValue) -> paintLrcLines();
+    // ==================== Nodes ====================
 
-    private final InvalidationListener invalidationListener = observable -> paintLrcLines();
+    private final Pane viewport = new Pane();
+    private final Pane content = new Pane();
+    private final Rectangle clip = new Rectangle();
+    private final List<LineNode> lineNodes = new ArrayList<>();
 
-    private final ChangeListener<Duration> durationChangeListener = (observable, oldValue, newValue) -> {
-        if (emptyLrcDoc()) {
-            return;
-        }
-        int lastIndex = computeLrcLinesIndex();
-        if (currentIndex == lastIndex) {
-            return;
-        }
-        moveLrcLines(lastIndex);
+    // ==================== Geometry ====================
+
+    private double[] lineTops = new double[0];
+    private double[] lineHeights = new double[0];
+    private double contentTotalHeight;
+    private double lastMeasuredWidth = -1.0;
+    private double lastMeasuredHeight = -1.0;
+    private boolean metricsDirty = true;
+    private long lastLineTimeMillis = Long.MIN_VALUE;
+
+    // ==================== Animation ====================
+
+    private final DoubleProperty autoTranslateY = new SimpleDoubleProperty();
+    private final DoubleProperty manualOffsetY = new SimpleDoubleProperty();
+    private final Timeline scrollAnim = new Timeline();
+    private final Timeline reboundAnim = new Timeline();
+    private final Timeline recoverAnim = new Timeline();
+    private final PauseTransition recoverPause = new PauseTransition();
+
+    // ==================== Manual Browse ====================
+
+    private double dragStartY;
+    private double dragStartManualOffsetY;
+    private boolean dragging;
+    private boolean manualBrowsing;
+    private boolean suppressNextClick;
+
+    // ==================== Listeners ====================
+
+    private final ChangeListener<Number> currentLineIndexListener =
+            (observable, oldValue, newValue) -> onCurrentLineIndexChanged(
+                    oldValue.intValue(), newValue.intValue());
+    private final ChangeListener<RXLrcDocument> documentListener =
+            (observable, oldValue, newValue) -> onDocumentChanged();
+    private final ChangeListener<Node> placeholderListener =
+            (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
+    private final Runnable metricsInvalidationAction = () -> {
+        metricsDirty = true;
+        getSkinnable().requestLayout();
     };
+    private final Runnable scaleInvalidationAction =
+            () -> applyCurrentLineScale(getSkinnable().getCurrentLineIndex());
+    private final Runnable manualBrowseEnabledInvalidationAction = () -> {
+        if (!getSkinnable().isManualBrowseEnabled()) {
+            stopDraggingAndRecover();
+        }
+    };
+    private final Runnable translateInvalidationAction = this::applyDisplayTranslate;
+    private final EventHandler<MouseEvent> lineClickHandler = this::onLineClicked;
+    private final EventHandler<MouseEvent> browseMousePressedHandler = this::onBrowseMousePressed;
+    private final EventHandler<MouseEvent> browseMouseDraggedHandler = this::onBrowseMouseDragged;
+    private final EventHandler<MouseEvent> browseMouseReleasedHandler = this::onBrowseMouseReleased;
+    private final EventHandler<MouseEvent> browseMouseClickedHandler = this::onBrowseMouseClicked;
+    private final EventHandler<ScrollEvent> browseScrollHandler = this::onBrowseScroll;
 
+    // ==================== Constructors ====================
+
+    /**
+     * Creates the skin for the given control.
+     *
+     * @param control the control
+     */
     public RXLrcViewSkin(RXLrcView control) {
         super(control);
-        this.control = control;
-        lrcPaneMoveAnim = new Timeline();
-        moveAndScaleAnim = new ParallelTransition();
-        reboundUp = new Timeline();
-        reboundDown = new Timeline();
-        lineMove = new TranslateTransition[0];
-        smallST = new ScaleTransition();
-        bigST = new ScaleTransition();
 
-        root = new Pane();
-        //lrc-view-root
-        root.getStyleClass().add("pane");
-        tipLabel = new Label();
-        //lrc-view-tip
-        tipLabel.getStyleClass().add("tip-label");
-        tipLabel.textProperty().bind(control.tipStringProperty());
-        lrcPane = new Pane();
-        //lrc-view-pane
-        lrcPane.getStyleClass().add("lrc-pane");
-        root.getChildren().add(lrcPane);
-        clipRoot(control, root);
-        getChildren().setAll(root);
-        paintLrcLines();
+        viewport.getStyleClass().add("viewport");
+        content.getStyleClass().add("content");
+        viewport.setClip(clip);
+        viewport.getChildren().add(content);
+        installPlaceholder(control.getPlaceholder());
+        getChildren().setAll(viewport);
 
-        // 歌词文件被替换成其他歌词文件的时候, 重绘歌词
-        control.lrcDocProperty().addListener(lrcDocChangeListener);
+        scrollAnim.setCycleCount(1);
+        reboundAnim.setCycleCount(1);
+        reboundAnim.setOnFinished(event -> onReboundFinished());
+        recoverAnim.setCycleCount(1);
+        recoverAnim.setOnFinished(event -> onRecoverFinished());
+        recoverPause.setOnFinished(event -> startRecoverAnimation());
 
-        // 当组件的宽发生改变时,重绘歌词
-        control.widthProperty().addListener(invalidationListener);
+        disposer.registerListener(control.currentLineIndexProperty(), currentLineIndexListener);
+        disposer.registerListener(control.documentProperty(), documentListener);
+        disposer.registerListener(control.placeholderProperty(), placeholderListener);
+        disposer.registerListener(control.lineSpacingProperty(), metricsInvalidationAction);
+        disposer.registerListener(control.currentLinePositionProperty(), metricsInvalidationAction);
+        disposer.registerListener(control.currentLineScaleProperty(), scaleInvalidationAction);
+        disposer.registerListener(control.manualBrowseEnabledProperty(), manualBrowseEnabledInvalidationAction);
+        disposer.registerListener(autoTranslateY, translateInvalidationAction);
+        disposer.registerListener(manualOffsetY, translateInvalidationAction);
+        disposer.registerEventHandler(content, MouseEvent.MOUSE_CLICKED, lineClickHandler);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_PRESSED, browseMousePressedHandler);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_DRAGGED, browseMouseDraggedHandler);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_RELEASED, browseMouseReleasedHandler);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_CLICKED, browseMouseClickedHandler);
+        disposer.registerEventHandler(viewport, ScrollEvent.SCROLL, browseScrollHandler);
+        disposer.registerDisposeTask(scrollAnim::stop);
+        disposer.registerDisposeTask(reboundAnim::stop);
+        disposer.registerDisposeTask(recoverAnim::stop);
+        disposer.registerDisposeTask(recoverPause::stop);
+        disposer.registerDisposeTask(() -> viewport.setClip(null));
 
-        //当组件的高发生改变时,重绘歌词
-        control.heightProperty().addListener(invalidationListener);
-
-        control.borderProperty().addListener(invalidationListener);
-
-        control.paddingProperty().addListener(invalidationListener);
-
-        //歌词文件的播放进度放生改变时,移动歌词/
-        control.currentTimeProperty().addListener(durationChangeListener);
-
-        //-------让LrcPane 可以手动移动,去查看歌词其他部分的内容---------
-        // 鼠标按下
-        control.addEventHandler(MouseEvent.MOUSE_PRESSED, mousePressedHandler);
-        //鼠标拖动
-        control.addEventHandler(MouseEvent.MOUSE_DRAGGED, mouseDraggedHandler);
-        //鼠标释放
-        control.addEventHandler(MouseEvent.MOUSE_RELEASED, mouseReleasedHandler);
-        //行高改变时
-        control.lineHeightProperty().addListener(invalidationListener);
+        rebuildLineNodes();
+        updatePlaceholderState();
     }
 
-    private final EventHandler<MouseEvent> mousePressedHandler = event -> startDragY = event.getY() - lrcPane.getLayoutY();
-    private final EventHandler<MouseEvent> mouseDraggedHandler = event -> {
-        double offsetY = 0;
-        if (lrcPane.getChildren().size() != 0) {
-            offsetY = lrcPane.getChildren().get(0).getTranslateY();
-        }
-
-        lastMoveDis = event.getY() - startDragY;
-        double bottomBound = computeInnerH(control) / 2 + control.getLineHeight() / 2 - control.getLineHeight() - offsetY;
-
-        if (lastMoveDis > bottomBound) {
-            lastMoveDis = bottomBound;
-        }
-        double topBound = -lrcPane.getHeight() - offsetY;
-        if (lastMoveDis < topBound) {
-            lastMoveDis = topBound;
-        }
-        lrcPane.setLayoutY(lastMoveDis);
-    };
-
-    private EventHandler<MouseEvent> mouseReleasedHandler = event -> {
-        double offsetY = 0;
-        if (lrcPane.getChildren().size() != 0) {
-            offsetY = lrcPane.getChildren().get(0).getTranslateY();
-        }
-        //低于底部后 ,自动往上的动画
-        double x = computeBorderSize(control, false, false, true, false) +
-                computePaddingSize(control, false, false, true, false);
-
-        if (lrcPane.getLayoutY() >= computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY - x) {
-            if (reboundUp.getStatus() == Animation.Status.RUNNING) {
-                reboundUp.stop();
-            }
-            reboundUp.getKeyFrames().setAll(new KeyFrame(REBOUND_DURATION, new KeyValue(
-                    lrcPane.layoutYProperty(),
-                    computeInnerH(control) / 2 - control.getLineHeight() / 2 - control.getLineHeight() - offsetY,
-                    Interpolator.EASE_OUT)));
-            reboundUp.play();
-        }
-        //高于顶部后,自动往下的动画
-        if (lrcPane.getLayoutY() <= -lrcPane.getHeight() + control.getLineHeight() - offsetY) {
-            if (reboundDown.getStatus() == Animation.Status.RUNNING) {
-                reboundDown.stop();
-            }
-            reboundDown.getKeyFrames().setAll(new KeyFrame(
-                    REBOUND_DURATION,
-                    new KeyValue(
-                            lrcPane.layoutYProperty(),
-                            -lrcPane.getHeight() + control.getLineHeight() - offsetY,
-                            Interpolator.EASE_OUT)
-            ));
-
-            reboundDown.play();
-        }
-    };
-
-    private void moveLrcLines(int newIndex) {
-        if (newIndex < 0) {
-            return;
-        }
-        animeStopAtEnd(moveAndScaleAnim);
-        lrcPaneMoveAnim.getKeyFrames().clear();
-        Duration duration = control.getAnimationTime();
-        // 歌词面板的整体移动
-        if (Double.compare(lrcPane.getLayoutY(), 0) != 0) {
-            lrcPaneMoveAnim.getKeyFrames().setAll(new KeyFrame(duration,
-                    new KeyValue(lrcPane.layoutYProperty(), 0)
-            ));
-        }
-        moveAndScaleAnim.getChildren().clear();
-        ArrayList<LrcLine> lines = control.getLrcDoc().getLrcLines();
-        double moveDistance = -(newIndex - currentIndex) * control.getLineHeight();
-        // 歌词并行移动
-        for (int i = 0; i < lines.size(); i++) {
-            LrcLineLabel node = (LrcLineLabel) lrcPane.getChildren().get(i);
-            lineMove[i].setDuration(duration);
-            lineMove[i].setNode(node);
-            lineMove[i].setByY(moveDistance);
-            if (newIndex == i) {
-//                StyleUtil.addClass(node, "lrc-current-line");
-                node.setPlaying(true);
-            } else {
-//                StyleUtil.removeClass(node, "lrc-current-line");
-                node.setPlaying(false);
-                if (i != currentIndex) {
-                    node.setScaleX(1.0);
-                    node.setScaleY(1.0);
-                }
-            }
-        }
-        moveAndScaleAnim.getChildren().addAll(lineMove);
-        // 当前歌词缩小
-        if (currentIndex != -1) {
-            Label node = (Label) lrcPane.getChildren().get(currentIndex);
-            smallST.setNode(node);
-            smallST.setDuration(duration);
-            smallST.setToX(1);
-            smallST.setToY(1);
-            moveAndScaleAnim.getChildren().add(smallST);
-        }
-        // 下一句歌词放大
-        Label node = (Label) lrcPane.getChildren().get(newIndex);
-        bigST.setNode(node);
-        bigST.setDuration(duration);
-        bigST.setToX(control.getCurrentLineScaling());
-        bigST.setToY(control.getCurrentLineScaling());
-        moveAndScaleAnim.getChildren().addAll(bigST, lrcPaneMoveAnim);
-        moveAndScaleAnim.play();
-        currentIndex = newIndex;
-    }
-
-    private void paintLrcLines() {
-        lrcPane.getChildren().clear();
-        if (emptyLrcDoc()) {
-            lrcPane.getChildren().add(tipLabel);
-            tipLabel.layoutXProperty().bind(root.widthProperty().subtract(tipLabel.widthProperty()).divide(2.0));
-            tipLabel.layoutYProperty().bind(root.heightProperty().subtract(tipLabel.heightProperty()).divide(2.0));
-            return;
-        }
-        //如果歌词不为空, 那么准备绘制歌词
-        int index = computeLrcLinesIndex();
-        ArrayList<LrcLine> lines = control.getLrcDoc().getLrcLines();
-        for (int i = 0; i < lines.size(); i++) {
-            LrcLineLabel label = new LrcLineLabel(lines.get(i).getWords());
-//            label.getStyleClass().add("lrc-line");
-            if (index == i) {
-//                StyleUtil.addClass(label, "lrc-current-line");
-                label.setPlaying(true);
-            } else {
-//                StyleUtil.removeClass(label, "lrc-current-line");
-                label.setPlaying(false);
-            }
-            label.setLayoutY(
-                    (i + 1) * control.getLineHeight()
-                            + (computeInnerH(control)
-                            - control.getLineHeight()) / 2);
-            label.setPrefHeight(control.getLineHeight());
-            label.prefWidthProperty().bind(Bindings.createDoubleBinding(
-                    () -> computeInnerW(control),
-                    control.layoutBoundsProperty(),
-                    control.paddingProperty(),
-                    control.borderProperty()));
-            lrcPane.getChildren().add(label);
-        }
-
-        currentIndex = -1;
-
-        // 改变行数的时候, 根据需要增减动画
-        int newSize = lines.size();
-        int oldSize = lineMove.length;
-        lineMove = Arrays.copyOf(lineMove, newSize);
-        for (int i = oldSize; i < newSize; i++) {
-            lineMove[i] = new TranslateTransition();
-        }
-        moveLrcLines(index);
-
-    }
+    // ==================== Layout ====================
 
     /**
-     * @return 当前应该播放的是第几行的歌词
+     * {@inheritDoc}
      */
-    private int computeLrcLinesIndex() {
-        LrcDoc lrcDoc = control.getLrcDoc();
-        if (emptyLrcDoc()) {
-            return -1;
-        }
-        long now = (long) control.getCurrentTime().add(Duration.millis(lrcDoc.getOffset())).add(control.getUserOffset()).toMillis();
-        ArrayList<LrcLine> lrcLines = lrcDoc.getLrcLines();
-        int size = lrcLines.size();
-
-        if (now < lrcLines.get(0).getTime() - 1) {
-            return -1;
-        }
-        for (int i = 0; i < size - 1; i++) {
-            if (now >= lrcLines.get(i).getTime() && now < lrcLines.get(i + 1).getTime()) {
-                return i;
-            }
-        }
-        return size - 1;
-    }
-
-    private boolean emptyLrcDoc() {
-        return control.getLrcDoc() == null ||
-                control.getLrcDoc().getLrcLines() == null ||
-                control.getLrcDoc().getLrcLines().size() == 0;
-    }
-
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        layoutInArea(root, x, y, w, h, -1, HPos.CENTER, VPos.CENTER);
+        double width = Math.max(0.0, w);
+        double height = Math.max(0.0, h);
+        viewport.resizeRelocate(x, y, width, height);
+        clip.setX(0.0);
+        clip.setY(0.0);
+        clip.setWidth(width);
+        clip.setHeight(height);
+
+        if (metricsDirty
+                || Double.compare(width, lastMeasuredWidth) != 0
+                || Double.compare(height, lastMeasuredHeight) != 0) {
+            measureLines(width, height);
+        }
+
+        content.resizeRelocate(0.0, 0.0, width, contentTotalHeight);
+        for (int i = 0; i < lineNodes.size(); i++) {
+            lineNodes.get(i).resizeRelocate(0.0, lineTops[i], width, lineHeights[i]);
+        }
+
+        updateTranslateAfterLayout();
+        layoutPlaceholder(width, height);
+        applyDisplayTranslate();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void dispose() {
-        control.lrcDocProperty().removeListener(lrcDocChangeListener);
-        control.widthProperty().removeListener(invalidationListener);
-        control.heightProperty().removeListener(invalidationListener);
-        control.borderProperty().removeListener(invalidationListener);
-        control.paddingProperty().removeListener(invalidationListener);
-        control.currentTimeProperty().removeListener(durationChangeListener);
-        control.removeEventHandler(MouseEvent.MOUSE_PRESSED, mousePressedHandler);
-        control.removeEventHandler(MouseEvent.MOUSE_DRAGGED, mouseDraggedHandler);
-        control.removeEventHandler(MouseEvent.MOUSE_RELEASED, mouseReleasedHandler);
-        animeStop(
-                reboundUp, reboundDown, moveAndScaleAnim, lrcPaneMoveAnim, smallST, bigST);
-        animeStop(lineMove);
-        getChildren().clear();
-        super.dispose();
-    }
-
-    // ==================== Migrated legacy helpers (pending refactor) ====================
-    //
-    // The helpers below were lifted from a deleted utility class during the 2026-05 review.
-    // Behaviour is intentionally preserved as-is — known issues are called out
-    // with TODO markers and will be addressed when RXLrcViewSkin itself is refactored. These
-    // helpers (along with their TODO markers and the inherited Chinese Javadoc) are temporary;
-    // remove them entirely during the rewrite rather than keeping them as long-term residents.
-
-    /**
-     * 获得组件的真实内部宽, 去掉了边框和内边距
-     *
-     * @param control 指定的组件
-     */
-    // TODO(refactor): redundant, not a correctness bug. For resizable nodes (Region/Control)
-    //   layoutBounds is always `(0, 0, width, height)` — effect/clip/transforms do NOT extend
-    //   it (see Node#layoutBoundsProperty javadoc) — so `maxX - minX` is just a verbose way
-    //   to write `getWidth()`. Padding and border are also already merged by Region.getInsets(),
-    //   and snapped*Inset() adds pixel snapping for free.
-    //   Suggested simplification:
-    //     return control.getWidth() - control.snappedLeftInset() - control.snappedRightInset();
-    //   Skin-idiomatic preference: drop this helper entirely and inline `snappedLeftInset()` /
-    //   `snappedRightInset()` (protected on SkinBase) at the call sites. The current call sites
-    //   are outside layoutChildren (mouse handlers, paintLrcLines, clipRoot binding), so the
-    //   `layoutChildren(x, y, w, h)` parameters are not available there.
-    //   Better still: reshape the source of layout state — cache the content-area size in Skin
-    //   fields updated from layoutChildren — instead of mechanically recomputing it from
-    //   `control` at every call site.
-    private static double computeInnerW(Control control) {
-        if (control == null) {
-            return 0;
-        }
-        double width = 0;
-        Bounds bounds = control.getLayoutBounds();
-        if (bounds != null) {
-            width = bounds.getMaxX() - bounds.getMinX();
-        }
-        double paddingWidth = 0;
-        Insets padding = control.getPadding();
-        if (padding != null) {
-            paddingWidth = padding.getLeft() + padding.getRight();
-        }
-        double borderWidth = 0;
-        if (control.getBorder() != null && control.getBorder().getInsets() != null) {
-            Insets insets = control.getBorder().getInsets();
-            borderWidth = insets.getLeft() + insets.getRight();
-        }
-        return width - borderWidth - paddingWidth;
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + DEFAULT_PREF_WIDTH + rightInset;
     }
 
     /**
-     * 获得组件的真实内部高, 去掉了边框和内边距
-     *
-     * @param control 指定的组件
+     * {@inheritDoc}
      */
-    // TODO(refactor): same redundancy as computeInnerW (layoutBounds for Region/Control is
-    //   just `(0, 0, width, height)`), plus a style inconsistency — this variant delegates to
-    //   computeBorderSize/computePaddingSize while computeInnerW inlines the math.
-    //   Suggested simplification:
-    //     return control.getHeight() - control.snappedTopInset() - control.snappedBottomInset();
-    //   Skin-idiomatic preference: same as computeInnerW — drop the helper and inline
-    //   `snappedTopInset()` / `snappedBottomInset()` at call sites.
-    private static double computeInnerH(Control control) {
-        if (control == null) {
-            return 0;
-        }
-        double height = 0;
-        Bounds bounds = control.getLayoutBounds();
-        if (bounds != null) {
-            height = bounds.getMaxY() - bounds.getMinY();
-        }
-        double borderHeight = computeBorderSize(control, true, false, true, false);
-        double paddingHeight = computePaddingSize(control, true, false, true, false);
-        return height - borderHeight - paddingHeight;
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return topInset + DEFAULT_PREF_HEIGHT + bottomInset;
     }
 
     /**
-     * 获得组件的内边距长度
-     *
-     * @param control
-     * @param top     上边距
-     * @param right   右边距
-     * @param bottom  下边距
-     * @param left    左边距
-     * @return
+     * {@inheritDoc}
      */
-    // TODO(bug): NPE — `control.getPadding()` is dereferenced before the null-check on `control`
-    //   (lines below), so a null `control` triggers NPE instead of returning 0.
-    // TODO(api): four-boolean edge mask is hard to read at call sites (see the
-    //   `(false, false, true, false)` invocation in mouseReleasedHandler). Prefer
-    //   `control.snappedTopInset()` / `snappedBottomInset()` etc, which already merge
-    //   padding + border and apply pixel snapping.
-    private static double computePaddingSize(Control control, boolean top, boolean right, boolean bottom, boolean left) {
-        double paddingSize = 0;
-        Insets insets = control.getPadding();
-        if (control == null || insets == null) {
-            return paddingSize;
-        }
-        return getSize(top, right, bottom, left, insets);
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return leftInset + rightInset;
     }
 
     /**
-     * 获取组件的边框大小
-     * @param control
-     * @param top 上边框
-     * @param right 有边框
-     * @param bottom 下边框
-     * @param left 左边框
-     * @return
+     * {@inheritDoc}
      */
-    // TODO(doc): Javadoc typo — "有边框" should be "右边框".
-    // TODO(api): same four-boolean redundancy as computePaddingSize; replace call sites with
-    //   `snappedXxxInset()` (which already includes border insets) when refactoring.
-    private static double computeBorderSize(Control control, boolean top, boolean right, boolean bottom, boolean left) {
-        double borderSize = 0;
-        if (control == null || control.getBorder() == null || control.getBorder().getInsets() == null) {
-            return borderSize;
-        }
-        Insets insets = control.getBorder().getInsets();
-        return getSize(top, right, bottom, left, insets);
-    }
-
-    private static double getSize(boolean top, boolean right, boolean bottom, boolean left, Insets insets) {
-        double size = 0;
-        if (top) {
-            size += insets.getTop();
-        }
-        if (right) {
-            size += insets.getRight();
-        }
-        if (bottom) {
-            size += insets.getBottom();
-        }
-        if (left) {
-            size += insets.getLeft();
-        }
-        return size;
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return topInset + bottomInset;
     }
 
     /**
-     * 根据组件的 位置, 边框, 内边距来计算根节点内容面积的大小
-     * @param control 组件
-     * @param root 根节点
+     * {@inheritDoc}
      */
-    // Note: keep the clip at (0, 0). `root` is already laid out at (snappedLeftInset,
-    //   snappedTopInset) by RXLrcViewSkin#layoutChildren — see Control#layoutChildren in
-    //   OpenJFX which feeds inset-offset coordinates into SkinBase#layoutChildren(x,y,w,h).
-    //   Clip coordinates are in the clipped node's local space (AGENTS §3.2), so root's
-    //   local origin already equals the content area's top-left. Binding rect.x/rect.y to
-    //   snapped insets here would double-offset and crop the clip incorrectly.
-    // TODO(perf): `boundsInParentProperty` is in the dependency list but never read inside
-    //   the binding lambda; it triggers redundant recomputes on transform / parent changes.
-    //   Drop it from both bindings.
-    // TODO(lifecycle): Rectangle is created and bound but never returned, so dispose() cannot
-    //   `unbind` / `setClip(null)` and the binding keeps a strong ref to `control`. Either
-    //   inline this into the skin and store the Rectangle as a field, or return it for the
-    //   caller to manage. Required by AGENTS §3.1 (skin dispose must be exhaustive).
-    private static void clipRoot(Control control, Pane root) {
-        Rectangle rect = new Rectangle();
-        rect.widthProperty().bind(Bindings.createDoubleBinding(
-                () -> computeInnerW(control),
-                control.boundsInParentProperty(),
-                control.borderProperty(),
-                control.paddingProperty(),
-                control.widthProperty()));
-
-        rect.heightProperty().bind(Bindings.createDoubleBinding(
-                () -> computeInnerH(control),
-                control.boundsInParentProperty(),
-                control.borderProperty(),
-                control.paddingProperty(),
-                control.heightProperty()));
-        root.setClip(rect);
+    @Override
+    protected double computeMaxWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return Double.MAX_VALUE;
     }
 
     /**
-     * 动画跳转到最后面然后停止.
-     * @param animations 动画
+     * {@inheritDoc}
      */
-    // TODO(semantics): for animations with cycleCount = INDEFINITE, `getTotalDuration()`
-    //   returns Duration.INDEFINITE. Verified against JFX 17.0.13 Animation#jumpTo:
-    //   isUnknown() throws IAE, but isIndefinite() does NOT — the impl silently falls back to
-    //   `getCycleDuration().toMillis()`. So this call effectively jumps to ONE cycle's end, not
-    //   "the end of the animation". That may or may not be the desired pose; the call site
-    //   should decide explicitly (e.g. pass `getCycleDuration()` directly, or just `stop()`
-    //   without jumping for infinite animations). Note: javafx.animation.Animation has no
-    //   public `jumpToEnd()` API — do not suggest one.
-    // TODO(semantics): the `status != STOPPED` guard means an already-stopped animation will
-    //   NOT be moved to its end frame, contradicting the method name. Decide whether the
-    //   contract is "make sure the animation ends at the end-frame regardless of status".
-    // TODO(rename): "anime" is an informal abbreviation; rename to `finishAndStop` when
-    //   refactoring.
-    private static void animeStopAtEnd(Animation... animations) {
-        if (animations == null || animations.length == 0) {
+    @Override
+    protected double computeMaxHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return Double.MAX_VALUE;
+    }
+
+    // ==================== Document ====================
+
+    private void onDocumentChanged() {
+        resetManualBrowseState();
+        rebuildLineNodes();
+        metricsDirty = true;
+        lastLineTimeMillis = Long.MIN_VALUE;
+        syncCurrentLineState();
+        updatePlaceholderState();
+        getSkinnable().requestLayout();
+    }
+
+    private void rebuildLineNodes() {
+        lineNodes.clear();
+        RXLrcDocument document = getSkinnable().getDocument();
+        if (document != null) {
+            for (RXLrcLine line : document.lines()) {
+                lineNodes.add(new LineNode(line));
+            }
+        }
+        content.getChildren().setAll(lineNodes);
+        lineTops = new double[lineNodes.size()];
+        lineHeights = new double[lineNodes.size()];
+        metricsDirty = true;
+    }
+
+    // ==================== Placeholder ====================
+
+    private void onPlaceholderChanged(Node oldValue, Node newValue) {
+        if (oldValue != null) {
+            viewport.getChildren().remove(oldValue);
+        }
+        installPlaceholder(newValue);
+        updatePlaceholderState();
+        getSkinnable().requestLayout();
+    }
+
+    private void installPlaceholder(Node placeholder) {
+        if (placeholder == null) {
             return;
         }
-        for (Animation animation : animations) {
-            if (animation == null) {
-                continue;
-            }
-            if (animation.getStatus() != Animation.Status.STOPPED) {
-                animation.jumpTo(animation.getTotalDuration());
-                animation.stop();
-            }
+        if (!placeholder.getStyleClass().contains("placeholder")) {
+            placeholder.getStyleClass().add("placeholder");
+        }
+        placeholder.setTranslateY(manualOffsetY.get());
+        if (!viewport.getChildren().contains(placeholder)) {
+            viewport.getChildren().add(placeholder);
         }
     }
 
-    // TODO(rename): align with `animeStopAtEnd` — rename to `stopAnimations` for clarity.
-    private static void animeStop(Animation... animations) {
-        if (animations == null || animations.length == 0) {
+    private void updatePlaceholderState() {
+        Node placeholder = getSkinnable().getPlaceholder();
+        boolean empty = isDocumentEmpty();
+        if (placeholder != null) {
+            placeholder.setVisible(empty);
+            placeholder.setManaged(empty);
+        }
+        content.setVisible(!empty);
+        content.setManaged(!empty);
+    }
+
+    private void layoutPlaceholder(double width, double height) {
+        Node placeholder = getSkinnable().getPlaceholder();
+        if (placeholder == null || !placeholder.isVisible()) {
             return;
         }
-        for (Animation animation : animations) {
-            if (animation == null) {
-                continue;
+        layoutInArea(placeholder, 0.0, 0.0, width, height, 0.0, HPos.CENTER, VPos.CENTER);
+    }
+
+    private boolean isDocumentEmpty() {
+        RXLrcDocument document = getSkinnable().getDocument();
+        return document == null || document.isEmpty();
+    }
+
+    // ==================== Current Line ====================
+
+    private void onCurrentLineIndexChanged(int oldIndex, int newIndex) {
+        applyCurrentLineState(oldIndex, false);
+        applyCurrentLineState(newIndex, true);
+
+        if (metricsDirty || lineTops.length != lineNodes.size()) {
+            getSkinnable().requestLayout();
+            return;
+        }
+
+        double target = targetTranslateY(newIndex, viewport.getHeight());
+        if (manualBrowsing) {
+            double displayedTranslate = displayTranslateY();
+            scrollAnim.stop();
+            autoTranslateY.set(target);
+            manualOffsetY.set(displayedTranslate - target);
+            updateLastLineTime(newIndex);
+            return;
+        }
+
+        applyScroll(oldIndex, newIndex, target);
+        updateLastLineTime(newIndex);
+    }
+
+    private void syncCurrentLineState() {
+        for (LineNode lineNode : lineNodes) {
+            lineNode.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, false);
+            lineNode.setScaleX(1.0);
+            lineNode.setScaleY(1.0);
+        }
+        applyCurrentLineState(getSkinnable().getCurrentLineIndex(), true);
+        updateLastLineTime(getSkinnable().getCurrentLineIndex());
+    }
+
+    private void applyCurrentLineState(int index, boolean current) {
+        if (index < 0 || index >= lineNodes.size()) {
+            return;
+        }
+        LineNode node = lineNodes.get(index);
+        node.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, current);
+        if (current) {
+            double scale = getSkinnable().getCurrentLineScale();
+            if (!Double.isFinite(scale) || scale <= 0.0) {
+                scale = 1.0;
             }
-            animation.stop();
+            node.setScaleX(scale);
+            node.setScaleY(scale);
+        } else {
+            node.setScaleX(1.0);
+            node.setScaleY(1.0);
         }
     }
 
-}
-
-class LrcLineLabel extends Label {
-    private static final PseudoClass PLAYING_PSEUDO_CLASS = PseudoClass.getPseudoClass("playing");
-    private BooleanProperty playing;
-
-    public LrcLineLabel() {
-        getStyleClass().setAll("lrc-line");
-        playingProperty().addListener(
-                (observable, oldValue, newValue) -> pseudoClassStateChanged(PLAYING_PSEUDO_CLASS, newValue));
+    private void applyCurrentLineScale(int index) {
+        applyCurrentLineState(index, true);
     }
 
-    public LrcLineLabel(String text) {
-        this();
-        setText(text);
-    }
+    // ==================== Geometry ====================
 
-    public LrcLineLabel(String text, Node graphic) {
-        this(text);
-        setGraphic(graphic);
-    }
+    private void measureLines(double width, double height) {
+        double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
+        double spacing = Math.max(0.0, getSkinnable().getLineSpacing());
+        double y = height * position;
 
-    public final void setPlaying(boolean playing) {
-        playingProperty().set(playing);
-    }
-
-    public final boolean getPlaying() {
-        return playing == null ? false : playing.get();
-    }
-
-    public final BooleanProperty playingProperty() {
-        if (playing == null) {
-            playing = new SimpleBooleanProperty(false);
+        for (int i = 0; i < lineNodes.size(); i++) {
+            LineNode line = lineNodes.get(i);
+            double lineHeight = Math.max(0.0, line.prefHeight(width));
+            lineTops[i] = y;
+            lineHeights[i] = lineHeight;
+            y += lineHeight + spacing;
         }
-        return playing;
+        if (!lineNodes.isEmpty()) {
+            y -= spacing;
+        }
+        contentTotalHeight = y + height * (1.0 - position);
+        lastMeasuredWidth = width;
+        lastMeasuredHeight = height;
+        metricsDirty = false;
+    }
+
+    private double targetTranslateY(int index, double viewportHeight) {
+        if (index < 0 || index >= lineNodes.size()) {
+            return 0.0;
+        }
+        double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
+        double anchorY = viewportHeight * position;
+        return anchorY - (lineTops[index] + lineHeights[index] / 2.0);
+    }
+
+    private void updateTranslateAfterLayout() {
+        scrollAnim.stop();
+        if (isDocumentEmpty()) {
+            autoTranslateY.set(0.0);
+            if (!manualBrowsing) {
+                manualOffsetY.set(0.0);
+            }
+            return;
+        }
+
+        double displayedTranslate = displayTranslateY();
+        double target = targetTranslateY(getSkinnable().getCurrentLineIndex(), viewport.getHeight());
+        autoTranslateY.set(target);
+        if (manualBrowsing) {
+            double preservedManualOffset = displayedTranslate - target;
+            if (dragging) {
+                manualOffsetY.set(applyBoundaryResistance(preservedManualOffset));
+            } else {
+                manualOffsetY.set(clampManualOffset(preservedManualOffset));
+            }
+        } else {
+            manualOffsetY.set(0.0);
+        }
+    }
+
+    private void applyDisplayTranslate() {
+        content.setTranslateY(displayTranslateY());
+        Node placeholder = getSkinnable().getPlaceholder();
+        if (placeholder != null) {
+            placeholder.setTranslateY(manualOffsetY.get());
+        }
+    }
+
+    private double displayTranslateY() {
+        return autoTranslateY.get() + manualOffsetY.get();
+    }
+
+    private double applyBoundaryResistance(double rawOffset) {
+        if (!Double.isFinite(rawOffset)) {
+            return 0.0;
+        }
+        if (isDocumentEmpty()) {
+            return rawOffset * BOUNDARY_RESISTANCE;
+        }
+        double min = minManualOffset();
+        double max = maxManualOffset();
+        if (rawOffset < min) {
+            return min + (rawOffset - min) * BOUNDARY_RESISTANCE;
+        }
+        if (rawOffset > max) {
+            return max + (rawOffset - max) * BOUNDARY_RESISTANCE;
+        }
+        return rawOffset;
+    }
+
+    private double clampManualOffset(double offset) {
+        if (!Double.isFinite(offset) || isDocumentEmpty()) {
+            return 0.0;
+        }
+        return clamp(offset, minManualOffset(), maxManualOffset());
+    }
+
+    private double minManualOffset() {
+        if (lineNodes.isEmpty()) {
+            return 0.0;
+        }
+        return targetTranslateY(lineNodes.size() - 1, viewport.getHeight()) - autoTranslateY.get();
+    }
+
+    private double maxManualOffset() {
+        if (lineNodes.isEmpty()) {
+            return 0.0;
+        }
+        return targetTranslateY(0, viewport.getHeight()) - autoTranslateY.get();
+    }
+
+    // ==================== Animation ====================
+
+    private void applyScroll(int oldIndex, int newIndex, double target) {
+        stopManualAnimations();
+        manualBrowsing = false;
+        dragging = false;
+        manualOffsetY.set(0.0);
+        if (shouldSnap(oldIndex, newIndex) || !isPositiveFiniteAnimationDuration()) {
+            scrollAnim.stop();
+            autoTranslateY.set(target);
+            return;
+        }
+
+        scrollAnim.stop();
+        scrollAnim.getKeyFrames().setAll(new KeyFrame(
+                getSkinnable().getAnimationDuration(),
+                new KeyValue(autoTranslateY, target, INTERPOLATOR)));
+        scrollAnim.playFromStart();
+    }
+
+    private boolean shouldSnap(int oldIndex, int newIndex) {
+        if (oldIndex == NO_LINE_INDEX || newIndex == NO_LINE_INDEX) {
+            return true;
+        }
+        if (Math.abs(newIndex - oldIndex) > SEEK_JUMP_THRESHOLD) {
+            return true;
+        }
+        long newTimeMillis = lineTimeMillis(newIndex);
+        return newTimeMillis < lastLineTimeMillis;
+    }
+
+    private boolean isPositiveFiniteAnimationDuration() {
+        if (!getSkinnable().isAnimated()) {
+            return false;
+        }
+        Duration duration = getSkinnable().getAnimationDuration();
+        return duration != null
+                && !duration.isUnknown()
+                && !duration.isIndefinite()
+                && duration.greaterThan(Duration.ZERO)
+                && Double.isFinite(duration.toMillis());
+    }
+
+    private void startReboundThenRecover() {
+        scrollAnim.stop();
+        recoverAnim.stop();
+        recoverPause.stop();
+
+        double target = clampManualOffset(manualOffsetY.get());
+        if (Math.abs(manualOffsetY.get() - target) < 0.5) {
+            manualOffsetY.set(target);
+            onReboundFinished();
+            return;
+        }
+        if (!getSkinnable().isAnimated()) {
+            manualOffsetY.set(target);
+            onReboundFinished();
+            return;
+        }
+
+        reboundAnim.stop();
+        reboundAnim.getKeyFrames().setAll(new KeyFrame(
+                REBOUND_DURATION,
+                new KeyValue(manualOffsetY, target, Interpolator.EASE_OUT)));
+        reboundAnim.playFromStart();
+    }
+
+    private void onReboundFinished() {
+        if (isDocumentEmpty()) {
+            manualOffsetY.set(0.0);
+            manualBrowsing = false;
+            return;
+        }
+        scheduleRecover();
+    }
+
+    private void scheduleRecover() {
+        scrollAnim.stop();
+        reboundAnim.stop();
+        recoverAnim.stop();
+        recoverPause.stop();
+
+        Duration delay = browseRecoverDelayOrDefault();
+        if (delay.lessThanOrEqualTo(Duration.ZERO)) {
+            startRecoverAnimation();
+            return;
+        }
+        recoverPause.setDuration(delay);
+        recoverPause.playFromStart();
+    }
+
+    private void startRecoverAnimation() {
+        scrollAnim.stop();
+        reboundAnim.stop();
+        recoverAnim.stop();
+        recoverPause.stop();
+
+        if (isDocumentEmpty()) {
+            manualOffsetY.set(0.0);
+            manualBrowsing = false;
+            return;
+        }
+
+        double displayedTranslate = displayTranslateY();
+        double target = targetTranslateY(getSkinnable().getCurrentLineIndex(), viewport.getHeight());
+        autoTranslateY.set(target);
+        manualOffsetY.set(displayedTranslate - target);
+        if (Math.abs(manualOffsetY.get()) < 0.5 || !isPositiveFiniteAnimationDuration()) {
+            manualOffsetY.set(0.0);
+            manualBrowsing = false;
+            return;
+        }
+
+        recoverAnim.getKeyFrames().setAll(new KeyFrame(
+                getSkinnable().getAnimationDuration(),
+                new KeyValue(manualOffsetY, 0.0, INTERPOLATOR)));
+        recoverAnim.playFromStart();
+    }
+
+    private void onRecoverFinished() {
+        manualOffsetY.set(0.0);
+        manualBrowsing = false;
+    }
+
+    private Duration browseRecoverDelayOrDefault() {
+        Duration delay = getSkinnable().getBrowseRecoverDelay();
+        if (delay == null
+                || delay.isUnknown()
+                || delay.isIndefinite()
+                || !Double.isFinite(delay.toMillis())) {
+            return RXLrcView.DEFAULT_BROWSE_RECOVER_DELAY;
+        }
+        return delay;
+    }
+
+    private void stopDraggingAndRecover() {
+        dragging = false;
+        if (manualBrowsing) {
+            startRecoverAnimation();
+        }
+    }
+
+    private void resetManualBrowseState() {
+        stopAllAnimations();
+        dragging = false;
+        manualBrowsing = false;
+        suppressNextClick = false;
+        autoTranslateY.set(0.0);
+        manualOffsetY.set(0.0);
+    }
+
+    private void stopAllAnimations() {
+        scrollAnim.stop();
+        stopManualAnimations();
+    }
+
+    private void stopManualAnimations() {
+        reboundAnim.stop();
+        recoverAnim.stop();
+        recoverPause.stop();
+    }
+
+    private long lineTimeMillis(int index) {
+        if (index < 0 || index >= lineNodes.size()) {
+            return Long.MIN_VALUE;
+        }
+        return Math.round(lineNodes.get(index).getLine().time().toMillis());
+    }
+
+    private void updateLastLineTime(int index) {
+        if (index >= 0 && index < lineNodes.size()) {
+            lastLineTimeMillis = lineTimeMillis(index);
+        }
+    }
+
+    // ==================== Events ====================
+
+    private void onBrowseMousePressed(MouseEvent event) {
+        if (!getSkinnable().isManualBrowseEnabled()) {
+            return;
+        }
+        stopAllAnimations();
+        dragging = true;
+        dragStartY = event.getY();
+        dragStartManualOffsetY = manualOffsetY.get();
+        suppressNextClick = false;
+    }
+
+    private void onBrowseMouseDragged(MouseEvent event) {
+        if (!dragging || !getSkinnable().isManualBrowseEnabled()) {
+            return;
+        }
+        double deltaY = event.getY() - dragStartY;
+        if (Math.abs(deltaY) > CLICK_SUPPRESSION_DISTANCE) {
+            suppressNextClick = true;
+        }
+        manualBrowsing = true;
+        manualOffsetY.set(applyBoundaryResistance(dragStartManualOffsetY + deltaY));
+        event.consume();
+    }
+
+    private void onBrowseMouseReleased(MouseEvent event) {
+        if (!dragging) {
+            return;
+        }
+        dragging = false;
+        if (!manualBrowsing) {
+            return;
+        }
+        startReboundThenRecover();
+        if (suppressNextClick) {
+            event.consume();
+        }
+    }
+
+    private void onBrowseMouseClicked(MouseEvent event) {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            event.consume();
+        }
+    }
+
+    private void onBrowseScroll(ScrollEvent event) {
+        if (!getSkinnable().isMouseWheelBrowseEnabled() || isDocumentEmpty()) {
+            return;
+        }
+        stopAllAnimations();
+        dragging = false;
+        manualBrowsing = true;
+        manualOffsetY.set(applyBoundaryResistance(manualOffsetY.get() + event.getDeltaY()));
+        startReboundThenRecover();
+        event.consume();
+    }
+
+    private void onLineClicked(MouseEvent event) {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            event.consume();
+            return;
+        }
+        LineNode lineNode = findLineNode(event.getTarget());
+        if (lineNode == null) {
+            return;
+        }
+        RXLrcLine line = lineNode.getLine();
+        getSkinnable().fireEvent(new RXLrcLineEvent(
+                getSkinnable(),
+                RXLrcLineEvent.LINE_CLICKED,
+                line,
+                line.index(),
+                line.time()));
+    }
+
+    private LineNode findLineNode(Object target) {
+        if (!(target instanceof Node node)) {
+            return null;
+        }
+        while (node != null && node != content) {
+            if (node instanceof LineNode lineNode) {
+                return lineNode;
+            }
+            Parent parent = node.getParent();
+            node = parent;
+        }
+        return null;
+    }
+
+    // ==================== Dispose ====================
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void disposeSkin() {
+        stopAllAnimations();
+        lineNodes.clear();
+        content.getChildren().clear();
+        viewport.getChildren().clear();
+    }
+
+    private static double clamp(double value, double min, double max) {
+        if (!Double.isFinite(value)) {
+            return min;
+        }
+        return Math.max(min, Math.min(max, value));
+    }
+
+    // ==================== Line Node ====================
+
+    private static final class LineNode extends Region {
+
+        private final RXLrcLine line;
+        private final Label text = new Label();
+
+        private LineNode(RXLrcLine line) {
+            this.line = line;
+            getStyleClass().add("line");
+            text.getStyleClass().add("text");
+            text.setText(line.text());
+            text.setWrapText(true);
+            getChildren().add(text);
+        }
+
+        private RXLrcLine getLine() {
+            return line;
+        }
+
+        @Override
+        protected void layoutChildren() {
+            text.resizeRelocate(0.0, 0.0, getWidth(), getHeight());
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return 0.0;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return 0.0;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return text.prefWidth(height);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return text.prefHeight(width);
+        }
     }
 }

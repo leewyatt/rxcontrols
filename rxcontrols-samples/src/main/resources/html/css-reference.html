@@ -443,10 +443,11 @@ label — Label<br/><br/>
 <p class="fxClass">Style class: rx-lrc-view</p>
 <p>The control has all the properties of Control;</p>
 <h4>Substructure</h4>
-.pane  —  Pane <br>
-&emsp;&emsp;.tip-label  —  Label<br>
-&emsp;&emsp;.lrc-pane  — Pane<br>
-&emsp;&emsp;&emsp;&emsp;.lrc-line  —  LrcLineLabel<br>
+.viewport  —  Pane <br>
+&emsp;&emsp;.content  — Pane<br>
+&emsp;&emsp;&emsp;&emsp;.line  —  Region<br>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;.text  —  Label<br>
+&emsp;&emsp;.placeholder  — Node<br>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -457,8 +458,12 @@ label — Label<br/><br/>
     </thead>
     <tbody>
     <tr>
-        <td>playing</td>
-        <td>applies when playing the current lyrics line </td>
+        <td>current</td>
+        <td>applies to the current lyric line</td>
+    </tr>
+    <tr>
+        <td>empty</td>
+        <td>applies when the control has no timed lyric lines</td>
     </tr>
     </tbody>
 </table>
@@ -474,24 +479,24 @@ label — Label<br/><br/>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-animation-time</td>
+        <td>-rx-animation-duration</td>
         <td> Duration</td>
         <td>300ms</td>
     </tr>
     <tr>
-        <td>-rx-line-height</td>
-        <td> size</td>
-        <td>25px</td>
+        <td>-rx-current-line-position</td>
+        <td> number</td>
+        <td>0.45</td>
     </tr>
     <tr>
-        <td>-rx-tip-string</td>
-        <td> String</td>
-        <td>暂无歌词...</td>
+        <td>-rx-line-spacing</td>
+        <td> size</td>
+        <td>8px</td>
     </tr>
     <tr>
-        <td>-rx-line-scaling</td>
-        <td> size</td>
-        <td>1.3</td>
+        <td>-rx-current-line-scale</td>
+        <td> number</td>
+        <td>1.1</td>
     </tr>
     </tbody>
 </table>

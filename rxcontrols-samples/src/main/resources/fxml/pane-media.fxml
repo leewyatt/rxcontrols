@@ -25,7 +25,7 @@
             </ImageView>
          </graphic>
       </RXTranslationButton>
-      <RXLrcView fx:id="lrcPane" layoutX="23.0" layoutY="61.0" prefHeight="334.0" prefWidth="700.0" styleClass="lrcPane" />
+      <RXLrcView fx:id="lrcPane" layoutX="23.0" layoutY="61.0" prefHeight="334.0" prefWidth="700.0" />
       <RXAudioSpectrum fx:id="spectrum" layoutX="23.0" layoutY="394.0" prefHeight="70.0" prefWidth="700.0" styleClass="spectrum" />
       <RXSeekBar fx:id="progressBar" layoutX="23.0" layoutY="466.0" prefHeight="12.0" prefWidth="700.0" />
       <HBox alignment="CENTER" layoutX="294.0" layoutY="32.0" prefHeight="23.0" prefWidth="451.0" spacing="5.0">
