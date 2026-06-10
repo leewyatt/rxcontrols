@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,9 +32,6 @@ public final class RXLrcParser {
             Pattern.compile("\\[(\\d{1,5}):(\\d{1,2})(?:[.:](\\d{1,3}))?\\]");
     private static final Pattern ID_TAG_REGEX =
             Pattern.compile("\\[([a-zA-Z]+):(.*?)\\]");
-    private static final Set<String> KNOWN_METADATA_KEYS = Set.of(
-            "ti", "ar", "al", "au", "lr", "length", "by", OFFSET_KEY, "re", "tool", "ve");
-
     private static final Comparator<NormalizedLine> NORMALIZED_LINE_ORDER =
             Comparator.comparingLong(NormalizedLine::timeMillis)
                     .thenComparingInt(NormalizedLine::sourceLineNumber)
@@ -116,7 +112,7 @@ public final class RXLrcParser {
         if (parseMetadataLine(trimmed, lineNumber, line, tags, warnings)) {
             return;
         }
-        if (looksLikeBrokenKnownMetadata(trimmed)) {
+        if (looksLikeBrokenMetadata(trimmed)) {
             warnings.add(new RXLrcParseWarning(lineNumber, line,
                     RXLrcWarningCode.INVALID_METADATA, "Malformed metadata tag."));
             return;
@@ -167,7 +163,7 @@ public final class RXLrcParser {
         return true;
     }
 
-    private static boolean looksLikeBrokenKnownMetadata(String trimmed) {
+    private static boolean looksLikeBrokenMetadata(String trimmed) {
         if (!trimmed.startsWith("[")) {
             return false;
         }
@@ -175,8 +171,15 @@ public final class RXLrcParser {
         if (colon <= 1) {
             return false;
         }
+        int closing = trimmed.indexOf(']');
         String key = trimmed.substring(1, colon).toLowerCase(Locale.ROOT);
-        return KNOWN_METADATA_KEYS.contains(key) && !trimmed.endsWith("]");
+        if (!key.chars().allMatch(Character::isLetter)) {
+            return false;
+        }
+        if (closing < 0) {
+            return true;
+        }
+        return !trimmed.substring(closing + 1).isBlank();
     }
 
     private static TimeScan scanLeadingTimeTags(String trimmed, int lineNumber, String rawLine,

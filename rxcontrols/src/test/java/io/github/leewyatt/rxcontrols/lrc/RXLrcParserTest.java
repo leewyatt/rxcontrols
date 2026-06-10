@@ -123,7 +123,7 @@ public class RXLrcParserTest {
     public void parseSkipsInvalidTimestampTagsWithoutDroppingValidSiblings() {
         RXLrcParseResult result = RXLrcParser.parse("""
                 [00:75.00][00:01.00]line
-                [xx:yy]junk
+                [99:99]junk
                 """);
 
         assertEquals(1, result.document().lines().size());
@@ -131,6 +131,21 @@ public class RXLrcParserTest {
         assertMillis(1000.0, result.document().lines().get(0).time());
         assertEquals(2, warningCodes(result).stream()
                 .filter(RXLrcWarningCode.INVALID_TIMESTAMP::equals)
+                .count());
+    }
+
+    @Test
+    public void parseWarnsForMalformedMetadataTags() {
+        RXLrcParseResult result = RXLrcParser.parse("""
+                [kana:abc
+                [foo:bar] trailing
+                [ti:Title] trailing
+                [00:01.00]line
+                """);
+
+        assertEquals(1, result.document().lines().size());
+        assertEquals(3, warningCodes(result).stream()
+                .filter(RXLrcWarningCode.INVALID_METADATA::equals)
                 .count());
     }
 

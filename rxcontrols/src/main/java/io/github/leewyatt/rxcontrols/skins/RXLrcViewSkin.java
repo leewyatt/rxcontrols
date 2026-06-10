@@ -50,8 +50,8 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     // ==================== Nodes ====================
 
-    private final Pane viewport = new Pane();
-    private final Pane content = new Pane();
+    private final Pane viewport = new ManualPane();
+    private final Pane content = new ManualPane();
     private final Rectangle clip = new Rectangle();
     private final List<LineNode> lineNodes = new ArrayList<>();
 
@@ -60,8 +60,6 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private double[] lineTops = new double[0];
     private double[] lineHeights = new double[0];
     private double contentTotalHeight;
-    private double lastMeasuredWidth = -1.0;
-    private double lastMeasuredHeight = -1.0;
     private boolean metricsDirty = true;
     private long lastLineTimeMillis = Long.MIN_VALUE;
 
@@ -174,11 +172,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         clip.setWidth(width);
         clip.setHeight(height);
 
-        if (metricsDirty
-                || Double.compare(width, lastMeasuredWidth) != 0
-                || Double.compare(height, lastMeasuredHeight) != 0) {
-            measureLines(width, height);
-        }
+        measureLines(width, height);
 
         content.resizeRelocate(0.0, 0.0, width, contentTotalHeight);
         for (int i = 0; i < lineNodes.size(); i++) {
@@ -326,6 +320,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
         if (metricsDirty || lineTops.length != lineNodes.size()) {
             getSkinnable().requestLayout();
+            updateLastLineTime(newIndex);
             return;
         }
 
@@ -333,6 +328,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (manualBrowsing) {
             double displayedTranslate = displayTranslateY();
             scrollAnim.stop();
+            recoverAnim.stop();
             autoTranslateY.set(target);
             manualOffsetY.set(displayedTranslate - target);
             updateLastLineTime(newIndex);
@@ -394,8 +390,6 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
             y -= spacing;
         }
         contentTotalHeight = y + height * (1.0 - position);
-        lastMeasuredWidth = width;
-        lastMeasuredHeight = height;
         metricsDirty = false;
     }
 
@@ -665,7 +659,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (!getSkinnable().isManualBrowseEnabled()) {
             return;
         }
-        stopAllAnimations();
+        stopManualAnimations();
         dragging = true;
         dragStartY = event.getY();
         dragStartManualOffsetY = manualOffsetY.get();
@@ -676,6 +670,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (!dragging || !getSkinnable().isManualBrowseEnabled()) {
             return;
         }
+        scrollAnim.stop();
         double deltaY = event.getY() - dragStartY;
         if (Math.abs(deltaY) > CLICK_SUPPRESSION_DISTANCE) {
             suppressNextClick = true;
@@ -769,6 +764,15 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
             return min;
         }
         return Math.max(min, Math.min(max, value));
+    }
+
+    // ==================== Manual Pane ====================
+
+    private static final class ManualPane extends Pane {
+
+        @Override
+        protected void layoutChildren() {
+        }
     }
 
     // ==================== Line Node ====================

@@ -400,6 +400,23 @@ public class RXLrcViewTest {
         assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
     }
 
+    @Test
+    public void lineNodesKeepViewportWidthAndWrapLongText() {
+        RXLrcView view = createLaidOutView(wrappingDocument(), Duration.seconds(2.0));
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        Node shortLine = content.getChildren().get(0);
+        Node longLine = content.getChildren().get(1);
+
+        assertEquals(viewport.getLayoutBounds().getWidth(),
+                shortLine.getLayoutBounds().getWidth(), EPSILON);
+        assertEquals(viewport.getLayoutBounds().getWidth(),
+                longLine.getLayoutBounds().getWidth(), EPSILON);
+        assertTrue(longLine.getLayoutBounds().getHeight()
+                > shortLine.getLayoutBounds().getHeight());
+        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+    }
+
     private static RXLrcDocument longDocument() {
         return RXLrcParser.parse("""
                 [00:00.00]Line 1
@@ -420,6 +437,14 @@ public class RXLrcViewTest {
                 [00:04.00]Hook
                 [00:06.00]Bridge
                 [00:08.00]Outro
+                """).document();
+    }
+
+    private static RXLrcDocument wrappingDocument() {
+        return RXLrcParser.parse("""
+                [00:00.00]Short
+                [00:02.00]This is a deliberately long lyric line that should wrap inside the viewport width instead of expanding the line node beyond the viewport.
+                [00:04.00]After
                 """).document();
     }
 
