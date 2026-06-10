@@ -1,51 +1,33 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDigit;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.paint.Color;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 
-import java.util.Random;
-
+/**
+ * Minimal demo for {@link RXDigit}: the full 0–9 set shown side by side, each
+ * glyph tinted with a random dark color from {@link SampleColors} so it reads
+ * clearly on the light background. For the full interactive property panel see
+ * {@code RXDigitShowcase}.
+ */
 public class RXDigitDemo extends Application {
-    private int num = 0;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        BorderPane root = new BorderPane();
-        RXDigit digit = new RXDigit(num);
-        root.setCenter(digit);
-        primaryStage.setScene(new Scene(root, 500, 350));
+        HBox root = new HBox(10);
+        for (int i = 0; i < 10; i++) {
+            RXDigit digit = new RXDigit(i);
+            digit.setLightFill(SampleColors.randomDark());
+            root.getChildren().add(digit);
+        }
+        root.setAlignment(Pos.CENTER);
+        primaryStage.setScene(new Scene(root, 680, 320));
         primaryStage.setTitle("RXDigit Demo");
         primaryStage.show();
-        Random random = new Random();
-        Timeline tl = new Timeline(new KeyFrame(Duration.millis(500), event -> {
-            num++;
-            if(num>9){
-                num=0;
-            }
-            digit.setDigit(num);
-
-            int r =random.nextInt(256);
-            int g =random.nextInt(256);
-            int b =random.nextInt(256);
-            //设置显示的部分的颜色
-            digit.setLightFill(Color.rgb(r,g ,b));
-            //设置隐藏暗淡部分的颜色
-            //digit.setDarkFill(Color.rgb(r, g, b ));
-        }));
-        tl.setDelay(Duration.millis(500));
-        tl.setCycleCount(Animation.INDEFINITE);
-
-        tl.play();
-
-
     }
 
     public static void main(String[] args) {

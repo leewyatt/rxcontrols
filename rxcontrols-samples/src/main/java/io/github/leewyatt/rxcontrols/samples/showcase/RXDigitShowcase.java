@@ -3,10 +3,12 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDigitDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
@@ -178,10 +180,18 @@ public class RXDigitShowcase extends RXShowcaseApplication {
                 hideUnlit.selectedProperty(), unlitPicker.valueProperty()));
         unlitPicker.disableProperty().bind(hideUnlit.selectedProperty());
 
+        Button randomize = new Button("Randomize colors");
+        randomize.setMaxWidth(Double.MAX_VALUE);
+        randomize.setOnAction(event -> {
+            litPicker.setValue(SampleColors.randomDark());
+            unlitPicker.setValue(SampleColors.randomLight());
+        });
+
         return createGrid(
                 row("Lit", litPicker),
                 row("Unlit", unlitPicker),
-                row(hideUnlit));
+                row(hideUnlit),
+                row(randomize));
     }
 
     // ==================== Preview helpers ====================
@@ -193,6 +203,7 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         for (int i = DIGIT_MIN; i <= DIGIT_MAX; i++) {
             RXDigit glyph = new RXDigit(i);
             glyph.setPrefSize(22.0, 44.0);
+            glyph.setLightFill(SampleColors.randomDark());
             strip.getChildren().add(glyph);
         }
         return strip;
