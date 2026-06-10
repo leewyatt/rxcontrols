@@ -332,6 +332,74 @@ public class RXLrcViewTest {
         assertFalse(scroll.isConsumed());
     }
 
+    @Test
+    public void currentLinePositionUsesCenterAnchorAndUpdatesOnNextLayout() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+
+        view.setCurrentLinePosition(0.0);
+        relayout(view);
+        assertCurrentLineCenterAt(view, 0.0);
+
+        view.setCurrentLinePosition(0.5);
+        relayout(view);
+        assertCurrentLineCenterAt(view, 0.5);
+
+        view.setCurrentLinePosition(1.0);
+        relayout(view);
+        assertCurrentLineCenterAt(view, 1.0);
+    }
+
+    @Test
+    public void resizePreservesCurrentLinePositionAnchor() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setCurrentLinePosition(0.5);
+        relayout(view);
+        assertCurrentLineCenterAt(view, 0.5);
+
+        resizeRoot(view, 260.0, 260.0);
+
+        assertCurrentLineCenterAt(view, 0.5);
+    }
+
+    @Test
+    public void lineSpacingChangeReanchorsCurrentLine() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+
+        view.setLineSpacing(22.0);
+        relayout(view);
+
+        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+    }
+
+    @Test
+    public void currentLineScaleChangeAppliesWithoutLayoutMetricChange() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        Node currentLine = currentLineNode(view);
+
+        view.setCurrentLineScale(1.25);
+
+        assertEquals(1.25, currentLine.getScaleX(), EPSILON);
+        assertEquals(1.25, currentLine.getScaleY(), EPSILON);
+    }
+
+    @Test
+    public void documentReplacementClearsManualBrowseOffset() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setBrowseRecoverDelay(Duration.UNKNOWN);
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        double before = content.getTranslateY();
+
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_PRESSED, 80.0));
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_DRAGGED, 45.0));
+        assertTrue(Math.abs(content.getTranslateY() - before) > EPSILON);
+
+        view.setDocument(alternateDocument());
+        relayout(view);
+
+        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+    }
+
     private static RXLrcDocument longDocument() {
         return RXLrcParser.parse("""
                 [00:00.00]Line 1
@@ -342,6 +410,16 @@ public class RXLrcViewTest {
                 [00:10.00]Line 6
                 [00:12.00]Line 7
                 [00:14.00]Line 8
+                """).document();
+    }
+
+    private static RXLrcDocument alternateDocument() {
+        return RXLrcParser.parse("""
+                [00:00.00]Intro
+                [00:02.00]Verse
+                [00:04.00]Hook
+                [00:06.00]Bridge
+                [00:08.00]Outro
                 """).document();
     }
 
@@ -372,6 +450,34 @@ public class RXLrcViewTest {
         Node placeholder = view.lookup(".placeholder");
         assertNotNull(placeholder);
         return placeholder;
+    }
+
+    private static Node currentLineNode(RXLrcView view) {
+        Pane content = content(view);
+        int index = view.getCurrentLineIndex();
+        assertTrue(index >= 0 && index < content.getChildren().size());
+        return content.getChildren().get(index);
+    }
+
+    private static void assertCurrentLineCenterAt(RXLrcView view, double ratio) {
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        Node line = currentLineNode(view);
+        double centerY = content.getTranslateY()
+                + line.getLayoutY()
+                + line.getLayoutBounds().getHeight() / 2.0;
+        double expectedY = viewport.getLayoutBounds().getHeight() * ratio;
+        assertEquals(expectedY, centerY, 0.75);
+    }
+
+    private static void relayout(RXLrcView view) {
+        view.getScene().getRoot().applyCss();
+        view.getScene().getRoot().layout();
+    }
+
+    private static void resizeRoot(RXLrcView view, double width, double height) {
+        view.getScene().getRoot().resize(width, height);
+        relayout(view);
     }
 
     private static MouseEvent mouseEvent(EventType<MouseEvent> eventType, double y) {

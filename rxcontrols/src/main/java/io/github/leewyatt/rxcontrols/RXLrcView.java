@@ -336,7 +336,11 @@ public class RXLrcView extends Control {
                     this, "currentLinePosition", DEFAULT_CURRENT_LINE_POSITION);
 
     /**
-     * Vertical anchor position for the current line, expressed as a viewport ratio.
+     * Vertical anchor position for the current line center, expressed as a viewport ratio.
+     *
+     * <p>A value of {@code 0.0} places the current line center at the top edge;
+     * {@code 0.5} centers it; {@code 1.0} places the center at the bottom edge.
+     * At {@code 0.0} or {@code 1.0}, part of the current line may be clipped.</p>
      *
      * @return the current line position property
      */
@@ -345,7 +349,7 @@ public class RXLrcView extends Control {
     }
 
     /**
-     * Returns the vertical anchor position for the current line.
+     * Returns the vertical anchor position for the current line center.
      *
      * @return the current line position
      */
@@ -354,7 +358,7 @@ public class RXLrcView extends Control {
     }
 
     /**
-     * Sets the vertical anchor position for the current line.
+     * Sets the vertical anchor position for the current line center.
      *
      * @param value the current line position
      */
