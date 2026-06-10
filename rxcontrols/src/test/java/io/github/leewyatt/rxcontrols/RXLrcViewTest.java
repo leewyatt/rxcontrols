@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -417,6 +418,27 @@ public class RXLrcViewTest {
         assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
     }
 
+    @Test
+    public void recoverAnimationContinuesAfterCurrentLineChange() throws InterruptedException {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.millis(80.0));
+        view.setBrowseRecoverDelay(Duration.ZERO);
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        double before = content.getTranslateY();
+
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_PRESSED, 80.0));
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_DRAGGED, 45.0));
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_RELEASED, 45.0));
+        assertTrue(Math.abs(content.getTranslateY() - before) > EPSILON);
+
+        view.setCurrentTime(Duration.seconds(8.0));
+        waitForFxMillis(180.0);
+
+        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+    }
+
     private static RXLrcDocument longDocument() {
         return RXLrcParser.parse("""
                 [00:00.00]Line 1
@@ -503,6 +525,18 @@ public class RXLrcViewTest {
     private static void resizeRoot(RXLrcView view, double width, double height) {
         view.getScene().getRoot().resize(width, height);
         relayout(view);
+    }
+
+    private static void waitForFxMillis(double millis) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(3, TimeUnit.SECONDS)) {
+            throw new AssertionError("Timed out waiting for JavaFX pulse");
+        }
     }
 
     private static MouseEvent mouseEvent(EventType<MouseEvent> eventType, double y) {

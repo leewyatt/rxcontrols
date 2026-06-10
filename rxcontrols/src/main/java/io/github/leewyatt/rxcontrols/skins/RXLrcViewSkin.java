@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
+import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -327,10 +328,18 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         double target = targetTranslateY(newIndex, viewport.getHeight());
         if (manualBrowsing) {
             double displayedTranslate = displayTranslateY();
+            boolean reboundRunning = reboundAnim.getStatus() == Animation.Status.RUNNING;
+            boolean recoverRunning = recoverAnim.getStatus() == Animation.Status.RUNNING;
             scrollAnim.stop();
+            reboundAnim.stop();
             recoverAnim.stop();
             autoTranslateY.set(target);
             manualOffsetY.set(displayedTranslate - target);
+            if (reboundRunning) {
+                startReboundThenRecover();
+            } else if (recoverRunning) {
+                startRecoverAnimation();
+            }
             updateLastLineTime(newIndex);
             return;
         }
