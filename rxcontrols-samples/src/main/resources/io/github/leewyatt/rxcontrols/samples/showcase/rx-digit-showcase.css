@@ -1,0 +1,21 @@
+.live-preview {
+    -fx-alignment: center;
+}
+
+/* Dashed border marks the node box so the contain-fit letterbox margins are
+   visible when the box goes off the intrinsic 1:2 ratio. */
+.live-digit {
+    -fx-border-color: #c7ccd6;
+    -fx-border-width: 1;
+    -fx-border-style: dashed;
+    -fx-background-color: #fafbfd;
+}
+
+.live-preview .caption {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.glyph-strip {
+    -fx-padding: 12px 0 0 0;
+}
