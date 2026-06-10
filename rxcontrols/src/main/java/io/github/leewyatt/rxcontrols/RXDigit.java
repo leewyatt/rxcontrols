@@ -23,8 +23,8 @@ import java.util.List;
 
 /**
  * A single seven-segment numeric glyph. Renders one digit (0–9) as seven
- * beveled segments; lit segments use {@link #lightFillProperty() lightFill} and
- * unlit segments use {@link #darkFillProperty() darkFill}, giving the classic
+ * beveled segments; lit segments use {@link #litFillProperty() litFill} and
+ * unlit segments use {@link #unlitFillProperty() unlitFill}, giving the classic
  * LED/LCD readout look. The control is purely decorative — the displayed value
  * is driven by application code (for example a clock that calls
  * {@link #setDigit(int)} every second).
@@ -56,12 +56,12 @@ public class RXDigit extends Control {
     /**
      * Default fill for lit segments.
      */
-    public static final Paint DEFAULT_LIGHT_FILL = Color.BLACK;
+    public static final Paint DEFAULT_LIT_FILL = Color.BLACK;
 
     /**
      * Default fill for unlit segments.
      */
-    public static final Paint DEFAULT_DARK_FILL = Color.web("#dddddd");
+    public static final Paint DEFAULT_UNLIT_FILL = Color.web("#dddddd");
 
     // ==================== Constructors ====================
 
@@ -124,83 +124,83 @@ public class RXDigit extends Control {
         digit.set(value);
     }
 
-    // ==================== Light Fill ====================
+    // ==================== Lit Fill ====================
 
-    private final ObjectProperty<Paint> lightFill =
-            new SimpleStyleableObjectProperty<>(StyleableProperties.LIGHT_FILL, this, "lightFill", DEFAULT_LIGHT_FILL);
+    private final ObjectProperty<Paint> litFill =
+            new SimpleStyleableObjectProperty<>(StyleableProperties.LIT_FILL, this, "litFill", DEFAULT_LIT_FILL);
 
     /**
-     * Fill applied to lit segments. Initial value is {@link #DEFAULT_LIGHT_FILL};
+     * Fill applied to lit segments. Initial value is {@link #DEFAULT_LIT_FILL};
      * setting {@code null} renders the lit segments with no fill (transparent)
      * per the JavaFX {@code Shape.setFill} convention.
      *
-     * @return the light-fill property
+     * @return the lit-fill property
      */
-    public final ObjectProperty<Paint> lightFillProperty() {
-        return lightFill;
+    public final ObjectProperty<Paint> litFillProperty() {
+        return litFill;
     }
 
-    public final Paint getLightFill() {
-        return lightFill.get();
+    public final Paint getLitFill() {
+        return litFill.get();
     }
 
-    public final void setLightFill(Paint value) {
-        lightFill.set(value);
+    public final void setLitFill(Paint value) {
+        litFill.set(value);
     }
 
-    // ==================== Dark Fill ====================
+    // ==================== Unlit Fill ====================
 
-    private final ObjectProperty<Paint> darkFill =
-            new SimpleStyleableObjectProperty<>(StyleableProperties.DARK_FILL, this, "darkFill", DEFAULT_DARK_FILL);
+    private final ObjectProperty<Paint> unlitFill =
+            new SimpleStyleableObjectProperty<>(StyleableProperties.UNLIT_FILL, this, "unlitFill", DEFAULT_UNLIT_FILL);
 
     /**
-     * Fill applied to unlit segments. Initial value is {@link #DEFAULT_DARK_FILL};
+     * Fill applied to unlit segments. Initial value is {@link #DEFAULT_UNLIT_FILL};
      * setting {@code null} renders the unlit segments with no fill (transparent)
      * per the JavaFX {@code Shape.setFill} convention.
      *
-     * @return the dark-fill property
+     * @return the unlit-fill property
      */
-    public final ObjectProperty<Paint> darkFillProperty() {
-        return darkFill;
+    public final ObjectProperty<Paint> unlitFillProperty() {
+        return unlitFill;
     }
 
-    public final Paint getDarkFill() {
-        return darkFill.get();
+    public final Paint getUnlitFill() {
+        return unlitFill.get();
     }
 
-    public final void setDarkFill(Paint value) {
-        darkFill.set(value);
+    public final void setUnlitFill(Paint value) {
+        unlitFill.set(value);
     }
 
     // ==================== CSS Metadata ====================
 
     private static final class StyleableProperties {
 
-        private static final CssMetaData<RXDigit, Paint> LIGHT_FILL =
-                new CssMetaData<>("-rx-light-fill", PaintConverter.getInstance(), DEFAULT_LIGHT_FILL) {
+        private static final CssMetaData<RXDigit, Paint> LIT_FILL =
+                new CssMetaData<>("-rx-lit-fill", PaintConverter.getInstance(), DEFAULT_LIT_FILL) {
                     @Override
                     public boolean isSettable(RXDigit n) {
-                        return !n.lightFill.isBound();
+                        return !n.litFill.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Paint> getStyleableProperty(RXDigit n) {
-                        return (StyleableProperty<Paint>) n.lightFillProperty();
+                        return (StyleableProperty<Paint>) n.litFillProperty();
                     }
                 };
 
-        private static final CssMetaData<RXDigit, Paint> DARK_FILL =
-                new CssMetaData<>("-rx-dark-fill", PaintConverter.getInstance(), DEFAULT_DARK_FILL) {
+        private static final CssMetaData<RXDigit, Paint> UNLIT_FILL =
+                new CssMetaData<>("-rx-unlit-fill", PaintConverter.getInstance(), DEFAULT_UNLIT_FILL) {
                     @Override
                     public boolean isSettable(RXDigit n) {
-                        return !n.darkFill.isBound();
+                        return !n.unlitFill.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Paint> getStyleableProperty(RXDigit n) {
-                        return (StyleableProperty<Paint>) n.darkFillProperty();
+                        return (StyleableProperty<Paint>) n.unlitFillProperty();
                     }
                 };
 
@@ -209,7 +209,7 @@ public class RXDigit extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, LIGHT_FILL, DARK_FILL);
+            Collections.addAll(styleables, LIT_FILL, UNLIT_FILL);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

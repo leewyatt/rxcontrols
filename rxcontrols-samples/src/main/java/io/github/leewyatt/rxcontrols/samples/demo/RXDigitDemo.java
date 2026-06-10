@@ -21,7 +21,7 @@ public class RXDigitDemo extends Application {
         HBox root = new HBox(10);
         for (int i = 0; i < 10; i++) {
             RXDigit digit = new RXDigit(i);
-            digit.setLightFill(SampleColors.randomDark());
+            digit.setLitFill(SampleColors.randomDark());
             root.getChildren().add(digit);
         }
         root.setAlignment(Pos.CENTER);

@@ -77,6 +77,6 @@
             <DropShadow height="32.0" offsetX="2.0" offsetY="2.0" radius="15.5" width="32.0" />
          </effect>
       </BorderPane>
-      <Label layoutX="79.0" layoutY="347.0" text="RXDigit 数字组件. 主要是显示0~9的数字;可以通过修改lightFill 和 darkFill来修改数字的颜色" />
+      <Label layoutX="79.0" layoutY="347.0" text="RXDigit 数字组件. 主要是显示0~9的数字;可以通过修改litFill 和 unlitFill来修改数字的颜色" />
    </children>
 </AnchorPane>

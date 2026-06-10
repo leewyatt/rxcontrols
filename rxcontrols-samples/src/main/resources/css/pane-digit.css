@@ -1,8 +1,8 @@
 
 
 .digit{
-	-rx-light-fill:black;
-	-rx-dark-fill: #9dba9c;
+	-rx-lit-fill:black;
+	-rx-unlit-fill: #9dba9c;
 }
 .planday{
 	-fx-text-fill:rgb(223,255,223);

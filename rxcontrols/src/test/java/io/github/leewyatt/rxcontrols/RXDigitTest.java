@@ -60,14 +60,14 @@ public class RXDigitTest {
 
         assertTrue(digit.getStyleClass().contains("rx-digit"));
         assertEquals(RXDigit.DEFAULT_DIGIT, digit.getDigit());
-        assertSame(RXDigit.DEFAULT_LIGHT_FILL, digit.getLightFill());
-        assertSame(RXDigit.DEFAULT_DARK_FILL, digit.getDarkFill());
+        assertSame(RXDigit.DEFAULT_LIT_FILL, digit.getLitFill());
+        assertSame(RXDigit.DEFAULT_UNLIT_FILL, digit.getUnlitFill());
 
         Set<String> properties = RXDigit.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
                 .collect(Collectors.toSet());
-        assertTrue(properties.contains("-rx-light-fill"));
-        assertTrue(properties.contains("-rx-dark-fill"));
+        assertTrue(properties.contains("-rx-lit-fill"));
+        assertTrue(properties.contains("-rx-unlit-fill"));
     }
 
     /**
@@ -104,14 +104,14 @@ public class RXDigitTest {
     }
 
     /**
-     * Verifies a null lightFill propagates to the segment fill (transparent),
+     * Verifies a null litFill propagates to the segment fill (transparent),
      * not replaced by a default.
      */
     @Test
-    public void nullLightFillRendersTransparent() {
+    public void nullLitFillRendersTransparent() {
         RXDigit digit = withSkin();
         digit.setDigit(8); // all segments lit
-        digit.setLightFill(null);
+        digit.setLitFill(null);
         layout(digit, 50.0, 100.0);
 
         for (Polygon segment : segments(digit)) {
@@ -210,7 +210,7 @@ public class RXDigitTest {
 
         digit.getSkin().dispose();
 
-        digit.setLightFill(Color.RED);
+        digit.setLitFill(Color.RED);
         assertSame(before, captured.get(0).getFill());
     }
 

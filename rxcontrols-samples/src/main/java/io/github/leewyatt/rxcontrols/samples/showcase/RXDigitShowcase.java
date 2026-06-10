@@ -165,17 +165,17 @@ public class RXDigitShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        ColorPicker litPicker = new ColorPicker((Color) RXDigit.DEFAULT_LIGHT_FILL);
+        ColorPicker litPicker = new ColorPicker((Color) RXDigit.DEFAULT_LIT_FILL);
         litPicker.setMaxWidth(Double.MAX_VALUE);
-        liveDigit.lightFillProperty().bind(litPicker.valueProperty());
+        liveDigit.litFillProperty().bind(litPicker.valueProperty());
 
-        ColorPicker unlitPicker = new ColorPicker((Color) RXDigit.DEFAULT_DARK_FILL);
+        ColorPicker unlitPicker = new ColorPicker((Color) RXDigit.DEFAULT_UNLIT_FILL);
         unlitPicker.setMaxWidth(Double.MAX_VALUE);
 
         CheckBox hideUnlit = new CheckBox("Hide unlit segments");
-        // Demonstrates the B1 null contract: a null darkFill renders the unlit
+        // Demonstrates the B1 null contract: a null unlitFill renders the unlit
         // segments transparent (the classic single-color LED look).
-        liveDigit.darkFillProperty().bind(Bindings.createObjectBinding(
+        liveDigit.unlitFillProperty().bind(Bindings.createObjectBinding(
                 () -> hideUnlit.isSelected() ? null : unlitPicker.getValue(),
                 hideUnlit.selectedProperty(), unlitPicker.valueProperty()));
         unlitPicker.disableProperty().bind(hideUnlit.selectedProperty());
@@ -203,7 +203,7 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         for (int i = DIGIT_MIN; i <= DIGIT_MAX; i++) {
             RXDigit glyph = new RXDigit(i);
             glyph.setPrefSize(22.0, 44.0);
-            glyph.setLightFill(SampleColors.randomDark());
+            glyph.setLitFill(SampleColors.randomDark());
             strip.getChildren().add(glyph);
         }
         return strip;

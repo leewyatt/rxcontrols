@@ -13,7 +13,7 @@ import javafx.scene.transform.Translate;
  * segments built once from a {@code 27 x 54} design grid; a single uniform
  * transform scales the glyph contain-fit into the content box. The displayed
  * value and segment colors are resolved in Java — changing {@code digit},
- * {@code lightFill}, or {@code darkFill} only repaints fills and never relayouts.
+ * {@code litFill}, or {@code unlitFill} only repaints fills and never relayouts.
  */
 public class RXDigitSkin extends RXSkinBase<RXDigit> {
 
@@ -104,8 +104,8 @@ public class RXDigitSkin extends RXSkinBase<RXDigit> {
         updateSegmentFills();
 
         disposer.registerListener(control.digitProperty(), this::updateSegmentFills);
-        disposer.registerListener(control.lightFillProperty(), this::updateSegmentFills);
-        disposer.registerListener(control.darkFillProperty(), this::updateSegmentFills);
+        disposer.registerListener(control.litFillProperty(), this::updateSegmentFills);
+        disposer.registerListener(control.unlitFillProperty(), this::updateSegmentFills);
     }
 
     // ==================== Segments ====================
@@ -122,10 +122,10 @@ public class RXDigitSkin extends RXSkinBase<RXDigit> {
 
     private void updateSegmentFills() {
         int d = RXMath.clamp(getSkinnable().getDigit(), MIN_DIGIT, MAX_DIGIT);
-        Paint light = getSkinnable().getLightFill();
-        Paint dark = getSkinnable().getDarkFill();
+        Paint lit = getSkinnable().getLitFill();
+        Paint unlit = getSkinnable().getUnlitFill();
         for (int i = 0; i < SEGMENT_COUNT; i++) {
-            segments[i].setFill(SEGMENTS_BY_DIGIT[d][i] ? light : dark);
+            segments[i].setFill(SEGMENTS_BY_DIGIT[d][i] ? lit : unlit);
         }
     }
 
