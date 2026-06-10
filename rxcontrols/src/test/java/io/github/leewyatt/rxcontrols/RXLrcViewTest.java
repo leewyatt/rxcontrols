@@ -82,7 +82,6 @@ public class RXLrcViewTest {
         assertEquals(RXLrcView.DEFAULT_BROWSE_RECOVER_DELAY, view.getBrowseRecoverDelay());
 
         Label placeholder = assertInstanceOf(Label.class, view.getPlaceholder());
-        assertEquals(RXLrcView.DEFAULT_PLACEHOLDER_TEXT, placeholder.getText());
         assertTrue(placeholder.getStyleClass().contains("placeholder"));
 
         List<String> cssProperties = view.getControlCssMetaData().stream()

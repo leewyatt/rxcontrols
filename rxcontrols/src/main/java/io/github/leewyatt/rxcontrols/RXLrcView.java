@@ -51,11 +51,6 @@ public class RXLrcView extends Control {
     public static final String DEFAULT_STYLE_CLASS = "rx-lrc-view";
 
     /**
-     * Default placeholder text.
-     */
-    public static final String DEFAULT_PLACEHOLDER_TEXT = "No lyrics available";
-
-    /**
      * Default scroll animation duration.
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(300.0);
@@ -648,7 +643,7 @@ public class RXLrcView extends Control {
     }
 
     private static Node createDefaultPlaceholder() {
-        Label label = new Label(DEFAULT_PLACEHOLDER_TEXT);
+        Label label = new Label("No lyrics available");
         label.getStyleClass().add("placeholder");
         return label;
     }
