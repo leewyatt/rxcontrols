@@ -587,7 +587,10 @@ pagination-control — StackPane <br>
 <p class="fxClass">Style class: rx-digit</p>
 <p>The control has all the properties of Control;</p>
 <h4>Substructure</h4>
-digit-shape — Group
+.segment — Polygon (seven; each also carries one position class:
+top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
+
+<p>Segment fills are driven by the control-level <code>-rx-lit-fill</code> / <code>-rx-unlit-fill</code> properties below; the <code>.segment</code> classes are for non-fill styling (effects, stroke, opacity).</p>
 
 <table>
     <thead>
@@ -599,13 +602,13 @@ digit-shape — Group
     </thead>
     <tbody>
     <tr>
-        <td>-rx-light-fill</td>
-        <td>Paint</td>
+        <td>-rx-lit-fill</td>
+        <td>Paint (fill for lit segments)</td>
         <td>black</td>
     </tr>
     <tr>
-        <td>-rx-dark-fill</td>
-        <td>Paint</td>
+        <td>-rx-unlit-fill</td>
+        <td>Paint (fill for unlit segments)</td>
         <td>#dddddd</td>
     </tr>
     </tbody>
