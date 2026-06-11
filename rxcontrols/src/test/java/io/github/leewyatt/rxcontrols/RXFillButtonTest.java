@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.application.Platform;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -13,6 +14,13 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -191,6 +199,47 @@ public class RXFillButtonTest {
             assertEquals(50.0, circle.getCenterX(), EPSILON);
             assertEquals(20.0, circle.getCenterY(), EPSILON);
             assertEquals(Math.hypot(100.0, 40.0) / 2.0, circle.getRadius(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies the fill stays inside a real border by default and explicit
+     * {@code fillInsets} replace that behavior, including negative bleed.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void fillStaysInsideBorderAndFillInsetsOverride() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            button.setAnimationDuration(Duration.ZERO);
+            button.setBackground(new Background(new BackgroundFill(
+                    Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+            button.setBorder(new Border(new BorderStroke(Color.RED,
+                    BorderStrokeStyle.SOLID, new CornerRadii(8.0), new BorderWidths(2.0))));
+            layout(button, 100.0, 40.0);
+
+            Pane content = fillContent(button);
+            assertEquals(2.0, content.getLayoutX(), EPSILON);
+            assertEquals(96.0, content.getWidth(), EPSILON);
+            Region layerClip = (Region) fillLayer(button).getClip();
+            assertEquals(new Insets(2.0),
+                    layerClip.getBackground().getFills().get(0).getInsets());
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+
+            assertEquals(96.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
+
+            button.setFillInsets(new Insets(-3.0));
+            layout(button, 100.0, 40.0);
+
+            assertEquals(-3.0, content.getLayoutX(), EPSILON);
+            assertEquals(106.0, content.getWidth(), EPSILON);
+            assertEquals(106.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
+            layerClip = (Region) fillLayer(button).getClip();
+            assertEquals(new Insets(-3.0),
+                    layerClip.getBackground().getFills().get(0).getInsets());
+            assertEquals(-3.0, hoverTextLayer(button).getClip().getTranslateX(), EPSILON);
         });
     }
 

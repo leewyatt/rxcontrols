@@ -14,6 +14,10 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Border;
+import javafx.scene.layout.BorderStroke;
+import javafx.scene.layout.BorderStrokeStyle;
+import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -256,6 +260,25 @@ public class RXRipplePaneTest {
         assertNull(clip.getShape());
         assertEquals(new CornerRadii(8.0),
                 clip.getBackground().getFills().get(0).getRadii());
+    }
+
+    /**
+     * Verifies the bounded clip stays inside a real border: the mirrored
+     * geometry is inset by the border widths.
+     */
+    @Test
+    public void clipStaysInsideRealBorder() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+        pane.setBorder(new Border(new BorderStroke(Color.RED,
+                BorderStrokeStyle.SOLID, new CornerRadii(8.0), new BorderWidths(2.0))));
+
+        layout(pane, 100.0, 50.0);
+
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertEquals(new Insets(2.0),
+                clip.getBackground().getFills().get(0).getInsets());
     }
 
     /**

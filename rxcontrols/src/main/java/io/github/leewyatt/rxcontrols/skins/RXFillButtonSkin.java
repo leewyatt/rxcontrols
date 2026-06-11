@@ -14,6 +14,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
@@ -137,6 +138,8 @@ public class RXFillButtonSkin extends RXButtonSkin {
                 snapTo(isTriggerActive());
             }
         });
+        // Border width changes relayout via the insets chain on their own.
+        fillDisposer.registerListener(button.fillInsetsProperty(), button::requestLayout);
 
         rebuildTimeline();
         if (isTriggerActive()) {
@@ -160,12 +163,19 @@ public class RXFillButtonSkin extends RXButtonSkin {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         super.layoutChildren(x, y, w, h);
-        double width = getSkinnable().getWidth();
-        double height = getSkinnable().getHeight();
+        RXFillButton button = fillButton();
+        double width = button.getWidth();
+        double height = button.getHeight();
+        Insets fillInsets = button.getFillInsets();
+        Insets effective = fillInsets != null
+                ? fillInsets
+                : BoundedClipSupport.borderInsetsOf(button);
+        double areaW = Math.max(0.0, width - effective.getLeft() - effective.getRight());
+        double areaH = Math.max(0.0, height - effective.getTop() - effective.getBottom());
         fillLayer.resizeRelocate(0.0, 0.0, width, height);
-        boundedClip.updateClipFor(getSkinnable(), width, height);
-        fillContent.resizeRelocate(0.0, 0.0, width, height);
-        fillRegion.resizeRelocate(0.0, 0.0, width, height);
+        boundedClip.updateClipFor(button, width, height, fillInsets);
+        fillContent.resizeRelocate(effective.getLeft(), effective.getTop(), areaW, areaH);
+        fillRegion.resizeRelocate(0.0, 0.0, areaW, areaH);
         hoverTextLayer.resizeRelocate(0.0, 0.0, width, height);
         hoverLabel.resizeRelocate(x, y, w, h);
         updateFillGeometry();
@@ -224,10 +234,12 @@ public class RXFillButtonSkin extends RXButtonSkin {
     }
 
     private void updateFillGeometry() {
-        double width = fillLayer.getWidth();
-        double height = fillLayer.getHeight();
-        if (width <= 0.0 || height <= 0.0
-                || !Double.isFinite(width) || !Double.isFinite(height)) {
+        // The fill area is the (possibly inset) fillContent box, sized by
+        // layoutChildren from fillInsets or the host border.
+        double areaW = fillContent.getWidth();
+        double areaH = fillContent.getHeight();
+        if (areaW <= 0.0 || areaH <= 0.0
+                || !Double.isFinite(areaW) || !Double.isFinite(areaH)) {
             appliedAnimation = null;
             fillClip = null;
             textClip = null;
@@ -244,8 +256,12 @@ public class RXFillButtonSkin extends RXButtonSkin {
             hoverTextLayer.setClip(textClip);
         }
         double progress = RXMath.clamp0To1(fillProgress.get());
-        animation.update(fillClip, progress, width, height);
-        animation.update(textClip, progress, width, height);
+        animation.update(fillClip, progress, areaW, areaH);
+        // The text layer covers the full bounds; shift its clip so the reveal
+        // boundary matches the fill area.
+        textClip.setTranslateX(fillContent.getLayoutX());
+        textClip.setTranslateY(fillContent.getLayoutY());
+        animation.update(textClip, progress, areaW, areaH);
     }
 
     // ==================== Trigger State ====================

@@ -12,7 +12,9 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
+import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.PaintConverter;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
@@ -307,6 +309,61 @@ public class RXFillButton extends RXButton {
         hoverTextFill.set(value);
     }
 
+    // ==================== Fill Insets ====================
+
+    private final ObjectProperty<Insets> fillInsets =
+            new StyleableObjectProperty<>(null) {
+                @Override
+                public CssMetaData<? extends Styleable, Insets> getCssMetaData() {
+                    return StyleableProperties.FILL_INSETS;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFillButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "fillInsets";
+                }
+            };
+
+    /**
+     * Insets of the fill area measured from the button bounds, mirroring the
+     * {@code -fx-background-insets} convention: zero fills the full bounds
+     * (covering a border), positive values shrink the fill inward, negative
+     * values let it bleed outside the bounds as a pure visual effect that
+     * never affects the button's size. The default {@code null} follows the
+     * inner edge of the button's real border automatically. Faux borders
+     * painted as layered background fills and shape-based buttons cannot be
+     * inset.
+     *
+     * @return the fill insets property
+     */
+    public final ObjectProperty<Insets> fillInsetsProperty() {
+        return fillInsets;
+    }
+
+    /**
+     * Returns the fill insets.
+     *
+     * @return the fill insets, or {@code null} for automatic border following
+     */
+    public final Insets getFillInsets() {
+        return fillInsets.get();
+    }
+
+    /**
+     * Sets the fill insets.
+     *
+     * @param value the fill insets, or {@code null} for automatic border
+     *              following
+     */
+    public final void setFillInsets(Insets value) {
+        fillInsets.set(value);
+    }
+
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
@@ -371,6 +428,21 @@ public class RXFillButton extends RXButton {
                     }
                 };
 
+        private static final CssMetaData<RXFillButton, Insets> FILL_INSETS =
+                new CssMetaData<>("-rx-fill-insets",
+                        InsetsConverter.getInstance(), null) {
+                    @Override
+                    public boolean isSettable(RXFillButton button) {
+                        return !button.fillInsets.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Insets> getStyleableProperty(RXFillButton button) {
+                        return (StyleableProperty<Insets>) button.fillInsetsProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -380,6 +452,7 @@ public class RXFillButton extends RXButton {
             styleables.add(ANIMATION_TRIGGER);
             styleables.add(ANIMATION_DURATION);
             styleables.add(HOVER_TEXT_FILL);
+            styleables.add(FILL_INSETS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

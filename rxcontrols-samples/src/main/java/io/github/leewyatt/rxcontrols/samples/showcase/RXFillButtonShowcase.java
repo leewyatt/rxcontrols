@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.fill.FillAnimZigzag;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
@@ -122,10 +123,20 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
         hoverTextPicker.setMaxWidth(Double.MAX_VALUE);
         hoverTextPicker.setOnAction(event -> button.setHoverTextFill(hoverTextPicker.getValue()));
 
+        CheckBox autoInsetsBox = new CheckBox();
+        autoInsetsBox.setSelected(true);
+        Slider insetsSlider = createSlider(-10.0, 20.0, 0.0);
+        Runnable applyInsets = () -> button.setFillInsets(
+                autoInsetsBox.isSelected() ? null : new Insets(insetsSlider.getValue()));
+        autoInsetsBox.selectedProperty().addListener((obs, oldV, newV) -> applyInsets.run());
+        insetsSlider.valueProperty().addListener((obs, oldV, newV) -> applyInsets.run());
+
         return createGrid(
                 row("Mode", modeBox),
                 row("Fill color", fillPicker),
-                row("Hover text", hoverTextPicker));
+                row("Hover text", hoverTextPicker),
+                row("Auto insets", autoInsetsBox),
+                row("Insets", insetsSlider, createValueLabel(insetsSlider, "%.0f px")));
     }
 
     private Node buildAnimationGrid() {
