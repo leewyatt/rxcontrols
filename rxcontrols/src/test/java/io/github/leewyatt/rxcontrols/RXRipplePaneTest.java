@@ -340,9 +340,11 @@ public class RXRipplePaneTest {
         runOnFx(() -> {
             RXRipplePane pane = new RXRipplePane(new Region());
             pane.setRippleInsets(new Insets(-12.0));
+            // Lay out first, then hover with no further layout pass, matching the
+            // real interaction order: the overlay must keep its expanded bounds.
+            layout(pane, 100.0, 50.0);
             pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
                     MouseButton.NONE, false));
-            layout(pane, 100.0, 50.0);
 
             Region overlay = (Region) rippleLayer(pane).getChildrenUnmodifiable().get(0);
             assertClose(-12.0, overlay.getLayoutX(), "overlay x");

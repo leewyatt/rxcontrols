@@ -154,7 +154,10 @@ public final class RippleLayer extends Region {
         }
         overlayTarget = target;
         if (active && !getChildren().contains(stateOverlay)) {
-            stateOverlay.resizeRelocate(0.0, 0.0, getWidth(), getHeight());
+            // The overlay keeps the bounds set by the last updateClipFor (which
+            // resizes it even while detached), so it stays expanded for any
+            // negative-inset bleed; resizing here would reset that to the plain
+            // layer bounds, and hovering does not trigger a fresh layout pass.
             getChildren().add(0, stateOverlay);
         }
         stop(overlayFade);
