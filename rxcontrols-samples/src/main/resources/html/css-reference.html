@@ -311,11 +311,6 @@ hover-text-layer — Pane (top-most, mirrored caption)<br/><br/>
         <td>#616dff</td>
     </tr>
     <tr>
-        <td>-rx-hover-text-fill</td>
-        <td>Paint</td>
-        <td>white</td>
-    </tr>
-    <tr>
         <td>-rx-fill-animation</td>
         <td>left-to-right, right-to-left,<br/>
             top-to-bottom, bottom-to-top,<br/>
@@ -341,8 +336,17 @@ hover-text-layer — Pane (top-most, mirrored caption)<br/><br/>
         <td>Insets (negative allowed, visual only)</td>
         <td>auto: inner edge of the real border</td>
     </tr>
+    <tr>
+        <td>-rx-fill-radius</td>
+        <td>Number (uniform radius; negative = auto)</td>
+        <td>auto: mirror the painted background geometry</td>
+    </tr>
     </tbody>
 </table>
+<p>Pseudo class: <code>:filling</code> — active while any fill is visible
+(from the start of the enter sweep until the reverse sweep finishes); use it
+to restyle text, graphics or any sub-structure, e.g.
+<code>.rx-fill-button:filling { -fx-text-fill: white; }</code></p>
 
 <h3 id="rxHighlightText">RXHighlightText</h3>
 <p class="fxClass">Style class: rx-highlight-text</p>

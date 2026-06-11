@@ -5,12 +5,12 @@ import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
@@ -27,7 +27,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -84,7 +83,9 @@ public class RXFillButtonTest {
         assertSame(FillAnimation.LEFT_TO_RIGHT, RXFillButton.DEFAULT_FILL_ANIMATION);
         assertSame(RXFillButton.DEFAULT_ANIMATION_TRIGGER, button.getAnimationTrigger());
         assertEquals(RXFillButton.DEFAULT_ANIMATION_DURATION, button.getAnimationDuration());
-        assertSame(RXFillButton.DEFAULT_HOVER_TEXT_FILL, button.getHoverTextFill());
+        assertNull(button.getFillInsets());
+        assertFalse(button.getPseudoClassStates()
+                .contains(PseudoClass.getPseudoClass("filling")));
 
         Set<String> properties = RXFillButton.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
@@ -92,31 +93,28 @@ public class RXFillButtonTest {
         assertTrue(properties.contains("-rx-fill-animation"));
         assertTrue(properties.contains("-rx-animation-trigger"));
         assertTrue(properties.contains("-rx-animation-duration"));
-        assertTrue(properties.contains("-rx-hover-text-fill"));
+        assertTrue(properties.contains("-rx-fill-insets"));
         assertTrue(properties.contains("-rx-ripple-fill"));
     }
 
     /**
-     * Verifies the paint order — fill layer at the bottom, ripple above it,
-     * mirrored caption layer above the label children — and that it survives
-     * the children reset performed by {@code LabeledSkinBase.updateChildren()}.
+     * Verifies the fill layer sits below the ripple layer and survives the
+     * children reset performed by {@code LabeledSkinBase.updateChildren()}.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void fillLayerBelowRippleAndHoverTextLayerOnTop() throws Exception {
+    public void fillLayerStaysBelowRippleLayer() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
 
             assertTrue(fillLayer(button).getStyleClass().contains("fill-layer"));
             assertTrue(button.getChildrenUnmodifiable().get(1) instanceof RippleLayer);
-            assertTrue(lastChild(button).getStyleClass().contains("hover-text-layer"));
 
             button.setGraphic(new Region());
 
             assertTrue(fillLayer(button).getStyleClass().contains("fill-layer"));
             assertTrue(button.getChildrenUnmodifiable().get(1) instanceof RippleLayer);
-            assertTrue(lastChild(button).getStyleClass().contains("hover-text-layer"));
         });
     }
 
@@ -134,6 +132,7 @@ public class RXFillButtonTest {
             layout(button, 100.0, 40.0);
 
             assertFalse(fillLayer(button).isVisible());
+            assertFalse(isFilling(button));
 
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
@@ -141,7 +140,7 @@ public class RXFillButtonTest {
             assertEquals(100.0, clip.getWidth(), EPSILON);
             assertEquals(40.0, clip.getHeight(), EPSILON);
             assertTrue(fillLayer(button).isVisible());
-            assertTrue(hoverTextLayer(button).isVisible());
+            assertTrue(isFilling(button));
 
             layout(button, 200.0, 40.0);
 
@@ -151,7 +150,7 @@ public class RXFillButtonTest {
 
             assertEquals(0.0, clip.getWidth(), EPSILON);
             assertFalse(fillLayer(button).isVisible());
-            assertFalse(hoverTextLayer(button).isVisible());
+            assertFalse(isFilling(button));
         });
     }
 
@@ -246,7 +245,37 @@ public class RXFillButtonTest {
             layerClip = (Region) fillLayer(button).getClip();
             assertEquals(new Insets(-3.0),
                     layerClip.getBackground().getFills().get(0).getInsets());
-            assertEquals(-3.0, hoverTextLayer(button).getClip().getTranslateX(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies auto mode excludes negative-inset decoration layers (focus
+     * rings) from the mirror, and an explicit {@code fillRadius} turns the
+     * clip into a single rounded rectangle ignoring the background layers.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void fillRadiusOverridesMirroredGeometry() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            button.setBackground(new Background(
+                    new BackgroundFill(Color.BLUE, new CornerRadii(4.0), new Insets(-1.4)),
+                    new BackgroundFill(Color.WHITE, new CornerRadii(2.0), new Insets(1.0))));
+            layout(button, 100.0, 40.0);
+
+            Region layerClip = (Region) fillLayer(button).getClip();
+            assertEquals(1, layerClip.getBackground().getFills().size());
+            assertEquals(new CornerRadii(2.0),
+                    layerClip.getBackground().getFills().get(0).getRadii());
+
+            button.setFillRadius(10.0);
+            layout(button, 100.0, 40.0);
+
+            layerClip = (Region) fillLayer(button).getClip();
+            assertEquals(1, layerClip.getBackground().getFills().size());
+            assertEquals(new CornerRadii(10.0),
+                    layerClip.getBackground().getFills().get(0).getRadii());
         });
     }
 
@@ -289,10 +318,7 @@ public class RXFillButtonTest {
             });
 
             Rectangle fillClip = (Rectangle) fillContent(button).getClip();
-            Rectangle textClip = (Rectangle) hoverTextLayer(button).getClip();
-            assertNotSame(fillClip, textClip);
             assertEquals(50.0, fillClip.getWidth(), EPSILON);
-            assertEquals(50.0, textClip.getWidth(), EPSILON);
         });
     }
 
@@ -336,41 +362,6 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies the mirrored caption follows the control's text properties and
-     * mirrors the graphic as a detached size-following placeholder.
-     *
-     * @throws Exception if the FX-thread assertion fails
-     */
-    @Test
-    public void mirrorCaptionFollowsControl() throws Exception {
-        runOnFx(() -> {
-            RXFillButton button = withSkin(new RXFillButton("Fill"));
-            Label mirror = hoverLabel(button);
-
-            button.setText("Changed");
-            button.setFont(Font.font(20.0));
-            button.setHoverTextFill(Color.RED);
-
-            assertEquals("Changed", mirror.getText());
-            assertEquals(20.0, mirror.getFont().getSize(), EPSILON);
-            assertEquals(Color.RED, mirror.getTextFill());
-
-            Rectangle graphic = new Rectangle(30.0, 20.0);
-            button.setGraphic(graphic);
-
-            Node placeholder = mirror.getGraphic();
-            assertNotSame(graphic, placeholder);
-            assertTrue(placeholder instanceof Region);
-            assertEquals(30.0, ((Region) placeholder).getPrefWidth(), EPSILON);
-            assertEquals(20.0, ((Region) placeholder).getPrefHeight(), EPSILON);
-
-            button.setGraphic(null);
-
-            assertNull(mirror.getGraphic());
-        });
-    }
-
-    /**
      * Verifies the CSS properties reach the fill properties through a style
      * application pass.
      *
@@ -385,14 +376,16 @@ public class RXFillButtonTest {
             button.setStyle("-rx-fill-animation: circle;"
                     + " -rx-animation-trigger: pressed;"
                     + " -rx-animation-duration: 80ms;"
-                    + " -rx-hover-text-fill: red;");
+                    + " -rx-fill-insets: 3;"
+                    + " -rx-fill-radius: 10;");
 
             root.applyCss();
 
             assertSame(FillAnimation.CIRCLE, button.getFillAnimation());
             assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
-            assertEquals(Color.RED, button.getHoverTextFill());
+            assertEquals(new Insets(3.0), button.getFillInsets());
+            assertEquals(10.0, button.getFillRadius(), EPSILON);
         });
     }
 
@@ -420,9 +413,9 @@ public class RXFillButtonTest {
 
             assertNull(layer.getClip());
             assertNull(content.getClip());
+            assertFalse(isFilling(button));
             assertTrue(button.getChildrenUnmodifiable().stream()
-                    .noneMatch(child -> child.getStyleClass().contains("fill-layer")
-                            || child.getStyleClass().contains("hover-text-layer")));
+                    .noneMatch(child -> child.getStyleClass().contains("fill-layer")));
 
             button.fireEvent(mouse(button, MouseEvent.MOUSE_EXITED, -5.0, 10.0, false));
 
@@ -441,24 +434,13 @@ public class RXFillButtonTest {
         return (Pane) button.getChildrenUnmodifiable().get(0);
     }
 
-    private static Node lastChild(RXFillButton button) {
-        return button.getChildrenUnmodifiable()
-                .get(button.getChildrenUnmodifiable().size() - 1);
-    }
-
     private static Pane fillContent(RXFillButton button) {
         return (Pane) fillLayer(button).getChildren().get(0);
     }
 
-    private static Pane hoverTextLayer(RXFillButton button) {
-        return (Pane) button.getChildrenUnmodifiable().stream()
-                .filter(child -> child.getStyleClass().contains("hover-text-layer"))
-                .findFirst()
-                .orElseThrow();
-    }
-
-    private static Label hoverLabel(RXFillButton button) {
-        return (Label) hoverTextLayer(button).getChildren().get(0);
+    private static boolean isFilling(RXFillButton button) {
+        return button.getPseudoClassStates()
+                .contains(PseudoClass.getPseudoClass("filling"));
     }
 
     private static MouseEvent mouse(Node target,

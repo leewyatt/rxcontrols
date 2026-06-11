@@ -5,20 +5,20 @@ import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.beans.NamedArg;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
+import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
-import javafx.css.converter.PaintConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ import java.util.List;
 
 /**
  * Button that fills its background with an animated sweep while hovered or
- * pressed, recoloring the caption as the fill boundary passes over it.
+ * pressed.
  *
  * <p>The fill is a decoration layer between the button background and the
  * label, clipped to the button's painted geometry; the sweep geometry is
@@ -39,6 +39,12 @@ import java.util.List;
  * state off reverses the sweep from its current progress, with duration
  * proportional to the remaining distance. The ripple feedback inherited from
  * {@link RXButton} stays available and composes with the fill.</p>
+ *
+ * <p>While any fill is visible the {@code :filling} pseudo-class is active,
+ * letting stylesheets restyle the filled state — for example
+ * {@code .rx-fill-button:filling { -fx-text-fill: white; }} or recoloring a
+ * shape-based graphic. It activates as soon as the fill starts sweeping in
+ * and deactivates when the reverse sweep finishes.</p>
  */
 public class RXFillButton extends RXButton {
 
@@ -60,9 +66,10 @@ public class RXFillButton extends RXButton {
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     /**
-     * Default caption fill inside the filled area.
+     * Sentinel for {@link #fillRadiusProperty() fillRadius}: mirror the
+     * button's painted background geometry automatically.
      */
-    public static final Paint DEFAULT_HOVER_TEXT_FILL = Color.WHITE;
+    public static final double USE_AUTO_FILL_RADIUS = -1.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-fill-button";
 
@@ -260,55 +267,6 @@ public class RXFillButton extends RXButton {
         animationDuration.set(value);
     }
 
-    // ==================== Hover Text Fill ====================
-
-    private final ObjectProperty<Paint> hoverTextFill =
-            new StyleableObjectProperty<>(DEFAULT_HOVER_TEXT_FILL) {
-                @Override
-                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
-                    return StyleableProperties.HOVER_TEXT_FILL;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXFillButton.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "hoverTextFill";
-                }
-            };
-
-    /**
-     * Caption fill inside the filled area: the fill boundary recolors the text
-     * as it passes over it. Setting {@code null} renders the mirrored caption
-     * transparent, so the text keeps its normal color.
-     *
-     * @return the hover text fill property
-     */
-    public final ObjectProperty<Paint> hoverTextFillProperty() {
-        return hoverTextFill;
-    }
-
-    /**
-     * Returns the hover text fill.
-     *
-     * @return the hover text fill, or {@code null}
-     */
-    public final Paint getHoverTextFill() {
-        return hoverTextFill.get();
-    }
-
-    /**
-     * Sets the hover text fill.
-     *
-     * @param value the hover text fill, or {@code null} for no recoloring
-     */
-    public final void setHoverTextFill(Paint value) {
-        hoverTextFill.set(value);
-    }
-
     // ==================== Fill Insets ====================
 
     private final ObjectProperty<Insets> fillInsets =
@@ -364,6 +322,60 @@ public class RXFillButton extends RXButton {
         fillInsets.set(value);
     }
 
+    // ==================== Fill Radius ====================
+
+    private final DoubleProperty fillRadius =
+            new StyleableDoubleProperty(USE_AUTO_FILL_RADIUS) {
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.FILL_RADIUS;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFillButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "fillRadius";
+                }
+            };
+
+    /**
+     * Explicit uniform corner radius for the fill area. When zero or
+     * positive, the fill is clipped to a single rounded rectangle with this
+     * radius (and the {@link #fillInsetsProperty() fillInsets} box), ignoring
+     * the host background layers entirely — the escape hatch for stateful
+     * multi-layer backgrounds such as focus rings. Negative values (the
+     * default, {@link #USE_AUTO_FILL_RADIUS}) mirror the button's painted
+     * background geometry instead. Ignored when the button uses a
+     * {@code shape}.
+     *
+     * @return the fill radius property
+     */
+    public final DoubleProperty fillRadiusProperty() {
+        return fillRadius;
+    }
+
+    /**
+     * Returns the fill radius.
+     *
+     * @return the fill radius; negative means automatic mirroring
+     */
+    public final double getFillRadius() {
+        return fillRadius.get();
+    }
+
+    /**
+     * Sets the fill radius.
+     *
+     * @param value the fill radius; negative for automatic mirroring
+     */
+    public final void setFillRadius(double value) {
+        fillRadius.set(value);
+    }
+
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
@@ -413,21 +425,6 @@ public class RXFillButton extends RXButton {
                     }
                 };
 
-        private static final CssMetaData<RXFillButton, Paint> HOVER_TEXT_FILL =
-                new CssMetaData<>("-rx-hover-text-fill",
-                        PaintConverter.getInstance(), DEFAULT_HOVER_TEXT_FILL) {
-                    @Override
-                    public boolean isSettable(RXFillButton button) {
-                        return !button.hoverTextFill.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Paint> getStyleableProperty(RXFillButton button) {
-                        return (StyleableProperty<Paint>) button.hoverTextFillProperty();
-                    }
-                };
-
         private static final CssMetaData<RXFillButton, Insets> FILL_INSETS =
                 new CssMetaData<>("-rx-fill-insets",
                         InsetsConverter.getInstance(), null) {
@@ -443,6 +440,21 @@ public class RXFillButton extends RXButton {
                     }
                 };
 
+        private static final CssMetaData<RXFillButton, Number> FILL_RADIUS =
+                new CssMetaData<>("-rx-fill-radius",
+                        SizeConverter.getInstance(), USE_AUTO_FILL_RADIUS) {
+                    @Override
+                    public boolean isSettable(RXFillButton button) {
+                        return !button.fillRadius.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXFillButton button) {
+                        return (StyleableProperty<Number>) button.fillRadiusProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -451,8 +463,8 @@ public class RXFillButton extends RXButton {
             styleables.add(FILL_ANIMATION);
             styleables.add(ANIMATION_TRIGGER);
             styleables.add(ANIMATION_DURATION);
-            styleables.add(HOVER_TEXT_FILL);
             styleables.add(FILL_INSETS);
+            styleables.add(FILL_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

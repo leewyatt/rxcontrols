@@ -5,10 +5,13 @@ import javafx.scene.Node;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Border;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Shape;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -33,10 +36,14 @@ import java.util.Objects;
  * padding box, not the border ring); callers may override that inset with
  * explicit values, including negative ones for overflow effects. Corner radii
  * are kept as-is when insetting — for usual 1-2px borders the deviation from
- * the true inner edge is invisible. Faux borders painted as layered
- * background fills cannot be told apart from the body and are not excluded;
- * shape-based clips cannot be inset (no curve offsetting) and ignore the
- * inset entirely.</p>
+ * the true inner edge is invisible. Background fills with any negative inset
+ * component are treated as decorations (focus rings, shadow highlights — the
+ * modena focused state paints several) and excluded from the mirror, unless
+ * no fill would remain. Faux borders painted as non-negative background fills
+ * cannot be told apart from the body and are not excluded; shape-based clips
+ * cannot be inset (no curve offsetting) and ignore overrides entirely.
+ * Callers may also bypass the mirror with explicit corner radii, turning the
+ * clip into a single rounded rectangle.</p>
  */
 public final class BoundedClipSupport {
 
@@ -58,6 +65,7 @@ public final class BoundedClipSupport {
     private Shape sourceShape;
     private Background sourceBackground = UNSET_FILL;
     private Insets appliedInsets = Insets.EMPTY;
+    private CornerRadii appliedRadiiOverride;
 
     /**
      * Creates a clip support that installs its clip on the given owner.
@@ -102,6 +110,27 @@ public final class BoundedClipSupport {
      *                      edge of the host's real border
      */
     public void updateClipFor(Region host, double width, double height, Insets insetsOverride) {
+        updateClipFor(host, width, height, insetsOverride, null);
+    }
+
+    /**
+     * Updates the bounded clip from the host's shape or background geometry,
+     * with optional explicit insets and corner radii.
+     *
+     * @param host          the host region providing shape and background
+     *                      geometry
+     * @param width         the local clip width
+     * @param height        the local clip height
+     * @param insetsOverride extra insets applied to the clip geometry
+     *                      measured from the host bounds (may be negative),
+     *                      or {@code null} to follow the inner edge of the
+     *                      host's real border
+     * @param radiiOverride explicit corner radii turning the clip into a
+     *                      single rounded rectangle, or {@code null} to
+     *                      mirror the host background geometry
+     */
+    public void updateClipFor(Region host, double width, double height,
+                              Insets insetsOverride, CornerRadii radiiOverride) {
         if (host == null || width <= 0.0 || height <= 0.0
                 || !Double.isFinite(width) || !Double.isFinite(height)) {
             clearClip();
@@ -127,10 +156,14 @@ public final class BoundedClipSupport {
             }
             Insets extraInsets = insetsOverride != null ? insetsOverride : borderInsetsOf(host);
             Background hostBackground = host.getBackground();
-            if (hostBackground != sourceBackground || !extraInsets.equals(appliedInsets)) {
+            if (hostBackground != sourceBackground || !extraInsets.equals(appliedInsets)
+                    || !Objects.equals(radiiOverride, appliedRadiiOverride)) {
                 sourceBackground = hostBackground;
                 appliedInsets = extraInsets;
-                clipNode.setBackground(geometryOf(hostBackground, extraInsets));
+                appliedRadiiOverride = radiiOverride;
+                clipNode.setBackground(radiiOverride != null
+                        ? new Background(new BackgroundFill(Color.BLACK, radiiOverride, extraInsets))
+                        : geometryOf(hostBackground, extraInsets));
             }
         }
         clipNode.resize(width, height);
@@ -144,6 +177,7 @@ public final class BoundedClipSupport {
         sourceShape = null;
         sourceBackground = UNSET_FILL;
         appliedInsets = Insets.EMPTY;
+        appliedRadiiOverride = null;
         clipNode.setShape(null);
         clipNode.setBackground(null);
         clipNode.resize(0.0, 0.0);
@@ -176,19 +210,36 @@ public final class BoundedClipSupport {
     }
 
     private static Background geometryOf(Background background, Insets extraInsets) {
-        if (background == null || background.getFills().isEmpty()) {
+        List<BackgroundFill> sources =
+                background == null ? List.of() : background.getFills();
+        List<BackgroundFill> bodies = new ArrayList<>(sources.size());
+        for (BackgroundFill fill : sources) {
+            if (!hasNegativeInset(fill.getInsets())) {
+                bodies.add(fill);
+            }
+        }
+        if (bodies.isEmpty()) {
+            // Degrade gracefully when every fill is a decoration.
+            bodies = sources;
+        }
+        if (bodies.isEmpty()) {
             if (Insets.EMPTY.equals(extraInsets)) {
                 return SHAPE_FILL;
             }
             return new Background(new BackgroundFill(Color.BLACK, null, extraInsets));
         }
-        BackgroundFill[] fills = new BackgroundFill[background.getFills().size()];
+        BackgroundFill[] fills = new BackgroundFill[bodies.size()];
         for (int i = 0; i < fills.length; i++) {
-            BackgroundFill fill = background.getFills().get(i);
+            BackgroundFill fill = bodies.get(i);
             fills[i] = new BackgroundFill(Color.BLACK, fill.getRadii(),
                     add(fill.getInsets(), extraInsets));
         }
         return new Background(fills);
+    }
+
+    private static boolean hasNegativeInset(Insets insets) {
+        return insets.getTop() < 0.0 || insets.getRight() < 0.0
+                || insets.getBottom() < 0.0 || insets.getLeft() < 0.0;
     }
 
     private static Insets add(Insets first, Insets second) {

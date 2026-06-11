@@ -16,7 +16,10 @@
     -rx-fill-animation: left-to-right;
     -rx-animation-trigger: hover;
     -rx-animation-duration: 200ms;
-    -rx-hover-text-fill: white;
+}
+
+.rx-fill-button:filling {
+    -fx-text-fill: white;
 }
 
 .rx-fill-button > .fill-layer > .fill-content > .fill-region {

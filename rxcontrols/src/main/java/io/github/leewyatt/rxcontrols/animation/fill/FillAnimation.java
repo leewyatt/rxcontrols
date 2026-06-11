@@ -21,10 +21,10 @@ import java.util.Locale;
 public interface FillAnimation {
 
     /**
-     * Creates a clip node. The skin maintains one clip per revealed layer
-     * (the fill color layer and the mirrored caption layer), so this is
-     * called more than once and each invocation must return a fresh node —
-     * a JavaFX node cannot clip two nodes at the same time.
+     * Creates a clip node. This may be called more than once over a skin's
+     * lifetime (and once per revealed layer if a skin maintains several), so
+     * each invocation must return a fresh node — a JavaFX node cannot clip
+     * two nodes at the same time.
      *
      * @return a fresh clip node
      */

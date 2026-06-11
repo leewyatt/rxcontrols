@@ -10,15 +10,14 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.geometry.Bounds;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -30,32 +29,26 @@ import javafx.util.Duration;
  * <p>A single timeline drives an internal fill progress; the trigger state
  * (hover or pressed) plays it forward or, from the current progress, in
  * reverse, so interrupted sweeps reverse smoothly with proportional duration.
- * Two layers share the progress geometry: the fill layer (below the ripple
- * and label) reveals the fill color bounded to the button's painted geometry,
- * and a top-most text layer reveals a mirrored caption colored with
- * {@code hoverTextFill} above the regular label, so the fill boundary
- * recolors the text as it sweeps over it.</p>
+ * The fill color is revealed by a progress clip and bounded to the button's
+ * painted geometry. While any fill is visible the {@code :filling}
+ * pseudo-class is active on the button, so stylesheets can recolor the text,
+ * graphic or any other sub-structure for the filled state.</p>
  */
 public class RXFillButtonSkin extends RXButtonSkin {
+
+    private static final PseudoClass FILLING_PSEUDO_CLASS = PseudoClass.getPseudoClass("filling");
 
     private final SkinDisposer fillDisposer = new SkinDisposer();
     private final Pane fillLayer = new Pane();
     private final Pane fillContent = new Pane();
     private final Region fillRegion = new Region();
-    private final Pane hoverTextLayer = new Pane();
-    private final Label hoverLabel = new Label();
     private final BoundedClipSupport boundedClip = new BoundedClipSupport(fillLayer);
     private final DoubleProperty fillProgress =
             new SimpleDoubleProperty(this, "fillProgress", 0.0);
-    private final InvalidationListener graphicBoundsListener =
-            observable -> syncGraphicPlaceholder();
 
     private Timeline fillTimeline;
-    private Node observedGraphic;
-    private Region graphicPlaceholder;
     private FillAnimation appliedAnimation;
     private Node fillClip;
-    private Node textClip;
 
     /**
      * Creates the skin and wires the fill decoration layer.
@@ -74,34 +67,6 @@ public class RXFillButtonSkin extends RXButtonSkin {
         fillRegion.setManaged(false);
         fillContent.getChildren().add(fillRegion);
         fillLayer.getChildren().add(fillContent);
-        // The mirrored caption lives in its own top-most layer: it must paint
-        // above the regular label, while the fill color stays below it.
-        hoverTextLayer.getStyleClass().add("hover-text-layer");
-        hoverTextLayer.setManaged(false);
-        hoverTextLayer.setMouseTransparent(true);
-        hoverLabel.setManaged(false);
-        hoverTextLayer.getChildren().add(hoverLabel);
-
-        // ==================== Mirrored caption ====================
-        fillDisposer.registerBinding(hoverLabel.textProperty(), button.textProperty());
-        fillDisposer.registerBinding(hoverLabel.fontProperty(), button.fontProperty());
-        fillDisposer.registerBinding(hoverLabel.alignmentProperty(), button.alignmentProperty());
-        fillDisposer.registerBinding(hoverLabel.contentDisplayProperty(), button.contentDisplayProperty());
-        fillDisposer.registerBinding(hoverLabel.graphicTextGapProperty(), button.graphicTextGapProperty());
-        fillDisposer.registerBinding(hoverLabel.textAlignmentProperty(), button.textAlignmentProperty());
-        fillDisposer.registerBinding(hoverLabel.textOverrunProperty(), button.textOverrunProperty());
-        fillDisposer.registerBinding(hoverLabel.wrapTextProperty(), button.wrapTextProperty());
-        fillDisposer.registerBinding(hoverLabel.underlineProperty(), button.underlineProperty());
-        fillDisposer.registerBinding(hoverLabel.lineSpacingProperty(), button.lineSpacingProperty());
-        fillDisposer.registerBinding(hoverLabel.ellipsisStringProperty(), button.ellipsisStringProperty());
-        fillDisposer.registerBinding(hoverLabel.mnemonicParsingProperty(), button.mnemonicParsingProperty());
-        fillDisposer.registerBinding(hoverLabel.textFillProperty(), button.hoverTextFillProperty());
-
-        // A graphic node cannot live in two scene-graph locations; the mirror
-        // uses a size-following placeholder so the caption layout matches.
-        fillDisposer.registerListener(button.graphicProperty(), this::updateGraphicPlaceholder);
-        fillDisposer.registerDisposeTask(() -> observeGraphic(null));
-        updateGraphicPlaceholder();
 
         // ==================== Progress model ====================
         fillDisposer.registerListener(fillProgress, this::updateFillGeometry);
@@ -140,6 +105,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
         });
         // Border width changes relayout via the insets chain on their own.
         fillDisposer.registerListener(button.fillInsetsProperty(), button::requestLayout);
+        fillDisposer.registerListener(button.fillRadiusProperty(), button::requestLayout);
 
         rebuildTimeline();
         if (isTriggerActive()) {
@@ -156,7 +122,6 @@ public class RXFillButtonSkin extends RXButtonSkin {
         // skin's fields are initialized.
         if (fillLayer != null) {
             getChildren().add(0, fillLayer);
-            getChildren().add(hoverTextLayer);
         }
     }
 
@@ -173,11 +138,9 @@ public class RXFillButtonSkin extends RXButtonSkin {
         double areaW = Math.max(0.0, width - effective.getLeft() - effective.getRight());
         double areaH = Math.max(0.0, height - effective.getTop() - effective.getBottom());
         fillLayer.resizeRelocate(0.0, 0.0, width, height);
-        boundedClip.updateClipFor(button, width, height, fillInsets);
+        boundedClip.updateClipFor(button, width, height, fillInsets, explicitRadii(button));
         fillContent.resizeRelocate(effective.getLeft(), effective.getTop(), areaW, areaH);
         fillRegion.resizeRelocate(0.0, 0.0, areaW, areaH);
-        hoverTextLayer.resizeRelocate(0.0, 0.0, width, height);
-        hoverLabel.resizeRelocate(x, y, w, h);
         updateFillGeometry();
     }
 
@@ -250,33 +213,26 @@ public class RXFillButtonSkin extends RXButtonSkin {
                 || !Double.isFinite(areaW) || !Double.isFinite(areaH)) {
             appliedAnimation = null;
             fillClip = null;
-            textClip = null;
             fillContent.setClip(null);
-            hoverTextLayer.setClip(null);
-            fillLayer.setVisible(false);
-            hoverTextLayer.setVisible(false);
+            setFilling(false);
             return;
         }
         FillAnimation animation = animationOrDefault();
-        if (animation != appliedAnimation || fillClip == null || textClip == null) {
+        if (animation != appliedAnimation || fillClip == null) {
             appliedAnimation = animation;
             fillClip = animation.createClip();
-            textClip = animation.createClip();
             fillContent.setClip(fillClip);
-            hoverTextLayer.setClip(textClip);
         }
         double progress = RXMath.clamp0To1(fillProgress.get());
-        // Hide both layers at rest: a zero-progress clip should paint nothing,
+        // Hide the layer at rest: a zero-progress clip should paint nothing,
         // but sub-pixel clip rasterization can leak a hairline of the fill.
-        boolean fillVisible = progress > 0.0;
-        fillLayer.setVisible(fillVisible);
-        hoverTextLayer.setVisible(fillVisible);
+        setFilling(progress > 0.0);
         animation.update(fillClip, progress, areaW, areaH);
-        // The text layer covers the full bounds; shift its clip so the reveal
-        // boundary matches the fill area.
-        textClip.setTranslateX(fillContent.getLayoutX());
-        textClip.setTranslateY(fillContent.getLayoutY());
-        animation.update(textClip, progress, areaW, areaH);
+    }
+
+    private void setFilling(boolean filling) {
+        fillLayer.setVisible(filling);
+        getSkinnable().pseudoClassStateChanged(FILLING_PSEUDO_CLASS, filling);
     }
 
     // ==================== Trigger State ====================
@@ -310,39 +266,12 @@ public class RXFillButtonSkin extends RXButtonSkin {
                 : getSkinnable().isPressed();
     }
 
-    // ==================== Graphic Placeholder ====================
-
-    private void updateGraphicPlaceholder() {
-        Node graphic = fillButton().getGraphic();
-        observeGraphic(graphic);
-        if (graphic == null) {
-            graphicPlaceholder = null;
-            hoverLabel.setGraphic(null);
-        } else {
-            graphicPlaceholder = new Region();
-            hoverLabel.setGraphic(graphicPlaceholder);
-            syncGraphicPlaceholder();
+    private static CornerRadii explicitRadii(RXFillButton button) {
+        double radius = button.getFillRadius();
+        if (!Double.isFinite(radius) || radius < 0.0) {
+            return null;
         }
-    }
-
-    private void observeGraphic(Node graphic) {
-        if (observedGraphic != null) {
-            observedGraphic.layoutBoundsProperty().removeListener(graphicBoundsListener);
-        }
-        observedGraphic = graphic;
-        if (graphic != null) {
-            graphic.layoutBoundsProperty().addListener(graphicBoundsListener);
-        }
-    }
-
-    private void syncGraphicPlaceholder() {
-        if (graphicPlaceholder == null || observedGraphic == null) {
-            return;
-        }
-        Bounds bounds = observedGraphic.getLayoutBounds();
-        graphicPlaceholder.setMinSize(bounds.getWidth(), bounds.getHeight());
-        graphicPlaceholder.setPrefSize(bounds.getWidth(), bounds.getHeight());
-        graphicPlaceholder.setMaxSize(bounds.getWidth(), bounds.getHeight());
+        return radius == 0.0 ? CornerRadii.EMPTY : new CornerRadii(radius);
     }
 
     // ==================== Cleanup ====================
@@ -353,11 +282,9 @@ public class RXFillButtonSkin extends RXButtonSkin {
         }
         boundedClip.clearClip();
         fillContent.setClip(null);
-        hoverTextLayer.setClip(null);
         appliedAnimation = null;
         fillClip = null;
-        textClip = null;
+        getSkinnable().pseudoClassStateChanged(FILLING_PSEUDO_CLASS, false);
         getChildren().remove(fillLayer);
-        getChildren().remove(hoverTextLayer);
     }
 }

@@ -226,8 +226,9 @@ public class RXButtonTest {
     }
 
     /**
-     * Verifies a modena-style multi-layer background (including a negative
-     * inset) is mirrored into the ripple clip geometry.
+     * Verifies a modena-style multi-layer background is mirrored into the
+     * ripple clip geometry, excluding negative-inset decoration layers
+     * (shadow highlights, focus rings).
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -244,11 +245,11 @@ public class RXButtonTest {
             layout(button, 100.0, 40.0);
 
             Region clip = (Region) rippleLayer(button).getClip();
-            assertEquals(4, clip.getBackground().getFills().size());
+            assertEquals(3, clip.getBackground().getFills().size());
             BackgroundFill first = clip.getBackground().getFills().get(0);
-            BackgroundFill last = clip.getBackground().getFills().get(3);
+            BackgroundFill last = clip.getBackground().getFills().get(2);
             assertEquals(Color.BLACK, first.getFill());
-            assertEquals(new Insets(0.0, 0.0, -1.0, 0.0), first.getInsets());
+            assertEquals(Insets.EMPTY, first.getInsets());
             assertEquals(new CornerRadii(3.0), first.getRadii());
             assertEquals(new CornerRadii(1.0), last.getRadii());
             assertEquals(new Insets(2.0), last.getInsets());

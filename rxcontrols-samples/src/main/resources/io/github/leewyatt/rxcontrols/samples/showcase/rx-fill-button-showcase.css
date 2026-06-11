@@ -14,6 +14,15 @@
     -fx-pref-height: 16px;
 }
 
+/* :filling restyles any sub-structure, including shape-based graphics. */
+.showcase-button:filling {
+    -fx-text-fill: white;
+}
+
+.showcase-button:filling .rocket-icon {
+    -fx-background-color: white;
+}
+
 .fired-label {
     -fx-opacity: 0.75;
 }

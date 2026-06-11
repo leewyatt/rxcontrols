@@ -119,10 +119,6 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
         fillPicker.setMaxWidth(Double.MAX_VALUE);
         fillPicker.setOnAction(event -> updateFillColor(fillPicker.getValue()));
 
-        ColorPicker hoverTextPicker = new ColorPicker((Color) button.getHoverTextFill());
-        hoverTextPicker.setMaxWidth(Double.MAX_VALUE);
-        hoverTextPicker.setOnAction(event -> button.setHoverTextFill(hoverTextPicker.getValue()));
-
         CheckBox autoInsetsBox = new CheckBox();
         autoInsetsBox.setSelected(true);
         Slider insetsSlider = createSlider(-10.0, 20.0, 0.0);
@@ -131,12 +127,16 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
         autoInsetsBox.selectedProperty().addListener((obs, oldV, newV) -> applyInsets.run());
         insetsSlider.valueProperty().addListener((obs, oldV, newV) -> applyInsets.run());
 
+        Slider fillRadiusSlider = createSlider(-1.0, 24.0, -1.0);
+        fillRadiusSlider.valueProperty().addListener((obs, oldV, newV) ->
+                button.setFillRadius(newV.doubleValue()));
+
         return createGrid(
                 row("Mode", modeBox),
                 row("Fill color", fillPicker),
-                row("Hover text", hoverTextPicker),
                 row("Auto insets", autoInsetsBox),
-                row("Insets", insetsSlider, createValueLabel(insetsSlider, "%.0f px")));
+                row("Insets", insetsSlider, createValueLabel(insetsSlider, "%.0f px")),
+                row("Fill radius", fillRadiusSlider, createValueLabel(fillRadiusSlider, "%.0f")));
     }
 
     private Node buildAnimationGrid() {
