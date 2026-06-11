@@ -180,25 +180,6 @@
     -fx-effect: dropshadow(three-pass-box, #1f8f76, 7, 0.5, 0, 0);
 }
 
-/* AudioSpectrum 声音频谱组件 */
-.rx-audio-spectrum {
-    /*-rx-crest-pos:middle;*/
-    -fx-border-color: #BFBFBF;
-    -fx-border-width: 1px;
-}
-
-.rx-audio-spectrum .bar-box {
-    -fx-alignment: bottom-center;
-    -fx-spacing: 1px;
-}
-
-.rx-audio-spectrum .bar {
-    -fx-background-color: #45EABC;
-    -fx-pref-width: 3px;
-    /*初始化时候的高度*/
-    -fx-max-height: 0px;
-}
-
 /*******************************************************************************
  *                                                                             *
  * RXTextField   RXPasswordField                                               *
