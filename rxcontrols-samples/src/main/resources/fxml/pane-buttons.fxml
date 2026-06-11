@@ -17,28 +17,22 @@
    <children>
       <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="5.0" layoutX="121.0" layoutY="377.0" prefHeight="129.0" prefWidth="631.0" vgap="5.0">
          <children>
-            <RXFillButton fillType="BOTTOM_TO_TOP" style="-fx-pref-height: 35;" styleClass="btn1" text="Bottom To Top">
+            <RXFillButton fillMode="BOTTOM_TO_TOP" style="-fx-pref-height: 35;" styleClass="btn1" text="Bottom To Top">
                <effect>
                   <DropShadow height="5.0" offsetX="1.2" offsetY="1.2" radius="2.0" width="5.0" />
                </effect></RXFillButton>
-            <RXFillButton fillType="CIRCLE_TO_SIDE" style="-fx-pref-height: 35;" text="Circle" />
-            <RXFillButton fillType="CORNER_TO_CENTER" style="-fx-pref-height: 35;" text="Corner" />
-            <RXFillButton fillType="HOR_TO_MIDDLE" style="-fx-pref-height: 35;" text="Hor To Middle" />
-            <RXFillButton fillType="HOR_TO_SIDE" style="-fx-pref-height: 35;" text="Hor To Side" />
             <RXFillButton style="-fx-pref-height: 35;" text="Left To Right" />
-            <RXFillButton fillType="TOP_TO_BOTTOM" style="-fx-pref-height: 35;" text="Top To Bottom" />
-            <RXFillButton fillType="HOR_ZIGZAG" style="-fx-pref-height: 35;" styleClass="btn2" text="Hor Zigzag" />
-            <RXFillButton fillType="RIGHT_TO_LEFT" style="-fx-pref-height: 35;" text="Right To Left" />
-            <RXFillButton fillType="VER_TO_MIDDLE" style="-fx-pref-height: 35;" text="Ver To Middle" />
-            <RXFillButton fillType="VER_TO_SIDE" style="-fx-pref-height: 35;" text="Ver To Side" />
-            <RXFillButton fillType="VER_ZIGZAG" style="-fx-pref-height: 35;" text="Ver Zigzag" />
+            <RXFillButton fillMode="RIGHT_TO_LEFT" style="-fx-pref-height: 35;" styleClass="btn2" text="Right To Left" />
+            <RXFillButton fillMode="TOP_TO_BOTTOM" style="-fx-pref-height: 35;" text="Top To Bottom" />
+            <RXFillButton fillMode="CENTER_OUT" style="-fx-pref-height: 35;" text="Center Out" />
+            <RXFillButton fillMode="CIRCLE" style="-fx-pref-height: 35;" text="Circle" />
          </children>
       </FlowPane>
-      <RXFillButton fillType="CIRCLE_TO_SIDE" layoutX="17.0" layoutY="392.0" prefHeight="100.0" prefWidth="100.0" style="-fx-border-radius: 100;" styleClass="circle-button" text="填充按钮">
+      <RXFillButton fillMode="CIRCLE" layoutX="17.0" layoutY="392.0" prefHeight="100.0" prefWidth="100.0" style="-fx-border-radius: 100;" styleClass="circle-button" text="填充按钮">
          <effect>
             <DropShadow />
          </effect></RXFillButton>
-      <Label layoutX="14.0" layoutY="337.0" prefHeight="40.0" prefWidth="709.0" text="FillButton: 填充色按钮;  如果要拓展填充方式, 可以实现FillAnimation 接口. 然后setFillAnimation即可" />
+      <Label layoutX="14.0" layoutY="337.0" prefHeight="40.0" prefWidth="709.0" text="FillButton: 填充色按钮; fillMode / -rx-fill-mode 选择填充方向, animationTrigger 选择 hover 或 pressed 触发" />
       <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="178.0" prefHeight="60.0" prefWidth="728.0" spacing="24.0">
          <children>
             <RXLineButton prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line Extend">

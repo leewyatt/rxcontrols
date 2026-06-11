@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.animation.lineButton;
 
-import io.github.leewyatt.rxcontrols.animation.fillbutton.FillAnimationUtil;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.skins.RXLineButtonSkin;
 import javafx.animation.Animation;
@@ -69,7 +68,12 @@ public class LineAnimExtend implements LineAnimation {
 
     @Override
     public void dispose() {
-        FillAnimationUtil.stopAnimation(animEnter, animExit);
+        if (animEnter != null) {
+            animEnter.stop();
+        }
+        if (animExit != null) {
+            animExit.stop();
+        }
         if (line != null) {
             line.setScaleX(1.0);
         }

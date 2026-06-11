@@ -1,231 +1,342 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.animation.fillbutton.FillAnimation;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXFillButton.FillMode;
+import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.beans.value.ChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.geometry.HPos;
-import javafx.geometry.VPos;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 /**
+ * Skin for {@link RXFillButton}: the {@link RXButtonSkin} plus a fill
+ * decoration layer between the button background and the ripple layer.
  *
- * 填充颜色按钮皮肤
+ * <p>A single timeline drives an internal fill progress; the trigger state
+ * (hover or pressed) plays it forward or, from the current progress, in
+ * reverse, so interrupted sweeps reverse smoothly with proportional duration.
+ * The fill content (an opaque region plus a mirrored caption colored with
+ * {@code hoverTextFill}) is revealed by a progress clip, so the fill boundary
+ * recolors the text as it sweeps over it; an outer clip bounds everything to
+ * the button's painted geometry.</p>
  */
-public class RXFillButtonSkin extends SkinBase<RXFillButton> {
+public class RXFillButtonSkin extends RXButtonSkin {
 
-    //private static final Background DEFAULT_FILL_BACKGROUND = new Background(new BackgroundFill(Color.rgb(97, 109, 255), CornerRadii.EMPTY, Insets.EMPTY));
+    private final SkinDisposer fillDisposer = new SkinDisposer();
+    private final Pane fillLayer = new Pane();
+    private final Pane fillContent = new Pane();
+    private final Region fillRegion = new Region();
+    private final Label hoverLabel = new Label();
+    private final BoundedClipSupport boundedClip = new BoundedClipSupport(fillLayer);
+    private final Rectangle progressRect = new Rectangle();
+    private final Circle progressCircle = new Circle();
+    private final DoubleProperty fillProgress =
+            new SimpleDoubleProperty(this, "fillProgress", 0.0);
+    private final InvalidationListener graphicBoundsListener =
+            observable -> syncGraphicPlaceholder();
 
-    private RXFillButton control;
-    /**
-     * 文字标签
-     */
-    private Label label;
-    /**
-     * 背景填充用区域 (Rectangle 无法单独设置每个角的radius;所以使用Region比较好)
-     */
-    private Region fillRegion;
-    /**
-     * 鼠标进入时的动画
-     */
-    private Timeline animEnter;
-    /**
-     * 鼠标移除时的动画
-     */
-    private Timeline animExit;
+    private Timeline fillTimeline;
+    private Node observedGraphic;
+    private Region graphicPlaceholder;
 
-    public RXFillButtonSkin(RXFillButton control) {
-        super(control);
-        this.control = control;
-        animEnter = new Timeline();
-        animExit = new Timeline();
+    /**
+     * Creates the skin and wires the fill decoration layer.
+     *
+     * @param button the button this skin is attached to
+     */
+    public RXFillButtonSkin(RXFillButton button) {
+        super(button);
 
-        //------------高亮区域的初始化-------------
-        fillRegion = new Region();
+        fillLayer.getStyleClass().add("fill-layer");
+        fillLayer.setManaged(false);
+        fillLayer.setMouseTransparent(true);
+        fillContent.getStyleClass().add("fill-content");
+        fillContent.setManaged(false);
         fillRegion.getStyleClass().add("fill-region");
-        //fillRegion.setBackground(DEFAULT_FILL_BACKGROUND);
-        //因为layoutInArea() 所以fillRegion所以就不用管他的宽高了
-        //fillRegion.backgroundProperty().bind(control.fillRegionBackgroundProperty());
-        //fillRegion.borderProperty().bind(control.fillRegionBorderProperty());
+        fillRegion.setManaged(false);
+        hoverLabel.setManaged(false);
+        fillContent.getChildren().addAll(fillRegion, hoverLabel);
+        fillLayer.getChildren().add(fillContent);
 
-        //--------------文字标签的初始化以及绑定--------------------------
-        label = new Label();
-//        label.getStyleClass().add("button-label");
-        label.ellipsisStringProperty().bind(control.ellipsisStringProperty());
-        //颜色不用绑定了;因为textFill用于存储普通状态时的颜色值, 所以会根据需要的时候显示该颜色label.textFillProperty().bind(control.textFillProperty());
-        label.fontProperty().bind(control.fontProperty());
-        label.graphicProperty().bind(control.graphicProperty());
-        label.contentDisplayProperty().bind(control.contentDisplayProperty());
-        label.graphicTextGapProperty().bind(control.graphicTextGapProperty());
-        label.alignmentProperty().bind(control.alignmentProperty());
-        label.mnemonicParsingProperty().bind(control.mnemonicParsingProperty());
-        label.textProperty().bind(control.textProperty());
-        label.textAlignmentProperty().bind(control.textAlignmentProperty());
-        label.textOverrunProperty().bind(control.textOverrunProperty());
-        label.wrapTextProperty().bind(control.wrapTextProperty());
-        label.underlineProperty().bind(control.underlineProperty());
-        label.lineSpacingProperty().bind(control.lineSpacingProperty());
+        // ==================== Mirrored caption ====================
+        fillDisposer.registerBinding(hoverLabel.textProperty(), button.textProperty());
+        fillDisposer.registerBinding(hoverLabel.fontProperty(), button.fontProperty());
+        fillDisposer.registerBinding(hoverLabel.alignmentProperty(), button.alignmentProperty());
+        fillDisposer.registerBinding(hoverLabel.contentDisplayProperty(), button.contentDisplayProperty());
+        fillDisposer.registerBinding(hoverLabel.graphicTextGapProperty(), button.graphicTextGapProperty());
+        fillDisposer.registerBinding(hoverLabel.textAlignmentProperty(), button.textAlignmentProperty());
+        fillDisposer.registerBinding(hoverLabel.textOverrunProperty(), button.textOverrunProperty());
+        fillDisposer.registerBinding(hoverLabel.wrapTextProperty(), button.wrapTextProperty());
+        fillDisposer.registerBinding(hoverLabel.underlineProperty(), button.underlineProperty());
+        fillDisposer.registerBinding(hoverLabel.lineSpacingProperty(), button.lineSpacingProperty());
+        fillDisposer.registerBinding(hoverLabel.ellipsisStringProperty(), button.ellipsisStringProperty());
+        fillDisposer.registerBinding(hoverLabel.mnemonicParsingProperty(), button.mnemonicParsingProperty());
+        fillDisposer.registerBinding(hoverLabel.textFillProperty(), button.hoverTextFillProperty());
 
-        getChildren().addAll(fillRegion, label);
+        // A graphic node cannot live in two scene-graph locations; the mirror
+        // uses a size-following placeholder so the caption layout matches.
+        fillDisposer.registerListener(button.graphicProperty(), this::updateGraphicPlaceholder);
+        fillDisposer.registerDisposeTask(() -> observeGraphic(null));
+        updateGraphicPlaceholder();
 
-        //初始化准备以及动画
-        control.getFillAnimation().init(this);
+        // ==================== Progress model ====================
+        fillDisposer.registerListener(fillProgress, this::updateFillGeometry);
+        fillDisposer.registerListener(button.fillModeProperty(), this::updateFillGeometry);
+        fillDisposer.registerListener(button.animationDurationProperty(), this::rebuildTimeline);
 
-        control.fillAnimationProperty().addListener(fillAnimationChangeListener);
+        // ==================== Triggers ====================
+        fillDisposer.registerEventHandler(button, MouseEvent.MOUSE_ENTERED, event -> {
+            if (triggerOrDefault() == RXAnimationTrigger.HOVER) {
+                animateTo(true);
+            }
+        });
+        fillDisposer.registerEventHandler(button, MouseEvent.MOUSE_EXITED, event -> {
+            if (triggerOrDefault() == RXAnimationTrigger.HOVER) {
+                animateTo(false);
+            }
+        });
+        fillDisposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, event -> {
+            if (triggerOrDefault() == RXAnimationTrigger.PRESSED
+                    && event.getButton() == MouseButton.PRIMARY) {
+                animateTo(true);
+            }
+        });
+        fillDisposer.registerEventHandler(button, MouseEvent.MOUSE_RELEASED, event -> {
+            if (triggerOrDefault() == RXAnimationTrigger.PRESSED
+                    && event.getButton() == MouseButton.PRIMARY) {
+                animateTo(false);
+            }
+        });
+        fillDisposer.registerListener(button.animationTriggerProperty(),
+                () -> animateTo(isTriggerActive()));
+        fillDisposer.registerListener(button.sceneProperty(), () -> {
+            if (button.getScene() == null) {
+                snapTo(isTriggerActive());
+            }
+        });
 
-        //----------初始化/重置动画---------------------
-        fillRegion.widthProperty().addListener(animChangeListener);
-        fillRegion.heightProperty().addListener(animChangeListener);
-        control.hoverTextFillProperty().addListener(animChangeListener);
-        control.textFillProperty().addListener(animChangeListener);
-        control.animationTimeProperty().addListener(animChangeListener);
+        rebuildTimeline();
+        if (isTriggerActive()) {
+            snapTo(true);
+        }
 
-        //-------添加鼠标事件---------
-        control.addEventFilter(MouseEvent.MOUSE_ENTERED, enterHandler);
-        control.addEventFilter(MouseEvent.MOUSE_EXITED, exitHandler);
-        control.addEventFilter(MouseEvent.MOUSE_CLICKED, clickHandler);
-
+        updateChildren();
     }
 
-    private ChangeListener animChangeListener = (ob, ov, nv) -> restAnim();
-    private EventHandler<MouseEvent> enterHandler = event -> playAnimEnter();
-    private EventHandler<MouseEvent> exitHandler = event -> playAnimExit();
-    private EventHandler<MouseEvent> clickHandler = event -> {
-        if (event.getButton() == MouseButton.PRIMARY) {
-            control.fireEvent(new ActionEvent());
+    @Override
+    protected void updateChildren() {
+        super.updateChildren();
+        // The first calls come from superclass constructors, before this
+        // skin's fields are initialized.
+        if (fillLayer != null) {
+            getChildren().add(0, fillLayer);
         }
-    };
+    }
 
-    private void restAnim() {
-        control.getFillAnimation().initEnterAnim();
-        control.getFillAnimation().initExitAnim();
-
+    @Override
+    protected void layoutChildren(double x, double y, double w, double h) {
+        super.layoutChildren(x, y, w, h);
+        double width = getSkinnable().getWidth();
+        double height = getSkinnable().getHeight();
+        fillLayer.resizeRelocate(0.0, 0.0, width, height);
+        boundedClip.updateClipFor(getSkinnable(), width, height);
+        fillContent.resizeRelocate(0.0, 0.0, width, height);
+        fillRegion.resizeRelocate(0.0, 0.0, width, height);
+        hoverLabel.resizeRelocate(x, y, w, h);
+        updateFillGeometry();
     }
 
     /**
-     * 播放鼠标移入的动画
+     * Stops the fill animation, removes the fill layer and unregisters all
+     * fill listeners before the {@link RXButtonSkin} cleanup runs.
      */
-    public void playAnimEnter() {
-        if (animExit.getStatus() == Animation.Status.RUNNING) {
-            animExit.stop();
-        }
-        animEnter.play();
-    }
-
-    /**
-     * 播放鼠标移除的动画
-     */
-    public void playAnimExit() {
-        if (animEnter.getStatus() == Animation.Status.RUNNING) {
-            animEnter.stop();
-        }
-        animExit.play();
-    }
-
-    private ChangeListener<FillAnimation> fillAnimationChangeListener = (ob, ov, nv) -> {
-        //旧的销毁
-        ov.dispose();
-        //新的初始化
-        nv.init(this);
-    };
-
-    //    @Override
-//    protected double computeMinWidth(double height, double topInset, double rightInset, double bottomInset, double leftInset) {
-//        return label.minWidth(height);
-//    }
-//
-//    @Override
-//    protected double computeMinHeight(double width, double topInset, double rightInset, double bottomInset, double leftInset) {
-//        return label.minHeight(width);
-//    }
-//
-    @Override
-    protected double computePrefWidth(double height, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.prefWidth(height) + leftInset + rightInset;
-    }
-
-    @Override
-    protected double computePrefHeight(double width, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.prefHeight(width) + topInset + bottomInset;
-    }
-//
-//    @Override
-//    protected double computeMaxWidth(double height, double topInset, double rightInset, double bottomInset, double leftInset) {
-//        return label.prefWidth(height) + leftInset + rightInset;
-//    }
-//
-//    @Override
-//    protected double computeMaxHeight(double width, double topInset, double rightInset, double bottomInset, double leftInset) {
-//        return label.prefHeight(width) + topInset + bottomInset;
-//    }
-
-    @Override
-    protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
-        super.layoutChildren(contentX, contentY, contentWidth, contentHeight);
-        layoutInArea(fillRegion, contentX, contentY, contentWidth, contentHeight, 0,
-                HPos.CENTER, VPos.CENTER);
-        layoutInArea(label, contentX, contentY, contentWidth, contentHeight, 0,
-                control.getAlignment().getHpos(), control.getAlignment().getVpos());
-    }
-
     @Override
     public void dispose() {
-        label.ellipsisStringProperty().unbind();
-        label.fontProperty().unbind();
-        label.graphicProperty().unbind();
-        label.contentDisplayProperty().unbind();
-        label.graphicTextGapProperty().unbind();
-        label.alignmentProperty().unbind();
-        label.mnemonicParsingProperty().unbind();
-        label.textProperty().unbind();
-        label.textAlignmentProperty().unbind();
-        label.textOverrunProperty().unbind();
-        label.wrapTextProperty().unbind();
-        label.underlineProperty().unbind();
-        label.lineSpacingProperty().unbind();
-
-        fillRegion.widthProperty().removeListener(animChangeListener);
-        fillRegion.heightProperty().removeListener(animChangeListener);
-        control.fillAnimationProperty().removeListener(fillAnimationChangeListener);
-        control.hoverTextFillProperty().removeListener(animChangeListener);
-        control.textFillProperty().removeListener(animChangeListener);
-        control.animationTimeProperty().removeListener(animChangeListener);
-        control.removeEventFilter(MouseEvent.MOUSE_ENTERED, enterHandler);
-        control.removeEventFilter(MouseEvent.MOUSE_EXITED, exitHandler);
-        control.removeEventFilter(MouseEvent.MOUSE_CLICKED, clickHandler);
-        if (animEnter != null) {
-            animEnter.stop();
-            animEnter = null;
+        if (getSkinnable() == null) {
+            return;
         }
-        if (animExit != null) {
-            animExit.stop();
-            animExit = null;
+        SkinDisposer.disposeInOrder(this::disposeFill, fillDisposer::dispose, super::dispose);
+    }
+
+    // ==================== Progress Model ====================
+
+    private void animateTo(boolean active) {
+        Duration duration = fillButton().getAnimationDuration();
+        if (duration != null && duration.equals(Duration.ZERO)) {
+            snapTo(active);
+            return;
         }
-        getChildren().clear();
-        super.dispose();
+        fillTimeline.setRate(active ? 1.0 : -1.0);
+        fillTimeline.play();
     }
 
-    public Region getFillRegion() {
-        return fillRegion;
+    private void snapTo(boolean active) {
+        fillTimeline.stop();
+        fillTimeline.jumpTo(active ? fillTimeline.getTotalDuration() : Duration.ZERO);
+        fillProgress.set(active ? 1.0 : 0.0);
     }
 
-    public Label getLabel() {
-        return label;
+    private void rebuildTimeline() {
+        double progress = RXMath.clamp0To1(fillProgress.get());
+        boolean running = false;
+        double rate = 1.0;
+        if (fillTimeline != null) {
+            running = fillTimeline.getStatus() == Animation.Status.RUNNING;
+            rate = fillTimeline.getRate();
+            fillTimeline.stop();
+        }
+        Duration duration = positiveDurationOrDefault();
+        fillTimeline = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(fillProgress, 0.0, Interpolator.EASE_BOTH)),
+                new KeyFrame(duration,
+                        new KeyValue(fillProgress, 1.0, Interpolator.EASE_BOTH)));
+        fillTimeline.jumpTo(duration.multiply(progress));
+        if (running) {
+            fillTimeline.setRate(rate);
+            fillTimeline.play();
+        }
     }
 
-    public Timeline getAnimEnter() {
-        return animEnter;
+    private void updateFillGeometry() {
+        double width = fillLayer.getWidth();
+        double height = fillLayer.getHeight();
+        if (width <= 0.0 || height <= 0.0
+                || !Double.isFinite(width) || !Double.isFinite(height)) {
+            fillContent.setClip(null);
+            return;
+        }
+        double p = RXMath.clamp0To1(fillProgress.get());
+        FillMode mode = modeOrDefault();
+        if (mode == FillMode.CIRCLE) {
+            progressCircle.setCenterX(width / 2.0);
+            progressCircle.setCenterY(height / 2.0);
+            progressCircle.setRadius(p * Math.hypot(width, height) / 2.0);
+            fillContent.setClip(progressCircle);
+            return;
+        }
+        double rectX = 0.0;
+        double rectY = 0.0;
+        double rectW = width;
+        double rectH = height;
+        switch (mode) {
+            case RIGHT_TO_LEFT:
+                rectX = width - p * width;
+                rectW = p * width;
+                break;
+            case TOP_TO_BOTTOM:
+                rectH = p * height;
+                break;
+            case BOTTOM_TO_TOP:
+                rectY = height - p * height;
+                rectH = p * height;
+                break;
+            case CENTER_OUT:
+                rectX = (width - p * width) / 2.0;
+                rectW = p * width;
+                break;
+            case LEFT_TO_RIGHT:
+            default:
+                rectW = p * width;
+                break;
+        }
+        progressRect.setX(rectX);
+        progressRect.setY(rectY);
+        progressRect.setWidth(rectW);
+        progressRect.setHeight(rectH);
+        fillContent.setClip(progressRect);
     }
 
-    public Timeline getAnimExit() {
-        return animExit;
+    // ==================== Trigger State ====================
+
+    private RXFillButton fillButton() {
+        return (RXFillButton) getSkinnable();
     }
 
+    private RXAnimationTrigger triggerOrDefault() {
+        RXAnimationTrigger trigger = fillButton().getAnimationTrigger();
+        return trigger == null ? RXFillButton.DEFAULT_ANIMATION_TRIGGER : trigger;
+    }
+
+    private FillMode modeOrDefault() {
+        FillMode mode = fillButton().getFillMode();
+        return mode == null ? RXFillButton.DEFAULT_FILL_MODE : mode;
+    }
+
+    private Duration positiveDurationOrDefault() {
+        Duration duration = fillButton().getAnimationDuration();
+        if (duration == null || duration.isUnknown() || duration.isIndefinite()
+                || duration.lessThanOrEqualTo(Duration.ZERO)) {
+            return RXFillButton.DEFAULT_ANIMATION_DURATION;
+        }
+        return duration;
+    }
+
+    private boolean isTriggerActive() {
+        return triggerOrDefault() == RXAnimationTrigger.HOVER
+                ? getSkinnable().isHover()
+                : getSkinnable().isPressed();
+    }
+
+    // ==================== Graphic Placeholder ====================
+
+    private void updateGraphicPlaceholder() {
+        Node graphic = fillButton().getGraphic();
+        observeGraphic(graphic);
+        if (graphic == null) {
+            graphicPlaceholder = null;
+            hoverLabel.setGraphic(null);
+        } else {
+            graphicPlaceholder = new Region();
+            hoverLabel.setGraphic(graphicPlaceholder);
+            syncGraphicPlaceholder();
+        }
+    }
+
+    private void observeGraphic(Node graphic) {
+        if (observedGraphic != null) {
+            observedGraphic.layoutBoundsProperty().removeListener(graphicBoundsListener);
+        }
+        observedGraphic = graphic;
+        if (graphic != null) {
+            graphic.layoutBoundsProperty().addListener(graphicBoundsListener);
+        }
+    }
+
+    private void syncGraphicPlaceholder() {
+        if (graphicPlaceholder == null || observedGraphic == null) {
+            return;
+        }
+        Bounds bounds = observedGraphic.getLayoutBounds();
+        graphicPlaceholder.setMinSize(bounds.getWidth(), bounds.getHeight());
+        graphicPlaceholder.setPrefSize(bounds.getWidth(), bounds.getHeight());
+        graphicPlaceholder.setMaxSize(bounds.getWidth(), bounds.getHeight());
+    }
+
+    // ==================== Cleanup ====================
+
+    private void disposeFill() {
+        if (fillTimeline != null) {
+            fillTimeline.stop();
+        }
+        boundedClip.clearClip();
+        fillContent.setClip(null);
+        getChildren().remove(fillLayer);
+    }
 }

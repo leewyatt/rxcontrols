@@ -12,17 +12,18 @@
 
 /*fill button*/
 .rx-fill-button {
-    -fx-background-color: white;
-    -fx-border-color: #d1d1d1;
-    -fx-border-width: 1px;
     -rx-fill: #616dff;
+    -rx-fill-mode: left-to-right;
+    -rx-animation-trigger: hover;
+    -rx-animation-duration: 200ms;
+    -rx-hover-text-fill: white;
 }
 
-.rx-fill-button .fill-region {
+.rx-fill-button > .fill-layer > .fill-content > .fill-region {
     -fx-background-color: -rx-fill;
 }
 
-.rx-fill-button:pressed .fill-region {
+.rx-fill-button:pressed > .fill-layer > .fill-content > .fill-region {
     -fx-background-color: derive(-rx-fill, -20%);
 }
 

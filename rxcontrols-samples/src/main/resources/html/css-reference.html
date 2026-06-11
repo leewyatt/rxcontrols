@@ -288,11 +288,13 @@ nav-pane — Pane<br/>
 </table>
 
 <h3 id="rxFillButton">RXFillButton</h3>
-<p class="fxClass">Style class: rx-fill-button</p>
-<p>The RXFillButton control has all the properties of RXButtonBase;</p>
+<p class="fxClass">Style class: rx-fill-button (also: button, rx-button)</p>
+<p>The RXFillButton control has all the properties of RXButton (including the ripple properties);</p>
 <h4>Substructure</h4>
-fill-region  — Region<br/>
-label — Label<br/><br/>
+fill-layer — Pane<br/>
+&emsp;&emsp;fill-content — Pane<br/>
+&emsp;&emsp;&emsp;&emsp;fill-region — Region<br/>
+ripple-layer — Region<br/><br/>
 <table>
     <thead>
     <tr>
@@ -304,7 +306,7 @@ label — Label<br/><br/>
     <tbody>
     <tr>
         <td>-rx-fill</td>
-        <td>Paint</td>
+        <td>Paint (looked-up color)</td>
         <td>#616dff</td>
     </tr>
     <tr>
@@ -313,16 +315,23 @@ label — Label<br/><br/>
         <td>white</td>
     </tr>
     <tr>
-        <td>-rx-fill-type</td>
-        <td> BOTTOM_TO_TOP,CIRCLE_TO_SIDE,<br>
-            CORNER_TO_CENTER,HOR_TO_MIDDLE,<br/>
-            HOR_TO_SIDE,HOR_ZIGZAG,LEFT_TO_RIGHT,<br/>
-            RIGHT_TO_LEFT,TOP_TO_BOTTOM,<br/>
-            VER_TO_MIDDLE,VER_TO_SIDE,VER_ZIGZAG<br/>
+        <td>-rx-fill-mode</td>
+        <td>LEFT_TO_RIGHT,RIGHT_TO_LEFT,<br/>
+            TOP_TO_BOTTOM,BOTTOM_TO_TOP,<br/>
+            CENTER_OUT,CIRCLE<br/>
         </td>
         <td>LEFT_TO_RIGHT</td>
     </tr>
-
+    <tr>
+        <td>-rx-animation-trigger</td>
+        <td>HOVER,PRESSED</td>
+        <td>HOVER</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration</td>
+        <td>200ms</td>
+    </tr>
     </tbody>
 </table>
 
