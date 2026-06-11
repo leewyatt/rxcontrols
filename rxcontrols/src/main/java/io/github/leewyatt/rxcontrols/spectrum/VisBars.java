@@ -14,7 +14,7 @@ public class VisBars extends SpectrumVisualizationBase {
 
     private double[] barX;
 
-    private double barWidth;
+    private double[] barWidth;
 
     private Paint fill;
 
@@ -23,8 +23,9 @@ public class VisBars extends SpectrumVisualizationBase {
         int n = context.bandCount();
         if (barX == null || barX.length != n) {
             barX = new double[n];
+            barWidth = new double[n];
         }
-        barWidth = fillBarPositions(context.width(), n, context.gapRatio(), barX);
+        fillBarGeometry(context.width(), n, context.gapRatio(), barX, barWidth);
         fill = absoluteGradient(context.barFill(), 0.0, context.height(), 0.0, 0.0);
     }
 
@@ -37,7 +38,7 @@ public class VisBars extends SpectrumVisualizationBase {
         gc.setFill(fill);
         for (int i = 0; i < n; i++) {
             double barHeight = Math.max(MIN_BAR_PIXELS, context.level(i) * height);
-            gc.fillRect(barX[i], height - barHeight, barWidth, barHeight);
+            gc.fillRect(barX[i], height - barHeight, barWidth[i], barHeight);
         }
 
         if (context.showPeaks()) {
@@ -47,7 +48,9 @@ public class VisBars extends SpectrumVisualizationBase {
                 if (peakHeight <= MIN_BAR_PIXELS) {
                     continue;
                 }
-                gc.fillRect(barX[i], height - peakHeight - PEAK_CAP_HEIGHT, barWidth, PEAK_CAP_HEIGHT);
+                // Pin the cap at the canvas edge so it stays visible at full amplitude.
+                double capY = Math.max(0.0, height - peakHeight - PEAK_CAP_HEIGHT);
+                gc.fillRect(barX[i], capY, barWidth[i], PEAK_CAP_HEIGHT);
             }
         }
     }
@@ -56,6 +59,7 @@ public class VisBars extends SpectrumVisualizationBase {
     public void dispose() {
         super.dispose();
         barX = null;
+        barWidth = null;
         fill = null;
     }
 }

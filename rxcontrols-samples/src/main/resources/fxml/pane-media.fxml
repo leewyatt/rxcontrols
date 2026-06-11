@@ -47,6 +47,6 @@
             <Font size="13.0" />
          </font>
       </Label>
-      <Label layoutX="30.0" layoutY="480.0" prefHeight="15.0" prefWidth="700.0" text="RXLrcView 歌词组件;   RXAudioSPectrum 音频频谱可视化组件;   RXSeekBar 进度条组件;  " />
+      <Label layoutX="30.0" layoutY="480.0" prefHeight="15.0" prefWidth="700.0" text="RXLrcView 歌词组件;   RXAudioSpectrum 音频频谱可视化组件;   RXSeekBar 进度条组件;  " />
    </children>
 </AnchorPane>

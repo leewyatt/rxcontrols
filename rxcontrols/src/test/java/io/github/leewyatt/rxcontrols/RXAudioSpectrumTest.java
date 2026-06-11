@@ -3,18 +3,21 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.spectrum.BandLayout;
 import io.github.leewyatt.rxcontrols.spectrum.VisBars;
 import javafx.application.Platform;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -199,34 +202,40 @@ public class RXAudioSpectrumTest {
     }
 
     @Test
-    public void cssMetadataExposesAllCustomProperties() {
-        Set<String> properties = RXAudioSpectrum.getClassCssMetaData().stream()
-                .map(CssMetaData::getProperty)
-                .collect(Collectors.toSet());
-        assertTrue(properties.contains("-rx-band-layout"));
-        assertTrue(properties.contains("-rx-bar-fill"));
-        assertTrue(properties.contains("-rx-peak-fill"));
-        assertTrue(properties.contains("-rx-bar-gap-ratio"));
-        assertTrue(properties.contains("-rx-smoothing"));
-        assertTrue(properties.contains("-rx-show-peaks"));
-        assertTrue(properties.contains("-rx-glow"));
+    public void cssMetadataIsSettableUnlessBoundForEveryProperty() {
+        Map<String, Function<RXAudioSpectrum, Property<?>>> properties = new LinkedHashMap<>();
+        properties.put("-rx-band-layout", RXAudioSpectrum::bandLayoutProperty);
+        properties.put("-rx-bar-fill", RXAudioSpectrum::barFillProperty);
+        properties.put("-rx-peak-fill", RXAudioSpectrum::peakFillProperty);
+        properties.put("-rx-bar-gap-ratio", RXAudioSpectrum::barGapRatioProperty);
+        properties.put("-rx-smoothing", RXAudioSpectrum::smoothingProperty);
+        properties.put("-rx-show-peaks", RXAudioSpectrum::showPeaksProperty);
+        properties.put("-rx-glow", RXAudioSpectrum::glowProperty);
+
+        properties.forEach((name, accessor) -> {
+            RXAudioSpectrum spectrum = new RXAudioSpectrum();
+            CssMetaData<Styleable, ?> metadata = metadata(name);
+            Property<?> property = accessor.apply(spectrum);
+
+            assertTrue(metadata.isSettable(spectrum), name + " should be settable when unbound");
+            assertSame(property, metadata.getStyleableProperty(spectrum),
+                    name + " must expose its own backing property");
+
+            bindToValueSnapshot(property);
+            assertFalse(metadata.isSettable(spectrum), name + " should not be settable when bound");
+        });
     }
 
-    @Test
-    public void cssMetadataIsSettableUnlessBound() {
-        RXAudioSpectrum spectrum = new RXAudioSpectrum();
-        assertTrue(isSettable(spectrum, "-rx-smoothing"));
-        spectrum.smoothingProperty().bind(new SimpleDoubleProperty(0.5));
-        assertFalse(isSettable(spectrum, "-rx-smoothing"));
+    private static <T> void bindToValueSnapshot(Property<T> property) {
+        property.bind(new SimpleObjectProperty<>(property.getValue()));
     }
 
     @SuppressWarnings("unchecked")
-    private static boolean isSettable(RXAudioSpectrum spectrum, String property) {
-        CssMetaData<Styleable, ?> metadata = RXAudioSpectrum.getClassCssMetaData().stream()
+    private static CssMetaData<Styleable, ?> metadata(String property) {
+        return RXAudioSpectrum.getClassCssMetaData().stream()
                 .filter(m -> m.getProperty().equals(property))
                 .map(m -> (CssMetaData<Styleable, ?>) m)
                 .findFirst()
                 .orElseThrow();
-        return metadata.isSettable(spectrum);
     }
 }

@@ -18,7 +18,7 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
 
     private double[] barX;
 
-    private double barWidth;
+    private double[] barWidth;
 
     private Paint upperFill;
 
@@ -29,8 +29,9 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
         int n = context.bandCount();
         if (barX == null || barX.length != n) {
             barX = new double[n];
+            barWidth = new double[n];
         }
-        barWidth = fillBarPositions(context.width(), n, context.gapRatio(), barX);
+        fillBarGeometry(context.width(), n, context.gapRatio(), barX, barWidth);
         double midY = context.height() / 2.0;
         upperFill = absoluteGradient(context.barFill(), 0.0, midY, 0.0, 0.0);
         lowerFill = absoluteGradient(context.barFill(), 0.0, midY, 0.0, context.height());
@@ -40,18 +41,19 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
     protected void draw(SpectrumContext context) {
         GraphicsContext gc = context.graphicsContext();
         int n = context.bandCount();
-        double midY = context.height() / 2.0;
+        double height = context.height();
+        double midY = height / 2.0;
 
         gc.setFill(upperFill);
         for (int i = 0; i < n; i++) {
             double halfHeight = halfHeight(context.level(i), midY);
-            gc.fillRect(barX[i], midY - halfHeight, barWidth, halfHeight);
+            gc.fillRect(barX[i], midY - halfHeight, barWidth[i], halfHeight);
         }
 
         gc.setGlobalAlpha(MIRROR_ALPHA);
         gc.setFill(lowerFill);
         for (int i = 0; i < n; i++) {
-            gc.fillRect(barX[i], midY, barWidth, halfHeight(context.level(i), midY));
+            gc.fillRect(barX[i], midY, barWidth[i], halfHeight(context.level(i), midY));
         }
         gc.setGlobalAlpha(1.0);
 
@@ -62,7 +64,9 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
                 if (peakHeight <= MIN_BAR_PIXELS / 2.0) {
                     continue;
                 }
-                gc.fillRect(barX[i], midY - peakHeight - PEAK_CAP_HEIGHT, barWidth, PEAK_CAP_HEIGHT);
+                // Pin the caps at the canvas edges so they stay visible at full amplitude.
+                double capY = Math.max(0.0, midY - peakHeight - PEAK_CAP_HEIGHT);
+                gc.fillRect(barX[i], capY, barWidth[i], PEAK_CAP_HEIGHT);
             }
             gc.setGlobalAlpha(MIRROR_ALPHA);
             for (int i = 0; i < n; i++) {
@@ -70,7 +74,8 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
                 if (peakHeight <= MIN_BAR_PIXELS / 2.0) {
                     continue;
                 }
-                gc.fillRect(barX[i], midY + peakHeight, barWidth, PEAK_CAP_HEIGHT);
+                double capY = Math.min(height - PEAK_CAP_HEIGHT, midY + peakHeight);
+                gc.fillRect(barX[i], capY, barWidth[i], PEAK_CAP_HEIGHT);
             }
             gc.setGlobalAlpha(1.0);
         }
@@ -84,6 +89,7 @@ public class VisBarsMirror extends SpectrumVisualizationBase {
     public void dispose() {
         super.dispose();
         barX = null;
+        barWidth = null;
         upperFill = null;
         lowerFill = null;
     }

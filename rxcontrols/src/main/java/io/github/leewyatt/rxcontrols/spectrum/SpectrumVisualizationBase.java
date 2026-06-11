@@ -102,24 +102,29 @@ public abstract class SpectrumVisualizationBase implements SpectrumVisualization
     }
 
     /**
-     * Computes the snapped left edge of every bar slot and returns the shared
-     * bar width: {@code slot = width / n}, {@code gap = gapRatio * slot},
-     * {@code barWidth = slot - gap} (floored, at least 1px),
-     * {@code barX[i] = round(i * slot + gap / 2)}.
+     * Computes the snapped left edge and width of every bar:
+     * {@code slot = width / n}, {@code gap = gapRatio * slot}; bar {@code i}
+     * spans the snapped interval from {@code i * slot + gap / 2} to
+     * {@code (i + 1) * slot - gap / 2} (at least 1px wide). Snapping both
+     * edges to the same slot grid keeps adjacent bars seamless at
+     * {@code gapRatio = 0} even when the slot width is fractional.
      *
      * @param width    the drawable width
-     * @param n        the band count ({@code barX.length} must equal {@code n})
+     * @param n        the band count ({@code barX.length} and
+     *                 {@code barWidth.length} must equal {@code n})
      * @param gapRatio the clamped gap ratio
      * @param barX     the output array receiving each bar's left edge
-     * @return the bar width in pixels
+     * @param barWidth the output array receiving each bar's width
      */
-    protected static double fillBarPositions(double width, int n, double gapRatio, double[] barX) {
+    protected static void fillBarGeometry(double width, int n, double gapRatio,
+                                          double[] barX, double[] barWidth) {
         double slot = width / n;
         double gap = slot * gapRatio;
-        double barWidth = Math.max(1.0, Math.floor(slot - gap));
         for (int i = 0; i < n; i++) {
-            barX[i] = Math.rint(i * slot + gap / 2.0);
+            double left = Math.rint(i * slot + gap / 2.0);
+            double right = Math.rint((i + 1) * slot - gap / 2.0);
+            barX[i] = left;
+            barWidth[i] = Math.max(1.0, right - left);
         }
-        return barWidth;
     }
 }

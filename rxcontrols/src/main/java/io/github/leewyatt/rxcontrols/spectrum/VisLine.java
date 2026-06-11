@@ -47,8 +47,8 @@ public class VisLine extends SpectrumVisualizationBase {
     }
 
     /**
-     * Sets the stroke width of the line. Non-positive or NaN values fall back
-     * to the default at render time.
+     * Sets the stroke width of the line. Non-finite or non-positive values
+     * fall back to the default at render time.
      *
      * @param lineWidth the stroke width in pixels
      */
@@ -88,7 +88,7 @@ public class VisLine extends SpectrumVisualizationBase {
     }
 
     private double lineWidthOrDefault() {
-        if (Double.isNaN(lineWidth) || lineWidth <= 0.0) {
+        if (!Double.isFinite(lineWidth) || lineWidth <= 0.0) {
             return DEFAULT_LINE_WIDTH;
         }
         return lineWidth;
