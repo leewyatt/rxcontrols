@@ -88,23 +88,26 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies the fill layer sits below the ripple layer and survives the
-     * children reset performed by {@code LabeledSkinBase.updateChildren()}.
+     * Verifies the paint order — fill layer at the bottom, ripple above it,
+     * mirrored caption layer above the label children — and that it survives
+     * the children reset performed by {@code LabeledSkinBase.updateChildren()}.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void fillLayerStaysBelowRippleLayer() throws Exception {
+    public void fillLayerBelowRippleAndHoverTextLayerOnTop() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
 
-            assertTrue(fillLayer(button) instanceof Pane);
+            assertTrue(fillLayer(button).getStyleClass().contains("fill-layer"));
             assertTrue(button.getChildrenUnmodifiable().get(1) instanceof RippleLayer);
+            assertTrue(lastChild(button).getStyleClass().contains("hover-text-layer"));
 
             button.setGraphic(new Region());
 
             assertTrue(fillLayer(button).getStyleClass().contains("fill-layer"));
             assertTrue(button.getChildrenUnmodifiable().get(1) instanceof RippleLayer);
+            assertTrue(lastChild(button).getStyleClass().contains("hover-text-layer"));
         });
     }
 
@@ -216,12 +219,11 @@ public class RXFillButtonTest {
             layout(button, 100.0, 40.0);
             assertTrue(fillContent(button).getClip() instanceof Rectangle);
 
-            Rectangle customClip = new Rectangle();
             button.setStyle(null);
             button.setFillAnimation(new FillAnimation() {
                 @Override
                 public Node createClip() {
-                    return customClip;
+                    return new Rectangle();
                 }
 
                 @Override
@@ -230,8 +232,11 @@ public class RXFillButtonTest {
                 }
             });
 
-            assertSame(customClip, fillContent(button).getClip());
-            assertEquals(50.0, customClip.getWidth(), EPSILON);
+            Rectangle fillClip = (Rectangle) fillContent(button).getClip();
+            Rectangle textClip = (Rectangle) hoverTextLayer(button).getClip();
+            assertNotSame(fillClip, textClip);
+            assertEquals(50.0, fillClip.getWidth(), EPSILON);
+            assertEquals(50.0, textClip.getWidth(), EPSILON);
         });
     }
 
@@ -360,7 +365,8 @@ public class RXFillButtonTest {
             assertNull(layer.getClip());
             assertNull(content.getClip());
             assertTrue(button.getChildrenUnmodifiable().stream()
-                    .noneMatch(child -> child.getStyleClass().contains("fill-layer")));
+                    .noneMatch(child -> child.getStyleClass().contains("fill-layer")
+                            || child.getStyleClass().contains("hover-text-layer")));
 
             button.fireEvent(mouse(button, MouseEvent.MOUSE_EXITED, -5.0, 10.0, false));
 
@@ -379,12 +385,24 @@ public class RXFillButtonTest {
         return (Pane) button.getChildrenUnmodifiable().get(0);
     }
 
+    private static Node lastChild(RXFillButton button) {
+        return button.getChildrenUnmodifiable()
+                .get(button.getChildrenUnmodifiable().size() - 1);
+    }
+
     private static Pane fillContent(RXFillButton button) {
         return (Pane) fillLayer(button).getChildren().get(0);
     }
 
+    private static Pane hoverTextLayer(RXFillButton button) {
+        return (Pane) button.getChildrenUnmodifiable().stream()
+                .filter(child -> child.getStyleClass().contains("hover-text-layer"))
+                .findFirst()
+                .orElseThrow();
+    }
+
     private static Label hoverLabel(RXFillButton button) {
-        return (Label) fillContent(button).getChildren().get(1);
+        return (Label) hoverTextLayer(button).getChildren().get(0);
     }
 
     private static MouseEvent mouse(Node target,

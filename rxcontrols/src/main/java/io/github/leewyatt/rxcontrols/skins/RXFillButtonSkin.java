@@ -29,10 +29,11 @@ import javafx.util.Duration;
  * <p>A single timeline drives an internal fill progress; the trigger state
  * (hover or pressed) plays it forward or, from the current progress, in
  * reverse, so interrupted sweeps reverse smoothly with proportional duration.
- * The fill content (an opaque region plus a mirrored caption colored with
- * {@code hoverTextFill}) is revealed by a progress clip, so the fill boundary
- * recolors the text as it sweeps over it; an outer clip bounds everything to
- * the button's painted geometry.</p>
+ * Two layers share the progress geometry: the fill layer (below the ripple
+ * and label) reveals the fill color bounded to the button's painted geometry,
+ * and a top-most text layer reveals a mirrored caption colored with
+ * {@code hoverTextFill} above the regular label, so the fill boundary
+ * recolors the text as it sweeps over it.</p>
  */
 public class RXFillButtonSkin extends RXButtonSkin {
 
@@ -40,6 +41,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
     private final Pane fillLayer = new Pane();
     private final Pane fillContent = new Pane();
     private final Region fillRegion = new Region();
+    private final Pane hoverTextLayer = new Pane();
     private final Label hoverLabel = new Label();
     private final BoundedClipSupport boundedClip = new BoundedClipSupport(fillLayer);
     private final DoubleProperty fillProgress =
@@ -52,6 +54,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
     private Region graphicPlaceholder;
     private FillAnimation appliedAnimation;
     private Node fillClip;
+    private Node textClip;
 
     /**
      * Creates the skin and wires the fill decoration layer.
@@ -68,9 +71,15 @@ public class RXFillButtonSkin extends RXButtonSkin {
         fillContent.setManaged(false);
         fillRegion.getStyleClass().add("fill-region");
         fillRegion.setManaged(false);
-        hoverLabel.setManaged(false);
-        fillContent.getChildren().addAll(fillRegion, hoverLabel);
+        fillContent.getChildren().add(fillRegion);
         fillLayer.getChildren().add(fillContent);
+        // The mirrored caption lives in its own top-most layer: it must paint
+        // above the regular label, while the fill color stays below it.
+        hoverTextLayer.getStyleClass().add("hover-text-layer");
+        hoverTextLayer.setManaged(false);
+        hoverTextLayer.setMouseTransparent(true);
+        hoverLabel.setManaged(false);
+        hoverTextLayer.getChildren().add(hoverLabel);
 
         // ==================== Mirrored caption ====================
         fillDisposer.registerBinding(hoverLabel.textProperty(), button.textProperty());
@@ -144,6 +153,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
         // skin's fields are initialized.
         if (fillLayer != null) {
             getChildren().add(0, fillLayer);
+            getChildren().add(hoverTextLayer);
         }
     }
 
@@ -156,6 +166,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
         boundedClip.updateClipFor(getSkinnable(), width, height);
         fillContent.resizeRelocate(0.0, 0.0, width, height);
         fillRegion.resizeRelocate(0.0, 0.0, width, height);
+        hoverTextLayer.resizeRelocate(0.0, 0.0, width, height);
         hoverLabel.resizeRelocate(x, y, w, h);
         updateFillGeometry();
     }
@@ -219,16 +230,22 @@ public class RXFillButtonSkin extends RXButtonSkin {
                 || !Double.isFinite(width) || !Double.isFinite(height)) {
             appliedAnimation = null;
             fillClip = null;
+            textClip = null;
             fillContent.setClip(null);
+            hoverTextLayer.setClip(null);
             return;
         }
         FillAnimation animation = animationOrDefault();
-        if (animation != appliedAnimation || fillClip == null) {
+        if (animation != appliedAnimation || fillClip == null || textClip == null) {
             appliedAnimation = animation;
             fillClip = animation.createClip();
+            textClip = animation.createClip();
             fillContent.setClip(fillClip);
+            hoverTextLayer.setClip(textClip);
         }
-        animation.update(fillClip, RXMath.clamp0To1(fillProgress.get()), width, height);
+        double progress = RXMath.clamp0To1(fillProgress.get());
+        animation.update(fillClip, progress, width, height);
+        animation.update(textClip, progress, width, height);
     }
 
     // ==================== Trigger State ====================
@@ -305,8 +322,11 @@ public class RXFillButtonSkin extends RXButtonSkin {
         }
         boundedClip.clearClip();
         fillContent.setClip(null);
+        hoverTextLayer.setClip(null);
         appliedAnimation = null;
         fillClip = null;
+        textClip = null;
         getChildren().remove(fillLayer);
+        getChildren().remove(hoverTextLayer);
     }
 }
