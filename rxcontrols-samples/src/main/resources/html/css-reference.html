@@ -102,11 +102,9 @@
 </ul>
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
-<p>The RXAudioSpectrum control has all the properties of Control;</p>
+<p>The RXAudioSpectrum control has all the properties of Control; pseudo-classes: :active, :silent</p>
 <h4>Substructure</h4>
-.bar-box  — HBox<br/>
-&emsp;&emsp;.bar — Region<br/>
-&emsp;&emsp;.data0;.data1;.data2 ... — Region<br/>
+.canvas — Canvas<br/>
 <table>
     <thead>
     <tr>
@@ -117,19 +115,39 @@
     </thead>
     <tbody>
     <tr>
-        <td>-rx-bar-effect</td>
-        <td>effect</td>
-        <td>null</td>
+        <td>-rx-band-layout</td>
+        <td>LINEAR; REVERSED; CENTER_FOLD</td>
+        <td>LINEAR</td>
     </tr>
     <tr>
-        <td>-rx-bar-shape</td>
-        <td>shape</td>
-        <td>null</td>
+        <td>-rx-bar-fill</td>
+        <td>paint</td>
+        <td>amplitude-keyed linear gradient</td>
     </tr>
     <tr>
-        <td>-rx-crest-pos</td>
-        <td>MIDDLE; LEFT; RIGHT; SIDE; DOUBLE</td>
-        <td>MIDDLE</td>
+        <td>-rx-peak-fill</td>
+        <td>paint</td>
+        <td>rgba(255, 255, 255, 0.85)</td>
+    </tr>
+    <tr>
+        <td>-rx-bar-gap-ratio</td>
+        <td>number [0, 0.9]</td>
+        <td>0.2</td>
+    </tr>
+    <tr>
+        <td>-rx-smoothing</td>
+        <td>number [0, 0.98]</td>
+        <td>0.8</td>
+    </tr>
+    <tr>
+        <td>-rx-show-peaks</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-glow</td>
+        <td>boolean</td>
+        <td>false</td>
     </tr>
     </tbody>
 </table>

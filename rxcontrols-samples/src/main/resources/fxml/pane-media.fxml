@@ -35,12 +35,8 @@
                   <ToggleGroup fx:id="styleGroup" />
                </toggleGroup>
             </RXToggleButton>
-            <RXToggleButton text="样式1" toggleGroup="$styleGroup" />
-            <RXToggleButton text="样式2" toggleGroup="$styleGroup" />
-            <RXToggleButton text="样式3" toggleGroup="$styleGroup" />
-            <RXToggleButton text="样式4" toggleGroup="$styleGroup" />
-            <RXToggleButton text="样式5" toggleGroup="$styleGroup" />
-            <RXToggleButton text="样式6" toggleGroup="$styleGroup" />
+            <RXToggleButton text="Sunset" toggleGroup="$styleGroup" />
+            <RXToggleButton text="Ocean" toggleGroup="$styleGroup" />
          </children>
          <padding>
             <Insets left="5.0" right="5.0" />

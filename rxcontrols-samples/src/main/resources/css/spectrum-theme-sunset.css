@@ -1,0 +1,4 @@
+.spectrum {
+    -rx-bar-fill: linear-gradient(to top, #ffb347 0%, #ff5e62 60%, #c81d77 100%);
+    -rx-peak-fill: #ffe9c7;
+}

@@ -10,11 +10,8 @@ import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.effect.BoxBlur;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
-import javafx.scene.shape.Polygon;
-import javafx.scene.shape.Shape;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -87,13 +84,9 @@ public class PaneMediaController {
     }
 
     private void initSpectrum(MediaPlayer player) {
-        player.setAudioSpectrumThreshold(-65);
-        spectrum.audioSpectrumNumBandsProperty().bind(player.audioSpectrumNumBandsProperty());
-        spectrum.audioSpectrumThresholdProperty().bind(player.audioSpectrumThresholdProperty());
-        player.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
-            spectrum.setMagnitudes(magnitudes);
-        });
-
+        player.setAudioSpectrumThreshold((int) spectrum.getMinDecibels());
+        player.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) ->
+                spectrum.updateSpectrum(magnitudes));
     }
 
     private void initProgressBar(MediaPlayer player) {
@@ -185,22 +178,11 @@ public class PaneMediaController {
 
         //实现切换样式功能
         String[] styleSheets = {
-                PaneMediaController.class.getResource("/css/spectrum-01.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum-02.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum-03.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum-04.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum-05.css").toExternalForm(),
-                PaneMediaController.class.getResource("/css/spectrum-06.css").toExternalForm()
+                PaneMediaController.class.getResource("/css/spectrum-theme-sunset.css").toExternalForm(),
+                PaneMediaController.class.getResource("/css/spectrum-theme-ocean.css").toExternalForm()
                 };
-        BoxBlur barEffect = new BoxBlur(2.5,2.5,1);
-        Shape shape = new Polygon(5,0,0,5,15,10,15,10);
         styleGroup.selectedToggleProperty().addListener((ob, ov, nv) ->{
             int index = styleGroup.getToggles().indexOf(nv);
-            if(index==6){
-                spectrum.setBarShape(shape);
-            }else{
-                spectrum.setBarShape(null);
-            }
             if(index==0){
                 StyleUtil.removeSheets(spectrum,styleSheets);
             }else {

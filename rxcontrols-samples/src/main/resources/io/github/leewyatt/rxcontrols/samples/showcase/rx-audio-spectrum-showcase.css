@@ -1,0 +1,16 @@
+.spectrum-stage {
+    -fx-background-color: #11151c;
+    -fx-background-radius: 12px;
+    -fx-padding: 18px;
+}
+
+.state-label,
+.fps-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+}
+
+.rx-audio-spectrum:silent {
+    -fx-opacity: 0.6;
+}
