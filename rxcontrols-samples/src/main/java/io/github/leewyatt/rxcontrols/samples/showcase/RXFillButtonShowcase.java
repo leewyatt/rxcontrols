@@ -1,7 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXFillButton;
-import io.github.leewyatt.rxcontrols.RXFillButton.FillMode;
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimZigzag;
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
@@ -16,8 +17,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Showcase application for {@link RXFillButton}.
@@ -85,12 +88,31 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
 
     // ==================== Sections ====================
 
+    private static final Map<String, FillAnimation> ANIMATIONS = new LinkedHashMap<>();
+
+    static {
+        ANIMATIONS.put("left-to-right", FillAnimation.LEFT_TO_RIGHT);
+        ANIMATIONS.put("right-to-left", FillAnimation.RIGHT_TO_LEFT);
+        ANIMATIONS.put("top-to-bottom", FillAnimation.TOP_TO_BOTTOM);
+        ANIMATIONS.put("bottom-to-top", FillAnimation.BOTTOM_TO_TOP);
+        ANIMATIONS.put("center-out", FillAnimation.CENTER_OUT);
+        ANIMATIONS.put("center-out-vertical", FillAnimation.CENTER_OUT_VERTICAL);
+        ANIMATIONS.put("edges-in", FillAnimation.EDGES_IN);
+        ANIMATIONS.put("edges-in-vertical", FillAnimation.EDGES_IN_VERTICAL);
+        ANIMATIONS.put("circle", FillAnimation.CIRCLE);
+        ANIMATIONS.put("corners-in", FillAnimation.CORNERS_IN);
+        ANIMATIONS.put("zigzag", FillAnimation.ZIGZAG);
+        ANIMATIONS.put("zigzag-vertical", FillAnimation.ZIGZAG_VERTICAL);
+        ANIMATIONS.put("custom: new FillAnimZigzag(8)", new FillAnimZigzag(8));
+    }
+
     private Node buildFillGrid() {
-        ComboBox<FillMode> modeBox = new ComboBox<>();
-        modeBox.getItems().setAll(FillMode.values());
-        modeBox.setValue(button.getFillMode());
+        ComboBox<String> modeBox = new ComboBox<>();
+        modeBox.getItems().setAll(ANIMATIONS.keySet());
+        modeBox.setValue("left-to-right");
         modeBox.setMaxWidth(Double.MAX_VALUE);
-        button.fillModeProperty().bind(modeBox.valueProperty());
+        modeBox.valueProperty().addListener((obs, oldV, newV) ->
+                button.setFillAnimation(ANIMATIONS.get(newV)));
 
         ColorPicker fillPicker = new ColorPicker(Color.web("#616dff"));
         fillPicker.setMaxWidth(Double.MAX_VALUE);

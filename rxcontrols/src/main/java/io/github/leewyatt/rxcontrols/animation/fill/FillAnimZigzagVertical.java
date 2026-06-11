@@ -1,0 +1,59 @@
+package io.github.leewyatt.rxcontrols.animation.fill;
+
+import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.shape.Rectangle;
+
+/**
+ * Vertical stripes sweeping in from alternating sides: odd stripes from the
+ * top edge, even stripes from the bottom edge.
+ */
+public final class FillAnimZigzagVertical implements FillAnimation {
+
+    /**
+     * Default stripe count.
+     */
+    public static final int DEFAULT_STRIPES = 4;
+
+    private final int stripes;
+
+    /**
+     * Creates the animation with {@link #DEFAULT_STRIPES} stripes.
+     */
+    public FillAnimZigzagVertical() {
+        this(DEFAULT_STRIPES);
+    }
+
+    /**
+     * Creates the animation with the given stripe count. Values below 1 are
+     * clamped to 1.
+     *
+     * @param stripes the stripe count
+     */
+    public FillAnimZigzagVertical(int stripes) {
+        this.stripes = Math.max(1, stripes);
+    }
+
+    @Override
+    public Node createClip() {
+        Group group = new Group();
+        for (int i = 0; i < stripes; i++) {
+            group.getChildren().add(new Rectangle());
+        }
+        return group;
+    }
+
+    @Override
+    public void update(Node clip, double progress, double width, double height) {
+        Group group = (Group) clip;
+        double rectHeight = progress * height;
+        double stripeWidth = width / stripes;
+        for (int i = 0; i < stripes; i++) {
+            Rectangle rect = (Rectangle) group.getChildren().get(i);
+            rect.setX(i * stripeWidth);
+            rect.setY(i % 2 == 0 ? 0.0 : height - rectHeight);
+            rect.setWidth(stripeWidth);
+            rect.setHeight(rectHeight);
+        }
+    }
+}

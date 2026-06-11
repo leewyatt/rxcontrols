@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
@@ -26,8 +28,11 @@ import java.util.List;
  * pressed, recoloring the caption as the fill boundary passes over it.
  *
  * <p>The fill is a decoration layer between the button background and the
- * label, clipped to the button's painted geometry; the sweep direction is
- * selected by {@link #fillModeProperty() fillMode} and the trigger state by
+ * label, clipped to the button's painted geometry; the sweep geometry is
+ * selected by {@link #fillAnimationProperty() fillAnimation} (built-in
+ * presets via the {@code -rx-fill-animation} CSS keyword or the
+ * {@link FillAnimation} constants, custom variants by constructing your own
+ * instance) and the trigger state by
  * {@link #animationTriggerProperty() animationTrigger}. Turning the trigger
  * state off reverses the sweep from its current progress, with duration
  * proportional to the remaining distance. The ripple feedback inherited from
@@ -35,48 +40,12 @@ import java.util.List;
  */
 public class RXFillButton extends RXButton {
 
-    /**
-     * Sweep geometry of the fill animation.
-     */
-    public enum FillMode {
-
-        /**
-         * Fill sweeps from the left edge to the right edge.
-         */
-        LEFT_TO_RIGHT,
-
-        /**
-         * Fill sweeps from the right edge to the left edge.
-         */
-        RIGHT_TO_LEFT,
-
-        /**
-         * Fill sweeps from the top edge to the bottom edge.
-         */
-        TOP_TO_BOTTOM,
-
-        /**
-         * Fill sweeps from the bottom edge to the top edge.
-         */
-        BOTTOM_TO_TOP,
-
-        /**
-         * Fill expands horizontally from the center to both edges.
-         */
-        CENTER_OUT,
-
-        /**
-         * Fill expands as a circle from the center.
-         */
-        CIRCLE
-    }
-
     // ==================== Constants ====================
 
     /**
-     * Default fill sweep mode.
+     * Default fill animation.
      */
-    public static final FillMode DEFAULT_FILL_MODE = FillMode.LEFT_TO_RIGHT;
+    public static final FillAnimation DEFAULT_FILL_ANIMATION = FillAnimation.LEFT_TO_RIGHT;
 
     /**
      * Default animation trigger.
@@ -139,13 +108,13 @@ public class RXFillButton extends RXButton {
         return new RXFillButtonSkin(this);
     }
 
-    // ==================== Fill Mode ====================
+    // ==================== Fill Animation ====================
 
-    private final ObjectProperty<FillMode> fillMode =
-            new StyleableObjectProperty<>(DEFAULT_FILL_MODE) {
+    private final ObjectProperty<FillAnimation> fillAnimation =
+            new StyleableObjectProperty<>(DEFAULT_FILL_ANIMATION) {
                 @Override
-                public CssMetaData<? extends Styleable, FillMode> getCssMetaData() {
-                    return StyleableProperties.FILL_MODE;
+                public CssMetaData<? extends Styleable, FillAnimation> getCssMetaData() {
+                    return StyleableProperties.FILL_ANIMATION;
                 }
 
                 @Override
@@ -155,36 +124,40 @@ public class RXFillButton extends RXButton {
 
                 @Override
                 public String getName() {
-                    return "fillMode";
+                    return "fillAnimation";
                 }
             };
 
     /**
-     * Sweep geometry of the fill animation. A {@code null} value falls back to
-     * {@link #DEFAULT_FILL_MODE} at render time.
+     * Sweep geometry of the fill animation: a {@link FillAnimation} preset
+     * constant, a parameterized instance such as
+     * {@code new FillAnimZigzag(6)}, or a custom implementation. From CSS,
+     * {@code -rx-fill-animation} selects presets by keyword. A {@code null}
+     * or unknown-keyword value falls back to
+     * {@link #DEFAULT_FILL_ANIMATION} at render time.
      *
-     * @return the fill mode property
+     * @return the fill animation property
      */
-    public final ObjectProperty<FillMode> fillModeProperty() {
-        return fillMode;
+    public final ObjectProperty<FillAnimation> fillAnimationProperty() {
+        return fillAnimation;
     }
 
     /**
-     * Returns the fill sweep mode.
+     * Returns the fill animation.
      *
-     * @return the fill sweep mode
+     * @return the fill animation, or {@code null}
      */
-    public final FillMode getFillMode() {
-        return fillMode.get();
+    public final FillAnimation getFillAnimation() {
+        return fillAnimation.get();
     }
 
     /**
-     * Sets the fill sweep mode.
+     * Sets the fill animation.
      *
-     * @param value the fill sweep mode
+     * @param value the fill animation, or {@code null} for the default
      */
-    public final void setFillMode(FillMode value) {
-        fillMode.set(value);
+    public final void setFillAnimation(FillAnimation value) {
+        fillAnimation.set(value);
     }
 
     // ==================== Animation Trigger ====================
@@ -338,18 +311,18 @@ public class RXFillButton extends RXButton {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXFillButton, FillMode> FILL_MODE =
-                new CssMetaData<>("-rx-fill-mode",
-                        new EnumConverter<>(FillMode.class), DEFAULT_FILL_MODE) {
+        private static final CssMetaData<RXFillButton, FillAnimation> FILL_ANIMATION =
+                new CssMetaData<>("-rx-fill-animation",
+                        new KeywordConverter<>(FillAnimation::valueOf), DEFAULT_FILL_ANIMATION) {
                     @Override
                     public boolean isSettable(RXFillButton button) {
-                        return !button.fillMode.isBound();
+                        return !button.fillAnimation.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<FillMode> getStyleableProperty(RXFillButton button) {
-                        return (StyleableProperty<FillMode>) button.fillModeProperty();
+                    public StyleableProperty<FillAnimation> getStyleableProperty(RXFillButton button) {
+                        return (StyleableProperty<FillAnimation>) button.fillAnimationProperty();
                     }
                 };
 
@@ -403,7 +376,7 @@ public class RXFillButton extends RXButton {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(RXButton.getClassCssMetaData());
-            styleables.add(FILL_MODE);
+            styleables.add(FILL_ANIMATION);
             styleables.add(ANIMATION_TRIGGER);
             styleables.add(ANIMATION_DURATION);
             styleables.add(HOVER_TEXT_FILL);

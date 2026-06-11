@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXFillButton;
-import io.github.leewyatt.rxcontrols.RXFillButton.FillMode;
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -20,8 +20,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 /**
@@ -44,8 +42,6 @@ public class RXFillButtonSkin extends RXButtonSkin {
     private final Region fillRegion = new Region();
     private final Label hoverLabel = new Label();
     private final BoundedClipSupport boundedClip = new BoundedClipSupport(fillLayer);
-    private final Rectangle progressRect = new Rectangle();
-    private final Circle progressCircle = new Circle();
     private final DoubleProperty fillProgress =
             new SimpleDoubleProperty(this, "fillProgress", 0.0);
     private final InvalidationListener graphicBoundsListener =
@@ -54,6 +50,8 @@ public class RXFillButtonSkin extends RXButtonSkin {
     private Timeline fillTimeline;
     private Node observedGraphic;
     private Region graphicPlaceholder;
+    private FillAnimation appliedAnimation;
+    private Node fillClip;
 
     /**
      * Creates the skin and wires the fill decoration layer.
@@ -97,7 +95,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
 
         // ==================== Progress model ====================
         fillDisposer.registerListener(fillProgress, this::updateFillGeometry);
-        fillDisposer.registerListener(button.fillModeProperty(), this::updateFillGeometry);
+        fillDisposer.registerListener(button.fillAnimationProperty(), this::updateFillGeometry);
         fillDisposer.registerListener(button.animationDurationProperty(), this::rebuildTimeline);
 
         // ==================== Triggers ====================
@@ -219,48 +217,18 @@ public class RXFillButtonSkin extends RXButtonSkin {
         double height = fillLayer.getHeight();
         if (width <= 0.0 || height <= 0.0
                 || !Double.isFinite(width) || !Double.isFinite(height)) {
+            appliedAnimation = null;
+            fillClip = null;
             fillContent.setClip(null);
             return;
         }
-        double p = RXMath.clamp0To1(fillProgress.get());
-        FillMode mode = modeOrDefault();
-        if (mode == FillMode.CIRCLE) {
-            progressCircle.setCenterX(width / 2.0);
-            progressCircle.setCenterY(height / 2.0);
-            progressCircle.setRadius(p * Math.hypot(width, height) / 2.0);
-            fillContent.setClip(progressCircle);
-            return;
+        FillAnimation animation = animationOrDefault();
+        if (animation != appliedAnimation || fillClip == null) {
+            appliedAnimation = animation;
+            fillClip = animation.createClip();
+            fillContent.setClip(fillClip);
         }
-        double rectX = 0.0;
-        double rectY = 0.0;
-        double rectW = width;
-        double rectH = height;
-        switch (mode) {
-            case RIGHT_TO_LEFT:
-                rectX = width - p * width;
-                rectW = p * width;
-                break;
-            case TOP_TO_BOTTOM:
-                rectH = p * height;
-                break;
-            case BOTTOM_TO_TOP:
-                rectY = height - p * height;
-                rectH = p * height;
-                break;
-            case CENTER_OUT:
-                rectX = (width - p * width) / 2.0;
-                rectW = p * width;
-                break;
-            case LEFT_TO_RIGHT:
-            default:
-                rectW = p * width;
-                break;
-        }
-        progressRect.setX(rectX);
-        progressRect.setY(rectY);
-        progressRect.setWidth(rectW);
-        progressRect.setHeight(rectH);
-        fillContent.setClip(progressRect);
+        animation.update(fillClip, RXMath.clamp0To1(fillProgress.get()), width, height);
     }
 
     // ==================== Trigger State ====================
@@ -274,9 +242,9 @@ public class RXFillButtonSkin extends RXButtonSkin {
         return trigger == null ? RXFillButton.DEFAULT_ANIMATION_TRIGGER : trigger;
     }
 
-    private FillMode modeOrDefault() {
-        FillMode mode = fillButton().getFillMode();
-        return mode == null ? RXFillButton.DEFAULT_FILL_MODE : mode;
+    private FillAnimation animationOrDefault() {
+        FillAnimation animation = fillButton().getFillAnimation();
+        return animation == null ? RXFillButton.DEFAULT_FILL_ANIMATION : animation;
     }
 
     private Duration positiveDurationOrDefault() {
@@ -337,6 +305,8 @@ public class RXFillButtonSkin extends RXButtonSkin {
         }
         boundedClip.clearClip();
         fillContent.setClip(null);
+        appliedAnimation = null;
+        fillClip = null;
         getChildren().remove(fillLayer);
     }
 }

@@ -13,7 +13,7 @@
 /*fill button*/
 .rx-fill-button {
     -rx-fill: #616dff;
-    -rx-fill-mode: left-to-right;
+    -rx-fill-animation: left-to-right;
     -rx-animation-trigger: hover;
     -rx-animation-duration: 200ms;
     -rx-hover-text-fill: white;

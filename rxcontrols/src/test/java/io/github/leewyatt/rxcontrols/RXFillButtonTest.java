@@ -1,11 +1,12 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXFillButton.FillMode;
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.application.Platform;
 import javafx.event.EventType;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -70,7 +71,8 @@ public class RXFillButtonTest {
         assertTrue(button.getStyleClass().contains("button"));
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertTrue(button.getStyleClass().contains("rx-fill-button"));
-        assertSame(RXFillButton.DEFAULT_FILL_MODE, button.getFillMode());
+        assertSame(RXFillButton.DEFAULT_FILL_ANIMATION, button.getFillAnimation());
+        assertSame(FillAnimation.LEFT_TO_RIGHT, RXFillButton.DEFAULT_FILL_ANIMATION);
         assertSame(RXFillButton.DEFAULT_ANIMATION_TRIGGER, button.getAnimationTrigger());
         assertEquals(RXFillButton.DEFAULT_ANIMATION_DURATION, button.getAnimationDuration());
         assertSame(RXFillButton.DEFAULT_HOVER_TEXT_FILL, button.getHoverTextFill());
@@ -78,7 +80,7 @@ public class RXFillButtonTest {
         Set<String> properties = RXFillButton.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
                 .collect(Collectors.toSet());
-        assertTrue(properties.contains("-rx-fill-mode"));
+        assertTrue(properties.contains("-rx-fill-animation"));
         assertTrue(properties.contains("-rx-animation-trigger"));
         assertTrue(properties.contains("-rx-animation-duration"));
         assertTrue(properties.contains("-rx-hover-text-fill"));
@@ -136,13 +138,14 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies per-mode clip geometry: anchors at progress 0 distinguish the
-     * sweep direction, and the circle mode covers the diagonal at progress 1.
+     * Verifies per-animation clip geometry: anchors at progress 0 distinguish
+     * the sweep direction, switching animations swaps the clip node, and the
+     * circle covers the diagonal at progress 1.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void fillModeGeometryAnchors() throws Exception {
+    public void fillAnimationGeometryAnchors() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             button.setAnimationDuration(Duration.ZERO);
@@ -153,22 +156,82 @@ public class RXFillButtonTest {
             assertEquals(0.0, rect.getX(), EPSILON);
             assertEquals(0.0, rect.getWidth(), EPSILON);
 
-            button.setFillMode(FillMode.RIGHT_TO_LEFT);
+            button.setFillAnimation(FillAnimation.RIGHT_TO_LEFT);
+            assertNotSame(rect, content.getClip());
             assertEquals(100.0, ((Rectangle) content.getClip()).getX(), EPSILON);
 
-            button.setFillMode(FillMode.BOTTOM_TO_TOP);
+            button.setFillAnimation(FillAnimation.BOTTOM_TO_TOP);
             assertEquals(40.0, ((Rectangle) content.getClip()).getY(), EPSILON);
 
-            button.setFillMode(FillMode.CENTER_OUT);
+            button.setFillAnimation(FillAnimation.CENTER_OUT);
             assertEquals(50.0, ((Rectangle) content.getClip()).getX(), EPSILON);
 
-            button.setFillMode(FillMode.CIRCLE);
+            button.setFillAnimation(FillAnimation.EDGES_IN);
+            Group edges = (Group) content.getClip();
+            assertEquals(2, edges.getChildren().size());
+            assertEquals(100.0, ((Rectangle) edges.getChildren().get(1)).getX(), EPSILON);
+
+            button.setFillAnimation(FillAnimation.CORNERS_IN);
+            assertEquals(4, ((Group) content.getClip()).getChildren().size());
+
+            button.setFillAnimation(FillAnimation.ZIGZAG);
+            Group stripes = (Group) content.getClip();
+            assertEquals(4, stripes.getChildren().size());
+            assertEquals(0.0, ((Rectangle) stripes.getChildren().get(0)).getX(), EPSILON);
+            assertEquals(100.0, ((Rectangle) stripes.getChildren().get(1)).getX(), EPSILON);
+            assertEquals(10.0, ((Rectangle) stripes.getChildren().get(1)).getY(), EPSILON);
+
+            button.setFillAnimation(FillAnimation.CIRCLE);
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
             Circle circle = (Circle) content.getClip();
             assertEquals(50.0, circle.getCenterX(), EPSILON);
             assertEquals(20.0, circle.getCenterY(), EPSILON);
             assertEquals(Math.hypot(100.0, 40.0) / 2.0, circle.getRadius(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies the CSS keyword converter resolves presets to canonical
+     * instances, unknown keywords fall back leniently, and a custom
+     * implementation set from Java drives the clip.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void keywordConverterAndCustomAnimation() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            StackPane root = new StackPane(button);
+            new Scene(root);
+            button.setStyle("-rx-fill-animation: zigzag;");
+            root.applyCss();
+
+            assertSame(FillAnimation.ZIGZAG, button.getFillAnimation());
+
+            button.setStyle("-rx-fill-animation: not-a-real-animation;");
+            root.applyCss();
+
+            assertNull(button.getFillAnimation());
+            layout(button, 100.0, 40.0);
+            assertTrue(fillContent(button).getClip() instanceof Rectangle);
+
+            Rectangle customClip = new Rectangle();
+            button.setStyle(null);
+            button.setFillAnimation(new FillAnimation() {
+                @Override
+                public Node createClip() {
+                    return customClip;
+                }
+
+                @Override
+                public void update(Node clip, double progress, double width, double height) {
+                    ((Rectangle) clip).setWidth(width * 0.5);
+                }
+            });
+
+            assertSame(customClip, fillContent(button).getClip());
+            assertEquals(50.0, customClip.getWidth(), EPSILON);
         });
     }
 
@@ -258,14 +321,14 @@ public class RXFillButtonTest {
             RXFillButton button = new RXFillButton("Fill");
             StackPane root = new StackPane(button);
             new Scene(root);
-            button.setStyle("-rx-fill-mode: circle;"
+            button.setStyle("-rx-fill-animation: circle;"
                     + " -rx-animation-trigger: pressed;"
                     + " -rx-animation-duration: 80ms;"
                     + " -rx-hover-text-fill: red;");
 
             root.applyCss();
 
-            assertSame(FillMode.CIRCLE, button.getFillMode());
+            assertSame(FillAnimation.CIRCLE, button.getFillAnimation());
             assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
             assertEquals(Color.RED, button.getHoverTextFill());

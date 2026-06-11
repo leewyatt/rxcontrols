@@ -4,6 +4,7 @@ module rxcontrols {
     requires java.logging;
 
     exports io.github.leewyatt.rxcontrols;
+    exports io.github.leewyatt.rxcontrols.animation.fill;
     exports io.github.leewyatt.rxcontrols.animation.lineButton;
     exports io.github.leewyatt.rxcontrols.carousel;
     exports io.github.leewyatt.rxcontrols.carousel.animation;
