@@ -201,6 +201,14 @@ public class RXFillButtonSkin extends RXButtonSkin {
             snapTo(active);
             return;
         }
+        // Already resting at the target end: skip. Starting a finished
+        // timeline jumps to the opposite end first (Animation.play with
+        // lastPlayedFinished), which would replay a full phantom sweep.
+        double progress = RXMath.clamp0To1(fillProgress.get());
+        if (fillTimeline.getStatus() != Animation.Status.RUNNING
+                && ((active && progress >= 1.0) || (!active && progress <= 0.0))) {
+            return;
+        }
         fillTimeline.setRate(active ? 1.0 : -1.0);
         fillTimeline.play();
     }
@@ -245,6 +253,8 @@ public class RXFillButtonSkin extends RXButtonSkin {
             textClip = null;
             fillContent.setClip(null);
             hoverTextLayer.setClip(null);
+            fillLayer.setVisible(false);
+            hoverTextLayer.setVisible(false);
             return;
         }
         FillAnimation animation = animationOrDefault();
@@ -256,6 +266,11 @@ public class RXFillButtonSkin extends RXButtonSkin {
             hoverTextLayer.setClip(textClip);
         }
         double progress = RXMath.clamp0To1(fillProgress.get());
+        // Hide both layers at rest: a zero-progress clip should paint nothing,
+        // but sub-pixel clip rasterization can leak a hairline of the fill.
+        boolean fillVisible = progress > 0.0;
+        fillLayer.setVisible(fillVisible);
+        hoverTextLayer.setVisible(fillVisible);
         animation.update(fillClip, progress, areaW, areaH);
         // The text layer covers the full bounds; shift its clip so the reveal
         // boundary matches the fill area.

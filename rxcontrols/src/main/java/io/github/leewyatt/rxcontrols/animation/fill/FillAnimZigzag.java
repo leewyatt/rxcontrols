@@ -15,6 +15,12 @@ public final class FillAnimZigzag implements FillAnimation {
      */
     public static final int DEFAULT_STRIPES = 4;
 
+    /**
+     * Overlap into the next stripe; abutting antialiased stripes would
+     * otherwise leave hairline seams in the clip alpha.
+     */
+    private static final double SEAM_OVERLAP = 0.5;
+
     private final int stripes;
 
     /**
@@ -53,7 +59,7 @@ public final class FillAnimZigzag implements FillAnimation {
             rect.setX(i % 2 == 0 ? 0.0 : width - rectWidth);
             rect.setY(i * stripeHeight);
             rect.setWidth(rectWidth);
-            rect.setHeight(stripeHeight);
+            rect.setHeight(stripeHeight + (i < stripes - 1 ? SEAM_OVERLAP : 0.0));
         }
     }
 }

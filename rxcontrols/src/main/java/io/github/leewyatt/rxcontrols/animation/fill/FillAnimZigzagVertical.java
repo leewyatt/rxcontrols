@@ -15,6 +15,12 @@ public final class FillAnimZigzagVertical implements FillAnimation {
      */
     public static final int DEFAULT_STRIPES = 4;
 
+    /**
+     * Overlap into the next stripe; abutting antialiased stripes would
+     * otherwise leave hairline seams in the clip alpha.
+     */
+    private static final double SEAM_OVERLAP = 0.5;
+
     private final int stripes;
 
     /**
@@ -52,7 +58,7 @@ public final class FillAnimZigzagVertical implements FillAnimation {
             Rectangle rect = (Rectangle) group.getChildren().get(i);
             rect.setX(i * stripeWidth);
             rect.setY(i % 2 == 0 ? 0.0 : height - rectHeight);
-            rect.setWidth(stripeWidth);
+            rect.setWidth(stripeWidth + (i < stripes - 1 ? SEAM_OVERLAP : 0.0));
             rect.setHeight(rectHeight);
         }
     }

@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -132,11 +133,15 @@ public class RXFillButtonTest {
             button.setAnimationDuration(Duration.ZERO);
             layout(button, 100.0, 40.0);
 
+            assertFalse(fillLayer(button).isVisible());
+
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
             Rectangle clip = (Rectangle) fillContent(button).getClip();
             assertEquals(100.0, clip.getWidth(), EPSILON);
             assertEquals(40.0, clip.getHeight(), EPSILON);
+            assertTrue(fillLayer(button).isVisible());
+            assertTrue(hoverTextLayer(button).isVisible());
 
             layout(button, 200.0, 40.0);
 
@@ -145,6 +150,8 @@ public class RXFillButtonTest {
             button.fireEvent(mouse(button, MouseEvent.MOUSE_EXITED, -5.0, 10.0, false));
 
             assertEquals(0.0, clip.getWidth(), EPSILON);
+            assertFalse(fillLayer(button).isVisible());
+            assertFalse(hoverTextLayer(button).isVisible());
         });
     }
 

@@ -10,6 +10,12 @@ import javafx.scene.shape.Rectangle;
  */
 public final class FillAnimEdgesInVertical implements FillAnimation {
 
+    /**
+     * Overlap of adjacent pieces toward shared edges; abutting antialiased
+     * pieces would otherwise leave a hairline seam in the clip alpha.
+     */
+    private static final double SEAM_OVERLAP = 0.5;
+
     @Override
     public Node createClip() {
         return new Group(new Rectangle(), new Rectangle());
@@ -21,13 +27,14 @@ public final class FillAnimEdgesInVertical implements FillAnimation {
         Rectangle top = (Rectangle) group.getChildren().get(0);
         Rectangle bottom = (Rectangle) group.getChildren().get(1);
         double rectHeight = progress * height / 2.0;
+        double overlap = Math.min(SEAM_OVERLAP, rectHeight);
         top.setX(0.0);
         top.setY(0.0);
         top.setWidth(width);
-        top.setHeight(rectHeight);
+        top.setHeight(rectHeight + overlap);
         bottom.setX(0.0);
-        bottom.setY(height - rectHeight);
+        bottom.setY(height - rectHeight - overlap);
         bottom.setWidth(width);
-        bottom.setHeight(rectHeight);
+        bottom.setHeight(rectHeight + overlap);
     }
 }
