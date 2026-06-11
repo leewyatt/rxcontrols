@@ -25,7 +25,7 @@ public class RXFillLabelSkin extends LabelSkin {
                 label.animationTriggerProperty(),
                 label.animationDurationProperty(),
                 label.fillInsetsProperty(),
-                label.fillRadiusProperty());
+                label.fillCornerRadiusProperty());
         updateChildren();
     }
 

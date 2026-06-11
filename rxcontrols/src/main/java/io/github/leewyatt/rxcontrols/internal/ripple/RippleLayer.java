@@ -79,16 +79,13 @@ public final class RippleLayer extends Region {
      * @param height the local clip height
      */
     public void updateClipFor(Region host, double width, double height) {
-        updateClipFor(host, width, height, null);
+        updateClipFor(host, width, height, null, null);
     }
 
     /**
      * Updates the bounded clip with extra insets and resizes the hover state
      * overlay so it always covers the clip region, letting the inset clip
-     * shape it. The overlay is expanded outward to match any negative-inset
-     * bleed: a clip can only trim, not enlarge, so an overlay left at the
-     * layer bounds would keep its square corners and original size when the
-     * clip extends past them.
+     * shape it.
      *
      * @param host   the host region providing shape and background geometry
      * @param width  the local clip width
@@ -97,7 +94,29 @@ public final class RippleLayer extends Region {
      *               negative), or {@code null} to follow the host border edge
      */
     public void updateClipFor(Region host, double width, double height, Insets insets) {
-        boundedClip.updateClipFor(host, width, height, insets);
+        updateClipFor(host, width, height, insets, null);
+    }
+
+    /**
+     * Updates the bounded clip with extra insets and explicit corner radii, and
+     * resizes the hover state overlay so it always covers the clip region,
+     * letting the inset clip shape it. The overlay is expanded outward to match
+     * any negative-inset bleed: a clip can only trim, not enlarge, so an overlay
+     * left at the layer bounds would keep its square corners and original size
+     * when the clip extends past them.
+     *
+     * @param host   the host region providing shape and background geometry
+     * @param width  the local clip width
+     * @param height the local clip height
+     * @param insets extra insets applied to the clip geometry (may be
+     *               negative), or {@code null} to follow the host border edge
+     * @param radius explicit corner radii turning the clip into a single
+     *               rounded rectangle, or {@code null} to mirror the host
+     *               background geometry
+     */
+    public void updateClipFor(Region host, double width, double height,
+                              Insets insets, CornerRadii radius) {
+        boundedClip.updateClipFor(host, width, height, insets, radius);
         double bleedTop = insets == null ? 0.0 : Math.max(0.0, -insets.getTop());
         double bleedRight = insets == null ? 0.0 : Math.max(0.0, -insets.getRight());
         double bleedBottom = insets == null ? 0.0 : Math.max(0.0, -insets.getBottom());

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
+import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXFillLabelSkin;
@@ -324,77 +325,55 @@ public class RXFillLabel extends Label {
         fillInsets.set(value);
     }
 
-    // ==================== Fill Radius ====================
+    // ==================== Fill Corner Radius ====================
 
-    private final ObjectProperty<CornerRadii> fillRadius =
-            new SimpleObjectProperty<>(this, "fillRadius", null);
+    private final ObjectProperty<CornerRadii> fillCornerRadius =
+            new SimpleObjectProperty<>(this, "fillCornerRadius", null);
 
     /**
-     * CSS facade for {@link #fillRadius}: the engine can only deliver
+     * CSS facade for {@link #fillCornerRadius}: the engine can only deliver
      * multi-value custom properties through the special-cased
      * {@code InsetsConverter} (RT-37727), so the CSS type is {@link Insets}
      * and gets coerced into {@link CornerRadii} here.
      */
-    private final CoercedStyleableProperty<Insets, CornerRadii> fillRadiusCss =
-            new CoercedStyleableProperty<>(fillRadius, StyleableProperties.FILL_RADIUS,
-                    RXFillLabel::radiiFromInsets, RXFillLabel::insetsFromRadii);
+    private final CoercedStyleableProperty<Insets, CornerRadii> fillCornerRadiusCss =
+            new CoercedStyleableProperty<>(fillCornerRadius, StyleableProperties.FILL_CORNER_RADIUS,
+                    CornerRadiiCoercion::fromInsets, CornerRadiiCoercion::toInsets);
 
     /**
      * Explicit corner radii for the fill area. When set, the fill is clipped
      * to a single rounded rectangle with these radii (and the
      * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
      * background layers entirely. The default {@code null} mirrors the
-     * label's painted background geometry. From CSS, {@code -rx-fill-radius}
-     * accepts 1 to 4 sizes in {@code border-radius} order (top-left,
-     * top-right, bottom-right, bottom-left); a negative value selects
-     * automatic mirroring. Ignored when the label uses a {@code shape}.
+     * label's painted background geometry. From CSS,
+     * {@code -rx-fill-corner-radius} accepts 1 to 4 sizes in
+     * {@code border-radius} order (top-left, top-right, bottom-right,
+     * bottom-left); a negative value selects automatic mirroring. Ignored when
+     * the label uses a {@code shape}.
      *
-     * @return the fill radius property
+     * @return the fill corner radius property
      */
-    public final ObjectProperty<CornerRadii> fillRadiusProperty() {
-        return fillRadius;
+    public final ObjectProperty<CornerRadii> fillCornerRadiusProperty() {
+        return fillCornerRadius;
     }
 
     /**
-     * Returns the fill radius.
+     * Returns the fill corner radius.
      *
-     * @return the fill radius, or {@code null} for automatic mirroring
+     * @return the fill corner radius, or {@code null} for automatic mirroring
      */
-    public final CornerRadii getFillRadius() {
-        return fillRadius.get();
+    public final CornerRadii getFillCornerRadius() {
+        return fillCornerRadius.get();
     }
 
     /**
-     * Sets the fill radius.
+     * Sets the fill corner radius.
      *
-     * @param value the fill radius, or {@code null} for automatic mirroring
+     * @param value the fill corner radius, or {@code null} for automatic
+     *              mirroring
      */
-    public final void setFillRadius(CornerRadii value) {
-        fillRadius.set(value);
-    }
-
-    private static CornerRadii radiiFromInsets(Insets value) {
-        if (value == null
-                || value.getTop() < 0.0 || value.getRight() < 0.0
-                || value.getBottom() < 0.0 || value.getLeft() < 0.0) {
-            return null;
-        }
-        if (value.getTop() == 0.0 && value.getRight() == 0.0
-                && value.getBottom() == 0.0 && value.getLeft() == 0.0) {
-            return CornerRadii.EMPTY;
-        }
-        return new CornerRadii(value.getTop(), value.getRight(),
-                value.getBottom(), value.getLeft(), false);
-    }
-
-    private static Insets insetsFromRadii(CornerRadii value) {
-        if (value == null) {
-            return null;
-        }
-        return new Insets(value.getTopLeftHorizontalRadius(),
-                value.getTopRightHorizontalRadius(),
-                value.getBottomRightHorizontalRadius(),
-                value.getBottomLeftHorizontalRadius());
+    public final void setFillCornerRadius(CornerRadii value) {
+        fillCornerRadius.set(value);
     }
 
     // ==================== CSS Metadata ====================
@@ -461,17 +440,17 @@ public class RXFillLabel extends Label {
                     }
                 };
 
-        private static final CssMetaData<RXFillLabel, Insets> FILL_RADIUS =
-                new CssMetaData<>("-rx-fill-radius",
+        private static final CssMetaData<RXFillLabel, Insets> FILL_CORNER_RADIUS =
+                new CssMetaData<>("-rx-fill-corner-radius",
                         InsetsConverter.getInstance(), null) {
                     @Override
                     public boolean isSettable(RXFillLabel label) {
-                        return !label.fillRadius.isBound();
+                        return !label.fillCornerRadius.isBound();
                     }
 
                     @Override
                     public StyleableProperty<Insets> getStyleableProperty(RXFillLabel label) {
-                        return label.fillRadiusCss;
+                        return label.fillCornerRadiusCss;
                     }
                 };
 
@@ -484,7 +463,7 @@ public class RXFillLabel extends Label {
             styleables.add(ANIMATION_TRIGGER);
             styleables.add(ANIMATION_DURATION);
             styleables.add(FILL_INSETS);
-            styleables.add(FILL_RADIUS);
+            styleables.add(FILL_CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

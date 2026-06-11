@@ -1,11 +1,14 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
+import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXButtonSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
@@ -13,11 +16,14 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Skin;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Paint;
 
 import java.util.ArrayList;
@@ -291,6 +297,59 @@ public class RXButton extends Button {
         rippleCentered.set(value);
     }
 
+    // ==================== Ripple Corner Radius ====================
+
+    private final ObjectProperty<CornerRadii> rippleCornerRadius =
+            new SimpleObjectProperty<>(this, "rippleCornerRadius", null);
+
+    /**
+     * CSS facade for {@link #rippleCornerRadius}: the engine can only deliver
+     * multi-value custom properties through the special-cased
+     * {@code InsetsConverter} (RT-37727), so the CSS type is {@link Insets}
+     * and gets coerced into {@link CornerRadii} here. CSS order follows the
+     * {@code border-radius} convention: top-left, top-right, bottom-right,
+     * bottom-left; any negative component means automatic mirroring.
+     */
+    private final CoercedStyleableProperty<Insets, CornerRadii> rippleCornerRadiusCss =
+            new CoercedStyleableProperty<>(rippleCornerRadius, StyleableProperties.RIPPLE_CORNER_RADIUS,
+                    CornerRadiiCoercion::fromInsets, CornerRadiiCoercion::toInsets);
+
+    /**
+     * Explicit corner radii for the ripple clip. When set, the ripple and hover
+     * overlay are clipped to a single rounded rectangle with these radii,
+     * ignoring the button background layers entirely — the escape hatch for
+     * stateful multi-layer backgrounds such as focus rings. The default
+     * {@code null} mirrors the button's painted background geometry. From CSS,
+     * {@code -rx-ripple-corner-radius} accepts 1 to 4 sizes in
+     * {@code border-radius} order (top-left, top-right, bottom-right,
+     * bottom-left); a negative value selects automatic mirroring. Ignored when
+     * the button uses a {@code shape}.
+     *
+     * @return the ripple corner radius property
+     */
+    public final ObjectProperty<CornerRadii> rippleCornerRadiusProperty() {
+        return rippleCornerRadius;
+    }
+
+    /**
+     * Returns the ripple corner radius.
+     *
+     * @return the ripple corner radius, or {@code null} for automatic mirroring
+     */
+    public final CornerRadii getRippleCornerRadius() {
+        return rippleCornerRadius.get();
+    }
+
+    /**
+     * Sets the ripple corner radius.
+     *
+     * @param value the ripple corner radius, or {@code null} for automatic
+     *              mirroring
+     */
+    public final void setRippleCornerRadius(CornerRadii value) {
+        rippleCornerRadius.set(value);
+    }
+
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
@@ -355,6 +414,20 @@ public class RXButton extends Button {
                     }
                 };
 
+        private static final CssMetaData<RXButton, Insets> RIPPLE_CORNER_RADIUS =
+                new CssMetaData<>("-rx-ripple-corner-radius",
+                        InsetsConverter.getInstance(), null) {
+                    @Override
+                    public boolean isSettable(RXButton button) {
+                        return !button.rippleCornerRadius.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Insets> getStyleableProperty(RXButton button) {
+                        return button.rippleCornerRadiusCss;
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -364,6 +437,7 @@ public class RXButton extends Button {
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
             styleables.add(RIPPLE_CENTERED);
+            styleables.add(RIPPLE_CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
+import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.beans.DefaultProperty;
@@ -26,6 +28,7 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -107,11 +110,12 @@ public class RXRipplePane extends Region {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         ripple = new RippleDecoration(this, rippleEnabledProperty(),
-                rippleFillProperty(), this::getRippleOpacity);
+                rippleFillProperty(), this::getRippleOpacity,
+                rippleInsetsProperty(), rippleCornerRadiusProperty());
         getChildren().add(ripple.getLayer());
 
-        // Pointer-press trigger; the decoration owns hover, overlay and the
-        // disabled / scene-detach / ripple-enabled lifecycle.
+        // Pointer-press trigger; the decoration owns hover, overlay, the
+        // disabled / scene-detach / ripple-enabled lifecycle and clip refresh.
         addEventHandler(MouseEvent.MOUSE_PRESSED, this::handleMousePressed);
         addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
@@ -123,7 +127,6 @@ public class RXRipplePane extends Region {
                 ripple.release();
             }
         });
-        rippleInsetsProperty().addListener(obs -> requestLayout());
 
         setContent(content);
     }
@@ -423,6 +426,60 @@ public class RXRipplePane extends Region {
         rippleInsets.set(value);
     }
 
+    // ==================== Ripple Corner Radius ====================
+
+    private final ObjectProperty<CornerRadii> rippleCornerRadius =
+            new SimpleObjectProperty<>(this, "rippleCornerRadius", null);
+
+    /**
+     * CSS facade for {@link #rippleCornerRadius}: the engine can only deliver
+     * multi-value custom properties through the special-cased
+     * {@code InsetsConverter} (RT-37727), so the CSS type is {@link Insets}
+     * and gets coerced into {@link CornerRadii} here. CSS order follows the
+     * {@code border-radius} convention: top-left, top-right, bottom-right,
+     * bottom-left; any negative component means automatic mirroring.
+     */
+    private final CoercedStyleableProperty<Insets, CornerRadii> rippleCornerRadiusCss =
+            new CoercedStyleableProperty<>(rippleCornerRadius, StyleableProperties.RIPPLE_CORNER_RADIUS,
+                    CornerRadiiCoercion::fromInsets, CornerRadiiCoercion::toInsets);
+
+    /**
+     * Explicit corner radii for the ripple clip. When set, the ripple and hover
+     * overlay are clipped to a single rounded rectangle with these radii (and
+     * the {@link #rippleInsetsProperty() rippleInsets} box), ignoring the pane
+     * background layers entirely — the escape hatch for stateful multi-layer
+     * backgrounds such as focus rings. The default {@code null} mirrors the
+     * pane's painted background geometry. From CSS,
+     * {@code -rx-ripple-corner-radius} accepts 1 to 4 sizes in
+     * {@code border-radius} order (top-left, top-right, bottom-right,
+     * bottom-left); a negative value selects automatic mirroring. Ignored when
+     * the pane uses a {@code shape}.
+     *
+     * @return the ripple corner radius property
+     */
+    public final ObjectProperty<CornerRadii> rippleCornerRadiusProperty() {
+        return rippleCornerRadius;
+    }
+
+    /**
+     * Returns the ripple corner radius.
+     *
+     * @return the ripple corner radius, or {@code null} for automatic mirroring
+     */
+    public final CornerRadii getRippleCornerRadius() {
+        return rippleCornerRadius.get();
+    }
+
+    /**
+     * Sets the ripple corner radius.
+     *
+     * @param value the ripple corner radius, or {@code null} for automatic
+     *              mirroring
+     */
+    public final void setRippleCornerRadius(CornerRadii value) {
+        rippleCornerRadius.set(value);
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -494,8 +551,9 @@ public class RXRipplePane extends Region {
             double contentH = valid ? Math.max(0.0, height - top - bottom) : 0.0;
             layoutInArea(node, left, top, contentW, contentH, 0.0, HPos.LEFT, VPos.TOP);
         }
-        // The decoration collapses and clears itself on an invalid size.
-        ripple.layout(width, height, getRippleInsets());
+        // The decoration reads its insets/corner-radius and collapses and
+        // clears itself on an invalid size.
+        ripple.layout(width, height);
     }
 
     // ==================== Event Handling ====================
@@ -604,6 +662,20 @@ public class RXRipplePane extends Region {
                     }
                 };
 
+        private static final CssMetaData<RXRipplePane, Insets> RIPPLE_CORNER_RADIUS =
+                new CssMetaData<>("-rx-ripple-corner-radius",
+                        InsetsConverter.getInstance(), null) {
+                    @Override
+                    public boolean isSettable(RXRipplePane pane) {
+                        return !pane.rippleCornerRadius.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Insets> getStyleableProperty(RXRipplePane pane) {
+                        return pane.rippleCornerRadiusCss;
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -614,6 +686,7 @@ public class RXRipplePane extends Region {
             styleables.add(RIPPLE_ENABLED);
             styleables.add(RIPPLE_CENTERED);
             styleables.add(RIPPLE_INSETS);
+            styleables.add(RIPPLE_CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

@@ -130,7 +130,7 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
 
         Slider fillRadiusSlider = createSlider(-1.0, 24.0, -1.0);
         fillRadiusSlider.valueProperty().addListener((obs, oldV, newV) ->
-                button.setFillRadius(newV.doubleValue() < 0.0
+                button.setFillCornerRadius(newV.doubleValue() < 0.0
                         ? null
                         : new CornerRadii(newV.doubleValue())));
 
@@ -139,7 +139,7 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
                 row("Fill color", fillPicker),
                 row("Auto insets", autoInsetsBox),
                 row("Insets", insetsSlider, createValueLabel(insetsSlider, "%.0f px")),
-                row("Fill radius", fillRadiusSlider, createValueLabel(fillRadiusSlider, "%.0f")));
+                row("Corner radius", fillRadiusSlider, createValueLabel(fillRadiusSlider, "%.0f")));
     }
 
     private Node buildAnimationGrid() {

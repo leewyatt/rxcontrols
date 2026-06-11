@@ -338,7 +338,7 @@ hover-text-layer — Pane (top-most, mirrored caption)<br/><br/>
         <td>auto: inner edge of the real border</td>
     </tr>
     <tr>
-        <td>-rx-fill-radius</td>
+        <td>-rx-fill-corner-radius</td>
         <td>1-4 sizes in border-radius order<br/>
             (top-left, top-right, bottom-right, bottom-left);<br/>
             negative = auto</td>
@@ -678,6 +678,13 @@ ripple-layer — Region (unmanaged, mouse-transparent; hosts the ripple circles)
         <td>-rx-ripple-insets</td>
         <td>Insets (negative allowed, visual only; ignored when a shape is set)</td>
         <td>auto: inner edge of the real border</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-corner-radius</td>
+        <td>1-4 sizes in border-radius order<br/>
+            (top-left, top-right, bottom-right, bottom-left);<br/>
+            negative = auto; ignored when a shape is set</td>
+        <td>auto: mirror the painted background geometry</td>
     </tr>
     </tbody>
 </table>

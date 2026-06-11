@@ -84,6 +84,7 @@ public class RXRipplePaneTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, pane.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, pane.isRippleCentered());
         assertNull(pane.getRippleInsets());
+        assertNull(pane.getRippleCornerRadius());
 
         RippleLayer layer = rippleLayer(pane);
         assertFalse(layer.isManaged());
@@ -99,6 +100,7 @@ public class RXRipplePaneTest {
         assertTrue(properties.contains("-rx-ripple-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-insets"));
+        assertTrue(properties.contains("-rx-ripple-corner-radius"));
     }
 
     /**
@@ -326,6 +328,26 @@ public class RXRipplePaneTest {
         Region clip = (Region) rippleLayer(pane).getClip();
         assertEquals(new Insets(6.0),
                 clip.getBackground().getFills().get(0).getInsets());
+    }
+
+    /**
+     * Verifies an explicit ripple corner radius turns the clip into a single
+     * rounded rectangle with those radii, ignoring the mirrored background
+     * geometry.
+     */
+    @Test
+    public void rippleCornerRadiusOverridesMirroredGeometry() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setBackground(new Background(
+                new BackgroundFill(Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+        pane.setRippleCornerRadius(new CornerRadii(20.0));
+
+        layout(pane, 100.0, 50.0);
+
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertEquals(1, clip.getBackground().getFills().size());
+        assertEquals(new CornerRadii(20.0),
+                clip.getBackground().getFills().get(0).getRadii());
     }
 
     /**

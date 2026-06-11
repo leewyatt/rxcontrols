@@ -25,7 +25,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
                 button.animationTriggerProperty(),
                 button.animationDurationProperty(),
                 button.fillInsetsProperty(),
-                button.fillRadiusProperty());
+                button.fillCornerRadiusProperty());
         updateChildren();
     }
 

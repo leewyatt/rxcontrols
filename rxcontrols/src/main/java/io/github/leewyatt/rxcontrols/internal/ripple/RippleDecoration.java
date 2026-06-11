@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Paint;
 
@@ -18,21 +19,24 @@ import java.util.function.DoubleSupplier;
  *
  * <p>The decoration owns the layer, the ripple state machine, the hover
  * overlay (enter/exit driven, gated by {@code rippleEnabled} and the disabled
- * state), and the shared lifecycle that releases or clears the ripple when the
- * host is disabled, leaves the scene, or turns the ripple off. The host keeps
- * its own ripple <em>trigger</em> — armed-driven for a button, pointer-press
- * for a pane — and calls {@link #press(double, double, boolean)} /
- * {@link #release()} accordingly.</p>
+ * state), the shared lifecycle that releases or clears the ripple when the
+ * host is disabled, leaves the scene, or turns the ripple off, and the clip
+ * refresh as the host geometry or the optional ripple insets / corner radius
+ * change. The host keeps its own ripple <em>trigger</em> — armed-driven for a
+ * button, pointer-press for a pane — and calls
+ * {@link #press(double, double, boolean)} / {@link #release()} accordingly.</p>
  *
  * <p>The host inserts {@link #getLayer()} into its children at the desired
- * z-order, calls {@link #layout(double, double, Insets)} from its layout pass,
- * and (when it is a skin) calls {@link #dispose()} from its dispose chain;
+ * z-order, calls {@link #layout(double, double)} from its layout pass, and
+ * (when it is a skin) calls {@link #dispose()} from its dispose chain;
  * children removal stays with the host.</p>
  */
 public final class RippleDecoration {
 
     private final Region host;
     private final ObservableValue<Boolean> rippleEnabled;
+    private final ObservableValue<Insets> rippleInsets;
+    private final ObservableValue<CornerRadii> rippleCornerRadius;
     private final RippleLayer layer = new RippleLayer();
     private final RippleBehavior behavior;
     private final SkinDisposer disposer = new SkinDisposer();
@@ -40,24 +44,34 @@ public final class RippleDecoration {
     private boolean pointerInside;
 
     /**
-     * Creates the decoration and wires the hover overlay and shared lifecycle
-     * on the host.
+     * Creates the decoration and wires the hover overlay, shared lifecycle and
+     * clip-refresh listeners on the host.
      *
-     * @param host          the region carrying the ripple
-     * @param rippleEnabled whether ripple interaction is enabled (gates the
-     *                      overlay and clears live state when turned off)
-     * @param rippleFill    the ripple and overlay fill
-     * @param rippleOpacity the peak ripple opacity
-     * @throws NullPointerException if any argument is {@code null}
+     * @param host               the region carrying the ripple
+     * @param rippleEnabled      whether ripple interaction is enabled (gates
+     *                           the overlay and clears live state when off)
+     * @param rippleFill         the ripple and overlay fill
+     * @param rippleOpacity      the peak ripple opacity
+     * @param rippleInsets       extra clip insets, or {@code null} if the host
+     *                           has no insets override
+     * @param rippleCornerRadius explicit clip corner radii, or {@code null} if
+     *                           the host has no corner-radius override
+     * @throws NullPointerException if {@code host}, {@code rippleEnabled},
+     *                              {@code rippleFill} or {@code rippleOpacity}
+     *                              is {@code null}
      */
     public RippleDecoration(Region host,
                             ObservableValue<Boolean> rippleEnabled,
                             ObservableValue<Paint> rippleFill,
-                            DoubleSupplier rippleOpacity) {
+                            DoubleSupplier rippleOpacity,
+                            ObservableValue<Insets> rippleInsets,
+                            ObservableValue<CornerRadii> rippleCornerRadius) {
         this.host = Objects.requireNonNull(host, "host cannot be null");
         this.rippleEnabled = Objects.requireNonNull(rippleEnabled, "rippleEnabled cannot be null");
         Objects.requireNonNull(rippleFill, "rippleFill cannot be null");
         Objects.requireNonNull(rippleOpacity, "rippleOpacity cannot be null");
+        this.rippleInsets = rippleInsets;
+        this.rippleCornerRadius = rippleCornerRadius;
         this.behavior = new RippleBehavior(layer, rippleFill::getValue, rippleOpacity);
         layer.setOverlayFill(rippleFill.getValue());
 
@@ -93,11 +107,17 @@ public final class RippleDecoration {
             }
         });
 
-        // Keep the bounded clip fresh as the host geometry changes.
+        // Keep the bounded clip fresh as the host geometry or clip-shape inputs change.
         disposer.registerListener(host.backgroundProperty(), host::requestLayout);
         disposer.registerListener(host.shapeProperty(), host::requestLayout);
         disposer.registerListener(host.scaleShapeProperty(), host::requestLayout);
         disposer.registerListener(host.centerShapeProperty(), host::requestLayout);
+        if (rippleInsets != null) {
+            disposer.registerListener(rippleInsets, host::requestLayout);
+        }
+        if (rippleCornerRadius != null) {
+            disposer.registerListener(rippleCornerRadius, host::requestLayout);
+        }
     }
 
     /**
@@ -137,35 +157,25 @@ public final class RippleDecoration {
     }
 
     /**
-     * Lays out the ripple layer over the host bounds and refreshes the clip,
-     * following the host border edge.
+     * Lays out the ripple layer over the host bounds and refreshes the clip
+     * from the host's optional ripple insets and corner radius. An invalid
+     * (zero or non-finite) size clears live ripple state and collapses the
+     * layer.
      *
      * @param width  the host width
      * @param height the host height
      */
     public void layout(double width, double height) {
-        layout(width, height, null);
-    }
-
-    /**
-     * Lays out the ripple layer over the host bounds and refreshes the clip
-     * with extra insets; an invalid (zero or non-finite) size clears live
-     * ripple state and collapses the layer.
-     *
-     * @param width  the host width
-     * @param height the host height
-     * @param insets extra clip insets (may be negative), or {@code null} to
-     *               follow the host border edge
-     */
-    public void layout(double width, double height, Insets insets) {
         if (width <= 0.0 || height <= 0.0
                 || !Double.isFinite(width) || !Double.isFinite(height)) {
             clear();
             layer.resizeRelocate(0.0, 0.0, 0.0, 0.0);
             return;
         }
+        Insets insets = rippleInsets == null ? null : rippleInsets.getValue();
+        CornerRadii radius = rippleCornerRadius == null ? null : rippleCornerRadius.getValue();
         layer.resizeRelocate(0.0, 0.0, width, height);
-        layer.updateClipFor(host, width, height, insets);
+        layer.updateClipFor(host, width, height, insets, radius);
     }
 
     /**

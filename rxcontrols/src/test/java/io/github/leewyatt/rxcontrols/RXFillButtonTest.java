@@ -275,13 +275,13 @@ public class RXFillButtonTest {
 
     /**
      * Verifies auto mode excludes negative-inset decoration layers (focus
-     * rings) from the mirror, and an explicit {@code fillRadius} turns the
-     * clip into a single rounded rectangle ignoring the background layers.
+     * rings) from the mirror, and an explicit {@code fillCornerRadius} turns
+     * the clip into a single rounded rectangle ignoring the background layers.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void fillRadiusOverridesMirroredGeometry() throws Exception {
+    public void fillCornerRadiusOverridesMirroredGeometry() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             button.setBackground(new Background(
@@ -303,7 +303,7 @@ public class RXFillButtonTest {
 
             assertSame(before, ((Region) fillLayer(button).getClip()).getBackground());
 
-            button.setFillRadius(new CornerRadii(10.0));
+            button.setFillCornerRadius(new CornerRadii(10.0));
             layout(button, 100.0, 40.0);
 
             layerClip = (Region) fillLayer(button).getClip();
@@ -411,7 +411,7 @@ public class RXFillButtonTest {
                     + " -rx-animation-trigger: pressed;"
                     + " -rx-animation-duration: 80ms;"
                     + " -rx-fill-insets: 10 10 4 4;"
-                    + " -rx-fill-radius: 10;");
+                    + " -rx-fill-corner-radius: 10;");
 
             root.applyCss();
 
@@ -419,18 +419,18 @@ public class RXFillButtonTest {
             assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
             assertEquals(new Insets(10.0, 10.0, 4.0, 4.0), button.getFillInsets());
-            assertEquals(new CornerRadii(10.0), button.getFillRadius());
+            assertEquals(new CornerRadii(10.0), button.getFillCornerRadius());
 
-            button.setStyle("-rx-fill-radius: 10 10 4 4;");
+            button.setStyle("-rx-fill-corner-radius: 10 10 4 4;");
             root.applyCss();
 
             assertEquals(new CornerRadii(10.0, 10.0, 4.0, 4.0, false),
-                    button.getFillRadius());
+                    button.getFillCornerRadius());
 
-            button.setStyle("-rx-fill-radius: -1;");
+            button.setStyle("-rx-fill-corner-radius: -1;");
             root.applyCss();
 
-            assertNull(button.getFillRadius());
+            assertNull(button.getFillCornerRadius());
         });
     }
 

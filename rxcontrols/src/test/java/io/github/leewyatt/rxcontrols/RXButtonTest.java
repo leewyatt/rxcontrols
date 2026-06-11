@@ -68,6 +68,7 @@ public class RXButtonTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, button.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, button.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, button.isRippleCentered());
+        assertNull(button.getRippleCornerRadius());
 
         Set<String> properties = RXButton.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
@@ -76,6 +77,7 @@ public class RXButtonTest {
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
+        assertTrue(properties.contains("-rx-ripple-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
     }
 

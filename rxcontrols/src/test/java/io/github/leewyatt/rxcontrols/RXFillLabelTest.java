@@ -72,7 +72,7 @@ public class RXFillLabelTest {
         assertSame(RXFillLabel.DEFAULT_ANIMATION_TRIGGER, label.getAnimationTrigger());
         assertEquals(RXFillLabel.DEFAULT_ANIMATION_DURATION, label.getAnimationDuration());
         assertNull(label.getFillInsets());
-        assertNull(label.getFillRadius());
+        assertNull(label.getFillCornerRadius());
 
         Set<String> properties = RXFillLabel.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
@@ -81,7 +81,7 @@ public class RXFillLabelTest {
         assertTrue(properties.contains("-rx-animation-trigger"));
         assertTrue(properties.contains("-rx-animation-duration"));
         assertTrue(properties.contains("-rx-fill-insets"));
-        assertTrue(properties.contains("-rx-fill-radius"));
+        assertTrue(properties.contains("-rx-fill-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
     }
 
@@ -178,7 +178,7 @@ public class RXFillLabelTest {
                     + " -rx-animation-trigger: pressed;"
                     + " -rx-animation-duration: 80ms;"
                     + " -rx-fill-insets: 2;"
-                    + " -rx-fill-radius: 10 10 4 4;");
+                    + " -rx-fill-corner-radius: 10 10 4 4;");
 
             root.applyCss();
 
@@ -186,7 +186,7 @@ public class RXFillLabelTest {
             assertSame(RXAnimationTrigger.PRESSED, label.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), label.getAnimationDuration());
             assertEquals(new Insets(2.0), label.getFillInsets());
-            assertEquals(new CornerRadii(10.0, 10.0, 4.0, 4.0, false), label.getFillRadius());
+            assertEquals(new CornerRadii(10.0, 10.0, 4.0, 4.0, false), label.getFillCornerRadius());
         });
     }
 

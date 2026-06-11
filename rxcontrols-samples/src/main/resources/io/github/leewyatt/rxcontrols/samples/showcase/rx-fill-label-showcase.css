@@ -6,7 +6,7 @@
     -fx-padding: 4px 12px;
     -fx-background-color: #eef0ff;
     -fx-background-radius: 999px;
-    -rx-fill-radius: 999;
+    -rx-fill-corner-radius: 999;
 }
 
 .heading {
