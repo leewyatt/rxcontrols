@@ -13,6 +13,7 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -129,7 +130,9 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
 
         Slider fillRadiusSlider = createSlider(-1.0, 24.0, -1.0);
         fillRadiusSlider.valueProperty().addListener((obs, oldV, newV) ->
-                button.setFillRadius(newV.doubleValue()));
+                button.setFillRadius(newV.doubleValue() < 0.0
+                        ? null
+                        : new CornerRadii(newV.doubleValue())));
 
         return createGrid(
                 row("Mode", modeBox),

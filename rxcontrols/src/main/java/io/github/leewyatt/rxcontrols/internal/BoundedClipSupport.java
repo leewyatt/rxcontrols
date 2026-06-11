@@ -161,9 +161,14 @@ public final class BoundedClipSupport {
                 sourceBackground = hostBackground;
                 appliedInsets = extraInsets;
                 appliedRadiiOverride = radiiOverride;
-                clipNode.setBackground(radiiOverride != null
+                Background mirrored = radiiOverride != null
                         ? new Background(new BackgroundFill(Color.BLACK, radiiOverride, extraInsets))
-                        : geometryOf(hostBackground, extraInsets));
+                        : geometryOf(hostBackground, extraInsets);
+                // Geometry-identical swaps (e.g. modena hover/pressed
+                // recoloring) must not re-rasterize the clip.
+                if (!mirrored.equals(clipNode.getBackground())) {
+                    clipNode.setBackground(mirrored);
+                }
             }
         }
         clipNode.resize(width, height);

@@ -2,23 +2,23 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.beans.NamedArg;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
-import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
-import javafx.css.converter.SizeConverter;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
+import javafx.scene.layout.CornerRadii;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -64,12 +64,6 @@ public class RXFillButton extends RXButton {
      * Default animation duration.
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
-
-    /**
-     * Sentinel for {@link #fillRadiusProperty() fillRadius}: mirror the
-     * button's painted background geometry automatically.
-     */
-    public static final double USE_AUTO_FILL_RADIUS = -1.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-fill-button";
 
@@ -324,56 +318,78 @@ public class RXFillButton extends RXButton {
 
     // ==================== Fill Radius ====================
 
-    private final DoubleProperty fillRadius =
-            new StyleableDoubleProperty(USE_AUTO_FILL_RADIUS) {
-                @Override
-                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
-                    return StyleableProperties.FILL_RADIUS;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXFillButton.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "fillRadius";
-                }
-            };
+    private final ObjectProperty<CornerRadii> fillRadius =
+            new SimpleObjectProperty<>(this, "fillRadius", null);
 
     /**
-     * Explicit uniform corner radius for the fill area. When zero or
-     * positive, the fill is clipped to a single rounded rectangle with this
-     * radius (and the {@link #fillInsetsProperty() fillInsets} box), ignoring
-     * the host background layers entirely — the escape hatch for stateful
-     * multi-layer backgrounds such as focus rings. Negative values (the
-     * default, {@link #USE_AUTO_FILL_RADIUS}) mirror the button's painted
-     * background geometry instead. Ignored when the button uses a
-     * {@code shape}.
+     * CSS facade for {@link #fillRadius}: the engine can only deliver
+     * multi-value custom properties through the special-cased
+     * {@code InsetsConverter} (RT-37727), so the CSS type is {@link Insets}
+     * and gets coerced into {@link CornerRadii} here. CSS order follows the
+     * {@code border-radius} convention: top-left, top-right, bottom-right,
+     * bottom-left; any negative component means automatic mirroring.
+     */
+    private final CoercedStyleableProperty<Insets, CornerRadii> fillRadiusCss =
+            new CoercedStyleableProperty<>(fillRadius, StyleableProperties.FILL_RADIUS,
+                    RXFillButton::radiiFromInsets, RXFillButton::insetsFromRadii);
+
+    /**
+     * Explicit corner radii for the fill area. When set, the fill is clipped
+     * to a single rounded rectangle with these radii (and the
+     * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
+     * background layers entirely — the escape hatch for stateful multi-layer
+     * backgrounds such as focus rings. The default {@code null} mirrors the
+     * button's painted background geometry. From CSS, {@code -rx-fill-radius}
+     * accepts 1 to 4 sizes in {@code border-radius} order (top-left,
+     * top-right, bottom-right, bottom-left); a negative value selects
+     * automatic mirroring. Ignored when the button uses a {@code shape}.
      *
      * @return the fill radius property
      */
-    public final DoubleProperty fillRadiusProperty() {
+    public final ObjectProperty<CornerRadii> fillRadiusProperty() {
         return fillRadius;
     }
 
     /**
      * Returns the fill radius.
      *
-     * @return the fill radius; negative means automatic mirroring
+     * @return the fill radius, or {@code null} for automatic mirroring
      */
-    public final double getFillRadius() {
+    public final CornerRadii getFillRadius() {
         return fillRadius.get();
     }
 
     /**
      * Sets the fill radius.
      *
-     * @param value the fill radius; negative for automatic mirroring
+     * @param value the fill radius, or {@code null} for automatic mirroring
      */
-    public final void setFillRadius(double value) {
+    public final void setFillRadius(CornerRadii value) {
         fillRadius.set(value);
+    }
+
+    private static CornerRadii radiiFromInsets(Insets value) {
+        if (value == null
+                || value.getTop() < 0.0 || value.getRight() < 0.0
+                || value.getBottom() < 0.0 || value.getLeft() < 0.0) {
+            return null;
+        }
+        if (value.getTop() == 0.0 && value.getRight() == 0.0
+                && value.getBottom() == 0.0 && value.getLeft() == 0.0) {
+            return CornerRadii.EMPTY;
+        }
+        return new CornerRadii(value.getTop(), value.getRight(),
+                value.getBottom(), value.getLeft(), false);
+    }
+
+    private static Insets insetsFromRadii(CornerRadii value) {
+        if (value == null) {
+            return null;
+        }
+        return new Insets(value.getTopLeftHorizontalRadius(),
+                value.getTopRightHorizontalRadius(),
+                value.getBottomRightHorizontalRadius(),
+                value.getBottomLeftHorizontalRadius());
     }
 
     // ==================== CSS Metadata ====================
@@ -440,18 +456,17 @@ public class RXFillButton extends RXButton {
                     }
                 };
 
-        private static final CssMetaData<RXFillButton, Number> FILL_RADIUS =
+        private static final CssMetaData<RXFillButton, Insets> FILL_RADIUS =
                 new CssMetaData<>("-rx-fill-radius",
-                        SizeConverter.getInstance(), USE_AUTO_FILL_RADIUS) {
+                        InsetsConverter.getInstance(), null) {
                     @Override
                     public boolean isSettable(RXFillButton button) {
                         return !button.fillRadius.isBound();
                     }
 
                     @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXFillButton button) {
-                        return (StyleableProperty<Number>) button.fillRadiusProperty();
+                    public StyleableProperty<Insets> getStyleableProperty(RXFillButton button) {
+                        return button.fillRadiusCss;
                     }
                 };
 

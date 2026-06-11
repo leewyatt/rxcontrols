@@ -269,7 +269,16 @@ public class RXFillButtonTest {
             assertEquals(new CornerRadii(2.0),
                     layerClip.getBackground().getFills().get(0).getRadii());
 
-            button.setFillRadius(10.0);
+            // geometry-identical recoloring must not re-rasterize the clip
+            Background before = layerClip.getBackground();
+            button.setBackground(new Background(
+                    new BackgroundFill(Color.RED, new CornerRadii(4.0), new Insets(-1.4)),
+                    new BackgroundFill(Color.BLACK, new CornerRadii(2.0), new Insets(1.0))));
+            layout(button, 100.0, 40.0);
+
+            assertSame(before, ((Region) fillLayer(button).getClip()).getBackground());
+
+            button.setFillRadius(new CornerRadii(10.0));
             layout(button, 100.0, 40.0);
 
             layerClip = (Region) fillLayer(button).getClip();
@@ -376,7 +385,7 @@ public class RXFillButtonTest {
             button.setStyle("-rx-fill-animation: circle;"
                     + " -rx-animation-trigger: pressed;"
                     + " -rx-animation-duration: 80ms;"
-                    + " -rx-fill-insets: 3;"
+                    + " -rx-fill-insets: 10 10 4 4;"
                     + " -rx-fill-radius: 10;");
 
             root.applyCss();
@@ -384,8 +393,19 @@ public class RXFillButtonTest {
             assertSame(FillAnimation.CIRCLE, button.getFillAnimation());
             assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
-            assertEquals(new Insets(3.0), button.getFillInsets());
-            assertEquals(10.0, button.getFillRadius(), EPSILON);
+            assertEquals(new Insets(10.0, 10.0, 4.0, 4.0), button.getFillInsets());
+            assertEquals(new CornerRadii(10.0), button.getFillRadius());
+
+            button.setStyle("-rx-fill-radius: 10 10 4 4;");
+            root.applyCss();
+
+            assertEquals(new CornerRadii(10.0, 10.0, 4.0, 4.0, false),
+                    button.getFillRadius());
+
+            button.setStyle("-rx-fill-radius: -1;");
+            root.applyCss();
+
+            assertNull(button.getFillRadius());
         });
     }
 

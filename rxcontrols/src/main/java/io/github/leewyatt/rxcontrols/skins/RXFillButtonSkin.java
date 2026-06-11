@@ -17,7 +17,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -138,7 +137,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
         double areaW = Math.max(0.0, width - effective.getLeft() - effective.getRight());
         double areaH = Math.max(0.0, height - effective.getTop() - effective.getBottom());
         fillLayer.resizeRelocate(0.0, 0.0, width, height);
-        boundedClip.updateClipFor(button, width, height, fillInsets, explicitRadii(button));
+        boundedClip.updateClipFor(button, width, height, fillInsets, button.getFillRadius());
         fillContent.resizeRelocate(effective.getLeft(), effective.getTop(), areaW, areaH);
         fillRegion.resizeRelocate(0.0, 0.0, areaW, areaH);
         updateFillGeometry();
@@ -264,14 +263,6 @@ public class RXFillButtonSkin extends RXButtonSkin {
         return triggerOrDefault() == RXAnimationTrigger.HOVER
                 ? getSkinnable().isHover()
                 : getSkinnable().isPressed();
-    }
-
-    private static CornerRadii explicitRadii(RXFillButton button) {
-        double radius = button.getFillRadius();
-        if (!Double.isFinite(radius) || radius < 0.0) {
-            return null;
-        }
-        return radius == 0.0 ? CornerRadii.EMPTY : new CornerRadii(radius);
     }
 
     // ==================== Cleanup ====================
