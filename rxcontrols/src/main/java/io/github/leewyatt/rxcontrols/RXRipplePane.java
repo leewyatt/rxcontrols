@@ -16,9 +16,11 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
@@ -145,6 +147,7 @@ public class RXRipplePane extends Region {
         shapeProperty().addListener(obs -> requestLayout());
         scaleShapeProperty().addListener(obs -> requestLayout());
         centerShapeProperty().addListener(obs -> requestLayout());
+        rippleInsetsProperty().addListener(obs -> requestLayout());
         rippleFillProperty().addListener(obs -> rippleLayer.setOverlayFill(getRippleFill()));
         rippleLayer.setOverlayFill(getRippleFill());
 
@@ -400,6 +403,61 @@ public class RXRipplePane extends Region {
         rippleCentered.set(value);
     }
 
+    // ==================== Ripple Insets ====================
+
+    private final ObjectProperty<Insets> rippleInsets =
+            new StyleableObjectProperty<>(null) {
+                @Override
+                public CssMetaData<? extends Styleable, Insets> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_INSETS;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXRipplePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleInsets";
+                }
+            };
+
+    /**
+     * Insets of the ripple effect area measured from the pane bounds, mirroring
+     * the {@code -fx-background-insets} convention: zero covers the full bounds,
+     * positive values shrink the ripple region inward, negative values let it
+     * bleed outside as a pure visual effect that never affects the pane's size.
+     * The default {@code null} follows the inner edge of the pane's real border
+     * automatically. Only the ripple clip is inset; the layer keeps full bounds,
+     * so press location and radius are unaffected and the hover overlay shares
+     * the same inset region. Shape-based clips ignore these insets.
+     *
+     * @return the ripple insets property
+     */
+    public final ObjectProperty<Insets> rippleInsetsProperty() {
+        return rippleInsets;
+    }
+
+    /**
+     * Returns the ripple insets.
+     *
+     * @return the ripple insets, or {@code null} for automatic border following
+     */
+    public final Insets getRippleInsets() {
+        return rippleInsets.get();
+    }
+
+    /**
+     * Sets the ripple insets.
+     *
+     * @param value the ripple insets, or {@code null} for automatic border
+     *              following
+     */
+    public final void setRippleInsets(Insets value) {
+        rippleInsets.set(value);
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -482,7 +540,7 @@ public class RXRipplePane extends Region {
             layoutInArea(node, left, top, contentW, contentH, 0.0, HPos.LEFT, VPos.TOP);
         }
         rippleLayer.resizeRelocate(0.0, 0.0, width, height);
-        rippleLayer.updateClipFor(this, width, height);
+        rippleLayer.updateClipFor(this, width, height, getRippleInsets());
     }
 
     // ==================== Event Handling ====================
@@ -586,6 +644,21 @@ public class RXRipplePane extends Region {
                     }
                 };
 
+        private static final CssMetaData<RXRipplePane, Insets> RIPPLE_INSETS =
+                new CssMetaData<>("-rx-ripple-insets",
+                        InsetsConverter.getInstance(), null) {
+                    @Override
+                    public boolean isSettable(RXRipplePane pane) {
+                        return !pane.rippleInsets.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Insets> getStyleableProperty(RXRipplePane pane) {
+                        return (StyleableProperty<Insets>) pane.rippleInsetsProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -595,6 +668,7 @@ public class RXRipplePane extends Region {
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
             styleables.add(RIPPLE_CENTERED);
+            styleables.add(RIPPLE_INSETS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
@@ -105,11 +106,16 @@ public class RXRipplePaneShowcase extends RXShowcaseApplication {
         centeredBox.setSelected(ripplePane.isRippleCentered());
         ripplePane.rippleCenteredProperty().bind(centeredBox.selectedProperty());
 
+        Slider insetSlider = createSlider(-12, 40.0, 0.0);
+        insetSlider.valueProperty().addListener((obs, oldV, newV) ->
+                ripplePane.setRippleInsets(new Insets(newV.doubleValue())));
+
         return createGrid(
                 row("Fill", rippleFillPicker),
                 row("Opacity", opacitySlider, createValueLabel(opacitySlider, "%.2f")),
                 row("Enabled", enabledBox),
-                row("Centered", centeredBox));
+                row("Centered", centeredBox),
+                row("Inset", insetSlider, createValueLabel(insetSlider, "%.0f px")));
     }
 
     private Node buildShapeGrid() {

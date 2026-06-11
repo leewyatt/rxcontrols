@@ -83,6 +83,7 @@ public class RXRipplePaneTest {
         assertClose(RXRipplePane.DEFAULT_RIPPLE_OPACITY, pane.getRippleOpacity(), "ripple opacity");
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, pane.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, pane.isRippleCentered());
+        assertNull(pane.getRippleInsets());
 
         RippleLayer layer = rippleLayer(pane);
         assertFalse(layer.isManaged());
@@ -97,6 +98,7 @@ public class RXRipplePaneTest {
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
+        assertTrue(properties.contains("-rx-ripple-insets"));
     }
 
     /**
@@ -304,6 +306,72 @@ public class RXRipplePaneTest {
         assertEquals(Color.BLACK, inner.getFill());
         assertEquals(new CornerRadii(6.0), inner.getRadii());
         assertEquals(new Insets(2.0), inner.getInsets());
+    }
+
+    /**
+     * Verifies explicit ripple insets shrink the clip geometry and override the
+     * automatic border-following.
+     */
+    @Test
+    public void rippleInsetsShrinkAndOverrideBorderInClip() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+        pane.setBorder(new Border(new BorderStroke(Color.RED,
+                BorderStrokeStyle.SOLID, new CornerRadii(8.0), new BorderWidths(2.0))));
+        pane.setRippleInsets(new Insets(6.0));
+
+        layout(pane, 100.0, 50.0);
+
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertEquals(new Insets(6.0),
+                clip.getBackground().getFills().get(0).getInsets());
+    }
+
+    /**
+     * Verifies negative ripple insets expand the hover overlay outward to the
+     * clip's bleed bounds, so the inset clip can round it instead of leaving a
+     * square overlay at the original size.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void negativeRippleInsetsExpandHoverOverlay() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            pane.setRippleInsets(new Insets(-12.0));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            layout(pane, 100.0, 50.0);
+
+            Region overlay = (Region) rippleLayer(pane).getChildrenUnmodifiable().get(0);
+            assertClose(-12.0, overlay.getLayoutX(), "overlay x");
+            assertClose(-12.0, overlay.getLayoutY(), "overlay y");
+            assertClose(124.0, overlay.getLayoutBounds().getWidth(), "overlay width");
+            assertClose(74.0, overlay.getLayoutBounds().getHeight(), "overlay height");
+        });
+    }
+
+    /**
+     * Verifies negative ripple insets extend the ripple radius so it reaches
+     * the bled clip corner instead of stopping at the layer bounds.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void negativeRippleInsetsExtendRippleRadius() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            pane.setRippleCentered(true);
+            pane.setRippleInsets(new Insets(-12.0));
+            layout(pane, 100.0, 50.0);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 10.0, 5.0,
+                    MouseButton.PRIMARY, true));
+
+            Circle circle = (Circle) rippleLayer(pane).getChildrenUnmodifiable().get(0);
+            assertClose(Math.hypot(62.0, 37.0), circle.getRadius(), "radius reaches bled corner");
+        });
     }
 
     /**

@@ -7,6 +7,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.geometry.Insets;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
@@ -78,7 +79,7 @@ public final class RippleBehavior {
 
         double centerX = centered ? width / 2.0 : clamp(x, 0.0, width);
         double centerY = centered ? height / 2.0 : clamp(y, 0.0, height);
-        double radius = computeRadius(width, height, centerX, centerY);
+        double radius = computeRadius(width, height, centerX, centerY, layer.getRippleBleed());
         if (radius <= 0.0 || !Double.isFinite(radius)) {
             clear();
             return;
@@ -185,9 +186,10 @@ public final class RippleBehavior {
         }
     }
 
-    private static double computeRadius(double width, double height, double centerX, double centerY) {
-        double maxX = Math.max(centerX, width - centerX);
-        double maxY = Math.max(centerY, height - centerY);
+    private static double computeRadius(double width, double height,
+                                        double centerX, double centerY, Insets bleed) {
+        double maxX = Math.max(centerX + bleed.getLeft(), width - centerX + bleed.getRight());
+        double maxY = Math.max(centerY + bleed.getTop(), height - centerY + bleed.getBottom());
         return Math.hypot(maxX, maxY);
     }
 

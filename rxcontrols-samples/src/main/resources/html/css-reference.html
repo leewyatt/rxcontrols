@@ -95,6 +95,7 @@
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
+    <li><a href="#rxRipplePane">RXRipplePane</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
@@ -636,6 +637,50 @@ pagination-control — StackPane <br>
 <br/>
 <p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
 <p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>showPassword</code> is <code>true</code>.</p>
+
+<h3 id="rxRipplePane">RXRipplePane</h3>
+<p class="fxClass">Style class: rx-ripple-pane</p>
+<p>The RXRipplePane control has all the properties of Region; it wraps a single content node (the FXML default property) and paints a bounded Material ripple on press plus a low-opacity hover state overlay, both clipped to the pane's shape or background geometry.</p>
+<h4>Substructure</h4>
+content — Node (FXML default property, the wrapped content)<br/>
+ripple-layer — Region (unmanaged, mouse-transparent; hosts the ripple circles)<br/>
+&emsp;&emsp;state-overlay — Region (hover tint; uses the ripple fill at a fixed opacity, not styleable)<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-ripple-fill</td>
+        <td>Paint (also used by the hover overlay)</td>
+        <td>black</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-opacity</td>
+        <td>Number (peak ripple opacity, clamped to 0–1 at render)</td>
+        <td>0.12</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-enabled</td>
+        <td>Boolean (also gates the hover overlay)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-centered</td>
+        <td>Boolean (ripple starts from the pane center)</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-insets</td>
+        <td>Insets (negative allowed, visual only; ignored when a shape is set)</td>
+        <td>auto: inner edge of the real border</td>
+    </tr>
+    </tbody>
+</table>
 
 <h3 id="rxDigit">RXDigit</h3>
 <p class="fxClass">Style class: rx-digit</p>
