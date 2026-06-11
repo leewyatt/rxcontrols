@@ -538,12 +538,46 @@ public class RXRipplePaneTest {
             layer.resize(100.0, 50.0);
             RippleBehavior behavior = new RippleBehavior(layer, () -> Color.RED, () -> 0.5);
 
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 7; i++) {
                 behavior.press(10.0 + i * 10.0, 10.0, false);
                 behavior.release();
             }
 
-            assertEquals(3, layer.getChildrenUnmodifiable().size());
+            assertEquals(5, layer.getChildrenUnmodifiable().size());
+        });
+    }
+
+    /**
+     * Verifies hovering shows the state overlay, leaving hides it, and the
+     * overlay carries the ripple fill, while disabling the ripple suppresses it.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverShowsStateOverlayGatedByRippleEnabled() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            pane.setRippleFill(Color.RED);
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "idle overlay");
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+            Region overlay = (Region) layer.getChildrenUnmodifiable().get(0);
+            assertEquals(Color.RED, overlay.getBackground().getFills().get(0).getFill());
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_EXITED, -5.0, 10.0,
+                    MouseButton.NONE, false));
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay after exit");
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+            pane.setRippleEnabled(false);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay with ripple off");
         });
     }
 
