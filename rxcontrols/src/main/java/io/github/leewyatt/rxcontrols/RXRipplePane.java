@@ -88,6 +88,7 @@ public class RXRipplePane extends Region {
     private final RippleBehavior rippleBehavior;
 
     private Node currentContent;
+    private boolean pointerInside;
 
     // ==================== Constructors ====================
 
@@ -116,14 +117,21 @@ public class RXRipplePane extends Region {
                 rippleBehavior.release();
             }
         });
+        addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
+            pointerInside = true;
+            updateStateOverlay();
+        });
         addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
+            pointerInside = false;
             if (event.isPrimaryButtonDown()) {
                 rippleBehavior.release();
             }
+            updateStateOverlay();
         });
 
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
+                pointerInside = false;
                 clearRippleLayer();
             }
         });
@@ -131,11 +139,14 @@ public class RXRipplePane extends Region {
             if (isDisabled()) {
                 rippleBehavior.release();
             }
+            updateStateOverlay();
         });
         backgroundProperty().addListener(obs -> requestLayout());
         shapeProperty().addListener(obs -> requestLayout());
         scaleShapeProperty().addListener(obs -> requestLayout());
         centerShapeProperty().addListener(obs -> requestLayout());
+        rippleFillProperty().addListener(obs -> rippleLayer.setOverlayFill(getRippleFill()));
+        rippleLayer.setOverlayFill(getRippleFill());
 
         setContent(content);
     }
@@ -294,6 +305,7 @@ public class RXRipplePane extends Region {
                         clearRippleLayer();
                         requestLayout();
                     }
+                    updateStateOverlay();
                 }
 
                 @Override
@@ -503,6 +515,11 @@ public class RXRipplePane extends Region {
     private void clearRippleLayer() {
         rippleBehavior.clear();
         rippleLayer.clearClip();
+    }
+
+    private void updateStateOverlay() {
+        boolean active = pointerInside && isRippleEnabled() && !isDisabled();
+        rippleLayer.setOverlayState(active);
     }
 
     // ==================== CSS Metadata ====================

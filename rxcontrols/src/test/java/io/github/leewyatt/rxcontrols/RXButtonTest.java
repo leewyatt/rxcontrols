@@ -289,6 +289,45 @@ public class RXButtonTest {
         });
     }
 
+    /**
+     * Verifies pointer enter shows the hover state overlay carrying the ripple
+     * fill, exit hides it, and disabling the ripple or the control suppresses
+     * it.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverShowsStateOverlayGatedByEnabledAndDisable() throws Exception {
+        runOnFx(() -> {
+            RXButton button = withSkin(new RXButton("OK"));
+            button.setRippleFill(Color.RED);
+            layout(button, 100.0, 40.0);
+            RippleLayer layer = rippleLayer(button);
+
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false, false));
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+            Region overlay = (Region) layer.getChildrenUnmodifiable().get(0);
+            assertEquals(Color.RED, overlay.getBackground().getFills().get(0).getFill());
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_EXITED, -5.0, 10.0,
+                    MouseButton.NONE, false, false));
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false, false));
+            button.setRippleEnabled(false);
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
+
+            button.setRippleEnabled(true);
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+            button.setDisable(true);
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXButton withSkin(RXButton button) {

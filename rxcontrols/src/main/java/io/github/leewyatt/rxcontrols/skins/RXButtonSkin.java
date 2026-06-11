@@ -27,6 +27,7 @@ public class RXButtonSkin extends ButtonSkin {
     private double pressX;
     private double pressY;
     private boolean pointerCoordsFresh;
+    private boolean pointerInside;
 
     /**
      * Creates the skin and wires the ripple triggers.
@@ -47,14 +48,17 @@ public class RXButtonSkin extends ButtonSkin {
                 clearRipples();
                 button.requestLayout();
             }
+            updateStateOverlay();
         });
         disposer.registerListener(button.disabledProperty(), () -> {
             if (button.isDisabled()) {
                 rippleBehavior.release();
             }
+            updateStateOverlay();
         });
         disposer.registerListener(button.sceneProperty(), () -> {
             if (button.getScene() == null) {
+                pointerInside = false;
                 clearRipples();
             }
         });
@@ -62,6 +66,19 @@ public class RXButtonSkin extends ButtonSkin {
         disposer.registerListener(button.shapeProperty(), button::requestLayout);
         disposer.registerListener(button.scaleShapeProperty(), button::requestLayout);
         disposer.registerListener(button.centerShapeProperty(), button::requestLayout);
+
+        // Hover state overlay: a low-opacity tint while the pointer is inside.
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_ENTERED, event -> {
+            pointerInside = true;
+            updateStateOverlay();
+        });
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_EXITED, event -> {
+            pointerInside = false;
+            updateStateOverlay();
+        });
+        disposer.registerListener(button.rippleFillProperty(),
+                () -> rippleLayer.setOverlayFill(button.getRippleFill()));
+        rippleLayer.setOverlayFill(button.getRippleFill());
 
         updateChildren();
     }
@@ -131,6 +148,12 @@ public class RXButtonSkin extends ButtonSkin {
             rippleBehavior.press(0.0, 0.0, true);
         }
         // Re-armed while still pressed (dragged back in): no new ripple.
+    }
+
+    private void updateStateOverlay() {
+        RXButton button = (RXButton) getSkinnable();
+        boolean active = pointerInside && button.isRippleEnabled() && !button.isDisabled();
+        rippleLayer.setOverlayState(active);
     }
 
     private void clearRipples() {

@@ -23,7 +23,11 @@ import java.util.function.Supplier;
 public final class RippleBehavior {
 
     private static final String RIPPLE_STYLE_CLASS = "ripple";
-    private static final int MAX_RIPPLE_COUNT = 3;
+    // Bounds how many fading ripples may overlap under rapid clicking: only one
+    // ripple grows at a time (see press), the rest are fading out. A value >= 2
+    // keeps the overlap smooth; it stays small so runaway input cannot
+    // accumulate ripple nodes and timelines without bound. Not a Material rule.
+    private static final int MAX_RIPPLE_COUNT = 5;
     private static final Duration ENTER_DURATION = Duration.millis(225.0);
     private static final Duration EXIT_DURATION = Duration.millis(150.0);
     private static final double MINIMUM_VISIBLE_MILLIS = 150.0;
