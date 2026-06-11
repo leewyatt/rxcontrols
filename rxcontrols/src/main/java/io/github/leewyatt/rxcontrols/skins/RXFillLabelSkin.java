@@ -1,39 +1,39 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXFillLabel;
 import io.github.leewyatt.rxcontrols.internal.fill.FillDecoration;
+import javafx.scene.control.skin.LabelSkin;
 
 /**
- * Skin for {@link RXFillButton}: the {@link RXButtonSkin} plus a
- * {@link FillDecoration} layer between the button background and the ripple
- * layer. See the decoration for the progress model, triggers and the
- * {@code :filling} pseudo-class contract.
+ * Skin for {@link RXFillLabel}: the standard {@link LabelSkin} plus a
+ * {@link FillDecoration} layer below the text. See the decoration for the
+ * progress model, triggers and the {@code :filling} pseudo-class contract.
  */
-public class RXFillButtonSkin extends RXButtonSkin {
+public class RXFillLabelSkin extends LabelSkin {
 
     private final FillDecoration fill;
 
     /**
      * Creates the skin and wires the fill decoration layer.
      *
-     * @param button the button this skin is attached to
+     * @param label the label this skin is attached to
      */
-    public RXFillButtonSkin(RXFillButton button) {
-        super(button);
-        fill = new FillDecoration(button,
-                button.fillAnimationProperty(),
-                button.animationTriggerProperty(),
-                button.animationDurationProperty(),
-                button.fillInsetsProperty(),
-                button.fillRadiusProperty());
+    public RXFillLabelSkin(RXFillLabel label) {
+        super(label);
+        fill = new FillDecoration(label,
+                label.fillAnimationProperty(),
+                label.animationTriggerProperty(),
+                label.animationDurationProperty(),
+                label.fillInsetsProperty(),
+                label.fillRadiusProperty());
         updateChildren();
     }
 
     @Override
     protected void updateChildren() {
         super.updateChildren();
-        // The first calls come from superclass constructors, before this
-        // skin's fields are initialized.
+        // The first call comes from the LabeledSkinBase constructor, before
+        // this skin's fields are initialized.
         if (fill != null) {
             getChildren().add(0, fill.getLayer());
         }
@@ -47,7 +47,7 @@ public class RXFillButtonSkin extends RXButtonSkin {
 
     /**
      * Stops the fill animation, removes the fill layer and unregisters all
-     * fill listeners before the {@link RXButtonSkin} cleanup runs.
+     * fill listeners before the standard {@link LabelSkin} cleanup runs.
      */
     @Override
     public void dispose() {

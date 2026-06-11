@@ -1,0 +1,21 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.tag {
+    -fx-padding: 4px 12px;
+    -fx-background-color: #eef0ff;
+    -fx-background-radius: 999px;
+    -rx-fill-radius: 999;
+}
+
+.heading {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-padding: 6px 14px;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}

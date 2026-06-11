@@ -22,6 +22,22 @@
     -fx-text-fill: white;
 }
 
+/*fill label*/
+.rx-fill-label {
+    -rx-fill: #616dff;
+    -rx-fill-animation: left-to-right;
+    -rx-animation-trigger: hover;
+    -rx-animation-duration: 200ms;
+}
+
+.rx-fill-label > .fill-layer > .fill-content > .fill-region {
+    -fx-background-color: -rx-fill;
+}
+
+.rx-fill-label:filling {
+    -fx-text-fill: white;
+}
+
 .rx-fill-button > .fill-layer > .fill-content > .fill-region {
     -fx-background-color: -rx-fill;
 }

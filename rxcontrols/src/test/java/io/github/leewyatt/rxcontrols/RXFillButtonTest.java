@@ -249,6 +249,31 @@ public class RXFillButtonTest {
     }
 
     /**
+     * Verifies disabling the control releases an active fill: a disabled node
+     * stops receiving the exit event that would otherwise end the sweep.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void disableReleasesActiveFill() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            button.setAnimationDuration(Duration.ZERO);
+            layout(button, 100.0, 40.0);
+            Pane content = fillContent(button);
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+
+            assertEquals(100.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
+
+            button.setDisable(true);
+
+            assertEquals(0.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
+            assertFalse(isFilling(button));
+        });
+    }
+
+    /**
      * Verifies auto mode excludes negative-inset decoration layers (focus
      * rings) from the mirror, and an explicit {@code fillRadius} turns the
      * clip into a single rounded rectangle ignoring the background layers.
