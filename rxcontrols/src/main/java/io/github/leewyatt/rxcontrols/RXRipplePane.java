@@ -40,16 +40,19 @@ import java.util.List;
  * <p>The pane owns a single {@linkplain #contentProperty() content} node and
  * an internal unmanaged ripple layer covering the full pane bounds, so the
  * ripple reaches the painted background edge even when padding is set. The
- * ripple is clipped to the pane's {@code shape} if one is set, otherwise to
- * the corner radii of the first background fill. Mouse presses start at the
- * pointer location unless {@link #rippleCenteredProperty() rippleCentered} is
- * true; release and exit fade the active ripple out. Existing fading ripples
- * may coexist with a new press, with an internal cap to prevent buildup.</p>
+ * ripple is clipped to a geometry snapshot of the pane's {@code shape} if one
+ * with a non-null fill is set, otherwise to the geometry (corner radii and
+ * insets) of the background fills. Mouse presses start at the pointer location
+ * unless {@link #rippleCenteredProperty() rippleCentered} is true; release and
+ * exit fade the active ripple out. Existing fading ripples may coexist with a
+ * new press, with an internal cap to prevent buildup.</p>
  *
  * <p>The pane listens for bubbling mouse events on itself; if the content
  * consumes {@code MOUSE_PRESSED}, no ripple starts. A ripple's radius is fixed
  * at press time, so resizing the pane while a ripple is live does not expand
- * that ripple.</p>
+ * that ripple. Replacing the {@code shape} instance refreshes the ripple clip;
+ * mutating the geometry of an installed shape instance only updates the pane
+ * itself.</p>
  */
 @DefaultProperty("content")
 public class RXRipplePane extends Region {

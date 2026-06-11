@@ -19,6 +19,11 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.ClosePath;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.Shape;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +35,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -186,10 +193,13 @@ public class RXRipplePaneTest {
     }
 
     /**
-     * Verifies a Region shape on the host is used as the bounded ripple clip.
+     * Verifies a host shape is clipped through a detached geometry snapshot:
+     * the host instance is never installed on the clip node (its single
+     * internal shape-change listener stays with the host), the snapshot is
+     * reused across layout passes, and replacing the shape refreshes it.
      */
     @Test
-    public void layoutUsesHostShapeClip() {
+    public void layoutUsesDetachedHostShapeSnapshotClip() {
         RXRipplePane pane = new RXRipplePane(new Region());
         Circle shape = new Circle(12.0);
         pane.setShape(shape);
@@ -197,7 +207,64 @@ public class RXRipplePaneTest {
         layout(pane, 100.0, 50.0);
 
         Region clip = (Region) rippleLayer(pane).getClip();
-        assertSame(shape, clip.getShape());
+        Shape snapshot = clip.getShape();
+        assertNotNull(snapshot);
+        assertNotSame(shape, snapshot);
+
+        layout(pane, 100.0, 50.0);
+
+        assertSame(snapshot, clip.getShape());
+
+        pane.setShape(new Circle(5.0));
+        layout(pane, 100.0, 50.0);
+
+        assertNotNull(clip.getShape());
+        assertNotSame(snapshot, clip.getShape());
+    }
+
+    /**
+     * Verifies a host shape without a fill falls back to the background
+     * geometry clip instead of a snapshot of its stroke area.
+     */
+    @Test
+    public void nullFillShapeFallsBackToBackgroundClip() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setShape(new Path(new MoveTo(0.0, 0.0), new LineTo(10.0, 0.0),
+                new LineTo(10.0, 10.0), new ClosePath()));
+        pane.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+
+        layout(pane, 100.0, 50.0);
+
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertNull(clip.getShape());
+        assertEquals(new CornerRadii(8.0),
+                clip.getBackground().getFills().get(0).getRadii());
+    }
+
+    /**
+     * Verifies the clip mirrors the geometry of all background fills, keeping
+     * radii and insets while repainting every layer opaque.
+     */
+    @Test
+    public void clipMirrorsBackgroundFillGeometry() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setBackground(new Background(
+                new BackgroundFill(Color.TRANSPARENT, new CornerRadii(8.0), Insets.EMPTY),
+                new BackgroundFill(Color.WHITE, new CornerRadii(6.0), new Insets(2.0))));
+
+        layout(pane, 100.0, 50.0);
+
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertEquals(2, clip.getBackground().getFills().size());
+        BackgroundFill outer = clip.getBackground().getFills().get(0);
+        BackgroundFill inner = clip.getBackground().getFills().get(1);
+        assertEquals(Color.BLACK, outer.getFill());
+        assertEquals(new CornerRadii(8.0), outer.getRadii());
+        assertEquals(Insets.EMPTY, outer.getInsets());
+        assertEquals(Color.BLACK, inner.getFill());
+        assertEquals(new CornerRadii(6.0), inner.getRadii());
+        assertEquals(new Insets(2.0), inner.getInsets());
     }
 
     /**

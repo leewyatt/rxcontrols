@@ -1,9 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.ripple;
 
-import javafx.geometry.Insets;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -12,20 +10,38 @@ import javafx.scene.shape.Shape;
 /**
  * Unmanaged overlay layer that hosts bounded ripple circles.
  *
- * <p>The layer resolves its own bounded clip from a host {@link Region}: if
- * the host has a {@code shape}, the clip follows the shape; otherwise it
- * follows the corner radii of the host's first background fill. Both paths
- * use a single internal {@link Region} clip node sized in this layer's local
- * coordinate space, so the clip reproduces exactly what the host background
- * paints, including non-uniform and percentage radii.</p>
+ * <p>The layer resolves its own bounded clip from a host {@link Region}. If
+ * the host has a {@code shape} with a non-null fill, the clip follows a
+ * detached geometry snapshot of that shape; the host's shape instance is never
+ * installed on the clip node, because a JavaFX {@code Shape} carries a single
+ * internal geometry-change listener slot that a second {@code Region.setShape}
+ * call would steal from the host. Replacing the host shape refreshes the
+ * snapshot; mutating the same shape instance's geometry only updates the host.
+ * Without a usable shape, the clip mirrors the geometry of all host background
+ * fills (corner radii and insets, repainted opaque), so layered or inset
+ * backgrounds clip the ripple to the painted area while transparent fills
+ * still contribute their geometry.</p>
  */
 public final class RippleLayer extends Region {
 
     private static final String STYLE_CLASS = "ripple-layer";
 
+    /**
+     * Opaque fill used while a shape snapshot defines the clip geometry.
+     */
+    private static final Background SHAPE_FILL =
+            new Background(new BackgroundFill(Color.BLACK, null, null));
+
+    /**
+     * Initial marker forcing the first background mirror to apply.
+     */
+    private static final Background UNSET_FILL =
+            new Background(new BackgroundFill(Color.BLACK, null, null));
+
     private final Region clipNode = new Region();
 
-    private CornerRadii appliedRadii;
+    private Shape sourceShape;
+    private Background sourceBackground = UNSET_FILL;
 
     /**
      * Creates an unmanaged, mouse-transparent ripple layer.
@@ -50,7 +66,12 @@ public final class RippleLayer extends Region {
     }
 
     /**
-     * Updates the bounded clip from the host's shape or background radii.
+     * Updates the bounded clip from the host's shape or background geometry.
+     *
+     * <p>A host shape is snapshotted via {@link Shape#union(Shape, Shape)},
+     * which captures the fill geometry only: shapes with a {@code null} fill
+     * fall back to the background-geometry clip, and node transforms set on
+     * the shape are not reflected.</p>
      *
      * @param host   the host region providing shape and background geometry
      * @param width  the local clip width
@@ -63,15 +84,28 @@ public final class RippleLayer extends Region {
             return;
         }
         Shape shape = host.getShape();
-        if (shape != null) {
-            clipNode.setShape(shape);
+        if (shape != null && shape.getFill() != null) {
+            if (shape != sourceShape) {
+                sourceShape = shape;
+                clipNode.setShape(Shape.union(shape, shape));
+            }
             clipNode.setScaleShape(host.isScaleShape());
             clipNode.setCenterShape(host.isCenterShape());
             clipNode.setCacheShape(host.isCacheShape());
-            applyClipBackground(CornerRadii.EMPTY);
+            if (sourceBackground != SHAPE_FILL) {
+                sourceBackground = SHAPE_FILL;
+                clipNode.setBackground(SHAPE_FILL);
+            }
         } else {
-            clipNode.setShape(null);
-            applyClipBackground(firstFillRadii(host));
+            if (sourceShape != null) {
+                sourceShape = null;
+                clipNode.setShape(null);
+            }
+            Background hostBackground = host.getBackground();
+            if (hostBackground != sourceBackground) {
+                sourceBackground = hostBackground;
+                clipNode.setBackground(geometryOf(hostBackground));
+            }
         }
         clipNode.resize(width, height);
         setClip(clipNode);
@@ -81,27 +115,23 @@ public final class RippleLayer extends Region {
      * Clears the bounded clip.
      */
     public void clearClip() {
+        sourceShape = null;
+        sourceBackground = UNSET_FILL;
         clipNode.setShape(null);
         clipNode.setBackground(null);
-        appliedRadii = null;
         clipNode.resize(0.0, 0.0);
         setClip(null);
     }
 
-    private void applyClipBackground(CornerRadii radii) {
-        if (!radii.equals(appliedRadii)) {
-            appliedRadii = radii;
-            clipNode.setBackground(new Background(new BackgroundFill(
-                    Color.BLACK, radii, Insets.EMPTY)));
-        }
-    }
-
-    private static CornerRadii firstFillRadii(Region host) {
-        Background background = host.getBackground();
+    private static Background geometryOf(Background background) {
         if (background == null || background.getFills().isEmpty()) {
-            return CornerRadii.EMPTY;
+            return SHAPE_FILL;
         }
-        CornerRadii radii = background.getFills().get(0).getRadii();
-        return radii == null ? CornerRadii.EMPTY : radii;
+        BackgroundFill[] fills = new BackgroundFill[background.getFills().size()];
+        for (int i = 0; i < fills.length; i++) {
+            BackgroundFill fill = background.getFills().get(i);
+            fills[i] = new BackgroundFill(Color.BLACK, fill.getRadii(), fill.getInsets());
+        }
+        return new Background(fills);
     }
 }
