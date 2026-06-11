@@ -1,0 +1,94 @@
+.preview-pane {
+    -fx-padding: 24px;
+}
+
+.live-preview {
+    -fx-alignment: center;
+}
+
+.showcase-ripple-pane {
+    -fx-background-color: white;
+    -fx-border-color: #c6d3df;
+    -fx-border-width: 1px;
+    -rx-ripple-fill: #0f766e;
+    -rx-ripple-opacity: 0.18;
+    -fx-effect: dropshadow(gaussian, rgba(22, 31, 42, 0.20), 18, 0, 0, 8);
+}
+
+.content-card {
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #f7fafc);
+}
+
+.card-body {
+    -fx-padding: 24px;
+    -fx-alignment: top-left;
+}
+
+.card-eyebrow {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f766e;
+}
+
+.card-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #172033;
+}
+
+.card-copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: #586575;
+}
+
+.metric-row {
+    -fx-alignment: center-left;
+}
+
+.metric-box {
+    -fx-padding: 9px 12px;
+    -fx-background-color: #eef6f5;
+    -fx-background-radius: 7px;
+    -fx-min-width: 84px;
+}
+
+.metric-number {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #172033;
+}
+
+.metric-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #637282;
+}
+
+.chip-row {
+    -fx-alignment: center-left;
+}
+
+.status-chip {
+    -fx-padding: 5px 9px;
+    -fx-background-radius: 50%;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.status-on-call {
+    -fx-background-color: #ffe8cc;
+    -fx-text-fill: #9a4d00;
+}
+
+.status-region {
+    -fx-background-color: #e6edff;
+    -fx-text-fill: #2d4f9e;
+}
+
+.size-label {
+    -fx-padding: 5px 12px;
+    -fx-background-color: #1d2433;
+    -fx-background-radius: 6px;
+    -fx-text-fill: white;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
