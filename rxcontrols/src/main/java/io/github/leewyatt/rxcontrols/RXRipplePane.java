@@ -1,8 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
-import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.beans.DefaultProperty;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
@@ -86,11 +85,9 @@ public class RXRipplePane extends Region {
 
     // ==================== Internal State ====================
 
-    private final RippleLayer rippleLayer;
-    private final RippleBehavior rippleBehavior;
+    private final RippleDecoration ripple;
 
     private Node currentContent;
-    private boolean pointerInside;
 
     // ==================== Constructors ====================
 
@@ -109,47 +106,24 @@ public class RXRipplePane extends Region {
     public RXRipplePane(@NamedArg("content") Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
-        rippleLayer = new RippleLayer();
-        rippleBehavior = new RippleBehavior(rippleLayer, this::getRippleFill, this::getRippleOpacity);
-        getChildren().add(rippleLayer);
+        ripple = new RippleDecoration(this, rippleEnabledProperty(),
+                rippleFillProperty(), this::getRippleOpacity);
+        getChildren().add(ripple.getLayer());
 
+        // Pointer-press trigger; the decoration owns hover, overlay and the
+        // disabled / scene-detach / ripple-enabled lifecycle.
         addEventHandler(MouseEvent.MOUSE_PRESSED, this::handleMousePressed);
         addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
-                rippleBehavior.release();
+                ripple.release();
             }
-        });
-        addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
-            pointerInside = true;
-            updateStateOverlay();
         });
         addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
-            pointerInside = false;
             if (event.isPrimaryButtonDown()) {
-                rippleBehavior.release();
-            }
-            updateStateOverlay();
-        });
-
-        sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene == null) {
-                pointerInside = false;
-                clearRippleLayer();
+                ripple.release();
             }
         });
-        disabledProperty().addListener(obs -> {
-            if (isDisabled()) {
-                rippleBehavior.release();
-            }
-            updateStateOverlay();
-        });
-        backgroundProperty().addListener(obs -> requestLayout());
-        shapeProperty().addListener(obs -> requestLayout());
-        scaleShapeProperty().addListener(obs -> requestLayout());
-        centerShapeProperty().addListener(obs -> requestLayout());
         rippleInsetsProperty().addListener(obs -> requestLayout());
-        rippleFillProperty().addListener(obs -> rippleLayer.setOverlayFill(getRippleFill()));
-        rippleLayer.setOverlayFill(getRippleFill());
 
         setContent(content);
     }
@@ -302,15 +276,6 @@ public class RXRipplePane extends Region {
 
     private final BooleanProperty rippleEnabled =
             new StyleableBooleanProperty(DEFAULT_RIPPLE_ENABLED) {
-                @Override
-                protected void invalidated() {
-                    if (!get()) {
-                        clearRippleLayer();
-                        requestLayout();
-                    }
-                    updateStateOverlay();
-                }
-
                 @Override
                 public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
                     return StyleableProperties.RIPPLE_ENABLED;
@@ -520,27 +485,17 @@ public class RXRipplePane extends Region {
         double right = snappedRightInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
-
-        if (width <= 0.0 || height <= 0.0
-                || !Double.isFinite(width) || !Double.isFinite(height)) {
-            rippleBehavior.clear();
-            rippleLayer.resizeRelocate(0.0, 0.0, 0.0, 0.0);
-            rippleLayer.clearClip();
-            Node node = getContent();
-            if (node != null) {
-                layoutInArea(node, left, top, 0.0, 0.0, 0.0, HPos.LEFT, VPos.TOP);
-            }
-            return;
-        }
+        boolean valid = width > 0.0 && height > 0.0
+                && Double.isFinite(width) && Double.isFinite(height);
 
         Node node = getContent();
         if (node != null) {
-            double contentW = Math.max(0.0, width - left - right);
-            double contentH = Math.max(0.0, height - top - bottom);
+            double contentW = valid ? Math.max(0.0, width - left - right) : 0.0;
+            double contentH = valid ? Math.max(0.0, height - top - bottom) : 0.0;
             layoutInArea(node, left, top, contentW, contentH, 0.0, HPos.LEFT, VPos.TOP);
         }
-        rippleLayer.resizeRelocate(0.0, 0.0, width, height);
-        rippleLayer.updateClipFor(this, width, height, getRippleInsets());
+        // The decoration collapses and clears itself on an invalid size.
+        ripple.layout(width, height, getRippleInsets());
     }
 
     // ==================== Event Handling ====================
@@ -550,7 +505,7 @@ public class RXRipplePane extends Region {
             return;
         }
         Point2D local = sceneToLocal(event.getSceneX(), event.getSceneY());
-        rippleBehavior.press(local.getX(), local.getY(), isRippleCentered());
+        ripple.press(local.getX(), local.getY(), isRippleCentered());
     }
 
     // ==================== Helpers ====================
@@ -560,24 +515,14 @@ public class RXRipplePane extends Region {
         if (currentContent == next) {
             return;
         }
-        clearRippleLayer();
+        ripple.clear();
         currentContent = next;
         if (next == null) {
-            getChildren().setAll(rippleLayer);
+            getChildren().setAll(ripple.getLayer());
         } else {
-            getChildren().setAll(next, rippleLayer);
+            getChildren().setAll(next, ripple.getLayer());
         }
         requestLayout();
-    }
-
-    private void clearRippleLayer() {
-        rippleBehavior.clear();
-        rippleLayer.clearClip();
-    }
-
-    private void updateStateOverlay() {
-        boolean active = pointerInside && isRippleEnabled() && !isDisabled();
-        rippleLayer.setOverlayState(active);
     }
 
     // ==================== CSS Metadata ====================
