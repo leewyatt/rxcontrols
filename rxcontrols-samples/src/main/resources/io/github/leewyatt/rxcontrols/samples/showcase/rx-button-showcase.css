@@ -7,8 +7,10 @@
     -fx-padding: 10px 26px;
 }
 
+/* Oversized px radii normalize to min(w,h)/2 per fill layer (stadium shape);
+   50% would scale per-axis and render an ellipse on non-square nodes. */
 .showcase-button.pill {
-    -fx-background-radius: 999px, 999px, 998px, 997px;
+    -fx-background-radius: 999px;
 }
 
 .fired-label {

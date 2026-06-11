@@ -60,6 +60,8 @@ public class RXButtonSkin extends ButtonSkin {
         });
         disposer.registerListener(button.backgroundProperty(), button::requestLayout);
         disposer.registerListener(button.shapeProperty(), button::requestLayout);
+        disposer.registerListener(button.scaleShapeProperty(), button::requestLayout);
+        disposer.registerListener(button.centerShapeProperty(), button::requestLayout);
 
         updateChildren();
     }
