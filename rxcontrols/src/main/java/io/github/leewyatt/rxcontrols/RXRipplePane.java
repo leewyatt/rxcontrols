@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import javafx.beans.DefaultProperty;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -24,13 +25,9 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.shape.Shape;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,11 +38,20 @@ import java.util.List;
  * press.
  *
  * <p>The pane owns a single {@linkplain #contentProperty() content} node and
- * an internal unmanaged ripple layer. Mouse presses start at the pointer
- * location unless {@link #rippleCenteredProperty() rippleCentered} is true;
- * release and exit fade the active ripple out. Existing fading ripples may
- * coexist with a new press, with an internal cap to prevent buildup.</p>
+ * an internal unmanaged ripple layer covering the full pane bounds, so the
+ * ripple reaches the painted background edge even when padding is set. The
+ * ripple is clipped to the pane's {@code shape} if one is set, otherwise to
+ * the corner radii of the first background fill. Mouse presses start at the
+ * pointer location unless {@link #rippleCenteredProperty() rippleCentered} is
+ * true; release and exit fade the active ripple out. Existing fading ripples
+ * may coexist with a new press, with an internal cap to prevent buildup.</p>
+ *
+ * <p>The pane listens for bubbling mouse events on itself; if the content
+ * consumes {@code MOUSE_PRESSED}, no ripple starts. A ripple's radius is fixed
+ * at press time, so resizing the pane while a ripple is live does not expand
+ * that ripple.</p>
  */
+@DefaultProperty("content")
 public class RXRipplePane extends Region {
 
     // ==================== Constants ====================
@@ -101,7 +107,11 @@ public class RXRipplePane extends Region {
         getChildren().add(rippleLayer);
 
         addEventHandler(MouseEvent.MOUSE_PRESSED, this::handleMousePressed);
-        addEventHandler(MouseEvent.MOUSE_RELEASED, event -> rippleBehavior.release());
+        addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                rippleBehavior.release();
+            }
+        });
         addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
             if (event.isPrimaryButtonDown()) {
                 rippleBehavior.release();
@@ -113,6 +123,15 @@ public class RXRipplePane extends Region {
                 clearRippleLayer();
             }
         });
+        disabledProperty().addListener(obs -> {
+            if (isDisabled()) {
+                rippleBehavior.release();
+            }
+        });
+        backgroundProperty().addListener(obs -> requestLayout());
+        shapeProperty().addListener(obs -> requestLayout());
+        scaleShapeProperty().addListener(obs -> requestLayout());
+        centerShapeProperty().addListener(obs -> requestLayout());
 
         setContent(content);
     }
@@ -421,15 +440,15 @@ public class RXRipplePane extends Region {
 
     @Override
     protected void layoutChildren() {
+        double width = getWidth();
+        double height = getHeight();
         double left = snappedLeftInset();
         double right = snappedRightInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
-        double contentW = getWidth() - left - right;
-        double contentH = getHeight() - top - bottom;
 
-        if (contentW <= 0.0 || contentH <= 0.0
-                || !Double.isFinite(contentW) || !Double.isFinite(contentH)) {
+        if (width <= 0.0 || height <= 0.0
+                || !Double.isFinite(width) || !Double.isFinite(height)) {
             rippleBehavior.clear();
             rippleLayer.resizeRelocate(0.0, 0.0, 0.0, 0.0);
             rippleLayer.clearClip();
@@ -442,17 +461,12 @@ public class RXRipplePane extends Region {
 
         Node node = getContent();
         if (node != null) {
+            double contentW = Math.max(0.0, width - left - right);
+            double contentH = Math.max(0.0, height - top - bottom);
             layoutInArea(node, left, top, contentW, contentH, 0.0, HPos.LEFT, VPos.TOP);
         }
-        rippleLayer.resizeRelocate(left, top, contentW, contentH);
-        Shape shape = getShape();
-        if (shape != null) {
-            rippleLayer.updateShapeClip(shape, isScaleShape(), isCenterShape(), isCacheShape(),
-                    contentW, contentH);
-        } else {
-            double[] arc = clipArc(contentW, contentH);
-            rippleLayer.updateClip(contentW, contentH, arc[0], arc[1]);
-        }
+        rippleLayer.resizeRelocate(0.0, 0.0, width, height);
+        rippleLayer.updateClipFor(this, width, height);
     }
 
     // ==================== Event Handling ====================
@@ -462,9 +476,7 @@ public class RXRipplePane extends Region {
             return;
         }
         Point2D local = sceneToLocal(event.getSceneX(), event.getSceneY());
-        double centerX = local.getX() - rippleLayer.getLayoutX();
-        double centerY = local.getY() - rippleLayer.getLayoutY();
-        rippleBehavior.press(centerX, centerY, isRippleCentered());
+        rippleBehavior.press(local.getX(), local.getY(), isRippleCentered());
     }
 
     // ==================== Helpers ====================
@@ -487,32 +499,6 @@ public class RXRipplePane extends Region {
     private void clearRippleLayer() {
         rippleBehavior.clear();
         rippleLayer.clearClip();
-    }
-
-    private double[] clipArc(double width, double height) {
-        Background background = getBackground();
-        if (background == null || background.getFills().isEmpty()) {
-            return new double[]{0.0, 0.0};
-        }
-        BackgroundFill fill = background.getFills().get(0);
-        CornerRadii radii = fill.getRadii();
-        double hRadius = resolveRadius(
-                radii.getTopLeftHorizontalRadius(),
-                radii.isTopLeftHorizontalRadiusAsPercentage(),
-                width);
-        double vRadius = resolveRadius(
-                radii.getTopLeftVerticalRadius(),
-                radii.isTopLeftVerticalRadiusAsPercentage(),
-                height);
-        return new double[]{hRadius * 2.0, vRadius * 2.0};
-    }
-
-    private static double resolveRadius(double value, boolean percentage, double size) {
-        if (!Double.isFinite(value) || value <= 0.0) {
-            return 0.0;
-        }
-        double radius = percentage ? value * size : value;
-        return Math.min(radius, size / 2.0);
     }
 
     // ==================== CSS Metadata ====================

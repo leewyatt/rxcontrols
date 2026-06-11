@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.application.Platform;
+import javafx.beans.DefaultProperty;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -18,7 +19,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.Rectangle;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -135,11 +135,11 @@ public class RXRipplePaneTest {
     }
 
     /**
-     * Verifies content and ripple layer use the snapped content area and the
-     * ripple clip is local to the layer.
+     * Verifies content uses the snapped content area while the ripple layer
+     * covers the full pane bounds with a clip following the background radii.
      */
     @Test
-    public void layoutUsesContentAreaAndLocalClip() {
+    public void layoutUsesFullBoundsLayerAndBackgroundRadiiClip() {
         Region content = new Region();
         RXRipplePane pane = new RXRipplePane(content);
         pane.setPadding(new Insets(1.0, 2.0, 3.0, 4.0));
@@ -149,21 +149,40 @@ public class RXRipplePaneTest {
         layout(pane, 100.0, 50.0);
 
         RippleLayer layer = rippleLayer(pane);
-        Rectangle clip = (Rectangle) layer.getClip();
+        Region clip = (Region) layer.getClip();
         assertClose(4.0, content.getLayoutX(), "content x");
         assertClose(1.0, content.getLayoutY(), "content y");
         assertClose(94.0, content.getLayoutBounds().getWidth(), "content width");
         assertClose(46.0, content.getLayoutBounds().getHeight(), "content height");
-        assertClose(4.0, layer.getLayoutX(), "layer x");
-        assertClose(1.0, layer.getLayoutY(), "layer y");
-        assertClose(94.0, layer.getLayoutBounds().getWidth(), "layer width");
-        assertClose(46.0, layer.getLayoutBounds().getHeight(), "layer height");
-        assertClose(0.0, clip.getX(), "clip x");
-        assertClose(0.0, clip.getY(), "clip y");
-        assertClose(94.0, clip.getWidth(), "clip width");
-        assertClose(46.0, clip.getHeight(), "clip height");
-        assertClose(16.0, clip.getArcWidth(), "clip arc width");
-        assertClose(16.0, clip.getArcHeight(), "clip arc height");
+        assertClose(0.0, layer.getLayoutX(), "layer x");
+        assertClose(0.0, layer.getLayoutY(), "layer y");
+        assertClose(100.0, layer.getLayoutBounds().getWidth(), "layer width");
+        assertClose(50.0, layer.getLayoutBounds().getHeight(), "layer height");
+        assertClose(100.0, clip.getLayoutBounds().getWidth(), "clip width");
+        assertClose(50.0, clip.getLayoutBounds().getHeight(), "clip height");
+        assertEquals(new CornerRadii(8.0),
+                clip.getBackground().getFills().get(0).getRadii());
+    }
+
+    /**
+     * Verifies a background radius change without a size change still updates
+     * the ripple clip on the next layout pass.
+     */
+    @Test
+    public void clipFollowsBackgroundRadiusChange() {
+        RXRipplePane pane = new RXRipplePane(new Region());
+        pane.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
+        layout(pane, 100.0, 50.0);
+
+        pane.setBackground(new Background(new BackgroundFill(
+                Color.WHITE, new CornerRadii(20.0), Insets.EMPTY)));
+
+        assertTrue(pane.isNeedsLayout());
+        pane.layout();
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertEquals(new CornerRadii(20.0),
+                clip.getBackground().getFills().get(0).getRadii());
     }
 
     /**
@@ -172,11 +191,13 @@ public class RXRipplePaneTest {
     @Test
     public void layoutUsesHostShapeClip() {
         RXRipplePane pane = new RXRipplePane(new Region());
-        pane.setShape(new Circle(12.0));
+        Circle shape = new Circle(12.0);
+        pane.setShape(shape);
 
         layout(pane, 100.0, 50.0);
 
-        assertTrue(rippleLayer(pane).getClip() instanceof Region);
+        Region clip = (Region) rippleLayer(pane).getClip();
+        assertSame(shape, clip.getShape());
     }
 
     /**
@@ -237,6 +258,131 @@ public class RXRipplePaneTest {
             assertClose(25.0, circle.getCenterY(), "center y");
             assertClose(Math.hypot(50.0, 25.0), circle.getRadius(), "radius");
         });
+    }
+
+    /**
+     * Verifies a press on the padding area starts the ripple at the pointer
+     * location because the layer covers the full pane bounds.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void pressOnPaddingAreaStartsRippleAtPointer() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            pane.setPadding(new Insets(10.0));
+            layout(pane, 100.0, 50.0);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 2.0, 3.0,
+                    MouseButton.PRIMARY, true));
+
+            Circle circle = (Circle) rippleLayer(pane).getChildrenUnmodifiable().get(0);
+            assertClose(2.0, circle.getCenterX(), "center x");
+            assertClose(3.0, circle.getCenterY(), "center y");
+            assertClose(Math.hypot(98.0, 47.0), circle.getRadius(), "radius");
+        });
+    }
+
+    /**
+     * Verifies a second press while the pointer is still held is ignored and a
+     * non-primary release does not end the active ripple.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void heldRippleIgnoresRepeatedPressAndNonPrimaryRelease() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 20.0, 10.0,
+                    MouseButton.PRIMARY, true));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 50.0, 20.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_RELEASED, 50.0, 20.0,
+                    MouseButton.SECONDARY, true));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 50.0, 20.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_RELEASED, 50.0, 20.0,
+                    MouseButton.PRIMARY, false));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 50.0, 20.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(2, layer.getChildrenUnmodifiable().size());
+        });
+    }
+
+    /**
+     * Verifies exiting while pressed and disabling mid-press both release the
+     * active ripple so a later press can start a new one.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void exitAndDisableReleaseActiveRipple() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 20.0, 10.0,
+                    MouseButton.PRIMARY, true));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_EXITED, -5.0, 10.0,
+                    MouseButton.NONE, true));
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 40.0, 10.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(2, layer.getChildrenUnmodifiable().size());
+
+            pane.setDisable(true);
+            pane.setDisable(false);
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 60.0, 10.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(3, layer.getChildrenUnmodifiable().size());
+        });
+    }
+
+    /**
+     * Verifies the CSS properties reach the ripple properties through a style
+     * application pass.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void cssPropertiesApplyToRippleProperties() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            StackPane root = new StackPane(pane);
+            new Scene(root);
+            pane.setStyle("-rx-ripple-fill: red;"
+                    + " -rx-ripple-opacity: 0.3;"
+                    + " -rx-ripple-enabled: false;"
+                    + " -rx-ripple-centered: true;");
+
+            root.applyCss();
+
+            assertEquals(Color.RED, pane.getRippleFill());
+            assertClose(0.3, pane.getRippleOpacity(), "ripple opacity");
+            assertFalse(pane.isRippleEnabled());
+            assertTrue(pane.isRippleCentered());
+        });
+    }
+
+    /**
+     * Verifies the FXML default property is the content slot.
+     */
+    @Test
+    public void defaultPropertyIsContent() {
+        DefaultProperty annotation = RXRipplePane.class.getAnnotation(DefaultProperty.class);
+        assertEquals("content", annotation.value());
     }
 
     /**
