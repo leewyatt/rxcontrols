@@ -223,20 +223,36 @@ public class RXRipplePaneTest {
     }
 
     /**
-     * Verifies a host shape without a fill falls back to the background
-     * geometry clip instead of a snapshot of its stroke area.
+     * Verifies shapes the snapshot cannot represent faithfully (null fill,
+     * stroke, node transforms) fall back to the background geometry clip,
+     * because {@code Shape.union} captures stroke area and node transforms
+     * while the host renders its raw local geometry.
      */
     @Test
-    public void nullFillShapeFallsBackToBackgroundClip() {
+    public void unsupportedShapesFallBackToBackgroundClip() {
         RXRipplePane pane = new RXRipplePane(new Region());
-        pane.setShape(new Path(new MoveTo(0.0, 0.0), new LineTo(10.0, 0.0),
-                new LineTo(10.0, 10.0), new ClosePath()));
         pane.setBackground(new Background(new BackgroundFill(
                 Color.WHITE, new CornerRadii(8.0), Insets.EMPTY)));
-
+        pane.setShape(new Circle(12.0));
         layout(pane, 100.0, 50.0);
-
         Region clip = (Region) rippleLayer(pane).getClip();
+        assertNotNull(clip.getShape());
+
+        Circle stroked = new Circle(12.0);
+        stroked.setStroke(Color.BLACK);
+        pane.setShape(stroked);
+        layout(pane, 100.0, 50.0);
+        assertNull(clip.getShape());
+
+        Circle transformed = new Circle(12.0);
+        transformed.setTranslateX(5.0);
+        pane.setShape(transformed);
+        layout(pane, 100.0, 50.0);
+        assertNull(clip.getShape());
+
+        pane.setShape(new Path(new MoveTo(0.0, 0.0), new LineTo(10.0, 0.0),
+                new LineTo(10.0, 10.0), new ClosePath()));
+        layout(pane, 100.0, 50.0);
         assertNull(clip.getShape());
         assertEquals(new CornerRadii(8.0),
                 clip.getBackground().getFills().get(0).getRadii());

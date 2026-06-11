@@ -11,16 +11,17 @@ import javafx.scene.shape.Shape;
  * Unmanaged overlay layer that hosts bounded ripple circles.
  *
  * <p>The layer resolves its own bounded clip from a host {@link Region}. If
- * the host has a {@code shape} with a non-null fill, the clip follows a
- * detached geometry snapshot of that shape; the host's shape instance is never
- * installed on the clip node, because a JavaFX {@code Shape} carries a single
- * internal geometry-change listener slot that a second {@code Region.setShape}
- * call would steal from the host. Replacing the host shape refreshes the
- * snapshot; mutating the same shape instance's geometry only updates the host.
- * Without a usable shape, the clip mirrors the geometry of all host background
- * fills (corner radii and insets, repainted opaque), so layered or inset
- * backgrounds clip the ripple to the painted area while transparent fills
- * still contribute their geometry.</p>
+ * the host has a plain {@code shape} (non-null fill, no stroke, detached,
+ * identity transform), the clip follows a detached geometry snapshot of that
+ * shape; the host's shape instance is never installed on the clip node,
+ * because a JavaFX {@code Shape} carries a single internal geometry-change
+ * listener slot that a second {@code Region.setShape} call would steal from
+ * the host. Replacing the host shape refreshes the snapshot; mutating the
+ * same shape instance's geometry only updates the host. Without a
+ * snapshot-supported shape, the clip mirrors the geometry of all host
+ * background fills (corner radii and insets, repainted opaque), so layered or
+ * inset backgrounds clip the ripple to the painted area while transparent
+ * fills still contribute their geometry.</p>
  */
 public final class RippleLayer extends Region {
 
@@ -68,10 +69,12 @@ public final class RippleLayer extends Region {
     /**
      * Updates the bounded clip from the host's shape or background geometry.
      *
-     * <p>A host shape is snapshotted via {@link Shape#union(Shape, Shape)},
-     * which captures the fill geometry only: shapes with a {@code null} fill
-     * fall back to the background-geometry clip, and node transforms set on
-     * the shape are not reflected.</p>
+     * <p>A host shape is snapshotted via {@link Shape#union(Shape, Shape)}.
+     * The union area includes any stroke and applies the shape's node
+     * transforms, while {@code Region} renders a host shape from its raw
+     * local geometry, so only plain shapes pass
+     * {@link #isSnapshotSupported(Shape)}; all other shapes fall back to the
+     * background-geometry clip.</p>
      *
      * @param host   the host region providing shape and background geometry
      * @param width  the local clip width
@@ -84,7 +87,7 @@ public final class RippleLayer extends Region {
             return;
         }
         Shape shape = host.getShape();
-        if (shape != null && shape.getFill() != null) {
+        if (isSnapshotSupported(shape)) {
             if (shape != sourceShape) {
                 sourceShape = shape;
                 clipNode.setShape(Shape.union(shape, shape));
@@ -121,6 +124,19 @@ public final class RippleLayer extends Region {
         clipNode.setBackground(null);
         clipNode.resize(0.0, 0.0);
         setClip(null);
+    }
+
+    /**
+     * Returns whether the shape can be snapshotted faithfully: any stroke or
+     * node transform would make the {@link Shape#union(Shape, Shape)} area
+     * diverge from the raw local geometry the host {@code Region} renders.
+     */
+    private static boolean isSnapshotSupported(Shape shape) {
+        return shape != null
+                && shape.getFill() != null
+                && shape.getStroke() == null
+                && shape.getParent() == null
+                && shape.getLocalToParentTransform().isIdentity();
     }
 
     private static Background geometryOf(Background background) {

@@ -40,9 +40,9 @@ import java.util.List;
  * <p>The pane owns a single {@linkplain #contentProperty() content} node and
  * an internal unmanaged ripple layer covering the full pane bounds, so the
  * ripple reaches the painted background edge even when padding is set. The
- * ripple is clipped to a geometry snapshot of the pane's {@code shape} if one
- * with a non-null fill is set, otherwise to the geometry (corner radii and
- * insets) of the background fills. Mouse presses start at the pointer location
+ * ripple is clipped to a geometry snapshot of the pane's {@code shape} if a
+ * plain filled shape (no stroke, no transforms) is set, otherwise to the
+ * geometry (corner radii and insets) of the background fills. Mouse presses start at the pointer location
  * unless {@link #rippleCenteredProperty() rippleCentered} is true; release and
  * exit fade the active ripple out. Existing fading ripples may coexist with a
  * new press, with an internal cap to prevent buildup.</p>
