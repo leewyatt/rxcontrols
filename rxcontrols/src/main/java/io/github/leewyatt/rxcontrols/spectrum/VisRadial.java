@@ -32,6 +32,10 @@ public class VisRadial extends SpectrumVisualizationBase {
 
     private Paint[] bandPaints;
 
+    /** True when every band shares one paint reference (solid or non-proportional
+     * fill), so the stroke can be set once instead of per band. */
+    private boolean uniformPaint;
+
     private double centerX;
 
     private double centerY;
@@ -118,6 +122,15 @@ public class VisRadial extends SpectrumVisualizationBase {
                     centerX + cosT[i] * innerRadius, centerY + sinT[i] * innerRadius,
                     centerX + cosT[i] * outerRadius, centerY + sinT[i] * outerRadius);
         }
+        // absoluteGradient only forks per-band instances for a proportional
+        // gradient; any other fill yields the same reference for every band.
+        uniformPaint = true;
+        for (int i = 1; i < n; i++) {
+            if (bandPaints[i] != bandPaints[0]) {
+                uniformPaint = false;
+                break;
+            }
+        }
     }
 
     @Override
@@ -128,9 +141,14 @@ public class VisRadial extends SpectrumVisualizationBase {
 
         gc.setLineWidth(barThickness);
         gc.setLineCap(StrokeLineCap.BUTT);
+        if (uniformPaint) {
+            gc.setStroke(bandPaints[0]);
+        }
         for (int i = 0; i < n; i++) {
             double length = Math.max(MIN_BAR_PIXELS, context.level(i) * range);
-            gc.setStroke(bandPaints[i]);
+            if (!uniformPaint) {
+                gc.setStroke(bandPaints[i]);
+            }
             gc.strokeLine(centerX + cosT[i] * innerRadius,
                     centerY + sinT[i] * innerRadius,
                     centerX + cosT[i] * (innerRadius + length),

@@ -23,7 +23,10 @@ import java.util.Arrays;
  *
  * <p>Pipeline cadence: bucketing/normalization/permutation run only when data
  * arrives or a related property changes (~10 Hz); smoothing and rendering run
- * per animation frame with zero heap allocation.
+ * per animation frame. The skin's own frame code allocates nothing — the only
+ * per-frame allocation is the small {@code State} that {@code GraphicsContext}
+ * pushes for the save/restore pair that isolates visualization state, an
+ * accepted cost of that isolation.
  */
 public class AudioSpectrumSkin extends RXSkinBase<RXAudioSpectrum> {
 
