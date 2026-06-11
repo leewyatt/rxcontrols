@@ -1,0 +1,389 @@
+package io.github.leewyatt.rxcontrols;
+
+import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.skins.RXButtonSkin;
+import javafx.beans.NamedArg;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.PaintConverter;
+import javafx.css.converter.SizeConverter;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Skin;
+import javafx.scene.paint.Paint;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Standard button with a built-in bounded ripple as pressed feedback.
+ *
+ * <p>The ripple lifecycle follows the button's {@code armed} state: a valid
+ * primary press starts a ripple at the pointer location (or the center when
+ * {@link #rippleCenteredProperty() rippleCentered} is true), keyboard
+ * activation starts a centered ripple, and disarming fades the active ripple
+ * out. Programmatic {@link #fire()} and default/cancel-button accelerators do
+ * not arm the button and therefore show no ripple.</p>
+ *
+ * <p>The ripple visual contract (full-bounds layer, shape or background
+ * geometry clip) matches {@link RXRipplePane}; the four ripple properties
+ * share names, CSS properties and defaults with that container.</p>
+ */
+public class RXButton extends Button {
+
+    private static final String DEFAULT_STYLE_CLASS = "rx-button";
+
+    // ==================== Constructors ====================
+
+    /**
+     * Creates a button with an empty text caption.
+     */
+    public RXButton() {
+        initialize();
+    }
+
+    /**
+     * Creates a button with the given text caption.
+     *
+     * @param text the text caption, or {@code null}
+     */
+    public RXButton(@NamedArg("text") String text) {
+        super(text);
+        initialize();
+    }
+
+    /**
+     * Creates a button with the given text caption and graphic.
+     *
+     * @param text    the text caption, or {@code null}
+     * @param graphic the graphic node, or {@code null}
+     */
+    public RXButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+        super(text, graphic);
+        initialize();
+    }
+
+    private void initialize() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
+    }
+
+    /**
+     * Creates the default skin with the built-in ripple layer.
+     *
+     * @return the default skin
+     */
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new RXButtonSkin(this);
+    }
+
+    /**
+     * Returns the user-agent stylesheet used by RXControls.
+     *
+     * @return the user-agent stylesheet URL
+     */
+    @Override
+    public String getUserAgentStylesheet() {
+        return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Ripple Fill ====================
+
+    private final ObjectProperty<Paint> rippleFill =
+            new StyleableObjectProperty<>(RXRipplePane.DEFAULT_RIPPLE_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleFill";
+                }
+            };
+
+    /**
+     * Fill used for newly created ripple circles. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_FILL}; setting {@code null} renders
+     * no fill (transparent) per the JavaFX {@code Shape.setFill} convention.
+     *
+     * @return the ripple fill property
+     */
+    public final ObjectProperty<Paint> rippleFillProperty() {
+        return rippleFill;
+    }
+
+    /**
+     * Returns the ripple fill.
+     *
+     * @return the ripple fill, or {@code null}
+     */
+    public final Paint getRippleFill() {
+        return rippleFill.get();
+    }
+
+    /**
+     * Sets the ripple fill.
+     *
+     * @param value the ripple fill, or {@code null} for no fill
+     */
+    public final void setRippleFill(Paint value) {
+        rippleFill.set(value);
+    }
+
+    // ==================== Ripple Opacity ====================
+
+    private final DoubleProperty rippleOpacity =
+            new StyleableDoubleProperty(RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_OPACITY;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleOpacity";
+                }
+            };
+
+    /**
+     * Peak opacity for newly created ripple circles. Values outside
+     * {@code [0, 1]} are stored as-is and clamped at render time. Initial
+     * value is {@link RXRipplePane#DEFAULT_RIPPLE_OPACITY}.
+     *
+     * @return the ripple opacity property
+     */
+    public final DoubleProperty rippleOpacityProperty() {
+        return rippleOpacity;
+    }
+
+    /**
+     * Returns the ripple opacity.
+     *
+     * @return the ripple opacity
+     */
+    public final double getRippleOpacity() {
+        return rippleOpacity.get();
+    }
+
+    /**
+     * Sets the ripple opacity.
+     *
+     * @param value the ripple opacity
+     */
+    public final void setRippleOpacity(double value) {
+        rippleOpacity.set(value);
+    }
+
+    // ==================== Ripple Enabled ====================
+
+    private final BooleanProperty rippleEnabled =
+            new StyleableBooleanProperty(RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+                @Override
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_ENABLED;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleEnabled";
+                }
+            };
+
+    /**
+     * Whether user interaction creates ripples. Turning this off immediately
+     * clears existing ripple nodes and running ripple animations.
+     *
+     * @return the ripple-enabled property
+     */
+    public final BooleanProperty rippleEnabledProperty() {
+        return rippleEnabled;
+    }
+
+    /**
+     * Returns whether ripple interaction is enabled.
+     *
+     * @return whether ripple interaction is enabled
+     */
+    public final boolean isRippleEnabled() {
+        return rippleEnabled.get();
+    }
+
+    /**
+     * Sets whether ripple interaction is enabled.
+     *
+     * @param value {@code true} to enable ripple interaction
+     */
+    public final void setRippleEnabled(boolean value) {
+        rippleEnabled.set(value);
+    }
+
+    // ==================== Ripple Centered ====================
+
+    private final BooleanProperty rippleCentered =
+            new StyleableBooleanProperty(RXRipplePane.DEFAULT_RIPPLE_CENTERED) {
+                @Override
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_CENTERED;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleCentered";
+                }
+            };
+
+    /**
+     * Whether pointer-triggered ripples start from the button center instead
+     * of the press location. Keyboard-triggered ripples always start from the
+     * center.
+     *
+     * @return the ripple-centered property
+     */
+    public final BooleanProperty rippleCenteredProperty() {
+        return rippleCentered;
+    }
+
+    /**
+     * Returns whether pointer-triggered ripples start from the center.
+     *
+     * @return whether pointer-triggered ripples start from the center
+     */
+    public final boolean isRippleCentered() {
+        return rippleCentered.get();
+    }
+
+    /**
+     * Sets whether pointer-triggered ripples start from the center.
+     *
+     * @param value {@code true} to start pointer-triggered ripples from center
+     */
+    public final void setRippleCentered(boolean value) {
+        rippleCentered.set(value);
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static class StyleableProperties {
+
+        private static final CssMetaData<RXButton, Paint> RIPPLE_FILL =
+                new CssMetaData<>("-rx-ripple-fill",
+                        PaintConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_FILL) {
+                    @Override
+                    public boolean isSettable(RXButton button) {
+                        return !button.rippleFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXButton button) {
+                        return (StyleableProperty<Paint>) button.rippleFillProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXButton, Number> RIPPLE_OPACITY =
+                new CssMetaData<>("-rx-ripple-opacity",
+                        SizeConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+                    @Override
+                    public boolean isSettable(RXButton button) {
+                        return !button.rippleOpacity.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXButton button) {
+                        return (StyleableProperty<Number>) button.rippleOpacityProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXButton, Boolean> RIPPLE_ENABLED =
+                new CssMetaData<>("-rx-ripple-enabled",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+                    @Override
+                    public boolean isSettable(RXButton button) {
+                        return !button.rippleEnabled.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXButton button) {
+                        return (StyleableProperty<Boolean>) button.rippleEnabledProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXButton, Boolean> RIPPLE_CENTERED =
+                new CssMetaData<>("-rx-ripple-centered",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_CENTERED) {
+                    @Override
+                    public boolean isSettable(RXButton button) {
+                        return !button.rippleCentered.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXButton button) {
+                        return (StyleableProperty<Boolean>) button.rippleCenteredProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(Button.getClassCssMetaData());
+            styleables.add(RIPPLE_FILL);
+            styleables.add(RIPPLE_OPACITY);
+            styleables.add(RIPPLE_ENABLED);
+            styleables.add(RIPPLE_CENTERED);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata list
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    /**
+     * Returns the CSS metadata associated with this control.
+     *
+     * @return the CSS metadata list
+     */
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+        return getClassCssMetaData();
+    }
+}

@@ -712,3 +712,16 @@
     -rx-ripple-enabled: true;
     -rx-ripple-centered: false;
 }
+
+/*******************************************************************************
+ *                                                                             *
+ * RXButton                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-button {
+    -rx-ripple-fill: black;
+    -rx-ripple-opacity: 0.12;
+    -rx-ripple-enabled: true;
+    -rx-ripple-centered: false;
+}

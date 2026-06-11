@@ -1,0 +1,21 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.showcase-button {
+    -fx-font-size: 15px;
+    -fx-padding: 10px 26px;
+}
+
+.showcase-button.pill {
+    -fx-background-radius: 999px, 999px, 998px, 997px;
+}
+
+.fired-label {
+    -fx-opacity: 0.75;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}
