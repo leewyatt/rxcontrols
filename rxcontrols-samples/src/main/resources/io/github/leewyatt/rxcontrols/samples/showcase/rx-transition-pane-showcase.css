@@ -1,0 +1,71 @@
+.transition-pane-preview {
+    -fx-padding: 22px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d9e0e8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 16, 0, 0, 5);
+}
+
+.transition-pane-preview .showcase-transition-pane {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d5dce5;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.transition-pane-preview .hint-label,
+.hint-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.state-card {
+    -fx-padding: 24px;
+    -fx-background-radius: 8px;
+}
+
+.state-card .step-number {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.state-card .step-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d2939;
+}
+
+.state-card .step-description {
+    -fx-text-fill: #475467;
+}
+
+.step-card-1 {
+    -fx-background-color: #e0f2fe;
+}
+
+.step-card-2 {
+    -fx-background-color: #dcfce7;
+}
+
+.step-card-3 {
+    -fx-background-color: #fef9c3;
+}
+
+.step-card-4 {
+    -fx-background-color: #fae8ff;
+}
+
+.loading-card {
+    -fx-background-color: #eef2f6;
+}
+
+.error-card {
+    -fx-background-color: #fee2e2;
+}
+
+.error-card .error-icon {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #b42318;
+}
