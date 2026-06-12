@@ -380,6 +380,39 @@ public class RXLineButtonTest {
     }
 
     /**
+     * Verifies switching the duration to {@code Duration.ZERO} mid-run snaps
+     * immediately to the trigger state instead of letting the run finish on
+     * the fallback duration (the zero sentinel disables the animation
+     * outright). Exercises the {@code DecorationProgress} shared with the
+     * fill controls.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void zeroDurationMidRunSnapsToTriggerState() throws Exception {
+        runOnFx(() -> {
+            RXLineButton button = withSkin(new RXLineButton("Line"));
+            button.setAnimationDuration(Duration.ZERO);
+            layout(button, 200.0, 60.0);
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+            assertTrue(isLineShowing(button));
+
+            // Start a real reverse run from full progress; without animation
+            // pulses in this test it stays at the starting frame while running.
+            button.setAnimationDuration(Duration.millis(200.0));
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_EXITED, -5.0, 10.0, false));
+            assertTrue(isLineShowing(button));
+
+            // Synthetic events never set hoverProperty, so the trigger state
+            // is inactive: the zero sentinel must snap the run off right away.
+            button.setAnimationDuration(Duration.ZERO);
+
+            assertFalse(isLineShowing(button));
+        });
+    }
+
+    /**
      * Verifies the CSS keyword converter resolves presets to canonical
      * instances and unknown keywords fall back leniently to the default
      * geometry.

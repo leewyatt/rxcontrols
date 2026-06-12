@@ -71,7 +71,7 @@ public final class DecorationProgress {
         this.trigger = trigger;
         this.duration = duration;
 
-        disposer.registerListener(duration, this::rebuildTimeline);
+        disposer.registerListener(duration, this::handleDurationChanged);
 
         // ==================== Triggers ====================
         disposer.registerEventHandler(host, MouseEvent.MOUSE_ENTERED, event -> {
@@ -144,6 +144,18 @@ public final class DecorationProgress {
     }
 
     // ==================== Progress Model ====================
+
+    private void handleDurationChanged() {
+        Duration value = duration.get();
+        if (value != null && value.equals(Duration.ZERO)) {
+            // The zero sentinel disables the animation outright: a run in
+            // flight must not keep playing on the fallback duration until
+            // the next trigger event.
+            snapTo(isTriggerActive());
+            return;
+        }
+        rebuildTimeline();
+    }
 
     private void animateTo(boolean active) {
         Duration value = duration.get();
