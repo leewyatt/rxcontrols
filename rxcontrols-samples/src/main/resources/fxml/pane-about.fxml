@@ -57,28 +57,28 @@
                      </font>
                   </Label>
                   <Label text="Gitee:" />
-                  <RXLineButton fx:id="giteeLink" onAction="#openGitee" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://gitee.com/leewyatt">
+                  <RXLineButton fx:id="giteeLink" onAction="#openGitee" prefHeight="30.0" prefWidth="207.0" lineGap="3.0" text="https://gitee.com/leewyatt">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></RXLineButton>
                   <Label text="Github:" />
-                  <RXLineButton fx:id="githubLink" onAction="#openGithub" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://github.com/leewyatt">
+                  <RXLineButton fx:id="githubLink" onAction="#openGithub" prefHeight="30.0" prefWidth="207.0" lineGap="3.0" text="https://github.com/leewyatt">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></RXLineButton>
                   <Label layoutX="10.0" layoutY="172.0" text="bilibili" />
-                  <RXLineButton fx:id="bilibiliLink" layoutX="10.0" layoutY="187.0" onAction="#openBilibili" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="https://space.bilibili.com/397562730">
+                  <RXLineButton fx:id="bilibiliLink" layoutX="10.0" layoutY="187.0" onAction="#openBilibili" prefHeight="30.0" prefWidth="207.0" lineGap="3.0" text="https://space.bilibili.com/397562730">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor>
                   </RXLineButton>
                   <Label text="QQ:" />
-                  <RXLineButton onAction="#openQQ" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="9670453">
+                  <RXLineButton onAction="#openQQ" prefHeight="30.0" prefWidth="207.0" lineGap="3.0" text="9670453">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></RXLineButton>
                   <Label layoutX="10.0" layoutY="80.0" text="JavaFX交流QQ群:" />
-                  <RXLineButton layoutX="10.0" layoutY="96.0" onAction="#addGroup" prefHeight="30.0" prefWidth="207.0" spacing="3.0" text="518914410">
+                  <RXLineButton layoutX="10.0" layoutY="96.0" onAction="#addGroup" prefHeight="30.0" prefWidth="207.0" lineGap="3.0" text="518914410">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor>

@@ -1,226 +1,105 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.animation.lineButton.LineAnimation;
 import io.github.leewyatt.rxcontrols.RXLineButton;
-import javafx.animation.Animation;
-import javafx.animation.Timeline;
-import javafx.beans.value.ChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import io.github.leewyatt.rxcontrols.internal.line.LineDecoration;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
-import javafx.scene.control.Label;
-import javafx.scene.control.SkinBase;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Pane;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.Node;
+import javafx.scene.text.Text;
 
 /**
+ * Skin for {@link RXLineButton}: the {@link RXButtonSkin} plus a
+ * {@link LineDecoration} layer between the button background and the ripple
+ * layer. See the decoration for the progress model, triggers and the
+ * {@code :line-showing} pseudo-class contract.
  *
- * 线条按钮皮肤
+ * <p>The line reference box is the union of the text and graphic bounds,
+ * recomputed every layout pass (content changes always trigger a layout);
+ * with no visible content it falls back to the padded content area.</p>
  */
-public class RXLineButtonSkin extends SkinBase<RXLineButton> {
-    private Line line= new Line();
-    private Label label;
-    private RXLineButton control;
-    private Pane pane;
-    private Timeline animEnter = new Timeline();
-    private Timeline animExit = new Timeline();
+public class RXLineButtonSkin extends RXButtonSkin {
 
-    public RXLineButtonSkin(RXLineButton control) {
-        super(control);
-        this.control = control;
-        pane = new Pane();
-        line.getStyleClass().add("line");
-        line.setStartX(0);
-        label = new Label();
-        pane.getChildren().add(line);
-        getChildren().addAll(label, pane);
-        //属性的绑定
-        label.ellipsisStringProperty().bind(control.ellipsisStringProperty());
-        label.textFillProperty().bind(control.textFillProperty());
-        label.fontProperty().bind(control.fontProperty());
-        label.graphicProperty().bind(control.graphicProperty());
-        label.contentDisplayProperty().bind(control.contentDisplayProperty());
-        label.graphicTextGapProperty().bind(control.graphicTextGapProperty());
-        label.alignmentProperty().bind(control.alignmentProperty());
-        label.mnemonicParsingProperty().bind(control.mnemonicParsingProperty());
-        label.textProperty().bind(control.textProperty());
-        label.textAlignmentProperty().bind(control.textAlignmentProperty());
-        label.textOverrunProperty().bind(control.textOverrunProperty());
-        label.wrapTextProperty().bind(control.wrapTextProperty());
-        label.underlineProperty().bind(control.underlineProperty());
-        label.lineSpacingProperty().bind(control.lineSpacingProperty());
-        //线条长度和文本长度绑定; 如果要改变线条长度, 那么用缩放scaleX
-        //line.endXProperty().bind(label.widthProperty());
-        //-------监听事件---
-        //label.heightProperty().addListener(changeListener);
-        //line.setOpacity(0.0);
-
-        clipRegion(pane);
-
-
-        control.getLineAnimation().init(this);
-
-        control.lineAnimationProperty().addListener(animationChangeListener);
-        control.offsetYProProperty().addListener(offsetYChangeListener);
-        control.spacingProperty().addListener(spacingChangeListener);
-        label.boundsInParentProperty().addListener(boundsChangeListener);
-
-        //-------添加鼠标事件---------
-        control.addEventFilter(MouseEvent.MOUSE_ENTERED, enterHandler);
-        control.addEventFilter(MouseEvent.MOUSE_EXITED, exitHandler);
-        control.addEventFilter(MouseEvent.MOUSE_CLICKED, clickHandler);
-    }
-    private  Rectangle rect = new Rectangle();
-    private void clipRegion(Pane pane){
-        rect.widthProperty().bind(pane.widthProperty());
-        rect.heightProperty().bind(pane.heightProperty());
-        pane.setClip(rect);
-    }
-    private ChangeListener<LineAnimation> animationChangeListener = (ob, ov, nv) -> {
-        //旧的销毁
-        ov.dispose();
-        //新的初始化
-        nv.init(this);
-    };
-
-    private  ChangeListener<Number> offsetYChangeListener = (ob, ov, nv) -> {
-        control.getLineAnimation().initEnterAnim();
-        control.getLineAnimation().initExitAnim();
-    };
-
-    private ChangeListener<Number> spacingChangeListener = (ob, ov, nv) -> {
-        Bounds bounds = label.getBoundsInParent();
-        double maxY = bounds.getMaxY() + nv.doubleValue();
-        line.setStartY(maxY);
-        line.setEndY(maxY);
-    };
-
-    private   ChangeListener<Bounds> boundsChangeListener = (ob, ov, nv) -> {
-        double minX = nv.getMinX();
-        double maxX = nv.getMaxX();
-        double maxY = nv.getMaxY() + control.getSpacing();
-        line.setStartY(maxY);
-        line.setEndY(maxY);
-        line.setStartX(minX);
-        line.setEndX(maxX);
-//            control.getLineAnimation().initEnterAnim();
-//            control.getLineAnimation().initExitAnim();
-    };
-
-    private EventHandler<MouseEvent> enterHandler = event -> playAnimEnter();
-    private EventHandler<MouseEvent> exitHandler = event -> playAnimExit();
-    private EventHandler<MouseEvent> clickHandler = event -> {
-        if (event.getButton() == MouseButton.PRIMARY) {
-            control.fireEvent(new ActionEvent());
-        }
-    };
+    private final LineDecoration line;
 
     /**
-     * 播放鼠标移入的动画
+     * Creates the skin and wires the line decoration layer.
+     *
+     * @param button the button this skin is attached to
      */
-    public void playAnimEnter() {
-        if (animExit.getStatus() == Animation.Status.RUNNING) {
-            animExit.stop();
+    public RXLineButtonSkin(RXLineButton button) {
+        super(button);
+        // The lines are the hover affordance; the ripple hover overlay would
+        // only dilute them, so it is suppressed (the press ripple stays).
+        setHoverOverlayEnabled(false);
+        line = new LineDecoration(button,
+                button.lineAnimationProperty(),
+                button.animationTriggerProperty(),
+                button.animationDurationProperty(),
+                button.lineThicknessProperty(),
+                button.lineGapProperty());
+        updateChildren();
+    }
+
+    @Override
+    protected void updateChildren() {
+        super.updateChildren();
+        // The first calls come from superclass constructors, before this
+        // skin's fields are initialized.
+        if (line != null) {
+            getChildren().add(0, line.getLayer());
         }
-        animEnter.play();
+    }
+
+    @Override
+    protected void layoutChildren(double x, double y, double w, double h) {
+        super.layoutChildren(x, y, w, h);
+        line.layout(getSkinnable().getWidth(), getSkinnable().getHeight(),
+                computeReference(x, y, w, h));
     }
 
     /**
-     * 播放鼠标移除的动画
+     * Stops the line animation, removes the line layer and unregisters all
+     * line listeners before the {@link RXButtonSkin} cleanup runs.
      */
-    public void playAnimExit() {
-        if (animEnter.getStatus() == Animation.Status.RUNNING) {
-            animEnter.stop();
-        }
-        animExit.play();
-    }
-
-
-    public Line getLine() {
-        return line;
-    }
-
-    @Override
-    protected double computeMinWidth(double height, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.minWidth(height);
-    }
-
-    @Override
-    protected double computeMinHeight(double width, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.minHeight(width);
-    }
-
-    @Override
-    protected double computePrefWidth(double height, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.prefWidth(height) + leftInset + rightInset;
-    }
-
-    @Override
-    protected double computePrefHeight(double width, double topInset, double rightInset, double bottomInset, double leftInset) {
-        return label.prefHeight(width) + topInset + bottomInset;
-    }
-
-    @Override
-    protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
-        super.layoutChildren(contentX, contentY, contentWidth, contentHeight);
-        layoutInArea(label, contentX, contentY, contentWidth, contentHeight, 0,
-                control.getAlignment().getHpos(), control.getAlignment().getVpos());
-        layoutInArea(pane, contentX, contentY, contentWidth, contentHeight, 0,
-                control.getAlignment().getHpos(), control.getAlignment().getVpos());
-    }
-
     @Override
     public void dispose() {
-        if (animEnter != null) {
-            animEnter.stop();
-            animEnter = null;
+        if (getSkinnable() == null) {
+            return;
         }
-        if (animExit != null) {
-            animExit.stop();
-            animExit = null;
+        SkinDisposer.disposeInOrder(this::disposeLine, super::dispose);
+    }
+
+    // ==================== Line Reference ====================
+
+    private Bounds computeReference(double x, double y, double w, double h) {
+        // Union of the content placed by LabeledSkinBase in this same pass:
+        // the labeled text node (style class "text"; the package-private field
+        // is inaccessible) and the graphic. The mnemonic underline and the
+        // decoration layers are not content.
+        Bounds union = null;
+        Node graphic = getSkinnable().getGraphic();
+        for (Node child : getChildren()) {
+            boolean isText = child instanceof Text && child.getStyleClass().contains("text");
+            if ((isText || child == graphic) && child.isVisible()) {
+                union = union(union, child.getBoundsInParent());
+            }
         }
-        rect.widthProperty().unbind();
-        rect.heightProperty().unbind();
-        label.ellipsisStringProperty().unbind();
-        label.textFillProperty().unbind();
-        label.fontProperty().unbind();
-        label.graphicProperty().unbind();
-        label.contentDisplayProperty().unbind();
-        label.graphicTextGapProperty().unbind();
-        label.alignmentProperty().unbind();
-        label.mnemonicParsingProperty().unbind();
-        label.textProperty().unbind();
-        label.textAlignmentProperty().unbind();
-        label.textOverrunProperty().unbind();
-        label.wrapTextProperty().unbind();
-        label.underlineProperty().unbind();
-        label.lineSpacingProperty().unbind();
-
-        control.lineAnimationProperty().removeListener(animationChangeListener);
-        control.offsetYProProperty().removeListener(offsetYChangeListener);
-        control.spacingProperty().removeListener(spacingChangeListener);
-        label.boundsInParentProperty().removeListener(boundsChangeListener);
-        control.removeEventFilter(MouseEvent.MOUSE_ENTERED, enterHandler);
-        control.removeEventFilter(MouseEvent.MOUSE_EXITED, exitHandler);
-        control.removeEventFilter(MouseEvent.MOUSE_CLICKED, clickHandler);
-        
-        getChildren().clear();
-        super.dispose();
+        return union != null ? union : new BoundingBox(x, y, w, h);
     }
 
-    public Timeline getAnimEnter() {
-        return animEnter;
+    private static Bounds union(Bounds a, Bounds b) {
+        if (a == null) {
+            return b;
+        }
+        double minX = Math.min(a.getMinX(), b.getMinX());
+        double minY = Math.min(a.getMinY(), b.getMinY());
+        double maxX = Math.max(a.getMaxX(), b.getMaxX());
+        double maxY = Math.max(a.getMaxY(), b.getMaxY());
+        return new BoundingBox(minX, minY, maxX - minX, maxY - minY);
     }
 
-
-    public Timeline getAnimExit() {
-        return animExit;
-    }
-
-    public Label getLabel() {
-        return label;
+    private void disposeLine() {
+        line.dispose();
+        getChildren().remove(line.getLayer());
     }
 }

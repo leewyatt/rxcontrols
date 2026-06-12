@@ -46,6 +46,36 @@
     -fx-background-color: derive(-rx-fill, -20%);
 }
 
+/*line button*/
+.rx-line-button {
+    -fx-background-color: transparent;
+    /* resting transparent border reserves the focus border width (modena
+       hyperlink pattern), so gaining focus never shifts the content */
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -rx-line-color: #616dff;
+    -rx-line-animation: underline-center-out;
+    -rx-line-thickness: 2px;
+    -rx-line-gap: 2px;
+    -rx-animation-trigger: hover;
+    -rx-animation-duration: 200ms;
+}
+
+.rx-line-button:focused {
+    -fx-background-color: transparent;
+    -fx-border-color: -fx-focus-color;
+    -fx-border-style: segments(0.166667em, 0.166667em);
+    -fx-border-width: 1px;
+}
+
+.rx-line-button > .line-layer > .line {
+    -fx-background-color: -rx-line-color;
+}
+
+.rx-line-button:line-showing {
+    -fx-text-fill: -rx-line-color;
+}
+
 /*highlight label 高亮文本组件*/
 .rx-highlight-text {
     -rx-highlight-color: #ffff00;

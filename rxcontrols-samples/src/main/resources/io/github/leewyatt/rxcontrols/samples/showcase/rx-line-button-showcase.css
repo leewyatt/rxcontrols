@@ -1,0 +1,29 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.showcase-button {
+    -fx-font-size: 15px;
+    -fx-padding: 12px 30px;
+}
+
+.rocket-icon {
+    -fx-background-color: -fx-text-base-color;
+    -fx-shape: 'M12 2c-2.5 2-4 5-4 8l-3 3 2 1-1 3 3-1 1 2 3-3c3 0 6-1.5 8-4-1-4-5-8-9-9z';
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+/* :line-showing restyles any sub-structure, including shape-based graphics. */
+.showcase-button:line-showing .rocket-icon {
+    -fx-background-color: -rx-line-color;
+}
+
+.fired-label {
+    -fx-opacity: 0.75;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}

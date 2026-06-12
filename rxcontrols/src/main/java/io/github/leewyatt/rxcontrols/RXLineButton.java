@@ -1,190 +1,339 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.animation.lineButton.LineAnimExtend;
-import io.github.leewyatt.rxcontrols.animation.lineButton.LineAnimRise;
-import io.github.leewyatt.rxcontrols.animation.lineButton.LineAnimation;
-import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
+import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXLineButtonSkin;
+import javafx.beans.NamedArg;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.css.*;
-import javafx.css.converter.EnumConverter;
-import javafx.geometry.Pos;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
-import javafx.scene.shape.Line;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * 线条按钮
+ * Button decorating its content with animated lines while hovered or
+ * pressed — underlines that extend or slide in, and line pairs that converge
+ * onto the text.
+ *
+ * <p>The lines are a pure decoration overlay: they take no part in size
+ * computation or content layout, follow the bounds of the text and graphic,
+ * and may extend beyond the button bounds (they are never clipped by the
+ * button). The line geometry is selected by
+ * {@link #lineAnimationProperty() lineAnimation} (built-in presets via the
+ * {@code -rx-line-animation} CSS keyword or the {@link LineAnimation}
+ * constants, custom variants by constructing your own instance) and the
+ * trigger state by {@link #animationTriggerProperty() animationTrigger}.
+ * Turning the trigger state off reverses the animation from its current
+ * progress, with duration proportional to the remaining distance. The ripple
+ * feedback inherited from {@link RXButton} stays available and composes with
+ * the lines.</p>
+ *
+ * <p>While any line is visible the {@code :line-showing} pseudo-class is
+ * active, letting stylesheets restyle that state — for example
+ * {@code .rx-line-button:line-showing { -fx-text-fill: -rx-line-color; }}.
+ * It activates as soon as the lines start showing and deactivates when the
+ * reverse run finishes.</p>
  */
-public class RXLineButton extends RXButtonBase {
-    RXLineButtonSkin skin ;
+public class RXLineButton extends RXAnimatedButton {
+
+    // ==================== Constants ====================
+
+    /**
+     * Default line animation.
+     */
+    public static final LineAnimation DEFAULT_LINE_ANIMATION = LineAnimation.UNDERLINE_CENTER_OUT;
+
+    /**
+     * Default line thickness in pixels.
+     */
+    public static final double DEFAULT_LINE_THICKNESS = 2.0;
+
+    /**
+     * Default gap between a resting line and the content bounds, in pixels.
+     */
+    public static final double DEFAULT_LINE_GAP = 2.0;
+
     private static final String DEFAULT_STYLE_CLASS = "rx-line-button";
-    private StyleableObjectProperty<LineType> lineType;
-    private ObjectProperty<LineAnimation> lineAnimation;
-    private SimpleDoubleProperty spacing;
-    private SimpleDoubleProperty offsetYPro;
 
+    // ==================== Constructors ====================
+
+    /**
+     * Creates a line button with an empty text caption.
+     */
     public RXLineButton() {
-        this(null);
+        initialize();
     }
 
-    public RXLineButton(String text) {
-        super(text==null?"RXLineButton":text);
-        init();
+    /**
+     * Creates a line button with the given text caption.
+     *
+     * @param text the text caption, or {@code null}
+     */
+    public RXLineButton(@NamedArg("text") String text) {
+        super(text);
+        initialize();
     }
 
-    public RXLineButton(String text, Node graphic) {
-        super(text==null?"RXLineButton":text, graphic);
-        init();
+    /**
+     * Creates a line button with the given text caption and graphic.
+     *
+     * @param text    the text caption, or {@code null}
+     * @param graphic the graphic node, or {@code null}
+     */
+    public RXLineButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+        super(text, graphic);
+        initialize();
     }
 
-    private void init(){
-        skin = new RXLineButtonSkin(this);
+    private void initialize() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setPrefSize(150, 60);
-        setAlignment(Pos.CENTER);
-        lineTypeProperty().addListener(lineTypeChangeListener);
     }
 
-    @Override
-    public String getUserAgentStylesheet() {
-        return RXResources.USER_AGENT_STYLESHEET;
-    }
-
-    private ChangeListener<LineType> lineTypeChangeListener = (ob,ov,nv)->{
-        switch (nv){
-            case RISE:
-                setLineAnimation(new LineAnimRise());
-                break;
-            case EXTEND:
-            default:
-                setLineAnimation(new LineAnimExtend());
-        }
-    };
+    /**
+     * Creates the default skin with the line decoration layer.
+     *
+     * @return the default skin
+     */
     @Override
     protected Skin<?> createDefaultSkin() {
-        return skin;
-    }
-    public double getOffsetYPro() {
-        return offsetYPro == null?15:offsetYPro.get();
+        return new RXLineButtonSkin(this);
     }
 
-    public SimpleDoubleProperty offsetYProProperty() {
-        if(offsetYPro==null){
-            offsetYPro=new SimpleDoubleProperty(15);
-        }
-        return offsetYPro;
-    }
+    // ==================== Line Animation ====================
 
-    public void setOffsetYPro(double offsetYPro) {
-        this.offsetYPro.set(offsetYPro);
-    }
+    private final ObjectProperty<LineAnimation> lineAnimation =
+            new StyleableObjectProperty<>(DEFAULT_LINE_ANIMATION) {
+                @Override
+                public CssMetaData<? extends Styleable, LineAnimation> getCssMetaData() {
+                    return StyleableProperties.LINE_ANIMATION;
+                }
 
-    public Line getLine(){
-        return skin.getLine();
-    }
+                @Override
+                public Object getBean() {
+                    return RXLineButton.this;
+                }
 
-    public LineAnimation getLineAnimation() {
-        return lineAnimation == null?new LineAnimExtend():lineAnimation.get();
-    }
+                @Override
+                public String getName() {
+                    return "lineAnimation";
+                }
+            };
 
-    public ObjectProperty<LineAnimation> lineAnimationProperty() {
-        if(lineAnimation == null){
-            lineAnimation = new SimpleObjectProperty<LineAnimation>(RXLineButton.this, "lineAnimation", new LineAnimExtend());
-        }
+    /**
+     * Geometry of the line animation: a {@link LineAnimation} preset
+     * constant, a parameterized instance such as
+     * {@code new LineAnimSlide(LineEdges.BOTTOM, 20.0)}, or a custom
+     * implementation. From CSS, {@code -rx-line-animation} selects presets by
+     * keyword. A {@code null} or unknown-keyword value falls back to
+     * {@link #DEFAULT_LINE_ANIMATION} at render time.
+     *
+     * @return the line animation property
+     */
+    public final ObjectProperty<LineAnimation> lineAnimationProperty() {
         return lineAnimation;
     }
 
-    public void setLineAnimation(LineAnimation lineAnimation) {
-        lineAnimationProperty().set(lineAnimation);
+    /**
+     * Returns the line animation.
+     *
+     * @return the line animation, or {@code null}
+     */
+    public final LineAnimation getLineAnimation() {
+        return lineAnimation.get();
     }
 
-    public LineType getLineType() {
-        return lineType==null?LineType.EXTEND:lineType.get();
+    /**
+     * Sets the line animation.
+     *
+     * @param value the line animation, or {@code null} for the default
+     */
+    public final void setLineAnimation(LineAnimation value) {
+        lineAnimation.set(value);
     }
 
-    public StyleableObjectProperty<LineType> lineTypeProperty() {
-        if (lineType==null){
-            lineType = new SimpleStyleableObjectProperty<LineType>(RXLineButton.StyleableProperties.LINE_TYPE, this, "lineType", LineType.EXTEND);
-        }
-        return lineType;
+    // ==================== Line Thickness ====================
+
+    private final DoubleProperty lineThickness =
+            new StyleableDoubleProperty(DEFAULT_LINE_THICKNESS) {
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.LINE_THICKNESS;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXLineButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "lineThickness";
+                }
+            };
+
+    /**
+     * Thickness of the line bars in pixels. Negative or non-finite values are
+     * clamped at render time; from CSS, {@code -rx-line-thickness}.
+     *
+     * @return the line thickness property
+     */
+    public final DoubleProperty lineThicknessProperty() {
+        return lineThickness;
     }
 
-    public void setLineType(LineType lineType) {
-        lineTypeProperty().set(lineType);
+    /**
+     * Returns the line thickness.
+     *
+     * @return the line thickness in pixels
+     */
+    public final double getLineThickness() {
+        return lineThickness.get();
     }
 
-    public double getSpacing() {
-        return spacing == null?0:spacing.get();
+    /**
+     * Sets the line thickness.
+     *
+     * @param value the line thickness in pixels
+     */
+    public final void setLineThickness(double value) {
+        lineThickness.set(value);
     }
 
-    public SimpleDoubleProperty spacingProperty() {
-        if (spacing == null) {
-            spacing = new SimpleDoubleProperty(0);
-        }
-        return spacing;
+    // ==================== Line Gap ====================
+
+    private final DoubleProperty lineGap =
+            new StyleableDoubleProperty(DEFAULT_LINE_GAP) {
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.LINE_GAP;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXLineButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "lineGap";
+                }
+            };
+
+    /**
+     * Gap between a resting line and the content bounds, in pixels. Negative
+     * or non-finite values are clamped at render time; from CSS,
+     * {@code -rx-line-gap}.
+     *
+     * @return the line gap property
+     */
+    public final DoubleProperty lineGapProperty() {
+        return lineGap;
     }
 
-    public void setSpacing(double spacing) {
-        spacingProperty().set(spacing);
+    /**
+     * Returns the line gap.
+     *
+     * @return the line gap in pixels
+     */
+    public final double getLineGap() {
+        return lineGap.get();
     }
-    //-------------------CSS Styles-----------------------
+
+    /**
+     * Sets the line gap.
+     *
+     * @param value the line gap in pixels
+     */
+    public final void setLineGap(double value) {
+        lineGap.set(value);
+    }
+
+    // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXLineButton, LineType> LINE_TYPE =
-                new CssMetaData<RXLineButton, LineType>("-rx-line-type", new EnumConverter<LineType>(LineType.class), LineType.EXTEND) {
-
+        private static final CssMetaData<RXLineButton, LineAnimation> LINE_ANIMATION =
+                new CssMetaData<>("-rx-line-animation",
+                        new KeywordConverter<>(LineAnimation::valueOf), DEFAULT_LINE_ANIMATION) {
                     @Override
-                    public boolean isSettable(RXLineButton control) {
-                        return control.lineType == null || !control.lineType.isBound();
+                    public boolean isSettable(RXLineButton button) {
+                        return !button.lineAnimation.isBound();
                     }
 
                     @Override
-                    public StyleableProperty<LineType> getStyleableProperty(RXLineButton control) {
-                        return control.lineTypeProperty();
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<LineAnimation> getStyleableProperty(RXLineButton button) {
+                        return (StyleableProperty<LineAnimation>) button.lineAnimationProperty();
                     }
                 };
 
-        // 创建一个CSS样式的表
+        private static final CssMetaData<RXLineButton, Number> LINE_THICKNESS =
+                new CssMetaData<>("-rx-line-thickness",
+                        SizeConverter.getInstance(), DEFAULT_LINE_THICKNESS) {
+                    @Override
+                    public boolean isSettable(RXLineButton button) {
+                        return !button.lineThickness.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXLineButton button) {
+                        return (StyleableProperty<Number>) button.lineThicknessProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXLineButton, Number> LINE_GAP =
+                new CssMetaData<>("-rx-line-gap",
+                        SizeConverter.getInstance(), DEFAULT_LINE_GAP) {
+                    @Override
+                    public boolean isSettable(RXLineButton button) {
+                        return !button.lineGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXLineButton button) {
+                        return (StyleableProperty<Number>) button.lineGapProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(RXButtonBase.getClassCssMetaData());
-            Collections.addAll(styleables, LINE_TYPE);
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(RXAnimatedButton.getClassCssMetaData());
+            styleables.add(LINE_ANIMATION);
+            styleables.add(LINE_THICKNESS);
+            styleables.add(LINE_GAP);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
 
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata list
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    /**
+     * Returns the CSS metadata associated with this control.
+     *
+     * @return the CSS metadata list
+     */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
     }
-
-    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
-        return RXLineButton.StyleableProperties.STYLEABLES;
-    }
-
-    /**
-     * 线条的显示方式
-     */
-
-    public enum LineType {
-        /**
-         * 线条从中心向两边延伸
-         */
-        EXTEND,
-        /**
-         * 线条上升
-         */
-        RISE
-    }
-
 }

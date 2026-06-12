@@ -41,7 +41,7 @@
       <Label layoutX="14.0" layoutY="337.0" prefHeight="40.0" prefWidth="709.0" text="FillButton: 填充色按钮; fillAnimation / -rx-fill-animation 选择填充效果, animationTrigger 选择 hover 或 pressed 触发" />
       <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="178.0" prefHeight="60.0" prefWidth="728.0" spacing="24.0">
          <children>
-            <RXLineButton prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line Extend">
+            <RXLineButton lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line Extend">
                <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -49,7 +49,7 @@
                      </image>
                   </ImageView>
                </graphic></RXLineButton>
-            <RXLineButton lineType="RISE" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line    Rise">
+            <RXLineButton lineAnimation="underline-slide-up" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line    Rise">
                <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -57,7 +57,7 @@
                      </image>
                   </ImageView>
                </graphic></RXLineButton>
-            <RXLineButton lineType="RISE" offsetYPro="0.0" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line   Fade">
+            <RXLineButton lineAnimation="underline-fade" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line   Fade">
                <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -65,7 +65,7 @@
                      </image>
                   </ImageView>
                </graphic></RXLineButton>
-            <RXLineButton lineType="RISE" offsetYPro="-15.0" prefHeight="50.0" prefWidth="160.0" spacing="5.0" text="Line   Down">
+            <RXLineButton lineAnimation="underline-slide-down" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line   Down">
                <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>

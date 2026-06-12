@@ -467,11 +467,15 @@ text-flow  — TextFlow<br/>
     nothing.</p>
 
 <h3 id="rxLineButton">RXLineButton</h3>
-<p class="fxClass">Style class: rx-line-button</p>
-<p>The control has all the properties of RXButtonBase;</p>
+<p class="fxClass">Style class: rx-line-button (also: button, rx-button)</p>
+<p>The RXLineButton control has all the properties of RXButton (including the
+ripple properties). The lines are a pure decoration overlay: they take no part
+in size computation or content layout, follow the text/graphic bounds, and may
+extend beyond the button bounds (never clipped by the button).</p>
 <h4>Substructure</h4>
-line  — Line<br/>
-label — Label<br/><br/>
+line-layer — Pane<br/>
+&emsp;&emsp;line — Region (one per visible line bar)<br/>
+ripple-layer — Region<br/><br/>
 <table>
     <thead>
     <tr>
@@ -482,12 +486,46 @@ label — Label<br/><br/>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-line-type</td>
-        <td> EXTEND,RISE</td>
-        <td>EXTEND</td>
+        <td>-rx-line-color</td>
+        <td>Paint (looked-up color)</td>
+        <td>#616dff</td>
+    </tr>
+    <tr>
+        <td>-rx-line-animation</td>
+        <td>underline-left-to-right, underline-right-to-left,<br/>
+            underline-center-out, underline-edges-in,<br/>
+            underline-slide-up, underline-slide-down,<br/>
+            underline-fade,<br/>
+            top-bottom-center-out, top-bottom-converge,<br/>
+            left-right-center-out, left-right-converge<br/>
+        </td>
+        <td>underline-center-out</td>
+    </tr>
+    <tr>
+        <td>-rx-line-thickness</td>
+        <td>size</td>
+        <td>2px</td>
+    </tr>
+    <tr>
+        <td>-rx-line-gap</td>
+        <td>size</td>
+        <td>2px</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-trigger</td>
+        <td>HOVER,PRESSED</td>
+        <td>HOVER</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration</td>
+        <td>200ms</td>
     </tr>
     </tbody>
 </table>
+<p>Pseudo class: <code>:line-showing</code> — active while any line is visible
+(from the start of the enter run until the reverse run finishes), e.g.
+<code>.rx-line-button:line-showing { -fx-text-fill: -rx-line-color; }</code></p>
 
 <h3 id="rxLrcView">RXLrcView</h3>
 <p class="fxClass">Style class: rx-lrc-view</p>
