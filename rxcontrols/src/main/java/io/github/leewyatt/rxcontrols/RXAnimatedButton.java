@@ -18,14 +18,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Base class for buttons carrying a state-driven decoration animation (fill
- * sweep, line effects): declares the shared trigger and duration properties
- * consumed by the decoration's reversible progress model.
+ * Base class for buttons carrying a state-driven animation (fill sweep, line
+ * effects, content transitions): declares the shared trigger and duration
+ * properties consumed by the animation machinery.
  *
- * <p>The decoration plays forward while the trigger state is active and
- * reverses from the current progress when it turns inactive, with duration
- * proportional to the remaining distance. Subclasses contribute the actual
- * decoration and its geometry properties.</p>
+ * <p>Decoration-style subclasses drive a reversible progress model: the
+ * decoration plays forward while the trigger state is active and reverses
+ * from the current progress when it turns inactive. Transition-style
+ * subclasses play a one-shot animation towards the face matching the trigger
+ * state. Subclasses contribute the actual visuals and their properties.</p>
  */
 public abstract class RXAnimatedButton extends RXButton {
 

@@ -1,13 +1,11 @@
-/*translation button*/
-.rx-translation-button {
-    -fx-background-color: #616dfe;
-    -fx-text-fill: white;
-    -fx-font-size: 20;
-    -fx-alignment: center;
-}
-
-.rx-translation-button:pressed {
-    -fx-background-color: derive(#616dfe, -20%);
+/*******************************************************************************
+ *                                                                             *
+ * RXTransitionButton                                                          *
+ *                                                                             *
+ ******************************************************************************/
+.rx-transition-button {
+    -rx-animation-trigger: hover;
+    -rx-animation-duration: 200ms;
 }
 
 /*fill button*/

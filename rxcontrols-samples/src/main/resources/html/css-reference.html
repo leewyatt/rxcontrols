@@ -83,7 +83,6 @@
 <ul>
     <li><a href="#rxAudioSpectrum">RXAudioSpectrum</a></li>
     <li><a href="#rxAvatar">RXAvatar</a></li>
-    <li><a href="#rxButtonBase">RXButtonBase</a></li>
     <li><a href="#rxCarousel">RXCarousel</a></li>
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
@@ -102,7 +101,9 @@
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
-    <li><a href="#rxTranslationButton">RXTranslationButton</a></li>
+    <li><a href="#rxTransitionButton">RXTransitionButton</a></li>
+    <li><a href="#rxTransitionLabel">RXTransitionLabel</a></li>
+    <li><a href="#rxTransitionPane">RXTransitionPane</a></li>
 </ul>
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
@@ -213,26 +214,6 @@
         <td>-rx-arc-height</td>
         <td>size</td>
         <td>10</td>
-    </tr>
-    </tbody>
-</table>
-
-<h3 id="rxButtonBase">RXButtonBase</h3>
-<p>The abstract control has all the properties of Labeled;</p>
-
-<table>
-    <thead>
-    <tr>
-        <th>Css Property</th>
-        <th>Values</th>
-        <th>Default</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td>-rx-animation-time</td>
-        <td>Duration</td>
-        <td>130ms</td>
     </tr>
     </tbody>
 </table>
@@ -973,26 +954,38 @@ pane.</p>
 </table>
 <br/>
 
-<h3 id="rxTranslationButton">RXTranslationButton</h3>
-<p>Style class: rx-translation-button</p>
-<p>The control has all the properties of RXButtonBase;</p>
+<h3 id="rxTransitionButton">RXTransitionButton</h3>
+<p class="fxClass">Style class: rx-transition-button</p>
+<p>A button with two content faces: the normal face mirrors the button's own
+text and graphic in an internal label
+(<code>.rx-transition-button .label</code>), the alternate face hosts the
+<code>alternateContent</code> node. The face swap plays a
+<code>PageAnimation</code> (Java-only); trigger and duration are settable
+from CSS. Replaces the removed RXTranslationButton (the
+<code>-rx-translation-dir</code> keyword is superseded by the animation
+presets and the transition direction).</p>
 <h4>Substructure</h4>
-translation-pane — StackPane<br/>
-&emsp;&emsp;non-hover-label — Label<br/>
-&emsp;&emsp;hover-label  — Label<br/><br/>
+.content-pane — StackPane <br>
+&emsp;&emsp;.page — StackPane (two fixed faces)<br>
+&emsp;&emsp;&emsp;&emsp;.label — Label (front face) / (alternate content)<br>
 <table>
     <thead>
     <tr>
-        <th>Css Property</th>
+        <th>CSS Property</th>
         <th>Values</th>
         <th>Default</th>
     </tr>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-translation-dir</td>
-        <td> LEFT_TO_RIGHT,RIGHT_TO_LEFT,<br/>BOTTOM_TO_TOP,TOP_TO_BOTTOM</td>
-        <td>BOTTOM_TO_TOP</td>
+        <td>-rx-animation-trigger</td>
+        <td> hover | pressed | none</td>
+        <td>hover</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td> duration</td>
+        <td>200ms</td>
     </tr>
     </tbody>
 </table>

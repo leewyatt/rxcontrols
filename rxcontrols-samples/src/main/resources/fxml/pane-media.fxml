@@ -4,7 +4,7 @@
 <?import io.github.leewyatt.rxcontrols.RXLrcView?>
 <?import io.github.leewyatt.rxcontrols.RXSeekBar?>
 <?import io.github.leewyatt.rxcontrols.RXToggleButton?>
-<?import io.github.leewyatt.rxcontrols.RXTranslationButton?>
+<?import io.github.leewyatt.rxcontrols.RXTransitionButton?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ToggleGroup?>
@@ -16,15 +16,15 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="511.0" prefWidth="761.0" style="-fx-background-color: white;" stylesheets="@../css/pane-media.css" xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.leewyatt.rxcontrols.samples.support.controller.PaneMediaController">
    <children>
-      <RXTranslationButton id="open-btn" layoutX="23.0" layoutY="17.0" onAction="#openFileAction" prefHeight="36.0" prefWidth="186.0" text="Open Mp3 File">
-         <graphic>
+      <RXTransitionButton id="open-btn" layoutX="23.0" layoutY="17.0" onAction="#openFileAction" prefHeight="36.0" prefWidth="186.0" text="Open Mp3 File">
+         <alternateContent>
             <ImageView fitHeight="25.0" fitWidth="45.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../image/openfile.png" />
                </image>
             </ImageView>
-         </graphic>
-      </RXTranslationButton>
+         </alternateContent>
+      </RXTransitionButton>
       <RXLrcView fx:id="lrcPane" layoutX="23.0" layoutY="61.0" prefHeight="334.0" prefWidth="700.0" />
       <RXAudioSpectrum fx:id="spectrum" layoutX="23.0" layoutY="394.0" prefHeight="70.0" prefWidth="700.0" styleClass="spectrum" />
       <RXSeekBar fx:id="progressBar" layoutX="23.0" layoutY="466.0" prefHeight="12.0" prefWidth="700.0" />

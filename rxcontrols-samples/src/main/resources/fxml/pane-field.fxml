@@ -2,7 +2,7 @@
 
 <?import io.github.leewyatt.rxcontrols.RXPasswordField?>
 <?import io.github.leewyatt.rxcontrols.RXTextField?>
-<?import io.github.leewyatt.rxcontrols.RXTranslationButton?>
+<?import io.github.leewyatt.rxcontrols.RXTransitionButton?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.effect.DropShadow?>
@@ -21,30 +21,30 @@
       <RXTextField fx:id="copyTextField" layoutX="284.0" layoutY="289.0" prefWidth="190.0" text="基础文本字段" />
       <RXTextField fx:id="fileTextField" layoutX="523.0" layoutY="289.0" prefWidth="190.0" text="右侧插槽可组合按钮" />
       <RXTextField layoutX="40.0" layoutY="289.0" prefWidth="190.0" text="无侧边节点" />
-      <RXTranslationButton layoutX="400.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-radius: 15;" text="Login" translationDir="RIGHT_TO_LEFT">
-         <graphic>
+      <RXTransitionButton layoutX="400.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-radius: 15;" text="Login">
+         <alternateContent>
             <ImageView fitHeight="26.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../image/login.png" />
                </image>
             </ImageView>
-         </graphic>
+         </alternateContent>
          <effect>
             <DropShadow height="10.0" radius="4.5" width="10.0" />
          </effect>
-      </RXTranslationButton>
-      <RXTranslationButton layoutX="266.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-color: #33dd72; -fx-background-radius: 15;" text="Sign in" translationDir="RIGHT_TO_LEFT">
-         <graphic>
+      </RXTransitionButton>
+      <RXTransitionButton layoutX="266.0" layoutY="200.0" prefHeight="40.0" prefWidth="115.0" style="-fx-background-color: #33dd72; -fx-background-radius: 15;" text="Sign in">
+         <alternateContent>
             <ImageView fitHeight="26.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../image/signin.png" />
                </image>
             </ImageView>
-         </graphic>
+         </alternateContent>
          <effect>
             <DropShadow height="10.0" radius="4.5" width="10.0" />
          </effect>
-      </RXTranslationButton>
+      </RXTransitionButton>
       <RXPasswordField echoChar="\%" layoutX="40.0" layoutY="382.0" prefWidth="190.0" text="abcde" />
       <Label layoutX="44.0" layoutY="252.0" text="文本字段插槽" />
       <Label layoutX="40.0" layoutY="343.0" text="密码字符的替换" />

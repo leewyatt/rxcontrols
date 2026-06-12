@@ -1,0 +1,38 @@
+.transition-button-preview {
+    -fx-padding: 22px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d9e0e8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 16, 0, 0, 5);
+}
+
+.transition-button-preview .hint-label,
+.hint-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.transition-button-preview .showcase-email-button {
+    -fx-background-color: #616dfe;
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+}
+
+.transition-button-preview .showcase-email-button .label {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+}
+
+.transition-button-preview .showcase-download-button {
+    -fx-background-color: #0f766e;
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+}
+
+.transition-button-preview .showcase-download-button .label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+}

@@ -1,4 +1,4 @@
-.rx-translation-button{
+.rx-transition-button .label{
     -fx-text-fill: white;
     -fx-font-size: 22;
 }
@@ -28,9 +28,5 @@
 }
 .btnAddress{
     -fx-background-color:red;
-    -fx-background-radius: 5;
-}
-.btnAddress .hover-label{
-    -fx-background-color: #ab99ff;
     -fx-background-radius: 5;
 }
