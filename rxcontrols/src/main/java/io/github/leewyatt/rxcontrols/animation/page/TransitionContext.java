@@ -109,7 +109,7 @@ public class TransitionContext {
      * @param direction         the transition direction
      * @param duration          the animation duration
      * @param contentPane       the pane holding page nodes
-     * @param effectPane        the pane for animation effects (snapshots, clips, etc.)
+     * @param effectPane        the pane for animation effects (snapshots, clips, etc.), may be {@code null}
      * @param pageProvider      provider for fetching pages by index
      * @param lifecycleCallback callback for firing lifecycle events
      */
@@ -207,7 +207,7 @@ public class TransitionContext {
     /**
      * Returns the pane for animation effects (e.g., snapshot images, clips).
      *
-     * @return the effect pane
+     * @return the effect pane, or {@code null} if the host provides none
      */
     public Pane getEffectPane() {
         return effectPane;
