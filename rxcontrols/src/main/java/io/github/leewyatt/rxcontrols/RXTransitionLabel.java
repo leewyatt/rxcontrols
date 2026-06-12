@@ -41,6 +41,11 @@ import java.util.List;
  *
  * <p>Text styling (font, fill) is applied through CSS on the internal labels,
  * e.g. {@code .rx-transition-label .label}.</p>
+ *
+ * <p>The label sizes to its current text, so texts of differing lengths
+ * resize it at the start of the transition. Set a fixed preferred size for a
+ * stable layout; the {@link #alignmentProperty() alignment} then positions
+ * shorter texts within the extra space.</p>
  */
 public class RXTransitionLabel extends Control {
 

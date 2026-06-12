@@ -42,6 +42,11 @@ import java.util.List;
  * {@link #transitionTo(Node, TransitionDirection)} sets both in one call.
  * Multi-page display animations and animations requiring more than two pages
  * fall back to a direct cut.</p>
+ *
+ * <p>The pane sizes to its current content, so contents of differing sizes
+ * resize it at the start of the transition (a shrinking change clips the
+ * outgoing content while it leaves). Set a fixed preferred size for a stable
+ * layout across transitions.</p>
  */
 @DefaultProperty("content")
 public class RXTransitionPane extends Control {
