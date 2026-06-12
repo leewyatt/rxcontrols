@@ -27,9 +27,9 @@ import java.util.Map;
 /**
  * Showcase application for {@link RXFillButton}.
  *
- * <p>Exercises the six fill modes, the hover/pressed trigger, the reversible
- * progress animation, the mirrored caption recoloring, bounded rounded
- * clipping and the coexistence with the inherited ripple.</p>
+ * <p>Exercises the built-in fill presets, the hover/pressed trigger, the
+ * reversible progress animation, {@code :filling} pseudo-class recoloring,
+ * bounded rounded clipping and the coexistence with the inherited ripple.</p>
  */
 public class RXFillButtonShowcase extends RXShowcaseApplication {
 
