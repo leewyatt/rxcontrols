@@ -27,6 +27,8 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     private final StackPane contentPane = new StackPane();
     private final Rectangle clip = new Rectangle();
 
+    // Two interchangeable page buffers with no fixed meaning; the roles
+    // rotate between them and live in the currentPage/sparePage fields.
     private final StackPane pageA = createPage();
     private final StackPane pageB = createPage();
 

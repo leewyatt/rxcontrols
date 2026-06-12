@@ -27,6 +27,8 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     private final StackPane contentPane = new StackPane();
     private final Rectangle clip = new Rectangle();
 
+    // Two interchangeable page buffers with no fixed meaning; the roles
+    // rotate between them and live in the currentPage/sparePage fields.
     private final Label labelA = new Label();
     private final Label labelB = new Label();
     private final StackPane pageA = createPage(labelA);

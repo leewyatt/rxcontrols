@@ -913,6 +913,66 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
 <p class="fxClass">Style class: rx-toggle-button</p>
 <p>The RXAvatar control has all the properties of ToggleButton;</p>
 
+<h3 id="rxTransitionPane">RXTransitionPane</h3>
+<p class="fxClass">Style class: rx-transition-pane</p>
+<p>A single-content container that plays a <code>PageAnimation</code> when its
+content changes. The animation itself is Java-only; the transition duration is
+settable from CSS. User content is hosted inside reusable <code>.page</code>
+wrappers, so animation side effects never touch user nodes.</p>
+<h4>Substructure</h4>
+.content-pane — StackPane <br>
+&emsp;&emsp;.page — StackPane (two reused wrappers)<br>
+&emsp;&emsp;&emsp;&emsp;(user content)<br>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td> duration</td>
+        <td>500ms</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+
+<h3 id="rxTransitionLabel">RXTransitionLabel</h3>
+<p class="fxClass">Style class: rx-transition-label</p>
+<p>The text counterpart of RXTransitionPane: changing the text plays a
+<code>PageAnimation</code> transition. Text styling goes through the inner
+Label's built-in <code>-fx-*</code> properties (e.g.
+<code>-fx-text-fill</code>, <code>-fx-font-size</code>) via
+<code>.rx-transition-label .label</code>. Unlike RXLrcLineView, text alignment
+is controlled by the control's <code>alignment</code> property (Java), which
+takes precedence over <code>-fx-alignment</code> on the <code>.page</code>
+pane.</p>
+<h4>Substructure</h4>
+.content-pane — StackPane <br>
+&emsp;&emsp;.page — StackPane (two reused pages)<br>
+&emsp;&emsp;&emsp;&emsp;.label — Label<br>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td> duration</td>
+        <td>500ms</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+
 <h3 id="rxTranslationButton">RXTranslationButton</h3>
 <p>Style class: rx-translation-button</p>
 <p>The control has all the properties of RXButtonBase;</p>
