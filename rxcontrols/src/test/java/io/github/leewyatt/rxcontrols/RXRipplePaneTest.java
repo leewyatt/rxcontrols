@@ -351,6 +351,31 @@ public class RXRipplePaneTest {
     }
 
     /**
+     * Verifies the hover overlay is restored after a zero-size layout: the
+     * zero-size pass clears it, and the next valid layout re-syncs it from the
+     * still-hovered state instead of leaving it off.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverOverlayRestoredAfterZeroSizeLayout() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            layout(pane, 0.0, 0.0);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay after zero-size");
+
+            layout(pane, 100.0, 50.0);
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+        });
+    }
+
+    /**
      * Verifies negative ripple insets expand the hover overlay outward to the
      * clip's bleed bounds, so the inset clip can round it instead of leaving a
      * square overlay at the original size.

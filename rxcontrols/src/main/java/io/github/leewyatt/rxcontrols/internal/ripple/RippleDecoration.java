@@ -192,6 +192,10 @@ public final class RippleDecoration {
         CornerRadii radius = rippleCornerRadius == null ? null : rippleCornerRadius.getValue();
         layer.resizeRelocate(0.0, 0.0, width, height);
         layer.updateClipFor(host, width, height, insets, radius);
+        // Re-sync the overlay from current state: a prior zero-size layout tears
+        // it down via clear(), and hovering does not re-fire MOUSE_ENTERED, so
+        // it must be restored here rather than left off.
+        updateOverlay();
     }
 
     /**
