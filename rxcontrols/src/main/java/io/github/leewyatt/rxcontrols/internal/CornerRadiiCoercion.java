@@ -46,7 +46,10 @@ public final class CornerRadiiCoercion {
 
     /**
      * Maps {@link CornerRadii} back to the {@link Insets} CSS facade using the
-     * horizontal radii, for the engine's style bookkeeping.
+     * horizontal radii, for the engine's style bookkeeping. Asymmetric vertical
+     * radii and the as-percent flag are not represented; this is lossy only for
+     * that bookkeeping (at worst one redundant style apply) — the clip always
+     * uses the real {@code CornerRadii}, and CSS input is always absolute.
      *
      * @param value the corner radii, may be {@code null}
      * @return the insets facade, or {@code null}

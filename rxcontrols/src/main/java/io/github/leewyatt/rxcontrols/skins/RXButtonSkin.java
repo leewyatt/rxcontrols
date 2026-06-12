@@ -75,6 +75,17 @@ public class RXButtonSkin extends ButtonSkin {
         SkinDisposer.disposeInOrder(this::disposeRipple, disposer::dispose, super::dispose);
     }
 
+    /**
+     * Enables or disables the hover state overlay. Subclasses whose own
+     * decoration already covers the hover state (such as a fill sweep) turn it
+     * off so they do not tint that decoration.
+     *
+     * @param enabled whether the hover overlay may show
+     */
+    protected final void setHoverOverlayEnabled(boolean enabled) {
+        ripple.setHoverOverlayEnabled(enabled);
+    }
+
     // ==================== Ripple Trigger ====================
 
     private void recordPointerPress(MouseEvent event) {

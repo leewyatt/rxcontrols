@@ -58,6 +58,14 @@ import java.util.List;
  * that ripple. Replacing the {@code shape} instance refreshes the ripple clip;
  * mutating the geometry of an installed shape instance only updates the pane
  * itself.</p>
+ *
+ * <p>Beyond the press ripple, a low-opacity hover state overlay tints the pane
+ * while the pointer is inside, using {@link #rippleFillProperty() rippleFill}
+ * and gated by {@link #rippleEnabledProperty() rippleEnabled}.
+ * {@link #rippleInsetsProperty() rippleInsets} insets (or, when negative,
+ * bleeds) the ripple region, and {@link #rippleCornerRadiusProperty()
+ * rippleCornerRadius} overrides the mirrored clip corners with explicit
+ * radii.</p>
  */
 @DefaultProperty("content")
 public class RXRipplePane extends Region {

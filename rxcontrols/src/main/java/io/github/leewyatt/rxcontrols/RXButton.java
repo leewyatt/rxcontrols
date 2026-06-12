@@ -41,8 +41,11 @@ import java.util.List;
  * not arm the button and therefore show no ripple.</p>
  *
  * <p>The ripple visual contract (full-bounds layer, shape or background
- * geometry clip) matches {@link RXRipplePane}; the four ripple properties
- * share names, CSS properties and defaults with that container.</p>
+ * geometry clip) matches {@link RXRipplePane}; the ripple properties share
+ * names, CSS properties and defaults with that container. A low-opacity hover
+ * state overlay tints the button while the pointer is inside, and
+ * {@link #rippleCornerRadiusProperty() rippleCornerRadius} overrides the
+ * mirrored clip corners with explicit radii.</p>
  */
 public class RXButton extends Button {
 

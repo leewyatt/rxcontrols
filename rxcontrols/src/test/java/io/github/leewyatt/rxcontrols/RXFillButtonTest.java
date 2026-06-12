@@ -468,6 +468,50 @@ public class RXFillButtonTest {
         });
     }
 
+    /**
+     * Verifies the fill button suppresses the inherited ripple hover overlay
+     * (the fill sweep is its own hover affordance), so hovering never tints the
+     * fill.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void fillButtonSuppressesHoverOverlay() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            layout(button, 100.0, 40.0);
+            RippleLayer rippleLayer = (RippleLayer) button.getChildrenUnmodifiable().get(1);
+
+            button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+
+            assertEquals(0.0, rippleLayer.getOverlayTargetOpacity(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies the fill and ripple corner-radius overrides clip their own
+     * layers independently on the same button.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void fillAndRippleCornerRadiusClipOwnLayers() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            button.setFillCornerRadius(new CornerRadii(6.0));
+            button.setRippleCornerRadius(new CornerRadii(14.0));
+            layout(button, 100.0, 40.0);
+
+            Region fillClip = (Region) fillLayer(button).getClip();
+            RippleLayer rippleLayer = (RippleLayer) button.getChildrenUnmodifiable().get(1);
+            Region rippleClip = (Region) rippleLayer.getClip();
+            assertEquals(new CornerRadii(6.0),
+                    fillClip.getBackground().getFills().get(0).getRadii());
+            assertEquals(new CornerRadii(14.0),
+                    rippleClip.getBackground().getFills().get(0).getRadii());
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXFillButton withSkin(RXFillButton button) {

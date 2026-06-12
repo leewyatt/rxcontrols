@@ -42,6 +42,7 @@ public final class RippleDecoration {
     private final SkinDisposer disposer = new SkinDisposer();
 
     private boolean pointerInside;
+    private boolean hoverOverlayEnabled = true;
 
     /**
      * Creates the decoration and wires the hover overlay, shared lifecycle and
@@ -148,6 +149,21 @@ public final class RippleDecoration {
     }
 
     /**
+     * Enables or disables the hover state overlay (the press ripple is
+     * unaffected). Hosts whose own decoration already covers the hover state,
+     * such as a fill sweep, turn it off to avoid tinting that decoration.
+     *
+     * @param enabled whether the hover overlay may show
+     */
+    public void setHoverOverlayEnabled(boolean enabled) {
+        if (hoverOverlayEnabled == enabled) {
+            return;
+        }
+        hoverOverlayEnabled = enabled;
+        updateOverlay();
+    }
+
+    /**
      * Stops all ripple animations, removes the ripple nodes and clears the
      * bounded clip (the hover overlay is torn down with the clip).
      */
@@ -188,7 +204,8 @@ public final class RippleDecoration {
     }
 
     private void updateOverlay() {
-        layer.setOverlayState(pointerInside && isRippleEnabled() && !host.isDisabled());
+        layer.setOverlayState(hoverOverlayEnabled && pointerInside
+                && isRippleEnabled() && !host.isDisabled());
     }
 
     private boolean isRippleEnabled() {

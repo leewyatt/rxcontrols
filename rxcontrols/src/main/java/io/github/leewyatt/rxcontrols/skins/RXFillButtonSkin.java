@@ -20,6 +20,9 @@ public class RXFillButtonSkin extends RXButtonSkin {
      */
     public RXFillButtonSkin(RXFillButton button) {
         super(button);
+        // The fill sweep is the hover affordance; the ripple hover overlay would
+        // only tint the fill, so it is suppressed (the press ripple stays).
+        setHoverOverlayEnabled(false);
         fill = new FillDecoration(button,
                 button.fillAnimationProperty(),
                 button.animationTriggerProperty(),
