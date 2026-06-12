@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimWipe;
+import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;

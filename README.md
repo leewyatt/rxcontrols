@@ -10,7 +10,7 @@ JavaFX custom controls library: password-visible field, carousel (`RXCarousel`),
 
 `RXCarousel` 是从 [CarouselFX](https://github.com/dlsc-software-consulting-gmbh/CarouselFX) 合并而来的页面轮播控件,支持:
 
-- 80+ 切换动画(`carousel.animation` 包)
+- 80+ 切换动画(`animation.page` 包)
 - 基于 `pageFactory + pageCount` 的懒加载页面模型
 - 可替换的 `CarouselNavigator`(默认实现 `DefaultNavigator`)
 - `PageLifecycleEvent` 页面生命周期事件、`cacheDistance` 缓存控制、`autoPlayProgress` 进度回读

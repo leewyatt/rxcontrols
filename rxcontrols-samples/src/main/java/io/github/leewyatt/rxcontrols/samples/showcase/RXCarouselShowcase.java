@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
-import io.github.leewyatt.rxcontrols.carousel.animation.*;
+import io.github.leewyatt.rxcontrols.animation.page.*;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -140,14 +140,14 @@ public class RXCarouselShowcase extends Application {
 
         // Categorized animation accordion
         Accordion accordion = new Accordion();
-        Map<String, Map<String, Supplier<CarouselAnimation>>> categories = createCategorizedAnimations();
+        Map<String, Map<String, Supplier<PageAnimation>>> categories = createCategorizedAnimations();
 
         boolean first = true;
-        for (Map.Entry<String, Map<String, Supplier<CarouselAnimation>>> category : categories.entrySet()) {
+        for (Map.Entry<String, Map<String, Supplier<PageAnimation>>> category : categories.entrySet()) {
             FlowPane flow = new FlowPane(4, 4);
             flow.setPadding(new Insets(4));
 
-            for (Map.Entry<String, Supplier<CarouselAnimation>> entry : category.getValue().entrySet()) {
+            for (Map.Entry<String, Supplier<PageAnimation>> entry : category.getValue().entrySet()) {
                 Button btn = new Button(entry.getKey());
                 btn.getStyleClass().add("anim-button");
                 btn.setOnAction(e -> carousel.setAnimation(entry.getValue().get()));
@@ -352,11 +352,11 @@ public class RXCarouselShowcase extends Application {
 
     // ==================== Categorized Animations ====================
 
-    private static Map<String, Map<String, Supplier<CarouselAnimation>>> createCategorizedAnimations() {
-        Map<String, Map<String, Supplier<CarouselAnimation>>> categories = new LinkedHashMap<>();
+    private static Map<String, Map<String, Supplier<PageAnimation>>> createCategorizedAnimations() {
+        Map<String, Map<String, Supplier<PageAnimation>>> categories = new LinkedHashMap<>();
 
         // Slide / Push
-        Map<String, Supplier<CarouselAnimation>> slide = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> slide = new LinkedHashMap<>();
         slide.put("Slide (H)", AnimSlide::new);
         slide.put("Slide (V)", () -> new AnimSlide(Orientation.VERTICAL));
         slide.put("Stack", AnimStack::new);
@@ -379,7 +379,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("Slide / Push", slide);
 
         // Fade / Blur
-        Map<String, Supplier<CarouselAnimation>> fade = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> fade = new LinkedHashMap<>();
         fade.put("Fade", AnimFade::new);
         fade.put("Blend", AnimBlend::new);
         fade.put("GaussianBlur", AnimGaussianBlur::new);
@@ -391,7 +391,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("Fade / Blur", fade);
 
         // 3D Transform
-        Map<String, Supplier<CarouselAnimation>> transform3d = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> transform3d = new LinkedHashMap<>();
         transform3d.put("Flip (H)", AnimFlip::new);
         transform3d.put("Flip (V)", () -> new AnimFlip(Orientation.VERTICAL));
         transform3d.put("Box (H)", () -> new AnimBox(Orientation.HORIZONTAL));
@@ -409,7 +409,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("3D Transform", transform3d);
 
         // Shape Reveal
-        Map<String, Supplier<CarouselAnimation>> shape = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> shape = new LinkedHashMap<>();
         shape.put("Rectangle", AnimRectangle::new);
         shape.put("Circle", AnimCircle::new);
         shape.put("Diamond", AnimDiamond::new);
@@ -426,7 +426,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("Shape Reveal", shape);
 
         // Wipe / Pattern
-        Map<String, Supplier<CarouselAnimation>> wipe = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> wipe = new LinkedHashMap<>();
         wipe.put("Wipe (H)", () -> new AnimWipe(Orientation.HORIZONTAL));
         wipe.put("Wipe (V)", () -> new AnimWipe(Orientation.VERTICAL));
         wipe.put("SplitWipe (H)", AnimSplitWipe::new);
@@ -447,7 +447,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("Wipe / Pattern", wipe);
 
         // Fragment (snapshot-based)
-        Map<String, Supplier<CarouselAnimation>> fragment = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> fragment = new LinkedHashMap<>();
         fragment.put("Shatter", AnimShatter::new);
         fragment.put("Shatter (Center)", () -> new AnimShatterRadial(0.5, 0.5));
         fragment.put("Shatter (Random)", AnimShatterRadial::new);
@@ -481,7 +481,7 @@ public class RXCarouselShowcase extends Application {
         categories.put("Fragment", fragment);
 
         // Special
-        Map<String, Supplier<CarouselAnimation>> special = new LinkedHashMap<>();
+        Map<String, Supplier<PageAnimation>> special = new LinkedHashMap<>();
         special.put("Around", AnimAround::new);
         special.put("Around (Side)", () -> new AnimAround(true));
         special.put("Swap", AnimSwap::new);

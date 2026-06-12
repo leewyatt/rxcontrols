@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
@@ -33,13 +33,13 @@ import java.util.List;
 
 /**
  * Displays the single current line of an LRC document, transitioning between
- * lines with a {@link CarouselAnimation}.
+ * lines with a {@link PageAnimation}.
  *
  * <p>The control is driven exclusively by {@link #currentTimeProperty() currentTime}:
  * the current line is derived from the {@link #documentProperty() document} the same
  * way as in {@link RXLrcView}, and every current-line change plays the configured
  * {@link #animationProperty() animation}. Animations that keep a multi-page layout
- * ({@link CarouselAnimation#isMultiPageDisplay()}) are not supported and fall back
+ * ({@link PageAnimation#isMultiPageDisplay()}) are not supported and fall back
  * to a direct cut.</p>
  *
  * <p>While the playback time is before the first timed line, the control shows a
@@ -269,20 +269,20 @@ public class RXLrcLineView extends Control {
 
     // ==================== Animation ====================
 
-    private final ObjectProperty<CarouselAnimation> animation =
+    private final ObjectProperty<PageAnimation> animation =
             new SimpleObjectProperty<>(this, "animation", new AnimFade());
 
     /**
-     * The animation used for line transitions. Any {@link CarouselAnimation}
+     * The animation used for line transitions. Any {@link PageAnimation}
      * preset shared with {@link RXCarousel} can be used, except multi-page
-     * display animations ({@link CarouselAnimation#isMultiPageDisplay()}) and
+     * display animations ({@link PageAnimation#isMultiPageDisplay()}) and
      * animations requiring more than two pages
-     * ({@link CarouselAnimation#getMinimumPageCount()}), which fall back to a
+     * ({@link PageAnimation#getMinimumPageCount()}), which fall back to a
      * direct cut. Setting {@code null} also falls back to a direct cut.
      *
      * @return the animation property
      */
-    public final ObjectProperty<CarouselAnimation> animationProperty() {
+    public final ObjectProperty<PageAnimation> animationProperty() {
         return animation;
     }
 
@@ -291,7 +291,7 @@ public class RXLrcLineView extends Control {
      *
      * @return the animation, or {@code null}
      */
-    public final CarouselAnimation getAnimation() {
+    public final PageAnimation getAnimation() {
         return animation.get();
     }
 
@@ -300,7 +300,7 @@ public class RXLrcLineView extends Control {
      *
      * @param value the animation, or {@code null} for direct cuts
      */
-    public final void setAnimation(CarouselAnimation value) {
+    public final void setAnimation(PageAnimation value) {
         animation.set(value);
     }
 

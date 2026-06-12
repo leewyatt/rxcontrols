@@ -2,24 +2,24 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimBlinds;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimCheckerboard;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimDissolve;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFlip;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimGaussianBlur;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimGlitch;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimNewspaper;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimShatter;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimShatterRadial;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlide;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlideIn;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSqueeze;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimWhipPan;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimWind;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimZoom;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
+import io.github.leewyatt.rxcontrols.animation.page.AnimCheckerboard;
+import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
+import io.github.leewyatt.rxcontrols.animation.page.AnimDissolve;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGaussianBlur;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGlitch;
+import io.github.leewyatt.rxcontrols.animation.page.AnimNewspaper;
+import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
+import io.github.leewyatt.rxcontrols.animation.page.AnimShatterRadial;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlideIn;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
+import io.github.leewyatt.rxcontrols.animation.page.AnimWhipPan;
+import io.github.leewyatt.rxcontrols.animation.page.AnimWind;
+import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
@@ -61,7 +61,7 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
     private static final String DEFAULT_ANIMATION = "Fade";
 
     private final DoubleProperty playbackMillis = new SimpleDoubleProperty(0.0);
-    private final Map<String, Supplier<CarouselAnimation>> animationPresets = animationPresets();
+    private final Map<String, Supplier<PageAnimation>> animationPresets = animationPresets();
     private final Timeline playTimeline = createPlayTimeline();
 
     private RXLrcLineView lineView;
@@ -197,7 +197,7 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
         animationBox.setValue(DEFAULT_ANIMATION);
         animationBox.setMaxWidth(Double.MAX_VALUE);
         animationBox.valueProperty().addListener((obs, oldValue, newValue) -> {
-            Supplier<CarouselAnimation> preset = animationPresets.get(newValue);
+            Supplier<PageAnimation> preset = animationPresets.get(newValue);
             if (preset != null) {
                 lineView.setAnimation(preset.get());
             }
@@ -311,8 +311,8 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
 
     // Multi-page display animations (e.g. AnimAround) are deliberately
     // excluded: RXLrcLineView falls back to a direct cut for those.
-    private static Map<String, Supplier<CarouselAnimation>> animationPresets() {
-        Map<String, Supplier<CarouselAnimation>> presets = new LinkedHashMap<>();
+    private static Map<String, Supplier<PageAnimation>> animationPresets() {
+        Map<String, Supplier<PageAnimation>> presets = new LinkedHashMap<>();
         presets.put("Fade", AnimFade::new);
         presets.put("Slide", AnimSlide::new);
         presets.put("Slide (vertical)", () -> new AnimSlide(Orientation.VERTICAL));

@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.carousel.Direction;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
-import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
 import javafx.animation.Animation;
@@ -223,7 +223,7 @@ public class RXLrcLineViewTest {
 
             assertEquals(1, recording.contexts.size());
             TransitionContext context = recording.contexts.get(0);
-            assertEquals(Direction.FORWARD, context.getDirection());
+            assertEquals(TransitionDirection.FORWARD, context.getDirection());
             assertEquals("Line 5", pageText(context.getNextPage()));
             assertEquals("Line 1", pageText(context.getCurrentPage()));
         } finally {
@@ -243,7 +243,7 @@ public class RXLrcLineViewTest {
 
             assertEquals(1, recording.contexts.size());
             TransitionContext context = recording.contexts.get(0);
-            assertEquals(Direction.BACKWARD, context.getDirection());
+            assertEquals(TransitionDirection.BACKWARD, context.getDirection());
             assertEquals("Line 2", pageText(context.getNextPage()));
         } finally {
             view.getSkin().dispose();
@@ -284,12 +284,12 @@ public class RXLrcLineViewTest {
 
             view.setCurrentTime(Duration.seconds(2.0));
             assertEquals(1, recording.contexts.size());
-            assertEquals(Direction.FORWARD, recording.contexts.get(0).getDirection());
+            assertEquals(TransitionDirection.FORWARD, recording.contexts.get(0).getDirection());
             assertEquals("First", pageText(recording.contexts.get(0).getNextPage()));
 
             view.setCurrentTime(Duration.seconds(1.0));
             assertEquals(2, recording.contexts.size());
-            assertEquals(Direction.BACKWARD, recording.contexts.get(1).getDirection());
+            assertEquals(TransitionDirection.BACKWARD, recording.contexts.get(1).getDirection());
             assertEquals("", pageText(recording.contexts.get(1).getNextPage()));
         } finally {
             view.getSkin().dispose();
@@ -534,7 +534,7 @@ public class RXLrcLineViewTest {
 
     // ==================== Recording animation ====================
 
-    private static class RecordingAnimation implements CarouselAnimation {
+    private static class RecordingAnimation implements PageAnimation {
 
         final List<TransitionContext> contexts = new ArrayList<>();
         int jumpToEndCalls;

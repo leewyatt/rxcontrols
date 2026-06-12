@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.CarouselSkin;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
-import io.github.leewyatt.rxcontrols.carousel.Direction;
 import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlide;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.BooleanProperty;
@@ -50,7 +50,7 @@ import java.util.List;
  * </ul>
  *
  * <p>The transition effect is controlled by the {@link #animationProperty() animation}
- * property, which accepts any {@link CarouselAnimation} implementation.</p>
+ * property, which accepts any {@link PageAnimation} implementation.</p>
  *
  * <pre>{@code
  * // Simple: fixed pages
@@ -211,7 +211,7 @@ public class RXCarousel extends Control {
 
     // ==================== Animation Configuration ====================
 
-    private final ObjectProperty<CarouselAnimation> animation =
+    private final ObjectProperty<PageAnimation> animation =
             new SimpleObjectProperty<>(this, "animation", new AnimSlide());
 
     /**
@@ -219,7 +219,7 @@ public class RXCarousel extends Control {
      *
      * @return the animation property
      */
-    public final ObjectProperty<CarouselAnimation> animationProperty() {
+    public final ObjectProperty<PageAnimation> animationProperty() {
         return animation;
     }
 
@@ -228,7 +228,7 @@ public class RXCarousel extends Control {
      *
      * @return the animation
      */
-    public final CarouselAnimation getAnimation() {
+    public final PageAnimation getAnimation() {
         return animation.get();
     }
 
@@ -237,7 +237,7 @@ public class RXCarousel extends Control {
      *
      * @param animation the animation
      */
-    public final void setAnimation(CarouselAnimation animation) {
+    public final void setAnimation(PageAnimation animation) {
         this.animation.set(animation);
     }
 
@@ -648,7 +648,7 @@ public class RXCarousel extends Control {
     // ==================== Internal transition flags ====================
 
     private boolean animateTransition = true;
-    private Direction directionHint;
+    private TransitionDirection directionHint;
 
     /**
      * Returns whether the current transition should be animated. This method
@@ -671,7 +671,7 @@ public class RXCarousel extends Control {
      *
      * @return the direction hint, or null
      */
-    public Direction getDirectionHint() {
+    public TransitionDirection getDirectionHint() {
         return directionHint;
     }
 
@@ -695,7 +695,7 @@ public class RXCarousel extends Control {
         } else {
             return;
         }
-        directionHint = Direction.FORWARD;
+        directionHint = TransitionDirection.FORWARD;
         try {
             goToPage(target);
         } finally {
@@ -721,7 +721,7 @@ public class RXCarousel extends Control {
         } else {
             return;
         }
-        directionHint = Direction.BACKWARD;
+        directionHint = TransitionDirection.BACKWARD;
         try {
             goToPage(target);
         } finally {

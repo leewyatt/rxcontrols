@@ -1,9 +1,10 @@
 package io.github.leewyatt.rxcontrols.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimNone;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
-import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.AnimNone;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 import javafx.animation.Animation;
@@ -60,7 +61,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
 
     // Animation state
     private Animation currentTransition;
-    private CarouselAnimation usedAnimation;
+    private PageAnimation usedAnimation;
     private boolean transitioning;
     private int animatingFromIndex = -1;
     private int animatingToIndex = -1;
@@ -169,7 +170,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         }
 
         RXCarousel carousel = getSkinnable();
-        CarouselAnimation anim = carousel.getAnimation();
+        PageAnimation anim = carousel.getAnimation();
         if (!transitioning && anim != null && anim.isMultiPageDisplay()) {
             int idx = carousel.getSelectedIndex();
             if (idx >= 0 && idx < carousel.getPageCount()) {
@@ -374,7 +375,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
             }
             ensureAdjacentPages(index, carousel);
 
-            CarouselAnimation anim = carousel.getAnimation();
+            PageAnimation anim = carousel.getAnimation();
             if (anim != null && anim.isMultiPageDisplay()) {
                 TransitionContext ctx = buildContext(index, index, carousel);
                 anim.setupInitialLayout(ctx);
@@ -540,8 +541,8 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         }
 
         // Fallback to AnimNone when animation is null
-        final CarouselAnimation anim;
-        CarouselAnimation configuredAnim = carousel.getAnimation();
+        final PageAnimation anim;
+        PageAnimation configuredAnim = carousel.getAnimation();
         anim = (configuredAnim != null) ? configuredAnim : FALLBACK_NONE;
 
         // Clear effects from previous animation if animation type changed
@@ -671,7 +672,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         carousel.fireEvent(new PageLifecycleEvent(
                 PageLifecycleEvent.OPENED, newIndex, nextPage));
 
-        CarouselAnimation anim = carousel.getAnimation();
+        PageAnimation anim = carousel.getAnimation();
         if (anim != null && anim.isMultiPageDisplay()) {
             TransitionContext ctx = buildContext(newIndex, newIndex, carousel);
             anim.setupInitialLayout(ctx);
@@ -711,7 +712,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     private TransitionContext buildContext(int oldIndex, int newIndex, RXCarousel carousel) {
         Node currentPage = pageCache.get(oldIndex);
         Node nextPage = getOrCreatePage(newIndex, carousel);
-        Direction direction = computeDirection(oldIndex, newIndex, carousel);
+        TransitionDirection direction = computeDirection(oldIndex, newIndex, carousel);
         Duration duration = carousel.getAnimationDuration();
 
         return new TransitionContext(
@@ -765,14 +766,14 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         );
     }
 
-    private Direction computeDirection(int oldIndex, int newIndex, RXCarousel carousel) {
+    private TransitionDirection computeDirection(int oldIndex, int newIndex, RXCarousel carousel) {
         // next() and previous() set a direction hint; use it directly
-        Direction hint = carousel.getDirectionHint();
+        TransitionDirection hint = carousel.getDirectionHint();
         if (hint != null) {
             return hint;
         }
         // goToPage(): always use index comparison (INDEX_BASED)
-        return newIndex > oldIndex ? Direction.FORWARD : Direction.BACKWARD;
+        return newIndex > oldIndex ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
     }
 
     // ==================== Navigation Arrows ====================
@@ -1081,7 +1082,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         if (nav != null) {
             nav.dispose();
         }
-        CarouselAnimation anim = carousel.getAnimation();
+        PageAnimation anim = carousel.getAnimation();
         if (anim != null) {
             anim.dispose();
         }

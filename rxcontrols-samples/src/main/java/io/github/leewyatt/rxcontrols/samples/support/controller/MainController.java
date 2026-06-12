@@ -2,26 +2,26 @@ package io.github.leewyatt.rxcontrols.samples.support.controller;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXImagePane;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimBlinds;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimBox;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimCube4;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimCurtain;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimDissolve;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFlip;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimGallery;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimIris;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimLouver;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimNone;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimPeel;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimRandomTiles;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimRipple;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSelector;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimShatter;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimSlide;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimZoom;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBox;
+import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
+import io.github.leewyatt.rxcontrols.animation.page.AnimCube4;
+import io.github.leewyatt.rxcontrols.animation.page.AnimCurtain;
+import io.github.leewyatt.rxcontrols.animation.page.AnimDissolve;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGallery;
+import io.github.leewyatt.rxcontrols.animation.page.AnimIris;
+import io.github.leewyatt.rxcontrols.animation.page.AnimLouver;
+import io.github.leewyatt.rxcontrols.animation.page.AnimNone;
+import io.github.leewyatt.rxcontrols.animation.page.AnimPeel;
+import io.github.leewyatt.rxcontrols.animation.page.AnimRandomTiles;
+import io.github.leewyatt.rxcontrols.animation.page.AnimRipple;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSelector;
+import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -156,8 +156,8 @@ public class MainController {
         return carouselContainer;
     }
 
-    private Map<String, CarouselAnimation> buildDemoAnimations() {
-        Map<String, CarouselAnimation> map = new LinkedHashMap<>();
+    private Map<String, PageAnimation> buildDemoAnimations() {
+        Map<String, PageAnimation> map = new LinkedHashMap<>();
         map.put("Slide", new AnimSlide());
         map.put("None", new AnimNone());
         map.put("Fade", new AnimFade());

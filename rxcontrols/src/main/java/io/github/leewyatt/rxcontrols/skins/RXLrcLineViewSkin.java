@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
-import io.github.leewyatt.rxcontrols.carousel.Direction;
-import io.github.leewyatt.rxcontrols.carousel.animation.CarouselAnimation;
-import io.github.leewyatt.rxcontrols.carousel.animation.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import javafx.animation.Animation;
 import javafx.beans.value.ChangeListener;
@@ -23,29 +23,10 @@ import javafx.util.Duration;
  * <p>Two page wrappers are reused for all line transitions: the current page
  * shows (or is animating in) the current line, the spare page is the off-stage
  * node reused for the next transition. Transitions are produced by the shared
- * {@link CarouselAnimation} engine; the interrupt and cleanup handling mirrors
+ * {@link PageAnimation} engine; the interrupt and cleanup handling mirrors
  * {@code CarouselSkin}.</p>
  */
 public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
-
-    private static final TransitionContext.LifecycleCallback NOOP_LIFECYCLE =
-            new TransitionContext.LifecycleCallback() {
-                @Override
-                public void fireOpening(int pageIndex) {
-                }
-
-                @Override
-                public void fireOpened(int pageIndex) {
-                }
-
-                @Override
-                public void fireClosing(int pageIndex) {
-                }
-
-                @Override
-                public void fireClosed(int pageIndex) {
-                }
-            };
 
     // ==================== Nodes ====================
 
@@ -65,7 +46,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     // ==================== Transition state ====================
 
     private Animation currentTransition;
-    private CarouselAnimation usedAnimation;
+    private PageAnimation usedAnimation;
     private boolean transitioning;
 
     /**
@@ -211,7 +192,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
             refreshDirect();
             return;
         }
-        showLine(newIndex, newIndex > oldIndex ? Direction.FORWARD : Direction.BACKWARD);
+        showLine(newIndex, newIndex > oldIndex ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD);
     }
 
     private void onDocumentChanged() {
@@ -237,12 +218,12 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
     // ==================== Transitions ====================
 
-    private void showLine(int index, Direction direction) {
+    private void showLine(int index, TransitionDirection direction) {
         interruptTransition();
 
         RXLrcLineView control = getSkinnable();
         String text = textAt(index);
-        CarouselAnimation animation = control.getAnimation();
+        PageAnimation animation = control.getAnimation();
 
         // Clear effects from the previous animation if the instance changed,
         // before deciding between animation and direct cut (as CarouselSkin does)
@@ -325,14 +306,14 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
         contentPane.getChildren().removeIf(child -> child != currentPage);
     }
 
-    private TransitionContext buildContext(Node outgoing, Node incoming, Direction direction) {
+    private TransitionContext buildContext(Node outgoing, Node incoming, TransitionDirection direction) {
         return new TransitionContext(
                 outgoing, incoming,
                 0, 1, 2,
                 direction, getSkinnable().getAnimationDuration(),
                 contentPane, null,
                 index -> index == 0 ? outgoing : incoming,
-                NOOP_LIFECYCLE);
+                TransitionContext.LifecycleCallback.NOOP);
     }
 
     private static boolean isPositiveFinite(Duration duration) {
@@ -399,7 +380,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
         transitioning = false;
         currentTransition = null;
         RXLrcLineView control = getSkinnable();
-        CarouselAnimation animation = control == null ? null : control.getAnimation();
+        PageAnimation animation = control == null ? null : control.getAnimation();
         if (animation != null) {
             animation.dispose();
         }

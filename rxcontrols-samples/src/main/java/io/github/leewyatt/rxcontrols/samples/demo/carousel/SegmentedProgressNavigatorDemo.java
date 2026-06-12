@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.carousel.SegmentedProgressNavigator;
-import io.github.leewyatt.rxcontrols.carousel.animation.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import javafx.application.Application;
 import javafx.scene.PerspectiveCamera;
