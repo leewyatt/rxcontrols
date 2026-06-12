@@ -281,6 +281,78 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void spaceConsumptionBlocksSceneAccelerators() {
+        // Behavioral assertion: event dispatch works on copies, so the
+        // original event's consumed flag is not reliable. If the skin
+        // consumes SPACE, a SPACE scene accelerator must never run.
+        RXTransitionButton button = new RXTransitionButton("Front");
+        StackPane root = new StackPane(button);
+        Scene scene = new Scene(root, 200.0, 100.0);
+        root.applyCss();
+        root.layout();
+
+        AtomicInteger fired = new AtomicInteger();
+        AtomicInteger acceleratorRuns = new AtomicInteger();
+        button.setOnAction(event -> fired.incrementAndGet());
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.SPACE),
+                acceleratorRuns::incrementAndGet);
+
+        try {
+            Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
+
+            assertEquals(1, fired.get());
+            assertEquals(0, acceleratorRuns.get());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void enterOnFocusedButtonExcludesDefaultButton() {
+        RXTransitionButton focused = new RXTransitionButton("Focused");
+        RXTransitionButton defaultButton = new RXTransitionButton("Default");
+        defaultButton.setDefaultButton(true);
+        StackPane root = new StackPane();
+        root.getChildren().addAll(focused, defaultButton);
+        new Scene(root, 200.0, 100.0);
+        root.applyCss();
+        root.layout();
+
+        AtomicInteger focusedFired = new AtomicInteger();
+        AtomicInteger defaultFired = new AtomicInteger();
+        focused.setOnAction(event -> focusedFired.incrementAndGet());
+        defaultButton.setOnAction(event -> defaultFired.incrementAndGet());
+
+        try {
+            Event.fireEvent(focused, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.ENTER));
+            Event.fireEvent(focused, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.ENTER));
+
+            if (MAC) {
+                // ENTER is not an activation key on Mac: the event bubbles to
+                // the scene accelerators and fires the default button (twice,
+                // once per key event phase is prevented by the accelerator
+                // matching KEY_PRESSED only).
+                assertEquals(0, focusedFired.get());
+                assertEquals(1, defaultFired.get());
+            } else {
+                // The focused button consumes ENTER, so only it fires.
+                assertEquals(1, focusedFired.get());
+                assertEquals(0, defaultFired.get());
+            }
+        } finally {
+            focused.getSkin().dispose();
+            defaultButton.getSkin().dispose();
+        }
+    }
+
+    // Focus-loss disarm (SPACE held, then focus moves away) cannot be unit
+    // tested in this headless harness: Node.focused reflects
+    // "focus owner AND window focused", and without a focused window it never
+    // becomes true, so the skin's focus listener cannot fire. Covered by
+    // manual showcase verification.
+
+    @Test
     public void defaultAndCancelButtonsRegisterSceneAccelerators() {
         RXTransitionButton button = new RXTransitionButton("Front");
         StackPane root = new StackPane(button);

@@ -366,6 +366,11 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
     // ==================== Button Behavior ====================
 
+    // All handlers consume their event, matching the auto-consume default of
+    // the standard ButtonBehavior input mappings. For activation keys this is
+    // load-bearing: scene accelerators only run for unconsumed events, so the
+    // focused button must consume ENTER or a default button would also fire.
+
     private void mousePressed(MouseEvent event) {
         RXTransitionButton button = getSkinnable();
         if (button.isFocusTraversable()) {
@@ -378,6 +383,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (!button.isArmed() && valid) {
             button.arm();
         }
+        event.consume();
     }
 
     private void mouseReleased(MouseEvent event) {
@@ -386,6 +392,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
             button.fire();
             button.disarm();
         }
+        event.consume();
     }
 
     private void mouseEntered(MouseEvent event) {
@@ -393,6 +400,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (!keyDown && button.isPressed()) {
             button.arm();
         }
+        event.consume();
     }
 
     private void mouseExited(MouseEvent event) {
@@ -400,6 +408,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (!keyDown && button.isArmed()) {
             button.disarm();
         }
+        event.consume();
     }
 
     private void keyPressed(KeyEvent event) {
@@ -411,18 +420,22 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
             keyDown = true;
             button.arm();
         }
+        event.consume();
     }
 
     private void keyReleased(KeyEvent event) {
-        if (!isActivationKey(event) || !keyDown) {
+        if (!isActivationKey(event)) {
             return;
         }
-        keyDown = false;
-        RXTransitionButton button = getSkinnable();
-        if (button.isArmed()) {
-            button.disarm();
-            button.fire();
+        if (keyDown) {
+            keyDown = false;
+            RXTransitionButton button = getSkinnable();
+            if (button.isArmed()) {
+                button.disarm();
+                button.fire();
+            }
         }
+        event.consume();
     }
 
     // SPACE always activates; ENTER activates on non-Mac platforms only,
