@@ -15,13 +15,14 @@ public class RXLineButtonDemo extends Application {
     @Override
     public void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
-        RXLineButton button = new RXLineButton("线条按钮/文本");
+        RXLineButton button = new RXLineButton("Line Button / Text");
         button.setOnAction(event -> System.out.println("LineButton onAction"));
-        // 线条效果; 也可用 CSS: -rx-line-animation: top-bottom-converge
+        // Line effect; CSS can also set -rx-line-animation: top-bottom-converge.
         button.setLineAnimation(LineAnimation.TOP_BOTTOM_CONVERGE);
-        // 自定义参数走构造器, 例如 setLineAnimation(new LineAnimSlide(LineEdges.BOTTOM, 20))
-        // 触发方式默认 HOVER; 也可 setAnimationTrigger(RXAnimationTrigger.PRESSED)
-        // 动画时长默认 200ms; 也可 setAnimationDuration(Duration.millis(300))
+        // Parameterized effects use constructors, for example:
+        // setLineAnimation(new LineAnimSlide(LineEdges.BOTTOM, 20)).
+        // The default trigger is HOVER; use setAnimationTrigger(RXAnimationTrigger.PRESSED) for press.
+        // The default duration is 200ms; use setAnimationDuration(Duration.millis(300)) to override it.
 
         root.setCenter(button);
         primaryStage.setScene(new Scene(root, 500, 320));
