@@ -2,47 +2,35 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
-import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
+import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
-import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 /**
  * Skin for {@link RXLrcLineView}.
  *
  * <p>Two page wrappers are reused for all line transitions: the current page
  * shows (or is animating in) the current line, the spare page is the off-stage
- * node reused for the next transition. Transitions are driven by the shared
- * {@link PageTransitionEngine}, which carries the interrupt and cleanup
- * handling common to all {@link PageAnimation} hosts.</p>
+ * node reused for the next transition. The double-page surface and transition
+ * glue live in the shared {@link TransitionPages}.</p>
  */
 public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
     // ==================== Nodes ====================
 
-    private final StackPane contentPane = new StackPane();
-    private final Rectangle clip = new Rectangle();
+    private final TransitionPages pages = new TransitionPages("line");
 
+    // Two interchangeable label buffers; the one currently shown is derived
+    // from the surface's current-page pointer.
     private final Label labelA = new Label();
     private final Label labelB = new Label();
-    private final StackPane pageA = createPage(labelA);
-    private final StackPane pageB = createPage(labelB);
-
-    private StackPane currentPage;
-    private Label currentLabel;
-    private StackPane sparePage;
-    private Label spareLabel;
-
-    // ==================== Transition state ====================
-
-    private final PageTransitionEngine engine = new PageTransitionEngine();
 
     /**
      * Document the page texts were derived from; detects document swaps in the
@@ -70,32 +58,19 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     public RXLrcLineViewSkin(RXLrcLineView control) {
         super(control);
 
-        contentPane.getStyleClass().add("content-pane");
-        contentPane.setClip(clip);
-
-        currentPage = pageA;
-        currentLabel = labelA;
-        sparePage = pageB;
-        spareLabel = labelB;
-        contentPane.getChildren().add(currentPage);
-        getChildren().add(contentPane);
+        pages.getPageA().getChildren().add(labelA);
+        pages.getPageB().getChildren().add(labelB);
+        getChildren().add(pages.getContentPane());
         installPlaceholder(control.getPlaceholder());
 
         shownDocument = control.getDocument();
-        currentLabel.setText(textAt(control.getCurrentLineIndex()));
+        currentLabel().setText(textAt(control.getCurrentLineIndex()));
 
         disposer.registerListener(control.currentLineIndexProperty(), currentLineIndexListener);
         disposer.registerListener(control.documentProperty(), documentListener);
         disposer.registerListener(control.placeholderProperty(), placeholderListener);
-        disposer.registerDisposeTask(() -> contentPane.setClip(null));
 
         updatePlaceholderState();
-    }
-
-    private static StackPane createPage(Label label) {
-        StackPane page = new StackPane(label);
-        page.getStyleClass().add("line");
-        return page;
     }
 
     // ==================== Layout ====================
@@ -105,12 +80,8 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        double width = Math.max(0.0, w);
-        double height = Math.max(0.0, h);
-        contentPane.resizeRelocate(x, y, width, height);
-        clip.setWidth(width);
-        clip.setHeight(height);
-        layoutPlaceholder(x, y, width, height);
+        pages.layout(x, y, w, h);
+        layoutPlaceholder(x, y, Math.max(0.0, w), Math.max(0.0, h));
     }
 
     /**
@@ -174,7 +145,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
         if (isDocumentEmpty() && placeholder != null) {
             return placeholder;
         }
-        return currentPage;
+        return pages.getCurrentPage();
     }
 
     // ==================== Current Line ====================
@@ -198,7 +169,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     }
 
     private void refreshDirect() {
-        engine.interrupt();
+        pages.interrupt();
         shownDocument = getSkinnable().getDocument();
         directCut(textAt(getSkinnable().getCurrentLineIndex()));
     }
@@ -214,62 +185,39 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     // ==================== Transitions ====================
 
     private void showLine(int index, TransitionDirection direction) {
-        engine.interrupt();
+        pages.interrupt();
 
         RXLrcLineView control = getSkinnable();
         String text = textAt(index);
         PageAnimation animation = control.getAnimation();
+        Duration duration = control.getAnimationDuration();
 
         // Clear effects from the previous animation if the instance changed,
-        // before deciding between animation and direct cut (as CarouselSkin does)
-        engine.clearEffectsIfChanged(animation,
-                () -> buildContext(currentPage, sparePage, direction));
+        // before deciding between animation and direct cut
+        pages.clearEffectsIfChanged(animation, direction, duration);
 
         if (!PageTransitionEngine.canAnimate(animation, control.isAnimated(), 2,
-                control.getAnimationDuration(), false)) {
+                duration, false)) {
             directCut(text);
             return;
         }
 
-        StackPane outgoing = currentPage;
-        Label outgoingLabel = currentLabel;
-        currentPage = sparePage;
-        currentLabel = spareLabel;
-        sparePage = outgoing;
-        spareLabel = outgoingLabel;
-
-        currentLabel.setText(text);
-        outgoing.setVisible(true);
-        if (!contentPane.getChildren().contains(currentPage)) {
-            currentPage.setVisible(false);
-            contentPane.getChildren().add(currentPage);
-        }
-
-        TransitionContext context = buildContext(outgoing, currentPage, direction);
-        engine.play(animation, context, null, this::hideNonCurrentPages, null);
+        spareLabel().setText(text);
+        pages.transitionTo(pages.getSparePage(), animation, direction, duration,
+                null, null, null);
     }
 
     private void directCut(String text) {
-        currentLabel.setText(text);
-        currentPage.setVisible(true);
-        hideNonCurrentPages();
+        currentLabel().setText(text);
+        pages.directCutTo(pages.getCurrentPage());
     }
 
-    private void hideNonCurrentPages() {
-        // Keep a single child while idle; the spare page is re-added on the
-        // next transition. Animation finish actions have already removed
-        // their own effect nodes and reset page visual properties.
-        contentPane.getChildren().removeIf(child -> child != currentPage);
+    private Label currentLabel() {
+        return pages.getCurrentPage() == pages.getPageA() ? labelA : labelB;
     }
 
-    private TransitionContext buildContext(Node outgoing, Node incoming, TransitionDirection direction) {
-        return new TransitionContext(
-                outgoing, incoming,
-                0, 1, 2,
-                direction, getSkinnable().getAnimationDuration(),
-                contentPane,
-                index -> index == 0 ? outgoing : incoming,
-                TransitionContext.LifecycleCallback.NOOP);
+    private Label spareLabel() {
+        return pages.getCurrentPage() == pages.getPageA() ? labelB : labelA;
     }
 
     // ==================== Placeholder ====================
@@ -302,7 +250,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
             placeholder.setVisible(empty);
             placeholder.setManaged(empty);
         }
-        contentPane.setVisible(!empty);
+        pages.getContentPane().setVisible(!empty);
     }
 
     private void layoutPlaceholder(double x, double y, double width, double height) {
@@ -326,8 +274,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     @Override
     protected void disposeSkin() {
         RXLrcLineView control = getSkinnable();
-        engine.dispose(control == null ? null : control.getAnimation());
-        contentPane.getChildren().clear();
+        pages.dispose(control == null ? null : control.getAnimation());
         getChildren().clear();
     }
 }

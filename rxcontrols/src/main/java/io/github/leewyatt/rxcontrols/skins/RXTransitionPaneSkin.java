@@ -2,13 +2,13 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
-import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
+import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
 import javafx.scene.layout.StackPane;
-import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 /**
  * Skin for {@link RXTransitionPane}.
@@ -17,34 +17,15 @@ import javafx.scene.shape.Rectangle;
  * page shows (or is animating in) the current content, the spare page is the
  * off-stage node reused for the next transition. Wrapping isolates the
  * animation's visual side effects (translates, visibility, transforms) from
- * the user's content nodes. Transitions are driven by the shared
- * {@link PageTransitionEngine}.</p>
+ * the user's content nodes. The double-page surface and transition glue live
+ * in the shared {@link TransitionPages}.</p>
  */
 public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
 
-    // ==================== Nodes ====================
-
-    private final StackPane contentPane = new StackPane();
-    private final Rectangle clip = new Rectangle();
-
-    // Two interchangeable page buffers with no fixed meaning; the roles
-    // rotate between them and live in the currentPage/sparePage fields.
-    private final StackPane pageA = createPage();
-    private final StackPane pageB = createPage();
-
-    private StackPane currentPage;
-    private StackPane sparePage;
-
-    // ==================== Transition state ====================
-
-    private final PageTransitionEngine engine = new PageTransitionEngine();
-
-    // ==================== Listeners ====================
+    private final TransitionPages pages = new TransitionPages("page");
 
     private final ChangeListener<Node> contentListener =
             (observable, oldValue, newValue) -> onContentChanged(oldValue, newValue);
-
-    // ==================== Constructors ====================
 
     /**
      * Creates the skin for the given control.
@@ -54,24 +35,10 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     public RXTransitionPaneSkin(RXTransitionPane control) {
         super(control);
 
-        contentPane.getStyleClass().add("content-pane");
-        contentPane.setClip(clip);
-
-        currentPage = pageA;
-        sparePage = pageB;
-        contentPane.getChildren().add(currentPage);
-        getChildren().add(contentPane);
-
-        setPageContent(currentPage, control.getContent());
+        getChildren().add(pages.getContentPane());
+        setPageContent(pages.getCurrentPage(), control.getContent());
 
         disposer.registerListener(control.contentProperty(), contentListener);
-        disposer.registerDisposeTask(() -> contentPane.setClip(null));
-    }
-
-    private static StackPane createPage() {
-        StackPane page = new StackPane();
-        page.getStyleClass().add("page");
-        return page;
     }
 
     // ==================== Layout ====================
@@ -81,11 +48,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        double width = Math.max(0.0, w);
-        double height = Math.max(0.0, h);
-        contentPane.resizeRelocate(x, y, width, height);
-        clip.setWidth(width);
-        clip.setHeight(height);
+        pages.layout(x, y, w, h);
     }
 
     /**
@@ -94,7 +57,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + currentPage.prefWidth(-1) + rightInset;
+        return leftInset + pages.getCurrentPage().prefWidth(-1) + rightInset;
     }
 
     /**
@@ -103,7 +66,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + currentPage.prefHeight(-1) + bottomInset;
+        return topInset + pages.getCurrentPage().prefHeight(-1) + bottomInset;
     }
 
     /**
@@ -121,7 +84,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + currentPage.minHeight(-1) + bottomInset;
+        return topInset + pages.getCurrentPage().minHeight(-1) + bottomInset;
     }
 
     /**
@@ -145,58 +108,46 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     // ==================== Transitions ====================
 
     private void onContentChanged(Node oldContent, Node newContent) {
-        engine.interrupt();
+        pages.interrupt();
 
         RXTransitionPane control = getSkinnable();
         PageAnimation animation = control.getAnimation();
         TransitionDirection direction = directionOrDefault(control);
+        Duration duration = control.getAnimationDuration();
 
         // Clear effects from the previous animation if the instance changed,
         // before deciding between animation and direct cut
-        engine.clearEffectsIfChanged(animation,
-                () -> buildContext(currentPage, sparePage, direction));
+        pages.clearEffectsIfChanged(animation, direction, duration);
 
         // Edges (first content, to/from null) switch with a direct cut
         if (oldContent == null || newContent == null
                 || !PageTransitionEngine.canAnimate(animation, control.isAnimated(), 2,
-                        control.getAnimationDuration(), false)) {
+                        duration, false)) {
             directCut(newContent);
             return;
         }
 
-        StackPane outgoing = currentPage;
-        currentPage = sparePage;
-        sparePage = outgoing;
-
-        setPageContent(currentPage, newContent);
-        outgoing.setVisible(true);
-        if (!contentPane.getChildren().contains(currentPage)) {
-            currentPage.setVisible(false);
-            contentPane.getChildren().add(currentPage);
-        }
-
-        TransitionContext context = buildContext(outgoing, currentPage, direction);
-        engine.play(animation, context,
+        StackPane target = pages.getSparePage();
+        setPageContent(target, newContent);
+        pages.transitionTo(target, animation, direction, duration,
                 () -> control.setTransitioning(true),
                 () -> {
                     control.setTransitioning(false);
-                    settleIdle();
+                    detachReplacedContent();
                 },
                 () -> control.setTransitioning(false));
     }
 
     private void directCut(Node content) {
-        setPageContent(currentPage, content);
-        currentPage.setVisible(true);
-        settleIdle();
+        setPageContent(pages.getCurrentPage(), content);
+        detachReplacedContent();
+        pages.directCutTo(pages.getCurrentPage());
     }
 
-    // Keep a single page in the tree while idle and detach the previous
-    // content from the spare wrapper, so user nodes never stay parented to
-    // an off-stage wrapper.
-    private void settleIdle() {
-        sparePage.getChildren().clear();
-        contentPane.getChildren().removeIf(child -> child != currentPage);
+    // Detach the previous content from the off-stage wrapper, so user nodes
+    // never stay parented to a hidden page.
+    private void detachReplacedContent() {
+        pages.getSparePage().getChildren().clear();
     }
 
     private static void setPageContent(StackPane page, Node content) {
@@ -205,17 +156,6 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         } else {
             page.getChildren().setAll(content);
         }
-    }
-
-    private TransitionContext buildContext(Node outgoing, Node incoming,
-                                           TransitionDirection direction) {
-        return new TransitionContext(
-                outgoing, incoming,
-                0, 1, 2,
-                direction, getSkinnable().getAnimationDuration(),
-                contentPane,
-                index -> index == 0 ? outgoing : incoming,
-                TransitionContext.LifecycleCallback.NOOP);
     }
 
     private static TransitionDirection directionOrDefault(RXTransitionPane control) {
@@ -231,11 +171,10 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     @Override
     protected void disposeSkin() {
         RXTransitionPane control = getSkinnable();
-        engine.dispose(control == null ? null : control.getAnimation());
+        pages.dispose(control == null ? null : control.getAnimation());
         if (control != null) {
             control.setTransitioning(false);
         }
-        contentPane.getChildren().clear();
         getChildren().clear();
     }
 }
