@@ -43,6 +43,8 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private static final double DEFAULT_PREF_HEIGHT = 360.0;
     private static final double BOUNDARY_RESISTANCE = 0.35;
     private static final double CLICK_SUPPRESSION_DISTANCE = 3.0;
+    private static final double EMPHASIS_EPSILON = 0.001;
+    private static final double GEOMETRY_EPSILON = 0.25;
     private static final Duration REBOUND_DURATION = Duration.millis(180.0);
     private static final Interpolator INTERPOLATOR =
             Interpolator.SPLINE(0.25, 0.1, 0.25, 1.0);
@@ -62,6 +64,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private double[] lineHeights = new double[0];
     private double contentTotalHeight;
     private boolean metricsDirty = true;
+    private boolean snapPendingLayout = true;
     private long lastLineTimeMillis = Long.MIN_VALUE;
 
     // ==================== Animation ====================
@@ -69,6 +72,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private final DoubleProperty autoTranslateY = new SimpleDoubleProperty();
     private final DoubleProperty manualOffsetY = new SimpleDoubleProperty();
     private final Timeline scrollAnim = new Timeline();
+    private final Timeline emphasisAnim = new Timeline();
     private final Timeline reboundAnim = new Timeline();
     private final Timeline recoverAnim = new Timeline();
     private final PauseTransition recoverPause = new PauseTransition();
@@ -95,7 +99,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         getSkinnable().requestLayout();
     };
     private final Runnable scaleInvalidationAction =
-            () -> applyCurrentLineScale(getSkinnable().getCurrentLineIndex());
+            () -> snapEmphasis(getSkinnable().getCurrentLineIndex());
     private final Runnable manualBrowseEnabledInvalidationAction = () -> {
         if (!getSkinnable().isManualBrowseEnabled()) {
             stopDraggingAndRecover();
@@ -127,6 +131,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         getChildren().setAll(viewport);
 
         scrollAnim.setCycleCount(1);
+        emphasisAnim.setCycleCount(1);
         reboundAnim.setCycleCount(1);
         reboundAnim.setOnFinished(event -> onReboundFinished());
         recoverAnim.setCycleCount(1);
@@ -149,6 +154,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         disposer.registerEventHandler(viewport, MouseEvent.MOUSE_CLICKED, browseMouseClickedHandler);
         disposer.registerEventHandler(viewport, ScrollEvent.SCROLL, browseScrollHandler);
         disposer.registerDisposeTask(scrollAnim::stop);
+        disposer.registerDisposeTask(emphasisAnim::stop);
         disposer.registerDisposeTask(reboundAnim::stop);
         disposer.registerDisposeTask(recoverAnim::stop);
         disposer.registerDisposeTask(recoverPause::stop);
@@ -173,14 +179,23 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         clip.setWidth(width);
         clip.setHeight(height);
 
-        measureLines(width, height);
+        boolean geometryChanged = measureLines(width, height);
 
         content.resizeRelocate(0.0, 0.0, width, contentTotalHeight);
         for (int i = 0; i < lineNodes.size(); i++) {
             lineNodes.get(i).resizeRelocate(0.0, lineTops[i], width, lineHeights[i]);
         }
 
-        updateTranslateAfterLayout();
+        // The :current font-weight toggle changes the text node's layout bounds,
+        // which force-marks this control NEEDS_LAYOUT one pulse after every line
+        // change (Node#doNotifyLayoutBoundsChanged -> Parent#requestLayout(true)).
+        // Snapping unconditionally here would kill the scroll and emphasis
+        // animations right after they start, so snap only when the vertical
+        // geometry really changed or a snap was explicitly requested.
+        if (geometryChanged || snapPendingLayout) {
+            snapPendingLayout = false;
+            updateTranslateAfterLayout();
+        }
         layoutPlaceholder(width, height);
         applyDisplayTranslate();
     }
@@ -245,6 +260,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         resetManualBrowseState();
         rebuildLineNodes();
         metricsDirty = true;
+        snapPendingLayout = true;
         lastLineTimeMillis = Long.MIN_VALUE;
         syncCurrentLineState();
         updatePlaceholderState();
@@ -316,13 +332,21 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     // ==================== Current Line ====================
 
     private void onCurrentLineIndexChanged(int oldIndex, int newIndex) {
-        applyCurrentLineState(oldIndex, false);
-        applyCurrentLineState(newIndex, true);
+        applyCurrentPseudo(oldIndex, false);
+        applyCurrentPseudo(newIndex, true);
 
         if (metricsDirty || lineTops.length != lineNodes.size()) {
+            snapPendingLayout = true;
             getSkinnable().requestLayout();
             updateLastLineTime(newIndex);
             return;
+        }
+
+        boolean snap = shouldSnap(oldIndex, newIndex) || !isPositiveFiniteAnimationDuration();
+        if (snap) {
+            snapEmphasis(newIndex);
+        } else {
+            playEmphasis(newIndex);
         }
 
         double target = targetTranslateY(newIndex, viewport.getHeight());
@@ -344,53 +368,117 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
             return;
         }
 
-        applyScroll(oldIndex, newIndex, target);
+        applyScroll(snap, target);
         updateLastLineTime(newIndex);
     }
 
     private void syncCurrentLineState() {
+        emphasisAnim.stop();
         for (LineNode lineNode : lineNodes) {
             lineNode.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, false);
             lineNode.setScaleX(1.0);
             lineNode.setScaleY(1.0);
+            lineNode.setTranslateY(0.0);
         }
-        applyCurrentLineState(getSkinnable().getCurrentLineIndex(), true);
+        applyCurrentPseudo(getSkinnable().getCurrentLineIndex(), true);
         updateLastLineTime(getSkinnable().getCurrentLineIndex());
     }
 
-    private void applyCurrentLineState(int index, boolean current) {
+    private void applyCurrentPseudo(int index, boolean current) {
         if (index < 0 || index >= lineNodes.size()) {
             return;
         }
-        LineNode node = lineNodes.get(index);
-        node.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, current);
-        if (current) {
-            double scale = getSkinnable().getCurrentLineScale();
-            if (!Double.isFinite(scale) || scale <= 0.0) {
-                scale = 1.0;
-            }
-            node.setScaleX(scale);
-            node.setScaleY(scale);
-        } else {
-            node.setScaleX(1.0);
-            node.setScaleY(1.0);
+        lineNodes.get(index).pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, current);
+    }
+
+    // ==================== Emphasis ====================
+
+    private void snapEmphasis(int currentIndex) {
+        emphasisAnim.stop();
+        if (metricsDirty || lineHeights.length != lineNodes.size()) {
+            // Stale metrics imply a pending layout pass, which re-snaps with fresh heights.
+            return;
+        }
+        double scale = effectiveScale();
+        double expansion = gapExpansion(currentIndex);
+        for (int i = 0; i < lineNodes.size(); i++) {
+            LineNode node = lineNodes.get(i);
+            double targetScale = i == currentIndex ? scale : 1.0;
+            node.setScaleX(targetScale);
+            node.setScaleY(targetScale);
+            node.setTranslateY(shiftTargetFor(i, currentIndex, expansion));
         }
     }
 
-    private void applyCurrentLineScale(int index) {
-        applyCurrentLineState(index, true);
+    private void playEmphasis(int currentIndex) {
+        emphasisAnim.stop();
+        if (metricsDirty || lineHeights.length != lineNodes.size()) {
+            return;
+        }
+        double scale = effectiveScale();
+        double expansion = gapExpansion(currentIndex);
+        List<KeyValue> keyValues = new ArrayList<>();
+        for (int i = 0; i < lineNodes.size(); i++) {
+            LineNode node = lineNodes.get(i);
+            double targetScale = i == currentIndex ? scale : 1.0;
+            if (Math.abs(node.getScaleX() - targetScale) > EMPHASIS_EPSILON
+                    || Math.abs(node.getScaleY() - targetScale) > EMPHASIS_EPSILON) {
+                keyValues.add(new KeyValue(node.scaleXProperty(), targetScale, INTERPOLATOR));
+                keyValues.add(new KeyValue(node.scaleYProperty(), targetScale, INTERPOLATOR));
+            }
+            double targetShift = shiftTargetFor(i, currentIndex, expansion);
+            if (Math.abs(node.getTranslateY() - targetShift) > EMPHASIS_EPSILON) {
+                keyValues.add(new KeyValue(node.translateYProperty(), targetShift, INTERPOLATOR));
+            }
+        }
+        if (keyValues.isEmpty()) {
+            return;
+        }
+        emphasisAnim.getKeyFrames().setAll(new KeyFrame(
+                getSkinnable().getAnimationDuration(),
+                keyValues.toArray(new KeyValue[0])));
+        emphasisAnim.playFromStart();
+    }
+
+    private double effectiveScale() {
+        double scale = getSkinnable().getCurrentLineScale();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            return 1.0;
+        }
+        return scale;
+    }
+
+    // Half the extra height the scaled current line paints beyond its layout bounds;
+    // neighbours shift away by this amount so the visual gap stays equal to lineSpacing.
+    private double gapExpansion(int currentIndex) {
+        if (currentIndex < 0 || currentIndex >= lineHeights.length) {
+            return 0.0;
+        }
+        return (effectiveScale() - 1.0) * lineHeights[currentIndex] / 2.0;
+    }
+
+    private static double shiftTargetFor(int index, int currentIndex, double expansion) {
+        if (currentIndex < 0 || index == currentIndex) {
+            return 0.0;
+        }
+        return index < currentIndex ? -expansion : expansion;
     }
 
     // ==================== Geometry ====================
 
-    private void measureLines(double width, double height) {
+    private boolean measureLines(double width, double height) {
         double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
         double spacing = Math.max(0.0, getSkinnable().getLineSpacing());
         double y = height * position;
+        boolean changed = false;
 
         for (int i = 0; i < lineNodes.size(); i++) {
             LineNode line = lineNodes.get(i);
             double lineHeight = Math.max(0.0, line.prefHeight(width));
+            if (Math.abs(lineTops[i] - y) > GEOMETRY_EPSILON
+                    || Math.abs(lineHeights[i] - lineHeight) > GEOMETRY_EPSILON) {
+                changed = true;
+            }
             lineTops[i] = y;
             lineHeights[i] = lineHeight;
             y += lineHeight + spacing;
@@ -398,8 +486,13 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (!lineNodes.isEmpty()) {
             y -= spacing;
         }
-        contentTotalHeight = y + height * (1.0 - position);
+        double totalHeight = y + height * (1.0 - position);
+        if (Math.abs(contentTotalHeight - totalHeight) > GEOMETRY_EPSILON) {
+            changed = true;
+        }
+        contentTotalHeight = totalHeight;
         metricsDirty = false;
+        return changed;
     }
 
     private double targetTranslateY(int index, double viewportHeight) {
@@ -408,11 +501,14 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         }
         double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
         double anchorY = viewportHeight * position;
-        return anchorY - (lineTops[index] + lineHeights[index] / 2.0);
+        int currentIndex = getSkinnable().getCurrentLineIndex();
+        double shift = shiftTargetFor(index, currentIndex, gapExpansion(currentIndex));
+        return anchorY - (lineTops[index] + lineHeights[index] / 2.0 + shift);
     }
 
     private void updateTranslateAfterLayout() {
         scrollAnim.stop();
+        snapEmphasis(getSkinnable().getCurrentLineIndex());
         if (isDocumentEmpty()) {
             autoTranslateY.set(0.0);
             if (!manualBrowsing) {
@@ -489,18 +585,17 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     // ==================== Animation ====================
 
-    private void applyScroll(int oldIndex, int newIndex, double target) {
+    private void applyScroll(boolean snap, double target) {
         stopManualAnimations();
         manualBrowsing = false;
         dragging = false;
         manualOffsetY.set(0.0);
-        if (shouldSnap(oldIndex, newIndex) || !isPositiveFiniteAnimationDuration()) {
-            scrollAnim.stop();
+        scrollAnim.stop();
+        if (snap) {
             autoTranslateY.set(target);
             return;
         }
 
-        scrollAnim.stop();
         scrollAnim.getKeyFrames().setAll(new KeyFrame(
                 getSkinnable().getAnimationDuration(),
                 new KeyValue(autoTranslateY, target, INTERPOLATOR)));
@@ -640,6 +735,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     private void stopAllAnimations() {
         scrollAnim.stop();
+        emphasisAnim.stop();
         stopManualAnimations();
     }
 

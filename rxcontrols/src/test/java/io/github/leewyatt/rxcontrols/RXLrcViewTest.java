@@ -438,6 +438,211 @@ public class RXLrcViewTest {
         assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
     }
 
+    @Test
+    public void snapAppliesScaleAndGapShiftsInstantly() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setCurrentLineScale(1.5);
+        Pane content = content(view);
+
+        view.setCurrentTime(Duration.seconds(6.0));
+
+        int index = view.getCurrentLineIndex();
+        Node current = content.getChildren().get(index);
+        Node above = content.getChildren().get(index - 1);
+        Node below = content.getChildren().get(index + 1);
+        double expansion = (1.5 - 1.0) * current.getLayoutBounds().getHeight() / 2.0;
+        assertEquals(1.5, current.getScaleX(), EPSILON);
+        assertEquals(1.5, current.getScaleY(), EPSILON);
+        assertEquals(0.0, current.getTranslateY(), EPSILON);
+        assertEquals(-expansion, above.getTranslateY(), EPSILON);
+        assertEquals(expansion, below.getTranslateY(), EPSILON);
+        assertEquals(1.0, above.getScaleX(), EPSILON);
+    }
+
+    @Test
+    public void largeScaleWithZeroSpacingDoesNotOverlapNeighbours() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setLineSpacing(0.0);
+        view.setCurrentLineScale(1.5);
+        relayout(view);
+        Pane content = content(view);
+
+        int index = view.getCurrentLineIndex();
+        Node current = content.getChildren().get(index);
+        Node above = content.getChildren().get(index - 1);
+        Node below = content.getChildren().get(index + 1);
+        assertTrue(above.getBoundsInParent().getMaxY()
+                <= current.getBoundsInParent().getMinY() + 0.5);
+        assertTrue(current.getBoundsInParent().getMaxY()
+                <= below.getBoundsInParent().getMinY() + 0.5);
+    }
+
+    @Test
+    public void currentLineScaleChangeUpdatesGapShiftsInstantly() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        Pane content = content(view);
+        int index = view.getCurrentLineIndex();
+        Node current = content.getChildren().get(index);
+        Node above = content.getChildren().get(index - 1);
+        Node below = content.getChildren().get(index + 1);
+
+        view.setCurrentLineScale(1.5);
+
+        double expansion = (1.5 - 1.0) * current.getLayoutBounds().getHeight() / 2.0;
+        assertEquals(-expansion, above.getTranslateY(), EPSILON);
+        assertEquals(expansion, below.getTranslateY(), EPSILON);
+    }
+
+    @Test
+    public void animatedEmphasisDoesNotJumpToTargetScale() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.seconds(30.0));
+        Pane content = content(view);
+        int previousIndex = view.getCurrentLineIndex();
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+
+            Node current = content.getChildren().get(view.getCurrentLineIndex());
+            Node previous = content.getChildren().get(previousIndex);
+            assertTrue(current.getScaleX() < 1.05);
+            assertTrue(previous.getScaleX() > 1.05);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void animatedEmphasisReachesScaleAndShiftTargets() throws InterruptedException {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.millis(80.0));
+        view.setCurrentLineScale(1.5);
+        Pane content = content(view);
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+            waitForFxMillis(250.0);
+
+            int index = view.getCurrentLineIndex();
+            Node current = content.getChildren().get(index);
+            Node above = content.getChildren().get(index - 1);
+            Node below = content.getChildren().get(index + 1);
+            double expansion = (1.5 - 1.0) * current.getLayoutBounds().getHeight() / 2.0;
+            assertEquals(1.5, current.getScaleX(), EPSILON);
+            assertEquals(1.0, above.getScaleX(), EPSILON);
+            assertEquals(-expansion, above.getTranslateY(), EPSILON);
+            assertEquals(expansion, below.getTranslateY(), EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void seekJumpSnapsEmphasisImmediately() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.ZERO);
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.seconds(30.0));
+        Pane content = content(view);
+
+        view.setCurrentTime(Duration.seconds(8.0));
+
+        int index = view.getCurrentLineIndex();
+        Node current = content.getChildren().get(index);
+        Node above = content.getChildren().get(index - 1);
+        double expansion = (RXLrcView.DEFAULT_CURRENT_LINE_SCALE - 1.0)
+                * current.getLayoutBounds().getHeight() / 2.0;
+        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+        assertEquals(0.0, current.getTranslateY(), EPSILON);
+        assertEquals(-expansion, above.getTranslateY(), EPSILON);
+    }
+
+    @Test
+    public void browseCurrentLineChangeAppliesEmphasisWithoutScroll() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setBrowseRecoverDelay(Duration.UNKNOWN);
+        Pane content = content(view);
+        Node viewport = viewport(view);
+
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_PRESSED, 80.0));
+        viewport.fireEvent(mouseEvent(MouseEvent.MOUSE_DRAGGED, 45.0));
+        double browsedTranslate = content.getTranslateY();
+
+        try {
+            view.setCurrentTime(Duration.seconds(8.0));
+
+            assertEquals(browsedTranslate, content.getTranslateY(), EPSILON);
+            Node current = content.getChildren().get(view.getCurrentLineIndex());
+            assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void noOpRelayoutKeepsRunningAnimationsAlive() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.seconds(30.0));
+        Pane content = content(view);
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+            view.requestLayout();
+            relayout(view);
+
+            Node current = content.getChildren().get(view.getCurrentLineIndex());
+            assertTrue(current.getScaleX() < 1.05);
+            double centerY = content.getTranslateY()
+                    + current.getLayoutY()
+                    + current.getLayoutBounds().getHeight() / 2.0;
+            double anchorY = viewport(view).getLayoutBounds().getHeight()
+                    * RXLrcView.DEFAULT_CURRENT_LINE_POSITION;
+            assertTrue(Math.abs(centerY - anchorY) > 5.0);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void geometryChangingRelayoutSnapsRunningAnimations() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.seconds(30.0));
+        Pane content = content(view);
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+            view.setLineSpacing(20.0);
+            relayout(view);
+
+            Node current = content.getChildren().get(view.getCurrentLineIndex());
+            assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+            assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void documentReplacementResetsLineTransforms() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setCurrentLineScale(1.5);
+
+        view.setDocument(alternateDocument());
+        relayout(view);
+
+        Pane content = content(view);
+        int index = view.getCurrentLineIndex();
+        for (int i = 0; i < content.getChildren().size(); i++) {
+            Node node = content.getChildren().get(i);
+            double expectedScale = i == index ? 1.5 : 1.0;
+            assertEquals(expectedScale, node.getScaleX(), EPSILON);
+        }
+        assertEquals(0.0, content.getChildren().get(index).getTranslateY(), EPSILON);
+    }
+
     private static RXLrcDocument longDocument() {
         return RXLrcParser.parse("""
                 [00:00.00]Line 1

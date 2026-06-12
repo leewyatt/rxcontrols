@@ -30,8 +30,8 @@ public class PaneMediaController {
             System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
 
     /**
-     *  歌词文件的编码格式
-     *  可以自己写代码判断编码或者使用第三方库判断编码. 这里偷懒硬编码 gbk
+     * 歌词文件的编码格式
+     * 可以自己写代码判断编码或者使用第三方库判断编码. 这里偷懒硬编码 gbk
      */
     private final String LRC_CODE = "gbk";
     @FXML
@@ -64,7 +64,7 @@ public class PaneMediaController {
         File mp3File = fileChooser.showOpenDialog(window);
         if (mp3File != null) {
 
-            if(player!=null){
+            if (player != null) {
                 player.dispose();
                 lrcPane.setDocument(null);
                 lrcPane.currentTimeProperty().unbind();
@@ -141,13 +141,13 @@ public class PaneMediaController {
     }
 
     private void initLrc(File file) {
-        String lrcPath = file.getAbsolutePath().replaceAll("mp3$","lrc");
+        String lrcPath = file.getAbsolutePath().replaceAll("mp3$", "lrc");
         File lrcFile = new File(lrcPath);
         if (lrcFile.exists()) {
             String lrc = "";
             try {
 
-                 lrc = new String(Files.readAllBytes(Paths.get(lrcPath)), LRC_CODE);
+                lrc = new String(Files.readAllBytes(Paths.get(lrcPath)), LRC_CODE);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -157,7 +157,6 @@ public class PaneMediaController {
             lrcPane.setDocument(null);
         }
     }
-
 
 
     @FXML
@@ -170,23 +169,28 @@ public class PaneMediaController {
                 commitSeek();
             }
         });
+
+        lrcPane.setCurrentLineScale(1.5);
+        lrcPane.setAnimationDuration(Duration.millis(1000));
+        lrcPane.setAnimated(true);
+
         lrcPane.setOnLineClicked(event -> {
             if (player != null) {
                 player.seek(event.getTime());
             }
         });
 
-        //实现切换样式功能
+        // 实现切换样式功能
         String[] styleSheets = {
                 PaneMediaController.class.getResource("/css/spectrum-theme-sunset.css").toExternalForm(),
                 PaneMediaController.class.getResource("/css/spectrum-theme-ocean.css").toExternalForm()
-                };
-        styleGroup.selectedToggleProperty().addListener((ob, ov, nv) ->{
+        };
+        styleGroup.selectedToggleProperty().addListener((ob, ov, nv) -> {
             int index = styleGroup.getToggles().indexOf(nv);
-            if(index==0){
-                StyleUtil.removeSheets(spectrum,styleSheets);
-            }else {
-                StyleUtil.toggleSheets(spectrum,styleSheets,styleSheets[index-1]);
+            if (index == 0) {
+                StyleUtil.removeSheets(spectrum, styleSheets);
+            } else {
+                StyleUtil.toggleSheets(spectrum, styleSheets, styleSheets[index - 1]);
             }
         });
     }

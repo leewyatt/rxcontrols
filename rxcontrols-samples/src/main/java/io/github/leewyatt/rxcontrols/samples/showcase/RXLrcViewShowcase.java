@@ -189,7 +189,7 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         Slider spacingSlider = createSlider(0.0, 24.0, RXLrcView.DEFAULT_LINE_SPACING);
         lrcView.lineSpacingProperty().bind(spacingSlider.valueProperty());
 
-        Slider scaleSlider = createSlider(1.0, 1.4, RXLrcView.DEFAULT_CURRENT_LINE_SCALE);
+        Slider scaleSlider = createSlider(1.0, 1.8, RXLrcView.DEFAULT_CURRENT_LINE_SCALE);
         lrcView.currentLineScaleProperty().bind(scaleSlider.valueProperty());
 
         return createGrid(
