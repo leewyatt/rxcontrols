@@ -113,7 +113,7 @@ public class RXCarouselTest {
     // ==================== Interrupt Supplementation ====================
 
     @Test
-    public void interruptJumpsToEndBeforeNewTransition() throws InterruptedException {
+    public void interruptJumpsToEndAndSupplementsClosedOpened() throws InterruptedException {
         RXCarousel carousel = createLaidOutCarousel(3);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         carousel.setAnimation(recording);
@@ -126,19 +126,41 @@ public class RXCarouselTest {
 
             runOnFx(() -> carousel.goToPage(2, true));
 
+            // The interrupted transition is jumped to its end and the lost
+            // CLOSED/OPENED pair is supplemented from the indices captured
+            // before the interrupt (the recording animation itself never
+            // fires lifecycle events).
             assertEquals(1, recording.jumpToEndCalls);
             assertEquals(2, recording.contexts.size());
             assertTrue(carousel.isPageTransitioning());
-
-            // BUG, pinned intentionally: the skin's supplement block is meant
-            // to fire the lost CLOSED/OPENED pair on interrupt, but it never
-            // runs — jumpToEnd() stops the animation, whose STOPPED listener
-            // resets animatingFrom/ToIndex before the supplement reads them.
-            // The engine extraction fixes the ordering; this assertion flips
-            // to [CLOSED:0, OPENED:1] there.
-            assertEquals(List.of(), events);
+            assertEquals(List.of("CLOSED:0", "OPENED:1"), events);
         } finally {
             carousel.getSkin().dispose();
+        }
+    }
+
+    // ==================== Duration Gating ====================
+
+    @Test
+    public void nonPositiveFiniteDurationsFallBackToDirectCut() {
+        for (Duration duration : List.of(Duration.UNKNOWN, Duration.INDEFINITE,
+                Duration.ZERO, Duration.millis(-100.0))) {
+            RXCarousel carousel = createLaidOutCarousel(3);
+            RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+            carousel.setAnimation(recording);
+            carousel.setAnimationDuration(duration);
+            List<String> events = recordLifecycle(carousel);
+
+            try {
+                carousel.goToPage(1, true);
+
+                assertEquals(0, recording.contexts.size(), () -> "duration " + duration);
+                assertFalse(carousel.isPageTransitioning(), () -> "duration " + duration);
+                assertEquals(List.of("CLOSING:0", "CLOSED:0", "OPENING:1", "OPENED:1"),
+                        events, () -> "duration " + duration);
+            } finally {
+                carousel.getSkin().dispose();
+            }
         }
     }
 

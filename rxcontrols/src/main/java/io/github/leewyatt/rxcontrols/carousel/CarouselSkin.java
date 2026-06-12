@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
@@ -60,9 +61,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
     private final Map<Integer, Node> pageCache = new HashMap<>();
 
     // Animation state
-    private Animation currentTransition;
-    private PageAnimation usedAnimation;
-    private boolean transitioning;
+    private final PageTransitionEngine engine = new PageTransitionEngine();
     private int animatingFromIndex = -1;
     private int animatingToIndex = -1;
 
@@ -171,7 +170,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
 
         RXCarousel carousel = getSkinnable();
         PageAnimation anim = carousel.getAnimation();
-        if (!transitioning && anim != null && anim.isMultiPageDisplay()) {
+        if (!engine.isTransitioning() && anim != null && anim.isMultiPageDisplay()) {
             int idx = carousel.getSelectedIndex();
             if (idx >= 0 && idx < carousel.getPageCount()) {
                 TransitionContext ctx = buildContext(idx, idx, carousel);
@@ -261,7 +260,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
             // When switching back to circular while autoPlay is on and
             // the timer was stopped (e.g., at the last page in non-circular
             // mode), restart it so auto-play resumes.
-            if (newVal && carousel.isAutoPlay() && treeShowing.get() && !transitioning) {
+            if (newVal && carousel.isAutoPlay() && treeShowing.get() && !engine.isTransitioning()) {
                 startAutoplay(carousel);
             }
         });
@@ -308,7 +307,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         // animation plays to completion and onSelectedIndexChanged handles
         // the cleanup on the next page change (anim != usedAnimation check).
         disposer.registerListener(carousel.animationProperty(), (obs, oldAnim, newAnim) -> {
-            if (transitioning) {
+            if (engine.isTransitioning()) {
                 return;
             }
 
@@ -510,32 +509,34 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
             return;
         }
 
-        // Jump current animation to end if running
-        if (transitioning && usedAnimation != null) {
-            usedAnimation.jumpToEnd();
+        // Jump current animation to end if running. Capture the indices
+        // first: the stopped animation's status listener resets them through
+        // the external-stop callback before interrupt() returns.
+        if (engine.isTransitioning()) {
+            int closedIndex = animatingFromIndex;
+            int openedIndex = animatingToIndex;
+            engine.interrupt();
 
             // Supplement lifecycle events that were lost because onFinished
             // does not run when an animation is stopped. Animations fire
             // CLOSING/OPENING in getAnimation() and CLOSED/OPENED in
             // onFinished(), so CLOSED and OPENED are always the missing pair.
-            if (animatingFromIndex >= 0) {
-                Node fromPage = pageCache.get(animatingFromIndex);
+            if (closedIndex >= 0) {
+                Node fromPage = pageCache.get(closedIndex);
                 if (fromPage != null) {
                     carousel.fireEvent(new PageLifecycleEvent(
-                            PageLifecycleEvent.CLOSED, animatingFromIndex, fromPage));
+                            PageLifecycleEvent.CLOSED, closedIndex, fromPage));
                 }
             }
-            if (animatingToIndex >= 0) {
-                Node toPage = pageCache.get(animatingToIndex);
+            if (openedIndex >= 0) {
+                Node toPage = pageCache.get(openedIndex);
                 if (toPage != null) {
                     carousel.fireEvent(new PageLifecycleEvent(
-                            PageLifecycleEvent.OPENED, animatingToIndex, toPage));
+                            PageLifecycleEvent.OPENED, openedIndex, toPage));
                 }
             }
 
-            transitioning = false;
             carousel.setPageTransitioning(false);
-            currentTransition = null;
             animatingFromIndex = -1;
             animatingToIndex = -1;
         }
@@ -546,20 +547,17 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         anim = (configuredAnim != null) ? configuredAnim : FALLBACK_NONE;
 
         // Clear effects from previous animation if animation type changed
-        if (usedAnimation != null && anim != usedAnimation) {
-            TransitionContext clearContext = buildContext(oldIndex, newIndex, carousel);
-            usedAnimation.clearEffects(clearContext);
-
+        PageAnimation previousAnim = engine.clearEffectsIfChanged(anim,
+                () -> buildContext(oldIndex, newIndex, carousel));
+        if (previousAnim != null && previousAnim.isMultiPageDisplay()) {
             // When switching away from a multi-page display animation,
             // remove residual side pages from contentPane. They remain
             // in pageCache and will be re-added when needed. This
             // mirrors the cleanup in animationListener (idle path) and
             // prevents leftover visible side pages from interfering
             // with the new animation and causing depth buffer artifacts.
-            if (usedAnimation.isMultiPageDisplay()) {
-                Node oldCurrent = pageCache.get(oldIndex);
-                contentPane.getChildren().removeIf(child -> child != oldCurrent);
-            }
+            Node oldCurrent = pageCache.get(oldIndex);
+            contentPane.getChildren().removeIf(child -> child != oldCurrent);
         }
 
         Node currentPage = pageCache.get(oldIndex);
@@ -585,9 +583,12 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         // Notify navigator immediately so dots update before animation starts
         notifyNavigator(oldIndex, carousel);
 
-        // If animate flag is false or page count too low, direct cut
-        if (!carousel.isAnimateTransition()
-                || carousel.getPageCount() < anim.getMinimumPageCount()) {
+        // If animate flag is false, page count too low, or the duration is
+        // not positive finite, direct cut. The duration gate prevents an
+        // INDEFINITE timeline from never finishing and an UNKNOWN/negative
+        // duration from throwing inside KeyFrame construction.
+        if (!PageTransitionEngine.canAnimate(anim, carousel.isAnimateTransition(),
+                carousel.getPageCount(), carousel.getAnimationDuration(), true)) {
             directCut(currentPage, nextPage, oldIndex, newIndex, carousel);
             return;
         }
@@ -595,65 +596,36 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         // Build context and play animation
         TransitionContext context = buildContext(oldIndex, newIndex, carousel);
 
-        Animation transition = anim.getAnimation(context);
-        usedAnimation = anim;
-        currentTransition = transition;
-        transitioning = true;
-        carousel.setPageTransitioning(true);
-        animatingFromIndex = oldIndex;
-        animatingToIndex = newIndex;
-
-        // Wrap the animation's own onFinished (which handles page visibility)
-        // rather than overwriting it
-        EventHandler<ActionEvent> animHandler = transition.getOnFinished();
-        transition.setOnFinished(e -> {
-            if (animHandler != null) {
-                animHandler.handle(e);
-            }
-            transitioning = false;
-            carousel.setPageTransitioning(false);
-            currentTransition = null;
-            animatingFromIndex = -1;
-            animatingToIndex = -1;
-            if (!anim.isMultiPageDisplay()) {
-                hideNonCurrentPages(carousel);
-            }
-            onTransitionFinished(oldIndex, newIndex, carousel);
-        });
-
-        // Catch external stops (e.g., resizeGuard calling jumpToEnd).
-        // When an animation is stopped externally, onFinished does NOT fire,
-        // leaving transitioning=true and autoplay dead. This listener
-        // resets the state flags and restarts autoplay.
-        //
-        // IMPORTANT: Do NOT call hideNonCurrentPages or onTransitionFinished
-        // here. This listener fires during animation.stop(), BEFORE
-        // finishAction runs. Calling hideNonCurrentPages would remove pages
-        // from contentPane before finishAction can reset their visual
-        // properties (scale, translate), leaving stale values in pageCache.
-        //
-        // When the animation finishes naturally, onFinished fires FIRST
-        // (setting transitioning=false), then status changes to STOPPED.
-        // The transitioning guard prevents double execution.
-        transition.statusProperty().addListener((obs, oldStatus, newStatus) -> {
-            if (newStatus == Animation.Status.STOPPED && transitioning) {
-                transitioning = false;
-                carousel.setPageTransitioning(false);
-                currentTransition = null;
-                animatingFromIndex = -1;
-                animatingToIndex = -1;
-                if (carousel.isAutoPlay() && treeShowing.get()
-                        && !(mouseHovering && carousel.isHoverPause())) {
-                    startAutoplay(carousel);
-                }
-            }
-        });
-
-        // Stop autoplay and reset progress while animating; it will be
-        // restarted in onTransitionFinished after the animation completes.
-        stopAutoplay(carousel);
-
-        transition.play();
+        engine.play(anim, context,
+                () -> {
+                    carousel.setPageTransitioning(true);
+                    animatingFromIndex = oldIndex;
+                    animatingToIndex = newIndex;
+                    // Stop autoplay and reset progress while animating; it is
+                    // restarted in onTransitionFinished after completion.
+                    stopAutoplay(carousel);
+                },
+                () -> {
+                    carousel.setPageTransitioning(false);
+                    animatingFromIndex = -1;
+                    animatingToIndex = -1;
+                    if (!anim.isMultiPageDisplay()) {
+                        hideNonCurrentPages(carousel);
+                    }
+                    onTransitionFinished(oldIndex, newIndex, carousel);
+                },
+                () -> {
+                    // External stop (e.g. a resize guard calling jumpToEnd):
+                    // reset the mirror state and restart autoplay, which the
+                    // skipped onFinished path would otherwise have done.
+                    carousel.setPageTransitioning(false);
+                    animatingFromIndex = -1;
+                    animatingToIndex = -1;
+                    if (carousel.isAutoPlay() && treeShowing.get()
+                            && !(mouseHovering && carousel.isHoverPause())) {
+                        startAutoplay(carousel);
+                    }
+                });
     }
 
     private void directCut(Node currentPage, Node nextPage, int oldIndex, int newIndex,
@@ -898,7 +870,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         // Resume autoplay only if no animation is in progress.
         // If transitioning, autoplay will be restarted by onTransitionFinished.
         if (carousel.isAutoPlay() && carousel.isHoverPause()
-                && treeShowing.get() && !transitioning) {
+                && treeShowing.get() && !engine.isTransitioning()) {
             startAutoplay(carousel);
         }
 
@@ -1082,14 +1054,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
         if (nav != null) {
             nav.dispose();
         }
-        PageAnimation anim = carousel.getAnimation();
-        if (anim != null) {
-            anim.dispose();
-        }
-        if (usedAnimation != null && usedAnimation != anim) {
-            usedAnimation.dispose();
-            usedAnimation = null;
-        }
+        engine.dispose(carousel.getAnimation());
         pageCache.clear();
     }
 }

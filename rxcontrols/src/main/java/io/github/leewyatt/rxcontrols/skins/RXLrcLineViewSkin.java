@@ -4,27 +4,24 @@ import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import javafx.animation.Animation;
 import javafx.beans.value.ChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
-import javafx.util.Duration;
 
 /**
  * Skin for {@link RXLrcLineView}.
  *
  * <p>Two page wrappers are reused for all line transitions: the current page
  * shows (or is animating in) the current line, the spare page is the off-stage
- * node reused for the next transition. Transitions are produced by the shared
- * {@link PageAnimation} engine; the interrupt and cleanup handling mirrors
- * {@code CarouselSkin}.</p>
+ * node reused for the next transition. Transitions are driven by the shared
+ * {@link PageTransitionEngine}, which carries the interrupt and cleanup
+ * handling common to all {@link PageAnimation} hosts.</p>
  */
 public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
@@ -45,9 +42,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
     // ==================== Transition state ====================
 
-    private Animation currentTransition;
-    private PageAnimation usedAnimation;
-    private boolean transitioning;
+    private final PageTransitionEngine engine = new PageTransitionEngine();
 
     /**
      * Document the page texts were derived from; detects document swaps in the
@@ -203,7 +198,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     }
 
     private void refreshDirect() {
-        interruptTransition();
+        engine.interrupt();
         shownDocument = getSkinnable().getDocument();
         directCut(textAt(getSkinnable().getCurrentLineIndex()));
     }
@@ -219,7 +214,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     // ==================== Transitions ====================
 
     private void showLine(int index, TransitionDirection direction) {
-        interruptTransition();
+        engine.interrupt();
 
         RXLrcLineView control = getSkinnable();
         String text = textAt(index);
@@ -227,13 +222,11 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
         // Clear effects from the previous animation if the instance changed,
         // before deciding between animation and direct cut (as CarouselSkin does)
-        if (usedAnimation != null && animation != usedAnimation) {
-            usedAnimation.clearEffects(buildContext(currentPage, sparePage, direction));
-        }
+        engine.clearEffectsIfChanged(animation,
+                () -> buildContext(currentPage, sparePage, direction));
 
-        if (!control.isAnimated() || animation == null || animation.isMultiPageDisplay()
-                || animation.getMinimumPageCount() > 2
-                || !isPositiveFinite(control.getAnimationDuration())) {
+        if (!PageTransitionEngine.canAnimate(animation, control.isAnimated(), 2,
+                control.getAnimationDuration(), false)) {
             directCut(text);
             return;
         }
@@ -253,44 +246,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
         }
 
         TransitionContext context = buildContext(outgoing, currentPage, direction);
-        Animation transition = animation.getAnimation(context);
-        usedAnimation = animation;
-        currentTransition = transition;
-        transitioning = true;
-
-        // Wrap the animation's own onFinished (which settles page visibility)
-        // rather than overwriting it
-        EventHandler<ActionEvent> animHandler = transition.getOnFinished();
-        transition.setOnFinished(e -> {
-            if (animHandler != null) {
-                animHandler.handle(e);
-            }
-            transitioning = false;
-            currentTransition = null;
-            hideNonCurrentPages();
-        });
-
-        // Catch external stops (e.g. a resize guard calling jumpToEnd), which
-        // skip onFinished. Natural completion runs onFinished first (clearing
-        // the transitioning flag), so this listener never double-executes.
-        // Do not remove pages here: this fires during Animation.stop(), before
-        // the animation's finish action restores their visual properties.
-        transition.statusProperty().addListener((observable, oldStatus, newStatus) -> {
-            if (newStatus == Animation.Status.STOPPED && transitioning) {
-                transitioning = false;
-                currentTransition = null;
-            }
-        });
-
-        transition.play();
-    }
-
-    private void interruptTransition() {
-        if (transitioning && usedAnimation != null) {
-            usedAnimation.jumpToEnd();
-        }
-        transitioning = false;
-        currentTransition = null;
+        engine.play(animation, context, null, this::hideNonCurrentPages, null);
     }
 
     private void directCut(String text) {
@@ -314,14 +270,6 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
                 contentPane,
                 index -> index == 0 ? outgoing : incoming,
                 TransitionContext.LifecycleCallback.NOOP);
-    }
-
-    private static boolean isPositiveFinite(Duration duration) {
-        return duration != null
-                && !duration.isUnknown()
-                && !duration.isIndefinite()
-                && duration.greaterThan(Duration.ZERO)
-                && Double.isFinite(duration.toMillis());
     }
 
     // ==================== Placeholder ====================
@@ -377,17 +325,8 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
      */
     @Override
     protected void disposeSkin() {
-        transitioning = false;
-        currentTransition = null;
         RXLrcLineView control = getSkinnable();
-        PageAnimation animation = control == null ? null : control.getAnimation();
-        if (animation != null) {
-            animation.dispose();
-        }
-        if (usedAnimation != null && usedAnimation != animation) {
-            usedAnimation.dispose();
-        }
-        usedAnimation = null;
+        engine.dispose(control == null ? null : control.getAnimation());
         contentPane.getChildren().clear();
         getChildren().clear();
     }
