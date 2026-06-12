@@ -42,37 +42,37 @@
       <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="178.0" prefHeight="60.0" prefWidth="728.0" spacing="24.0">
          <children>
             <RXLineButton lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line Extend">
-               <alternateContent>
+               <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../image/photo.png" />
                      </image>
                   </ImageView>
-               </alternateContent></RXLineButton>
+               </graphic></RXLineButton>
             <RXLineButton lineAnimation="underline-slide-up" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line    Rise">
-               <alternateContent>
+               <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../image/plus.png" />
                      </image>
                   </ImageView>
-               </alternateContent></RXLineButton>
+               </graphic></RXLineButton>
             <RXLineButton lineAnimation="underline-fade" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line   Fade">
-               <alternateContent>
+               <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../image/star.png" />
                      </image>
                   </ImageView>
-               </alternateContent></RXLineButton>
+               </graphic></RXLineButton>
             <RXLineButton lineAnimation="underline-slide-down" lineGap="5.0" prefHeight="50.0" prefWidth="160.0" text="Line   Down">
-               <alternateContent>
+               <graphic>
                   <ImageView fitHeight="25.0" fitWidth="25.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../image/set.png" />
                      </image>
                   </ImageView>
-               </alternateContent></RXLineButton>
+               </graphic></RXLineButton>
          </children>
       </HBox>
       <HBox alignment="CENTER_LEFT" layoutX="17.0" layoutY="76.0" prefHeight="48.0" prefWidth="728.0" spacing="50.0">
@@ -127,7 +127,7 @@
             </RXTransitionButton>
          </children>
       </HBox>
-      <Label layoutX="21.0" layoutY="32.0" text="Transtion Button: 移动按钮" />
+      <Label layoutX="21.0" layoutY="32.0" text="Transition Button: 双面切换按钮" />
       <Label layoutX="21.0" layoutY="149.0" text="Line Button: 带线条的按钮" />
       <HBox layoutX="17.0" layoutY="294.0" prefHeight="30.0" prefWidth="687.0" spacing="60.0">
          <children>
