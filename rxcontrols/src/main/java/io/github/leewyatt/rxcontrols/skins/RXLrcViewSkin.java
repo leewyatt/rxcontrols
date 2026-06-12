@@ -161,6 +161,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         disposer.registerDisposeTask(() -> viewport.setClip(null));
 
         rebuildLineNodes();
+        syncCurrentLineState();
         updatePlaceholderState();
     }
 
@@ -374,6 +375,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     private void syncCurrentLineState() {
         emphasisAnim.stop();
+        emphasisAnim.getKeyFrames().clear();
         for (LineNode lineNode : lineNodes) {
             lineNode.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, false);
             lineNode.setScaleX(1.0);
@@ -396,7 +398,9 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private void snapEmphasis(int currentIndex) {
         emphasisAnim.stop();
         if (metricsDirty || lineHeights.length != lineNodes.size()) {
-            // Stale metrics imply a pending layout pass, which re-snaps with fresh heights.
+            // Metrics are stale; force the pending layout pass to re-snap with
+            // fresh heights even when the geometry turns out unchanged.
+            snapPendingLayout = true;
             return;
         }
         double scale = effectiveScale();

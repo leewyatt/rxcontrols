@@ -439,6 +439,16 @@ public class RXLrcViewTest {
     }
 
     @Test
+    public void initialCurrentLineHasCurrentPseudoClassWhenDocumentSetBeforeSkin() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+
+        Node current = content(view).getChildren().get(view.getCurrentLineIndex());
+
+        assertTrue(current.getPseudoClassStates().contains(PseudoClass.getPseudoClass("current")));
+        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+    }
+
+    @Test
     public void snapAppliesScaleAndGapShiftsInstantly() {
         RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
         view.setCurrentLineScale(1.5);
