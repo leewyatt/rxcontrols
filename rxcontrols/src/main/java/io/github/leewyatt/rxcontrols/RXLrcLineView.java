@@ -275,9 +275,10 @@ public class RXLrcLineView extends Control {
     /**
      * The animation used for line transitions. Any {@link CarouselAnimation}
      * preset shared with {@link RXCarousel} can be used, except multi-page
-     * display animations ({@link CarouselAnimation#isMultiPageDisplay()}),
-     * which fall back to a direct cut. Setting {@code null} also falls back
-     * to a direct cut.
+     * display animations ({@link CarouselAnimation#isMultiPageDisplay()}) and
+     * animations requiring more than two pages
+     * ({@link CarouselAnimation#getMinimumPageCount()}), which fall back to a
+     * direct cut. Setting {@code null} also falls back to a direct cut.
      *
      * @return the animation property
      */

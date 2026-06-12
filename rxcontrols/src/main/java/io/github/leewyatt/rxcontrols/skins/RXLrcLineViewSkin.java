@@ -242,17 +242,19 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
         RXLrcLineView control = getSkinnable();
         String text = textAt(index);
-
         CarouselAnimation animation = control.getAnimation();
+
+        // Clear effects from the previous animation if the instance changed,
+        // before deciding between animation and direct cut (as CarouselSkin does)
+        if (usedAnimation != null && animation != usedAnimation) {
+            usedAnimation.clearEffects(buildContext(currentPage, sparePage, direction));
+        }
+
         if (!control.isAnimated() || animation == null || animation.isMultiPageDisplay()
+                || animation.getMinimumPageCount() > 2
                 || !isPositiveFinite(control.getAnimationDuration())) {
             directCut(text);
             return;
-        }
-
-        // Clear effects from the previous animation if the instance changed
-        if (usedAnimation != null && usedAnimation != animation) {
-            usedAnimation.clearEffects(buildContext(currentPage, sparePage, direction));
         }
 
         StackPane outgoing = currentPage;

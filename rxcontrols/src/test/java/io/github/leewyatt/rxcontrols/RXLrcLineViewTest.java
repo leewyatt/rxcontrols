@@ -368,6 +368,42 @@ public class RXLrcLineViewTest {
     }
 
     @Test
+    public void minimumPageCountAboveTwoFallsBackToDirectCut() {
+        RXLrcLineView view = createLaidOutView(longDocument(), Duration.ZERO);
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0)) {
+            @Override
+            public int getMinimumPageCount() {
+                return 3;
+            }
+        };
+        view.setAnimated(true);
+        view.setAnimation(recording);
+
+        view.setCurrentTime(Duration.seconds(2.0));
+
+        assertEquals(0, recording.contexts.size());
+        assertEquals("Line 2", visibleLineText(view));
+    }
+
+    @Test
+    public void animationInstanceChangeClearsOldEffectsEvenOnDirectCut() {
+        RXLrcLineView view = createLaidOutView(longDocument(), Duration.ZERO);
+        RecordingAnimation first = new RecordingAnimation(Duration.seconds(30.0));
+        view.setAnimated(true);
+        view.setAnimation(first);
+        view.setCurrentTime(Duration.seconds(2.0));
+        assertEquals(1, first.contexts.size());
+
+        view.setAnimation(new RecordingAnimation(Duration.seconds(30.0)));
+        view.setAnimated(false);
+        view.setCurrentTime(Duration.seconds(4.0));
+
+        assertEquals(1, first.jumpToEndCalls);
+        assertEquals(1, first.clearEffectsCalls);
+        assertEquals("Line 3", visibleLineText(view));
+    }
+
+    @Test
     public void pagesAreReusedAcrossTransitions() {
         RXLrcLineView view = createLaidOutView(longDocument(), Duration.ZERO);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
@@ -502,6 +538,7 @@ public class RXLrcLineViewTest {
 
         final List<TransitionContext> contexts = new ArrayList<>();
         int jumpToEndCalls;
+        int clearEffectsCalls;
         int disposeCalls;
         Animation lastAnimation;
 
@@ -550,6 +587,7 @@ public class RXLrcLineViewTest {
 
         @Override
         public void clearEffects(TransitionContext context) {
+            clearEffectsCalls++;
         }
 
         @Override
