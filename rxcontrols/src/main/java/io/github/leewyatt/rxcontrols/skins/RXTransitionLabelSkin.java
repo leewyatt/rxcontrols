@@ -104,7 +104,10 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        // Labels do not stretch beyond their preferred size, matching
+        // LabeledSkinBase: layout panes clamp to this unless the user
+        // raises maxWidth explicitly.
+        return getSkinnable().prefWidth(height);
     }
 
     /**
@@ -113,7 +116,7 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        return getSkinnable().prefHeight(width);
     }
 
     // ==================== Transitions ====================

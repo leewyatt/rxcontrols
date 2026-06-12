@@ -229,7 +229,10 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        // Buttons do not stretch beyond their preferred size, matching
+        // LabeledSkinBase: layout panes clamp to this unless the user
+        // raises maxWidth explicitly.
+        return getSkinnable().prefWidth(height);
     }
 
     /**
@@ -238,7 +241,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        return getSkinnable().prefHeight(width);
     }
 
     // The button keeps a stable size across the face swap: both faces count.

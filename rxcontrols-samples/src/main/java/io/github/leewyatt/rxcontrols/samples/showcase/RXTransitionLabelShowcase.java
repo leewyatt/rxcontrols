@@ -30,7 +30,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -109,14 +108,12 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
         messageLabel.getStyleClass().add("showcase-message-label");
         messageLabel.setAnimation(new AnimSlide(Orientation.VERTICAL));
         messageLabel.setPrefSize(460.0, 56.0);
-        messageLabel.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         counterLabel = new RXTransitionLabel("0");
         counterLabel.getStyleClass().add("showcase-counter-label");
         counterLabel.setAnimation(new AnimSlide(Orientation.VERTICAL));
         counterLabel.setAnimationDuration(Duration.millis(260.0));
         counterLabel.setPrefSize(180.0, 72.0);
-        counterLabel.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label messageCaption = new Label("Message banner");
         messageCaption.getStyleClass().add("preview-caption");
