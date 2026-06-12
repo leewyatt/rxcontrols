@@ -1,46 +1,44 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXLineButton;
+import io.github.leewyatt.rxcontrols.RXLineLabel;
 import io.github.leewyatt.rxcontrols.internal.line.LineDecoration;
+import javafx.scene.control.skin.LabelSkin;
 
 /**
- * Skin for {@link RXLineButton}: the {@link RXButtonSkin} plus a
- * {@link LineDecoration} layer between the button background and the ripple
- * layer. See the decoration for the progress model, triggers and the
- * {@code :line-showing} pseudo-class contract.
+ * Skin for {@link RXLineLabel}: the standard {@link LabelSkin} plus a
+ * {@link LineDecoration} layer below the text. See the decoration for the
+ * progress model, triggers and the {@code :line-showing} pseudo-class
+ * contract.
  *
  * <p>The line reference box is the union of the text and graphic bounds,
  * recomputed every layout pass (content changes always trigger a layout);
  * with no visible content it falls back to the padded content area.</p>
  */
-public class RXLineButtonSkin extends RXButtonSkin {
+public class RXLineLabelSkin extends LabelSkin {
 
     private final LineDecoration line;
 
     /**
      * Creates the skin and wires the line decoration layer.
      *
-     * @param button the button this skin is attached to
+     * @param label the label this skin is attached to
      */
-    public RXLineButtonSkin(RXLineButton button) {
-        super(button);
-        // The lines are the hover affordance; the ripple hover overlay would
-        // only dilute them, so it is suppressed (the press ripple stays).
-        setHoverOverlayEnabled(false);
-        line = new LineDecoration(button,
-                button.lineAnimationProperty(),
-                button.animationTriggerProperty(),
-                button.animationDurationProperty(),
-                button.lineThicknessProperty(),
-                button.lineGapProperty());
+    public RXLineLabelSkin(RXLineLabel label) {
+        super(label);
+        line = new LineDecoration(label,
+                label.lineAnimationProperty(),
+                label.animationTriggerProperty(),
+                label.animationDurationProperty(),
+                label.lineThicknessProperty(),
+                label.lineGapProperty());
         updateChildren();
     }
 
     @Override
     protected void updateChildren() {
         super.updateChildren();
-        // The first calls come from superclass constructors, before this
-        // skin's fields are initialized.
+        // The first call comes from the LabeledSkinBase constructor, before
+        // this skin's fields are initialized.
         if (line != null) {
             getChildren().add(0, line.getLayer());
         }
@@ -55,7 +53,7 @@ public class RXLineButtonSkin extends RXButtonSkin {
 
     /**
      * Stops the line animation, removes the line layer and unregisters all
-     * line listeners before the {@link RXButtonSkin} cleanup runs.
+     * line listeners before the standard {@link LabelSkin} cleanup runs.
      */
     @Override
     public void dispose() {

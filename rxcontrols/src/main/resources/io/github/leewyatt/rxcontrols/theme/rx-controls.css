@@ -76,6 +76,24 @@
     -fx-text-fill: -rx-line-color;
 }
 
+/*line label*/
+.rx-line-label {
+    -rx-line-color: #616dff;
+    -rx-line-animation: underline-center-out;
+    -rx-line-thickness: 2px;
+    -rx-line-gap: 2px;
+    -rx-animation-trigger: hover;
+    -rx-animation-duration: 200ms;
+}
+
+.rx-line-label > .line-layer > .line {
+    -fx-background-color: -rx-line-color;
+}
+
+.rx-line-label:line-showing {
+    -fx-text-fill: -rx-line-color;
+}
+
 /*highlight label 高亮文本组件*/
 .rx-highlight-text {
     -rx-highlight-color: #ffff00;

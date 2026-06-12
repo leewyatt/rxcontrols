@@ -1,0 +1,17 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.heading {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.link {
+    -fx-font-size: 15px;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}

@@ -1,11 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
 import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
-import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXFillLabelSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
@@ -14,15 +12,12 @@ import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
-import javafx.css.converter.DurationConverter;
-import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.CornerRadii;
-import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,7 +42,7 @@ import java.util.List;
  * it is not focus-traversable, fires no action and reports the label
  * accessible role.</p>
  */
-public class RXFillLabel extends Label {
+public class RXFillLabel extends RXAnimatedLabel {
 
     // ==================== Constants ====================
 
@@ -55,16 +50,6 @@ public class RXFillLabel extends Label {
      * Default fill animation.
      */
     public static final FillAnimation DEFAULT_FILL_ANIMATION = FillAnimation.LEFT_TO_RIGHT;
-
-    /**
-     * Default animation trigger.
-     */
-    public static final RXAnimationTrigger DEFAULT_ANIMATION_TRIGGER = RXAnimationTrigger.HOVER;
-
-    /**
-     * Default animation duration.
-     */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     private static final String DEFAULT_STYLE_CLASS = "rx-fill-label";
 
@@ -110,16 +95,6 @@ public class RXFillLabel extends Label {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXFillLabelSkin(this);
-    }
-
-    /**
-     * Returns the user-agent stylesheet used by RXControls.
-     *
-     * @return the user-agent stylesheet URL
-     */
-    @Override
-    public String getUserAgentStylesheet() {
-        return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Fill Animation ====================
@@ -172,104 +147,6 @@ public class RXFillLabel extends Label {
      */
     public final void setFillAnimation(FillAnimation value) {
         fillAnimation.set(value);
-    }
-
-    // ==================== Animation Trigger ====================
-
-    private final ObjectProperty<RXAnimationTrigger> animationTrigger =
-            new StyleableObjectProperty<>(DEFAULT_ANIMATION_TRIGGER) {
-                @Override
-                public CssMetaData<? extends Styleable, RXAnimationTrigger> getCssMetaData() {
-                    return StyleableProperties.ANIMATION_TRIGGER;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXFillLabel.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "animationTrigger";
-                }
-            };
-
-    /**
-     * State source driving the fill animation. A {@code null} value falls back
-     * to {@link #DEFAULT_ANIMATION_TRIGGER} at render time.
-     *
-     * @return the animation trigger property
-     */
-    public final ObjectProperty<RXAnimationTrigger> animationTriggerProperty() {
-        return animationTrigger;
-    }
-
-    /**
-     * Returns the animation trigger.
-     *
-     * @return the animation trigger
-     */
-    public final RXAnimationTrigger getAnimationTrigger() {
-        return animationTrigger.get();
-    }
-
-    /**
-     * Sets the animation trigger.
-     *
-     * @param value the animation trigger
-     */
-    public final void setAnimationTrigger(RXAnimationTrigger value) {
-        animationTrigger.set(value);
-    }
-
-    // ==================== Animation Duration ====================
-
-    private final ObjectProperty<Duration> animationDuration =
-            new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
-                @Override
-                public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
-                    return StyleableProperties.ANIMATION_DURATION;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXFillLabel.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "animationDuration";
-                }
-            };
-
-    /**
-     * Duration of a full fill sweep. {@code Duration.ZERO} disables the
-     * animation (the fill snaps to the trigger state); {@code null}, negative
-     * or otherwise unusable values fall back to
-     * {@link #DEFAULT_ANIMATION_DURATION} at render time.
-     *
-     * @return the animation duration property
-     */
-    public final ObjectProperty<Duration> animationDurationProperty() {
-        return animationDuration;
-    }
-
-    /**
-     * Returns the animation duration.
-     *
-     * @return the animation duration
-     */
-    public final Duration getAnimationDuration() {
-        return animationDuration.get();
-    }
-
-    /**
-     * Sets the animation duration.
-     *
-     * @param value the animation duration
-     */
-    public final void setAnimationDuration(Duration value) {
-        animationDuration.set(value);
     }
 
     // ==================== Fill Insets ====================
@@ -395,36 +272,6 @@ public class RXFillLabel extends Label {
                     }
                 };
 
-        private static final CssMetaData<RXFillLabel, RXAnimationTrigger> ANIMATION_TRIGGER =
-                new CssMetaData<>("-rx-animation-trigger",
-                        new EnumConverter<>(RXAnimationTrigger.class), DEFAULT_ANIMATION_TRIGGER) {
-                    @Override
-                    public boolean isSettable(RXFillLabel label) {
-                        return !label.animationTrigger.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXAnimationTrigger> getStyleableProperty(RXFillLabel label) {
-                        return (StyleableProperty<RXAnimationTrigger>) label.animationTriggerProperty();
-                    }
-                };
-
-        private static final CssMetaData<RXFillLabel, Duration> ANIMATION_DURATION =
-                new CssMetaData<>("-rx-animation-duration",
-                        DurationConverter.getInstance(), DEFAULT_ANIMATION_DURATION) {
-                    @Override
-                    public boolean isSettable(RXFillLabel label) {
-                        return !label.animationDuration.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Duration> getStyleableProperty(RXFillLabel label) {
-                        return (StyleableProperty<Duration>) label.animationDurationProperty();
-                    }
-                };
-
         private static final CssMetaData<RXFillLabel, Insets> FILL_INSETS =
                 new CssMetaData<>("-rx-fill-insets",
                         InsetsConverter.getInstance(), null) {
@@ -458,10 +305,8 @@ public class RXFillLabel extends Label {
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
-                    new ArrayList<>(Label.getClassCssMetaData());
+                    new ArrayList<>(RXAnimatedLabel.getClassCssMetaData());
             styleables.add(FILL_ANIMATION);
-            styleables.add(ANIMATION_TRIGGER);
-            styleables.add(ANIMATION_DURATION);
             styleables.add(FILL_INSETS);
             styleables.add(FILL_CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);

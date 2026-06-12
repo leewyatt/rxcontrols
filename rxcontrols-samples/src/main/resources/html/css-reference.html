@@ -87,10 +87,12 @@
     <li><a href="#rxCarousel">RXCarousel</a></li>
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
+    <li><a href="#rxFillLabel">RXFillLabel</a></li>
     <li><a href="#rxHighlightText">RXHighlightText</a></li>
     <li><a href="#rxImageView">RXImageView</a></li>
     <li><a href="#rxClipPathImageView">RXClipPathImageView</a></li>
     <li><a href="#rxLineButton">RXLineButton</a></li>
+    <li><a href="#rxLineLabel">RXLineLabel</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
@@ -525,6 +527,14 @@ ripple-layer — Region<br/><br/>
 <p>Pseudo class: <code>:line-showing</code> — active while any line is visible
 (from the start of the enter run until the reverse run finishes), e.g.
 <code>.rx-line-button:line-showing { -fx-text-fill: -rx-line-color; }</code></p>
+
+<h3 id="rxLineLabel">RXLineLabel</h3>
+<p class="fxClass">Style class: rx-line-label (also: label)</p>
+<p>The non-interactive counterpart of RXLineButton: a Label with the same
+line decoration, properties, CSS properties and the
+<code>:line-showing</code> pseudo class (see RXLineButton above, minus the
+button/ripple properties). Keeps full Label semantics — not
+focus-traversable, no action.</p>
 
 <h3 id="rxLrcView">RXLrcView</h3>
 <p class="fxClass">Style class: rx-lrc-view</p>
