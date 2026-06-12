@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
 import javafx.scene.Node;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
@@ -22,7 +21,6 @@ public class TransitionContext {
     private final TransitionDirection direction;
     private final Duration duration;
     private final StackPane contentPane;
-    private final Pane effectPane;
     private final PageProvider pageProvider;
     private final LifecycleCallback lifecycleCallback;
 
@@ -109,14 +107,13 @@ public class TransitionContext {
      * @param direction         the transition direction
      * @param duration          the animation duration
      * @param contentPane       the pane holding page nodes
-     * @param effectPane        the pane for animation effects (snapshots, clips, etc.), may be {@code null}
      * @param pageProvider      provider for fetching pages by index
      * @param lifecycleCallback callback for firing lifecycle events
      */
     public TransitionContext(Node currentPage, Node nextPage,
                              int currentIndex, int nextIndex, int pageCount,
                              TransitionDirection direction, Duration duration,
-                             StackPane contentPane, Pane effectPane,
+                             StackPane contentPane,
                              PageProvider pageProvider,
                              LifecycleCallback lifecycleCallback) {
         this.currentPage = currentPage;
@@ -127,7 +124,6 @@ public class TransitionContext {
         this.direction = direction;
         this.duration = duration;
         this.contentPane = contentPane;
-        this.effectPane = effectPane;
         this.pageProvider = pageProvider;
         this.lifecycleCallback = lifecycleCallback;
     }
@@ -202,15 +198,6 @@ public class TransitionContext {
      */
     public StackPane getContentPane() {
         return contentPane;
-    }
-
-    /**
-     * Returns the pane for animation effects (e.g., snapshot images, clips).
-     *
-     * @return the effect pane, or {@code null} if the host provides none
-     */
-    public Pane getEffectPane() {
-        return effectPane;
     }
 
     /**

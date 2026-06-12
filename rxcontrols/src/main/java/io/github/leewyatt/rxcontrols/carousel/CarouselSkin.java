@@ -720,7 +720,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
                 oldIndex, newIndex,
                 carousel.getPageCount(),
                 direction, duration,
-                contentPane, null,
+                contentPane,
                 index -> {
                     Node page = getOrCreatePage(index, carousel);
                     if (page != null && !contentPane.getChildren().contains(page)) {

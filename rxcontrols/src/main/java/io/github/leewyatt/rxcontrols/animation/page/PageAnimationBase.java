@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols.animation.page;
 
 import javafx.animation.Animation;
 import javafx.beans.value.ChangeListener;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 
 /**
@@ -61,12 +60,12 @@ public abstract class PageAnimationBase implements PageAnimation {
         }
     }
 
+    /**
+     * Does nothing by default; subclasses that leave visual side effects
+     * behind override this to remove them.
+     */
     @Override
     public void clearEffects(TransitionContext context) {
-        Pane effectPane = context.getEffectPane();
-        if (effectPane != null) {
-            effectPane.getChildren().clear();
-        }
     }
 
     /**

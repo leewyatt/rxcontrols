@@ -311,7 +311,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
                 outgoing, incoming,
                 0, 1, 2,
                 direction, getSkinnable().getAnimationDuration(),
-                contentPane, null,
+                contentPane,
                 index -> index == 0 ? outgoing : incoming,
                 TransitionContext.LifecycleCallback.NOOP);
     }

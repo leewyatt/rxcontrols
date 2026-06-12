@@ -21,7 +21,7 @@ public interface PageAnimation {
      * and should fire the lifecycle notifications on the context at the
      * matching points of the animation timeline.</p>
      *
-     * @param context the context containing current/next pages, direction, duration, and panes
+     * @param context the context containing current/next pages, direction, duration, and content pane
      * @return a ready-to-play animation
      */
     Animation getAnimation(TransitionContext context);
@@ -33,8 +33,8 @@ public interface PageAnimation {
     void jumpToEnd();
 
     /**
-     * Clears any visual side effects left by this animation (e.g., snapshot nodes
-     * in the effect pane, transforms, clips).
+     * Clears any visual side effects left by this animation (e.g., leftover
+     * snapshot nodes, transforms, clips on the content pane).
      *
      * @param context the transition context
      */
