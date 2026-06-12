@@ -94,6 +94,7 @@
     <li><a href="#rxLineButton">RXLineButton</a></li>
     <li><a href="#rxLineLabel">RXLineLabel</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
+    <li><a href="#rxLrcLineView">RXLrcLineView</a></li>
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
@@ -597,6 +598,53 @@ focus-traversable, no action.</p>
     </tr>
     </tbody>
 </table>
+<h3 id="rxLrcLineView">RXLrcLineView</h3>
+<p class="fxClass">Style class: rx-lrc-line-view</p>
+<p>Displays the single current line of an LRC document, transitioning between
+lines with the <code>CarouselAnimation</code> presets shared with RXCarousel.
+Multi-page display animations are not supported and fall back to a direct cut.
+Text styling goes through the inner Label's built-in <code>-fx-*</code>
+properties (e.g. <code>-fx-text-fill</code>, <code>-fx-font-size</code>);
+alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
+<h4>Substructure</h4>
+.content-pane — StackPane <br>
+&emsp;&emsp;.line — StackPane (two reused pages)<br>
+&emsp;&emsp;&emsp;&emsp;.label — Label<br>
+.placeholder — Node <br>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>empty</td>
+        <td>applies when the control has no timed lyric lines</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td> Duration</td>
+        <td>500ms</td>
+    </tr>
+    </tbody>
+</table>
+
 <h3 id="rxSeekBar">RXSeekBar</h3>
 <p class="fxClass">Style class: rx-seek-bar</p>
 <p>The control has all the properties of Control;</p>
