@@ -2,8 +2,11 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import io.github.leewyatt.rxcontrols.skins.RXLineLabelSkin;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.collections.SetChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.BoundingBox;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -167,6 +171,153 @@ public class RXLineLabelTest {
     }
 
     /**
+     * Verifies the NONE trigger ignores mouse state events, switching to NONE
+     * mid-activation retracts the line, and the CSS {@code none} keyword
+     * applies.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void noneTriggerIsInertAndAppliesFromCss() throws Exception {
+        runOnFx(() -> {
+            RXLineLabel label = withSkin(new RXLineLabel("Link"));
+            label.setAnimationDuration(Duration.ZERO);
+            label.setAnimationTrigger(RXAnimationTrigger.NONE);
+            layout(label, 120.0, 40.0);
+
+            label.fireEvent(mouse(label, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+            label.fireEvent(mouse(label, MouseEvent.MOUSE_PRESSED, 10.0, 10.0, true));
+
+            assertFalse(isLineShowing(label));
+
+            label.setAnimationTrigger(RXAnimationTrigger.HOVER);
+            label.fireEvent(mouse(label, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
+
+            assertTrue(isLineShowing(label));
+
+            label.setAnimationTrigger(RXAnimationTrigger.NONE);
+
+            assertFalse(isLineShowing(label));
+
+            // JavaFX CSS reserves the keyword "none" as null on two levels:
+            // the parser maps the bare ident (CssParser.valueFor) and the
+            // style helper drops the case-sensitive string "none" even when
+            // quoted (CssStyleHelper.calculateValue). Only the quoted
+            // upper-case form reaches the EnumConverter.
+            RXLineLabel styled = new RXLineLabel("Link");
+            StackPane root = new StackPane(styled);
+            new Scene(root);
+            styled.setStyle("-rx-animation-trigger: \"NONE\";");
+
+            root.applyCss();
+
+            assertSame(RXAnimationTrigger.NONE, styled.getAnimationTrigger());
+        });
+    }
+
+    /**
+     * Verifies {@code playAnimation()} pulses the line once — visible, then
+     * hidden again — in both NONE and HOVER trigger modes.
+     *
+     * @throws Exception if the pulse latches time out
+     */
+    @Test
+    public void playAnimationPulsesOnceInNoneAndHoverModes() throws Exception {
+        assertPulseCompletes(RXAnimationTrigger.NONE, false);
+        assertPulseCompletes(RXAnimationTrigger.HOVER, false);
+    }
+
+    /**
+     * Verifies a pulse in flight is not interrupted by a transient hover exit
+     * event: the bar still reaches its full forward extent before retracting.
+     *
+     * @throws Exception if the pulse latches time out
+     */
+    @Test
+    public void pulseCompletesDespiteHoverExitMidFlight() throws Exception {
+        assertPulseCompletes(RXAnimationTrigger.HOVER, true);
+    }
+
+    /**
+     * Verifies a nested animated button's pulse stays out of the host label's
+     * decoration: the bubbling event targets the button and is rejected and
+     * consumed before the label's progress model reacts.
+     *
+     * @throws Exception if the pulse latches time out
+     */
+    @Test
+    public void nestedButtonPulseStaysOutOfLabelDecoration() throws Exception {
+        CountDownLatch pulsed = new CountDownLatch(1);
+        CountDownLatch converged = new CountDownLatch(1);
+        AtomicBoolean labelLineShowed = new AtomicBoolean();
+        AtomicReference<RXLineLabel> labelRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXFillButton graphic = new RXFillButton("Go");
+            graphic.setSkin(new RXFillButtonSkin(graphic));
+            graphic.setAnimationDuration(Duration.millis(40.0));
+            RXLineLabel label = withSkin(new RXLineLabel("Link", graphic));
+            label.setAnimationDuration(Duration.millis(40.0));
+            layout(label, 200.0, 60.0);
+            labelRef.set(label);
+            lineLayer(label).visibleProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    labelLineShowed.set(true);
+                }
+            });
+            graphic.getPseudoClassStates().addListener(
+                    (SetChangeListener<PseudoClass>) change -> {
+                        if (change.wasAdded()
+                                && "filling".equals(change.getElementAdded().getPseudoClassName())) {
+                            pulsed.countDown();
+                        } else if (change.wasRemoved()
+                                && "filling".equals(change.getElementRemoved().getPseudoClassName())) {
+                            converged.countDown();
+                        }
+                    });
+            graphic.playAnimation();
+        });
+        assertTrue(pulsed.await(5, TimeUnit.SECONDS), "nested button should pulse");
+        assertTrue(converged.await(5, TimeUnit.SECONDS), "nested button pulse should converge");
+        runOnFx(() -> {
+            assertFalse(labelLineShowed.get());
+            assertFalse(isLineShowing(labelRef.get()));
+        });
+    }
+
+    /**
+     * Verifies {@code playAnimation()} is a no-op with a zero duration or a
+     * disabled host: the line never shows even after animation frames pass.
+     *
+     * @throws Exception if the FX wait fails
+     */
+    @Test
+    public void playAnimationNoOpOnZeroDurationOrDisabled() throws Exception {
+        AtomicReference<RXLineLabel> zeroRef = new AtomicReference<>();
+        AtomicReference<RXLineLabel> disabledRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXLineLabel zero = withSkin(new RXLineLabel("Link"));
+            zero.setAnimationDuration(Duration.ZERO);
+            layout(zero, 120.0, 40.0);
+            zero.playAnimation();
+            zeroRef.set(zero);
+
+            RXLineLabel disabled = withSkin(new RXLineLabel("Link"));
+            disabled.setAnimationDuration(Duration.millis(40.0));
+            layout(disabled, 120.0, 40.0);
+            disabled.setDisable(true);
+            disabled.playAnimation();
+            disabledRef.set(disabled);
+        });
+        awaitFxDelay(Duration.millis(120.0));
+        runOnFx(() -> {
+            assertFalse(lineLayer(zeroRef.get()).isVisible());
+            assertFalse(isLineShowing(zeroRef.get()));
+            assertFalse(lineLayer(disabledRef.get()).isVisible());
+            assertFalse(isLineShowing(disabledRef.get()));
+        });
+    }
+
+    /**
      * Verifies the CSS properties reach the line properties through a style
      * application pass.
      *
@@ -225,6 +376,59 @@ public class RXLineLabelTest {
     }
 
     // ==================== Helpers ====================
+
+    /**
+     * Runs one full {@code playAnimation()} pulse with a real short duration
+     * and asserts the line shows, reaches the full forward extent, then hides
+     * again. With {@code exitMidFlight} a hover exit event is fired right
+     * after the pulse starts; the gate must absorb it.
+     */
+    private static void assertPulseCompletes(RXAnimationTrigger trigger,
+                                             boolean exitMidFlight) throws Exception {
+        CountDownLatch shown = new CountDownLatch(1);
+        CountDownLatch fullExtent = new CountDownLatch(1);
+        CountDownLatch hidden = new CountDownLatch(1);
+        runOnFx(() -> {
+            RXLineLabel label = withSkin(new RXLineLabel("Link"));
+            label.setAnimationDuration(Duration.millis(60.0));
+            label.setAnimationTrigger(trigger);
+            layout(label, 120.0, 40.0);
+            Bounds reference = referenceOf(label);
+            Region bar = bar(label, 0);
+            bar.widthProperty().addListener((obs, was, is) -> {
+                if (is.doubleValue() >= reference.getWidth() - EPSILON) {
+                    fullExtent.countDown();
+                }
+            });
+            lineLayer(label).visibleProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    shown.countDown();
+                } else if (shown.getCount() == 0) {
+                    hidden.countDown();
+                }
+            });
+            label.playAnimation();
+            if (exitMidFlight) {
+                label.fireEvent(mouse(label, MouseEvent.MOUSE_EXITED, -5.0, 10.0, false));
+            }
+        });
+        assertTrue(shown.await(5, TimeUnit.SECONDS), "pulse should show the line");
+        assertTrue(fullExtent.await(5, TimeUnit.SECONDS),
+                "pulse should reach the full forward extent");
+        assertTrue(hidden.await(5, TimeUnit.SECONDS), "pulse should converge back to hidden");
+    }
+
+    private static void awaitFxDelay(Duration delay) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        runOnFx(() -> {
+            PauseTransition pause = new PauseTransition(delay);
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX delay timed out");
+        }
+    }
 
     private static RXLineLabel withSkin(RXLineLabel label) {
         label.setSkin(new RXLineLabelSkin(label));

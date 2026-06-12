@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
 import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
@@ -103,6 +104,16 @@ public class RXButton extends Button {
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Programmatic Playback ====================
+
+    /**
+     * Plays one centered ripple (press and immediate release). No effect when
+     * ripples are disabled or the host is disabled.
+     */
+    public final void playRipple() {
+        fireEvent(new RXAnimationEvent(RXAnimationEvent.PLAY_RIPPLE));
     }
 
     // ==================== Ripple Fill ====================

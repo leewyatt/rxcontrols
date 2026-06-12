@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
@@ -67,6 +68,18 @@ public abstract class RXAnimatedButton extends RXButton {
         super(text, graphic);
     }
 
+    // ==================== Programmatic Playback ====================
+
+    /**
+     * Plays the decoration once: forward from the current progress, then
+     * converges back to the current trigger state. No visible effect when the
+     * trigger state already shows the decoration, when the host is disabled,
+     * or when the duration is {@link Duration#ZERO}.
+     */
+    public final void playAnimation() {
+        fireEvent(new RXAnimationEvent(RXAnimationEvent.PLAY_ANIMATION));
+    }
+
     // ==================== Animation Trigger ====================
 
     private final ObjectProperty<RXAnimationTrigger> animationTrigger =
@@ -89,7 +102,9 @@ public abstract class RXAnimatedButton extends RXButton {
 
     /**
      * State source driving the decoration animation. A {@code null} value
-     * falls back to {@link #DEFAULT_ANIMATION_TRIGGER} at render time.
+     * falls back to {@link #DEFAULT_ANIMATION_TRIGGER} at render time, while
+     * {@link RXAnimationTrigger#NONE} explicitly disables automatic
+     * triggering so the decoration moves only via {@link #playAnimation()}.
      *
      * @return the animation trigger property
      */

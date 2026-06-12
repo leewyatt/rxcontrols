@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.geometry.Point2D;
 import javafx.scene.control.skin.ButtonSkin;
@@ -43,6 +44,17 @@ public class RXButtonSkin extends ButtonSkin {
         disposer.registerEventFilter(button, MouseEvent.MOUSE_RELEASED,
                 event -> pointerCoordsFresh = false);
         disposer.registerListener(button.armedProperty(), this::handleArmedChanged);
+        disposer.registerEventHandler(button, RXAnimationEvent.PLAY_RIPPLE, event -> {
+            // Reject events bubbling up from a nested ripple host.
+            if (event.getTarget() != button) {
+                return;
+            }
+            if (button.isRippleEnabled() && !button.isDisabled()) {
+                ripple.press(0.0, 0.0, true);
+                ripple.release();
+            }
+            event.consume();
+        });
 
         updateChildren();
     }

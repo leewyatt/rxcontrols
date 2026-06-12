@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
@@ -123,11 +124,16 @@ public class RXButtonShowcase extends RXShowcaseApplication {
             }
         });
 
+        Button playRippleButton = new Button("playRipple()");
+        playRippleButton.setMaxWidth(Double.MAX_VALUE);
+        playRippleButton.setOnAction(event -> button.playRipple());
+
         return createGrid(
                 row("Default (ENTER)", defaultBox),
                 row("Cancel (ESC)", cancelBox),
                 row("Disabled", disableBox),
-                row("Pill shape", pillBox));
+                row("Pill shape", pillBox),
+                row("Play ripple", playRippleButton));
     }
 
     /**

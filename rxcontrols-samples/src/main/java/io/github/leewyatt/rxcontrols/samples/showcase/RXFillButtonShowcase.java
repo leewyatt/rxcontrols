@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
@@ -154,9 +155,14 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
         durationSlider.valueProperty().addListener((obs, oldV, newV) ->
                 button.setAnimationDuration(Duration.millis(newV.doubleValue())));
 
+        Button playOnceButton = new Button("playAnimation()");
+        playOnceButton.setMaxWidth(Double.MAX_VALUE);
+        playOnceButton.setOnAction(event -> button.playAnimation());
+
         return createGrid(
                 row("Trigger", triggerBox),
-                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")));
+                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
+                row("Play once", playOnceButton));
     }
 
     private Node buildButtonGrid() {

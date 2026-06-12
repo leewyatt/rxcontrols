@@ -15,5 +15,11 @@ public enum RXAnimationTrigger {
     /**
      * Animate while the primary mouse button is held down on the control.
      */
-    PRESSED
+    PRESSED,
+
+    /**
+     * No automatic state source; the decoration moves only via programmatic
+     * playback such as {@code playAnimation()}.
+     */
+    NONE
 }

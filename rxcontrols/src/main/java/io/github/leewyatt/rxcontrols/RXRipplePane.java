@@ -149,6 +149,21 @@ public class RXRipplePane extends Region {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    // ==================== Programmatic Playback ====================
+
+    /**
+     * Plays one centered ripple (press and immediate release). No effect when
+     * ripples are disabled or the host is disabled.
+     */
+    public final void playRipple() {
+        // The pane holds its decoration directly (no skin), so no event
+        // channel is needed; the behavior contract matches RXButton.
+        if (isRippleEnabled() && !isDisabled()) {
+            ripple.press(0.0, 0.0, true);
+            ripple.release();
+        }
+    }
+
     // ==================== Content ====================
 
     private final ObjectProperty<Node> content =

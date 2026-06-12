@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
@@ -31,6 +32,13 @@ import javafx.util.Duration;
  * it); leaving the scene snaps to the current trigger state without
  * animating.</p>
  *
+ * <p>An {@link RXAnimationEvent#PLAY_ANIMATION} event targeted at the host
+ * plays the decoration once: forward from the current progress to the end,
+ * then convergence back to the live trigger state. Trigger state events are
+ * gated while the pulse is in flight so it always completes visually;
+ * structural interruptions (disabling the host, leaving the scene, a zero
+ * duration) cancel it immediately.</p>
+ *
  * <p>The owning decoration observes {@link #progressProperty()} and renders
  * its visuals as a pure function of the value; it must call {@link #dispose()}
  * from its own dispose chain.</p>
@@ -56,6 +64,7 @@ public final class DecorationProgress {
             new SimpleDoubleProperty(this, "progress", 0.0);
 
     private Timeline timeline;
+    private boolean playingOnce;
 
     /**
      * Creates the progress model and wires its triggers on the host.
@@ -96,16 +105,35 @@ public final class DecorationProgress {
                 animateTo(false);
             }
         });
+        disposer.registerEventHandler(host, RXAnimationEvent.PLAY_ANIMATION, event -> {
+            // Reject events bubbling up from a nested animated host.
+            if (event.getTarget() != host) {
+                return;
+            }
+            playOnce();
+            event.consume();
+        });
         disposer.registerListener(trigger, () -> animateTo(isTriggerActive()));
         disposer.registerListener(host.sceneProperty(), () -> {
             if (host.getScene() == null) {
                 snapTo(isTriggerActive());
             }
         });
-        // A node disabled mid-gesture stops receiving the ending event.
+        // A node disabled mid-gesture stops receiving the ending event; a
+        // disabled host also cancels a pulse, so clear the gate first.
         disposer.registerListener(host.disabledProperty(), () -> {
             if (host.isDisabled()) {
+                playingOnce = false;
                 animateTo(false);
+            }
+        });
+        // Pulse completion: the end KeyFrame guarantees progress reaches
+        // exactly 1.0 on a full forward run, independent of timeline rebuilds
+        // and of onFinished semantics at reversed endpoints.
+        disposer.registerListener(progress, () -> {
+            if (playingOnce && progress.get() >= 1.0) {
+                playingOnce = false;
+                animateTo(isTriggerActive());
             }
         });
 
@@ -158,6 +186,12 @@ public final class DecorationProgress {
     }
 
     private void animateTo(boolean active) {
+        // A pulse in flight always completes visually; transient state events
+        // are absorbed here and take effect through the convergence call,
+        // which reads the live trigger state after clearing the gate.
+        if (playingOnce) {
+            return;
+        }
         Duration value = duration.get();
         if (value != null && value.equals(Duration.ZERO)) {
             snapTo(active);
@@ -175,7 +209,26 @@ public final class DecorationProgress {
         timeline.play();
     }
 
+    private void playOnce() {
+        Duration value = duration.get();
+        if (host.isDisabled() || (value != null && value.equals(Duration.ZERO))) {
+            return;
+        }
+        // Resting with the decoration already fully shown: no visible effect.
+        // Also avoids Animation.play restarting a finished timeline from the
+        // opposite end (lastPlayedFinished), same defense as animateTo.
+        if (timeline.getStatus() != Animation.Status.RUNNING && getProgress() >= 1.0) {
+            return;
+        }
+        playingOnce = true;
+        timeline.setRate(1.0);
+        timeline.play();
+    }
+
     private void snapTo(boolean active) {
+        // Structural interruption point (zero duration, scene detach): a
+        // pulse in flight is cancelled, not completed.
+        playingOnce = false;
         timeline.stop();
         timeline.jumpTo(active ? timeline.getTotalDuration() : Duration.ZERO);
         progress.set(active ? 1.0 : 0.0);
@@ -220,8 +273,13 @@ public final class DecorationProgress {
     }
 
     private boolean isTriggerActive() {
-        return triggerOrDefault() == RXAnimationTrigger.HOVER
-                ? host.isHover()
-                : host.isPressed();
+        switch (triggerOrDefault()) {
+            case HOVER:
+                return host.isHover();
+            case PRESSED:
+                return host.isPressed();
+            default:
+                return false;
+        }
     }
 }

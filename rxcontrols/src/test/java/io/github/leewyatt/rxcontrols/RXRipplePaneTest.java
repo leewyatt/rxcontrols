@@ -484,6 +484,40 @@ public class RXRipplePaneTest {
     }
 
     /**
+     * Verifies {@code playRipple()} plays one centered ripple through the
+     * direct (skinless) path and is a no-op when ripples are disabled or the
+     * pane is disabled.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void playRippleShowsCenteredRippleAndRespectsGates() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.playRipple();
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+            Circle circle = (Circle) layer.getChildrenUnmodifiable().get(0);
+            assertClose(50.0, circle.getCenterX(), "center x");
+            assertClose(25.0, circle.getCenterY(), "center y");
+
+            pane.setRippleEnabled(false);
+            pane.playRipple();
+
+            assertEquals(0, layer.getChildrenUnmodifiable().size());
+
+            pane.setRippleEnabled(true);
+            pane.setDisable(true);
+            pane.playRipple();
+
+            assertEquals(0, layer.getChildrenUnmodifiable().size());
+        });
+    }
+
+    /**
      * Verifies a press on the padding area starts the ripple at the pointer
      * location because the layer covers the full pane bounds.
      *

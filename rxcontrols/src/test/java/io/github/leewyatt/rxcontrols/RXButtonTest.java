@@ -228,6 +228,39 @@ public class RXButtonTest {
     }
 
     /**
+     * Verifies {@code playRipple()} plays one centered ripple and is a no-op
+     * when ripples are disabled or the button is disabled.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void playRippleShowsCenteredRippleAndRespectsGates() throws Exception {
+        runOnFx(() -> {
+            RXButton button = withSkin(new RXButton("OK"));
+            layout(button, 100.0, 40.0);
+            RippleLayer layer = rippleLayer(button);
+
+            button.playRipple();
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+            Circle circle = (Circle) layer.getChildrenUnmodifiable().get(0);
+            assertEquals(50.0, circle.getCenterX(), EPSILON);
+            assertEquals(20.0, circle.getCenterY(), EPSILON);
+
+            button.setRippleEnabled(false);
+            button.playRipple();
+
+            assertEquals(0, layer.getChildrenUnmodifiable().size());
+
+            button.setRippleEnabled(true);
+            button.setDisable(true);
+            button.playRipple();
+
+            assertEquals(0, layer.getChildrenUnmodifiable().size());
+        });
+    }
+
+    /**
      * Verifies a modena-style multi-layer background is mirrored into the
      * ripple clip geometry, excluding negative-inset decoration layers
      * (shadow highlights, focus rings).
