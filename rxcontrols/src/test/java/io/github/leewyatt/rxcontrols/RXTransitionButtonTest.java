@@ -212,6 +212,27 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void sizesToHiddenFaceWithoutFlip() {
+        // Regression: the hidden alternate face must be styled (and therefore
+        // measured) before any hover/flip. The inline -fx-pref-width only takes
+        // effect once CSS is applied to a node in a scene, so a detached
+        // alternate page would measure narrow and the button would render
+        // narrow until the first flip attached it. With both faces always
+        // attached, the wider hidden face drives the preferred width up front.
+        Label alternate = new Label("Back");
+        alternate.setStyle("-fx-pref-width: 300px;");
+        RXTransitionButton button = laidOutButton("Hi", alternate);
+
+        try {
+            assertFalse(button.isHover());
+            assertTrue(button.prefWidth(-1) >= 300.0,
+                    "button should size to the wider hidden face, was " + button.prefWidth(-1));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void playAnimationRoundTripsWithTriggerNone() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
         button.setAnimationTrigger(RXAnimationTrigger.NONE);

@@ -24,6 +24,17 @@ import javafx.util.Duration;
  * {@link #layout} from {@code layoutChildren} and {@link #dispose} from its
  * dispose chain. Mirror state belongs in the {@code onStarted} callback
  * (zero-duration animations complete synchronously inside {@code play}).</p>
+ *
+ * <p>The surface offers two idle-attachment modes. In the default
+ * <em>detach</em> mode only the current page stays parented while idle; the
+ * spare is re-attached for the next transition. Value-follow hosts (which size
+ * to the current page only) use this mode. Fixed-face hosts that size to the
+ * max of both faces opt into <em>keep-both</em> mode via
+ * {@link #TransitionPages(String, boolean)}: both pages stay parented (and
+ * therefore laid out and styled) at all times, with exactly the current page
+ * visible while idle. Keep-both mode guarantees the hidden face receives the
+ * scene stylesheet, so its CSS-driven size is measured correctly before any
+ * flip.</p>
  */
 public final class TransitionPages {
 
@@ -34,22 +45,45 @@ public final class TransitionPages {
     private final StackPane pageA;
     private final StackPane pageB;
     private final PageTransitionEngine engine = new PageTransitionEngine();
+    private final boolean keepBothAttached;
 
     private StackPane currentPage;
 
     /**
-     * Creates the surface with two empty pages.
+     * Creates the surface with two empty pages in detach mode (only the current
+     * page is parented while idle).
      *
      * @param pageStyleClass the style class for both page wrappers
      *                       (e.g. {@code page}, or {@code line} for lyric hosts)
      */
     public TransitionPages(String pageStyleClass) {
+        this(pageStyleClass, false);
+    }
+
+    /**
+     * Creates the surface with two empty pages.
+     *
+     * @param pageStyleClass   the style class for both page wrappers
+     *                         (e.g. {@code page}, or {@code line} for lyric hosts)
+     * @param keepBothAttached when {@code true}, both pages stay parented (and
+     *                         thus laid out and styled) at all times, with only
+     *                         the current page visible while idle; when
+     *                         {@code false}, only the current page stays
+     *                         parented while idle
+     */
+    public TransitionPages(String pageStyleClass, boolean keepBothAttached) {
+        this.keepBothAttached = keepBothAttached;
         pageA = createPage(pageStyleClass);
         pageB = createPage(pageStyleClass);
         contentPane.getStyleClass().add(CONTENT_PANE_STYLE_CLASS);
         contentPane.setClip(clip);
         currentPage = pageA;
-        contentPane.getChildren().add(currentPage);
+        if (keepBothAttached) {
+            pageB.setVisible(false);
+            contentPane.getChildren().addAll(pageA, pageB);
+        } else {
+            contentPane.getChildren().add(currentPage);
+        }
     }
 
     private static StackPane createPage(String styleClass) {
@@ -158,18 +192,15 @@ public final class TransitionPages {
     }
 
     /**
-     * Shows the target page with a direct cut: it is re-attached if currently
-     * off-stage, becomes the current page, and all other pages leave the
-     * content pane. The add-if-absent mirrors {@link #transitionTo}, so
-     * fixed-face hosts can cut to a page a previous transition removed without
-     * cutting to a blank surface.
+     * Shows the target page with a direct cut: it becomes the current page,
+     * is made visible, and every other page is hidden ({@code setVisible(false)}
+     * in keep-both mode, removed from the content pane in detach mode). In
+     * detach mode every caller cuts to the already-attached current page, so no
+     * re-attachment is needed.
      *
      * @param target the page to show
      */
     public void directCutTo(StackPane target) {
-        if (!contentPane.getChildren().contains(target)) {
-            contentPane.getChildren().add(target);
-        }
         currentPage = target;
         target.setVisible(true);
         hideNonCurrentPages();
@@ -211,11 +242,22 @@ public final class TransitionPages {
                 onExternalStop);
     }
 
-    // Keep a single page in the tree while idle; off-stage pages are re-added
-    // on the next transition. External stops do not remove pages: they fire
-    // during Animation.stop(), before finish actions restore visual state.
+    // Settle idle state so exactly the current page shows. In keep-both mode
+    // every page stays parented and the non-current pages are merely hidden, so
+    // their CSS-driven size keeps being measured. In detach mode off-stage
+    // pages leave the tree and are re-added on the next transition. External
+    // stops do not reach here: they fire during Animation.stop(), before finish
+    // actions restore visual state.
     private void hideNonCurrentPages() {
-        contentPane.getChildren().removeIf(child -> child != currentPage);
+        if (keepBothAttached) {
+            for (Node child : contentPane.getChildren()) {
+                if (child != currentPage) {
+                    child.setVisible(false);
+                }
+            }
+        } else {
+            contentPane.getChildren().removeIf(child -> child != currentPage);
+        }
     }
 
     private TransitionContext buildContext(Node outgoing, Node incoming,

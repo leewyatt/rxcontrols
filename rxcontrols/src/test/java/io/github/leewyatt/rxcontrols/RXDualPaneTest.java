@@ -405,6 +405,29 @@ public class RXDualPaneTest {
         }
     }
 
+    @Test
+    public void sizesToHiddenSecondFaceWithoutFlip() {
+        // Regression: the hidden second face must be styled (and therefore
+        // measured) before any flip. The inline -fx-pref-width only takes
+        // effect once CSS is applied to a node in a scene, so a detached second
+        // page would measure narrow and the pane would render narrow until the
+        // first flip attached it. With both faces always attached, the wider
+        // hidden face drives the preferred width up front.
+        Label first = new Label("First");
+        Label second = new Label("Second");
+        second.setStyle("-fx-pref-width: 300px;");
+        RXDualPane pane = new RXDualPane(first, second);
+        layOut(pane);
+
+        try {
+            assertFalse(pane.isShowingSecond());
+            assertTrue(pane.prefWidth(-1) >= 300.0,
+                    "pane should size to the wider hidden face, was " + pane.prefWidth(-1));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
     // ==================== Transitioning mirror ====================
 
     @Test

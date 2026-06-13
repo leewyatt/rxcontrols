@@ -48,7 +48,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
     // ==================== Nodes ====================
 
-    private final TransitionPages pages = new TransitionPages("page");
+    private final TransitionPages pages = new TransitionPages("page", true);
     private final Label frontLabel = new Label();
     private final RippleDecoration ripple;
 

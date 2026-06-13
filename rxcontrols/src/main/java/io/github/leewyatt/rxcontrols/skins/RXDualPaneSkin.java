@@ -23,7 +23,7 @@ import javafx.util.Duration;
  */
 public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
 
-    private final TransitionPages pages = new TransitionPages("page");
+    private final TransitionPages pages = new TransitionPages("page", true);
 
     /**
      * Creates the skin for the given control.
