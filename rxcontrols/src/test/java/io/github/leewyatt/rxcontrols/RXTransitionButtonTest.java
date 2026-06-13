@@ -233,6 +233,30 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void wrapTextHeightFollowsWidthHint() {
+        // Regression: RXTransitionButton inherits Labeled.getContentBias() ==
+        // HORIZONTAL when wrapText is true, so a parent measures it with
+        // prefHeight(realWidth). The skin must forward that width hint to the
+        // faces; otherwise the wrapText label is measured single-line and the
+        // multi-line text is clipped. Comparing two prefHeight calls is
+        // font-independent: a narrow width forces more wrapping, hence a
+        // taller preferred height than a very wide width.
+        RXTransitionButton button =
+                laidOutButton("The quick brown fox jumps over the lazy dog", null);
+        button.setWrapText(true);
+
+        try {
+            double narrowHeight = button.prefHeight(60.0);
+            double wideHeight = button.prefHeight(10000.0);
+            assertTrue(narrowHeight > wideHeight,
+                    "narrow width should wrap taller (" + narrowHeight
+                            + ") than wide width (" + wideHeight + ")");
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void playAnimationRoundTripsWithTriggerNone() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
         button.setAnimationTrigger(RXAnimationTrigger.NONE);
