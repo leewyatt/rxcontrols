@@ -64,7 +64,8 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + maxFaceWidth(false) + rightInset;
+        double h = (height < 0) ? -1 : Math.max(0.0, height - topInset - bottomInset);
+        return leftInset + maxFaceWidth(false, h) + rightInset;
     }
 
     /**
@@ -73,7 +74,8 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + maxFaceHeight(false) + bottomInset;
+        double w = (width < 0) ? -1 : Math.max(0.0, width - leftInset - rightInset);
+        return topInset + maxFaceHeight(false, w) + bottomInset;
     }
 
     /**
@@ -82,7 +84,8 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + maxFaceWidth(true) + rightInset;
+        double h = (height < 0) ? -1 : Math.max(0.0, height - topInset - bottomInset);
+        return leftInset + maxFaceWidth(true, h) + rightInset;
     }
 
     /**
@@ -91,7 +94,8 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + maxFaceHeight(true) + bottomInset;
+        double w = (width < 0) ? -1 : Math.max(0.0, width - leftInset - rightInset);
+        return topInset + maxFaceHeight(true, w) + bottomInset;
     }
 
     /**
@@ -112,21 +116,24 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
         return Double.MAX_VALUE;
     }
 
-    // The pane keeps a stable size across the flip: both faces count.
-    private double maxFaceWidth(boolean min) {
+    // The pane keeps a stable size across the flip: both faces count. The hint
+    // flows to both faces so a content-bias face (e.g. wrapText) is measured
+    // against the real cross-axis extent; a non-content-bias face ignores the
+    // hint and returns its natural size, so forwarding is safe.
+    private double maxFaceWidth(boolean min, double height) {
         StackPane pageA = pages.getPageA();
         StackPane pageB = pages.getPageB();
         return min
-                ? Math.max(pageA.minWidth(-1), pageB.minWidth(-1))
-                : Math.max(pageA.prefWidth(-1), pageB.prefWidth(-1));
+                ? Math.max(pageA.minWidth(height), pageB.minWidth(height))
+                : Math.max(pageA.prefWidth(height), pageB.prefWidth(height));
     }
 
-    private double maxFaceHeight(boolean min) {
+    private double maxFaceHeight(boolean min, double width) {
         StackPane pageA = pages.getPageA();
         StackPane pageB = pages.getPageB();
         return min
-                ? Math.max(pageA.minHeight(-1), pageB.minHeight(-1))
-                : Math.max(pageA.prefHeight(-1), pageB.prefHeight(-1));
+                ? Math.max(pageA.minHeight(width), pageB.minHeight(width))
+                : Math.max(pageA.prefHeight(width), pageB.prefHeight(width));
     }
 
     // ==================== Transitions ====================

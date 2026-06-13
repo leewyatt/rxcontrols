@@ -10,6 +10,7 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.event.Event;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -251,6 +252,31 @@ public class RXTransitionButtonTest {
             assertTrue(narrowHeight > wideHeight,
                     "narrow width should wrap taller (" + narrowHeight
                             + ") than wide width (" + wideHeight + ")");
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void alternateFaceContentBiasIsAdvertisedAndForwarded() {
+        // The button's own text does not wrap (wrapText false), so
+        // Labeled.getContentBias() is null; the alternate face is a wrapText
+        // multi-word label whose bias is HORIZONTAL. The control must merge the
+        // two faces and advertise HORIZONTAL, or a parent would never query
+        // height-from-width and the wrapped alternate face would be clipped.
+        Label alternate = new Label("The quick brown fox jumps over the lazy dog");
+        alternate.setWrapText(true);
+        RXTransitionButton button = laidOutButton("Hi", alternate);
+
+        try {
+            assertFalse(button.isWrapText());
+            assertEquals(Orientation.HORIZONTAL, button.getContentBias());
+
+            double narrowHeight = button.prefHeight(60.0);
+            double wideHeight = button.prefHeight(10000.0);
+            assertTrue(narrowHeight > wideHeight,
+                    "alternate wrapped face should make narrow width taller ("
+                            + narrowHeight + ") than wide width (" + wideHeight + ")");
         } finally {
             button.getSkin().dispose();
         }

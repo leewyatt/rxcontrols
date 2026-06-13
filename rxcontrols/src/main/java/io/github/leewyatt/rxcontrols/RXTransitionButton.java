@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.internal.transition.ContentBias;
 import io.github.leewyatt.rxcontrols.skins.RXTransitionButtonSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
@@ -173,6 +174,23 @@ public class RXTransitionButton extends RXAnimatedButton {
      */
     public final void setTransitioning(boolean value) {
         transitioning.set(value);
+    }
+
+    // ==================== Layout ====================
+
+    /**
+     * Advertises the content bias merged from both faces, so a parent layout
+     * measures the button against the correct axis when either face has a
+     * content bias. The front face contributes {@code super.getContentBias()}
+     * (the button's own {@code wrapText}); the alternate face contributes its
+     * node's bias. The merge gives HORIZONTAL priority, matching the fixed-face
+     * sizing of {@code RXBox} and JavaFX {@code StackPane}.
+     *
+     * @return the merged content bias, or {@code null} if neither face has one
+     */
+    @Override
+    public Orientation getContentBias() {
+        return ContentBias.merge(super.getContentBias(), ContentBias.of(getAlternateContent()));
     }
 
     // ==================== Skin ====================

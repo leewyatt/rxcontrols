@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -426,6 +427,62 @@ public class RXDualPaneTest {
         } finally {
             pane.getSkin().dispose();
         }
+    }
+
+    // ==================== Content Bias ====================
+
+    @Test
+    public void faceContentBiasIsAdvertisedAndForwarded() {
+        // The first face is a wrapText multi-word label whose bias is
+        // HORIZONTAL; the pane must merge the faces and advertise HORIZONTAL,
+        // or a parent would never query height-from-width and the wrapped face
+        // would be clipped. The skin forwards the width hint so a narrow width
+        // wraps taller than a wide width.
+        Label first = new Label("The quick brown fox jumps over the lazy dog");
+        first.setWrapText(true);
+        RXDualPane pane = new RXDualPane(first, new Label("Second"));
+        layOut(pane);
+
+        try {
+            assertEquals(Orientation.HORIZONTAL, pane.getContentBias());
+
+            double narrowHeight = pane.prefHeight(60.0);
+            double wideHeight = pane.prefHeight(10000.0);
+            assertTrue(narrowHeight > wideHeight,
+                    "wrapped face should make narrow width taller (" + narrowHeight
+                            + ") than wide width (" + wideHeight + ")");
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void contentBiasMergesFacesWithHorizontalPriority() {
+        // Both faces null: no bias.
+        RXDualPane empty = new RXDualPane();
+        assertNull(empty.getContentBias());
+
+        // One HORIZONTAL (wrapText label) and one null face: HORIZONTAL wins.
+        Label wrapped = new Label("a b c");
+        wrapped.setWrapText(true);
+        RXDualPane oneBias = new RXDualPane(wrapped, null);
+        assertEquals(Orientation.HORIZONTAL, oneBias.getContentBias());
+
+        // Second face carries the bias instead: still HORIZONTAL.
+        RXDualPane secondBias = new RXDualPane(new Label("plain"), wrapped);
+        assertEquals(Orientation.HORIZONTAL, secondBias.getContentBias());
+
+        // No built-in node reports VERTICAL bias, so stub one.
+        Node verticalFace = new StackPane() {
+            @Override
+            public Orientation getContentBias() {
+                return Orientation.VERTICAL;
+            }
+        };
+        // VERTICAL face, no HORIZONTAL present: VERTICAL.
+        assertEquals(Orientation.VERTICAL, new RXDualPane(verticalFace, null).getContentBias());
+        // VERTICAL and HORIZONTAL faces conflict: HORIZONTAL wins.
+        assertEquals(Orientation.HORIZONTAL, new RXDualPane(verticalFace, wrapped).getContentBias());
     }
 
     // ==================== Transitioning mirror ====================

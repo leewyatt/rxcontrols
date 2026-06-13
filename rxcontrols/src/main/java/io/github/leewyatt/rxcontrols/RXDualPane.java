@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.internal.transition.ContentBias;
 import io.github.leewyatt.rxcontrols.skins.RXDualPaneSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
@@ -17,6 +18,7 @@ import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
@@ -346,6 +348,23 @@ public class RXDualPane extends Control {
      */
     public final void setTransitioning(boolean value) {
         transitioning.set(value);
+    }
+
+    // ==================== Layout ====================
+
+    /**
+     * Advertises the content bias merged from both faces, so a parent layout
+     * measures the pane against the correct axis when either face has a content
+     * bias (e.g. a {@code wrapText} label). Each face contributes its node's
+     * bias. The merge gives HORIZONTAL priority, matching the fixed-face sizing
+     * of {@code RXBox} and JavaFX {@code StackPane}.
+     *
+     * @return the merged content bias, or {@code null} if neither face has one
+     */
+    @Override
+    public Orientation getContentBias() {
+        return ContentBias.merge(ContentBias.of(getFirstContent()),
+                ContentBias.of(getSecondContent()));
     }
 
     // ==================== Skin ====================
