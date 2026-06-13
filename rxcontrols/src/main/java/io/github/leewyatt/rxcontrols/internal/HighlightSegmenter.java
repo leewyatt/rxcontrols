@@ -1,0 +1,154 @@
+package io.github.leewyatt.rxcontrols.internal;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+/**
+ * Splits a piece of text into highlighted and plain runs for keyword highlighting.
+ *
+ * <p>Every keyword is matched independently for all of its occurrences (literally or
+ * as a regular expression). The resulting ranges are then merged where they overlap or
+ * touch, so overlapping keywords (e.g. {@code "abc"} and {@code "bcd"} over
+ * {@code "abcdefg"}) produce a single contiguous highlighted run ({@code "abcd"})
+ * rather than one keyword swallowing the others.
+ */
+public final class HighlightSegmenter {
+
+    /**
+     * One contiguous run of the source text.
+     *
+     * @param text      the run text
+     * @param highlight {@code true} if this run matched a keyword
+     */
+    public record Segment(String text, boolean highlight) {
+    }
+
+    private HighlightSegmenter() {
+    }
+
+    /**
+     * Segments {@code text} into matched / unmatched runs against the given keywords.
+     *
+     * @param text       the source text; {@code null} is treated as empty
+     * @param keywords   keywords to match; {@code null} / blank entries are ignored
+     * @param regex      {@code true} to treat each keyword as a regular expression,
+     *                   {@code false} to match it literally
+     * @param ignoreCase {@code true} to match case-insensitively
+     * @return an ordered, non-empty list of runs covering the whole text; with no
+     *         keyword matches the whole text is returned as a single plain run
+     */
+    public static List<Segment> segment(String text, List<String> keywords,
+                                        boolean regex, boolean ignoreCase) {
+        String source = text == null ? "" : text;
+        List<int[]> ranges = mergeRanges(collectRanges(source, keywords, regex, ignoreCase));
+        if (ranges.isEmpty()) {
+            return List.of(new Segment(source, false));
+        }
+
+        List<Segment> segments = new ArrayList<>();
+        int cursor = 0;
+        for (int[] range : ranges) {
+            if (range[0] > cursor) {
+                segments.add(new Segment(source.substring(cursor, range[0]), false));
+            }
+            segments.add(new Segment(source.substring(range[0], range[1]), true));
+            cursor = range[1];
+        }
+        if (cursor < source.length()) {
+            segments.add(new Segment(source.substring(cursor), false));
+        }
+        return segments;
+    }
+
+    /**
+     * Reports whether any keyword matches the text, short-circuiting on the first hit
+     * without building the full segmentation.
+     *
+     * @param text       the source text; {@code null} is treated as empty
+     * @param keywords   keywords to match; {@code null} / blank entries are ignored
+     * @param regex      {@code true} to treat each keyword as a regular expression
+     * @param ignoreCase {@code true} to match case-insensitively
+     * @return {@code true} if at least one keyword matches
+     */
+    public static boolean matches(String text, List<String> keywords,
+                                  boolean regex, boolean ignoreCase) {
+        String source = text == null ? "" : text;
+        if (source.isEmpty() || keywords == null) {
+            return false;
+        }
+        for (String keyword : keywords) {
+            Pattern pattern = compile(keyword, regex, ignoreCase);
+            if (pattern == null) {
+                continue;
+            }
+            Matcher matcher = pattern.matcher(source);
+            while (matcher.find()) {
+                if (matcher.end() != matcher.start()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<int[]> collectRanges(String source, List<String> keywords,
+                                             boolean regex, boolean ignoreCase) {
+        List<int[]> ranges = new ArrayList<>();
+        if (source.isEmpty() || keywords == null) {
+            return ranges;
+        }
+        for (String keyword : keywords) {
+            Pattern pattern = compile(keyword, regex, ignoreCase);
+            if (pattern == null) {
+                continue;
+            }
+            Matcher matcher = pattern.matcher(source);
+            while (matcher.find()) {
+                if (matcher.end() == matcher.start()) {
+                    // Skip zero-width matches (e.g. "a*"); Matcher.find() advances
+                    // past them on its own, so this cannot loop forever.
+                    continue;
+                }
+                ranges.add(new int[]{matcher.start(), matcher.end()});
+            }
+        }
+        return ranges;
+    }
+
+    private static Pattern compile(String keyword, boolean regex, boolean ignoreCase) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        int flags = ignoreCase ? (Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE) : 0;
+        try {
+            return Pattern.compile(regex ? keyword : Pattern.quote(keyword), flags);
+        } catch (PatternSyntaxException e) {
+            // Invalid regex keyword: skip it, the others still apply.
+            return null;
+        }
+    }
+
+    private static List<int[]> mergeRanges(List<int[]> ranges) {
+        if (ranges.size() < 2) {
+            return ranges;
+        }
+        ranges.sort(Comparator.comparingInt(range -> range[0]));
+        List<int[]> merged = new ArrayList<>();
+        int[] current = ranges.get(0);
+        for (int i = 1; i < ranges.size(); i++) {
+            int[] next = ranges.get(i);
+            if (next[0] <= current[1]) {
+                current[1] = Math.max(current[1], next[1]);
+            } else {
+                merged.add(current);
+                current = next;
+            }
+        }
+        merged.add(current);
+        return merged;
+    }
+}

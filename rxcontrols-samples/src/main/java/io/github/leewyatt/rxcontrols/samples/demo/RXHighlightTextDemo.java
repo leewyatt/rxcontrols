@@ -1,60 +1,59 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXHighlightText;
-import io.github.leewyatt.rxcontrols.RXHighlightText.MatchRules;
-
 import javafx.application.Application;
-import javafx.collections.FXCollections;
+import javafx.beans.binding.Bindings;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Demonstrates RXHighlightText as a search-as-you-type highlighter: the text field
+ * feeds whitespace-separated keywords into the control's keyword list, and the
+ * read-only matched state drives a found / not-found label.
+ */
 public class RXHighlightTextDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        VBox root = new VBox(30);
-        root.setAlignment(Pos.CENTER);
-        TextField tf = new TextField();
-        //下拉框: 匹配规则分别是 1正则表达式匹配,2区分大小写匹配字符串,3忽略大小写匹配字符串
-        ComboBox<MatchRules> comboBox = new ComboBox<>(FXCollections.observableArrayList(MatchRules.values()));
-        comboBox.getSelectionModel().select(0);
-        RXHighlightText text = new RXHighlightText("123人生若只如初见ABC,\nabc何事秋风悲画扇123");
-        text.setTextAlignment(TextAlignment.CENTER);
-        //匹配规则绑定到下拉框
-        text.matchRulesProperty().bind(comboBox.valueProperty());
-        //text.setMatchRules(MatchRules.MATCH_CASE);
-        //匹配关键字绑定到文本框
-        text.keywordsProperty().bind(tf.textProperty());
-        //text.setKeywords("[A-Z]+");
-        tf.setText("[0-9]+");
-        HBox hBox = new HBox(tf, comboBox);
-        hBox.setAlignment(Pos.CENTER);
-        root.getChildren().add(hBox);
-        root.getChildren().add(text);
+        RXHighlightText highlightText = new RXHighlightText(
+                "JavaFX is a modern UI toolkit for desktop and rich client applications.\n"
+                        + "RXHighlightText highlights one or more keywords inside a paragraph.\n"
+                        + "It supports literal and regular expression matching with case-sensitive "
+                        + "or case-insensitive modes.");
+        highlightText.setLineSpacing(6);
+        highlightText.setMaxWidth(420);
+
+        TextField search = new TextField();
+        search.setPromptText("Enter keywords separated by spaces, for example: JavaFX keyword");
+        search.textProperty().addListener((obs, old, value) -> {
+            List<String> words = (value == null || value.isBlank())
+                    ? List.of()
+                    : Arrays.asList(value.trim().split("\\s+"));
+            highlightText.getKeywords().setAll(words);
+        });
+        search.setText("JavaFX keyword");
+
+        Label status = new Label();
+        status.textProperty().bind(Bindings.when(highlightText.matchedProperty())
+                .then("Keywords found").otherwise("No keywords found"));
+
+        VBox root = new VBox(16, search, status, highlightText);
+        root.setAlignment(Pos.CENTER_LEFT);
+        root.setPadding(new Insets(24));
         primaryStage.setScene(new Scene(root, 500, 320));
         primaryStage.setTitle("RXHighlightText Demo");
         primaryStage.show();
-
     }
 
     public static void main(String[] args) {
         launch(args);
     }
-
-    /**
-     * 高亮文本的 css 参考
-     .rx-highlight-text .highlight-label{
-     -fx-background-color: red;
-     -fx-text-fill: white;
-     }
-     .rx-highlight-text .plain-text{
-     -fx-fill:black;
-     }
-     */
 }

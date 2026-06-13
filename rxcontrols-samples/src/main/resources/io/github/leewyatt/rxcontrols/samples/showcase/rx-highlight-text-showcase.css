@@ -1,0 +1,49 @@
+.highlight-preview {
+    -fx-padding: 24px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d8e0ea;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.10), 16, 0, 0, 5);
+}
+
+.highlight-preview .showcase-highlight-text {
+    -fx-padding: 16px;
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #d5dde8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 15px;
+}
+
+.highlight-preview .showcase-highlight-text > .text-flow > .highlight {
+    -fx-padding: 0 2px;
+    -fx-background-radius: 3px;
+}
+
+.highlight-preview .showcase-highlight-text > .text-flow > .plain {
+    -fx-font-smoothing-type: lcd;
+}
+
+.highlight-preview .status-label {
+    -fx-text-fill: #344054;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+}
+
+.control-pane .text-area {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cfd5df;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.control-pane .text-area .content {
+    -fx-background-color: #ffffff;
+}
+
+.control-pane .matched-label {
+    -fx-text-fill: #344054;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+}

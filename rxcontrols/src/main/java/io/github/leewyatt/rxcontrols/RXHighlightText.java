@@ -1,10 +1,26 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.HighlightSegmenter;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import javafx.beans.property.*;
-import javafx.css.*;
+import io.github.leewyatt.rxcontrols.skins.RXHighlightTextSkin;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.text.TextAlignment;
@@ -14,207 +30,328 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * A non-editable text control that highlights one or more keywords inside its text.
  *
- * 关键字高亮文本: 支持正则表达式匹配,或者 普通文本进行匹配
+ * <p>Keywords are supplied via {@link #getKeywords()} and matched either literally or
+ * as regular expressions, case-sensitively or not, according to {@link #getMatchRules()}.
+ * The read-only {@link #matchedProperty() matched} reports whether any keyword matched,
+ * so callers can drive search / filter UIs (see {@link #isMatched()}).
  */
 public class RXHighlightText extends Control {
-    private RXHighlightTextSkin skin;
-    private ObjectProperty<MatchRules> matchRules ;
+
+    // ==================== Constants ====================
+
     private static final String DEFAULT_STYLE_CLASS = "rx-highlight-text";
 
-    public MatchRules getMatchRules() {
-        return matchRules==null?MatchRules.MATCH_CASE:matchRules.get();
-    }
+    /**
+     * Default matching rule: literal substring, case-insensitive.
+     */
+    public static final MatchRules DEFAULT_MATCH_RULES = MatchRules.LITERAL_IGNORE_CASE;
 
-    public ObjectProperty<MatchRules> matchRulesProperty() {
-        if (matchRules == null) {
-            matchRules = new SimpleObjectProperty<>(MatchRules.MATCH_CASE);
-        }
-        return matchRules;
-    }
+    // ==================== Constructors ====================
 
-    public void setMatchRules(MatchRules matchRules) {
-        this.matchRulesProperty().set(matchRules);
-    }
-
-    public ReadOnlyBooleanProperty matchProperty() {
-        return skin.matchWrapper.getReadOnlyProperty();
-    }
-
-    public boolean isMatch() {
-        return  matchProperty().get();
-    }
-
+    /**
+     * Creates an empty highlight-text control.
+     */
     public RXHighlightText() {
-        this(null);
+        this("");
     }
 
+    /**
+     * Creates a highlight-text control with the given text and no keywords.
+     *
+     * @param text the text to display; {@code null} is treated as empty
+     */
     public RXHighlightText(String text) {
-        setText(text == null ? "RXHighlightText" : text);
+        setText(text == null ? "" : text);
         init();
     }
 
-    public RXHighlightText(String text, String keywords) {
-        setText(text == null ? "RXHighlightText" : text);
-        setKeywords(keywords);
+    /**
+     * Creates a highlight-text control with the given text and keywords.
+     *
+     * @param text     the text to display; {@code null} is treated as empty
+     * @param keywords the keywords to highlight; {@code null} adds none
+     */
+    public RXHighlightText(String text, String... keywords) {
+        setText(text == null ? "" : text);
+        if (keywords != null) {
+            Collections.addAll(this.keywords, keywords);
+        }
         init();
     }
 
-    private void init(){
-        skin = new RXHighlightTextSkin(this);
+    private void init() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setMouseTransparent(true);
+        InvalidationListener recompute = obs -> recompute();
+        text.addListener(recompute);
+        keywords.addListener(recompute);
+        matchRules.addListener(recompute);
+        recompute();
     }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected Skin<?> createDefaultSkin() {
-        return skin;
+        return new RXHighlightTextSkin(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Returns {@link Orientation#HORIZONTAL} because the text wraps, so the
+     * control's height depends on the width allotted to it.
+     */
+    @Override
+    public Orientation getContentBias() {
+        return Orientation.HORIZONTAL;
+    }
 
+    private void recompute() {
+        MatchRules rules = getMatchRules();
+        if (rules == null) {
+            rules = DEFAULT_MATCH_RULES;
+        }
+        matched.set(HighlightSegmenter.matches(getText(), keywords, rules.isRegex(), rules.isIgnoreCase()));
+    }
+
+    // ==================== Text ====================
+
+    private final StringProperty text = new SimpleStringProperty(this, "text", "");
 
     /**
-     * textProperty文本内容
+     * The text to display and highlight.
+     *
+     * @return the text property
      */
-    private  StringProperty text;
-
     public final StringProperty textProperty() {
-        if (text == null) {
-            text = new SimpleStringProperty(this, "");
-        }
         return text;
     }
 
+    /**
+     * Returns the displayed text.
+     *
+     * @return the text
+     */
     public final String getText() {
-        return text==null?"":text.get();
-    }
-
-    public final void setText(String value) {
-        textProperty().set(value);
+        return text.get();
     }
 
     /**
-     * keywordsProperty 关键字
+     * Sets the displayed text.
+     *
+     * @param value the text to display
      */
-    private  SimpleStringProperty keywords;
+    public final void setText(String value) {
+        text.set(value);
+    }
 
-    public final StringProperty keywordsProperty() {
-        if(keywords==null){
-            keywords = new SimpleStringProperty(this, "");
-        }
+    // ==================== Keywords ====================
+
+    private final ObservableList<String> keywords = FXCollections.observableArrayList();
+
+    /**
+     * The list of keywords to highlight. Empty or blank entries are ignored; each
+     * remaining entry is matched literally or as a regular expression depending on
+     * {@link #matchRulesProperty()}.
+     *
+     * @return the live, mutable keyword list
+     */
+    public final ObservableList<String> getKeywords() {
         return keywords;
     }
 
-    public final String getKeywords() {
-        return keywords == null?"": keywords.get();
+    // ==================== Match Rules ====================
+
+    private final ObjectProperty<MatchRules> matchRules =
+            new SimpleObjectProperty<>(this, "matchRules", DEFAULT_MATCH_RULES);
+
+    /**
+     * How keywords are matched against the text (literal / regex, case sensitivity).
+     *
+     * @return the match-rules property
+     */
+    public final ObjectProperty<MatchRules> matchRulesProperty() {
+        return matchRules;
     }
 
-    public final void setKeywords(String value) {
-        keywordsProperty().set(value);
+    /**
+     * Returns the matching rule.
+     *
+     * @return the match rule
+     */
+    public final MatchRules getMatchRules() {
+        return matchRules.get();
     }
 
-
-    private ObjectProperty<TextAlignment> textAlignment;
-
-    public final void setTextAlignment(TextAlignment value) {
-        textAlignmentProperty().set(value);
+    /**
+     * Sets the matching rule.
+     *
+     * @param value the match rule
+     */
+    public final void setMatchRules(MatchRules value) {
+        matchRules.set(value);
     }
 
-    public final TextAlignment getTextAlignment() {
-        return textAlignment == null ? TextAlignment.LEFT : textAlignment.get();
+    // ==================== Matched (read-only) ====================
+
+    private final ReadOnlyBooleanWrapper matched =
+            new ReadOnlyBooleanWrapper(this, "matched", false);
+
+    /**
+     * Whether any keyword currently matches the text.
+     *
+     * @return the read-only matched property
+     */
+    public final ReadOnlyBooleanProperty matchedProperty() {
+        return matched.getReadOnlyProperty();
     }
 
+    /**
+     * Returns whether any keyword currently matches the text.
+     *
+     * @return {@code true} if at least one keyword matches
+     */
+    public final boolean isMatched() {
+        return matched.get();
+    }
+
+    // ==================== Text Alignment ====================
+
+    private final ObjectProperty<TextAlignment> textAlignment =
+            new StyleableObjectProperty<>(TextAlignment.LEFT) {
+                @Override
+                public Object getBean() {
+                    return RXHighlightText.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "textAlignment";
+                }
+
+                @Override
+                public CssMetaData<RXHighlightText, TextAlignment> getCssMetaData() {
+                    return StyleableProperties.TEXT_ALIGNMENT;
+                }
+            };
+
+    /**
+     * The horizontal alignment of each line of text. Styleable via
+     * {@code -fx-text-alignment}.
+     *
+     * @return the text-alignment property
+     */
     public final ObjectProperty<TextAlignment> textAlignmentProperty() {
-        if (textAlignment == null) {
-            textAlignment =
-                    new StyleableObjectProperty<TextAlignment>(TextAlignment.LEFT) {
-                        @Override
-                        public Object getBean() {
-                            return RXHighlightText.this;
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "textAlignment";
-                        }
-
-                        @Override
-                        public CssMetaData<RXHighlightText, TextAlignment> getCssMetaData() {
-                            return RXHighlightText.StyleableProperties.TEXT_ALIGNMENT;
-                        }
-
-                    };
-        }
         return textAlignment;
     }
 
-    private DoubleProperty lineSpacing;
-
-    public final void setLineSpacing(double spacing) {
-        lineSpacingProperty().set(spacing);
+    /**
+     * Returns the horizontal text alignment.
+     *
+     * @return the text alignment
+     */
+    public final TextAlignment getTextAlignment() {
+        return textAlignment.get();
     }
 
-    public final double getLineSpacing() {
-        return lineSpacing == null ? 0 : lineSpacing.get();
+    /**
+     * Sets the horizontal text alignment.
+     *
+     * @param value the text alignment
+     */
+    public final void setTextAlignment(TextAlignment value) {
+        textAlignment.set(value);
     }
 
+    // ==================== Line Spacing ====================
+
+    private final DoubleProperty lineSpacing =
+            new StyleableDoubleProperty(0) {
+                @Override
+                public Object getBean() {
+                    return RXHighlightText.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "lineSpacing";
+                }
+
+                @Override
+                public CssMetaData<RXHighlightText, Number> getCssMetaData() {
+                    return StyleableProperties.LINE_SPACING;
+                }
+            };
+
+    /**
+     * The vertical spacing between text lines, in pixels. Styleable via
+     * {@code -fx-line-spacing}.
+     *
+     * @return the line-spacing property
+     */
     public final DoubleProperty lineSpacingProperty() {
-        if (lineSpacing == null) {
-            lineSpacing =
-                    new StyleableDoubleProperty(0) {
-                        @Override
-                        public Object getBean() {
-                            return RXHighlightText.this;
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "lineSpacing";
-                        }
-
-                        @Override
-                        public CssMetaData<RXHighlightText, Number> getCssMetaData() {
-                            return RXHighlightText.StyleableProperties.LINE_SPACING;
-                        }
-                    };
-        }
         return lineSpacing;
     }
 
+    /**
+     * Returns the vertical spacing between text lines.
+     *
+     * @return the line spacing, in pixels
+     */
+    public final double getLineSpacing() {
+        return lineSpacing.get();
+    }
+
+    /**
+     * Sets the vertical spacing between text lines.
+     *
+     * @param value the line spacing, in pixels
+     */
+    public final void setLineSpacing(double value) {
+        lineSpacing.set(value);
+    }
+
+    // ==================== CSS Metadata ====================
+
     private static class StyleableProperties {
 
-        private static final
-        CssMetaData<RXHighlightText, TextAlignment> TEXT_ALIGNMENT =
-                new CssMetaData<RXHighlightText, TextAlignment>("-fx-text-alignment",
-                        new EnumConverter<TextAlignment>(TextAlignment.class),
-                        TextAlignment.LEFT) {
+        private static final CssMetaData<RXHighlightText, TextAlignment> TEXT_ALIGNMENT =
+                new CssMetaData<>("-fx-text-alignment",
+                        new EnumConverter<>(TextAlignment.class), TextAlignment.LEFT) {
 
                     @Override
                     public boolean isSettable(RXHighlightText node) {
-                        return node.textAlignment == null || !node.textAlignment.isBound();
+                        return !node.textAlignment.isBound();
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<TextAlignment> getStyleableProperty(RXHighlightText node) {
                         return (StyleableProperty<TextAlignment>) node.textAlignmentProperty();
                     }
                 };
 
-        private static final
-        CssMetaData<RXHighlightText, Number> LINE_SPACING =
-                new CssMetaData<RXHighlightText, Number>("-fx-line-spacing",
-                        SizeConverter.getInstance(), 0) {
+        private static final CssMetaData<RXHighlightText, Number> LINE_SPACING =
+                new CssMetaData<>("-fx-line-spacing", SizeConverter.getInstance(), 0) {
 
                     @Override
                     public boolean isSettable(RXHighlightText node) {
-                        return node.lineSpacing == null || !node.lineSpacing.isBound();
+                        return !node.lineSpacing.isBound();
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXHighlightText node) {
                         return (StyleableProperty<Number>) node.lineSpacingProperty();
                     }
@@ -224,40 +361,74 @@ public class RXHighlightText extends Control {
 
         static {
             final List<CssMetaData<? extends Styleable, ?>> styleables =
-                    new ArrayList<CssMetaData<? extends Styleable, ?>>(Control.getClassCssMetaData());
+                    new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(TEXT_ALIGNMENT);
             styleables.add(LINE_SPACING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
 
+    /**
+     * Returns the CssMetaData associated with this class, including that of its
+     * superclasses.
+     *
+     * @return the CSS metadata
+     */
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
-        return RXHighlightText.StyleableProperties.STYLEABLES;
-
+        return StyleableProperties.STYLEABLES;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
     }
 
-    /**
-     * 匹配方式
-     */
+    // ==================== Match Rules enum ====================
 
+    /**
+     * How keywords are matched against the text.
+     */
     public enum MatchRules {
         /**
-         * 把字符串当正则表达式去匹配
+         * Literal substring match, case-sensitive.
          */
-        REGEX,
+        LITERAL_CASE_SENSITIVE(false, false),
         /**
-         * 把字符串当普通字符串去匹配; 区分大小写
+         * Literal substring match, case-insensitive.
          */
-        MATCH_CASE,
+        LITERAL_IGNORE_CASE(false, true),
         /**
-         *把字符串当成普通字符串匹配,不区分大小写
+         * Regular-expression match, case-sensitive.
          */
-        IGNORE_CASE
-    }
+        REGEX(true, false),
+        /**
+         * Regular-expression match, case-insensitive.
+         */
+        REGEX_IGNORE_CASE(true, true);
 
+        private final boolean regex;
+        private final boolean ignoreCase;
+
+        MatchRules(boolean regex, boolean ignoreCase) {
+            this.regex = regex;
+            this.ignoreCase = ignoreCase;
+        }
+
+        /**
+         * @return {@code true} if keywords are treated as regular expressions
+         */
+        public boolean isRegex() {
+            return regex;
+        }
+
+        /**
+         * @return {@code true} if matching ignores case
+         */
+        public boolean isIgnoreCase() {
+            return ignoreCase;
+        }
+    }
 }
