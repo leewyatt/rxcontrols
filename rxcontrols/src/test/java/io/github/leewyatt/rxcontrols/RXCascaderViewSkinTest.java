@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -23,6 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -199,7 +202,7 @@ public class RXCascaderViewSkinTest {
             RXCascaderView<String> view = new RXCascaderView<>();
             RXCascaderItem<String> branch = item("branch");
             branch.setLeafHint(false);
-            branch.setLoading(true);
+            branch.setLoadState(LoadState.LOADING);
             view.getRootItems().setAll(List.of(branch));
 
             Scene scene = new Scene(new StackPane(view), 260, 220);
@@ -221,7 +224,7 @@ public class RXCascaderViewSkinTest {
             assertFalse(arrow.isVisible(), "arrow should be hidden while loading");
             assertTrue(loading.isVisible(), "loading glyph should be visible while loading");
 
-            branch.setLoading(false);
+            branch.setLoadState(LoadState.LOADED);
             scene.getRoot().applyCss();
             scene.getRoot().layout();
 
@@ -320,7 +323,7 @@ public class RXCascaderViewSkinTest {
             scene.getRoot().applyCss();
             scene.getRoot().layout();
 
-            assertTrue(branch.isLoading(), "frontier should be loading after expand");
+            assertEquals(LoadState.LOADING, branch.getLoadState(), "frontier should be loading after expand");
             assertEquals(0, view.lookupAll(".rx-cascader-column-1").size(),
                     "no next column while the frontier is loading");
 
@@ -332,7 +335,7 @@ public class RXCascaderViewSkinTest {
             scene.getRoot().applyCss();
             scene.getRoot().layout();
 
-            assertFalse(branch.isLoading(), "frontier should no longer be loading");
+            assertEquals(LoadState.LOADED, branch.getLoadState(), "frontier should be loaded after completion");
             assertEquals(1, view.lookupAll(".rx-cascader-column-1").size(),
                     "the next column appears once loading completes");
         });
@@ -400,8 +403,351 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    /**
+     * Verifies an inline (already-completed) loader produces the correct column
+     * count: each expand resolves LOADING-&gt;LOADED within a single pulse and the
+     * deferred frontier column is appended, so the final count is depth + 1.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void inlineLoaderExpandYieldsCorrectColumnCount() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setChildrenLoader(it -> {
+                if ("root".equals(it.getValue())) {
+                    return CompletableFuture.completedFuture(List.of(item("a")));
+                }
+                if ("a".equals(it.getValue())) {
+                    return CompletableFuture.completedFuture(List.of(item("a1")));
+                }
+                return CompletableFuture.completedFuture(List.of());
+            });
+            RXCascaderItem<String> root = item("root");
+            view.getRootItems().setAll(List.of(root));
+
+            Scene scene = new Scene(new StackPane(view), 600, 240);
+            relayout(scene);
+
+            // Depth 0: only the root column.
+            assertEquals(1, view.lookupAll(".rx-cascader-column-0").size());
+            assertEquals(0, view.lookupAll(".rx-cascader-column-1").size());
+
+            view.expand(root);
+            relayout(scene);
+            // Depth 1: the inline completion appends the children column in one pulse.
+            assertEquals(1, view.lookupAll(".rx-cascader-column-1").size());
+            assertEquals(0, view.lookupAll(".rx-cascader-column-2").size());
+
+            RXCascaderItem<String> a = root.getChildren().get(0);
+            view.expand(a);
+            relayout(scene);
+            // Depth 2: three columns total.
+            assertEquals(1, view.lookupAll(".rx-cascader-column-2").size());
+        });
+    }
+
+    /**
+     * Baseline navigation harness: expanding deeper adds columns and switching to
+     * a shallower branch drops them. Guards the per-step column count contract
+     * the Phase 3 tail-diff rewrite must preserve.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void navigationColumnCountHarness() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> china = item("china");
+            china.getChildren().setAll(List.of(item("beijing"), item("shanghai")));
+            asia.getChildren().setAll(List.of(china, item("japan")));
+            RXCascaderItem<String> europe = item("europe");
+            europe.getChildren().setAll(List.of(item("france")));
+            view.getRootItems().setAll(List.of(asia, europe));
+
+            Scene scene = new Scene(new StackPane(view), 800, 240);
+            relayout(scene);
+            assertEquals(1, columnCount(view), "only the root column initially");
+
+            view.expand(asia);
+            relayout(scene);
+            assertEquals(2, columnCount(view), "expanding asia adds its children column");
+
+            view.expand(china);
+            relayout(scene);
+            assertEquals(3, columnCount(view), "expanding china adds a third column");
+
+            view.expand(europe);
+            relayout(scene);
+            assertEquals(2, columnCount(view), "switching to europe drops china's column");
+        });
+    }
+
+    /**
+     * Verifies a descendant cell reflects an ancestor becoming disabled
+     * (effective-disabled): the cell observes its whole ancestor chain's
+     * disabled state, not only its own item's (D1, fixed in Phase 3).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void ancestorDisabledRefreshesDescendantCell() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> ancestor = item("ancestor");
+            RXCascaderItem<String> leaf = item("leaf");
+            ancestor.getChildren().add(leaf);
+            view.getRootItems().setAll(List.of(ancestor));
+
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+
+            view.expand(ancestor);
+            relayout(scene);
+
+            ListView<?> leafColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertNotNull(leafColumn, "the descendant column should exist after expand");
+            leafColumn.applyCss();
+            leafColumn.layout();
+
+            Node leafCell = filledCell(leafColumn, leaf);
+            assertNotNull(leafCell, "the leaf's cell should be realized");
+            assertFalse(leafCell.isDisabled(), "precondition: descendant cell starts enabled");
+
+            ancestor.setDisabled(true);
+            relayout(scene);
+            leafColumn.applyCss();
+            leafColumn.layout();
+
+            leafCell = filledCell(leafColumn, leaf);
+            assertNotNull(leafCell);
+            assertTrue(leafCell.isDisabled(),
+                    "descendant cell must reflect an ancestor becoming disabled (effective-disabled)");
+        });
+    }
+
+    /**
+     * Verifies the keep-prefix / replace-tail diff reuses the unchanged prefix
+     * column instances and only rebuilds the changed tail when navigating to a
+     * sibling branch.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void tailDiffReusesPrefixColumnsNoTeardown() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> a = item("a");
+            a.getChildren().setAll(List.of(item("a1"), item("a2")));
+            RXCascaderItem<String> b = item("b");
+            b.getChildren().setAll(List.of(item("b1")));
+            view.getRootItems().setAll(List.of(a, b));
+
+            Scene scene = new Scene(new StackPane(view), 800, 240);
+            relayout(scene);
+
+            view.expand(a);
+            relayout(scene);
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            ListView<?> aColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertNotNull(rootColumn);
+            assertNotNull(aColumn);
+
+            view.expand(b);
+            relayout(scene);
+            ListView<?> rootColumnAfter = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            ListView<?> bColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+
+            assertSame(rootColumn, rootColumnAfter, "the unchanged root column is reused, not torn down");
+            assertNotSame(aColumn, bColumn, "the changed tail column is replaced");
+            assertSame(b.getChildren(), bColumn.getItems(), "column 1 now backs b's children");
+        });
+    }
+
+    /**
+     * Verifies ordinal style classes are restamped by position after a tail-diff:
+     * navigating from a deep path to a shallower sibling drops the stale higher
+     * ordinal and leaves each ordinal lookup pointing at the current branch.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reusedColumnRestampsOrdinalStyleClass() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> a = item("a");
+            RXCascaderItem<String> a1 = item("a1");
+            a1.getChildren().setAll(List.of(item("a1x")));
+            a.getChildren().setAll(List.of(a1));
+            RXCascaderItem<String> b = item("b");
+            b.getChildren().setAll(List.of(item("b1")));
+            view.getRootItems().setAll(List.of(a, b));
+
+            Scene scene = new Scene(new StackPane(view), 900, 240);
+            relayout(scene);
+
+            view.expand(a);
+            view.expand(a1);
+            relayout(scene);
+            assertEquals(1, view.lookupAll(".rx-cascader-column-2").size(), "deep path has a third column");
+
+            view.expand(b);
+            relayout(scene);
+
+            assertEquals(0, view.lookupAll(".rx-cascader-column-2").size(),
+                    "the stale tail ordinal is removed after navigating shallower");
+            ListView<?> column1 = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertNotNull(column1);
+            assertSame(b.getChildren(), column1.getItems(),
+                    "the column-1 ordinal points at the current branch, not a stale one");
+        });
+    }
+
+    /**
+     * Verifies setting the view's columnWidth / rowHeight applies to the rendered
+     * columns at runtime.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void columnWidthAndRowHeightApplyToColumns() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(item("a"), item("b")));
+
+            Scene scene = new Scene(new StackPane(view));
+            relayout(scene);
+
+            view.setColumnWidth(250.0);
+            view.setRowHeight(50.0);
+            relayout(scene);
+
+            ListView<?> column = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(column, "root column should exist");
+            assertEquals(250.0, column.prefWidth(-1.0), 0.001, "column adopts the view's columnWidth");
+            assertEquals(50.0, column.getFixedCellSize(), 0.001, "column adopts the view's rowHeight");
+        });
+    }
+
+    /**
+     * Verifies {@code -rx-column-width} on the view sets the column default, while
+     * author CSS targeting {@code .rx-cascader-column} still wins over it.
+     *
+     * @throws Exception if the temp stylesheet cannot be created or the FX task fails
+     */
+    @Test
+    public void rxColumnWidthCssAppliesAndAuthorColumnCssWins() throws Exception {
+        Path css = Files.createTempFile("rx-cascader-colwidth", ".css");
+        Files.writeString(css, ".rx-cascader-view { -rx-column-width: 250; }"
+                + " .rx-cascader-column-1 { -fx-pref-width: 300; }");
+        try {
+            runOnFx(() -> {
+                RXCascaderView<String> view = new RXCascaderView<>();
+                RXCascaderItem<String> asia = item("asia");
+                asia.getChildren().setAll(List.of(item("china"), item("japan")));
+                view.getRootItems().setAll(List.of(asia));
+
+                Scene scene = new Scene(new StackPane(view));
+                scene.getStylesheets().add(css.toUri().toString());
+                relayout(scene);
+
+                assertEquals(250.0, view.getColumnWidth(), 0.001, "-rx-column-width sets the view property");
+
+                view.expand(asia);
+                relayout(scene);
+
+                ListView<?> col0 = (ListView<?>) view.lookup(".rx-cascader-column-0");
+                ListView<?> col1 = (ListView<?>) view.lookup(".rx-cascader-column-1");
+                assertNotNull(col0, "root column should exist");
+                assertNotNull(col1, "second column should exist after expand");
+                assertEquals(250.0, col0.prefWidth(-1.0), 0.001, "column adopts the -rx-column-width default");
+                assertEquals(300.0, col1.prefWidth(-1.0), 0.001, "author .rx-cascader-column CSS wins over the default");
+            });
+        } finally {
+            Files.deleteIfExists(css);
+        }
+    }
+
+    /**
+     * Verifies a runtime {@code columnWidth} change does not clobber a column whose
+     * width was set by author CSS (the "author wins" contract holds at runtime).
+     *
+     * @throws Exception if the temp stylesheet cannot be created or the FX task fails
+     */
+    @Test
+    public void runtimeColumnWidthDoesNotClobberAuthorColumnCss() throws Exception {
+        Path css = Files.createTempFile("rx-cascader-runtime-width", ".css");
+        Files.writeString(css, ".rx-cascader-column-0 { -fx-pref-width: 300; }");
+        try {
+            runOnFx(() -> {
+                RXCascaderView<String> view = new RXCascaderView<>();
+                view.getRootItems().setAll(List.of(item("a"), item("b")));
+                Scene scene = new Scene(new StackPane(view));
+                scene.getStylesheets().add(css.toUri().toString());
+                relayout(scene);
+
+                ListView<?> col0 = (ListView<?>) view.lookup(".rx-cascader-column-0");
+                assertNotNull(col0, "root column should exist");
+                assertEquals(300.0, col0.prefWidth(-1.0), 0.001, "author CSS sets the column width");
+
+                view.setColumnWidth(250.0);
+                relayout(scene);
+                assertEquals(300.0, col0.prefWidth(-1.0), 0.001,
+                        "author column CSS still wins after a runtime columnWidth change");
+            });
+        } finally {
+            Files.deleteIfExists(css);
+        }
+    }
+
+    /**
+     * Verifies a non-positive rowHeight falls back to the default so fixed-cell
+     * mode (and a sane row slot height) is preserved.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void nonPositiveRowHeightFallsBackToDefault() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(item("a")));
+            Scene scene = new Scene(new StackPane(view));
+            relayout(scene);
+
+            view.setRowHeight(0.0);
+            relayout(scene);
+
+            ListView<?> col0 = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(col0, "root column should exist");
+            assertEquals(RXCascaderView.DEFAULT_FIXED_CELL_SIZE, col0.getFixedCellSize(), 0.001,
+                    "a non-positive rowHeight falls back to the default fixed cell size");
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
+    }
+
+    private static int columnCount(RXCascaderView<?> view) {
+        return view.lookupAll(".rx-cascader-column").size();
+    }
+
+    private static Node filledCell(ListView<?> column, RXCascaderItem<?> item) {
+        for (Node node : column.lookupAll(".rx-cascader-cell")) {
+            if (node instanceof ListCell) {
+                ListCell<?> cell = (ListCell<?>) node;
+                if (cell.getItem() == item) {
+                    return node;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void relayout(Scene scene) {
+        scene.getRoot().applyCss();
+        scene.getRoot().layout();
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

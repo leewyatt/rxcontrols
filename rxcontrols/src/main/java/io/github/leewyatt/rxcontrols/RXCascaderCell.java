@@ -2,12 +2,12 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
-import javafx.animation.AnimationTimer;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.RotateTransition;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
-import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.WeakListChangeListener;
 import javafx.css.PseudoClass;
@@ -22,10 +22,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Default list cell for a {@link RXCascaderView} column. It owns the cascader
@@ -58,56 +58,44 @@ import java.util.WeakHashMap;
  */
 public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
 
-    // ==================== Shared loading animation ====================
+    // ==================== Loading spinner ====================
 
-    private static final long LOADING_SPINNER_CYCLE_NANOS = 900_000_000L;
+    private static final Duration LOADING_SPINNER_CYCLE = Duration.seconds(0.9);
 
-    /** Single rotation source every visible loading glyph binds to. */
-    private static final DoubleProperty LOADING_ANGLE = new SimpleDoubleProperty();
+    /** Per-cell rotation animation for the loading glyph; created lazily on first use. */
+    private RotateTransition spinner;
 
-    /** Cells currently showing a loading glyph on screen; weak so GC/column rebuilds self-heal. */
-    private static final Set<RXCascaderCell<?>> ACTIVE_SPINNERS =
-            Collections.newSetFromMap(new WeakHashMap<>());
-
-    private static AnimationTimer spinnerTimer;
-    private static boolean spinnerRunning;
-
-    private static void joinSpinners(RXCascaderCell<?> cell) {
-        ACTIVE_SPINNERS.add(cell);
-        startSpinner();
+    private RotateTransition spinner() {
+        if (spinner == null) {
+            spinner = new RotateTransition(LOADING_SPINNER_CYCLE, loadingGlyph);
+            spinner.setByAngle(360.0);
+            spinner.setInterpolator(Interpolator.LINEAR);
+            spinner.setCycleCount(Animation.INDEFINITE);
+        }
+        return spinner;
     }
 
-    private static void leaveSpinners(RXCascaderCell<?> cell) {
-        ACTIVE_SPINNERS.remove(cell);
+    /** Single source of truth: spin iff the glyph is visible and on a showing window. */
+    private void updateSpinner() {
+        if (loadingGlyph.isVisible() && treeShowing.get()) {
+            if (spinner().getStatus() != Animation.Status.RUNNING) {
+                // play() resumes a paused spinner from its current angle (no snap)
+                // and starts a fresh one from zero.
+                spinner().play();
+            }
+        } else if (spinner != null) {
+            // Pause keeps the current angle (cheap to resume) and detaches from the
+            // pulse timer, so a recycled-off-screen cell never keeps spinning.
+            spinner.pause();
+        }
     }
 
-    private static void startSpinner() {
-        if (spinnerRunning) {
-            return;
+    private void disposeSpinner() {
+        if (spinner != null) {
+            spinner.stop();
+            loadingGlyph.setRotate(0.0);
+            spinner = null;
         }
-        if (spinnerTimer == null) {
-            spinnerTimer = new AnimationTimer() {
-                @Override
-                public void handle(long now) {
-                    if (ACTIVE_SPINNERS.isEmpty()) {
-                        stopSpinner();
-                        return;
-                    }
-                    LOADING_ANGLE.set((now % LOADING_SPINNER_CYCLE_NANOS) * 360.0 / LOADING_SPINNER_CYCLE_NANOS);
-                }
-            };
-        }
-        spinnerRunning = true;
-        spinnerTimer.start();
-    }
-
-    private static void stopSpinner() {
-        if (!spinnerRunning) {
-            return;
-        }
-        spinnerRunning = false;
-        spinnerTimer.stop();
-        LOADING_ANGLE.set(0.0);
     }
 
     // ==================== Pseudo classes ====================
@@ -144,6 +132,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
             new WeakListChangeListener<>(childrenListener);
 
     private RXCascaderItem<T> observedItem;
+    private final List<RXCascaderItem<T>> observedAncestors = new ArrayList<>();
 
     // ==================== Constructor ====================
 
@@ -156,8 +145,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         this.view = view;
         initializeNodes();
         registerHandlers();
-        loadingGlyph.rotateProperty().bind(LOADING_ANGLE);
-        treeShowing.addListener(observable -> updateSpinnerMembership());
+        treeShowing.addListener(observable -> updateSpinner());
     }
 
     private void initializeNodes() {
@@ -271,7 +259,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
             textLabel.setText(null);
             content.getChildren().clear();
             resetPseudoClasses();
-            updateSpinnerMembership();
+            disposeSpinner();
             return;
         }
 
@@ -287,10 +275,16 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         item.checkedProperty().addListener(weakStateListener);
         item.indeterminateProperty().addListener(weakStateListener);
         item.disabledProperty().addListener(weakStateListener);
-        item.loadingProperty().addListener(weakStateListener);
+        item.loadStateProperty().addListener(weakStateListener);
         item.leafHintProperty().addListener(weakStateListener);
         item.valueProperty().addListener(weakContentListener);
         item.getChildren().addListener(weakChildrenListener);
+        // Effective-disabled depends on the whole ancestor chain, so react to an
+        // ancestor becoming (un)disabled too, not only this item.
+        for (RXCascaderItem<T> ancestor = item.getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+            ancestor.disabledProperty().addListener(weakStateListener);
+            observedAncestors.add(ancestor);
+        }
     }
 
     private void detachObservedItem() {
@@ -300,10 +294,14 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         observedItem.checkedProperty().removeListener(weakStateListener);
         observedItem.indeterminateProperty().removeListener(weakStateListener);
         observedItem.disabledProperty().removeListener(weakStateListener);
-        observedItem.loadingProperty().removeListener(weakStateListener);
+        observedItem.loadStateProperty().removeListener(weakStateListener);
         observedItem.leafHintProperty().removeListener(weakStateListener);
         observedItem.valueProperty().removeListener(weakContentListener);
         observedItem.getChildren().removeListener(weakChildrenListener);
+        for (RXCascaderItem<T> ancestor : observedAncestors) {
+            ancestor.disabledProperty().removeListener(weakStateListener);
+        }
+        observedAncestors.clear();
         observedItem = null;
     }
 
@@ -329,7 +327,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         boolean multiple = view.getSelectionMode() == SelectionMode.MULTIPLE;
         boolean disabled = view.isEffectivelyDisabled(item);
         boolean leaf = view.isLeaf(item);
-        boolean loading = item.isLoading();
+        boolean loading = item.getLoadState() == RXCascaderItem.LoadState.LOADING;
         RXCascaderPath<T> selectedPath = view.getSelectedPath();
         boolean active = selectedPath != null && selectedPath.getLeaf() == item;
         boolean inActivePath = view.getActivePath().contains(item);
@@ -358,7 +356,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         pseudoClassStateChanged(INDETERMINATE, item.isIndeterminate());
         pseudoClassStateChanged(LOADING, loading);
         pseudoClassStateChanged(LEAF, leaf);
-        updateSpinnerMembership();
+        updateSpinner();
     }
 
     private boolean isInCheckedPath(RXCascaderItem<T> item) {
@@ -377,16 +375,5 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         pseudoClassStateChanged(INDETERMINATE, false);
         pseudoClassStateChanged(LOADING, false);
         pseudoClassStateChanged(LEAF, false);
-    }
-
-    private void updateSpinnerMembership() {
-        // tree-showing (not just scene): the popup attaches its scene to the view
-        // at skin construction, so a scene check would keep the timer running while
-        // the popup is hidden. tree-showing reacts to the window hiding too.
-        if (loadingGlyph.isVisible() && treeShowing.get()) {
-            joinSpinners(this);
-        } else {
-            leaveSpinners(this);
-        }
     }
 }

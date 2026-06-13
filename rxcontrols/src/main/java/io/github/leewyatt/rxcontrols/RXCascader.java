@@ -48,6 +48,9 @@ public class RXCascader<T> extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-cascader";
 
+    /** Default field separator joining the levels of a selected path. */
+    public static final String DEFAULT_SEPARATOR = " / ";
+
     // ==================== Fields ====================
 
     private final RXCascaderView<T> view = new RXCascaderView<>();
@@ -162,7 +165,10 @@ public class RXCascader<T> extends Control {
     }
 
     /**
-     * Checked leaf paths in multiple-selection mode.
+     * Checked leaf paths in multiple-selection mode. Paths are derived only from
+     * <em>resolved</em> checked leaves: a checked but not-yet-loaded lazy branch
+     * (or one whose load failed) contributes nothing here until its descendant
+     * leaves have loaded, even though its check box shows checked.
      *
      * @return read-only checked path list maintained by the embedded view
      */
@@ -276,6 +282,75 @@ public class RXCascader<T> extends Control {
         pathTextFactory.set(value);
     }
 
+    // ==================== Separator ====================
+
+    private final StringProperty separator =
+            new SimpleStringProperty(this, "separator", DEFAULT_SEPARATOR);
+
+    /**
+     * Separator used by the default field text to join the levels of a selected
+     * path. Ignored when a {@link #pathTextFactoryProperty() pathTextFactory} is
+     * set. A {@code null} value falls back to {@link #DEFAULT_SEPARATOR}.
+     *
+     * @return separator property
+     */
+    public final StringProperty separatorProperty() {
+        return separator;
+    }
+
+    /**
+     * Returns the field separator.
+     *
+     * @return separator, or {@code null}
+     */
+    public final String getSeparator() {
+        return separator.get();
+    }
+
+    /**
+     * Sets the field separator.
+     *
+     * @param value separator, or {@code null} for the default
+     */
+    public final void setSeparator(String value) {
+        separator.set(value);
+    }
+
+    // ==================== Show All Levels ====================
+
+    private final BooleanProperty showAllLevels =
+            new SimpleBooleanProperty(this, "showAllLevels", true);
+
+    /**
+     * Whether the default field text shows the full path (all levels joined by the
+     * {@link #separatorProperty() separator}) or only the last level. Ignored when
+     * a {@link #pathTextFactoryProperty() pathTextFactory} is set. Defaults to
+     * {@code true}.
+     *
+     * @return show-all-levels property
+     */
+    public final BooleanProperty showAllLevelsProperty() {
+        return showAllLevels;
+    }
+
+    /**
+     * Returns whether the field shows all levels.
+     *
+     * @return {@code true} if all levels are shown
+     */
+    public final boolean isShowAllLevels() {
+        return showAllLevels.get();
+    }
+
+    /**
+     * Sets whether the field shows all levels.
+     *
+     * @param value {@code true} to show all levels, {@code false} for the last only
+     */
+    public final void setShowAllLevels(boolean value) {
+        showAllLevels.set(value);
+    }
+
     // ==================== Clearable ====================
 
     private final BooleanProperty clearable =
@@ -378,6 +453,48 @@ public class RXCascader<T> extends Control {
      */
     public final void setVisibleRowCount(int value) {
         visibleRowCount.set(value);
+    }
+
+    // ==================== Column Width / Row Height ====================
+
+    /**
+     * Returns the preferred popup column width.
+     *
+     * @return column width in pixels
+     */
+    public final double getColumnWidth() {
+        return view.getColumnWidth();
+    }
+
+    /**
+     * Sets the preferred popup column width. Forwarded to the embedded view, which
+     * is the CSS authority for {@code -rx-column-width}; this is a plain setter (not
+     * a styleable property) so the view's property stays CSS-settable.
+     *
+     * @param value column width in pixels
+     */
+    public final void setColumnWidth(double value) {
+        view.setColumnWidth(value);
+    }
+
+    /**
+     * Returns the fixed popup row height.
+     *
+     * @return row height in pixels
+     */
+    public final double getRowHeight() {
+        return view.getRowHeight();
+    }
+
+    /**
+     * Sets the fixed popup row height. Forwarded to the embedded view, which is the
+     * CSS authority for {@code -rx-row-height}; this is a plain setter (not a
+     * styleable property) so the view's property stays CSS-settable.
+     *
+     * @param value row height in pixels
+     */
+    public final void setRowHeight(double value) {
+        view.setRowHeight(value);
     }
 
     // ==================== Cell Factory ====================
@@ -510,8 +627,9 @@ public class RXCascader<T> extends Control {
     /**
      * Sets a cascading check state: the item and its enabled descendants are
      * (un)checked and ancestors roll up to the matching tri-state. Applies only in
-     * multiple-selection mode; ignored in single mode. Use this for programmatic
-     * checking instead of writing {@link RXCascaderItem#setChecked} directly.
+     * multiple-selection mode; ignored in single mode. This is the runtime entry
+     * point for programmatic checking (an item's checked state is read-only); to
+     * seed an initial selection before display use {@code RXCascaderView.seedChecked}.
      *
      * @param item    item to update
      * @param checked target checked state

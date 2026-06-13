@@ -2,9 +2,11 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
+import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
-import javafx.beans.InvalidationListener;
 import javafx.collections.ObservableList;
+import javafx.css.StyleOrigin;
+import javafx.css.StyleableProperty;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -37,13 +39,6 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     private final HBox columnsBox = new HBox();
     private final List<ListView<RXCascaderItem<T>>> columns = new ArrayList<>();
 
-    /**
-     * Last active-path item watched while it is loading, so the deferred next
-     * column appears as soon as the load finishes.
-     */
-    private RXCascaderItem<T> frontierItem;
-    private final InvalidationListener frontierListener = observable -> rebuildColumns();
-
     // ==================== Constructor ====================
 
     /**
@@ -56,12 +51,14 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         columnsBox.getStyleClass().add("columns");
         getChildren().setAll(columnsBox);
         registerListeners(control);
-        rebuildColumns();
+        syncColumns();
     }
 
     private void registerListeners(RXCascaderView<T> control) {
-        disposer.registerListener(control.getRootItems(), this::rebuildColumns);
-        disposer.registerListener(control.getActivePath(), this::rebuildColumns);
+        // Column structure: one explicit signal from the control replaces the old
+        // active-path / root-list / loader listeners and the frontier monitor.
+        disposer.registerListener(control.columnsRevisionProperty(), this::syncColumns);
+        // Cell rendering only (same columns, cells re-render):
         disposer.registerListener(control.selectionModeProperty(), () -> {
             refreshColumns();
             control.requestLayout();
@@ -69,32 +66,59 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         disposer.registerListener(control.selectedPathProperty(), this::refreshColumns);
         disposer.registerListener(control.getCheckedPaths(), this::refreshColumns);
         disposer.registerListener(control.visibleRowCountProperty(), control::requestLayout);
-        disposer.registerListener(control.cellFactoryProperty(), this::rebuildColumns);
-        disposer.registerListener(control.childrenLoaderProperty(), this::rebuildColumns);
+        disposer.registerListener(control.columnWidthProperty(), this::applyColumnSizing);
+        disposer.registerListener(control.rowHeightProperty(), this::applyColumnSizing);
         disposer.registerListener(control.itemTextFactoryProperty(), this::refreshColumns);
+        // A new cell factory changes the cell type, so every column must be rebuilt;
+        // the tail-diff reuses by backing-list identity and would keep stale cells.
+        disposer.registerListener(control.cellFactoryProperty(), this::rebuildAllColumns);
     }
 
     // ==================== Columns ====================
 
-    private void rebuildColumns() {
-        detachFrontierMonitor();
-        disposeColumns();
-        List<ListView<RXCascaderItem<T>>> views = new ArrayList<>();
-        addColumn(views, getSkinnable().getRootItems(), views.size());
-        for (RXCascaderItem<T> item : getSkinnable().getActivePath()) {
-            if (shouldAddColumn(item)) {
-                addColumn(views, item.getChildren(), views.size());
-            }
+    /**
+     * Re-syncs the rendered columns to the desired set with a keep-prefix /
+     * replace-tail diff: columns whose backing list is unchanged (by identity) are
+     * reused, only the changed tail is disposed and rebuilt, and the ordinal style
+     * classes are restamped by position. This avoids the flicker and defensive CSS
+     * re-pass of a full teardown.
+     */
+    private void syncColumns() {
+        List<ObservableList<RXCascaderItem<T>>> desired = desiredBackingLists();
+        int keep = 0;
+        while (keep < columns.size() && keep < desired.size()
+                && columns.get(keep).getItems() == desired.get(keep)) {
+            keep++;
         }
-        columns.addAll(views);
-        columnsBox.getChildren().setAll(views);
-        attachFrontierMonitor();
-        // Ensure freshly created columns complete a CSS pass before they are used
-        // for pref measurement / popup repositioning, so author CSS overrides the
-        // code defaults without a one-frame default-size jump.
-        if (getSkinnable().getScene() != null) {
+        boolean changed = keep < columns.size() || keep < desired.size();
+        for (int i = columns.size() - 1; i >= keep; i--) {
+            disposeColumn(columns.remove(i));
+        }
+        for (int i = keep; i < desired.size(); i++) {
+            columns.add(createColumn(desired.get(i)));
+        }
+        restampOrdinals();
+        columnsBox.getChildren().setAll(columns);
+        // Only newly created columns need a CSS pass (so author CSS overrides the
+        // code defaults before pref measurement); reused columns already have it.
+        if (changed && getSkinnable().getScene() != null) {
             columnsBox.applyCss();
         }
+    }
+
+    /**
+     * The backing lists, in order, that the rendered columns should show: the root
+     * items, then the children of each active-path branch that should get a column.
+     */
+    private List<ObservableList<RXCascaderItem<T>>> desiredBackingLists() {
+        List<ObservableList<RXCascaderItem<T>>> lists = new ArrayList<>();
+        lists.add(getSkinnable().getRootItems());
+        for (RXCascaderItem<T> item : getSkinnable().getActivePath()) {
+            if (shouldAddColumn(item)) {
+                lists.add(item.getChildren());
+            }
+        }
+        return lists;
     }
 
     /**
@@ -106,25 +130,25 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
      */
     private boolean shouldAddColumn(RXCascaderItem<T> item) {
         RXCascaderView<T> view = getSkinnable();
-        if (view.isLeaf(item) || item.isLoading()) {
+        if (view.isLeaf(item) || item.getLoadState() == LoadState.LOADING) {
             return false;
         }
         return view.getChildrenLoader() == null
-                || item.isLoaded()
+                || item.getLoadState() == LoadState.LOADED
                 || !item.getChildren().isEmpty();
     }
 
-    private void addColumn(List<ListView<RXCascaderItem<T>>> views,
-                           ObservableList<RXCascaderItem<T>> items, int columnIndex) {
+    private ListView<RXCascaderItem<T>> createColumn(ObservableList<RXCascaderItem<T>> items) {
         ListView<RXCascaderItem<T>> listView = new ListView<>(items);
-        listView.getStyleClass().addAll(COLUMN_STYLE_CLASS, COLUMN_STYLE_CLASS + "-" + columnIndex);
+        listView.getStyleClass().add(COLUMN_STYLE_CLASS);
         listView.setFocusTraversable(false);
-        // Code defaults only; author CSS (-fx-pref-width / -fx-fixed-cell-size) can
-        // override because AUTHOR origin outranks the USER origin of these set calls.
-        // min/max are left unset so a single column can be widened via CSS while
-        // HBox (hgrow=NEVER) keeps each column at its preferred width.
-        listView.setPrefWidth(RXCascaderView.DEFAULT_COLUMN_WIDTH);
-        listView.setFixedCellSize(RXCascaderView.DEFAULT_FIXED_CELL_SIZE);
+        // Discoverable defaults from the view's -rx-column-width / -rx-row-height;
+        // author CSS (-fx-pref-width / -fx-fixed-cell-size) on .rx-cascader-column
+        // still overrides because AUTHOR origin outranks the USER origin of these
+        // set calls. min/max are left unset so a single column can be widened via
+        // CSS while HBox (hgrow=NEVER) keeps each column at its preferred width.
+        listView.setPrefWidth(columnWidthOrDefault());
+        listView.setFixedCellSize(rowHeightOrDefault());
         // Only a forced-branch (leafHint=false) column ends up empty; loading
         // shows no column and a loaded-empty branch is a leaf, so this only ever
         // renders for that one case.
@@ -135,16 +159,43 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         listView.setCellFactory(view -> factory != null
                 ? factory.call(getSkinnable())
                 : new RXCascaderCell<>(getSkinnable()));
-        views.add(listView);
+        return listView;
+    }
+
+    /**
+     * Stamps each column's positional ordinal style class
+     * ({@code rx-cascader-column-N}), removing any stale ordinal so a tail-diff
+     * always leaves lookups and author CSS targeting the column at that position.
+     */
+    private void restampOrdinals() {
+        String ordinalPrefix = COLUMN_STYLE_CLASS + "-";
+        for (int i = 0; i < columns.size(); i++) {
+            ListView<RXCascaderItem<T>> column = columns.get(i);
+            column.getStyleClass().removeIf(styleClass -> styleClass.startsWith(ordinalPrefix));
+            column.getStyleClass().add(ordinalPrefix + i);
+        }
+    }
+
+    private void disposeColumn(ListView<RXCascaderItem<T>> column) {
+        column.setCellFactory(null);
+        column.setItems(null);
     }
 
     private void disposeColumns() {
         for (ListView<RXCascaderItem<T>> column : columns) {
-            column.setCellFactory(null);
-            column.setItems(null);
+            disposeColumn(column);
         }
         columnsBox.getChildren().clear();
         columns.clear();
+    }
+
+    /**
+     * Full rebuild used when the cell factory changes: dispose every column and
+     * re-sync so all columns are recreated with the new cell type.
+     */
+    private void rebuildAllColumns() {
+        disposeColumns();
+        syncColumns();
     }
 
     private void refreshColumns() {
@@ -153,30 +204,44 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         }
     }
 
-    // ==================== Frontier monitor ====================
-
-    private void attachFrontierMonitor() {
-        List<RXCascaderItem<T>> activePath = getSkinnable().getActivePath();
-        if (activePath.isEmpty()) {
-            return;
+    /**
+     * Re-applies the view's column-width / row-height defaults (USER origin) to the
+     * existing columns when those properties change. A column whose size is already
+     * set by author CSS (AUTHOR / INLINE origin) is left untouched, so the
+     * "author wins" contract holds even for runtime size changes.
+     */
+    private void applyColumnSizing() {
+        for (ListView<RXCascaderItem<T>> column : columns) {
+            if (!cssAuthored(column.prefWidthProperty())) {
+                column.setPrefWidth(columnWidthOrDefault());
+            }
+            if (!cssAuthored(column.fixedCellSizeProperty())) {
+                column.setFixedCellSize(rowHeightOrDefault());
+            }
         }
-        RXCascaderItem<T> last = activePath.get(activePath.size() - 1);
-        if (last.isLoading()) {
-            frontierItem = last;
-            last.loadingProperty().addListener(frontierListener);
-        }
+        getSkinnable().requestLayout();
     }
 
-    private void detachFrontierMonitor() {
-        if (frontierItem != null) {
-            frontierItem.loadingProperty().removeListener(frontierListener);
-            frontierItem = null;
+    private double columnWidthOrDefault() {
+        double width = getSkinnable().getColumnWidth();
+        return width > 0.0 ? width : RXCascaderView.DEFAULT_COLUMN_WIDTH;
+    }
+
+    private double rowHeightOrDefault() {
+        double height = getSkinnable().getRowHeight();
+        return height > 0.0 ? height : RXCascaderView.DEFAULT_FIXED_CELL_SIZE;
+    }
+
+    private static boolean cssAuthored(Object property) {
+        if (!(property instanceof StyleableProperty)) {
+            return false;
         }
+        StyleOrigin origin = ((StyleableProperty<?>) property).getStyleOrigin();
+        return origin == StyleOrigin.AUTHOR || origin == StyleOrigin.INLINE;
     }
 
     @Override
     protected void disposeSkin() {
-        detachFrontierMonitor();
         disposeColumns();
     }
 
@@ -195,7 +260,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             width += column.prefWidth(-1.0);
         }
         if (columns.isEmpty()) {
-            width = RXCascaderView.DEFAULT_COLUMN_WIDTH;
+            width = columnWidthOrDefault();
         }
         return leftInset + width + rightInset;
     }
@@ -208,7 +273,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             content = Math.max(content, columnContentHeight(column));
         }
         if (columns.isEmpty()) {
-            content = RXCascaderView.DEFAULT_FIXED_CELL_SIZE * sanitizedVisibleRowCount();
+            content = rowHeightOrDefault() * sanitizedVisibleRowCount();
         }
         return topInset + content + bottomInset;
     }
@@ -226,7 +291,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     private double cellSize(ListView<RXCascaderItem<T>> column) {
         double fixed = column.getFixedCellSize();
-        return fixed > 0.0 ? fixed : RXCascaderView.DEFAULT_FIXED_CELL_SIZE;
+        return fixed > 0.0 ? fixed : rowHeightOrDefault();
     }
 
     private int sanitizedVisibleRowCount() {

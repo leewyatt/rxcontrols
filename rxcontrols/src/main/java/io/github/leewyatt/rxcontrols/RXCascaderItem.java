@@ -210,86 +210,101 @@ public class RXCascaderItem<T> {
         leafHint.set(value);
     }
 
-    // ==================== Loaded ====================
-
-    private final ReadOnlyBooleanWrapper loaded =
-            new ReadOnlyBooleanWrapper(this, "loaded", false);
+    // ==================== Load State ====================
 
     /**
-     * Whether a children loader has already populated this item, observable but
-     * not writable. It is meaningful only for lazy branches: it flips to
-     * {@code true} after the loader successfully returns children, and stays
-     * {@code false} when a load fails (so the branch can be retried). Eager and
-     * leaf items never go through the loader and remain {@code false}.
-     *
-     * @return read-only loaded property
+     * Lifecycle of a branch's children with respect to a lazy
+     * {@link RXCascaderView#childrenLoaderProperty() children loader}.
      */
-    public final ReadOnlyBooleanProperty loadedProperty() {
-        return loaded.getReadOnlyProperty();
+    public enum LoadState {
+        /**
+         * Initial state, before any load is attempted. Eager items stay EAGER; a
+         * lazy branch is also EAGER until first expanded, where the coordinator
+         * treats it the same as {@link #NOT_LOADED}.
+         */
+        EAGER,
+        /**
+         * A lazy branch reset after a prior load (for example by reload); awaiting
+         * (re)load and equivalent to {@link #EAGER} for load decisions.
+         */
+        NOT_LOADED,
+        /** A loader stage is in flight for this branch. */
+        LOADING,
+        /** The loader populated this branch's children successfully. */
+        LOADED,
+        /** The loader failed; the branch is retriable by expanding it again. */
+        FAILED
     }
+
+    private final ReadOnlyObjectWrapper<LoadState> loadState =
+            new ReadOnlyObjectWrapper<>(this, "loadState", LoadState.EAGER);
 
     /**
-     * Returns whether a children loader has populated this item.
+     * Lazy-loading lifecycle state of this item, observable but not writable. The
+     * owning {@link RXCascaderView} drives it: a fresh lazy branch resolves
+     * through {@link LoadState#LOADING} to {@link LoadState#LOADED} or
+     * {@link LoadState#FAILED}; eager items stay {@link LoadState#EAGER}. It is
+     * the single observable load signal, and each transition fires exactly once.
      *
-     * @return {@code true} if loaded
+     * @return read-only load-state property
      */
-    public final boolean isLoaded() {
-        return loaded.get();
-    }
-
-    final void setLoaded(boolean value) {
-        loaded.set(value);
-    }
-
-    // ==================== Loading ====================
-
-    private final ReadOnlyBooleanWrapper loading =
-            new ReadOnlyBooleanWrapper(this, "loading", false);
-
-    /**
-     * Whether this item is currently running its children loader, observable but
-     * not writable. The owning {@link RXCascaderView} drives it: {@code true}
-     * while the loader stage is in flight, back to {@code false} on completion or
-     * failure.
-     *
-     * @return read-only loading property
-     */
-    public final ReadOnlyBooleanProperty loadingProperty() {
-        return loading.getReadOnlyProperty();
+    public final ReadOnlyObjectProperty<LoadState> loadStateProperty() {
+        return loadState.getReadOnlyProperty();
     }
 
     /**
-     * Returns whether this item is currently loading children.
+     * Returns the lazy-loading lifecycle state.
      *
-     * @return {@code true} if loading
+     * @return current load state, never {@code null}
      */
-    public final boolean isLoading() {
-        return loading.get();
+    public final LoadState getLoadState() {
+        return loadState.get();
     }
 
-    final void setLoading(boolean value) {
-        loading.set(value);
+    final void setLoadState(LoadState value) {
+        loadState.set(value);
+    }
+
+    // ==================== Load coordination (package-private, FX thread only) ====================
+
+    // Coordination state, not UI state: plain non-observable fields read and
+    // written only by RXCascaderView on the JavaFX application thread. loadToken
+    // guards against stale completions; pendingCheck holds a deferred check
+    // intent recorded while a branch is still loading.
+    private long loadToken;
+    private Boolean pendingCheck;
+
+    final long getLoadToken() {
+        return loadToken;
+    }
+
+    final void setLoadToken(long value) {
+        loadToken = value;
+    }
+
+    final Boolean getPendingCheck() {
+        return pendingCheck;
+    }
+
+    final void setPendingCheck(Boolean value) {
+        pendingCheck = value;
     }
 
     // ==================== Checked ====================
 
-    private final BooleanProperty checked =
-            new SimpleBooleanProperty(this, "checked", false);
+    private final ReadOnlyBooleanWrapper checked =
+            new ReadOnlyBooleanWrapper(this, "checked", false);
 
     /**
-     * Whether this item is checked.
+     * Whether this item is checked, observable but not writable. The owning
+     * {@link RXCascaderView}'s tri-state machine drives it through the cascading
+     * operations ({@code setCheckedCascade} / {@code toggleCheck}) and the
+     * {@code seedChecked} pre-display entry point.
      *
-     * <p><strong>Writing this property directly only sets this single item.</strong>
-     * It does not cascade to children, roll up to ancestors, or refresh the
-     * owning panel's checked paths. Use it to seed an item's initial state (for
-     * example a pre-checked locked item) before the tree is shown; for runtime
-     * changes call {@code RXCascaderView.setCheckedCascade} or
-     * {@code toggleCheck} instead so the tri-state machine stays consistent.
-     *
-     * @return checked property
+     * @return read-only checked property
      */
-    public final BooleanProperty checkedProperty() {
-        return checked;
+    public final ReadOnlyBooleanProperty checkedProperty() {
+        return checked.getReadOnlyProperty();
     }
 
     /**
@@ -301,38 +316,25 @@ public class RXCascaderItem<T> {
         return checked.get();
     }
 
-    /**
-     * Sets whether this item is checked.
-     *
-     * <p>This method only updates this item. It does not cascade to children,
-     * roll up to ancestors, or refresh the owning panel's checked paths. Use it
-     * for initial state seeding before display; use
-     * {@code RXCascaderView.setCheckedCascade} or {@code toggleCheck} for
-     * runtime selection changes.
-     *
-     * @param value {@code true} if checked
-     */
-    public final void setChecked(boolean value) {
+    final void setChecked(boolean value) {
         checked.set(value);
     }
 
     // ==================== Indeterminate ====================
 
-    private final BooleanProperty indeterminate =
-            new SimpleBooleanProperty(this, "indeterminate", false);
+    private final ReadOnlyBooleanWrapper indeterminate =
+            new ReadOnlyBooleanWrapper(this, "indeterminate", false);
 
     /**
-     * Whether this item is in the indeterminate state.
+     * Whether this item is in the indeterminate (partially-checked) state,
+     * observable but not writable. It is a derived display state maintained by
+     * the owning {@link RXCascaderView}'s tri-state machine; an item is never both
+     * checked and indeterminate.
      *
-     * <p>This is a derived display state normally written by the owning panel's
-     * tri-state machine. Setting it directly is not cascaded or rolled up and is
-     * generally only useful for seeding an item before the tree is shown; see
-     * {@link #checkedProperty()}.
-     *
-     * @return indeterminate property
+     * @return read-only indeterminate property
      */
-    public final BooleanProperty indeterminateProperty() {
-        return indeterminate;
+    public final ReadOnlyBooleanProperty indeterminateProperty() {
+        return indeterminate.getReadOnlyProperty();
     }
 
     /**
@@ -344,17 +346,7 @@ public class RXCascaderItem<T> {
         return indeterminate.get();
     }
 
-    /**
-     * Sets whether this item is in the indeterminate state.
-     *
-     * <p>This method only updates this item. It does not cascade, roll up, or
-     * refresh the owning panel's checked paths. It is normally written by the
-     * panel's tri-state machine and should only be set directly for initial
-     * state seeding before display.
-     *
-     * @param value {@code true} if indeterminate
-     */
-    public final void setIndeterminate(boolean value) {
+    final void setIndeterminate(boolean value) {
         indeterminate.set(value);
     }
 

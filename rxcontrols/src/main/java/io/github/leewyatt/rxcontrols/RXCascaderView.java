@@ -1,10 +1,14 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCascaderViewSkin;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyIntegerProperty;
+import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -12,6 +16,11 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.SizeConverter;
 import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.SelectionMode;
@@ -19,10 +28,11 @@ import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -82,12 +92,20 @@ public class RXCascaderView<T> extends Control {
     private final ObservableList<RXCascaderPath<T>> readOnlyCheckedPaths =
             FXCollections.unmodifiableObservableList(checkedPaths);
 
-    /** Sentinel returned by {@link #startLoad} when no load was started; live generations are >= 1. */
+    /** Sentinel returned by {@link #startLoad} when no load was started; live tokens are >= 1. */
     private static final long NO_LOAD = 0L;
 
-    private final Map<RXCascaderItem<T>, Long> loadGenerations = new IdentityHashMap<>();
-    private final Map<RXCascaderItem<T>, Boolean> pendingChecks = new IdentityHashMap<>();
-    private long nextLoadGeneration;
+    /**
+     * Items with a load currently in flight, keyed by identity. Membership is the
+     * liveness gate: {@link #completeLoad} and {@link #runLoad} both require the
+     * item to still be present, and {@link #cancelInFlight} clears the whole set
+     * at once so any late completion bails.
+     */
+    private final Set<RXCascaderItem<T>> liveLoads =
+            Collections.newSetFromMap(new IdentityHashMap<>());
+
+    /** Monotonic and never reset: its monotonicity is the stale-completion guarantee. */
+    private long nextLoadToken;
 
     /**
      * Creates an empty cascader view.
@@ -151,6 +169,36 @@ public class RXCascaderView<T> extends Control {
         return readOnlyActivePath;
     }
 
+    // ==================== Columns Revision ====================
+
+    private final ReadOnlyIntegerWrapper columnsRevision =
+            new ReadOnlyIntegerWrapper(this, "columnsRevision", 0);
+
+    /**
+     * Monotonic counter bumped whenever the rendered column structure should
+     * change — navigation (active path), a frontier load completing, or a root /
+     * loader change. The skin observes this single signal to re-sync its columns
+     * instead of reaching into individual item load states.
+     *
+     * @return read-only columns-revision property
+     */
+    public final ReadOnlyIntegerProperty columnsRevisionProperty() {
+        return columnsRevision.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the current columns revision.
+     *
+     * @return columns revision counter
+     */
+    public final int getColumnsRevision() {
+        return columnsRevision.get();
+    }
+
+    private void bumpColumnsRevision() {
+        columnsRevision.set(columnsRevision.get() + 1);
+    }
+
     // ==================== Selection Mode ====================
 
     private SelectionMode effectiveSelectionMode = SelectionMode.SINGLE;
@@ -162,7 +210,15 @@ public class RXCascaderView<T> extends Control {
                     SelectionMode mode = selectionModeOrDefault();
                     if (mode != effectiveSelectionMode) {
                         effectiveSelectionMode = mode;
-                        clearSelection();
+                        // Clear only the state the target mode cannot express, so a
+                        // pre-seeded selection survives the natural seed-then-set-mode
+                        // order: entering MULTIPLE drops the single selection; entering
+                        // SINGLE drops the checked state.
+                        if (mode == SelectionMode.MULTIPLE) {
+                            clearSingleSelection();
+                        } else {
+                            clearMultipleSelection();
+                        }
                     }
                     requestLayout();
                 }
@@ -230,7 +286,11 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
-     * Checked leaf paths in multiple-selection mode.
+     * Checked leaf paths in multiple-selection mode. Paths are derived only from
+     * <em>resolved</em> checked leaves: a checked but not-yet-loaded lazy branch
+     * (or one whose load failed) contributes nothing here until its descendant
+     * leaves have loaded, even though its check box shows checked. Observe an
+     * item's {@link RXCascaderItem#checkedProperty()} for that optimistic state.
      *
      * @return read-only checked path list maintained by this view
      */
@@ -270,6 +330,105 @@ public class RXCascaderView<T> extends Control {
      */
     public final void setVisibleRowCount(int value) {
         visibleRowCount.set(value);
+    }
+
+    // ==================== Column Width ====================
+
+    private final DoubleProperty columnWidth = new StyleableDoubleProperty(DEFAULT_COLUMN_WIDTH) {
+        @Override
+        public Object getBean() {
+            return RXCascaderView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "columnWidth";
+        }
+
+        @Override
+        public CssMetaData<RXCascaderView<?>, Number> getCssMetaData() {
+            return StyleableProperties.COLUMN_WIDTH;
+        }
+    };
+
+    /**
+     * Preferred width of each column, in pixels, settable via CSS
+     * {@code -rx-column-width}. It is a discoverable default that the skin applies
+     * to each column with USER origin, so author CSS targeting
+     * {@code .rx-cascader-column} still wins. Defaults to
+     * {@link #DEFAULT_COLUMN_WIDTH}.
+     *
+     * @return column-width property
+     */
+    public final DoubleProperty columnWidthProperty() {
+        return columnWidth;
+    }
+
+    /**
+     * Returns the preferred column width.
+     *
+     * @return column width in pixels
+     */
+    public final double getColumnWidth() {
+        return columnWidth.get();
+    }
+
+    /**
+     * Sets the preferred column width.
+     *
+     * @param value column width in pixels
+     */
+    public final void setColumnWidth(double value) {
+        columnWidth.set(value);
+    }
+
+    // ==================== Row Height ====================
+
+    private final DoubleProperty rowHeight = new StyleableDoubleProperty(DEFAULT_FIXED_CELL_SIZE) {
+        @Override
+        public Object getBean() {
+            return RXCascaderView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "rowHeight";
+        }
+
+        @Override
+        public CssMetaData<RXCascaderView<?>, Number> getCssMetaData() {
+            return StyleableProperties.ROW_HEIGHT;
+        }
+    };
+
+    /**
+     * Fixed height of each row, in pixels, settable via CSS {@code -rx-row-height}.
+     * It is a discoverable default that the skin applies to each column with USER
+     * origin, so author CSS targeting {@code .rx-cascader-column} still wins.
+     * Defaults to {@link #DEFAULT_FIXED_CELL_SIZE}.
+     *
+     * @return row-height property
+     */
+    public final DoubleProperty rowHeightProperty() {
+        return rowHeight;
+    }
+
+    /**
+     * Returns the fixed row height.
+     *
+     * @return row height in pixels
+     */
+    public final double getRowHeight() {
+        return rowHeight.get();
+    }
+
+    /**
+     * Sets the fixed row height.
+     *
+     * @param value row height in pixels
+     */
+    public final void setRowHeight(double value) {
+        rowHeight.set(value);
     }
 
     // ==================== Cell Factory ====================
@@ -449,16 +608,18 @@ public class RXCascaderView<T> extends Control {
         if (item == null || isEffectivelyDisabled(item) || isLeaf(item)) {
             return;
         }
-        // Three-step order: (1) establish the loading state so the skin's first
-        // rebuild already sees a loading frontier (deferred column + frontier
-        // monitor), (2) retarget the active path, (3) only then invoke the loader.
-        // Invoking last means a loader that completes or fails inline runs its
-        // completion (and any error callback) after the active path is in place,
-        // matching the async path and avoiding a later setAll clobbering it.
-        long generation = startLoad(item);
+        // Three-step order: (1) establish the loading state so the loading frontier
+        // is deferred (shouldAddColumn returns false while LOADING, so no premature
+        // empty column), (2) retarget the active path and bump the columns revision,
+        // (3) only then invoke the loader. Invoking last means a loader that
+        // completes or fails inline runs its completion (and any error callback)
+        // after the active path is in place, matching the async path and avoiding a
+        // later setAll clobbering it.
+        long token = startLoad(item);
         activePath.setAll(pathItems(item));
-        if (generation != NO_LOAD) {
-            runLoad(item, generation);
+        bumpColumnsRevision();
+        if (token != NO_LOAD) {
+            runLoad(item, token);
         }
         requestLayout();
     }
@@ -505,13 +666,7 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         if (isUnresolvedLazyBranch(item)) {
-            // Record (or overwrite) the pending intent; loadChildren no-ops if a
-            // load is already in flight, so a second check while loading still
-            // updates the pending value to honor the user's latest action.
-            pendingChecks.put(item, checked);
-            item.setChecked(checked);
-            item.setIndeterminate(false);
-            loadChildren(item);
+            recordPendingCheckAndLoad(item, checked);
             updateUp(item.getParent());
             refreshCheckedPaths();
             requestLayout();
@@ -519,6 +674,46 @@ public class RXCascaderView<T> extends Control {
         }
         applyDown(item, checked);
         updateUp(item.getParent());
+        refreshCheckedPaths();
+        requestLayout();
+    }
+
+    /**
+     * Seeds an initial checked selection before the view is shown: marks each
+     * given item checked — a leaf directly, a branch by cascading down to its
+     * enabled descendants — rolls the tri-state up to ancestors, and refreshes the
+     * checked paths once. Use this instead of writing item state directly (an
+     * item's checked state is read-only). It is the multiple-selection counterpart
+     * of {@link #select}; for the seed to survive a later
+     * {@code setSelectionMode(MULTIPLE)}, set the mode first.
+     *
+     * @param items items to mark checked (leaves, or branches with resolved children)
+     */
+    public final void seedChecked(Collection<RXCascaderItem<T>> items) {
+        if (items == null) {
+            return;
+        }
+        for (RXCascaderItem<T> item : items) {
+            if (item == null) {
+                continue;
+            }
+            if (isLeaf(item)) {
+                // Set the leaf directly so even a disabled (locked) leaf can be
+                // seeded as pre-checked.
+                item.setChecked(true);
+                item.setIndeterminate(false);
+            } else {
+                // A branch must be cascaded down to stay self-consistent; a bare
+                // set would show it checked while its leaves and the checked paths
+                // disagree, and the next rollup would silently drop the seed.
+                applyDown(item, true);
+            }
+        }
+        for (RXCascaderItem<T> item : items) {
+            if (item != null) {
+                updateUp(item.getParent());
+            }
+        }
         refreshCheckedPaths();
         requestLayout();
     }
@@ -540,13 +735,26 @@ public class RXCascaderView<T> extends Control {
      * Clears both single and multiple selection state.
      */
     public final void clearSelection() {
+        clearSingleSelection();
+        clearMultipleSelection();
+        requestLayout();
+    }
+
+    private void clearSingleSelection() {
         selectedPath.set(null);
-        pendingChecks.clear();
+    }
+
+    private void clearMultipleSelection() {
+        // Drop any deferred check intent on in-flight branches so a completion
+        // does not replay a check that was just cleared; the loads themselves
+        // continue, only their pending check is dropped.
+        for (RXCascaderItem<T> item : liveLoads) {
+            item.setPendingCheck(null);
+        }
         for (RXCascaderItem<T> root : rootItems) {
             clearCheckState(root);
         }
         checkedPaths.clear();
-        requestLayout();
     }
 
     /**
@@ -579,7 +787,7 @@ public class RXCascaderView<T> extends Control {
         if (getChildrenLoader() == null) {
             return item.getChildren().isEmpty();
         }
-        return item.isLoaded() && item.getChildren().isEmpty();
+        return item.getLoadState() == LoadState.LOADED && item.getChildren().isEmpty();
     }
 
     /**
@@ -595,7 +803,7 @@ public class RXCascaderView<T> extends Control {
      */
     private boolean isUnresolvedLazyBranch(RXCascaderItem<T> item) {
         return getChildrenLoader() != null
-                && !item.isLoaded()
+                && item.getLoadState() != LoadState.LOADED
                 && item.getChildren().isEmpty()
                 && !Boolean.TRUE.equals(item.getLeafHint());
     }
@@ -608,7 +816,7 @@ public class RXCascaderView<T> extends Control {
      * @return {@code true} if a lazy load should be started
      */
     private boolean needsLoad(RXCascaderItem<T> item) {
-        return isUnresolvedLazyBranch(item) && !item.isLoading();
+        return isUnresolvedLazyBranch(item) && item.getLoadState() != LoadState.LOADING;
     }
 
     /**
@@ -617,44 +825,45 @@ public class RXCascaderView<T> extends Control {
      * @param item branch item to load
      */
     public final void loadChildren(RXCascaderItem<T> item) {
-        long generation = startLoad(item);
-        if (generation != NO_LOAD) {
-            runLoad(item, generation);
+        long token = startLoad(item);
+        if (token != NO_LOAD) {
+            runLoad(item, token);
         }
     }
 
     /**
-     * Establishes the loading state for a branch that needs a lazy load: flips
-     * {@code loading} on and registers the generation, without yet invoking the
-     * loader. Returning the generation lets the caller defer the actual
+     * Establishes the loading state for a branch that needs a lazy load: assigns
+     * a fresh token, registers the item in {@link #liveLoads}, and transitions it
+     * to {@link LoadState#LOADING} in a single state write, without yet invoking
+     * the loader. Returning the token lets the caller defer the actual
      * {@link #runLoad} until after navigation is in place (see {@link #expand}).
      *
      * @param item branch item to load
-     * @return the load generation, or {@link #NO_LOAD} if no load is needed
+     * @return the load token, or {@link #NO_LOAD} if no load is needed
      */
     private long startLoad(RXCascaderItem<T> item) {
         if (item == null || !needsLoad(item)) {
             return NO_LOAD;
         }
-        long generation = ++nextLoadGeneration;
-        loadGenerations.put(item, generation);
-        item.setLoading(true);
-        return generation;
+        long token = ++nextLoadToken;
+        item.setLoadToken(token);
+        liveLoads.add(item);
+        item.setLoadState(LoadState.LOADING);
+        return token;
     }
 
     /**
      * Invokes the loader and routes its result (or failure) to
      * {@link #completeLoad}. Must be paired with a prior {@link #startLoad} that
-     * returned {@code generation}.
+     * returned {@code token}.
      */
-    private void runLoad(RXCascaderItem<T> item, long generation) {
+    private void runLoad(RXCascaderItem<T> item, long token) {
         Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>> loader = getChildrenLoader();
-        Long current = loadGenerations.get(item);
-        if (loader == null || current == null || current != generation) {
+        if (loader == null || !liveLoads.contains(item) || item.getLoadToken() != token) {
             // A listener that ran during the active-path update between startLoad
             // and here (reload(), a loader swap, or a root change) already
-            // canceled this load and reset the item's loading flag; do not invoke
-            // the possibly side-effecting loader for a superseded request.
+            // canceled this load (removing it from liveLoads); do not invoke the
+            // possibly side-effecting loader for a superseded request.
             return;
         }
 
@@ -664,16 +873,16 @@ public class RXCascaderView<T> extends Control {
         } catch (RuntimeException e) {
             // A synchronous throw routes to the same failure path as a stage
             // error: a retriable branch plus the error callback, never rethrown.
-            completeLoad(item, generation, null, e);
+            completeLoad(item, token, null, e);
             return;
         }
 
         if (stage == null) {
-            completeLoad(item, generation, Collections.emptyList(), null);
+            completeLoad(item, token, Collections.emptyList(), null);
             return;
         }
         stage.whenComplete((children, error) ->
-                runOnFxThread(() -> completeLoad(item, generation, children, error)));
+                runOnFxThread(() -> completeLoad(item, token, children, error)));
     }
 
     /**
@@ -688,15 +897,29 @@ public class RXCascaderView<T> extends Control {
 
     // ==================== State helpers ====================
 
+    /**
+     * Optimistically applies a check to an unresolved lazy branch and starts its
+     * load: records the pending intent (replayed by {@link #completeLoad} once the
+     * children arrive), reflects the check immediately, and kicks off the loader.
+     * Starting is a no-op when a load is already in flight, so a later check still
+     * overwrites the pending value to honor the user's latest action.
+     *
+     * @param item    unresolved lazy branch
+     * @param checked target checked state to record and replay
+     */
+    private void recordPendingCheckAndLoad(RXCascaderItem<T> item, boolean checked) {
+        item.setPendingCheck(checked);
+        item.setChecked(checked);
+        item.setIndeterminate(false);
+        loadChildren(item);
+    }
+
     private void applyDown(RXCascaderItem<T> item, boolean checked) {
         if (isEffectivelyDisabled(item)) {
             return;
         }
         if (isUnresolvedLazyBranch(item)) {
-            pendingChecks.put(item, checked);
-            item.setChecked(checked);
-            item.setIndeterminate(false);
-            loadChildren(item);
+            recordPendingCheckAndLoad(item, checked);
             return;
         }
         for (RXCascaderItem<T> child : item.getChildren()) {
@@ -718,30 +941,29 @@ public class RXCascaderView<T> extends Control {
         }
     }
 
+    /**
+     * Rolls a branch's tri-state up from its children using integer counts. The
+     * total intentionally includes disabled children — an unchecked disabled child
+     * keeps an ancestor indeterminate — and only the cascade-down
+     * ({@link #applyDown}) and toggle ({@link #enabledLeafSummary}) paths exclude
+     * disabled. A branch is checked only when every child is fully checked, and
+     * indeterminate when there is a partial signal without a full one, so it is
+     * never both.
+     */
     private void updateFromChildren(RXCascaderItem<T> item) {
         int total = item.getChildren().size();
-        boolean allChildrenChecked = total > 0;
-        for (RXCascaderItem<T> child : item.getChildren()) {
-            if (!child.isChecked() || child.isIndeterminate()) {
-                allChildrenChecked = false;
-                break;
-            }
-        }
-        item.setChecked(allChildrenChecked);
-        applyIndeterminateFromChildren(item);
-    }
-
-    private void applyIndeterminateFromChildren(RXCascaderItem<T> item) {
-        int total = item.getChildren().size();
-        double checkedWeight = 0.0;
+        int fullyChecked = 0;
+        int indeterminate = 0;
         for (RXCascaderItem<T> child : item.getChildren()) {
             if (child.isIndeterminate()) {
-                checkedWeight += 0.5;
+                indeterminate++;
             } else if (child.isChecked()) {
-                checkedWeight += 1.0;
+                fullyChecked++;
             }
         }
-        item.setIndeterminate(total > 0 && checkedWeight != total && checkedWeight > 0.0);
+        boolean checked = total > 0 && fullyChecked == total;
+        item.setChecked(checked);
+        item.setIndeterminate(total > 0 && !checked && (fullyChecked > 0 || indeterminate > 0));
     }
 
     private boolean areEnabledLeavesChecked(RXCascaderItem<T> item) {
@@ -774,28 +996,33 @@ public class RXCascaderView<T> extends Control {
     private record EnabledLeafSummary(boolean hasLeaf, boolean allChecked) {
     }
 
-    private void completeLoad(RXCascaderItem<T> item, long generation,
+    private void completeLoad(RXCascaderItem<T> item, long token,
                               List<RXCascaderItem<T>> children, Throwable error) {
-        Long currentGeneration = loadGenerations.get(item);
-        if (currentGeneration == null || currentGeneration != generation) {
+        // Token first, then drop membership: a stale completion (token mismatch)
+        // must bail WITHOUT removing the item, otherwise it would evict a newer
+        // live load for the same item and silently lose that completion.
+        if (item.getLoadToken() != token || !liveLoads.remove(item)) {
             return;
         }
-        loadGenerations.remove(item);
 
         if (!isInCurrentTree(item)) {
             // The branch left the current tree (a deep ancestor list was mutated
             // outside the supported reset points) while loading: drop the result
-            // and the loading flag rather than populating a detached subtree.
-            item.setLoading(false);
-            pendingChecks.remove(item);
+            // and return to a stable, retriable state rather than populating a
+            // detached subtree.
+            item.setLoadState(LoadState.NOT_LOADED);
+            item.setPendingCheck(null);
             return;
         }
 
         if (error != null) {
-            // Keep loaded=false so the branch can be retried; roll back any
-            // pending check and surface the failure through the callback.
-            item.setLoading(false);
-            Boolean pendingCheck = pendingChecks.remove(item);
+            // FAILED is retriable (re-expanding reloads). Read-then-null the
+            // pending intent on this terminal path so a later plain expand cannot
+            // replay it, then roll back any optimistic check and surface the
+            // failure through the callback.
+            item.setLoadState(LoadState.FAILED);
+            Boolean pendingCheck = item.getPendingCheck();
+            item.setPendingCheck(null);
             if (pendingCheck != null) {
                 item.setChecked(false);
                 item.setIndeterminate(false);
@@ -810,19 +1037,23 @@ public class RXCascaderView<T> extends Control {
             return;
         }
 
+        // Success: populate children, then transition state in a single write, so
+        // when the columns revision is bumped below the skin re-syncs against a
+        // fully populated, loaded branch with no half-populated window.
         List<RXCascaderItem<T>> loadedChildren = children == null ? Collections.emptyList() : children;
         item.getChildren().setAll(loadedChildren);
-        item.setLoaded(true);
-        // Flip loading off last so the skin's frontier monitor, which rebuilds on
-        // this transition, observes the fully populated, loaded branch.
-        item.setLoading(false);
+        item.setLoadState(LoadState.LOADED);
 
-        Boolean pendingCheck = pendingChecks.remove(item);
+        Boolean pendingCheck = item.getPendingCheck();
+        item.setPendingCheck(null);
         if (pendingCheck != null) {
             applyDown(item, pendingCheck);
             updateUp(item.getParent());
             refreshCheckedPaths();
         }
+        // Bump after children and any replayed check state are final, so the
+        // skin's re-sync renders the newly appearing column in its correct state.
+        bumpColumnsRevision();
         requestLayout();
     }
 
@@ -845,17 +1076,24 @@ public class RXCascaderView<T> extends Control {
     // ==================== Reset and invalidation ====================
 
     /**
-     * Cancels all in-flight loads: every node currently loading is reset to a
-     * stable {@code loading=false} before it can leave the tree (so a detached
-     * item never keeps a dangling loading flag), and the generation / pending
-     * maps are cleared so late callbacks bail in {@link #completeLoad}.
+     * Cancels all in-flight loads: each in-flight node is reset to the stable,
+     * retriable {@link LoadState#NOT_LOADED} and its pending check is cleared, so
+     * late completions bail in {@link #completeLoad} (they are no longer in
+     * {@link #liveLoads}). The set is snapshotted and cleared <em>before</em> any
+     * state change fires, so a listener that re-enters (for example calling
+     * {@link #reload()} from a {@code loadState} listener) sees an already
+     * invalidated set and cannot corrupt the iteration.
      */
     private void cancelInFlight() {
-        for (RXCascaderItem<T> item : loadGenerations.keySet()) {
-            item.setLoading(false);
+        if (liveLoads.isEmpty()) {
+            return;
         }
-        loadGenerations.clear();
-        pendingChecks.clear();
+        List<RXCascaderItem<T>> snapshot = new ArrayList<>(liveLoads);
+        liveLoads.clear();
+        for (RXCascaderItem<T> item : snapshot) {
+            item.setPendingCheck(null);
+            item.setLoadState(LoadState.NOT_LOADED);
+        }
     }
 
     /**
@@ -867,6 +1105,7 @@ public class RXCascaderView<T> extends Control {
     private void clearNavAndPending() {
         cancelInFlight();
         activePath.clear();
+        bumpColumnsRevision();
         selectedPath.set(null);
     }
 
@@ -881,8 +1120,7 @@ public class RXCascaderView<T> extends Control {
         for (RXCascaderItem<T> root : rootItems) {
             clearCheckState(root);
             root.getChildren().clear();
-            root.setLoaded(false);
-            root.setLoading(false);
+            root.setLoadState(LoadState.NOT_LOADED);
         }
         checkedPaths.clear();
         requestLayout();
@@ -897,6 +1135,7 @@ public class RXCascaderView<T> extends Control {
     private void switchToEager() {
         cancelInFlight();
         refreshCheckedPaths();
+        bumpColumnsRevision();
         requestLayout();
     }
 
@@ -941,5 +1180,61 @@ public class RXCascaderView<T> extends Control {
             current = current.getParent();
         }
         return rootItems.contains(current);
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static final class StyleableProperties {
+
+        private static final CssMetaData<RXCascaderView<?>, Number> COLUMN_WIDTH =
+                new CssMetaData<>("-rx-column-width", SizeConverter.getInstance(), DEFAULT_COLUMN_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXCascaderView<?> view) {
+                        return !view.columnWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXCascaderView<?> view) {
+                        return (StyleableProperty<Number>) view.columnWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXCascaderView<?>, Number> ROW_HEIGHT =
+                new CssMetaData<>("-rx-row-height", SizeConverter.getInstance(), DEFAULT_FIXED_CELL_SIZE) {
+                    @Override
+                    public boolean isSettable(RXCascaderView<?> view) {
+                        return !view.rowHeight.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXCascaderView<?> view) {
+                        return (StyleableProperty<Number>) view.rowHeightProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(Control.getClassCssMetaData());
+            Collections.addAll(styleables, COLUMN_WIDTH, ROW_HEIGHT);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+        return getClassCssMetaData();
     }
 }

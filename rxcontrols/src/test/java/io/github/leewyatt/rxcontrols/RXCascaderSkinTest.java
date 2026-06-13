@@ -100,6 +100,125 @@ public class RXCascaderSkinTest {
         });
     }
 
+    /**
+     * Verifies the field updates when a selected path item's value changes: the
+     * skin observes the displayed path items' {@code valueProperty} (D3, fixed in
+     * Phase 5).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void fieldUpdatesWhenSelectedItemValueChanges() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            RXCascaderItem<String> root = new RXCascaderItem<>("root");
+            RXCascaderItem<String> child = new RXCascaderItem<>("child");
+            root.getChildren().add(child);
+            cascader.getRootItems().add(root);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            Label field = (Label) cascader.lookup(".display .label");
+            assertNotNull(field, "display label should exist");
+
+            cascader.select(child);
+            assertEquals("root / child", field.getText(), "precondition: field shows the selected path");
+
+            child.setValue("child2");
+            assertEquals("root / child2", field.getText(),
+                    "field must update when a selected path item's value changes");
+        });
+    }
+
+    /**
+     * Verifies the field mirrors value changes for a selection made BEFORE the
+     * skin was created (skins are lazy): the skin must bind path-value listeners
+     * at construction, not only on later selection changes.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void fieldUpdatesForSelectionMadeBeforeSkinCreated() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            RXCascaderItem<String> root = new RXCascaderItem<>("root");
+            RXCascaderItem<String> child = new RXCascaderItem<>("child");
+            root.getChildren().add(child);
+            cascader.getRootItems().add(root);
+
+            // Select before the control is in a scene, so no skin exists yet.
+            cascader.select(child);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            Label field = (Label) cascader.lookup(".display .label");
+            assertNotNull(field, "display label should exist");
+            assertEquals("root / child", field.getText());
+
+            child.setValue("renamed");
+            assertEquals("root / renamed", field.getText(),
+                    "field must mirror a value change for a selection made before the skin existed");
+        });
+    }
+
+    /**
+     * Verifies a custom separator joins the levels of the default field text.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void separatorCustomizesDefaultPathText() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            RXCascaderItem<String> root = new RXCascaderItem<>("a");
+            RXCascaderItem<String> child = new RXCascaderItem<>("b");
+            root.getChildren().add(child);
+            cascader.getRootItems().add(root);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            Label field = (Label) cascader.lookup(".display .label");
+            cascader.select(child);
+            assertEquals("a / b", field.getText(), "default separator joins levels");
+
+            cascader.setSeparator(" > ");
+            assertEquals("a > b", field.getText(), "custom separator is applied");
+        });
+    }
+
+    /**
+     * Verifies {@code showAllLevels=false} renders only the last level in the field.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void showAllLevelsFalseShowsOnlyLastLevel() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            RXCascaderItem<String> root = new RXCascaderItem<>("a");
+            RXCascaderItem<String> child = new RXCascaderItem<>("b");
+            root.getChildren().add(child);
+            cascader.getRootItems().add(root);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            Label field = (Label) cascader.lookup(".display .label");
+            cascader.select(child);
+            assertEquals("a / b", field.getText(), "full path by default");
+
+            cascader.setShowAllLevels(false);
+            assertEquals("b", field.getText(), "only the last level when showAllLevels is false");
+        });
+    }
+
     private static void runOnFx(Runnable action) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
