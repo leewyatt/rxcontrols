@@ -85,6 +85,7 @@
     <li><a href="#rxAvatar">RXAvatar</a></li>
     <li><a href="#rxCarousel">RXCarousel</a></li>
     <li><a href="#rxDigit">RXDigit</a></li>
+    <li><a href="#rxDualPane">RXDualPane</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
     <li><a href="#rxFillLabel">RXFillLabel</a></li>
     <li><a href="#rxHighlightText">RXHighlightText</a></li>
@@ -903,6 +904,36 @@ wrappers, so animation side effects never touch user nodes.</p>
 <h4>Substructure</h4>
 .content-pane — StackPane <br>
 &emsp;&emsp;.page — StackPane (two reused wrappers)<br>
+&emsp;&emsp;&emsp;&emsp;(user content)<br>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td> duration</td>
+        <td>500ms</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+
+<h3 id="rxDualPane">RXDualPane</h3>
+<p class="fxClass">Style class: rx-dual-pane</p>
+<p>A fixed two-slot container that plays a <code>PageAnimation</code> when it
+flips between its first and second face. The animation itself is Java-only;
+the transition duration is settable from CSS. Both faces are persistent and
+hosted inside reusable <code>.page</code> wrappers. The
+<code>:showing-second</code> pseudo-class reflects the current face for
+container-level styling.</p>
+<h4>Substructure</h4>
+.content-pane — StackPane <br>
+&emsp;&emsp;.page — StackPane (two fixed faces)<br>
 &emsp;&emsp;&emsp;&emsp;(user content)<br>
 <table>
     <thead>

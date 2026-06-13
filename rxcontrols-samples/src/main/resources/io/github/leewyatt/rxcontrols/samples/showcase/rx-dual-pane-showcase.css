@@ -1,0 +1,64 @@
+.dual-pane-preview {
+    -fx-padding: 22px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d9e0e8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 16, 0, 0, 5);
+}
+
+.dual-pane-preview .showcase-dual-pane {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d5dce5;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.dual-pane-preview .hint-label,
+.hint-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.face-card {
+    -fx-padding: 24px;
+    -fx-background-radius: 8px;
+}
+
+.kpi-card {
+    -fx-background-color: #e0f2fe;
+}
+
+.detail-card {
+    -fx-background-color: #dcfce7;
+}
+
+.auth-card {
+    -fx-background-color: #f5f3ff;
+}
+
+.face-caption {
+    -fx-text-fill: #667085;
+    -fx-font-size: 12px;
+}
+
+.face-value {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d2939;
+}
+
+.face-delta {
+    -fx-text-fill: #027a48;
+    -fx-font-size: 13px;
+}
+
+.face-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1d2939;
+}
+
+.face-lines {
+    -fx-text-fill: #475467;
+}
