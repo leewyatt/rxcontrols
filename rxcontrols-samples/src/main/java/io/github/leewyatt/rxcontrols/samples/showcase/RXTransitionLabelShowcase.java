@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimGaussianBlur;
 import io.github.leewyatt.rxcontrols.animation.page.AnimGlitch;
 import io.github.leewyatt.rxcontrols.animation.page.AnimNewspaper;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSelector;
 import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlideIn;
@@ -241,6 +242,10 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
         presets.put("Gaussian Blur", AnimGaussianBlur::new);
         presets.put("Newspaper", AnimNewspaper::new);
         presets.put("Wind", AnimWind::new);
+        presets.put("Random (selector)", () -> AnimSelector.random(
+                new AnimFade(), new AnimSlide(), new AnimZoom(), new AnimShatter(), new AnimFlip()));
+        presets.put("Sequence (selector)", () -> AnimSelector.sequence(
+                new AnimFade(), new AnimSlide(), new AnimZoom(), new AnimShatter(), new AnimFlip()));
         return presets;
     }
 
