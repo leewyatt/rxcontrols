@@ -18,6 +18,7 @@ import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
@@ -149,6 +150,40 @@ public class RXTransitionLabel extends Control {
      */
     public final void setAlignment(Pos value) {
         alignment.set(value);
+    }
+
+    // ==================== Wrap Text ====================
+
+    private final BooleanProperty wrapText =
+            new SimpleBooleanProperty(this, "wrapText", false);
+
+    /**
+     * Whether the text wraps onto multiple lines when it exceeds the available
+     * width. When {@code true} the label takes a horizontal content bias: its
+     * preferred height depends on the width it is given.
+     *
+     * @return the wrap-text property
+     */
+    public final BooleanProperty wrapTextProperty() {
+        return wrapText;
+    }
+
+    /**
+     * Returns whether the text wraps onto multiple lines.
+     *
+     * @return {@code true} if the text wraps
+     */
+    public final boolean isWrapText() {
+        return wrapText.get();
+    }
+
+    /**
+     * Sets whether the text wraps onto multiple lines.
+     *
+     * @param value {@code true} to wrap the text
+     */
+    public final void setWrapText(boolean value) {
+        wrapText.set(value);
     }
 
     // ==================== Animated ====================
@@ -319,6 +354,23 @@ public class RXTransitionLabel extends Control {
      */
     public final void setTransitioning(boolean value) {
         transitioning.set(value);
+    }
+
+    // ==================== Layout ====================
+
+    /**
+     * Advertises the content bias driven by {@link #wrapTextProperty()
+     * wrapText}, so a parent layout measures this label against the correct
+     * axis. A wrapping label takes {@link Orientation#HORIZONTAL} (its height
+     * depends on its width); a non-wrapping label has no bias. This mirrors
+     * {@code Labeled.getContentBias()}.
+     *
+     * @return {@link Orientation#HORIZONTAL} when wrapping, otherwise
+     * {@code null}
+     */
+    @Override
+    public Orientation getContentBias() {
+        return isWrapText() ? Orientation.HORIZONTAL : null;
     }
 
     // ==================== Skin ====================

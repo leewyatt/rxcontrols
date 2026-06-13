@@ -48,6 +48,11 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
         currentLabel().setText(safeText(control.getText()));
         applyAlignment();
 
+        // Bind both pages so whichever is current or spare wraps consistently;
+        // the control's wrapText is the single source of the labels' wrapText.
+        disposer.registerBinding(labelA.wrapTextProperty(), control.wrapTextProperty());
+        disposer.registerBinding(labelB.wrapTextProperty(), control.wrapTextProperty());
+
         disposer.registerListener(control.textProperty(), textListener);
         disposer.registerListener(control.alignmentProperty(), alignmentListener);
     }
@@ -68,7 +73,8 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + pages.getCurrentPage().prefWidth(-1) + rightInset;
+        double h = (height < 0) ? -1 : Math.max(0.0, height - topInset - bottomInset);
+        return leftInset + pages.getCurrentPage().prefWidth(h) + rightInset;
     }
 
     /**
@@ -77,7 +83,8 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + pages.getCurrentPage().prefHeight(-1) + bottomInset;
+        double w = (width < 0) ? -1 : Math.max(0.0, width - leftInset - rightInset);
+        return topInset + pages.getCurrentPage().prefHeight(w) + bottomInset;
     }
 
     /**
@@ -95,7 +102,8 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + pages.getCurrentPage().minHeight(-1) + bottomInset;
+        double w = (width < 0) ? -1 : Math.max(0.0, width - leftInset - rightInset);
+        return topInset + pages.getCurrentPage().minHeight(w) + bottomInset;
     }
 
     /**

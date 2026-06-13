@@ -8,6 +8,7 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -208,6 +210,78 @@ public class RXTransitionLabelTest {
             label.setAlignment(null);
             for (Label internal : internalLabels(label)) {
                 assertEquals(Pos.CENTER, StackPane.getAlignment(internal));
+            }
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    // ==================== Wrap Text ====================
+
+    @Test
+    public void wrapTextDefaultsFalseAndNoContentBias() {
+        RXTransitionLabel label = new RXTransitionLabel();
+
+        assertFalse(label.isWrapText());
+        assertNull(label.getContentBias());
+    }
+
+    @Test
+    public void wrapTextTrueAdvertisesHorizontalContentBias() {
+        RXTransitionLabel label = new RXTransitionLabel();
+
+        label.setWrapText(true);
+
+        assertTrue(label.isWrapText());
+        assertEquals(Orientation.HORIZONTAL, label.getContentBias());
+    }
+
+    @Test
+    public void wrapTextTrueMakesPreferredHeightWidthDependent() {
+        RXTransitionLabel label = laidOutLabelShowing(
+                "The quick brown fox jumps over the lazy dog repeatedly");
+        try {
+            label.setWrapText(true);
+
+            double narrowHeight = label.prefHeight(60.0);
+            double wideHeight = label.prefHeight(10000.0);
+            assertTrue(narrowHeight > wideHeight,
+                    "wrapped narrow height should exceed wide height: "
+                            + narrowHeight + " vs " + wideHeight);
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void withoutWrapTextPreferredHeightIsWidthIndependent() {
+        RXTransitionLabel label = laidOutLabelShowing(
+                "The quick brown fox jumps over the lazy dog repeatedly");
+        try {
+            double narrowHeight = label.prefHeight(60.0);
+            double wideHeight = label.prefHeight(10000.0);
+            assertEquals(wideHeight, narrowHeight, 0.001,
+                    "single-line height should not depend on width");
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void wrapTextPropagatesToInternalLabels() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        label.setAnimation(recording);
+
+        try {
+            label.setWrapText(true);
+            // Keep a transition running so both pages are attached
+            label.setText("B");
+
+            List<Label> labels = internalLabels(label);
+            assertEquals(2, labels.size());
+            for (Label internal : labels) {
+                assertTrue(internal.isWrapText());
             }
         } finally {
             label.getSkin().dispose();
