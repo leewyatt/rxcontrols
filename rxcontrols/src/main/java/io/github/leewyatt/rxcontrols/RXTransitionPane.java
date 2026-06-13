@@ -84,9 +84,7 @@ public class RXTransitionPane extends Control {
         // null StyleOrigin so CSS can still override it, mirroring Label and
         // ProgressIndicator.
         ((StyleableProperty<Boolean>) focusTraversableProperty()).applyStyle(null, Boolean.FALSE);
-        if (content != null) {
-            setContent(content);
-        }
+        setContent(content);
     }
 
     // ==================== Content ====================
