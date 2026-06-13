@@ -192,6 +192,26 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void directCutToAlternateFaceSeatsContentNotBlank() {
+        // A direct-cut face switch (here forced by a ZERO duration) targets the
+        // alternate page, which is off-stage until the first switch. The cut
+        // must re-seat it: cutting to a detached page would render the button
+        // blank instead of showing the alternate face.
+        Label alternate = new Label("Back");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationDuration(Duration.ZERO);
+
+        try {
+            button.arm();
+            assertFalse(button.isTransitioning());
+            assertSame(alternate, visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void playAnimationRoundTripsWithTriggerNone() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
         button.setAnimationTrigger(RXAnimationTrigger.NONE);
@@ -416,6 +436,17 @@ public class RXTransitionButtonTest {
     private static Label frontLabel(RXTransitionButton button) {
         return assertInstanceOf(Label.class,
                 ((StackPane) button.lookup(".page")).getChildren().get(0));
+    }
+
+    private static Node visibleFaceContent(RXTransitionButton button) {
+        StackPane content = assertInstanceOf(StackPane.class, button.lookup(".content-pane"));
+        for (Node node : content.getChildren()) {
+            if (node.isVisible() && node.getStyleClass().contains("page")) {
+                StackPane page = assertInstanceOf(StackPane.class, node);
+                return page.getChildren().isEmpty() ? null : page.getChildren().get(0);
+            }
+        }
+        return null;
     }
 
     private static MouseEvent mouseEvent(javafx.event.EventType<MouseEvent> type) {

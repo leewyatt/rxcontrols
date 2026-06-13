@@ -158,12 +158,18 @@ public final class TransitionPages {
     }
 
     /**
-     * Shows the target page with a direct cut: it becomes the current page
-     * and all other pages leave the content pane.
+     * Shows the target page with a direct cut: it is re-attached if currently
+     * off-stage, becomes the current page, and all other pages leave the
+     * content pane. The add-if-absent mirrors {@link #transitionTo}, so
+     * fixed-face hosts can cut to a page a previous transition removed without
+     * cutting to a blank surface.
      *
      * @param target the page to show
      */
     public void directCutTo(StackPane target) {
+        if (!contentPane.getChildren().contains(target)) {
+            contentPane.getChildren().add(target);
+        }
         currentPage = target;
         target.setVisible(true);
         hideNonCurrentPages();

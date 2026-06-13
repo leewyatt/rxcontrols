@@ -73,7 +73,6 @@ public class RXDualPane extends Control {
     /**
      * Creates an empty dual pane showing the first (empty) face.
      */
-    @SuppressWarnings("unchecked")
     public RXDualPane() {
         this(null, null);
     }

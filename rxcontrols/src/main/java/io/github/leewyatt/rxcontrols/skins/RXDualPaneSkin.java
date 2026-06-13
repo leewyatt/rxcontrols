@@ -37,7 +37,7 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
         setPageContent(pages.getPageA(), control.getFirstContent());
         setPageContent(pages.getPageB(), control.getSecondContent());
         if (control.isShowingSecond()) {
-            directCutTo(pages.getPageB());
+            pages.directCutTo(pages.getPageB());
         }
 
         disposer.registerListener(control.showingSecondProperty(),
@@ -151,7 +151,7 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
                 && PageTransitionEngine.canAnimate(animation, control.isAnimated(), 2,
                         duration, false);
         if (!animate) {
-            directCutTo(target);
+            pages.directCutTo(target);
             control.setTransitioning(false);
             return;
         }
@@ -160,17 +160,6 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
                 () -> control.setTransitioning(true),
                 () -> control.setTransitioning(false),
                 () -> control.setTransitioning(false));
-    }
-
-    // The two faces are fixed pages, so a direct-cut target may currently be
-    // off-stage (a previous transition or cut removed it). Seat it before the
-    // cut: TransitionPages.directCutTo shows the current page and removes the
-    // others but never re-adds a missing target.
-    private void directCutTo(StackPane target) {
-        if (!pages.getContentPane().getChildren().contains(target)) {
-            pages.getContentPane().getChildren().add(target);
-        }
-        pages.directCutTo(target);
     }
 
     // Both faces are persistent slots: replace the face's node in place, never
