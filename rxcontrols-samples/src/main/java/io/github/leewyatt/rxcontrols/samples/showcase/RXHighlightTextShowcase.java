@@ -218,7 +218,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
             return;
         }
         highlightText.setStyle(String.format(Locale.ROOT,
-                "-rx-highlight-color: %s; -rx-highlight-fill: %s; -rx-plain-fill: %s;",
+                "-rx-highlight-fill: %s; -rx-highlight-text-fill: %s; -rx-text-fill: %s;",
                 toCssColor(highlightColorPicker.getValue()),
                 toCssColor(highlightFillPicker.getValue()),
                 toCssColor(plainFillPicker.getValue())));

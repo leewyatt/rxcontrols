@@ -348,11 +348,14 @@ Label semantics — not focus-traversable, no action.</p>
 
 <h3 id="rxHighlightText">RXHighlightText</h3>
 <p class="fxClass">Style class: rx-highlight-text</p>
-<p>The control has all the properties of Control;</p>
+<p>Highlights one or more keywords inside its text. Keywords (the
+<code>keywords</code> list) are matched literally or as regular expressions,
+case-sensitively or not, per the <code>matchRules</code> property; the read-only
+<code>matched</code> reports whether any keyword matched.</p>
 <h4>Substructure</h4>
 text-flow  — TextFlow<br/>
-&emsp;&emsp;highlight-label — Label<br/>
-&emsp;&emsp;plain-text — Text<br/><br/>
+&emsp;&emsp;highlight — Label<br/>
+&emsp;&emsp;plain — Text<br/><br/>
 <table>
     <thead>
     <tr>
@@ -363,17 +366,17 @@ text-flow  — TextFlow<br/>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-highlight-color</td>
+        <td>-rx-highlight-fill</td>
         <td>Paint</td>
         <td>#ffff00</td>
     </tr>
     <tr>
-        <td>-rx-highlight-fill</td>
+        <td>-rx-highlight-text-fill</td>
         <td>Paint</td>
         <td>#000000</td>
     </tr>
     <tr>
-        <td>-rx-plain-fill</td>
+        <td>-rx-text-fill</td>
         <td>Paint</td>
         <td>#000000</td>
     </tr>

@@ -7,7 +7,7 @@
 /*}*/
 
 #text-poem {
-    -rx-highlight-fill:white;
-    -rx-highlight-color:red;
-    -rx-plain-fill:black;
+    -rx-highlight-fill: red;
+    -rx-highlight-text-fill: white;
+    -rx-text-fill: black;
 }
