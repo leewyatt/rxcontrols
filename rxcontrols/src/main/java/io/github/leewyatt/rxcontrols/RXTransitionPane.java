@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.internal.transition.ContentBias;
 import io.github.leewyatt.rxcontrols.skins.RXTransitionPaneSkin;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
@@ -17,6 +18,7 @@ import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
@@ -300,6 +302,23 @@ public class RXTransitionPane extends Control {
      */
     public final void setTransitioning(boolean value) {
         transitioning.set(value);
+    }
+
+    // ==================== Layout ====================
+
+    /**
+     * Advertises the current content's content bias, so a parent layout
+     * measures the pane against the correct axis when the content has a
+     * content bias (e.g. a {@code wrapText} label whose height depends on its
+     * width). The single content slot contributes its node's bias directly; a
+     * {@code null} content has no bias.
+     *
+     * @return the current content's content bias, or {@code null} if it has
+     * none or the content is {@code null}
+     */
+    @Override
+    public Orientation getContentBias() {
+        return ContentBias.of(getContent());
     }
 
     // ==================== Skin ====================

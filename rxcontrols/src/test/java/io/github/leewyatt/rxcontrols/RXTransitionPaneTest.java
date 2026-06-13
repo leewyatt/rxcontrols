@@ -8,6 +8,7 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -90,6 +91,42 @@ public class RXTransitionPaneTest {
         } finally {
             pane.getSkin().dispose();
         }
+    }
+
+    // ==================== Content Bias ====================
+
+    @Test
+    public void wrapTextContentForwardsHorizontalBiasAndMeasuresHeightFromWidth() {
+        Label wrapping = new Label("one two three four five six seven eight nine ten");
+        wrapping.setWrapText(true);
+        RXTransitionPane pane = laidOutPaneShowing(wrapping);
+
+        try {
+            // The pane forwards the wrapText content's HORIZONTAL bias, so a
+            // parent knows the height depends on the width.
+            assertEquals(Orientation.HORIZONTAL, pane.getContentBias());
+
+            // With the size hint forwarded, a narrow width wraps the label
+            // taller than a wide width. Without the fix both queries pass -1
+            // to the content and return the same single-line height.
+            double narrowHeight = pane.prefHeight(60.0);
+            double wideHeight = pane.prefHeight(10000.0);
+            assertTrue(narrowHeight > wideHeight,
+                    "narrow width should wrap taller: narrow=" + narrowHeight
+                            + " wide=" + wideHeight);
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void nullAndNonBiasContentReportNoBias() {
+        RXTransitionPane empty = new RXTransitionPane();
+        assertNull(empty.getContentBias());
+
+        Label plain = new Label("plain");
+        RXTransitionPane pane = new RXTransitionPane(plain);
+        assertNull(pane.getContentBias());
     }
 
     // ==================== Direct-Cut Edges ====================
