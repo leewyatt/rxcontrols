@@ -64,7 +64,6 @@ public class RXTransitionLabel extends Control {
     /**
      * Creates an empty transition label.
      */
-    @SuppressWarnings("unchecked")
     public RXTransitionLabel() {
         this("");
     }

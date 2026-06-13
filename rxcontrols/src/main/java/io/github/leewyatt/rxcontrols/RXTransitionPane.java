@@ -66,7 +66,6 @@ public class RXTransitionPane extends Control {
     /**
      * Creates an empty transition pane.
      */
-    @SuppressWarnings("unchecked")
     public RXTransitionPane() {
         this(null);
     }
