@@ -622,10 +622,11 @@ public class RXCascaderView<T> extends Control {
         // after the active path is in place, matching the async path and avoiding a
         // later setAll clobbering it.
         long token = startLoad(item);
-        if (token != NO_LOAD && !liveLoads.contains(item)) {
+        if (token != NO_LOAD && (item.getLoadToken() != token || !liveLoads.contains(item))) {
             // startLoad's LOADING state write fired a listener that re-entered and
-            // cancelled this load (reload / loader swap / root change). Respect its
-            // cleared navigation instead of resurrecting the active path here.
+            // cancelled or superseded this load (reload / loader swap / root change,
+            // possibly followed by a fresh load of the same item with a new token).
+            // Respect that instead of resurrecting the active path here.
             return;
         }
         activePath.setAll(pathItems(item));
@@ -1064,19 +1065,19 @@ public class RXCascaderView<T> extends Control {
         if (item.getLoadToken() != token || !liveLoads.remove(item)) {
             return;
         }
-        // Capture and clear the pending intent BEFORE the LOADED state write, which
-        // fires loadState listeners that may re-enter reload(). Replay the check
-        // only if the branch is still LOADED afterward — a re-entrant reset changes
-        // the state, so a stale pending check must not re-check (or re-load) the
-        // just-reset tree.
+        // Apply any pending check to the now-populated branch, then make LOADED the
+        // last mutation. Replaying first means a re-entrant loadState listener
+        // (reload / clearSelection) runs after it and has the final say, instead of
+        // being overwritten by it. applyDown treats the branch as resolved here
+        // because its children are populated, regardless of the still-LOADING state.
         Boolean pendingCheck = item.getPendingCheck();
         item.setPendingCheck(null);
-        item.setLoadState(LoadState.LOADED);
-        if (pendingCheck != null && item.getLoadState() == LoadState.LOADED) {
+        if (pendingCheck != null) {
             applyDown(item, pendingCheck);
             updateUp(item.getParent());
             refreshCheckedPaths();
         }
+        item.setLoadState(LoadState.LOADED);
         // Bump after children and any replayed check state are final, so the
         // skin's re-sync renders the newly appearing column in its correct state.
         bumpColumnsRevision();

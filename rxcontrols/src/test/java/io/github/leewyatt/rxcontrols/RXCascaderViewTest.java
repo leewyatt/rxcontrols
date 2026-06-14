@@ -1230,6 +1230,69 @@ public class RXCascaderViewTest {
         });
     }
 
+    /**
+     * Verifies a {@code clearSelection()} re-entered from a LOADED listener wins:
+     * the pending-check replay runs before the LOADED write, so the listener's
+     * clear is the final word and is not overwritten by the replay.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reentrantClearSelectionFromLoadedListenerWins() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            boolean[] cleared = {false};
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of(leaf("c1"))));
+            branch.loadStateProperty().addListener((obs, old, now) -> {
+                if (now == LoadState.LOADED && !cleared[0]) {
+                    cleared[0] = true;
+                    panel.clearSelection();
+                }
+            });
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true); // pending check + load, completes inline
+
+            assertTrue(cleared[0], "the LOADED-listener clearSelection ran");
+            assertFalse(branch.isChecked(), "clearSelection in the LOADED listener is not overwritten by the replay");
+            assertFalse(branch.getChildren().get(0).isChecked(), "the child is not re-checked by a stale replay");
+            assertTrue(panel.getCheckedPaths().isEmpty());
+        });
+    }
+
+    /**
+     * Verifies the original expand bails on its stale token when a LOADING listener
+     * reloads and then re-loads the same item with a new token, instead of
+     * resurrecting navigation for the superseded load.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reentrantReloadThenLoadDuringExpandUsesNewToken() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            RXCascaderItem<String> branch = item("branch");
+            boolean[] done = {false};
+            panel.setChildrenLoader(it -> new CompletableFuture<>()); // never completes
+            branch.loadStateProperty().addListener((obs, old, now) -> {
+                if (now == LoadState.LOADING && !done[0]) {
+                    done[0] = true;
+                    panel.reload();
+                    panel.loadChildren(branch); // re-loads the same item with a new token
+                }
+            });
+            panel.getRootItems().add(branch);
+
+            panel.expand(branch);
+
+            assertTrue(done[0], "the re-entrant reload + loadChildren ran");
+            assertTrue(panel.getActivePath().isEmpty(),
+                    "the original expand bails on its stale token and does not resurrect navigation");
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
     }
