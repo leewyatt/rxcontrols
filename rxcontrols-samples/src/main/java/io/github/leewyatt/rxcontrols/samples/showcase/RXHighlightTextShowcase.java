@@ -6,11 +6,14 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -32,11 +35,14 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
     private static final TextPreset DEFAULT_TEXT = TextPreset.ARTICLE;
     private static final KeywordPreset DEFAULT_KEYWORDS = KeywordPreset.LITERAL_WORDS;
     private static final double DEFAULT_PREVIEW_WIDTH = 520.0;
+    private static final double SELECTION_FILL_ALPHA = 0.30;
 
     private RXHighlightText highlightText;
     private ColorPicker highlightColorPicker;
     private ColorPicker highlightFillPicker;
     private ColorPicker plainFillPicker;
+    private ColorPicker selectionFillPicker;
+    private ColorPicker caretFillPicker;
 
     // ==================== Showcase wiring ====================
 
@@ -102,6 +108,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
                 section("Text", buildTextGrid()),
                 section("Keywords", buildKeywordGrid()),
                 section("Matching", buildMatchingGrid()),
+                section("Selection", buildSelectionGrid()),
                 section("Layout", buildLayoutGrid()),
                 section("Colors", buildColorGrid()));
     }
@@ -170,6 +177,36 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
                 row("matched", matchedLabel));
     }
 
+    private Node buildSelectionGrid() {
+        CheckBox selectableCheck = new CheckBox("selectable");
+        selectableCheck.setSelected(true);
+        highlightText.selectableProperty().bind(selectableCheck.selectedProperty());
+
+        Button selectAll = new Button("Select All");
+        selectAll.setOnAction(event -> highlightText.selectAll());
+        Button selectRange = new Button("Select [0, 16)");
+        selectRange.setOnAction(event -> highlightText.selectRange(0, 16));
+        Button deselect = new Button("Deselect");
+        deselect.setOnAction(event -> highlightText.deselect());
+        Button copy = new Button("Copy");
+        copy.setOnAction(event -> highlightText.copy());
+        FlowPane buttons = new FlowPane(8.0, 8.0, selectAll, selectRange, deselect, copy);
+
+        Label selectionInfo = new Label();
+        selectionInfo.getStyleClass().add("matched-label");
+        selectionInfo.textProperty().bind(Bindings.createStringBinding(
+                () -> String.format(Locale.ROOT, "anchor %d  caret %d  (%d chars)",
+                        highlightText.getAnchor(), highlightText.getCaretPosition(),
+                        highlightText.getSelectedText().length()),
+                highlightText.anchorProperty(), highlightText.caretPositionProperty(),
+                highlightText.selectedTextProperty()));
+
+        return createGrid(
+                row(selectableCheck),
+                row(buttons),
+                row("Selection", selectionInfo));
+    }
+
     private Node buildLayoutGrid() {
         ComboBox<TextAlignment> alignmentBox = new ComboBox<>();
         alignmentBox.getItems().setAll(TextAlignment.values());
@@ -190,18 +227,25 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
+        Color defaultInk = Color.web("#1b1f2a");
         highlightColorPicker = createColorPicker(Color.web("#fff1a8"));
-        highlightFillPicker = createColorPicker(Color.web("#1b1f2a"));
+        highlightFillPicker = createColorPicker(defaultInk);
         plainFillPicker = createColorPicker(Color.web("#344054"));
+        selectionFillPicker = createColorPicker(Color.web("#0078d7"));
+        caretFillPicker = createColorPicker(defaultInk);
         highlightColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
         highlightFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
         plainFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
+        selectionFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
+        caretFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
         updateHighlightStyle();
 
         return createGrid(
                 row("Highlight", highlightColorPicker),
                 row("Highlight text", highlightFillPicker),
-                row("Plain text", plainFillPicker));
+                row("Plain text", plainFillPicker),
+                row("Selection", selectionFillPicker),
+                row("Caret", caretFillPicker));
     }
 
     // ==================== Helpers ====================
@@ -213,23 +257,29 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
     }
 
     private void updateHighlightStyle() {
-        if (highlightText == null || highlightColorPicker == null
-                || highlightFillPicker == null || plainFillPicker == null) {
+        if (highlightText == null || highlightColorPicker == null || highlightFillPicker == null
+                || plainFillPicker == null || selectionFillPicker == null || caretFillPicker == null) {
             return;
         }
         highlightText.setStyle(String.format(Locale.ROOT,
-                "-rx-highlight-fill: %s; -rx-highlight-text-fill: %s; -rx-text-fill: %s;",
+                "-rx-highlight-fill: %s; -rx-highlight-text-fill: %s; -rx-text-fill: %s; "
+                        + "-rx-selection-fill: %s; -rx-caret-fill: %s;",
                 toCssColor(highlightColorPicker.getValue()),
                 toCssColor(highlightFillPicker.getValue()),
-                toCssColor(plainFillPicker.getValue())));
+                toCssColor(plainFillPicker.getValue()),
+                toCssColorAlpha(selectionFillPicker.getValue(), SELECTION_FILL_ALPHA),
+                toCssColor(caretFillPicker.getValue())));
     }
 
     private String toCssColor(Color color) {
+        return toCssColorAlpha(color, color.getOpacity());
+    }
+
+    private String toCssColorAlpha(Color color, double alpha) {
         int red = (int) Math.round(color.getRed() * 255.0);
         int green = (int) Math.round(color.getGreen() * 255.0);
         int blue = (int) Math.round(color.getBlue() * 255.0);
-        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
-                red, green, blue, color.getOpacity());
+        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)", red, green, blue, alpha);
     }
 
     private List<String> parseKeywordLines(String value) {

@@ -45,7 +45,11 @@ public class PaneHighightTextController {
                 "132664588",
                 "97451835"};
         for (String info : infos) {
-            items.add(new RXHighlightText(info));
+            RXHighlightText item = new RXHighlightText(info);
+            // Inside a ListView cell the highlight text must not capture drags, so the
+            // row selection takes over; the programmatic keyword highlight still renders.
+            item.setSelectable(false);
+            items.add(item);
         }
         listEmail.setItems(items);
 

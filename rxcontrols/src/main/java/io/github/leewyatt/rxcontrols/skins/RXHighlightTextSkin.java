@@ -1,28 +1,40 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXHighlightText;
-import io.github.leewyatt.rxcontrols.RXHighlightText.MatchRules;
-import io.github.leewyatt.rxcontrols.internal.HighlightSegmenter;
-import io.github.leewyatt.rxcontrols.internal.HighlightSegmenter.Segment;
-import javafx.geometry.HPos;
-import javafx.geometry.VPos;
-import javafx.scene.control.Label;
+import io.github.leewyatt.rxcontrols.RXSelectableText;
+import javafx.scene.control.IndexRange;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.PathElement;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Skin for {@link RXHighlightText}. Renders the segmented text into a {@link TextFlow},
- * using a {@link Label} for highlighted runs (so {@code -fx-background-color} paints a
- * background, which {@link Text} cannot) and a {@link Text} for plain runs.
+ * Skin for {@link RXHighlightText}. Extends {@link RXSelectableTextSkin} with keyword
+ * highlighting: the run-building hook splits the text into plain and highlighted
+ * {@link Text} runs (built entirely from {@code Text}, so long highlighted spans still
+ * wrap), and a background {@code .highlight-shape} {@link Path} paints the highlight fill
+ * beneath the text using {@link TextFlow#rangeShape(int, int)} geometry.
+ *
+ * <p>Both the run split and the background geometry are driven by the control's
+ * {@link RXHighlightText#highlightRangesProperty() highlightRanges} — the single source
+ * of truth — so they cannot disagree.
  */
-public class RXHighlightTextSkin extends RXSkinBase<RXHighlightText> {
+public class RXHighlightTextSkin extends RXSelectableTextSkin {
+
+    // ==================== Constants ====================
 
     private static final String HIGHLIGHT_STYLE_CLASS = "highlight";
-    private static final String PLAIN_STYLE_CLASS = "plain";
+    private static final String HIGHLIGHT_SHAPE_STYLE_CLASS = "highlight-shape";
 
-    private final TextFlow textFlow;
+    // ==================== Nodes ====================
+
+    private final Path highlightShape = new Path();
+
+    // ==================== Constructor ====================
 
     /**
      * Creates the skin for the given control.
@@ -31,66 +43,87 @@ public class RXHighlightTextSkin extends RXSkinBase<RXHighlightText> {
      */
     public RXHighlightTextSkin(RXHighlightText control) {
         super(control);
-        textFlow = new TextFlow();
-        textFlow.getStyleClass().add("text-flow");
-        getChildren().add(textFlow);
-
-        disposer.registerBinding(textFlow.lineSpacingProperty(), control.lineSpacingProperty());
-        disposer.registerBinding(textFlow.textAlignmentProperty(), control.textAlignmentProperty());
-
-        disposer.registerListener(control.textProperty(), this::rebuild);
-        disposer.registerListener(control.getKeywords(), this::rebuild);
-        disposer.registerListener(control.matchRulesProperty(), this::rebuild);
-        rebuild();
+        highlightShape.getStyleClass().add(HIGHLIGHT_SHAPE_STYLE_CLASS);
+        highlightShape.setManaged(false);
+        highlightShape.setMouseTransparent(true);
+        highlightShape.setStroke(null);
+        // Below the selection layer and the text runs so the fill shows through the
+        // (transparent) glyphs.
+        getChildren().add(0, highlightShape);
     }
 
-    private void rebuild() {
-        RXHighlightText control = getSkinnable();
-        MatchRules rules = control.getMatchRules();
-        if (rules == null) {
-            rules = RXHighlightText.DEFAULT_MATCH_RULES;
-        }
-        List<Segment> segments = HighlightSegmenter.segment(
-                control.getText(), control.getKeywords(), rules.isRegex(), rules.isIgnoreCase());
+    @Override
+    protected void registerContentListeners(RXSelectableText control) {
+        // Keep the base class's text listener: highlightRanges alone is not enough. An
+        // empty match returns the shared List.of() singleton, so a text change between two
+        // non-matching values would not change the property's identity and it would not
+        // fire. The text listener guarantees a rebuild on every text change; the
+        // highlightRanges listener additionally covers keyword / rule changes (a text
+        // change that flips matching also fires both — a cheap, idempotent extra rebuild).
+        super.registerContentListeners(control);
+        disposer.registerListener(((RXHighlightText) control).highlightRangesProperty(), this::rebuildRuns);
+    }
 
-        textFlow.getChildren().clear();
-        for (Segment segment : segments) {
-            if (segment.highlight()) {
-                Label label = new Label(segment.text());
-                label.getStyleClass().add(HIGHLIGHT_STYLE_CLASS);
-                textFlow.getChildren().add(label);
-            } else {
-                Text text = new Text(segment.text());
-                text.getStyleClass().add(PLAIN_STYLE_CLASS);
-                textFlow.getChildren().add(text);
+    private RXHighlightText control() {
+        return (RXHighlightText) getSkinnable();
+    }
+
+    // ==================== Text runs ====================
+
+    @Override
+    protected void rebuildTextRuns(TextFlow flow, String text) {
+        List<IndexRange> ranges = control().getHighlightRanges();
+        if (ranges.isEmpty()) {
+            super.rebuildTextRuns(flow, text);
+            return;
+        }
+        List<Text> runs = new ArrayList<>();
+        int cursor = 0;
+        for (IndexRange range : ranges) {
+            int start = range.getStart();
+            int end = range.getEnd();
+            if (start > cursor) {
+                runs.add(run(text.substring(cursor, start), PLAIN_STYLE_CLASS));
             }
+            runs.add(run(text.substring(start, end), HIGHLIGHT_STYLE_CLASS));
+            cursor = end;
         }
+        if (cursor < text.length()) {
+            runs.add(run(text.substring(cursor), PLAIN_STYLE_CLASS));
+        }
+        flow.getChildren().setAll(runs);
     }
 
-    // SkinBase's default height computation asks the child for prefHeight(-1)
-    // (unbounded width), ignoring that TextFlow is HORIZONTAL content-biased — so
-    // wrapped text would overflow. Delegate to the TextFlow at the actual wrap width.
-
-    @Override
-    protected double computePrefHeight(double width, double topInset, double rightInset,
-                                       double bottomInset, double leftInset) {
-        double contentWidth = (width == -1) ? -1 : Math.max(0, width - leftInset - rightInset);
-        return topInset + textFlow.prefHeight(contentWidth) + bottomInset;
+    private Text run(String content, String styleClass) {
+        Text text = new Text(content);
+        text.getStyleClass().add(styleClass);
+        return text;
     }
 
-    @Override
-    protected double computeMinHeight(double width, double topInset, double rightInset,
-                                      double bottomInset, double leftInset) {
-        return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
-    }
+    // ==================== Layout ====================
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        layoutInArea(textFlow, x, y, w, h, 0, HPos.CENTER, VPos.CENTER);
+        super.layoutChildren(x, y, w, h);
+        // Unmanaged layers are not positioned by layoutInArea: align to the TextFlow
+        // origin so rangeShape (content-box local, inset-free on JFX 17) lines up.
+        highlightShape.relocate(x, y);
+        rebuildHighlightShape();
     }
 
-    @Override
-    protected void disposeSkin() {
-        textFlow.getChildren().clear();
+    private void rebuildHighlightShape() {
+        List<IndexRange> ranges = control().getHighlightRanges();
+        if (ranges.isEmpty()) {
+            highlightShape.getElements().clear();
+            return;
+        }
+        TextFlow flow = getTextFlow();
+        List<PathElement> elements = new ArrayList<>();
+        for (IndexRange range : ranges) {
+            if (range.getLength() > 0) {
+                Collections.addAll(elements, flow.rangeShape(range.getStart(), range.getEnd()));
+            }
+        }
+        highlightShape.getElements().setAll(elements);
     }
 }

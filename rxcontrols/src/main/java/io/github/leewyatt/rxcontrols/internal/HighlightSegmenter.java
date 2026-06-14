@@ -1,6 +1,9 @@
 package io.github.leewyatt.rxcontrols.internal;
 
+import javafx.scene.control.IndexRange;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -8,91 +11,51 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Splits a piece of text into highlighted and plain runs for keyword highlighting.
+ * Computes the merged highlight ranges for a piece of text against a set of keywords.
  *
- * <p>Every keyword is matched independently for all of its occurrences (literally or
- * as a regular expression). The resulting ranges are then merged where they overlap or
- * touch, so overlapping keywords (e.g. {@code "abc"} and {@code "bcd"} over
- * {@code "abcdefg"}) produce a single contiguous highlighted run ({@code "abcd"})
+ * <p>Every keyword is matched independently for all of its non-overlapping occurrences
+ * (literally or as a regular expression). The resulting ranges are merged where they
+ * overlap or touch, so overlapping keywords (e.g. {@code "abc"} and {@code "bcd"} over
+ * {@code "abcdefg"}) produce a single contiguous highlighted range ({@code "abcd"})
  * rather than one keyword swallowing the others.
+ *
+ * <p>Matching runs on the caller's thread; a catastrophically backtracking regular
+ * expression over very large text can stall it, so callers should keep patterns simple.
  */
 public final class HighlightSegmenter {
-
-    /**
-     * One contiguous run of the source text.
-     *
-     * @param text      the run text
-     * @param highlight {@code true} if this run matched a keyword
-     */
-    public record Segment(String text, boolean highlight) {
-    }
 
     private HighlightSegmenter() {
     }
 
     /**
-     * Segments {@code text} into matched / unmatched runs against the given keywords.
+     * Computes the merged highlight ranges for {@code text} against the given keywords.
+     *
+     * <p>Each keyword is matched for all of its non-overlapping occurrences (literally
+     * or as a regular expression); ranges from different keywords that overlap or touch
+     * are then merged, so the result is an ordered list of non-overlapping
+     * {@link IndexRange ranges} that covers every highlighted span exactly once.
+     * Zero-width matches (e.g. {@code "a*"}) and invalid-regex keywords are skipped.
      *
      * @param text       the source text; {@code null} is treated as empty
      * @param keywords   keywords to match; {@code null} / blank entries are ignored
      * @param regex      {@code true} to treat each keyword as a regular expression,
      *                   {@code false} to match it literally
      * @param ignoreCase {@code true} to match case-insensitively
-     * @return an ordered, non-empty list of runs covering the whole text; with no
-     *         keyword matches the whole text is returned as a single plain run
+     * @return an ordered, non-overlapping, unmodifiable list of highlight ranges;
+     *         empty when nothing matches
      */
-    public static List<Segment> segment(String text, List<String> keywords,
-                                        boolean regex, boolean ignoreCase) {
+    public static List<IndexRange> highlightRanges(String text, List<String> keywords,
+                                                   boolean regex, boolean ignoreCase) {
         String source = text == null ? "" : text;
         List<int[]> ranges = mergeRanges(collectRanges(source, keywords, regex, ignoreCase));
         if (ranges.isEmpty()) {
-            return List.of(new Segment(source, false));
+            return List.of();
         }
-
-        List<Segment> segments = new ArrayList<>();
-        int cursor = 0;
+        List<IndexRange> result = new ArrayList<>(ranges.size());
         for (int[] range : ranges) {
-            if (range[0] > cursor) {
-                segments.add(new Segment(source.substring(cursor, range[0]), false));
-            }
-            segments.add(new Segment(source.substring(range[0], range[1]), true));
-            cursor = range[1];
+            result.add(new IndexRange(range[0], range[1]));
         }
-        if (cursor < source.length()) {
-            segments.add(new Segment(source.substring(cursor), false));
-        }
-        return segments;
-    }
-
-    /**
-     * Reports whether any keyword matches the text, short-circuiting on the first hit
-     * without building the full segmentation.
-     *
-     * @param text       the source text; {@code null} is treated as empty
-     * @param keywords   keywords to match; {@code null} / blank entries are ignored
-     * @param regex      {@code true} to treat each keyword as a regular expression
-     * @param ignoreCase {@code true} to match case-insensitively
-     * @return {@code true} if at least one keyword matches
-     */
-    public static boolean matches(String text, List<String> keywords,
-                                  boolean regex, boolean ignoreCase) {
-        String source = text == null ? "" : text;
-        if (source.isEmpty() || keywords == null) {
-            return false;
-        }
-        for (String keyword : keywords) {
-            Pattern pattern = compile(keyword, regex, ignoreCase);
-            if (pattern == null) {
-                continue;
-            }
-            Matcher matcher = pattern.matcher(source);
-            while (matcher.find()) {
-                if (matcher.end() != matcher.start()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return Collections.unmodifiableList(result);
     }
 
     private static List<int[]> collectRanges(String source, List<String> keywords,

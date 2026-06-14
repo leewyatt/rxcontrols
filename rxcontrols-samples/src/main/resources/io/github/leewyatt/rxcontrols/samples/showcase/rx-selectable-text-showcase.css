@@ -1,4 +1,4 @@
-.highlight-preview {
+.selectable-preview {
     -fx-padding: 24px;
     -fx-background-color: #ffffff;
     -fx-border-color: #d8e0ea;
@@ -7,7 +7,7 @@
     -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.10), 16, 0, 0, 5);
 }
 
-.highlight-preview .showcase-highlight-text {
+.selectable-preview .showcase-selectable-text {
     -fx-padding: 16px;
     -fx-background-color: #f8fafc;
     -fx-border-color: #d5dde8;
@@ -16,11 +16,7 @@
     -fx-font-size: 15px;
 }
 
-.highlight-preview .showcase-highlight-text > .text-flow > .plain {
-    -fx-font-smoothing-type: lcd;
-}
-
-.highlight-preview .status-label {
+.selectable-preview .status-label {
     -fx-text-fill: #344054;
     -fx-font-family: "Menlo", "Consolas", monospace;
 }
@@ -38,7 +34,6 @@
     -fx-background-color: #ffffff;
 }
 
-.control-pane .matched-label {
-    -fx-text-fill: #344054;
+.control-pane .value-label {
     -fx-font-family: "Menlo", "Consolas", monospace;
 }

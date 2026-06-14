@@ -1,11 +1,3 @@
-/*#text-poem .highlight{*/
-/*    -fx-background-color: red;*/
-/*    -fx-text-fill: white;*/
-/*}*/
-/*#text-poem .plain{*/
-/*    -fx-fill:black;*/
-/*}*/
-
 #text-poem {
     -rx-highlight-fill: red;
     -rx-highlight-text-fill: white;

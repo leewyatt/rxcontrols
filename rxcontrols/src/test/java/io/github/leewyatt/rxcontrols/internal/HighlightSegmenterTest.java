@@ -1,38 +1,44 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.internal.HighlightSegmenter.Segment;
-
+import javafx.scene.control.IndexRange;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link HighlightSegmenter}, locking the segmentation contract the
- * RXHighlightText control and its skin rely on: literal vs regex matching,
- * case sensitivity, overlapping-keyword merge, zero-width and invalid-regex
- * handling, blank-keyword skipping, and the {@code matches} short-circuit.
+ * Tests for {@link HighlightSegmenter#highlightRanges}, locking the matching contract the
+ * RXHighlightText control and its skin rely on: literal vs regex matching, case
+ * sensitivity, overlapping / touching keyword merge, zero-width and invalid-regex
+ * handling, blank-keyword skipping, null / empty text, and the ordered, non-overlapping,
+ * unmodifiable shape of the returned range list.
  */
 public class HighlightSegmenterTest {
 
-    /** Renders segments as plain text with {@code [..]} around highlighted runs. */
-    private static String render(List<Segment> segments) {
+    /** Renders the ranges back over the text with {@code [..]} around each highlighted run. */
+    private static String render(String text, List<IndexRange> ranges) {
+        String source = text == null ? "" : text;
         StringBuilder sb = new StringBuilder();
-        for (Segment segment : segments) {
-            if (segment.highlight()) {
-                sb.append('[').append(segment.text()).append(']');
-            } else {
-                sb.append(segment.text());
-            }
+        int cursor = 0;
+        for (IndexRange range : ranges) {
+            sb.append(source, cursor, range.getStart());
+            sb.append('[').append(source, range.getStart(), range.getEnd()).append(']');
+            cursor = range.getEnd();
         }
+        sb.append(source, cursor, source.length());
         return sb.toString();
     }
 
     private static String literal(String text, String... keywords) {
-        return render(HighlightSegmenter.segment(text, List.of(keywords), false, false));
+        return render(text, HighlightSegmenter.highlightRanges(text, List.of(keywords), false, false));
+    }
+
+    private static boolean matches(String text, List<String> keywords, boolean regex, boolean ignoreCase) {
+        return !HighlightSegmenter.highlightRanges(text, keywords, regex, ignoreCase).isEmpty();
     }
 
     // ==================== Literal matching ====================
@@ -45,7 +51,8 @@ public class HighlightSegmenterTest {
     @Test
     public void literalIsCaseSensitiveByDefault() {
         assertEquals("Hello", literal("Hello", "hello"));
-        assertEquals("[Hello]", render(HighlightSegmenter.segment("Hello", List.of("hello"), false, true)));
+        assertEquals("[Hello]", render("Hello",
+                HighlightSegmenter.highlightRanges("Hello", List.of("hello"), false, true)));
     }
 
     /**
@@ -72,21 +79,21 @@ public class HighlightSegmenterTest {
     @Test
     public void regexMultipleOccurrences() {
         assertEquals("[123]ABC[456]",
-                render(HighlightSegmenter.segment("123ABC456", List.of("[0-9]+"), true, false)));
+                render("123ABC456", HighlightSegmenter.highlightRanges("123ABC456", List.of("[0-9]+"), true, false)));
     }
 
     @Test
     public void invalidRegexIsSkippedButOthersApply() {
         // "[bad(" is an invalid pattern -> skipped; "bar" still highlights.
         assertEquals("foo [bar]",
-                render(HighlightSegmenter.segment("foo bar", List.of("[bad(", "bar"), true, false)));
+                render("foo bar", HighlightSegmenter.highlightRanges("foo bar", List.of("[bad(", "bar"), true, false)));
     }
 
     @Test
     public void zeroWidthRegexProducesNoHighlightAndTerminates() {
         // "x*" matches empty at every position; zero-width matches are skipped
         // (and Matcher.find advances), so no highlight and no infinite loop.
-        assertEquals("aaa", render(HighlightSegmenter.segment("aaa", List.of("x*"), true, false)));
+        assertEquals("aaa", render("aaa", HighlightSegmenter.highlightRanges("aaa", List.of("x*"), true, false)));
     }
 
     // ==================== Blank / empty / null handling ====================
@@ -99,37 +106,61 @@ public class HighlightSegmenterTest {
     }
 
     @Test
-    public void noKeywordsYieldsSinglePlainRun() {
+    public void noKeywordsYieldsNoRanges() {
         assertEquals("abc", literal("abc"));
+        assertTrue(HighlightSegmenter.highlightRanges("abc", List.of(), false, false).isEmpty());
     }
 
     @Test
-    public void nullTextYieldsSingleEmptyPlainRun() {
-        List<Segment> segments = HighlightSegmenter.segment(null, List.of("a"), false, false);
-        assertEquals(1, segments.size());
-        assertFalse(segments.get(0).highlight());
-        assertEquals("", segments.get(0).text());
+    public void nullTextYieldsNoRanges() {
+        assertTrue(HighlightSegmenter.highlightRanges(null, List.of("a"), false, false).isEmpty());
     }
 
     @Test
-    public void emptyTextYieldsSingleEmptyPlainRun() {
-        assertEquals("", literal("", "a"));
+    public void emptyTextYieldsNoRanges() {
+        assertTrue(HighlightSegmenter.highlightRanges("", List.of("a"), false, false).isEmpty());
     }
 
-    // ==================== matches() short-circuit ====================
+    // ==================== Range list shape ====================
 
     @Test
-    public void matchesReflectsAnyHit() {
-        assertTrue(HighlightSegmenter.matches("abcdefg", List.of("abc"), false, false));
-        assertFalse(HighlightSegmenter.matches("abcdefg", List.of("xyz"), false, false));
+    public void rangesAreOrderedNonOverlappingAndMerged() {
+        List<IndexRange> ranges =
+                HighlightSegmenter.highlightRanges("abcdefg", List.of("abc", "bcd", "bc"), false, false);
+        assertEquals(1, ranges.size());
+        assertEquals(0, ranges.get(0).getStart());
+        assertEquals(4, ranges.get(0).getEnd());
     }
 
     @Test
-    public void matchesHonorsCaseAndBlankAndInvalidRegex() {
-        assertTrue(HighlightSegmenter.matches("Hello", List.of("hello"), false, true));
-        assertFalse(HighlightSegmenter.matches("Hello", List.of("hello"), false, false));
-        assertFalse(HighlightSegmenter.matches("a b c", List.of(" "), false, false));
-        assertFalse(HighlightSegmenter.matches("foo", List.of("[bad("), true, false));
-        assertFalse(HighlightSegmenter.matches(null, List.of("a"), false, false));
+    public void separateOccurrencesStayOrdered() {
+        List<IndexRange> ranges = HighlightSegmenter.highlightRanges("ababa", List.of("a"), false, false);
+        assertEquals(3, ranges.size());
+        assertEquals(0, ranges.get(0).getStart());
+        assertEquals(2, ranges.get(1).getStart());
+        assertEquals(4, ranges.get(2).getStart());
+    }
+
+    @Test
+    public void resultIsUnmodifiable() {
+        List<IndexRange> ranges = HighlightSegmenter.highlightRanges("abc", List.of("a"), false, false);
+        assertThrows(UnsupportedOperationException.class, () -> ranges.add(new IndexRange(0, 1)));
+    }
+
+    // ==================== matched short-circuit (non-empty ranges) ====================
+
+    @Test
+    public void rangesNonEmptyReflectsAnyHit() {
+        assertTrue(matches("abcdefg", List.of("abc"), false, false));
+        assertFalse(matches("abcdefg", List.of("xyz"), false, false));
+    }
+
+    @Test
+    public void matchingHonorsCaseAndBlankAndInvalidRegex() {
+        assertTrue(matches("Hello", List.of("hello"), false, true));
+        assertFalse(matches("Hello", List.of("hello"), false, false));
+        assertFalse(matches("a b c", List.of(" "), false, false));
+        assertFalse(matches("foo", List.of("[bad("), true, false));
+        assertFalse(matches(null, List.of("a"), false, false));
     }
 }

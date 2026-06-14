@@ -92,21 +92,35 @@
     -fx-text-fill: -rx-line-color;
 }
 
-/*highlight label 高亮文本组件*/
+.rx-selectable-text {
+    -rx-text-fill: #1b1f2a;
+    -rx-selection-fill: rgba(0, 120, 215, 0.3);
+    -rx-caret-fill: -rx-text-fill;
+}
+
+.rx-selectable-text .plain {
+    -fx-fill: -rx-text-fill;
+}
+
+.rx-selectable-text .selection-shape {
+    -fx-fill: -rx-selection-fill;
+}
+
+.rx-selectable-text .caret {
+    -fx-stroke: -rx-caret-fill;
+}
+
 .rx-highlight-text {
     -rx-highlight-fill: #ffff00;
     -rx-highlight-text-fill: #000000;
-    -rx-text-fill: #000000;
 }
 
 .rx-highlight-text .highlight {
-    -fx-padding: 0;
-    -fx-text-fill: -rx-highlight-text-fill;
-    -fx-background-color: -rx-highlight-fill;
+    -fx-fill: -rx-highlight-text-fill;
 }
 
-.rx-highlight-text .plain {
-    -fx-fill: -rx-text-fill;
+.rx-highlight-text .highlight-shape {
+    -fx-fill: -rx-highlight-fill;
 }
 
 

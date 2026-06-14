@@ -23,7 +23,7 @@
          <padding>
             <Insets top="8.0" />
          </padding></RXHighlightText>
-      <TextArea editable="false" layoutX="30.0" layoutY="331.0" prefHeight="170.0" prefWidth="331.0" text="/*css样式参考;更简单的写法参考CSS Reference*/&#10;#text-poem .highlight{&#10;    -fx-background-color: red;&#10;    -fx-text-fill: white;&#10;}&#10;#text-poem .plain{&#10;    -fx-fill:black;&#10;}" />
+      <TextArea editable="false" layoutX="30.0" layoutY="331.0" prefHeight="170.0" prefWidth="331.0" text="/*css样式参考;更简单的写法参考CSS Reference*/&#10;#text-poem{&#10;    -rx-highlight-fill: red;&#10;    -rx-highlight-text-fill: white;&#10;    -rx-text-fill: black;&#10;}" />
       <TextField fx:id="tfKeywords" layoutX="400.0" layoutY="85.0" prefHeight="30.0" prefWidth="230.0" promptText="请输入关键字" />
       <ComboBox fx:id="rulesComboBox" layoutX="522.0" layoutY="47.0" prefHeight="30.0" prefWidth="188.0" />
       <Label layoutX="400.0" layoutY="52.0" text="字符串匹配规则" />
