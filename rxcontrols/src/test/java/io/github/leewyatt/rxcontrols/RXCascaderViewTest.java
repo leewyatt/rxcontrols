@@ -1293,6 +1293,38 @@ public class RXCascaderViewTest {
         });
     }
 
+    /**
+     * Verifies a checked lazy branch whose loader returns no children settles as
+     * a checked leaf: the optimistic pending check survives the replay (it is not
+     * re-recorded as a still-pending intent), and the now-empty leaf is reported
+     * in the checked paths. Regression guard for the replay-before-LOADED
+     * ordering, where the loadState-keyed {@code isLeaf}/{@code
+     * isUnresolvedLazyBranch} tests misread an empty-but-final branch (children
+     * set, state still LOADING) as unresolved.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void checkedLazyBranchLoadingToEmptyBecomesCheckedLeaf() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of()));
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true); // pending check + load, completes inline
+
+            assertTrue(loaded(branch), "the empty load completed");
+            assertTrue(panel.isLeaf(branch), "an empty-loaded branch is a leaf");
+            assertTrue(branch.isChecked(), "the optimistic check survives as a checked leaf");
+            assertFalse(branch.isIndeterminate());
+            assertNull(branch.getPendingCheck(), "the pending intent is consumed, not re-recorded");
+            assertEquals(1, panel.getCheckedPaths().size(), "the checked empty leaf is reported in the paths");
+            assertSame(branch, panel.getCheckedPaths().get(0).getLeaf());
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
     }

@@ -947,6 +947,35 @@ public class RXCascaderView<T> extends Control {
         }
     }
 
+    /**
+     * Replays a pending check onto a branch whose children have just been set to
+     * their final result but whose state is still {@link LoadState#LOADING} (it is
+     * set to LOADED only after the replay, so a re-entrant loadState listener keeps
+     * the final say). The loadState-keyed {@link #isLeaf} / {@link
+     * #isUnresolvedLazyBranch} tests cannot drive the replay in this window: they
+     * read a populated branch as unresolved and an empty result as not-yet-loaded.
+     * The children are final, so discriminate on them directly — an empty result is
+     * the branch's own (new) leaf, otherwise cascade into the children, which carry
+     * their own independent load state.
+     *
+     * @param item    just-loaded branch
+     * @param checked target checked state to replay
+     */
+    private void replayResolvedCheck(RXCascaderItem<T> item, boolean checked) {
+        if (isEffectivelyDisabled(item)) {
+            return;
+        }
+        for (RXCascaderItem<T> child : item.getChildren()) {
+            applyDown(child, checked);
+        }
+        if (item.getChildren().isEmpty()) {
+            item.setChecked(checked);
+            item.setIndeterminate(false);
+        } else {
+            updateFromChildren(item);
+        }
+    }
+
     private void updateUp(RXCascaderItem<T> item) {
         RXCascaderItem<T> current = item;
         while (current != null) {
@@ -1065,19 +1094,26 @@ public class RXCascaderView<T> extends Control {
         if (item.getLoadToken() != token || !liveLoads.remove(item)) {
             return;
         }
-        // Apply any pending check to the now-populated branch, then make LOADED the
+        // Apply any pending check to the now-final children, then make LOADED the
         // last mutation. Replaying first means a re-entrant loadState listener
         // (reload / clearSelection) runs after it and has the final say, instead of
-        // being overwritten by it. applyDown treats the branch as resolved here
-        // because its children are populated, regardless of the still-LOADING state.
+        // being overwritten by it. The replay must not route through applyDown here:
+        // while the state is still LOADING the loadState-keyed isLeaf /
+        // isUnresolvedLazyBranch tests misread the branch as unresolved (and an
+        // empty result as unloaded), which would re-record the pending intent rather
+        // than consume it. replayResolvedCheck trusts the now-final children instead.
         Boolean pendingCheck = item.getPendingCheck();
         item.setPendingCheck(null);
         if (pendingCheck != null) {
-            applyDown(item, pendingCheck);
+            replayResolvedCheck(item, pendingCheck);
             updateUp(item.getParent());
-            refreshCheckedPaths();
         }
         item.setLoadState(LoadState.LOADED);
+        if (pendingCheck != null) {
+            // After LOADED so an empty-loaded branch — now a leaf — is counted;
+            // before it, isLeaf() reports false and refreshCheckedPaths drops it.
+            refreshCheckedPaths();
+        }
         // Bump after children and any replayed check state are final, so the
         // skin's re-sync renders the newly appearing column in its correct state.
         bumpColumnsRevision();
