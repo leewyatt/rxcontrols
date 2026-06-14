@@ -176,4 +176,20 @@ public class RXSelectableTextLayoutTest {
         assertTrue(selection.getMaxY() <= flow.getMaxY() + 1.0,
                 "selection bottom " + selection.getMaxY() + " drifted below textFlow bottom " + flow.getMaxY());
     }
+
+    @Test
+    public void caretHiddenByDefault() throws Exception {
+        AtomicReference<Double> caretOpacity = new AtomicReference<>();
+        onFx(() -> {
+            RXSelectableText control = new RXSelectableText("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path caret = (Path) control.lookup(".caret");
+            caretOpacity.set(caret.getOpacity());
+        });
+        assertEquals(0.0, caretOpacity.get(),
+                "the caret must be hidden until the user interacts (no caret on automatic focus)");
+    }
 }
