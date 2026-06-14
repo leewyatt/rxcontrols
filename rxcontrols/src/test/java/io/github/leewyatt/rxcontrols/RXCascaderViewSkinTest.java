@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -725,6 +726,76 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    /**
+     * Verifies the active-path highlight on a reused (tail-diff prefix) column is
+     * refreshed when navigation switches siblings, instead of going stale.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void inActivePathPseudoClassRefreshesOnReusedColumn() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> a = item("a");
+            a.getChildren().setAll(List.of(item("a1")));
+            RXCascaderItem<String> b = item("b");
+            b.getChildren().setAll(List.of(item("b1")));
+            view.getRootItems().setAll(List.of(a, b));
+
+            Scene scene = new Scene(new StackPane(view), 600, 240);
+            relayout(scene);
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(rootColumn, "root column should exist");
+
+            view.expand(a);
+            relayout(scene);
+            rootColumn.applyCss();
+            rootColumn.layout();
+            assertTrue(inActivePath(rootColumn, a), "a is in the active path after expanding it");
+            assertFalse(inActivePath(rootColumn, b), "b is not in the active path");
+
+            view.expand(b);
+            relayout(scene);
+            rootColumn.applyCss();
+            rootColumn.layout();
+            assertFalse(inActivePath(rootColumn, a),
+                    "a's active-path highlight on the reused root column is cleared");
+            assertTrue(inActivePath(rootColumn, b), "b now shows the active-path highlight");
+        });
+    }
+
+    /**
+     * Verifies a failed lazy branch's cell carries the {@code :load-failed} pseudo
+     * class so the failure (and that re-expanding retries) is discoverable.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void failedBranchCellHasLoadFailedPseudoClass() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> branch = item("branch");
+            view.setChildrenLoader(it -> CompletableFuture.failedFuture(new IllegalStateException("boom")));
+            view.getRootItems().setAll(List.of(branch));
+
+            Scene scene = new Scene(new StackPane(view), 300, 200);
+            relayout(scene);
+
+            view.expand(branch);
+            relayout(scene);
+            ListView<?> col0 = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(col0, "root column should exist");
+            col0.applyCss();
+            col0.layout();
+
+            assertEquals(LoadState.FAILED, branch.getLoadState());
+            Node cell = filledCell(col0, branch);
+            assertNotNull(cell, "branch cell should be realized");
+            assertTrue(cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("load-failed")),
+                    "a failed branch cell carries the :load-failed pseudo class");
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
     }
@@ -743,6 +814,11 @@ public class RXCascaderViewSkinTest {
             }
         }
         return null;
+    }
+
+    private static boolean inActivePath(ListView<?> column, RXCascaderItem<?> item) {
+        Node cell = filledCell(column, item);
+        return cell != null && cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("in-active-path"));
     }
 
     private static void relayout(Scene scene) {

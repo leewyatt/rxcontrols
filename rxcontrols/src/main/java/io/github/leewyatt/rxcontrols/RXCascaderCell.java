@@ -32,7 +32,7 @@ import java.util.List;
  * interaction contract — tri-state check box, branch arrow, loading glyph,
  * disabled inheritance, the {@code active} / {@code in-active-path} /
  * {@code in-checked-path} / {@code indeterminate} / {@code loading} /
- * {@code leaf} pseudo classes, and click routing to
+ * {@code load-failed} / {@code leaf} pseudo classes, and click routing to
  * {@link RXCascaderView#activate}, {@link RXCascaderView#toggleCheck} and
  * {@link RXCascaderView#expand}.
  *
@@ -105,6 +105,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private static final PseudoClass IN_CHECKED_PATH = PseudoClass.getPseudoClass("in-checked-path");
     private static final PseudoClass INDETERMINATE = PseudoClass.getPseudoClass("indeterminate");
     private static final PseudoClass LOADING = PseudoClass.getPseudoClass("loading");
+    private static final PseudoClass LOAD_FAILED = PseudoClass.getPseudoClass("load-failed");
     private static final PseudoClass LEAF = PseudoClass.getPseudoClass("leaf");
 
     // ==================== Nodes ====================
@@ -328,6 +329,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         boolean disabled = view.isEffectivelyDisabled(item);
         boolean leaf = view.isLeaf(item);
         boolean loading = item.getLoadState() == RXCascaderItem.LoadState.LOADING;
+        boolean loadFailed = item.getLoadState() == RXCascaderItem.LoadState.FAILED;
         RXCascaderPath<T> selectedPath = view.getSelectedPath();
         boolean active = selectedPath != null && selectedPath.getLeaf() == item;
         boolean inActivePath = view.getActivePath().contains(item);
@@ -355,6 +357,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         pseudoClassStateChanged(IN_CHECKED_PATH, inCheckedPath);
         pseudoClassStateChanged(INDETERMINATE, item.isIndeterminate());
         pseudoClassStateChanged(LOADING, loading);
+        pseudoClassStateChanged(LOAD_FAILED, loadFailed);
         pseudoClassStateChanged(LEAF, leaf);
         updateSpinner();
     }
@@ -374,6 +377,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         pseudoClassStateChanged(IN_CHECKED_PATH, false);
         pseudoClassStateChanged(INDETERMINATE, false);
         pseudoClassStateChanged(LOADING, false);
+        pseudoClassStateChanged(LOAD_FAILED, false);
         pseudoClassStateChanged(LEAF, false);
     }
 }

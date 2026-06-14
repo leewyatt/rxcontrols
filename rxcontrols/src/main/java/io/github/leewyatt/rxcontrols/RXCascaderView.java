@@ -56,6 +56,12 @@ import java.util.function.Function;
  * active path for such edits. Like {@link javafx.scene.control.TreeItem}, the item
  * tree must be acyclic and each node must have a single parent.
  *
+ * <p><strong>Threading.</strong> All operation methods (activate / expand / select
+ * / toggleCheck / setCheckedCascade / seedChecked / reload / loadChildren) and
+ * tree mutations must be invoked on the JavaFX Application Thread. A children
+ * loader's stage may complete on any thread; the view marshals the completion
+ * back to the FX thread before touching the tree.
+ *
  * @param <T> application value type
  */
 public class RXCascaderView<T> extends Control {
@@ -616,6 +622,12 @@ public class RXCascaderView<T> extends Control {
         // after the active path is in place, matching the async path and avoiding a
         // later setAll clobbering it.
         long token = startLoad(item);
+        if (token != NO_LOAD && !liveLoads.contains(item)) {
+            // startLoad's LOADING state write fired a listener that re-entered and
+            // cancelled this load (reload / loader swap / root change). Respect its
+            // cleared navigation instead of resurrecting the active path here.
+            return;
+        }
         activePath.setAll(pathItems(item));
         bumpColumnsRevision();
         if (token != NO_LOAD) {
@@ -679,13 +691,14 @@ public class RXCascaderView<T> extends Control {
     }
 
     /**
-     * Seeds an initial checked selection before the view is shown: marks each
-     * given item checked — a leaf directly, a branch by cascading down to its
-     * enabled descendants — rolls the tri-state up to ancestors, and refreshes the
-     * checked paths once. Use this instead of writing item state directly (an
-     * item's checked state is read-only). It is the multiple-selection counterpart
-     * of {@link #select}; for the seed to survive a later
-     * {@code setSelectionMode(MULTIPLE)}, set the mode first.
+     * Seeds an initial multiple-selection checked state: marks each given item
+     * checked — a leaf directly, a branch by cascading down to its enabled
+     * descendants — rolls the tri-state up to ancestors, and refreshes the checked
+     * paths once. Use this instead of writing item state directly (an item's
+     * checked state is read-only); for runtime check changes use
+     * {@link #setCheckedCascade}. It is the multiple-selection counterpart of
+     * {@link #select} and may be called before or after switching to
+     * {@link SelectionMode#MULTIPLE} — a seed made before the switch survives it.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */
@@ -1051,11 +1064,15 @@ public class RXCascaderView<T> extends Control {
         if (item.getLoadToken() != token || !liveLoads.remove(item)) {
             return;
         }
-        item.setLoadState(LoadState.LOADED);
-
+        // Capture and clear the pending intent BEFORE the LOADED state write, which
+        // fires loadState listeners that may re-enter reload(). Replay the check
+        // only if the branch is still LOADED afterward — a re-entrant reset changes
+        // the state, so a stale pending check must not re-check (or re-load) the
+        // just-reset tree.
         Boolean pendingCheck = item.getPendingCheck();
         item.setPendingCheck(null);
-        if (pendingCheck != null) {
+        item.setLoadState(LoadState.LOADED);
+        if (pendingCheck != null && item.getLoadState() == LoadState.LOADED) {
             applyDown(item, pendingCheck);
             updateUp(item.getParent());
             refreshCheckedPaths();

@@ -99,6 +99,13 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         }
         restampOrdinals();
         columnsBox.getChildren().setAll(columns);
+        // Reused prefix columns (0..keep-1) keep their ListView (no teardown) but
+        // their cells' active-path / selected / checked highlights derive from view
+        // state, not item state, so the cells' own listeners do not catch a path
+        // change; refresh them. Newly created tail columns already render fresh.
+        for (int i = 0; i < keep; i++) {
+            columns.get(i).refresh();
+        }
         // Only newly created columns need a CSS pass (so author CSS overrides the
         // code defaults before pref measurement); reused columns already have it.
         if (changed && getSkinnable().getScene() != null) {

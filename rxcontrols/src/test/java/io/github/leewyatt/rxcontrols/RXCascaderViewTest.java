@@ -1162,6 +1162,74 @@ public class RXCascaderViewTest {
         });
     }
 
+    /**
+     * Verifies a {@code reload()} re-entered from a loadState listener at the
+     * LOADING transition (during expand) does not resurrect the active path that
+     * the reload just cleared.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reentrantReloadDuringExpandRespectsClearedNavigation() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            RXCascaderItem<String> branch = item("branch");
+            boolean[] reloaded = {false};
+            branch.loadStateProperty().addListener((obs, old, now) -> {
+                if (now == LoadState.LOADING && !reloaded[0]) {
+                    reloaded[0] = true;
+                    panel.reload();
+                }
+            });
+            panel.setChildrenLoader(it -> new CompletableFuture<>()); // never completes
+            panel.getRootItems().add(branch);
+
+            panel.expand(branch);
+
+            assertTrue(reloaded[0], "the re-entrant reload ran");
+            assertTrue(panel.getActivePath().isEmpty(),
+                    "reload's cleared navigation is respected, not resurrected by expand");
+            assertEquals(LoadState.NOT_LOADED, branch.getLoadState());
+        });
+    }
+
+    /**
+     * Verifies a {@code reload()} re-entered from a loadState listener at the
+     * LOADED transition does not replay the (already captured) pending check onto
+     * the reset tree or kick off a second lazy load.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reentrantReloadFromLoadedListenerDropsPendingReplay() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            int[] loaderCalls = {0};
+            boolean[] reloaded = {false};
+            panel.setChildrenLoader(it -> {
+                loaderCalls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("c1")));
+            });
+            branch.loadStateProperty().addListener((obs, old, now) -> {
+                if (now == LoadState.LOADED && !reloaded[0]) {
+                    reloaded[0] = true;
+                    panel.reload();
+                }
+            });
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true); // pending check + load, completes inline
+
+            assertTrue(reloaded[0], "the LOADED-listener reload ran");
+            assertEquals(LoadState.NOT_LOADED, branch.getLoadState(), "reload reset the branch");
+            assertFalse(branch.isChecked(), "the pending check was not replayed onto the reset tree");
+            assertTrue(panel.getCheckedPaths().isEmpty());
+            assertEquals(1, loaderCalls[0], "no second lazy load was kicked off by a stale replay");
+        });
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
     }

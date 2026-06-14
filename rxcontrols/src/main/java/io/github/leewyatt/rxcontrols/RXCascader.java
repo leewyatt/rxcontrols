@@ -41,6 +41,16 @@ import java.util.function.Function;
  * Each property's bean is this control, per the JavaFX convention. The root item
  * and result lists are the embedded view's own lists, shared directly.
  *
+ * <p>{@code columnWidth} / {@code rowHeight} are plain write-only forwards (no
+ * {@code xxxProperty()}, not observable): the embedded view holds the
+ * CSS-settable {@code -rx-column-width} / {@code -rx-row-height} authority, and
+ * binding a wrapper styleable property would stop CSS from reaching it. Style the
+ * popup via {@code .rx-cascader-popup .rx-cascader-view} / {@code .rx-cascader-column}.
+ *
+ * <p><strong>Threading.</strong> All operation methods (select / setCheckedCascade
+ * / seedChecked / reload / show / hide / clearSelection) must be invoked on the
+ * JavaFX Application Thread.
+ *
  * @param <T> application value type
  */
 public class RXCascader<T> extends Control {
@@ -640,11 +650,12 @@ public class RXCascader<T> extends Control {
     }
 
     /**
-     * Seeds an initial checked selection before display: marks each given item
+     * Seeds an initial multiple-selection checked state: marks each given item
      * checked, rolls the tri-state up to ancestors, and refreshes the checked
      * paths once. Use this instead of writing item state directly (an item's
-     * checked state is read-only); for the seed to survive a later
-     * {@code setSelectionMode(MULTIPLE)}, set the mode first.
+     * checked state is read-only); for runtime check changes use
+     * {@link #setCheckedCascade}. It may be called before or after switching to
+     * {@link SelectionMode#MULTIPLE} — a seed made before the switch survives it.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */

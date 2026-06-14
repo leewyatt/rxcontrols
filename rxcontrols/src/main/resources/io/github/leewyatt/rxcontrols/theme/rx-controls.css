@@ -483,6 +483,12 @@
     -fx-shape: "M 0 0 L 6 4.5 L 0 9 Z";
 }
 
+/* A failed lazy branch keeps its expand arrow (re-expanding retries) but tints it
+   so the failure is discoverable; restyle .rx-cascader-cell:load-failed as needed. */
+.rx-cascader-cell:load-failed > .container > .arrow {
+    -fx-background-color: #d9534f;
+}
+
 .rx-cascader-cell > .container > .loading {
     -fx-background-color: -fx-accent;
     -fx-pref-width: 1em; /* 12 */
