@@ -274,25 +274,35 @@ public class RXSelectableTextInteractionTest {
     public void downArrowMovesCaretToNextLine() throws Exception {
         AtomicReference<Integer> after = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("line one\nline two\nline three");
+            RXSelectableText control = new RXSelectableText("line one\nline two\nline three");
+            control.setLineSpacing(7);  // the Down probe must clear the inter-line gap
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 300);
+            root.applyCss();
+            root.layout();
             control.positionCaret(4);  // within "line one"
             control.fireEvent(key(KeyCode.DOWN, false, false));
             after.set(control.getCaretPosition());
         });
         assertTrue(after.get() > 8,
-                "Down should move the caret to the next line (past index 8), was " + after.get());
+                "Down should move the caret to the next line across line spacing, was " + after.get());
     }
 
     @Test
     public void upArrowMovesCaretToPreviousLine() throws Exception {
         AtomicReference<Integer> after = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("line one\nline two\nline three");
+            RXSelectableText control = new RXSelectableText("line one\nline two\nline three");
+            control.setLineSpacing(7);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 300);
+            root.applyCss();
+            root.layout();
             control.positionCaret(13);  // within "line two"
             control.fireEvent(key(KeyCode.UP, false, false));
             after.set(control.getCaretPosition());
         });
         assertTrue(after.get() < 9,
-                "Up should move the caret to the first line (before index 9), was " + after.get());
+                "Up should move the caret to the first line across line spacing, was " + after.get());
     }
 }

@@ -388,7 +388,11 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         if (targetCaretX < 0) {
             targetCaretX = caretX;
         }
-        double probeY = up ? top - 1.0 : bottom + 1.0;
+        // Clear the inter-line gap: caretShape spans only the glyph height, so a probe of
+        // bottom+1 / top-1 would land in the lineSpacing gap and hitTest would resolve it
+        // back to the current line, leaving the caret stuck (Down in particular).
+        double lineSpacing = getSkinnable().getLineSpacing();
+        double probeY = up ? top - lineSpacing - 1.0 : bottom + lineSpacing + 1.0;
         int target = textFlow.hitTest(new Point2D(targetCaretX, probeY)).getInsertionIndex();
         moveCaret(target, extend);
     }
