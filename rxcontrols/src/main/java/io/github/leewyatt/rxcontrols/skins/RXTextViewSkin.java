@@ -45,10 +45,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
 
     // ==================== Constants ====================
 
-    private static final String TEXT_FLOW_STYLE_CLASS = "text-flow";
-    private static final String SELECTION_SHAPE_STYLE_CLASS = "selection-shape";
-    private static final String CARET_STYLE_CLASS = "caret";
-
     /** Style class for plain (non-highlighted) text runs. */
     protected static final String PLAIN_STYLE_CLASS = "plain";
 
@@ -58,8 +54,8 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
     // ==================== Nodes ====================
 
     private final TextFlow textFlow = new TextFlow();
-    private final Path selectionLayer = new Path();
-    private final Path caretLayer = new Path();
+    private final Path selectionShape = new Path();
+    private final Path caret = new Path();
 
     // ==================== Caret state ====================
 
@@ -80,21 +76,21 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
      */
     public RXTextViewSkin(RXTextView control) {
         super(control);
-        textFlow.getStyleClass().add(TEXT_FLOW_STYLE_CLASS);
+        textFlow.getStyleClass().add("text-flow");
 
-        selectionLayer.getStyleClass().add(SELECTION_SHAPE_STYLE_CLASS);
-        selectionLayer.setManaged(false);
-        selectionLayer.setMouseTransparent(true);
-        selectionLayer.setStroke(null);
+        selectionShape.getStyleClass().add("selection-shape");
+        selectionShape.setManaged(false);
+        selectionShape.setMouseTransparent(true);
+        selectionShape.setStroke(null);
 
-        caretLayer.getStyleClass().add(CARET_STYLE_CLASS);
-        caretLayer.setManaged(false);
-        caretLayer.setMouseTransparent(true);
-        caretLayer.setOpacity(0.0);
+        caret.getStyleClass().add("caret");
+        caret.setManaged(false);
+        caret.setMouseTransparent(true);
+        caret.setOpacity(0.0);
 
         // back-to-front: selection background, text, caret. Subclasses insert their own
         // layers (e.g. keyword highlight) below the selection via add(0, ...).
-        getChildren().setAll(selectionLayer, textFlow, caretLayer);
+        getChildren().setAll(selectionShape, textFlow, caret);
 
         disposer.registerBinding(textFlow.lineSpacingProperty(), control.lineSpacingProperty());
         disposer.registerBinding(textFlow.textAlignmentProperty(), control.textAlignmentProperty());
@@ -182,10 +178,10 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         // layoutBounds min, which — because the inset-free range / caret shapes are
         // TextFlow-local (a multi-line or lower-line shape has minY > 0) — would drift the
         // shape outside the control. The Path origin must simply equal the TextFlow origin.
-        selectionLayer.setLayoutX(x);
-        selectionLayer.setLayoutY(y);
-        caretLayer.setLayoutX(x);
-        caretLayer.setLayoutY(y);
+        selectionShape.setLayoutX(x);
+        selectionShape.setLayoutY(y);
+        caret.setLayoutX(x);
+        caret.setLayoutY(y);
         rebuildSelectionShape();
         rebuildCaretShape();
     }
@@ -193,15 +189,15 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
     private void rebuildSelectionShape() {
         IndexRange selection = getSkinnable().getSelection();
         if (selection.getLength() == 0) {
-            selectionLayer.getElements().clear();
+            selectionShape.getElements().clear();
             return;
         }
-        selectionLayer.getElements().setAll(textFlow.rangeShape(selection.getStart(), selection.getEnd()));
+        selectionShape.getElements().setAll(textFlow.rangeShape(selection.getStart(), selection.getEnd()));
     }
 
     private void rebuildCaretShape() {
-        int caret = getSkinnable().getCaretPosition();
-        caretLayer.getElements().setAll(textFlow.caretShape(caret, true));
+        int pos = getSkinnable().getCaretPosition();
+        caret.getElements().setAll(textFlow.caretShape(pos, true));
     }
 
     // ==================== Caret visibility / animation ====================
@@ -211,7 +207,7 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         // loops forever (INDEFINITE) — registered with the animation engine once, with no
         // per-cycle restart and no fade.
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.5),
-                event -> caretLayer.setOpacity(caretLayer.getOpacity() > 0.0 ? 0.0 : 1.0)));
+                event -> caret.setOpacity(caret.getOpacity() > 0.0 ? 0.0 : 1.0)));
         timeline.setCycleCount(Animation.INDEFINITE);
         return timeline;
     }
@@ -230,23 +226,23 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
     private void updateCaret() {
         if (caretShouldShow()) {
             if (caretBlink.getStatus() != Animation.Status.RUNNING) {
-                caretLayer.setOpacity(1.0);
+                caret.setOpacity(1.0);
                 caretBlink.playFromStart();
             }
         } else {
             caretBlink.stop();
-            caretLayer.setOpacity(0.0);
+            caret.setOpacity(0.0);
         }
     }
 
     private void onCaretMoved() {
         // Restart the blink so the caret is solid at its new position, then resumes blinking.
         if (caretShouldShow()) {
-            caretLayer.setOpacity(1.0);
+            caret.setOpacity(1.0);
             caretBlink.playFromStart();
         } else {
             caretBlink.stop();
-            caretLayer.setOpacity(0.0);
+            caret.setOpacity(0.0);
         }
     }
 
@@ -366,11 +362,11 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
     }
 
     private void moveCaretVertical(boolean up, boolean extend) {
-        int caret = getSkinnable().getCaretPosition();
+        int pos = getSkinnable().getCaretPosition();
         double caretX = Double.NaN;
         double top = Double.NaN;
         double bottom = Double.NaN;
-        for (PathElement element : textFlow.caretShape(caret, true)) {
+        for (PathElement element : textFlow.caretShape(pos, true)) {
             if (element instanceof MoveTo moveTo) {
                 caretX = moveTo.getX();
                 top = moveTo.getY();

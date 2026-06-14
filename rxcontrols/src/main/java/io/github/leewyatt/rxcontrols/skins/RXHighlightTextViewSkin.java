@@ -25,11 +25,6 @@ import java.util.List;
  */
 public class RXHighlightTextViewSkin extends RXTextViewSkin {
 
-    // ==================== Constants ====================
-
-    private static final String HIGHLIGHT_STYLE_CLASS = "highlight";
-    private static final String HIGHLIGHT_SHAPE_STYLE_CLASS = "highlight-shape";
-
     // ==================== Nodes ====================
 
     private final Path highlightShape = new Path();
@@ -43,7 +38,7 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
      */
     public RXHighlightTextViewSkin(RXHighlightTextView control) {
         super(control);
-        highlightShape.getStyleClass().add(HIGHLIGHT_SHAPE_STYLE_CLASS);
+        highlightShape.getStyleClass().add("highlight-shape");
         highlightShape.setManaged(false);
         highlightShape.setMouseTransparent(true);
         highlightShape.setStroke(null);
@@ -85,7 +80,7 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
             if (start > cursor) {
                 runs.add(run(text.substring(cursor, start), PLAIN_STYLE_CLASS));
             }
-            runs.add(run(text.substring(start, end), HIGHLIGHT_STYLE_CLASS));
+            runs.add(run(text.substring(start, end), "highlight"));
             cursor = end;
         }
         if (cursor < text.length()) {
