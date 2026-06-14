@@ -114,6 +114,28 @@ public class RXCascaderTest {
     }
 
     /**
+     * Verifies the wrapper's {@code seedChecked} forwards to the embedded view,
+     * seeding initial checked paths (the view is private, so the wrapper must
+     * expose this entry point itself).
+     */
+    @Test
+    public void seedCheckedForwardsToView() {
+        RXCascader<String> cascader = new RXCascader<>();
+        cascader.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> a = new RXCascaderItem<>("a");
+        RXCascaderItem<String> b = new RXCascaderItem<>("b");
+        root.getChildren().addAll(List.of(a, b));
+        cascader.getRootItems().add(root);
+
+        cascader.seedChecked(List.of(a, b));
+
+        assertEquals(2, cascader.getCheckedPaths().size());
+        assertEquals(List.of(root, a), cascader.getCheckedPaths().get(0).getItems());
+        assertTrue(root.isChecked());
+    }
+
+    /**
      * Verifies each programmatic entry is ignored outside its own mode:
      * {@code setCheckedCascade} no-ops in single mode, {@code select} no-ops in
      * multiple mode, so public state never holds a result foreign to the mode.

@@ -998,10 +998,12 @@ public class RXCascaderView<T> extends Control {
 
     private void completeLoad(RXCascaderItem<T> item, long token,
                               List<RXCascaderItem<T>> children, Throwable error) {
-        // Token first, then drop membership: a stale completion (token mismatch)
-        // must bail WITHOUT removing the item, otherwise it would evict a newer
-        // live load for the same item and silently lose that completion.
-        if (item.getLoadToken() != token || !liveLoads.remove(item)) {
+        // Stale completion (token mismatch) or already-cancelled load (no longer a
+        // member): bail. Token first so a stale completion never evicts a newer
+        // live load for the same item; check membership WITHOUT removing yet,
+        // because the success path re-validates after children.setAll (which can
+        // re-enter via a list listener, e.g. user code calling reload()).
+        if (item.getLoadToken() != token || !liveLoads.contains(item)) {
             return;
         }
 
@@ -1010,6 +1012,7 @@ public class RXCascaderView<T> extends Control {
             // outside the supported reset points) while loading: drop the result
             // and return to a stable, retriable state rather than populating a
             // detached subtree.
+            liveLoads.remove(item);
             item.setLoadState(LoadState.NOT_LOADED);
             item.setPendingCheck(null);
             return;
@@ -1020,6 +1023,7 @@ public class RXCascaderView<T> extends Control {
             // pending intent on this terminal path so a later plain expand cannot
             // replay it, then roll back any optimistic check and surface the
             // failure through the callback.
+            liveLoads.remove(item);
             item.setLoadState(LoadState.FAILED);
             Boolean pendingCheck = item.getPendingCheck();
             item.setPendingCheck(null);
@@ -1037,11 +1041,16 @@ public class RXCascaderView<T> extends Control {
             return;
         }
 
-        // Success: populate children, then transition state in a single write, so
-        // when the columns revision is bumped below the skin re-syncs against a
-        // fully populated, loaded branch with no half-populated window.
+        // Success: populate children first. children.setAll can fire a list
+        // listener that re-enters (for example user code calling reload(), which
+        // clears the children and resets the state). Re-validate token + membership
+        // afterward and only then commit LOADED, so a re-entrant reset is not
+        // overwritten with a LOADED-but-empty branch.
         List<RXCascaderItem<T>> loadedChildren = children == null ? Collections.emptyList() : children;
         item.getChildren().setAll(loadedChildren);
+        if (item.getLoadToken() != token || !liveLoads.remove(item)) {
+            return;
+        }
         item.setLoadState(LoadState.LOADED);
 
         Boolean pendingCheck = item.getPendingCheck();

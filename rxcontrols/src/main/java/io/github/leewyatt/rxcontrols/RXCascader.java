@@ -21,6 +21,7 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -629,12 +630,25 @@ public class RXCascader<T> extends Control {
      * (un)checked and ancestors roll up to the matching tri-state. Applies only in
      * multiple-selection mode; ignored in single mode. This is the runtime entry
      * point for programmatic checking (an item's checked state is read-only); to
-     * seed an initial selection before display use {@code RXCascaderView.seedChecked}.
+     * seed an initial selection before display use {@link #seedChecked}.
      *
      * @param item    item to update
      * @param checked target checked state
      */
     public final void setCheckedCascade(RXCascaderItem<T> item, boolean checked) {
         view.setCheckedCascade(item, checked);
+    }
+
+    /**
+     * Seeds an initial checked selection before display: marks each given item
+     * checked, rolls the tri-state up to ancestors, and refreshes the checked
+     * paths once. Use this instead of writing item state directly (an item's
+     * checked state is read-only); for the seed to survive a later
+     * {@code setSelectionMode(MULTIPLE)}, set the mode first.
+     *
+     * @param items items to mark checked (leaves, or branches with resolved children)
+     */
+    public final void seedChecked(Collection<RXCascaderItem<T>> items) {
+        view.seedChecked(items);
     }
 }

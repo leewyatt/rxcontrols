@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.collections.ListChangeListener;
 import javafx.scene.control.SelectionMode;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -1127,6 +1129,37 @@ public class RXCascaderViewTest {
         assertFalse(disabledLeaf.isChecked(), "cascade excludes the disabled child");
         assertFalse(root.isChecked(), "the disabled child stays in the denominator (1 of 2)");
         assertTrue(root.isIndeterminate());
+    }
+
+    /**
+     * Verifies a {@code reload()} re-entered from a children-list listener while a
+     * load completes does not leave a stuck LOADED-but-empty branch: completeLoad
+     * re-validates after populating children and yields to the reset.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reentrantReloadFromChildrenListenerDoesNotCorruptState() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            RXCascaderItem<String> branch = item("branch");
+            boolean[] reloaded = {false};
+            branch.getChildren().addListener((ListChangeListener<RXCascaderItem<String>>) change -> {
+                if (!reloaded[0] && !branch.getChildren().isEmpty()) {
+                    reloaded[0] = true;
+                    panel.reload();
+                }
+            });
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of(leaf("c1"))));
+            panel.getRootItems().add(branch);
+
+            panel.expand(branch);
+
+            assertTrue(reloaded[0], "the re-entrant reload ran");
+            assertNotEquals(LoadState.LOADED, branch.getLoadState(),
+                    "a re-entrant reload during completion must not leave a LOADED-empty branch");
+            assertFalse(panel.isLeaf(branch), "the branch stays a retriable branch, not a stuck leaf");
+        });
     }
 
     private static RXCascaderItem<String> item(String text) {
