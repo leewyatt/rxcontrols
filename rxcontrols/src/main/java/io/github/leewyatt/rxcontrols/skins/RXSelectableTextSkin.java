@@ -272,6 +272,12 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     private void onMousePressed(MouseEvent event) {
         RXSelectableText control = getSkinnable();
+        // Any press dismisses an open context menu — the standard text controls hide it
+        // explicitly rather than relying on autoHide (which is unreliable for presses
+        // inside the owner control, especially once the press is consumed below).
+        if (contextMenu != null && contextMenu.isShowing()) {
+            contextMenu.hide();
+        }
         if (!control.isSelectable() || control.isDisabled() || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
