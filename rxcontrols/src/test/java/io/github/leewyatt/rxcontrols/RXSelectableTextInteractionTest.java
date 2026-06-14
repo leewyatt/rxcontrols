@@ -250,4 +250,23 @@ public class RXSelectableTextInteractionTest {
         });
         assertEquals("", selectedText.get(), "selectable=false should ignore mouse selection");
     }
+
+    @Test
+    public void dragKeepsAnchorAtPressPosition() throws Exception {
+        // Reverse / jittery drag: the anchor must stay at the press position. extendSelection
+        // recomputes from the live caret and drifts the anchor when the drag reverses.
+        AtomicReference<Integer> pressAnchor = new AtomicReference<>();
+        AtomicReference<Integer> finalAnchor = new AtomicReference<>();
+        onFx(() -> {
+            RXSelectableText control = laidOut("hello world example text here");
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.fireEvent(press(140, 5, 1));
+            pressAnchor.set(control.getAnchor());
+            flow.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, 20, 5, 1, false));  // drag far left
+            flow.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, 60, 5, 1, false));  // jitter back right
+            finalAnchor.set(control.getAnchor());
+        });
+        assertEquals(pressAnchor.get(), finalAnchor.get(),
+                "drag must keep the anchor fixed at the press position");
+    }
 }

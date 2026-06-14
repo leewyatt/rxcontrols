@@ -64,6 +64,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     private final BooleanProperty blink = new SimpleBooleanProperty(this, "blink", true);
     private final CaretBlinking caretBlinking = new CaretBlinking();
+    private boolean caretArmed;
 
     private ContextMenu contextMenu;
     private MenuItem copyMenuItem;
@@ -103,7 +104,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         disposer.registerListener(control.anchorProperty(), this::updateCaretVisibility);
         disposer.registerListener(blink, this::updateCaretVisibility);
         disposer.registerListener(control.selectableProperty(), this::updateCaretAnimation);
-        disposer.registerListener(control.focusedProperty(), this::updateCaretAnimation);
+        disposer.registerListener(control.focusedProperty(), this::onFocusChanged);
         disposer.registerListener(control.disabledProperty(), this::updateCaretAnimation);
         disposer.registerListener(controlTreeShowingProperty(), this::updateCaretAnimation);
 
@@ -214,9 +215,18 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     // ==================== Caret visibility / animation ====================
 
+    private void onFocusChanged() {
+        if (!getSkinnable().isFocused()) {
+            // Disarm the caret when focus is lost; a later mouse press re-arms it.
+            caretArmed = false;
+        }
+        updateCaretAnimation();
+    }
+
     private void updateCaretVisibility() {
         RXSelectableText control = getSkinnable();
         boolean visible = !blink.get()
+                && caretArmed
                 && control.isSelectable()
                 && control.isFocused()
                 && !control.isDisabled()
@@ -227,7 +237,8 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     private boolean isCaretActive() {
         RXSelectableText control = getSkinnable();
-        return control.isSelectable()
+        return caretArmed
+                && control.isSelectable()
                 && control.isFocused()
                 && !control.isDisabled()
                 && controlTreeShowingProperty().get();
@@ -259,6 +270,8 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         if (!control.isSelectable() || control.isDisabled() || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
+        // The caret appears only after a real mouse interaction, not on automatic focus.
+        caretArmed = true;
         if (!control.isFocused()) {
             control.requestFocus();
         }
@@ -274,6 +287,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         } else {
             control.positionCaret(index);
         }
+        updateCaretAnimation();
         event.consume();
     }
 
@@ -282,7 +296,10 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         if (!control.isSelectable() || control.isDisabled() || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        control.extendSelection(hitIndex(event));
+        // Drag keeps the anchor fixed at the press position and moves only the caret;
+        // extendSelection would recompute from the live caret and drift the anchor when
+        // the drag reverses direction.
+        control.selectRange(control.getAnchor(), hitIndex(event));
         event.consume();
     }
 
