@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.support.controller;
 
-import io.github.leewyatt.rxcontrols.RXHighlightText;
-import io.github.leewyatt.rxcontrols.RXHighlightText.MatchRules;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView.MatchRules;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -22,12 +22,12 @@ public class PaneHighightTextController {
     private Button btnClear;
 
     @FXML
-    private ListView<RXHighlightText> listEmail;
+    private ListView<RXHighlightTextView> listEmail;
 
     @FXML
     private ComboBox<MatchRules> rulesComboBox;
 
-    private final ObservableList<RXHighlightText> items = FXCollections.observableArrayList();
+    private final ObservableList<RXHighlightTextView> items = FXCollections.observableArrayList();
 
     @FXML
     void initialize() {
@@ -45,7 +45,7 @@ public class PaneHighightTextController {
                 "132664588",
                 "97451835"};
         for (String info : infos) {
-            RXHighlightText item = new RXHighlightText(info);
+            RXHighlightTextView item = new RXHighlightTextView(info);
             // Inside a ListView cell the highlight text must not capture drags, so the
             // row selection takes over; the programmatic keyword highlight still renders.
             item.setSelectable(false);
@@ -69,7 +69,7 @@ public class PaneHighightTextController {
 
         // Apply inputs first so each item's matched state is recomputed synchronously,
         // then filter on the fresh isMatched() — avoids depending on listener order.
-        for (RXHighlightText item : items) {
+        for (RXHighlightTextView item : items) {
             item.getKeywords().setAll(words);
             if (rules != null) {
                 item.setMatchRules(rules);
@@ -79,7 +79,7 @@ public class PaneHighightTextController {
         if (words.isEmpty()) {
             listEmail.setItems(items);
         } else {
-            listEmail.setItems(items.filtered(RXHighlightText::isMatched));
+            listEmail.setItems(items.filtered(RXHighlightTextView::isMatched));
         }
     }
 }

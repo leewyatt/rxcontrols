@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.HighlightSegmenter;
-import io.github.leewyatt.rxcontrols.skins.RXHighlightTextSkin;
+import io.github.leewyatt.rxcontrols.skins.RXHighlightTextViewSkin;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -20,22 +20,22 @@ import java.util.List;
 /**
  * A selectable text control that also highlights one or more keywords inside its text.
  *
- * <p>Extends {@link RXSelectableText} with keyword matching: keywords are supplied via
+ * <p>Extends {@link RXTextView} with keyword matching: keywords are supplied via
  * {@link #getKeywords()} and matched either literally or as regular expressions,
  * case-sensitively or not, according to {@link #getMatchRules()}. The read-only
  * {@link #matchedProperty() matched} reports whether any keyword matched, so callers can
  * drive search / filter UIs (see {@link #isMatched()}); the selection, caret and copy
- * behaviour are inherited unchanged from {@link RXSelectableText}.
+ * behaviour are inherited unchanged from {@link RXTextView}.
  *
  * <p>Keyword matching runs on the JavaFX application thread; very large text combined
  * with a catastrophically backtracking regular expression can stall it, so callers
  * should keep keyword patterns simple.
  */
-public class RXHighlightText extends RXSelectableText {
+public class RXHighlightTextView extends RXTextView {
 
     // ==================== Constants ====================
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-highlight-text";
+    private static final String DEFAULT_STYLE_CLASS = "rx-highlight-text-view";
 
     /**
      * Default matching rule: literal substring, case-insensitive.
@@ -47,7 +47,7 @@ public class RXHighlightText extends RXSelectableText {
     /**
      * Creates an empty highlight-text control.
      */
-    public RXHighlightText() {
+    public RXHighlightTextView() {
         this("");
     }
 
@@ -56,7 +56,7 @@ public class RXHighlightText extends RXSelectableText {
      *
      * @param text the text to display; {@code null} is treated as empty
      */
-    public RXHighlightText(String text) {
+    public RXHighlightTextView(String text) {
         super(text);
         init();
     }
@@ -67,7 +67,7 @@ public class RXHighlightText extends RXSelectableText {
      * @param text     the text to display; {@code null} is treated as empty
      * @param keywords the keywords to highlight; {@code null} adds none
      */
-    public RXHighlightText(String text, String... keywords) {
+    public RXHighlightTextView(String text, String... keywords) {
         super(text);
         if (keywords != null) {
             Collections.addAll(this.keywords, keywords);
@@ -89,7 +89,7 @@ public class RXHighlightText extends RXSelectableText {
      */
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new RXHighlightTextSkin(this);
+        return new RXHighlightTextViewSkin(this);
     }
 
     private void recompute() {

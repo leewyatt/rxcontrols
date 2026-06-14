@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXHighlightText;
-import io.github.leewyatt.rxcontrols.RXSelectableText;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import javafx.scene.control.IndexRange;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
@@ -13,17 +13,17 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Skin for {@link RXHighlightText}. Extends {@link RXSelectableTextSkin} with keyword
+ * Skin for {@link RXHighlightTextView}. Extends {@link RXTextViewSkin} with keyword
  * highlighting: the run-building hook splits the text into plain and highlighted
  * {@link Text} runs (built entirely from {@code Text}, so long highlighted spans still
  * wrap), and a background {@code .highlight-shape} {@link Path} paints the highlight fill
  * beneath the text using {@link TextFlow#rangeShape(int, int)} geometry.
  *
  * <p>Both the run split and the background geometry are driven by the control's
- * {@link RXHighlightText#highlightRangesProperty() highlightRanges} — the single source
+ * {@link RXHighlightTextView#highlightRangesProperty() highlightRanges} — the single source
  * of truth — so they cannot disagree.
  */
-public class RXHighlightTextSkin extends RXSelectableTextSkin {
+public class RXHighlightTextViewSkin extends RXTextViewSkin {
 
     // ==================== Constants ====================
 
@@ -41,7 +41,7 @@ public class RXHighlightTextSkin extends RXSelectableTextSkin {
      *
      * @param control the control this skin is attached to
      */
-    public RXHighlightTextSkin(RXHighlightText control) {
+    public RXHighlightTextViewSkin(RXHighlightTextView control) {
         super(control);
         highlightShape.getStyleClass().add(HIGHLIGHT_SHAPE_STYLE_CLASS);
         highlightShape.setManaged(false);
@@ -53,7 +53,7 @@ public class RXHighlightTextSkin extends RXSelectableTextSkin {
     }
 
     @Override
-    protected void registerContentListeners(RXSelectableText control) {
+    protected void registerContentListeners(RXTextView control) {
         // Keep the base class's text listener: highlightRanges alone is not enough. An
         // empty match returns the shared List.of() singleton, so a text change between two
         // non-matching values would not change the property's identity and it would not
@@ -61,11 +61,11 @@ public class RXHighlightTextSkin extends RXSelectableTextSkin {
         // highlightRanges listener additionally covers keyword / rule changes (a text
         // change that flips matching also fires both — a cheap, idempotent extra rebuild).
         super.registerContentListeners(control);
-        disposer.registerListener(((RXHighlightText) control).highlightRangesProperty(), this::rebuildRuns);
+        disposer.registerListener(((RXHighlightTextView) control).highlightRangesProperty(), this::rebuildRuns);
     }
 
-    private RXHighlightText control() {
-        return (RXHighlightText) getSkinnable();
+    private RXHighlightTextView control() {
+        return (RXHighlightTextView) getSkinnable();
     }
 
     // ==================== Text runs ====================
@@ -105,7 +105,7 @@ public class RXHighlightTextSkin extends RXSelectableTextSkin {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         super.layoutChildren(x, y, w, h);
-        // Set the origin directly, not relocate() — see RXSelectableTextSkin#layoutChildren:
+        // Set the origin directly, not relocate() — see RXTextViewSkin#layoutChildren:
         // relocate would subtract the Path's layoutBounds min and drift a lower-line
         // highlight shape outside the control.
         highlightShape.setLayoutX(x);

@@ -23,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Interaction tests for {@link RXSelectableText}: synthesized keyboard and mouse events
+ * Interaction tests for {@link RXTextView}: synthesized keyboard and mouse events
  * are dispatched to the skin's handlers to verify the event-to-API mapping (select-all,
  * deselect, caret movement, shift-extend, double-click word, triple-click paragraph).
  * Runs on the FX thread with a live toolkit.
  */
-public class RXSelectableTextInteractionTest {
+public class RXTextViewInteractionTest {
 
     private static final boolean MAC =
             System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
@@ -70,8 +70,8 @@ public class RXSelectableTextInteractionTest {
         }
     }
 
-    private static RXSelectableText laidOut(String text) {
-        RXSelectableText control = new RXSelectableText(text);
+    private static RXTextView laidOut(String text) {
+        RXTextView control = new RXTextView(text);
         StackPane root = new StackPane(control);
         new Scene(root, 400, 200);
         root.applyCss();
@@ -102,7 +102,7 @@ public class RXSelectableTextInteractionTest {
     public void shortcutASelectsAll() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.fireEvent(key(KeyCode.A, false, true));
             selection.set(control.getSelection());
         });
@@ -114,7 +114,7 @@ public class RXSelectableTextInteractionTest {
     public void escapeDeselects() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.selectAll();
             control.fireEvent(key(KeyCode.ESCAPE, false, false));
             selection.set(control.getSelection());
@@ -126,7 +126,7 @@ public class RXSelectableTextInteractionTest {
     public void rightArrowMovesCaret() throws Exception {
         AtomicReference<Integer> caret = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello");
+            RXTextView control = laidOut("hello");
             control.positionCaret(0);
             control.fireEvent(key(KeyCode.RIGHT, false, false));
             caret.set(control.getCaretPosition());
@@ -138,7 +138,7 @@ public class RXSelectableTextInteractionTest {
     public void shiftRightExtendsSelection() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello");
+            RXTextView control = laidOut("hello");
             control.positionCaret(0);
             control.fireEvent(key(KeyCode.RIGHT, true, false));
             selection.set(control.getSelection());
@@ -151,7 +151,7 @@ public class RXSelectableTextInteractionTest {
     public void notSelectableIgnoresKeyboard() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.setSelectable(false);
             control.fireEvent(key(KeyCode.A, false, true));
             selection.set(control.getSelection());
@@ -165,7 +165,7 @@ public class RXSelectableTextInteractionTest {
     public void doubleClickSelectsWord() throws Exception {
         AtomicReference<String> selectedText = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(press(5, 5, 2));
             selectedText.set(control.getSelectedText());
@@ -178,7 +178,7 @@ public class RXSelectableTextInteractionTest {
     public void singleClickPlacesCaretAndClearsSelection() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.selectAll();
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(press(5, 5, 1));
@@ -191,7 +191,7 @@ public class RXSelectableTextInteractionTest {
     public void tripleClickSelectsParagraph() throws Exception {
         AtomicReference<String> selectedText = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("line one\nline two");
+            RXTextView control = laidOut("line one\nline two");
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, 5, 5, 3, false));
             selectedText.set(control.getSelectedText());
@@ -203,7 +203,7 @@ public class RXSelectableTextInteractionTest {
     public void shiftClickExtendsSelectionFromAnchor() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.positionCaret(0);
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, 60, 5, 1, true));
@@ -217,7 +217,7 @@ public class RXSelectableTextInteractionTest {
     public void dragExtendsSelection() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, 5, 5, 1, false));
             flow.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, 60, 5, 1, false));
@@ -230,7 +230,7 @@ public class RXSelectableTextInteractionTest {
     public void shortcutCCopiesSelectionToClipboard() throws Exception {
         AtomicReference<String> clipboard = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.selectRange(0, 5);
             control.fireEvent(key(KeyCode.C, false, true));
             clipboard.set(Clipboard.getSystemClipboard().getString());
@@ -242,7 +242,7 @@ public class RXSelectableTextInteractionTest {
     public void notSelectableIgnoresMouse() throws Exception {
         AtomicReference<String> selectedText = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world");
+            RXTextView control = laidOut("hello world");
             control.setSelectable(false);
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, 5, 5, 2, false));
@@ -258,7 +258,7 @@ public class RXSelectableTextInteractionTest {
         AtomicReference<Integer> pressAnchor = new AtomicReference<>();
         AtomicReference<Integer> finalAnchor = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = laidOut("hello world example text here");
+            RXTextView control = laidOut("hello world example text here");
             TextFlow flow = (TextFlow) control.lookup(".text-flow");
             flow.fireEvent(press(140, 5, 1));
             pressAnchor.set(control.getAnchor());
@@ -274,7 +274,7 @@ public class RXSelectableTextInteractionTest {
     public void downArrowMovesCaretToNextLine() throws Exception {
         AtomicReference<Integer> after = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("line one\nline two\nline three");
+            RXTextView control = new RXTextView("line one\nline two\nline three");
             control.setLineSpacing(7);  // the Down probe must clear the inter-line gap
             StackPane root = new StackPane(control);
             new Scene(root, 400, 300);
@@ -292,7 +292,7 @@ public class RXSelectableTextInteractionTest {
     public void upArrowMovesCaretToPreviousLine() throws Exception {
         AtomicReference<Integer> after = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("line one\nline two\nline three");
+            RXTextView control = new RXTextView("line one\nline two\nline three");
             control.setLineSpacing(7);
             StackPane root = new StackPane(control);
             new Scene(root, 400, 300);

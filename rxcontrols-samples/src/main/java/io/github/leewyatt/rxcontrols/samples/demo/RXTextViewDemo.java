@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXSelectableText;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -10,16 +10,16 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Demonstrates RXSelectableText as a selectable, copyable paragraph: drag to select a
+ * Demonstrates RXTextView as a selectable, copyable paragraph: drag to select a
  * range, double-click a word, triple-click a line, then Ctrl / Cmd + C to copy — none of
  * which a plain Label offers.
  */
-public class RXSelectableTextDemo extends Application {
+public class RXTextViewDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXSelectableText text = new RXSelectableText(
-                "RXSelectableText is a non-editable, wrapping block of text the user can "
+        RXTextView text = new RXTextView(
+                "RXTextView is a non-editable, wrapping block of text the user can "
                         + "select and copy.\n"
                         + "Drag to select a range, double-click to select a word, triple-click "
                         + "to select a line, then press Ctrl or Cmd + C to copy.\n"
@@ -33,7 +33,7 @@ public class RXSelectableTextDemo extends Application {
         root.setAlignment(Pos.CENTER_LEFT);
         root.setPadding(new Insets(24));
         primaryStage.setScene(new Scene(root, 520, 300));
-        primaryStage.setTitle("RXSelectableText Demo");
+        primaryStage.setTitle("RXTextView Demo");
         primaryStage.show();
     }
 

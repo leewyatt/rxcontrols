@@ -18,13 +18,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Layout-level tests for {@link RXSelectableText}'s selection and caret rendering: the
+ * Layout-level tests for {@link RXTextView}'s selection and caret rendering: the
  * selection background Path tracks the (programmatic) selection, clears on deselect, and
  * is still painted when the control is not interactively selectable (the §7 orthogonal
  * semantics); the caret Path carries geometry. Needs a live toolkit and a real layout
  * pass, so they run on the FX thread.
  */
-public class RXSelectableTextLayoutTest {
+public class RXTextViewLayoutTest {
 
     /**
      * Starts the JavaFX toolkit so a real layout pass can run.
@@ -73,7 +73,7 @@ public class RXSelectableTextLayoutTest {
         AtomicReference<Integer> empty = new AtomicReference<>();
         AtomicReference<Integer> selected = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("hello world");
+            RXTextView control = new RXTextView("hello world");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -92,7 +92,7 @@ public class RXSelectableTextLayoutTest {
     public void selectionShapeClearsOnDeselect() throws Exception {
         AtomicReference<Integer> after = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("hello world");
+            RXTextView control = new RXTextView("hello world");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -113,7 +113,7 @@ public class RXSelectableTextLayoutTest {
         // API still works and its selection is still painted.
         AtomicReference<Integer> selected = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("hello world");
+            RXTextView control = new RXTextView("hello world");
             control.setSelectable(false);
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
@@ -131,7 +131,7 @@ public class RXSelectableTextLayoutTest {
     public void caretGeometryIsGenerated() throws Exception {
         AtomicReference<Path> caret = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("hello");
+            RXTextView control = new RXTextView("hello");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -151,7 +151,7 @@ public class RXSelectableTextLayoutTest {
         AtomicReference<Bounds> selectionBounds = new AtomicReference<>();
         AtomicReference<Bounds> textFlowBounds = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText(
+            RXTextView control = new RXTextView(
                     "line one\nline two\nline three\nline four\nline five\nline six");
             control.setLineSpacing(6);
             StackPane root = new StackPane(control);
@@ -181,7 +181,7 @@ public class RXSelectableTextLayoutTest {
     public void caretHiddenByDefault() throws Exception {
         AtomicReference<Double> caretOpacity = new AtomicReference<>();
         onFx(() -> {
-            RXSelectableText control = new RXSelectableText("hello world");
+            RXTextView control = new RXTextView("hello world");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();

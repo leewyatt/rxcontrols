@@ -92,34 +92,34 @@
     -fx-text-fill: -rx-line-color;
 }
 
-.rx-selectable-text {
+.rx-text-view {
     -rx-text-fill: #1b1f2a;
     -rx-selection-fill: rgba(0, 120, 215, 0.3);
     -rx-caret-fill: -rx-text-fill;
 }
 
-.rx-selectable-text .plain {
+.rx-text-view .plain {
     -fx-fill: -rx-text-fill;
 }
 
-.rx-selectable-text .selection-shape {
+.rx-text-view .selection-shape {
     -fx-fill: -rx-selection-fill;
 }
 
-.rx-selectable-text .caret {
+.rx-text-view .caret {
     -fx-stroke: -rx-caret-fill;
 }
 
-.rx-highlight-text {
+.rx-highlight-text-view {
     -rx-highlight-fill: #ffff00;
     -rx-highlight-text-fill: #000000;
 }
 
-.rx-highlight-text .highlight {
+.rx-highlight-text-view .highlight {
     -fx-fill: -rx-highlight-text-fill;
 }
 
-.rx-highlight-text .highlight-shape {
+.rx-highlight-text-view .highlight-shape {
     -fx-fill: -rx-highlight-fill;
 }
 

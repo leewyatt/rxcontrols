@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXSelectableText;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -22,17 +22,17 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Showcase application for {@link RXSelectableText}.
+ * Showcase application for {@link RXTextView}.
  *
  * <p>Exercises the editable source text, the selection API (select-all, deselect, select
  * a range, copy), the read-only selection-state readout, the {@code selectable} toggle,
  * text alignment, line spacing, preview width, and the CSS color hooks for the text, the
  * selection background, and the caret.</p>
  */
-public class RXSelectableTextShowcase extends RXShowcaseApplication {
+public class RXTextViewShowcase extends RXShowcaseApplication {
 
     private static final String DEFAULT_TEXT =
-            "RXSelectableText is a non-editable, wrapping block of text the user can select "
+            "RXTextView is a non-editable, wrapping block of text the user can select "
                     + "and copy.\nDrag to select, double-click a word, triple-click a line, then "
                     + "press Ctrl or Cmd + C to copy.\nThe selection, caret and selected text are "
                     + "observable read-only properties.";
@@ -40,7 +40,7 @@ public class RXSelectableTextShowcase extends RXShowcaseApplication {
     private static final int SELECTED_TEXT_ABBREVIATION_LIMIT = 24;
     private static final double SELECTION_FILL_ALPHA = 0.30;
 
-    private RXSelectableText selectableText;
+    private RXTextView selectableText;
     private ColorPicker textFillPicker;
     private ColorPicker selectionFillPicker;
     private ColorPicker caretFillPicker;
@@ -49,7 +49,7 @@ public class RXSelectableTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXSelectableText";
+        return "RXTextView";
     }
 
     @Override
@@ -59,7 +59,7 @@ public class RXSelectableTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String windowTitle() {
-        return "RXSelectableText Showcase";
+        return "RXTextView Showcase";
     }
 
     @Override
@@ -79,13 +79,13 @@ public class RXSelectableTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-selectable-text-showcase.css").toExternalForm();
+        return getClass().getResource("rx-text-view-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        selectableText = new RXSelectableText(DEFAULT_TEXT);
-        selectableText.getStyleClass().add("showcase-selectable-text");
+        selectableText = new RXTextView(DEFAULT_TEXT);
+        selectableText.getStyleClass().add("showcase-text-view");
         selectableText.setLineSpacing(7.0);
         selectableText.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
         selectableText.setMaxWidth(Region.USE_PREF_SIZE);
@@ -100,7 +100,7 @@ public class RXSelectableTextShowcase extends RXShowcaseApplication {
                 selectableText.selectedTextProperty()));
 
         VBox preview = new VBox(14.0, selectableText, status);
-        preview.getStyleClass().add("selectable-preview");
+        preview.getStyleClass().add("text-view-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
     }

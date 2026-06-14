@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXHighlightText;
-import io.github.leewyatt.rxcontrols.RXHighlightText.MatchRules;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView.MatchRules;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -24,20 +24,20 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Showcase application for {@link RXHighlightText}.
+ * Showcase application for {@link RXHighlightTextView}.
  *
  * <p>Exercises editable source text, keyword lists, literal / regex matching,
  * matched state reporting, text alignment, line spacing, preview width, and
  * the CSS color hooks for highlighted and plain runs.</p>
  */
-public class RXHighlightTextShowcase extends RXShowcaseApplication {
+public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
 
     private static final TextPreset DEFAULT_TEXT = TextPreset.ARTICLE;
     private static final KeywordPreset DEFAULT_KEYWORDS = KeywordPreset.LITERAL_WORDS;
     private static final double DEFAULT_PREVIEW_WIDTH = 520.0;
     private static final double SELECTION_FILL_ALPHA = 0.30;
 
-    private RXHighlightText highlightText;
+    private RXHighlightTextView highlightText;
     private ColorPicker highlightColorPicker;
     private ColorPicker highlightFillPicker;
     private ColorPicker plainFillPicker;
@@ -48,7 +48,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXHighlightText";
+        return "RXHighlightTextView";
     }
 
     @Override
@@ -58,7 +58,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String windowTitle() {
-        return "RXHighlightText Showcase";
+        return "RXHighlightTextView Showcase";
     }
 
     @Override
@@ -78,15 +78,15 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-highlight-text-showcase.css").toExternalForm();
+        return getClass().getResource("rx-highlight-text-view-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        highlightText = new RXHighlightText(DEFAULT_TEXT.text());
-        highlightText.getStyleClass().add("showcase-highlight-text");
+        highlightText = new RXHighlightTextView(DEFAULT_TEXT.text());
+        highlightText.getStyleClass().add("showcase-highlight-text-view");
         highlightText.getKeywords().setAll(parseKeywordLines(DEFAULT_KEYWORDS.keywords()));
-        highlightText.setMatchRules(RXHighlightText.DEFAULT_MATCH_RULES);
+        highlightText.setMatchRules(RXHighlightTextView.DEFAULT_MATCH_RULES);
         highlightText.setLineSpacing(7.0);
         highlightText.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
         highlightText.setMaxWidth(Region.USE_PREF_SIZE);
@@ -97,7 +97,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
                 .then("Matched").otherwise("No match"));
 
         VBox preview = new VBox(14.0, highlightText, statusLabel);
-        preview.getStyleClass().add("highlight-preview");
+        preview.getStyleClass().add("highlight-text-view-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
     }
@@ -163,7 +163,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
     private Node buildMatchingGrid() {
         ComboBox<MatchRules> rulesBox = new ComboBox<>();
         rulesBox.getItems().setAll(MatchRules.values());
-        rulesBox.setValue(RXHighlightText.DEFAULT_MATCH_RULES);
+        rulesBox.setValue(RXHighlightTextView.DEFAULT_MATCH_RULES);
         rulesBox.setMaxWidth(Double.MAX_VALUE);
         highlightText.matchRulesProperty().bind(rulesBox.valueProperty());
 
@@ -306,7 +306,7 @@ public class RXHighlightTextShowcase extends RXShowcaseApplication {
                 JavaFX is a modern UI toolkit for desktop and rich client applications.
                 It includes controls, CSS styling, property binding, scene graph rendering,
                 and a skin architecture for building reusable user interface components.
-                RXHighlightText highlights literal words or regular expression matches
+                RXHighlightTextView highlights literal words or regular expression matches
                 while preserving the surrounding text flow."""),
 
         RELEASE_NOTES("Release Notes", """

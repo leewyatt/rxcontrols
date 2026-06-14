@@ -13,12 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * Tests for {@link RXSelectableText}'s selection state machine: index clamping,
+ * Tests for {@link RXTextView}'s selection state machine: index clamping,
  * anchor/caret direction preservation, selection normalization, selectedText derivation,
  * empty-selection copy no-op, and the re-clamp invariant when the text changes (shrinks
  * or becomes {@code null}). All logic is on the control and headless-testable.
  */
-public class RXSelectableTextTest {
+public class RXTextViewTest {
 
     /**
      * Starts the JavaFX toolkit so control instances can be created off a live runtime.
@@ -42,7 +42,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void selectRangeClampsNegativeAndOverlong() {
-        RXSelectableText control = new RXSelectableText("hello"); // length 5
+        RXTextView control = new RXTextView("hello"); // length 5
         control.selectRange(-3, 100);
         assertEquals(0, control.getAnchor());
         assertEquals(5, control.getCaretPosition());
@@ -53,7 +53,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void backwardSelectionPreservesAnchorDirection() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectRange(4, 1);
         assertEquals(4, control.getAnchor());
         assertEquals(1, control.getCaretPosition());
@@ -64,7 +64,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void selectedTextIsSubstringOfSelection() {
-        RXSelectableText control = new RXSelectableText("abcdef");
+        RXTextView control = new RXTextView("abcdef");
         control.selectRange(2, 5);
         assertEquals("cde", control.getSelectedText());
     }
@@ -73,7 +73,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void selectAllSelectsWholeText() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectAll();
         assertEquals(0, control.getAnchor());
         assertEquals(5, control.getCaretPosition());
@@ -82,7 +82,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void deselectCollapsesToCaret() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectRange(1, 4);
         control.deselect();
         assertEquals(4, control.getAnchor());
@@ -93,7 +93,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void positionCaretClearsSelection() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectAll();
         control.positionCaret(2);
         assertEquals(2, control.getAnchor());
@@ -105,7 +105,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void extendSelectionKeepsAnchor() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.positionCaret(1);
         control.extendSelection(4);
         assertEquals(1, control.getAnchor());
@@ -116,7 +116,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void extendSelectionReversesWhenCrossingAnchor() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectRange(2, 4); // anchor 2, caret 4
         control.extendSelection(0); // crosses below the anchor
         assertEquals(4, control.getAnchor());
@@ -129,7 +129,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void emptySelectionCopyIsNoOp() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.positionCaret(2); // empty selection — copy must not touch the clipboard
         assertDoesNotThrow(control::copy);
     }
@@ -138,7 +138,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void textShrinkReclampsSelection() {
-        RXSelectableText control = new RXSelectableText("hello world"); // length 11
+        RXTextView control = new RXTextView("hello world"); // length 11
         control.selectRange(6, 11); // "world"
         control.setText("hi"); // length 2
         assertEquals(2, control.getAnchor());
@@ -149,7 +149,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void textToNullReclampsToEmptyAndStaysSafe() {
-        RXSelectableText control = new RXSelectableText("hello");
+        RXTextView control = new RXTextView("hello");
         control.selectAll();
         control.setText(null);
         assertEquals(0, control.getAnchor());
@@ -161,7 +161,7 @@ public class RXSelectableTextTest {
 
     @Test
     public void getLengthTreatsNullAsEmpty() {
-        RXSelectableText control = new RXSelectableText();
+        RXTextView control = new RXTextView();
         control.setText(null);
         assertEquals(0, control.getLength());
     }

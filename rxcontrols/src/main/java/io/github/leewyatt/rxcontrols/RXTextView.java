@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.skins.RXSelectableTextSkin;
+import io.github.leewyatt.rxcontrols.skins.RXTextViewSkin;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -52,21 +52,21 @@ import java.util.List;
  * callers can highlight a range regardless of {@code selectable} — like a non-editable
  * {@code TextField} that can still be selected from code.
  *
- * <p>{@code RXSelectableText} is the public base of {@link RXHighlightText}, which adds
+ * <p>{@code RXTextView} is the public base of {@link RXHighlightTextView}, which adds
  * keyword highlighting on top of the same selection machinery.
  */
-public class RXSelectableText extends Control {
+public class RXTextView extends Control {
 
     // ==================== Constants ====================
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-selectable-text";
+    private static final String DEFAULT_STYLE_CLASS = "rx-text-view";
 
     // ==================== Constructors ====================
 
     /**
      * Creates an empty selectable-text control.
      */
-    public RXSelectableText() {
+    public RXTextView() {
         this("");
     }
 
@@ -75,7 +75,7 @@ public class RXSelectableText extends Control {
      *
      * @param text the text to display; {@code null} is treated as empty
      */
-    public RXSelectableText(String text) {
+    public RXTextView(String text) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setText(text);
         setFocusTraversable(true);
@@ -86,7 +86,7 @@ public class RXSelectableText extends Control {
      */
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new RXSelectableTextSkin(this);
+        return new RXTextViewSkin(this);
     }
 
     /**
@@ -191,7 +191,7 @@ public class RXSelectableText extends Control {
             new StyleableObjectProperty<>(TextAlignment.LEFT) {
                 @Override
                 public Object getBean() {
-                    return RXSelectableText.this;
+                    return RXTextView.this;
                 }
 
                 @Override
@@ -200,7 +200,7 @@ public class RXSelectableText extends Control {
                 }
 
                 @Override
-                public CssMetaData<RXSelectableText, TextAlignment> getCssMetaData() {
+                public CssMetaData<RXTextView, TextAlignment> getCssMetaData() {
                     return StyleableProperties.TEXT_ALIGNMENT;
                 }
             };
@@ -239,7 +239,7 @@ public class RXSelectableText extends Control {
             new StyleableDoubleProperty(0) {
                 @Override
                 public Object getBean() {
-                    return RXSelectableText.this;
+                    return RXTextView.this;
                 }
 
                 @Override
@@ -248,7 +248,7 @@ public class RXSelectableText extends Control {
                 }
 
                 @Override
-                public CssMetaData<RXSelectableText, Number> getCssMetaData() {
+                public CssMetaData<RXTextView, Number> getCssMetaData() {
                     return StyleableProperties.LINE_SPACING;
                 }
             };
@@ -478,33 +478,33 @@ public class RXSelectableText extends Control {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXSelectableText, TextAlignment> TEXT_ALIGNMENT =
+        private static final CssMetaData<RXTextView, TextAlignment> TEXT_ALIGNMENT =
                 new CssMetaData<>("-fx-text-alignment",
                         new EnumConverter<>(TextAlignment.class), TextAlignment.LEFT) {
 
                     @Override
-                    public boolean isSettable(RXSelectableText node) {
+                    public boolean isSettable(RXTextView node) {
                         return !node.textAlignment.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<TextAlignment> getStyleableProperty(RXSelectableText node) {
+                    public StyleableProperty<TextAlignment> getStyleableProperty(RXTextView node) {
                         return (StyleableProperty<TextAlignment>) node.textAlignmentProperty();
                     }
                 };
 
-        private static final CssMetaData<RXSelectableText, Number> LINE_SPACING =
+        private static final CssMetaData<RXTextView, Number> LINE_SPACING =
                 new CssMetaData<>("-fx-line-spacing", SizeConverter.getInstance(), 0) {
 
                     @Override
-                    public boolean isSettable(RXSelectableText node) {
+                    public boolean isSettable(RXTextView node) {
                         return !node.lineSpacing.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXSelectableText node) {
+                    public StyleableProperty<Number> getStyleableProperty(RXTextView node) {
                         return (StyleableProperty<Number>) node.lineSpacingProperty();
                     }
                 };

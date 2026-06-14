@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXHighlightText;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -15,17 +15,17 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Demonstrates RXHighlightText as a search-as-you-type highlighter: the text field
+ * Demonstrates RXHighlightTextView as a search-as-you-type highlighter: the text field
  * feeds whitespace-separated keywords into the control's keyword list, and the
  * read-only matched state drives a found / not-found label.
  */
-public class RXHighlightTextDemo extends Application {
+public class RXHighlightTextViewDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXHighlightText highlightText = new RXHighlightText(
+        RXHighlightTextView highlightText = new RXHighlightTextView(
                 "JavaFX is a modern UI toolkit for desktop and rich client applications.\n"
-                        + "RXHighlightText highlights one or more keywords inside a paragraph.\n"
+                        + "RXHighlightTextView highlights one or more keywords inside a paragraph.\n"
                         + "It supports literal and regular expression matching with case-sensitive "
                         + "or case-insensitive modes.");
         highlightText.setLineSpacing(6);
@@ -49,7 +49,7 @@ public class RXHighlightTextDemo extends Application {
         root.setAlignment(Pos.CENTER_LEFT);
         root.setPadding(new Insets(24));
         primaryStage.setScene(new Scene(root, 500, 320));
-        primaryStage.setTitle("RXHighlightText Demo");
+        primaryStage.setTitle("RXHighlightTextView Demo");
         primaryStage.show();
     }
 

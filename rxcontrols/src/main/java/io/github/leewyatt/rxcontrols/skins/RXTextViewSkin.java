@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXSelectableText;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.internal.TextNavigation;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -28,7 +28,7 @@ import javafx.util.Duration;
 import java.util.Locale;
 
 /**
- * Skin for {@link RXSelectableText}. Renders the text into a single {@link TextFlow}
+ * Skin for {@link RXTextView}. Renders the text into a single {@link TextFlow}
  * built entirely from {@link Text} runs (so long runs wrap), and layers a selection
  * background Path beneath the text and a blinking caret Path above it. The selection and
  * caret geometry come from {@link TextFlow#rangeShape(int, int)} /
@@ -38,10 +38,10 @@ import java.util.Locale;
  * <p>The base implementation renders the whole text as one {@code .plain} run; subclasses
  * split it by overriding {@link #rebuildTextRuns(TextFlow, String)}. User interaction
  * (mouse, keyboard, context menu, caret) is gated by
- * {@link RXSelectableText#selectableProperty() selectable}; the programmatic selection
+ * {@link RXTextView#selectableProperty() selectable}; the programmatic selection
  * API still works and its selection is still painted when {@code selectable} is false.
  */
-public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
+public class RXTextViewSkin extends RXSkinBase<RXTextView> {
 
     // ==================== Constants ====================
 
@@ -78,7 +78,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
      *
      * @param control the control this skin is attached to
      */
-    public RXSelectableTextSkin(RXSelectableText control) {
+    public RXTextViewSkin(RXTextView control) {
         super(control);
         textFlow.getStyleClass().add(TEXT_FLOW_STYLE_CLASS);
 
@@ -131,7 +131,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
      *
      * @param control the control
      */
-    protected void registerContentListeners(RXSelectableText control) {
+    protected void registerContentListeners(RXTextView control) {
         disposer.registerListener(control.textProperty(), this::rebuildRuns);
     }
 
@@ -227,7 +227,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     }
 
     private boolean caretShouldShow() {
-        RXSelectableText control = getSkinnable();
+        RXTextView control = getSkinnable();
         return caretArmed
                 && control.isSelectable()
                 && control.isFocused()
@@ -271,7 +271,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     // ==================== Mouse ====================
 
     private void onMousePressed(MouseEvent event) {
-        RXSelectableText control = getSkinnable();
+        RXTextView control = getSkinnable();
         // Any press dismisses an open context menu — the standard text controls hide it
         // explicitly rather than relying on autoHide (which is unreliable for presses
         // inside the owner control, especially once the press is consumed below).
@@ -304,7 +304,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     }
 
     private void onMouseDragged(MouseEvent event) {
-        RXSelectableText control = getSkinnable();
+        RXTextView control = getSkinnable();
         if (!control.isSelectable() || control.isDisabled() || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
@@ -331,7 +331,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     // ==================== Keyboard ====================
 
     private void onKeyPressed(KeyEvent event) {
-        RXSelectableText control = getSkinnable();
+        RXTextView control = getSkinnable();
         if (!control.isSelectable()) {
             return;
         }
@@ -406,7 +406,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     // ==================== Context menu ====================
 
     private void onContextMenuRequested(ContextMenuEvent event) {
-        RXSelectableText control = getSkinnable();
+        RXTextView control = getSkinnable();
         if (!control.isSelectable() || control.isDisabled()) {
             return;
         }

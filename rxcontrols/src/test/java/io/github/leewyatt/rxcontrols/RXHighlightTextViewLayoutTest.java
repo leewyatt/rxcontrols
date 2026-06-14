@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Layout-level regression for {@link RXHighlightText}'s Text-run rendering. The core fix
+ * Layout-level regression for {@link RXHighlightTextView}'s Text-run rendering. The core fix
  * of the rewrite is that a long highlighted run now wraps instead of overflowing — the
  * old Label-in-TextFlow turned each highlighted span into an unbreakable embedded box.
  * These checks need a live toolkit and a real layout pass, so they run on the FX thread.
  */
-public class RXHighlightTextLayoutTest {
+public class RXHighlightTextViewLayoutTest {
 
     /**
      * Starts the JavaFX toolkit so a real layout pass can run.
@@ -79,7 +79,7 @@ public class RXHighlightTextLayoutTest {
             // A long, space-free highlighted token: exactly what the old Label-in-TextFlow
             // could not break, since an embedded object is a single unsplittable glyph.
             String longToken = "highlightedlongtokenwithoutanyspaces".repeat(4);
-            RXHighlightText control = new RXHighlightText(longToken, longToken);
+            RXHighlightTextView control = new RXHighlightTextView(longToken, longToken);
             StackPane root = new StackPane(control);
             new Scene(root, 1200, 600);
             root.applyCss();
@@ -99,7 +99,7 @@ public class RXHighlightTextLayoutTest {
     public void highlightShapeGeometryIsGenerated() throws Exception {
         AtomicReference<Path> shape = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText("the quick brown fox", "quick", "fox");
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick", "fox");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -115,7 +115,7 @@ public class RXHighlightTextLayoutTest {
     public void noHighlightLeavesEmptyShape() throws Exception {
         AtomicReference<Path> shape = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText("nothing matches here", "zzz");
+            RXHighlightTextView control = new RXHighlightTextView("nothing matches here", "zzz");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -134,7 +134,7 @@ public class RXHighlightTextLayoutTest {
         AtomicReference<Double> flowHeight = new AtomicReference<>();
         AtomicReference<Double> prefHeight = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText("the quick brown fox", "quick");
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick");
             StackPane root = new StackPane(control);
             // A tall scene: the StackPane stretches its single child to its own height,
             // well past the control's one-line preferred height.
@@ -163,7 +163,7 @@ public class RXHighlightTextLayoutTest {
         // rebuild the runs from the text change itself.
         AtomicReference<String> rendered = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText("abc");
+            RXHighlightTextView control = new RXHighlightTextView("abc");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
@@ -189,7 +189,7 @@ public class RXHighlightTextLayoutTest {
         AtomicReference<Double> shapeY = new AtomicReference<>();
         AtomicReference<Double> flowY = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText("the quick brown fox", "quick");
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick");
             control.setPadding(new Insets(8));
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
@@ -212,7 +212,7 @@ public class RXHighlightTextLayoutTest {
         AtomicReference<Bounds> shapeBounds = new AtomicReference<>();
         AtomicReference<Bounds> flowBounds = new AtomicReference<>();
         onFx(() -> {
-            RXHighlightText control = new RXHighlightText(
+            RXHighlightTextView control = new RXHighlightTextView(
                     "first line\nsecond line\nthird target line", "target");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 400);

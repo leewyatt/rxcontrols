@@ -1,4 +1,4 @@
-.selectable-preview {
+.text-view-preview {
     -fx-padding: 24px;
     -fx-background-color: #ffffff;
     -fx-border-color: #d8e0ea;
@@ -7,7 +7,7 @@
     -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.10), 16, 0, 0, 5);
 }
 
-.selectable-preview .showcase-selectable-text {
+.text-view-preview .showcase-text-view {
     -fx-padding: 16px;
     -fx-background-color: #f8fafc;
     -fx-border-color: #d5dde8;
@@ -16,7 +16,7 @@
     -fx-font-size: 15px;
 }
 
-.selectable-preview .status-label {
+.text-view-preview .status-label {
     -fx-text-fill: #344054;
     -fx-font-family: "Menlo", "Consolas", monospace;
 }

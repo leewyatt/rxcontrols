@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link HighlightSegmenter#highlightRanges}, locking the matching contract the
- * RXHighlightText control and its skin rely on: literal vs regex matching, case
+ * RXHighlightTextView control and its skin rely on: literal vs regex matching, case
  * sensitivity, overlapping / touching keyword merge, zero-width and invalid-regex
  * handling, blank-keyword skipping, null / empty text, and the ordered, non-overlapping,
  * unmodifiable shape of the returned range list.
