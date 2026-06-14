@@ -77,6 +77,9 @@ public class RXHighlightTextView extends RXTextView {
 
     private void init() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // Highlight text is most often placed in lists / cards as search results, where it
+        // should not capture drags from the enclosing cell; default to non-selectable. This
+        // only overrides the inherited default — setSelectable(true) re-enables selection.
         setSelectable(false);
         InvalidationListener recompute = obs -> recompute();
         textProperty().addListener(recompute);
