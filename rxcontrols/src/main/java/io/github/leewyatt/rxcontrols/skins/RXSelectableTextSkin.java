@@ -18,7 +18,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
+import javafx.scene.shape.PathElement;
 import javafx.scene.text.HitInfo;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
@@ -65,6 +68,8 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     private final BooleanProperty blink = new SimpleBooleanProperty(this, "blink", true);
     private final CaretBlinking caretBlinking = new CaretBlinking();
     private boolean caretArmed;
+    // The visual column remembered across consecutive Up/Down moves (-1 = none).
+    private double targetCaretX = -1.0;
 
     private ContextMenu contextMenu;
     private MenuItem copyMenuItem;
@@ -272,6 +277,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         }
         // The caret appears only after a real mouse interaction, not on automatic focus.
         caretArmed = true;
+        targetCaretX = -1.0;
         if (!control.isFocused()) {
             control.requestFocus();
         }
@@ -325,6 +331,10 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         }
         KeyCode code = event.getCode();
         boolean extend = event.isShiftDown();
+        if (code != KeyCode.UP && code != KeyCode.DOWN) {
+            // Any non-vertical key forgets the column remembered for Up / Down.
+            targetCaretX = -1.0;
+        }
         if (event.isShortcutDown() && code == KeyCode.C) {
             control.copy();
             event.consume();
@@ -340,6 +350,13 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         } else if (code == KeyCode.RIGHT && !event.isShortcutDown()) {
             moveCaret(control.getCaretPosition() + 1, extend);
             event.consume();
+        } else if (code == KeyCode.UP && !event.isShortcutDown()) {
+            // Consume even at the first line so the key does not trigger focus traversal.
+            moveCaretVertical(true, extend);
+            event.consume();
+        } else if (code == KeyCode.DOWN && !event.isShortcutDown()) {
+            moveCaretVertical(false, extend);
+            event.consume();
         }
     }
 
@@ -349,6 +366,31 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         } else {
             getSkinnable().positionCaret(target);
         }
+    }
+
+    private void moveCaretVertical(boolean up, boolean extend) {
+        int caret = getSkinnable().getCaretPosition();
+        double caretX = Double.NaN;
+        double top = Double.NaN;
+        double bottom = Double.NaN;
+        for (PathElement element : textFlow.caretShape(caret, true)) {
+            if (element instanceof MoveTo moveTo) {
+                caretX = moveTo.getX();
+                top = moveTo.getY();
+            } else if (element instanceof LineTo lineTo) {
+                bottom = lineTo.getY();
+            }
+        }
+        if (Double.isNaN(caretX) || Double.isNaN(top) || Double.isNaN(bottom)) {
+            return;
+        }
+        // Remember the column on the first vertical move so consecutive Up / Down keep it.
+        if (targetCaretX < 0) {
+            targetCaretX = caretX;
+        }
+        double probeY = up ? top - 1.0 : bottom + 1.0;
+        int target = textFlow.hitTest(new Point2D(targetCaretX, probeY)).getInsertionIndex();
+        moveCaret(target, extend);
     }
 
     // ==================== Context menu ====================
