@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -202,5 +203,34 @@ public class RXHighlightTextLayoutTest {
         assertEquals(flowY.get(), shapeY.get(), 0.5,
                 "highlight shape must share the TextFlow origin under control padding");
         assertTrue(flowY.get() >= 8.0, "the TextFlow should be offset by the top inset");
+    }
+
+    @Test
+    public void lowerLineHighlightStaysAlignedAcrossRelayout() throws Exception {
+        // Regression: a highlight on a lower line must stay aligned after a second layout
+        // pass (e.g. a selection change) — relocate() would drift it outside the control.
+        AtomicReference<Bounds> shapeBounds = new AtomicReference<>();
+        AtomicReference<Bounds> flowBounds = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightText control = new RXHighlightText(
+                    "first line\nsecond line\nthird target line", "target");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 400);
+            root.applyCss();
+            root.layout();
+            // A second layout pass while the highlight itself is unchanged.
+            control.selectRange(0, 5);
+            root.layout();
+            Region textFlow = (Region) control.lookup(".text-flow");
+            Path shape = (Path) control.lookup(".highlight-shape");
+            flowBounds.set(textFlow.getBoundsInParent());
+            shapeBounds.set(shape.getBoundsInParent());
+        });
+        Bounds flow = flowBounds.get();
+        Bounds shape = shapeBounds.get();
+        assertTrue(shape.getMinY() >= flow.getMinY() - 1.0,
+                "highlight top " + shape.getMinY() + " drifted above textFlow top " + flow.getMinY());
+        assertTrue(shape.getMaxY() <= flow.getMaxY() + 1.0,
+                "highlight bottom " + shape.getMaxY() + " drifted below textFlow bottom " + flow.getMaxY());
     }
 }

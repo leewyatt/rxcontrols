@@ -1,7 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.scene.Scene;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Path;
 import org.junit.jupiter.api.BeforeAll;
@@ -138,5 +140,40 @@ public class RXSelectableTextLayoutTest {
         });
         assertNotNull(caret.get(), "the .caret Path should exist in the skin");
         assertTrue(caret.get().getElements().size() > 0, "the caret should carry geometry");
+    }
+
+    @Test
+    public void multiLineSelectionStaysWithinTextFlow() throws Exception {
+        // Regression: the selection Path must stay aligned with the glyphs even after the
+        // selection first sat on a lower line and then moved up (the triple-click sequence:
+        // single/double click lower down, then select the whole line/paragraph). relocate()
+        // compensating the previous frame's layoutBounds drifts the shape outside the control.
+        AtomicReference<Bounds> selectionBounds = new AtomicReference<>();
+        AtomicReference<Bounds> textFlowBounds = new AtomicReference<>();
+        onFx(() -> {
+            RXSelectableText control = new RXSelectableText(
+                    "line one\nline two\nline three\nline four\nline five\nline six");
+            control.setLineSpacing(6);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 400);
+            root.applyCss();
+            root.layout();
+            // Selection sits on a lower line first ...
+            control.selectRange(40, 48);
+            root.layout();
+            // ... then jumps to a first-line-anchored range.
+            control.selectAll();
+            root.layout();
+            Region textFlow = (Region) control.lookup(".text-flow");
+            Path selection = (Path) control.lookup(".selection-shape");
+            textFlowBounds.set(textFlow.getBoundsInParent());
+            selectionBounds.set(selection.getBoundsInParent());
+        });
+        Bounds flow = textFlowBounds.get();
+        Bounds selection = selectionBounds.get();
+        assertTrue(selection.getMinY() >= flow.getMinY() - 1.0,
+                "selection top " + selection.getMinY() + " drifted above textFlow top " + flow.getMinY());
+        assertTrue(selection.getMaxY() <= flow.getMaxY() + 1.0,
+                "selection bottom " + selection.getMaxY() + " drifted below textFlow bottom " + flow.getMaxY());
     }
 }

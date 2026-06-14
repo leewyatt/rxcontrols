@@ -105,9 +105,11 @@ public class RXHighlightTextSkin extends RXSelectableTextSkin {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         super.layoutChildren(x, y, w, h);
-        // Unmanaged layers are not positioned by layoutInArea: align to the TextFlow
-        // origin so rangeShape (content-box local, inset-free on JFX 17) lines up.
-        highlightShape.relocate(x, y);
+        // Set the origin directly, not relocate() — see RXSelectableTextSkin#layoutChildren:
+        // relocate would subtract the Path's layoutBounds min and drift a lower-line
+        // highlight shape outside the control.
+        highlightShape.setLayoutX(x);
+        highlightShape.setLayoutY(y);
         rebuildHighlightShape();
     }
 

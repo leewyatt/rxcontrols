@@ -185,10 +185,15 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         layoutInArea(textFlow, x, y, w, h, 0, HPos.CENTER, VPos.CENTER);
-        // Unmanaged layers are not positioned by layoutInArea: align to the TextFlow
-        // origin so the inset-free range / caret shapes line up with the glyphs.
-        selectionLayer.relocate(x, y);
-        caretLayer.relocate(x, y);
+        // Unmanaged layers are not positioned by layoutInArea. Set the layout origin
+        // directly rather than relocate(x, y): relocate subtracts the Path's own
+        // layoutBounds min, which — because the inset-free range / caret shapes are
+        // TextFlow-local (a multi-line or lower-line shape has minY > 0) — would drift the
+        // shape outside the control. The Path origin must simply equal the TextFlow origin.
+        selectionLayer.setLayoutX(x);
+        selectionLayer.setLayoutY(y);
+        caretLayer.setLayoutX(x);
+        caretLayer.setLayoutY(y);
         rebuildSelectionShape();
         rebuildCaretShape();
     }
