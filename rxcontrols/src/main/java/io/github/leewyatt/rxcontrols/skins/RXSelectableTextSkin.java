@@ -5,8 +5,6 @@ import io.github.leewyatt.rxcontrols.internal.TextNavigation;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
@@ -65,8 +63,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     // ==================== Caret state ====================
 
-    private final BooleanProperty blink = new SimpleBooleanProperty(this, "blink", true);
-    private final CaretBlinking caretBlinking = new CaretBlinking();
+    private final Timeline caretBlink = createCaretBlink();
     private boolean caretArmed;
     // The visual column remembered across consecutive Up/Down moves (-1 = none).
     private double targetCaretX = -1.0;
@@ -106,12 +103,11 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
         disposer.registerListener(control.selectionProperty(), () -> getSkinnable().requestLayout());
         disposer.registerListener(control.caretPositionProperty(), this::onCaretMoved);
-        disposer.registerListener(control.anchorProperty(), this::updateCaretVisibility);
-        disposer.registerListener(blink, this::updateCaretVisibility);
-        disposer.registerListener(control.selectableProperty(), this::updateCaretAnimation);
+        disposer.registerListener(control.anchorProperty(), this::updateCaret);
+        disposer.registerListener(control.selectableProperty(), this::updateCaret);
         disposer.registerListener(control.focusedProperty(), this::onFocusChanged);
-        disposer.registerListener(control.disabledProperty(), this::updateCaretAnimation);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateCaretAnimation);
+        disposer.registerListener(control.disabledProperty(), this::updateCaret);
+        disposer.registerListener(controlTreeShowingProperty(), this::updateCaret);
 
         disposer.registerEventHandler(textFlow, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
         disposer.registerEventHandler(textFlow, MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
@@ -120,7 +116,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         disposer.registerEventHandler(control, ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::onContextMenuRequested);
 
         rebuildRuns();
-        updateCaretAnimation();
+        updateCaret();
     }
 
     // ==================== Text runs ====================
@@ -220,52 +216,56 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     // ==================== Caret visibility / animation ====================
 
-    private void onFocusChanged() {
-        if (!getSkinnable().isFocused()) {
-            // Disarm the caret when focus is lost; a later mouse press re-arms it.
-            caretArmed = false;
-        }
-        updateCaretAnimation();
+    private Timeline createCaretBlink() {
+        // Hard on / off blink: a single KeyFrame toggles the caret's opacity every 0.5s and
+        // loops forever (INDEFINITE) — registered with the animation engine once, with no
+        // per-cycle restart and no fade.
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.5),
+                event -> caretLayer.setOpacity(caretLayer.getOpacity() > 0.0 ? 0.0 : 1.0)));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        return timeline;
     }
 
-    private void updateCaretVisibility() {
-        RXSelectableText control = getSkinnable();
-        boolean visible = !blink.get()
-                && caretArmed
-                && control.isSelectable()
-                && control.isFocused()
-                && !control.isDisabled()
-                // On non-Windows the caret hides while a selection is active (JFX behaviour).
-                && (IS_WINDOWS || control.getCaretPosition() == control.getAnchor());
-        caretLayer.setOpacity(visible ? 1.0 : 0.0);
-    }
-
-    private boolean isCaretActive() {
+    private boolean caretShouldShow() {
         RXSelectableText control = getSkinnable();
         return caretArmed
                 && control.isSelectable()
                 && control.isFocused()
                 && !control.isDisabled()
-                && controlTreeShowingProperty().get();
+                && controlTreeShowingProperty().get()
+                // On non-Windows the caret hides while a selection is active.
+                && (IS_WINDOWS || control.getCaretPosition() == control.getAnchor());
     }
 
-    private void updateCaretAnimation() {
-        if (isCaretActive()) {
-            caretBlinking.start();
+    private void updateCaret() {
+        if (caretShouldShow()) {
+            if (caretBlink.getStatus() != Animation.Status.RUNNING) {
+                caretLayer.setOpacity(1.0);
+                caretBlink.playFromStart();
+            }
         } else {
-            caretBlinking.stop();
-            blink.set(true);
+            caretBlink.stop();
+            caretLayer.setOpacity(0.0);
         }
-        updateCaretVisibility();
     }
 
     private void onCaretMoved() {
-        // Restart the blink phase so the caret shows solid at its new position, then
-        // resumes blinking (mirrors TextInputControlSkin resetting the caret on move).
-        if (isCaretActive()) {
-            caretBlinking.start();
+        // Restart the blink so the caret is solid at its new position, then resumes blinking.
+        if (caretShouldShow()) {
+            caretLayer.setOpacity(1.0);
+            caretBlink.playFromStart();
+        } else {
+            caretBlink.stop();
+            caretLayer.setOpacity(0.0);
         }
-        updateCaretVisibility();
+    }
+
+    private void onFocusChanged() {
+        if (!getSkinnable().isFocused()) {
+            // Disarm the caret when focus is lost; a later mouse press re-arms it.
+            caretArmed = false;
+        }
+        updateCaret();
     }
 
     // ==================== Mouse ====================
@@ -299,7 +299,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
         } else {
             control.positionCaret(index);
         }
-        updateCaretAnimation();
+        updateCaret();
         event.consume();
     }
 
@@ -317,7 +317,7 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     private void onMouseReleased(MouseEvent event) {
         if (getSkinnable().isSelectable()) {
-            updateCaretAnimation();
+            updateCaret();
         }
     }
 
@@ -449,39 +449,11 @@ public class RXSelectableTextSkin extends RXSkinBase<RXSelectableText> {
 
     @Override
     protected void disposeSkin() {
-        // The caret Timeline is created once; stop it by reading the live field.
-        caretBlinking.stop();
+        // The caret blink is created once; stop it by reading the live field.
+        caretBlink.stop();
         if (contextMenu != null) {
             contextMenu.hide();
         }
         textFlow.getChildren().clear();
-    }
-
-    // ==================== Caret blinking ====================
-
-    /**
-     * Drives the {@link #blink} property on a 1s cycle (visible for the first half,
-     * hidden for the second), mirroring {@code TextInputControlSkin.CaretBlinking}.
-     */
-    private final class CaretBlinking {
-
-        private final Timeline timeline;
-
-        CaretBlinking() {
-            timeline = new Timeline(
-                    new KeyFrame(Duration.ZERO, event -> blink.set(false)),
-                    new KeyFrame(Duration.seconds(0.5), event -> blink.set(true)),
-                    new KeyFrame(Duration.seconds(1.0)));
-            timeline.setCycleCount(Animation.INDEFINITE);
-        }
-
-        void start() {
-            blink.set(false);
-            timeline.playFromStart();
-        }
-
-        void stop() {
-            timeline.stop();
-        }
     }
 }

@@ -49,8 +49,8 @@ import java.util.List;
  * responds to mouse / keyboard selection, hides the caret, and does not grab focus on
  * press. The programmatic selection API ({@link #selectRange(int, int)},
  * {@link #selectAll()}, &hellip;) stays in effect and its selection is still painted, so
- * callers can highlight a range regardless of {@code selectable} — mirroring how a
- * non-editable {@code TextField} can still be selected from code.
+ * callers can highlight a range regardless of {@code selectable} — like a non-editable
+ * {@code TextField} that can still be selected from code.
  *
  * <p>{@code RXSelectableText} is the public base of {@link RXHighlightText}, which adds
  * keyword highlighting on top of the same selection machinery.
