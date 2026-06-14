@@ -40,7 +40,7 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
     private static final int SELECTED_TEXT_ABBREVIATION_LIMIT = 24;
     private static final double SELECTION_FILL_ALPHA = 0.30;
 
-    private RXTextView selectableText;
+    private RXTextView textView;
     private ColorPicker textFillPicker;
     private ColorPicker selectionFillPicker;
     private ColorPicker caretFillPicker;
@@ -84,22 +84,22 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        selectableText = new RXTextView(DEFAULT_TEXT);
-        selectableText.getStyleClass().add("showcase-text-view");
-        selectableText.setLineSpacing(7.0);
-        selectableText.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
-        selectableText.setMaxWidth(Region.USE_PREF_SIZE);
+        textView = new RXTextView(DEFAULT_TEXT);
+        textView.getStyleClass().add("showcase-text-view");
+        textView.setLineSpacing(7.0);
+        textView.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
+        textView.setMaxWidth(Region.USE_PREF_SIZE);
 
         Label status = new Label();
         status.getStyleClass().add("status-label");
         status.textProperty().bind(Bindings.createStringBinding(
                 () -> String.format(Locale.ROOT, "anchor %d  ·  caret %d  ·  selected \"%s\"",
-                        selectableText.getAnchor(), selectableText.getCaretPosition(),
-                        abbreviate(selectableText.getSelectedText())),
-                selectableText.anchorProperty(), selectableText.caretPositionProperty(),
-                selectableText.selectedTextProperty()));
+                        textView.getAnchor(), textView.getCaretPosition(),
+                        abbreviate(textView.getSelectedText())),
+                textView.anchorProperty(), textView.caretPositionProperty(),
+                textView.selectedTextProperty()));
 
-        VBox preview = new VBox(14.0, selectableText, status);
+        VBox preview = new VBox(14.0, textView, status);
         preview.getStyleClass().add("text-view-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
@@ -121,30 +121,29 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
         textArea.setWrapText(true);
         textArea.setPrefRowCount(6);
         textArea.setMaxWidth(Double.MAX_VALUE);
-        selectableText.textProperty().bind(textArea.textProperty());
+        textView.textProperty().bind(textArea.textProperty());
         return createGrid(row("Source", textArea));
     }
 
     private Node buildSelectionGrid() {
-        CheckBox selectableCheck = new CheckBox("selectable");
-        selectableCheck.setSelected(true);
-        selectableText.selectableProperty().bind(selectableCheck.selectedProperty());
+        CheckBox selectableCheck = new CheckBox("Mouse selectable");
+        textView.selectableProperty().bind(selectableCheck.selectedProperty());
 
         Button selectAll = new Button("Select All");
-        selectAll.setOnAction(event -> selectableText.selectAll());
+        selectAll.setOnAction(event -> textView.selectAll());
         Button selectRange = new Button("Select [0, 16)");
-        selectRange.setOnAction(event -> selectableText.selectRange(0, 16));
+        selectRange.setOnAction(event -> textView.selectRange(0, 16));
         Button deselect = new Button("Deselect");
-        deselect.setOnAction(event -> selectableText.deselect());
+        deselect.setOnAction(event -> textView.deselect());
         Button copy = new Button("Copy");
-        copy.setOnAction(event -> selectableText.copy());
+        copy.setOnAction(event -> textView.copy());
         FlowPane buttons = new FlowPane(8.0, 8.0, selectAll, selectRange, deselect, copy);
 
         Label selectedLength = new Label();
         selectedLength.getStyleClass().add("value-label");
         selectedLength.textProperty().bind(Bindings.createStringBinding(
-                () -> selectableText.getSelectedText().length() + " chars",
-                selectableText.selectedTextProperty()));
+                () -> textView.getSelectedText().length() + " chars",
+                textView.selectedTextProperty()));
 
         return createGrid(
                 row(selectableCheck),
@@ -157,13 +156,13 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
         alignmentBox.getItems().setAll(TextAlignment.values());
         alignmentBox.setValue(TextAlignment.LEFT);
         alignmentBox.setMaxWidth(Double.MAX_VALUE);
-        selectableText.textAlignmentProperty().bind(alignmentBox.valueProperty());
+        textView.textAlignmentProperty().bind(alignmentBox.valueProperty());
 
-        Slider spacingSlider = createSlider(0.0, 24.0, selectableText.getLineSpacing());
-        selectableText.lineSpacingProperty().bind(spacingSlider.valueProperty());
+        Slider spacingSlider = createSlider(0.0, 24.0, textView.getLineSpacing());
+        textView.lineSpacingProperty().bind(spacingSlider.valueProperty());
 
         Slider widthSlider = createSlider(300.0, 680.0, DEFAULT_PREVIEW_WIDTH);
-        selectableText.prefWidthProperty().bind(widthSlider.valueProperty());
+        textView.prefWidthProperty().bind(widthSlider.valueProperty());
 
         return createGrid(
                 row("Alignment", alignmentBox),
@@ -195,11 +194,11 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
     }
 
     private void updateColors() {
-        if (selectableText == null) {
+        if (textView == null) {
             return;
         }
         // Selection fill kept semi-transparent so the selected glyphs stay readable.
-        selectableText.setStyle(String.format(Locale.ROOT,
+        textView.setStyle(String.format(Locale.ROOT,
                 "-rx-text-fill: %s; -rx-selection-fill: %s; -rx-caret-fill: %s;",
                 toCssColor(textFillPicker.getValue(), 1.0),
                 toCssColor(selectionFillPicker.getValue(), SELECTION_FILL_ALPHA),

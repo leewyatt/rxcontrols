@@ -37,7 +37,7 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
     private static final double DEFAULT_PREVIEW_WIDTH = 520.0;
     private static final double SELECTION_FILL_ALPHA = 0.30;
 
-    private RXHighlightTextView highlightText;
+    private RXHighlightTextView highlightTextView;
     private ColorPicker highlightColorPicker;
     private ColorPicker highlightFillPicker;
     private ColorPicker plainFillPicker;
@@ -83,20 +83,20 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        highlightText = new RXHighlightTextView(DEFAULT_TEXT.text());
-        highlightText.getStyleClass().add("showcase-highlight-text-view");
-        highlightText.getKeywords().setAll(parseKeywordLines(DEFAULT_KEYWORDS.keywords()));
-        highlightText.setMatchRules(RXHighlightTextView.DEFAULT_MATCH_RULES);
-        highlightText.setLineSpacing(7.0);
-        highlightText.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
-        highlightText.setMaxWidth(Region.USE_PREF_SIZE);
+        highlightTextView = new RXHighlightTextView(DEFAULT_TEXT.text());
+        highlightTextView.getStyleClass().add("showcase-highlight-text-view");
+        highlightTextView.getKeywords().setAll(parseKeywordLines(DEFAULT_KEYWORDS.keywords()));
+        highlightTextView.setMatchRules(RXHighlightTextView.DEFAULT_MATCH_RULES);
+        highlightTextView.setLineSpacing(7.0);
+        highlightTextView.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
+        highlightTextView.setMaxWidth(Region.USE_PREF_SIZE);
 
         Label statusLabel = new Label();
         statusLabel.getStyleClass().add("status-label");
-        statusLabel.textProperty().bind(Bindings.when(highlightText.matchedProperty())
+        statusLabel.textProperty().bind(Bindings.when(highlightTextView.matchedProperty())
                 .then("Matched").otherwise("No match"));
 
-        VBox preview = new VBox(14.0, highlightText, statusLabel);
+        VBox preview = new VBox(14.0, highlightTextView, statusLabel);
         preview.getStyleClass().add("highlight-text-view-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
@@ -120,7 +120,7 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         textArea.setWrapText(true);
         textArea.setPrefRowCount(7);
         textArea.setMaxWidth(Double.MAX_VALUE);
-        highlightText.textProperty().bind(textArea.textProperty());
+        highlightTextView.textProperty().bind(textArea.textProperty());
 
         ComboBox<TextPreset> presetBox = new ComboBox<>();
         presetBox.getItems().setAll(TextPreset.values());
@@ -143,7 +143,7 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         keywordArea.setPrefRowCount(5);
         keywordArea.setMaxWidth(Double.MAX_VALUE);
         keywordArea.textProperty().addListener((obs, oldValue, newValue) ->
-                highlightText.getKeywords().setAll(parseKeywordLines(newValue)));
+                highlightTextView.getKeywords().setAll(parseKeywordLines(newValue)));
 
         ComboBox<KeywordPreset> presetBox = new ComboBox<>();
         presetBox.getItems().setAll(KeywordPreset.values());
@@ -165,11 +165,11 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         rulesBox.getItems().setAll(MatchRules.values());
         rulesBox.setValue(RXHighlightTextView.DEFAULT_MATCH_RULES);
         rulesBox.setMaxWidth(Double.MAX_VALUE);
-        highlightText.matchRulesProperty().bind(rulesBox.valueProperty());
+        highlightTextView.matchRulesProperty().bind(rulesBox.valueProperty());
 
         Label matchedLabel = new Label();
         matchedLabel.getStyleClass().add("matched-label");
-        matchedLabel.textProperty().bind(Bindings.when(highlightText.matchedProperty())
+        matchedLabel.textProperty().bind(Bindings.when(highlightTextView.matchedProperty())
                 .then("true").otherwise("false"));
 
         return createGrid(
@@ -180,26 +180,26 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
     private Node buildSelectionGrid() {
         CheckBox selectableCheck = new CheckBox("selectable");
         selectableCheck.setSelected(true);
-        highlightText.selectableProperty().bind(selectableCheck.selectedProperty());
+        highlightTextView.selectableProperty().bind(selectableCheck.selectedProperty());
 
         Button selectAll = new Button("Select All");
-        selectAll.setOnAction(event -> highlightText.selectAll());
+        selectAll.setOnAction(event -> highlightTextView.selectAll());
         Button selectRange = new Button("Select [0, 16)");
-        selectRange.setOnAction(event -> highlightText.selectRange(0, 16));
+        selectRange.setOnAction(event -> highlightTextView.selectRange(0, 16));
         Button deselect = new Button("Deselect");
-        deselect.setOnAction(event -> highlightText.deselect());
+        deselect.setOnAction(event -> highlightTextView.deselect());
         Button copy = new Button("Copy");
-        copy.setOnAction(event -> highlightText.copy());
+        copy.setOnAction(event -> highlightTextView.copy());
         FlowPane buttons = new FlowPane(8.0, 8.0, selectAll, selectRange, deselect, copy);
 
         Label selectionInfo = new Label();
         selectionInfo.getStyleClass().add("matched-label");
         selectionInfo.textProperty().bind(Bindings.createStringBinding(
                 () -> String.format(Locale.ROOT, "anchor %d  caret %d  (%d chars)",
-                        highlightText.getAnchor(), highlightText.getCaretPosition(),
-                        highlightText.getSelectedText().length()),
-                highlightText.anchorProperty(), highlightText.caretPositionProperty(),
-                highlightText.selectedTextProperty()));
+                        highlightTextView.getAnchor(), highlightTextView.getCaretPosition(),
+                        highlightTextView.getSelectedText().length()),
+                highlightTextView.anchorProperty(), highlightTextView.caretPositionProperty(),
+                highlightTextView.selectedTextProperty()));
 
         return createGrid(
                 row(selectableCheck),
@@ -212,13 +212,13 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         alignmentBox.getItems().setAll(TextAlignment.values());
         alignmentBox.setValue(TextAlignment.LEFT);
         alignmentBox.setMaxWidth(Double.MAX_VALUE);
-        highlightText.textAlignmentProperty().bind(alignmentBox.valueProperty());
+        highlightTextView.textAlignmentProperty().bind(alignmentBox.valueProperty());
 
-        Slider spacingSlider = createSlider(0.0, 24.0, highlightText.getLineSpacing());
-        highlightText.lineSpacingProperty().bind(spacingSlider.valueProperty());
+        Slider spacingSlider = createSlider(0.0, 24.0, highlightTextView.getLineSpacing());
+        highlightTextView.lineSpacingProperty().bind(spacingSlider.valueProperty());
 
         Slider widthSlider = createSlider(300.0, 680.0, DEFAULT_PREVIEW_WIDTH);
-        highlightText.prefWidthProperty().bind(widthSlider.valueProperty());
+        highlightTextView.prefWidthProperty().bind(widthSlider.valueProperty());
 
         return createGrid(
                 row("Alignment", alignmentBox),
@@ -257,11 +257,11 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
     }
 
     private void updateHighlightStyle() {
-        if (highlightText == null || highlightColorPicker == null || highlightFillPicker == null
+        if (highlightTextView == null || highlightColorPicker == null || highlightFillPicker == null
                 || plainFillPicker == null || selectionFillPicker == null || caretFillPicker == null) {
             return;
         }
-        highlightText.setStyle(String.format(Locale.ROOT,
+        highlightTextView.setStyle(String.format(Locale.ROOT,
                 "-rx-highlight-fill: %s; -rx-highlight-text-fill: %s; -rx-text-fill: %s; "
                         + "-rx-selection-fill: %s; -rx-caret-fill: %s;",
                 toCssColor(highlightColorPicker.getValue()),

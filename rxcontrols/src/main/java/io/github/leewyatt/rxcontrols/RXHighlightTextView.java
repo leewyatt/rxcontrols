@@ -77,6 +77,7 @@ public class RXHighlightTextView extends RXTextView {
 
     private void init() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        setSelectable(false);
         InvalidationListener recompute = obs -> recompute();
         textProperty().addListener(recompute);
         keywords.addListener(recompute);

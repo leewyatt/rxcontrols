@@ -380,7 +380,7 @@ public class RXTextView extends Control {
      * @return the number of characters in the text
      */
     public final int getLength() {
-        return textOrEmpty().length();
+        return text.getValueSafe().length();
     }
 
     // ==================== Selection API ====================
@@ -430,7 +430,7 @@ public class RXTextView extends Control {
      * @param index the new caret position
      */
     public void extendSelection(int index) {
-        int len = textOrEmpty().length();
+        int len = text.getValueSafe().length();
         int target = RXMath.clamp(index, 0, len);
         int dot = getCaretPosition();
         int mark = getAnchor();
@@ -458,20 +458,15 @@ public class RXTextView extends Control {
 
     // ==================== Selection internals ====================
 
-    private String textOrEmpty() {
-        String value = getText();
-        return value == null ? "" : value;
-    }
-
     private void doSelectRange(int anchorPos, int caretPos) {
-        int len = textOrEmpty().length();
+        int len = text.getValueSafe().length();
         int newAnchor = RXMath.clamp(anchorPos, 0, len);
         int newCaret = RXMath.clamp(caretPos, 0, len);
         anchor.set(newAnchor);
         caretPosition.set(newCaret);
         IndexRange range = IndexRange.normalize(newAnchor, newCaret);
         selection.set(range);
-        selectedText.set(textOrEmpty().substring(range.getStart(), range.getEnd()));
+        selectedText.set(text.getValueSafe().substring(range.getStart(), range.getEnd()));
     }
 
     // ==================== CSS Metadata ====================

@@ -140,7 +140,7 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
      * runs after their content source changes.
      */
     protected final void rebuildRuns() {
-        rebuildTextRuns(textFlow, textOrEmpty());
+        rebuildTextRuns(textFlow, getSkinnable().textProperty().getValueSafe());
     }
 
     /**
@@ -170,16 +170,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
      */
     protected final TextFlow getTextFlow() {
         return textFlow;
-    }
-
-    /**
-     * Returns this control's text, treating {@code null} as empty.
-     *
-     * @return the text, never {@code null}
-     */
-    protected final String textOrEmpty() {
-        String value = getSkinnable().getText();
-        return value == null ? "" : value;
     }
 
     // ==================== Selection / caret geometry ====================
@@ -288,11 +278,12 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
             control.requestFocus();
         }
         int index = hitIndex(event);
+        String valueSafe = control.textProperty().getValueSafe();
         if (event.getClickCount() >= 3) {
-            IndexRange paragraph = TextNavigation.paragraphRangeAt(textOrEmpty(), index);
+            IndexRange paragraph = TextNavigation.paragraphRangeAt(valueSafe, index);
             control.selectRange(paragraph.getStart(), paragraph.getEnd());
         } else if (event.getClickCount() == 2) {
-            IndexRange word = TextNavigation.wordRangeAt(textOrEmpty(), index);
+            IndexRange word = TextNavigation.wordRangeAt(valueSafe, index);
             control.selectRange(word.getStart(), word.getEnd());
         } else if (event.isShiftDown()) {
             control.extendSelection(index);
