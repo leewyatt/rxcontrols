@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXToggleButtonSkin;
 import javafx.application.Platform;
+import javafx.scene.AccessibleRole;
 import javafx.scene.control.Skin;
 import javafx.scene.control.ToggleGroup;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,6 +63,16 @@ public class RXRadioToggleButtonTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, toggle.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, toggle.isRippleCentered());
         assertNull(toggle.getRippleCornerRadius());
+    }
+
+    /**
+     * Verifies the radio-like accessible role so assistive technologies match
+     * the selection behaviour, mirroring {@code RadioButton}.
+     */
+    @Test
+    public void accessibleRoleIsRadioButton() {
+        RXRadioToggleButton toggle = new RXRadioToggleButton("OK");
+        assertSame(AccessibleRole.RADIO_BUTTON, toggle.getAccessibleRole());
     }
 
     /**

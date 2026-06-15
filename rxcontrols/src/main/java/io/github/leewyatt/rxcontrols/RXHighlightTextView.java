@@ -11,9 +11,17 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.PaintConverter;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,6 +49,11 @@ public class RXHighlightTextView extends RXTextView {
      * Default matching rule: literal substring, case-insensitive.
      */
     public static final MatchRules DEFAULT_MATCH_RULES = MatchRules.LITERAL_IGNORE_CASE;
+
+    /**
+     * Default {@link #highlightFillProperty() highlightFill}: the keyword background.
+     */
+    public static final Paint DEFAULT_HIGHLIGHT_FILL = Color.web("#ffff00");
 
     // ==================== Constructors ====================
 
@@ -186,10 +199,10 @@ public class RXHighlightTextView extends RXTextView {
 
     /**
      * The merged, ordered, non-overlapping character ranges that currently match a
-     * keyword — the single source of truth the skin consumes to paint highlight
-     * backgrounds and to split highlighted text runs. Recomputed once per text /
-     * keyword / rule change (the same pass that updates {@link #matchedProperty()
-     * matched}), so the matched flag and the rendered highlights can never disagree.
+     * keyword — the single source of truth the skin consumes to paint the keyword
+     * background highlight. Recomputed once per text / keyword / rule change (the same
+     * pass that updates {@link #matchedProperty() matched}), so the matched flag and the
+     * rendered highlights can never disagree.
      *
      * @return the read-only highlight-ranges property
      */
@@ -204,6 +217,106 @@ public class RXHighlightTextView extends RXTextView {
      */
     public final List<IndexRange> getHighlightRanges() {
         return highlightRanges.get();
+    }
+
+    // ==================== Highlight Fill ====================
+
+    private final ObjectProperty<Paint> highlightFill =
+            new StyleableObjectProperty<>(DEFAULT_HIGHLIGHT_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.HIGHLIGHT_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXHighlightTextView.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "highlightFill";
+                }
+            };
+
+    /**
+     * The background fill painted behind matched keywords. Styleable via
+     * {@code -rx-highlight-fill}. Initial value is {@link #DEFAULT_HIGHLIGHT_FILL}; setting
+     * {@code null} renders no keyword background (transparent) per the JavaFX
+     * {@code Shape.setFill} convention.
+     *
+     * <p>Keyword highlighting only paints a background — it never changes the keyword text
+     * colour. The matched glyphs keep the inherited {@link #textFillProperty() textFill}.
+     *
+     * @return the highlight-fill property
+     */
+    public final ObjectProperty<Paint> highlightFillProperty() {
+        return highlightFill;
+    }
+
+    /**
+     * Returns the keyword background fill.
+     *
+     * @return the highlight fill, or {@code null}
+     */
+    public final Paint getHighlightFill() {
+        return highlightFill.get();
+    }
+
+    /**
+     * Sets the keyword background fill.
+     *
+     * @param value the highlight fill, or {@code null} for no background
+     */
+    public final void setHighlightFill(Paint value) {
+        highlightFill.set(value);
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static class StyleableProperties {
+
+        private static final CssMetaData<RXHighlightTextView, Paint> HIGHLIGHT_FILL =
+                new CssMetaData<>("-rx-highlight-fill", PaintConverter.getInstance(), DEFAULT_HIGHLIGHT_FILL) {
+
+                    @Override
+                    public boolean isSettable(RXHighlightTextView node) {
+                        return !node.highlightFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXHighlightTextView node) {
+                        return (StyleableProperty<Paint>) node.highlightFillProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            final List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(RXTextView.getClassCssMetaData());
+            styleables.add(HIGHLIGHT_FILL);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CssMetaData associated with this class, including that of its
+     * superclasses.
+     *
+     * @return the CSS metadata
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+        return getClassCssMetaData();
     }
 
     // ==================== Match Rules enum ====================

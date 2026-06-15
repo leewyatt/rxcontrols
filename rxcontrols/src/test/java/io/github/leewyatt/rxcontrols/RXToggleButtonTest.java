@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXToggleButtonSkin;
 import javafx.application.Platform;
+import javafx.scene.AccessibleRole;
 import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
@@ -71,6 +72,8 @@ public class RXToggleButtonTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, toggle.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, toggle.isRippleCentered());
         assertNull(toggle.getRippleCornerRadius());
+        // Standard toggle (not radio): keeps the inherited ToggleButton role.
+        assertSame(AccessibleRole.TOGGLE_BUTTON, toggle.getAccessibleRole());
 
         Set<String> properties = RXToggleButton.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())

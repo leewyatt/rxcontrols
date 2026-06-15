@@ -28,21 +28,20 @@ import java.util.Locale;
  *
  * <p>Exercises editable source text, keyword lists, literal / regex matching,
  * matched state reporting, text alignment, line spacing, preview width, and
- * the CSS color hooks for highlighted and plain runs.</p>
+ * the colour properties for the keyword background, the text, the selection
+ * background, and the selected-text foreground.</p>
  */
 public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
 
     private static final TextPreset DEFAULT_TEXT = TextPreset.ARTICLE;
     private static final KeywordPreset DEFAULT_KEYWORDS = KeywordPreset.LITERAL_WORDS;
     private static final double DEFAULT_PREVIEW_WIDTH = 520.0;
-    private static final double SELECTION_FILL_ALPHA = 0.30;
 
     private RXHighlightTextView highlightTextView;
     private ColorPicker highlightColorPicker;
-    private ColorPicker highlightFillPicker;
-    private ColorPicker plainFillPicker;
+    private ColorPicker textFillPicker;
     private ColorPicker selectionFillPicker;
-    private ColorPicker caretFillPicker;
+    private ColorPicker selectedTextFillPicker;
 
     // ==================== Showcase wiring ====================
 
@@ -226,25 +225,24 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        Color defaultInk = Color.web("#1b1f2a");
+        // Keyword highlight only paints a background; the matched text keeps the ordinary
+        // text fill, so a light highlight over dark text stays readable. Opaque selection
+        // + white selected text shows the selected-text override out of the box.
         highlightColorPicker = createColorPicker(Color.web("#fff1a8"));
-        highlightFillPicker = createColorPicker(defaultInk);
-        plainFillPicker = createColorPicker(Color.web("#344054"));
+        textFillPicker = createColorPicker(Color.web("#1b1f2a"));
         selectionFillPicker = createColorPicker(Color.web("#0078d7"));
-        caretFillPicker = createColorPicker(defaultInk);
-        highlightColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
-        highlightFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
-        plainFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
-        selectionFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
-        caretFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateHighlightStyle());
-        updateHighlightStyle();
+        selectedTextFillPicker = createColorPicker(Color.WHITE);
+        highlightColorPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
+        textFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
+        selectionFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
+        selectedTextFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
+        updateColors();
 
         return createGrid(
                 row("Highlight", highlightColorPicker),
-                row("Highlight text", highlightFillPicker),
-                row("Plain text", plainFillPicker),
+                row("Text", textFillPicker),
                 row("Selection", selectionFillPicker),
-                row("Caret", caretFillPicker));
+                row("Selected text", selectedTextFillPicker));
     }
 
     // ==================== Helpers ====================
@@ -255,30 +253,15 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         return picker;
     }
 
-    private void updateHighlightStyle() {
-        if (highlightTextView == null || highlightColorPicker == null || highlightFillPicker == null
-                || plainFillPicker == null || selectionFillPicker == null || caretFillPicker == null) {
+    private void updateColors() {
+        if (highlightTextView == null || highlightColorPicker == null || textFillPicker == null
+                || selectionFillPicker == null || selectedTextFillPicker == null) {
             return;
         }
-        highlightTextView.setStyle(String.format(Locale.ROOT,
-                "-rx-highlight-fill: %s; -rx-highlight-text-fill: %s; -rx-text-fill: %s; "
-                        + "-rx-selection-fill: %s; -rx-caret-fill: %s;",
-                toCssColor(highlightColorPicker.getValue()),
-                toCssColor(highlightFillPicker.getValue()),
-                toCssColor(plainFillPicker.getValue()),
-                toCssColorAlpha(selectionFillPicker.getValue(), SELECTION_FILL_ALPHA),
-                toCssColor(caretFillPicker.getValue())));
-    }
-
-    private String toCssColor(Color color) {
-        return toCssColorAlpha(color, color.getOpacity());
-    }
-
-    private String toCssColorAlpha(Color color, double alpha) {
-        int red = (int) Math.round(color.getRed() * 255.0);
-        int green = (int) Math.round(color.getGreen() * 255.0);
-        int blue = (int) Math.round(color.getBlue() * 255.0);
-        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)", red, green, blue, alpha);
+        highlightTextView.setHighlightFill(highlightColorPicker.getValue());
+        highlightTextView.setTextFill(textFillPicker.getValue());
+        highlightTextView.setSelectionFill(selectionFillPicker.getValue());
+        highlightTextView.setSelectedTextFill(selectedTextFillPicker.getValue());
     }
 
     private List<String> parseKeywordLines(String value) {

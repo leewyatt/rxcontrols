@@ -13,15 +13,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Skin for {@link RXHighlightTextView}. Extends {@link RXTextViewSkin} with keyword
- * highlighting: the run-building hook splits the text into plain and highlighted
- * {@link Text} runs (built entirely from {@code Text}, so long highlighted spans still
- * wrap), and a background {@code .highlight-shape} {@link Path} paints the highlight fill
- * beneath the text using {@link TextFlow#rangeShape(int, int)} geometry.
+ * Skin for {@link RXHighlightTextView}. Extends {@link RXTextViewSkin} with a single
+ * background {@code .highlight-shape} {@link Path} that paints the keyword highlight fill
+ * beneath the body text, using {@link TextFlow#rangeShape(int, int)} geometry.
  *
- * <p>Both the run split and the background geometry are driven by the control's
- * {@link RXHighlightTextView#highlightRangesProperty() highlightRanges} — the single source
- * of truth — so they cannot disagree.
+ * <p>The body stays a single {@link Text} run inherited from the base skin — the text is
+ * never split into per-keyword runs. Keyword highlighting therefore only colours the
+ * background; a search that matches hundreds of times grows the {@link PathElement} count
+ * of one {@code Path}, not the {@code Node} count. The keyword geometry is driven by the
+ * control's {@link RXHighlightTextView#highlightRangesProperty() highlightRanges} — the
+ * single source of truth — so the matched flag and the painted highlight cannot disagree.
  */
 public class RXHighlightTextViewSkin extends RXTextViewSkin {
 
@@ -42,57 +43,26 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
         highlightShape.setManaged(false);
         highlightShape.setMouseTransparent(true);
         highlightShape.setStroke(null);
-        // Below the selection layer and the text runs so the fill shows through the
-        // (transparent) glyphs.
+        // highlightShape is a stable node, so a long-lived binding to the control's fill is
+        // correct (mirrors the selectionShape binding in the base skin).
+        disposer.registerBinding(highlightShape.fillProperty(), control.highlightFillProperty());
+        // Below the selection layer and the text run so the fill shows behind the glyphs.
         getChildren().add(0, highlightShape);
     }
 
     @Override
     protected void registerContentListeners(RXTextView control) {
-        // Keep the base class's text listener: highlightRanges alone is not enough. An
-        // empty match returns the shared List.of() singleton, so a text change between two
-        // non-matching values would not change the property's identity and it would not
-        // fire. The text listener guarantees a rebuild on every text change; the
-        // highlightRanges listener additionally covers keyword / rule changes (a text
-        // change that flips matching also fires both — a cheap, idempotent extra rebuild).
+        // Keep the base class's text listener so the body run rebuilds on every text
+        // change. Highlight ranges do NOT rebuild the body run (the body stays a single
+        // Text); a ranges change only requests a layout pass, which repaints the
+        // highlight Path from the new geometry.
         super.registerContentListeners(control);
-        disposer.registerListener(((RXHighlightTextView) control).highlightRangesProperty(), this::rebuildRuns);
+        disposer.registerListener(((RXHighlightTextView) control).highlightRangesProperty(),
+                () -> getSkinnable().requestLayout());
     }
 
     private RXHighlightTextView control() {
         return (RXHighlightTextView) getSkinnable();
-    }
-
-    // ==================== Text runs ====================
-
-    @Override
-    protected void rebuildTextRuns(TextFlow flow, String text) {
-        List<IndexRange> ranges = control().getHighlightRanges();
-        if (ranges.isEmpty()) {
-            super.rebuildTextRuns(flow, text);
-            return;
-        }
-        List<Text> runs = new ArrayList<>();
-        int cursor = 0;
-        for (IndexRange range : ranges) {
-            int start = range.getStart();
-            int end = range.getEnd();
-            if (start > cursor) {
-                runs.add(run(text.substring(cursor, start), PLAIN_STYLE_CLASS));
-            }
-            runs.add(run(text.substring(start, end), "highlight"));
-            cursor = end;
-        }
-        if (cursor < text.length()) {
-            runs.add(run(text.substring(cursor), PLAIN_STYLE_CLASS));
-        }
-        flow.getChildren().setAll(runs);
-    }
-
-    private Text run(String content, String styleClass) {
-        Text text = new Text(content);
-        text.getStyleClass().add(styleClass);
-        return text;
     }
 
     // ==================== Layout ====================

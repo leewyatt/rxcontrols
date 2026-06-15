@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.event.EventType;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.IndexRange;
 import javafx.scene.input.Clipboard;
@@ -20,13 +21,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Interaction tests for {@link RXTextView}: synthesized keyboard and mouse events
  * are dispatched to the skin's handlers to verify the event-to-API mapping (select-all,
- * deselect, caret movement, shift-extend, double-click word, triple-click paragraph).
- * Runs on the FX thread with a live toolkit.
+ * deselect, copy, double-click word, triple-click paragraph, drag, shift-click extend) and
+ * the selectable-text-view semantics: arrow keys do not move an insertion point, and the
+ * text shows an I-beam cursor only while selection is enabled. Runs on the FX thread with a
+ * live toolkit.
  */
 public class RXTextViewInteractionTest {
 
@@ -123,28 +127,24 @@ public class RXTextViewInteractionTest {
     }
 
     @Test
-    public void rightArrowMovesCaret() throws Exception {
+    public void arrowKeysDoNotMoveCaretOrChangeSelection() throws Exception {
+        // A selectable text view has no insertion point: arrow keys (with or without Shift)
+        // must leave caretPosition and selection untouched.
         AtomicReference<Integer> caret = new AtomicReference<>();
-        onFx(() -> {
-            RXTextView control = laidOut("hello");
-            control.positionCaret(0);
-            control.fireEvent(key(KeyCode.RIGHT, false, false));
-            caret.set(control.getCaretPosition());
-        });
-        assertEquals(1, caret.get());
-    }
-
-    @Test
-    public void shiftRightExtendsSelection() throws Exception {
         AtomicReference<IndexRange> selection = new AtomicReference<>();
         onFx(() -> {
-            RXTextView control = laidOut("hello");
-            control.positionCaret(0);
+            RXTextView control = laidOut("line one\nline two");
+            control.positionCaret(4);
+            control.fireEvent(key(KeyCode.LEFT, false, false));
+            control.fireEvent(key(KeyCode.RIGHT, false, false));
+            control.fireEvent(key(KeyCode.UP, false, false));
+            control.fireEvent(key(KeyCode.DOWN, false, false));
             control.fireEvent(key(KeyCode.RIGHT, true, false));
+            caret.set(control.getCaretPosition());
             selection.set(control.getSelection());
         });
-        assertEquals(0, selection.get().getStart());
-        assertEquals(1, selection.get().getEnd());
+        assertEquals(4, caret.get(), "arrow keys must not move the caret position");
+        assertEquals(0, selection.get().getLength(), "arrow keys must not change the selection");
     }
 
     @Test
@@ -270,39 +270,43 @@ public class RXTextViewInteractionTest {
                 "drag must keep the anchor fixed at the press position");
     }
 
+    // ==================== Cursor ====================
+
     @Test
-    public void downArrowMovesCaretToNextLine() throws Exception {
-        AtomicReference<Integer> after = new AtomicReference<>();
+    public void cursorIsTextWhenSelectableAndEnabled() throws Exception {
+        AtomicReference<Cursor> cursor = new AtomicReference<>();
         onFx(() -> {
-            RXTextView control = new RXTextView("line one\nline two\nline three");
-            control.setLineSpacing(7);  // the Down probe must clear the inter-line gap
-            StackPane root = new StackPane(control);
-            new Scene(root, 400, 300);
-            root.applyCss();
-            root.layout();
-            control.positionCaret(4);  // within "line one"
-            control.fireEvent(key(KeyCode.DOWN, false, false));
-            after.set(control.getCaretPosition());
+            RXTextView control = laidOut("hello world");
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            cursor.set(flow.getCursor());
         });
-        assertTrue(after.get() > 8,
-                "Down should move the caret to the next line across line spacing, was " + after.get());
+        assertEquals(Cursor.TEXT, cursor.get(),
+                "the text region should show the I-beam cursor when selectable and enabled");
     }
 
     @Test
-    public void upArrowMovesCaretToPreviousLine() throws Exception {
-        AtomicReference<Integer> after = new AtomicReference<>();
+    public void cursorIsNotTextWhenNotSelectable() throws Exception {
+        AtomicReference<Cursor> cursor = new AtomicReference<>();
         onFx(() -> {
-            RXTextView control = new RXTextView("line one\nline two\nline three");
-            control.setLineSpacing(7);
-            StackPane root = new StackPane(control);
-            new Scene(root, 400, 300);
-            root.applyCss();
-            root.layout();
-            control.positionCaret(13);  // within "line two"
-            control.fireEvent(key(KeyCode.UP, false, false));
-            after.set(control.getCaretPosition());
+            RXTextView control = laidOut("hello world");
+            control.setSelectable(false);
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            cursor.set(flow.getCursor());
         });
-        assertTrue(after.get() < 9,
-                "Up should move the caret to the first line across line spacing, was " + after.get());
+        assertNotEquals(Cursor.TEXT, cursor.get(),
+                "a non-selectable text view must not show the I-beam cursor");
+    }
+
+    @Test
+    public void cursorIsNotTextWhenDisabled() throws Exception {
+        AtomicReference<Cursor> cursor = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = laidOut("hello world");
+            control.setDisable(true);
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            cursor.set(flow.getCursor());
+        });
+        assertNotEquals(Cursor.TEXT, cursor.get(),
+                "a disabled text view must not show the I-beam cursor");
     }
 }

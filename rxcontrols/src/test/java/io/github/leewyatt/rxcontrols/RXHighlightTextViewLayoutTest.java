@@ -7,6 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Path;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -232,5 +234,103 @@ public class RXHighlightTextViewLayoutTest {
                 "highlight top " + shape.getMinY() + " drifted above textFlow top " + flow.getMinY());
         assertTrue(shape.getMaxY() <= flow.getMaxY() + 1.0,
                 "highlight bottom " + shape.getMaxY() + " drifted below textFlow bottom " + flow.getMaxY());
+    }
+
+    @Test
+    public void bodyStaysSingleTextRunWithManyMatches() throws Exception {
+        // Keyword highlighting must not split the body into per-keyword runs: the TextFlow
+        // keeps exactly one body Text no matter how many keywords match.
+        AtomicReference<Integer> textRuns = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the cat sat on the flat mat", "at", "the");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            int count = 0;
+            for (Node node : flow.getChildrenUnmodifiable()) {
+                if (node instanceof Text) {
+                    count++;
+                }
+            }
+            textRuns.set(count);
+        });
+        assertEquals(1, textRuns.get(), "the body must remain a single Text run regardless of matches");
+    }
+
+    @Test
+    public void manyMatchesUseOneHighlightPathNotPerMatchNodes() throws Exception {
+        // A search with many hits must not create one Node per match. The body stays a
+        // single Text, there is exactly one .highlight-shape Path, and only its PathElement
+        // count grows with the geometry. No legacy .highlight run nodes are created.
+        AtomicReference<Integer> bodyRuns = new AtomicReference<>();
+        AtomicReference<Integer> highlightShapes = new AtomicReference<>();
+        AtomicReference<Integer> highlightRuns = new AtomicReference<>();
+        AtomicReference<Integer> pathElements = new AtomicReference<>();
+        onFx(() -> {
+            String text = "ab ".repeat(150).trim();   // 150 occurrences of "ab"
+            RXHighlightTextView control = new RXHighlightTextView(text, "ab");
+            StackPane root = new StackPane(control);
+            new Scene(root, 600, 400);
+            root.applyCss();
+            root.layout();
+            bodyRuns.set(control.lookupAll(".plain").size());
+            highlightShapes.set(control.lookupAll(".highlight-shape").size());
+            highlightRuns.set(control.lookupAll(".highlight").size());
+            Path shape = (Path) control.lookup(".highlight-shape");
+            pathElements.set(shape.getElements().size());
+        });
+        assertEquals(1, bodyRuns.get(), "the body must stay a single .plain Text run");
+        assertEquals(1, highlightShapes.get(), "all keyword backgrounds share one .highlight-shape Path");
+        assertEquals(0, highlightRuns.get(), "no per-keyword .highlight run nodes may be created");
+        assertTrue(pathElements.get() > 1,
+                "geometry should grow inside the single Path (was " + pathElements.get() + " elements)");
+    }
+
+    @Test
+    public void highlightRangesChangeDoesNotRebuildBodyText() throws Exception {
+        // Changing keywords changes highlightRanges (and the painted background) but not
+        // the text, so the body Text must not be recreated.
+        AtomicReference<Text> before = new AtomicReference<>();
+        AtomicReference<Text> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            before.set((Text) control.lookup(".plain"));
+            control.getKeywords().setAll("quick");
+            root.layout();
+            after.set((Text) control.lookup(".plain"));
+        });
+        assertSame(before.get(), after.get(),
+                "a highlight-ranges change must not recreate the body Text");
+    }
+
+    @Test
+    public void highlightShapeFillTracksControlProperty() throws Exception {
+        // §3.2: the highlightShape fill must respond to runtime changes (not a one-shot
+        // setFill in the constructor). It is bound to the control's highlightFill.
+        AtomicReference<Object> nodeInitial = new AtomicReference<>();
+        AtomicReference<Object> controlInitial = new AtomicReference<>();
+        AtomicReference<Object> nodeAfter = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            nodeInitial.set(shape.getFill());
+            controlInitial.set(control.getHighlightFill());
+            control.setHighlightFill(Color.RED);
+            nodeAfter.set(shape.getFill());
+        });
+        assertEquals(controlInitial.get(), nodeInitial.get(),
+                "the highlight shape fill must track the control's highlightFill");
+        assertEquals(Color.RED, nodeAfter.get(),
+                "a runtime setHighlightFill must reach the rendered highlight shape");
     }
 }

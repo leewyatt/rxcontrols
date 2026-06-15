@@ -102,6 +102,7 @@
     <li><a href="#rxRipplePane">RXRipplePane</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
+    <li><a href="#rxTextView">RXTextView</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
     <li><a href="#rxTransitionButton">RXTransitionButton</a></li>
     <li><a href="#rxTransitionLabel">RXTransitionLabel</a></li>
@@ -347,15 +348,71 @@ fill sweep decoration, properties, CSS properties and the
 <code>:filling</code> pseudo class (see RXFillButton above). Keeps full
 Label semantics — not focus-traversable, no action.</p>
 
-<h3 id="rxHighlightText">RXHighlightText</h3>
-<p class="fxClass">Style class: rx-highlight-text</p>
-<p>Highlights one or more keywords inside its text. Keywords (the
-<code>keywords</code> list) are matched literally or as regular expressions,
-case-sensitively or not, per the <code>matchRules</code> property; the read-only
-<code>matched</code> reports whether any keyword matched.</p>
+<h3 id="rxTextView">RXTextView</h3>
+<p class="fxClass">Style class: rx-text-view</p>
+<p>A non-editable, wrapping block of text the user can select and copy. There is
+no visible caret. Colours are control-level styleable properties written by the
+skin into the internal text / selection nodes; the substructure style classes are
+advanced hooks (font, effect) rather than the colour entry points, so set colours
+through the <code>-rx-*</code> properties below, e.g.
+<code>.rx-text-view { -rx-selection-fill: #0078d7; -rx-selected-text-fill: white; }</code>.</p>
 <h4>Substructure</h4>
-text-flow  — TextFlow<br/>
-&emsp;&emsp;highlight — Label<br/>
+selection-shape — Path<br/>
+text-flow — TextFlow<br/>
+&emsp;&emsp;plain — Text<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-text-fill</td>
+        <td>Paint</td>
+        <td>#1b1f2a</td>
+    </tr>
+    <tr>
+        <td>-rx-selection-fill</td>
+        <td>Paint</td>
+        <td>rgba(0, 120, 215, 0.3)</td>
+    </tr>
+    <tr>
+        <td>-rx-selected-text-fill</td>
+        <td>Paint</td>
+        <td>#1b1f2a</td>
+    </tr>
+    <tr>
+        <td>-fx-text-alignment</td>
+        <td>LEFT,CENTER,RIGHT,JUSTIFY</td>
+        <td>LEFT</td>
+    </tr>
+    <tr>
+        <td>-fx-line-spacing</td>
+        <td>double</td>
+        <td>0</td>
+    </tr>
+    </tbody>
+</table>
+<p><code>-rx-selected-text-fill</code> is the foreground of the selected glyphs;
+<code>null</code> means "do not override" (the glyphs keep <code>-rx-text-fill</code>),
+not transparent. It is applied through JavaFX <code>Text.selectionFill</code>, which
+only honours a plain colour reliably.</p>
+
+<h3 id="rxHighlightText">RXHighlightTextView</h3>
+<p class="fxClass">Style class: rx-highlight-text-view</p>
+<p>Extends RXTextView, highlighting one or more keywords inside its text. Keywords
+(the <code>keywords</code> list) are matched literally or as regular expressions,
+case-sensitively or not, per the <code>matchRules</code> property; the read-only
+<code>matched</code> reports whether any keyword matched. Keyword highlighting only
+paints a background — it never changes the keyword text colour — so a long search
+result does not split the body into many nodes.</p>
+<h4>Substructure</h4>
+highlight-shape — Path<br/>
+selection-shape — Path<br/>
+text-flow — TextFlow<br/>
 &emsp;&emsp;plain — Text<br/><br/>
 <table>
     <thead>
@@ -372,14 +429,19 @@ text-flow  — TextFlow<br/>
         <td>#ffff00</td>
     </tr>
     <tr>
-        <td>-rx-highlight-text-fill</td>
-        <td>Paint</td>
-        <td>#000000</td>
-    </tr>
-    <tr>
         <td>-rx-text-fill</td>
         <td>Paint</td>
-        <td>#000000</td>
+        <td>#1b1f2a</td>
+    </tr>
+    <tr>
+        <td>-rx-selection-fill</td>
+        <td>Paint</td>
+        <td>rgba(0, 120, 215, 0.3)</td>
+    </tr>
+    <tr>
+        <td>-rx-selected-text-fill</td>
+        <td>Paint</td>
+        <td>#1b1f2a</td>
     </tr>
     <tr>
         <td>-fx-text-alignment</td>

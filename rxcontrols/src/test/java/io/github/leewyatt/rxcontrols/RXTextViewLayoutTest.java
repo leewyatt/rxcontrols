@@ -5,7 +5,9 @@ import javafx.geometry.Bounds;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Path;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,15 +16,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Layout-level tests for {@link RXTextView}'s selection and caret rendering: the
- * selection background Path tracks the (programmatic) selection, clears on deselect, and
- * is still painted when the control is not interactively selectable (the §7 orthogonal
- * semantics); the caret Path carries geometry. Needs a live toolkit and a real layout
- * pass, so they run on the FX thread.
+ * Layout-level tests for {@link RXTextView}'s selection rendering and selected-text
+ * foreground: the selection background Path tracks the (programmatic) selection, clears on
+ * deselect, and is still painted when the control is not interactively selectable (the §7
+ * orthogonal semantics); the body Text carries the {@code selectedTextFill} override; and
+ * there is no visible caret node. Needs a live toolkit and a real layout pass, so they run
+ * on the FX thread.
  */
 public class RXTextViewLayoutTest {
 
@@ -128,18 +132,133 @@ public class RXTextViewLayoutTest {
     }
 
     @Test
-    public void caretGeometryIsGenerated() throws Exception {
-        AtomicReference<Path> caret = new AtomicReference<>();
+    public void skinHasNoCaretNode() throws Exception {
+        // A selectable text view shows no insertion caret, so the skin must not create a
+        // .caret node (it would read as an editable text field).
+        AtomicReference<Object> caret = new AtomicReference<>();
         onFx(() -> {
-            RXTextView control = new RXTextView("hello");
+            RXTextView control = new RXTextView("hello world");
             StackPane root = new StackPane(control);
             new Scene(root, 400, 200);
             root.applyCss();
             root.layout();
-            caret.set((Path) control.lookup(".caret"));
+            caret.set(control.lookup(".caret"));
         });
-        assertNotNull(caret.get(), "the .caret Path should exist in the skin");
-        assertTrue(caret.get().getElements().size() > 0, "the caret should carry geometry");
+        assertNull(caret.get(), "a selectable text view must not create a .caret node");
+    }
+
+    @Test
+    public void selectedTextFillAppliesToBodyRun() throws Exception {
+        AtomicReference<Integer> start = new AtomicReference<>();
+        AtomicReference<Integer> end = new AtomicReference<>();
+        AtomicReference<Object> fill = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            control.setSelectedTextFill(Color.WHITE);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            control.selectRange(0, 5);
+            root.layout();
+            Text body = (Text) control.lookup(".plain");
+            start.set(body.getSelectionStart());
+            end.set(body.getSelectionEnd());
+            fill.set(body.getSelectionFill());
+        });
+        assertEquals(0, start.get());
+        assertEquals(5, end.get());
+        assertEquals(Color.WHITE, fill.get());
+    }
+
+    @Test
+    public void selectedTextFillNullDisablesForegroundOverride() throws Exception {
+        // selectedTextFill == null means "apply no selected-foreground override" (the
+        // glyphs keep their ordinary fill) — it does NOT make the selected text transparent.
+        AtomicReference<Object> fill = new AtomicReference<>("sentinel");
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            control.setSelectedTextFill(null);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            control.selectRange(0, 5);
+            root.layout();
+            Text body = (Text) control.lookup(".plain");
+            fill.set(body.getSelectionFill());
+        });
+        assertNull(fill.get(), "null selectedTextFill must leave Text.selectionFill null (no override)");
+    }
+
+    @Test
+    public void selectionChangeDoesNotRebuildBodyText() throws Exception {
+        AtomicReference<Text> before = new AtomicReference<>();
+        AtomicReference<Text> after = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            before.set((Text) control.lookup(".plain"));
+            control.selectRange(2, 7);
+            root.layout();
+            after.set((Text) control.lookup(".plain"));
+        });
+        assertSame(before.get(), after.get(), "a selection change must not recreate the body Text");
+    }
+
+    @Test
+    public void selectionShapeFillTracksControlProperty() throws Exception {
+        // §3.1: the selectionShape fill must respond to runtime changes (not a one-shot
+        // setFill in the constructor). It is bound to the control's selectionFill.
+        AtomicReference<Object> nodeInitial = new AtomicReference<>();
+        AtomicReference<Object> controlInitial = new AtomicReference<>();
+        AtomicReference<Object> nodeAfter = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path selection = (Path) control.lookup(".selection-shape");
+            nodeInitial.set(selection.getFill());
+            controlInitial.set(control.getSelectionFill());
+            control.setSelectionFill(Color.RED);
+            nodeAfter.set(selection.getFill());
+        });
+        assertEquals(controlInitial.get(), nodeInitial.get(),
+                "the selection shape fill must track the control's selectionFill");
+        assertEquals(Color.RED, nodeAfter.get(),
+                "a runtime setSelectionFill must reach the rendered selection shape");
+    }
+
+    @Test
+    public void textFillAppliesToBodyRunAndUpdatesWithoutRebuild() throws Exception {
+        AtomicReference<Object> nodeInitial = new AtomicReference<>();
+        AtomicReference<Object> controlInitial = new AtomicReference<>();
+        AtomicReference<Object> nodeAfter = new AtomicReference<>();
+        AtomicReference<Text> before = new AtomicReference<>();
+        AtomicReference<Text> after = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Text body = (Text) control.lookup(".plain");
+            before.set(body);
+            nodeInitial.set(body.getFill());
+            controlInitial.set(control.getTextFill());
+            control.setTextFill(Color.RED);
+            after.set((Text) control.lookup(".plain"));
+            nodeAfter.set(((Text) control.lookup(".plain")).getFill());
+        });
+        assertEquals(controlInitial.get(), nodeInitial.get(),
+                "the body Text fill must track the control's textFill");
+        assertEquals(Color.RED, nodeAfter.get(), "a runtime setTextFill must update the body Text fill");
+        assertSame(before.get(), after.get(), "setTextFill must update the existing run, not rebuild it");
     }
 
     @Test
@@ -175,21 +294,5 @@ public class RXTextViewLayoutTest {
                 "selection top " + selection.getMinY() + " drifted above textFlow top " + flow.getMinY());
         assertTrue(selection.getMaxY() <= flow.getMaxY() + 1.0,
                 "selection bottom " + selection.getMaxY() + " drifted below textFlow bottom " + flow.getMaxY());
-    }
-
-    @Test
-    public void caretHiddenByDefault() throws Exception {
-        AtomicReference<Double> caretOpacity = new AtomicReference<>();
-        onFx(() -> {
-            RXTextView control = new RXTextView("hello world");
-            StackPane root = new StackPane(control);
-            new Scene(root, 400, 200);
-            root.applyCss();
-            root.layout();
-            Path caret = (Path) control.lookup(".caret");
-            caretOpacity.set(caret.getOpacity());
-        });
-        assertEquals(0.0, caretOpacity.get(),
-                "the caret must be hidden until the user interacts (no caret on automatic focus)");
     }
 }

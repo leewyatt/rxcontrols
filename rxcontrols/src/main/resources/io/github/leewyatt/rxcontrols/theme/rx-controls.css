@@ -95,32 +95,11 @@
 .rx-text-view {
     -rx-text-fill: #1b1f2a;
     -rx-selection-fill: rgba(0, 120, 215, 0.3);
-    -rx-caret-fill: -rx-text-fill;
-}
-
-.rx-text-view .plain {
-    -fx-fill: -rx-text-fill;
-}
-
-.rx-text-view .selection-shape {
-    -fx-fill: -rx-selection-fill;
-}
-
-.rx-text-view .caret {
-    -fx-stroke: -rx-caret-fill;
+    -rx-selected-text-fill: #1b1f2a;
 }
 
 .rx-highlight-text-view {
     -rx-highlight-fill: #ffff00;
-    -rx-highlight-text-fill: #000000;
-}
-
-.rx-highlight-text-view .highlight {
-    -fx-fill: -rx-highlight-text-fill;
-}
-
-.rx-highlight-text-view .highlight-shape {
-    -fx-fill: -rx-highlight-fill;
 }
 
 

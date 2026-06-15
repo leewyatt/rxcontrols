@@ -2,12 +2,11 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.internal.TextNavigation;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.MenuItem;
@@ -16,53 +15,42 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.shape.LineTo;
-import javafx.scene.shape.MoveTo;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Path;
-import javafx.scene.shape.PathElement;
 import javafx.scene.text.HitInfo;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
-import javafx.util.Duration;
-
-import java.util.Locale;
 
 /**
- * Skin for {@link RXTextView}. Renders the text into a single {@link TextFlow}
- * built entirely from {@link Text} runs (so long runs wrap), and layers a selection
- * background Path beneath the text and a blinking caret Path above it. The selection and
- * caret geometry come from {@link TextFlow#rangeShape(int, int)} /
- * {@link TextFlow#caretShape(int, boolean)}, which are inset-free on JFX 17, so the
- * unmanaged Path layers only need to share the TextFlow's origin.
+ * Skin for {@link RXTextView}. Renders the text into a single {@link TextFlow} built from
+ * one {@code .plain} {@link Text} run (so long runs wrap), and layers a selection
+ * background Path beneath it. Selection geometry comes from
+ * {@link TextFlow#rangeShape(int, int)}, which is inset-free on JFX 17, so the unmanaged
+ * Path only needs to share the TextFlow's origin.
  *
- * <p>The base implementation renders the whole text as one {@code .plain} run; subclasses
- * split it by overriding {@link #rebuildTextRuns(TextFlow, String)}. User interaction
- * (mouse, keyboard, context menu, caret) is gated by
- * {@link RXTextView#selectableProperty() selectable}; the programmatic selection
- * API still works and its selection is still painted when {@code selectable} is false.
+ * <p>This is a selectable text view, not a text input: there is no visible blinking caret
+ * and no arrow-key insertion-point navigation. The selected-glyph foreground is rendered
+ * with JavaFX {@link Text}'s own selection primitives
+ * ({@link Text#setSelectionStart(int)} / {@link Text#setSelectionEnd(int)} /
+ * {@link Text#setSelectionFill(Paint)}) on the single body run — no overlay TextFlow.
+ *
+ * <p>The control's colours are pushed into the internal nodes from the control-level
+ * styleable properties: {@code selectionShape} fill is bound to
+ * {@link RXTextView#selectionFillProperty() selectionFill}, while
+ * {@link RXTextView#textFillProperty() textFill} and
+ * {@link RXTextView#selectedTextFillProperty() selectedTextFill} are written onto the body
+ * {@link Text} (which is recreated on text change, so a long-lived binding would dangle).
+ *
+ * <p>User interaction (mouse, keyboard, context menu, I-beam cursor) is gated by
+ * {@link RXTextView#selectableProperty() selectable}; the programmatic selection API still
+ * works and its selection is still painted when {@code selectable} is false.
  */
 public class RXTextViewSkin extends RXSkinBase<RXTextView> {
-
-    // ==================== Constants ====================
-
-    /** Style class for plain (non-highlighted) text runs. */
-    protected static final String PLAIN_STYLE_CLASS = "plain";
-
-    private static final boolean IS_WINDOWS =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
 
     // ==================== Nodes ====================
 
     private final TextFlow textFlow = new TextFlow();
     private final Path selectionShape = new Path();
-    private final Path caret = new Path();
-
-    // ==================== Caret state ====================
-
-    private final Timeline caretBlink = createCaretBlink();
-    private boolean caretArmed;
-    // The visual column remembered across consecutive Up/Down moves (-1 = none).
-    private double targetCaretX = -1.0;
 
     private ContextMenu contextMenu;
     private MenuItem copyMenuItem;
@@ -83,47 +71,41 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         selectionShape.setMouseTransparent(true);
         selectionShape.setStroke(null);
 
-        caret.getStyleClass().add("caret");
-        caret.setManaged(false);
-        caret.setMouseTransparent(true);
-        caret.setOpacity(0.0);
-
-        // back-to-front: selection background, text, caret. Subclasses insert their own
+        // back-to-front: selection background, then text. Subclasses insert their own
         // layers (e.g. keyword highlight) below the selection via add(0, ...).
-        getChildren().setAll(selectionShape, textFlow, caret);
+        getChildren().setAll(selectionShape, textFlow);
 
         disposer.registerBinding(textFlow.lineSpacingProperty(), control.lineSpacingProperty());
         disposer.registerBinding(textFlow.textAlignmentProperty(), control.textAlignmentProperty());
+        // selectionShape is a stable node, so a long-lived binding is correct here. The
+        // body Text fill is NOT bound, because the Text is recreated on every text change.
+        disposer.registerBinding(selectionShape.fillProperty(), control.selectionFillProperty());
 
         registerContentListeners(control);
 
-        disposer.registerListener(control.selectionProperty(), () -> getSkinnable().requestLayout());
-        disposer.registerListener(control.caretPositionProperty(), this::onCaretMoved);
-        disposer.registerListener(control.anchorProperty(), this::updateCaret);
-        disposer.registerListener(control.selectableProperty(), this::updateCaret);
-        disposer.registerListener(control.focusedProperty(), this::onFocusChanged);
-        disposer.registerListener(control.disabledProperty(), this::updateCaret);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateCaret);
+        disposer.registerListener(control.selectionProperty(), this::onSelectionChanged);
+        disposer.registerListener(control.textFillProperty(), this::applyTextFill);
+        disposer.registerListener(control.selectedTextFillProperty(), this::applySelectedTextFill);
+        disposer.registerListener(control.selectableProperty(), this::updateCursor);
+        disposer.registerListener(control.disabledProperty(), this::updateCursor);
 
         disposer.registerEventHandler(textFlow, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
         disposer.registerEventHandler(textFlow, MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
-        disposer.registerEventHandler(textFlow, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerEventHandler(control, ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::onContextMenuRequested);
 
         rebuildRuns();
-        updateCaret();
+        updateCursor();
     }
 
     // ==================== Text runs ====================
 
     /**
      * Registers the listener(s) that rebuild the text runs when the content changes. The
-     * base implementation listens to {@code text}. A subclass whose run split is driven
-     * by a derived single-source-of-truth property (such as highlight ranges) overrides
-     * this to listen to that property instead, so the runs rebuild exactly once per
-     * change. Invoked from the constructor — an override may use only {@code control},
-     * {@link #disposer} and {@link #rebuildRuns()}.
+     * base implementation listens to {@code text}. A subclass whose run rebuild is driven
+     * by a derived single-source-of-truth property may override this to add that property,
+     * so the runs rebuild exactly once per change. Invoked from the constructor — an
+     * override may use only {@code control}, {@link #disposer} and {@link #rebuildRuns()}.
      *
      * @param control the control
      */
@@ -141,10 +123,10 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
 
     /**
      * Rebuilds the TextFlow's child runs for the given text. The base implementation
-     * renders the whole text as a single {@code .plain} {@link Text} run. Subclasses
-     * override this to split the text into differently-styled runs (for example
-     * highlighted keyword runs); they must populate {@code flow} with {@link Text}
-     * nodes only, so the layout engine can wrap long runs.
+     * renders the whole text as a single {@code .plain} {@link Text} run, initialized with
+     * the control's {@link RXTextView#textFillProperty() textFill} and current selection
+     * foreground. The run must be a {@link Text} node so the layout engine can wrap long
+     * runs.
      *
      * <p>This is invoked from the constructor, so an override must rely only on its
      * {@code flow} and {@code text} parameters and {@link #getSkinnable()} — subclass
@@ -155,7 +137,9 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
      */
     protected void rebuildTextRuns(TextFlow flow, String text) {
         Text run = new Text(text);
-        run.getStyleClass().add(PLAIN_STYLE_CLASS);
+        run.getStyleClass().add("plain");   // run carries .plain
+        run.setFill(getSkinnable().getTextFill());
+        applySelectedTextFillTo(run);
         flow.getChildren().setAll(run);
     }
 
@@ -168,22 +152,76 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         return textFlow;
     }
 
-    // ==================== Selection / caret geometry ====================
+    private Text getTextRun() {
+        for (Node child : textFlow.getChildren()) {
+            if (child instanceof Text run) {
+                return run;
+            }
+        }
+        return null;
+    }
+
+    // ==================== Colours ====================
+
+    private void applyTextFill() {
+        Text run = getTextRun();
+        if (run != null) {
+            run.setFill(getSkinnable().getTextFill());
+        }
+    }
+
+    private void applySelectedTextFill() {
+        Text run = getTextRun();
+        if (run != null) {
+            applySelectedTextFillTo(run);
+        }
+    }
+
+    private void applySelectedTextFillTo(Text run) {
+        RXTextView control = getSkinnable();
+        IndexRange selection = control.getSelection();
+        if (selection.getLength() == 0) {
+            // -1 is the JavaFX "no selection" sentinel for Text.selectionStart/End.
+            run.setSelectionStart(-1);
+            run.setSelectionEnd(-1);
+        } else {
+            run.setSelectionStart(selection.getStart());
+            run.setSelectionEnd(selection.getEnd());
+        }
+        // null is forwarded verbatim: per JavaFX Text.selectionFill, null disables the
+        // selected-foreground override (the glyphs keep their ordinary fill), it does not
+        // paint the selected text transparent.
+        run.setSelectionFill(control.getSelectedTextFill());
+    }
+
+    // ==================== Cursor ====================
+
+    private void updateCursor() {
+        RXTextView control = getSkinnable();
+        boolean interactive = control.isSelectable() && !control.isDisabled();
+        // I-beam over the text signals "selectable text", not "editable". null lets the
+        // cursor fall back to the inherited one when interaction is off.
+        textFlow.setCursor(interactive ? Cursor.TEXT : null);
+    }
+
+    // ==================== Selection geometry ====================
+
+    private void onSelectionChanged() {
+        getSkinnable().requestLayout();
+        applySelectedTextFill();
+    }
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         layoutInArea(textFlow, x, y, w, h, 0, HPos.CENTER, VPos.CENTER);
-        // Unmanaged layers are not positioned by layoutInArea. Set the layout origin
-        // directly rather than relocate(x, y): relocate subtracts the Path's own
-        // layoutBounds min, which — because the inset-free range / caret shapes are
-        // TextFlow-local (a multi-line or lower-line shape has minY > 0) — would drift the
-        // shape outside the control. The Path origin must simply equal the TextFlow origin.
+        // The unmanaged selection layer is not positioned by layoutInArea. Set the layout
+        // origin directly rather than relocate(x, y): relocate subtracts the Path's own
+        // layoutBounds min, which — because the inset-free range shape is TextFlow-local (a
+        // multi-line or lower-line shape has minY > 0) — would drift the shape outside the
+        // control. The Path origin must simply equal the TextFlow origin.
         selectionShape.setLayoutX(x);
         selectionShape.setLayoutY(y);
-        caret.setLayoutX(x);
-        caret.setLayoutY(y);
         rebuildSelectionShape();
-        rebuildCaretShape();
     }
 
     private void rebuildSelectionShape() {
@@ -193,65 +231,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
             return;
         }
         selectionShape.getElements().setAll(textFlow.rangeShape(selection.getStart(), selection.getEnd()));
-    }
-
-    private void rebuildCaretShape() {
-        int pos = getSkinnable().getCaretPosition();
-        caret.getElements().setAll(textFlow.caretShape(pos, true));
-    }
-
-    // ==================== Caret visibility / animation ====================
-
-    private Timeline createCaretBlink() {
-        // Hard on / off blink: a single KeyFrame toggles the caret's opacity every 0.5s and
-        // loops forever (INDEFINITE) — registered with the animation engine once, with no
-        // per-cycle restart and no fade.
-        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.5),
-                event -> caret.setOpacity(caret.getOpacity() > 0.0 ? 0.0 : 1.0)));
-        timeline.setCycleCount(Animation.INDEFINITE);
-        return timeline;
-    }
-
-    private boolean caretShouldShow() {
-        RXTextView control = getSkinnable();
-        return caretArmed
-                && control.isSelectable()
-                && control.isFocused()
-                && !control.isDisabled()
-                && controlTreeShowingProperty().get()
-                // On non-Windows the caret hides while a selection is active.
-                && (IS_WINDOWS || control.getCaretPosition() == control.getAnchor());
-    }
-
-    private void updateCaret() {
-        if (caretShouldShow()) {
-            if (caretBlink.getStatus() != Animation.Status.RUNNING) {
-                caret.setOpacity(1.0);
-                caretBlink.playFromStart();
-            }
-        } else {
-            caretBlink.stop();
-            caret.setOpacity(0.0);
-        }
-    }
-
-    private void onCaretMoved() {
-        // Restart the blink so the caret is solid at its new position, then resumes blinking.
-        if (caretShouldShow()) {
-            caret.setOpacity(1.0);
-            caretBlink.playFromStart();
-        } else {
-            caretBlink.stop();
-            caret.setOpacity(0.0);
-        }
-    }
-
-    private void onFocusChanged() {
-        if (!getSkinnable().isFocused()) {
-            // Disarm the caret when focus is lost; a later mouse press re-arms it.
-            caretArmed = false;
-        }
-        updateCaret();
     }
 
     // ==================== Mouse ====================
@@ -267,9 +246,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         if (!control.isSelectable() || control.isDisabled() || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        // The caret appears only after a real mouse interaction, not on automatic focus.
-        caretArmed = true;
-        targetCaretX = -1.0;
         if (!control.isFocused()) {
             control.requestFocus();
         }
@@ -286,7 +262,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         } else {
             control.positionCaret(index);
         }
-        updateCaret();
         event.consume();
     }
 
@@ -300,12 +275,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         // the drag reverses direction.
         control.selectRange(control.getAnchor(), hitIndex(event));
         event.consume();
-    }
-
-    private void onMouseReleased(MouseEvent event) {
-        if (getSkinnable().isSelectable()) {
-            updateCaret();
-        }
     }
 
     private int hitIndex(MouseEvent event) {
@@ -323,11 +292,8 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
             return;
         }
         KeyCode code = event.getCode();
-        boolean extend = event.isShiftDown();
-        if (code != KeyCode.UP && code != KeyCode.DOWN) {
-            // Any non-vertical key forgets the column remembered for Up / Down.
-            targetCaretX = -1.0;
-        }
+        // Selectable text view: copy / select-all / clear only. Arrow keys do not move an
+        // insertion point, so they are left to default focus traversal.
         if (event.isShortcutDown() && code == KeyCode.C) {
             control.copy();
             event.consume();
@@ -337,57 +303,7 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         } else if (code == KeyCode.ESCAPE) {
             control.deselect();
             event.consume();
-        } else if (code == KeyCode.LEFT && !event.isShortcutDown()) {
-            moveCaret(control.getCaretPosition() - 1, extend);
-            event.consume();
-        } else if (code == KeyCode.RIGHT && !event.isShortcutDown()) {
-            moveCaret(control.getCaretPosition() + 1, extend);
-            event.consume();
-        } else if (code == KeyCode.UP && !event.isShortcutDown()) {
-            // Consume even at the first line so the key does not trigger focus traversal.
-            moveCaretVertical(true, extend);
-            event.consume();
-        } else if (code == KeyCode.DOWN && !event.isShortcutDown()) {
-            moveCaretVertical(false, extend);
-            event.consume();
         }
-    }
-
-    private void moveCaret(int target, boolean extend) {
-        if (extend) {
-            getSkinnable().extendSelection(target);
-        } else {
-            getSkinnable().positionCaret(target);
-        }
-    }
-
-    private void moveCaretVertical(boolean up, boolean extend) {
-        int pos = getSkinnable().getCaretPosition();
-        double caretX = Double.NaN;
-        double top = Double.NaN;
-        double bottom = Double.NaN;
-        for (PathElement element : textFlow.caretShape(pos, true)) {
-            if (element instanceof MoveTo moveTo) {
-                caretX = moveTo.getX();
-                top = moveTo.getY();
-            } else if (element instanceof LineTo lineTo) {
-                bottom = lineTo.getY();
-            }
-        }
-        if (Double.isNaN(caretX) || Double.isNaN(top) || Double.isNaN(bottom)) {
-            return;
-        }
-        // Remember the column on the first vertical move so consecutive Up / Down keep it.
-        if (targetCaretX < 0) {
-            targetCaretX = caretX;
-        }
-        // Clear the inter-line gap: caretShape spans only the glyph height, so a probe of
-        // bottom+1 / top-1 would land in the lineSpacing gap and hitTest would resolve it
-        // back to the current line, leaving the caret stuck (Down in particular).
-        double lineSpacing = getSkinnable().getLineSpacing();
-        double probeY = up ? top - lineSpacing - 1.0 : bottom + lineSpacing + 1.0;
-        int target = textFlow.hitTest(new Point2D(targetCaretX, probeY)).getInsertionIndex();
-        moveCaret(target, extend);
     }
 
     // ==================== Context menu ====================
@@ -436,8 +352,6 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
 
     @Override
     protected void disposeSkin() {
-        // The caret blink is created once; stop it by reading the live field.
-        caretBlink.stop();
         if (contextMenu != null) {
             contextMenu.hide();
         }

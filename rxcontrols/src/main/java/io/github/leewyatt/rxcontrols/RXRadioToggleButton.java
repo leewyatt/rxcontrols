@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.beans.NamedArg;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 
 /**
@@ -12,7 +13,8 @@ import javafx.scene.Node;
  * {@link #fire()}: once added to a {@code ToggleGroup}, re-clicking the
  * selected button does not deselect it, so a group always keeps exactly one
  * selection — the way a {@code RadioButton} group behaves. Outside a group it
- * toggles normally.</p>
+ * toggles normally. To match this behaviour for assistive technologies the
+ * accessible role is {@link javafx.scene.AccessibleRole#RADIO_BUTTON}.</p>
  *
  * <p>Use this instead of {@code RadioButton} when the radio-style selection
  * semantics are wanted without the leading radio dot, avoiding the CSS needed
@@ -54,6 +56,10 @@ public class RXRadioToggleButton extends RXToggleButton {
 
     private void initialize() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // Radio-like behaviour: announce as a radio button to assistive
+        // technologies, mirroring how RadioButton overrides fire() and sets
+        // this role together.
+        setAccessibleRole(AccessibleRole.RADIO_BUTTON);
     }
 
     /**

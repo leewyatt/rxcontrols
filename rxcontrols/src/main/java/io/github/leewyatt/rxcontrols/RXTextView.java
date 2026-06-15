@@ -21,6 +21,7 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.EnumConverter;
+import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Control;
@@ -28,6 +29,8 @@ import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
@@ -44,10 +47,15 @@ import java.util.List;
  * observable. The text always wraps to the width it is given, so the control is
  * {@link Orientation#HORIZONTAL} content-biased.
  *
+ * <p>{@code RXTextView} is a selectable text view, not a text input: there is no visible
+ * blinking caret and the arrow keys do not move an insertion point. The mouse shows an
+ * I-beam ({@link javafx.scene.Cursor#TEXT}) over the text while selection is enabled, to
+ * signal that the text can be selected rather than edited.
+ *
  * <p>{@link #selectableProperty() selectable} (default {@code true}) is the master switch
- * for <em>user</em> interaction and the caret: when {@code false} the control no longer
- * responds to mouse / keyboard selection, hides the caret, and does not grab focus on
- * press. The programmatic selection API ({@link #selectRange(int, int)},
+ * for <em>user</em> interaction: when {@code false} the control no longer responds to
+ * mouse / keyboard selection, does not grab focus on press, and the text no longer shows
+ * the I-beam cursor. The programmatic selection API ({@link #selectRange(int, int)},
  * {@link #selectAll()}, &hellip;) stays in effect and its selection is still painted, so
  * callers can highlight a range regardless of {@code selectable} — like a non-editable
  * {@code TextField} that can still be selected from code.
@@ -60,6 +68,23 @@ public class RXTextView extends Control {
     // ==================== Constants ====================
 
     private static final String DEFAULT_STYLE_CLASS = "rx-text-view";
+
+    /**
+     * Default {@link #textFillProperty() textFill}: the colour of ordinary text.
+     */
+    public static final Paint DEFAULT_TEXT_FILL = Color.web("#1b1f2a");
+
+    /**
+     * Default {@link #selectionFillProperty() selectionFill}: the selection background.
+     */
+    public static final Paint DEFAULT_SELECTION_FILL = Color.rgb(0, 120, 215, 0.30);
+
+    /**
+     * Default {@link #selectedTextFillProperty() selectedTextFill}: equal to
+     * {@link #DEFAULT_TEXT_FILL}, so selected glyphs keep the ordinary text colour until a
+     * caller overrides it.
+     */
+    public static final Paint DEFAULT_SELECTED_TEXT_FILL = DEFAULT_TEXT_FILL;
 
     // ==================== Constructors ====================
 
@@ -156,9 +181,9 @@ public class RXTextView extends Control {
     private final BooleanProperty selectable = new SimpleBooleanProperty(this, "selectable", true);
 
     /**
-     * Master switch for user interaction and the caret. When {@code false} the control
-     * ignores mouse / keyboard selection, hides the caret, and does not grab focus on
-     * press; the programmatic selection API still works and its selection is still
+     * Master switch for user interaction. When {@code false} the control ignores mouse /
+     * keyboard selection, does not grab focus on press, and the text drops the I-beam
+     * cursor; the programmatic selection API still works and its selection is still
      * painted.
      *
      * @return the selectable property
@@ -279,6 +304,164 @@ public class RXTextView extends Control {
      */
     public final void setLineSpacing(double value) {
         lineSpacing.set(value);
+    }
+
+    // ==================== Text Fill ====================
+
+    private final ObjectProperty<Paint> textFill =
+            new StyleableObjectProperty<>(DEFAULT_TEXT_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.TEXT_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXTextView.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "textFill";
+                }
+            };
+
+    /**
+     * The colour of ordinary (non-selected) text. Styleable via {@code -rx-text-fill}.
+     * Initial value is {@link #DEFAULT_TEXT_FILL}; setting {@code null} renders no fill
+     * (transparent) per the JavaFX {@code Text.setFill} convention.
+     *
+     * @return the text-fill property
+     */
+    public final ObjectProperty<Paint> textFillProperty() {
+        return textFill;
+    }
+
+    /**
+     * Returns the ordinary text fill.
+     *
+     * @return the text fill, or {@code null}
+     */
+    public final Paint getTextFill() {
+        return textFill.get();
+    }
+
+    /**
+     * Sets the ordinary text fill.
+     *
+     * @param value the text fill, or {@code null} for no fill
+     */
+    public final void setTextFill(Paint value) {
+        textFill.set(value);
+    }
+
+    // ==================== Selection Fill ====================
+
+    private final ObjectProperty<Paint> selectionFill =
+            new StyleableObjectProperty<>(DEFAULT_SELECTION_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.SELECTION_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXTextView.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "selectionFill";
+                }
+            };
+
+    /**
+     * The fill painted behind the selected text (the selection background). Styleable via
+     * {@code -rx-selection-fill}. Initial value is {@link #DEFAULT_SELECTION_FILL}; setting
+     * {@code null} renders no selection background (transparent) per the JavaFX
+     * {@code Shape.setFill} convention.
+     *
+     * @return the selection-fill property
+     */
+    public final ObjectProperty<Paint> selectionFillProperty() {
+        return selectionFill;
+    }
+
+    /**
+     * Returns the selection background fill.
+     *
+     * @return the selection fill, or {@code null}
+     */
+    public final Paint getSelectionFill() {
+        return selectionFill.get();
+    }
+
+    /**
+     * Sets the selection background fill.
+     *
+     * @param value the selection fill, or {@code null} for no background
+     */
+    public final void setSelectionFill(Paint value) {
+        selectionFill.set(value);
+    }
+
+    // ==================== Selected Text Fill ====================
+
+    private final ObjectProperty<Paint> selectedTextFill =
+            new StyleableObjectProperty<>(DEFAULT_SELECTED_TEXT_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.SELECTED_TEXT_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXTextView.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "selectedTextFill";
+                }
+            };
+
+    /**
+     * The foreground colour of the selected glyphs. Styleable via
+     * {@code -rx-selected-text-fill}. Initial value is {@link #DEFAULT_SELECTED_TEXT_FILL}
+     * (equal to {@link #DEFAULT_TEXT_FILL}).
+     *
+     * <p>Setting {@code null} does <em>not</em> make the selected text transparent: it
+     * means "do not apply a selected-foreground override", so the glyphs keep their
+     * ordinary {@link #textFillProperty() textFill}. This mirrors JavaFX
+     * {@code Text.selectionFill}, where {@code null} disables the override rather than
+     * painting nothing.
+     *
+     * <p>This value is fed to {@code Text.setSelectionFill(Paint)}, whose underlying
+     * renderer only honours a {@link Color} reliably; complex paints such as gradients or
+     * image patterns may be ignored when applied as the selected-text foreground.
+     *
+     * @return the selected-text-fill property
+     */
+    public final ObjectProperty<Paint> selectedTextFillProperty() {
+        return selectedTextFill;
+    }
+
+    /**
+     * Returns the selected-text foreground fill.
+     *
+     * @return the selected-text fill, or {@code null} to apply no override
+     */
+    public final Paint getSelectedTextFill() {
+        return selectedTextFill.get();
+    }
+
+    /**
+     * Sets the selected-text foreground fill.
+     *
+     * @param value the selected-text fill, or {@code null} to apply no override
+     */
+    public final void setSelectedTextFill(Paint value) {
+        selectedTextFill.set(value);
     }
 
     // ==================== Anchor (read-only) ====================
@@ -504,6 +687,51 @@ public class RXTextView extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTextView, Paint> TEXT_FILL =
+                new CssMetaData<>("-rx-text-fill", PaintConverter.getInstance(), DEFAULT_TEXT_FILL) {
+
+                    @Override
+                    public boolean isSettable(RXTextView node) {
+                        return !node.textFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXTextView node) {
+                        return (StyleableProperty<Paint>) node.textFillProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXTextView, Paint> SELECTION_FILL =
+                new CssMetaData<>("-rx-selection-fill", PaintConverter.getInstance(), DEFAULT_SELECTION_FILL) {
+
+                    @Override
+                    public boolean isSettable(RXTextView node) {
+                        return !node.selectionFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXTextView node) {
+                        return (StyleableProperty<Paint>) node.selectionFillProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXTextView, Paint> SELECTED_TEXT_FILL =
+                new CssMetaData<>("-rx-selected-text-fill", PaintConverter.getInstance(), DEFAULT_SELECTED_TEXT_FILL) {
+
+                    @Override
+                    public boolean isSettable(RXTextView node) {
+                        return !node.selectedTextFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXTextView node) {
+                        return (StyleableProperty<Paint>) node.selectedTextFillProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -511,6 +739,9 @@ public class RXTextView extends Control {
                     new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(TEXT_ALIGNMENT);
             styleables.add(LINE_SPACING);
+            styleables.add(TEXT_FILL);
+            styleables.add(SELECTION_FILL);
+            styleables.add(SELECTED_TEXT_FILL);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

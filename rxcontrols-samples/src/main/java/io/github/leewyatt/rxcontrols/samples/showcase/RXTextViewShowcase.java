@@ -26,24 +26,23 @@ import java.util.Locale;
  *
  * <p>Exercises the editable source text, the selection API (select-all, deselect, select
  * a range, copy), the read-only selection-state readout, the {@code selectable} toggle,
- * text alignment, line spacing, preview width, and the CSS color hooks for the text, the
- * selection background, and the caret.</p>
+ * text alignment, line spacing, preview width, and the colour properties for the text, the
+ * selection background, and the selected-text foreground.</p>
  */
 public class RXTextViewShowcase extends RXShowcaseApplication {
 
     private static final String DEFAULT_TEXT =
             "RXTextView is a non-editable, wrapping block of text the user can select "
                     + "and copy.\nDrag to select, double-click a word, triple-click a line, then "
-                    + "press Ctrl or Cmd + C to copy.\nThe selection, caret and selected text are "
+                    + "press Ctrl or Cmd + C to copy.\nThe selection and selected text are "
                     + "observable read-only properties.";
     private static final double DEFAULT_PREVIEW_WIDTH = 520.0;
     private static final int SELECTED_TEXT_ABBREVIATION_LIMIT = 24;
-    private static final double SELECTION_FILL_ALPHA = 0.30;
 
     private RXTextView textView;
     private ColorPicker textFillPicker;
     private ColorPicker selectionFillPicker;
-    private ColorPicker caretFillPicker;
+    private ColorPicker selectedTextFillPicker;
 
     // ==================== Showcase wiring ====================
 
@@ -172,18 +171,19 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        Color defaultInk = Color.web("#1b1f2a");
-        textFillPicker = createColorPicker(defaultInk);
+        // Opaque selection + white selected text out of the box, so the selected-text
+        // foreground override is visible without touching the pickers first.
+        textFillPicker = createColorPicker(Color.web("#1b1f2a"));
         selectionFillPicker = createColorPicker(Color.web("#0078d7"));
-        caretFillPicker = createColorPicker(defaultInk);
+        selectedTextFillPicker = createColorPicker(Color.WHITE);
         textFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
         selectionFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
-        caretFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
+        selectedTextFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
         updateColors();
         return createGrid(
                 row("Text", textFillPicker),
                 row("Selection", selectionFillPicker),
-                row("Caret", caretFillPicker));
+                row("Selected text", selectedTextFillPicker));
     }
 
     // ==================== Helpers ====================
@@ -198,19 +198,9 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
         if (textView == null) {
             return;
         }
-        // Selection fill kept semi-transparent so the selected glyphs stay readable.
-        textView.setStyle(String.format(Locale.ROOT,
-                "-rx-text-fill: %s; -rx-selection-fill: %s; -rx-caret-fill: %s;",
-                toCssColor(textFillPicker.getValue(), 1.0),
-                toCssColor(selectionFillPicker.getValue(), SELECTION_FILL_ALPHA),
-                toCssColor(caretFillPicker.getValue(), 1.0)));
-    }
-
-    private String toCssColor(Color color, double alpha) {
-        int red = (int) Math.round(color.getRed() * 255.0);
-        int green = (int) Math.round(color.getGreen() * 255.0);
-        int blue = (int) Math.round(color.getBlue() * 255.0);
-        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)", red, green, blue, alpha);
+        textView.setTextFill(textFillPicker.getValue());
+        textView.setSelectionFill(selectionFillPicker.getValue());
+        textView.setSelectedTextFill(selectedTextFillPicker.getValue());
     }
 
     private String abbreviate(String text) {

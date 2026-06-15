@@ -1,16 +1,22 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
 import javafx.scene.control.IndexRange;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link RXTextView}'s selection state machine: index clamping,
@@ -164,5 +170,49 @@ public class RXTextViewTest {
         RXTextView control = new RXTextView();
         control.setText(null);
         assertEquals(0, control.getLength());
+    }
+
+    // ==================== Color properties ====================
+
+    @Test
+    public void defaultColorsMatchConstants() {
+        RXTextView control = new RXTextView("hello");
+        assertEquals(RXTextView.DEFAULT_TEXT_FILL, control.getTextFill());
+        assertEquals(RXTextView.DEFAULT_SELECTION_FILL, control.getSelectionFill());
+        assertEquals(RXTextView.DEFAULT_SELECTED_TEXT_FILL, control.getSelectedTextFill());
+    }
+
+    @Test
+    public void controlCssMetaDataExposesColorProperties() {
+        Set<String> names = cssPropertyNames(new RXTextView());
+        assertTrue(names.contains("-rx-text-fill"));
+        assertTrue(names.contains("-rx-selection-fill"));
+        assertTrue(names.contains("-rx-selected-text-fill"));
+    }
+
+    @Test
+    public void controlCssMetaDataHasNoCaretFill() {
+        assertFalse(cssPropertyNames(new RXTextView()).contains("-rx-caret-fill"));
+    }
+
+    @Test
+    public void colorPropertiesAcceptNullWithoutThrowing() {
+        RXTextView control = new RXTextView("hello");
+        assertDoesNotThrow(() -> {
+            control.setTextFill(null);
+            control.setSelectionFill(null);
+            control.setSelectedTextFill(null);
+        });
+        assertNull(control.getTextFill());
+        assertNull(control.getSelectionFill());
+        assertNull(control.getSelectedTextFill());
+    }
+
+    private static Set<String> cssPropertyNames(RXTextView control) {
+        Set<String> names = new HashSet<>();
+        for (CssMetaData<? extends Styleable, ?> metaData : control.getControlCssMetaData()) {
+            names.add(metaData.getProperty());
+        }
+        return names;
     }
 }
