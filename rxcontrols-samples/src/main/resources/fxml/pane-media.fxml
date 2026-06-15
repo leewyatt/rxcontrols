@@ -3,7 +3,7 @@
 <?import io.github.leewyatt.rxcontrols.RXAudioSpectrum?>
 <?import io.github.leewyatt.rxcontrols.RXLrcView?>
 <?import io.github.leewyatt.rxcontrols.RXSeekBar?>
-<?import io.github.leewyatt.rxcontrols.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.RXRadioToggleButton?>
 <?import io.github.leewyatt.rxcontrols.RXTransitionButton?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
@@ -30,13 +30,13 @@
       <RXSeekBar fx:id="progressBar" layoutX="23.0" layoutY="466.0" prefHeight="12.0" prefWidth="700.0" />
       <HBox alignment="CENTER" layoutX="294.0" layoutY="32.0" prefHeight="23.0" prefWidth="451.0" spacing="5.0">
          <children>
-            <RXToggleButton selected="true" text="默认">
+            <RXRadioToggleButton selected="true" text="默认">
                <toggleGroup>
                   <ToggleGroup fx:id="styleGroup" />
                </toggleGroup>
-            </RXToggleButton>
-            <RXToggleButton text="Sunset" toggleGroup="$styleGroup" />
-            <RXToggleButton text="Ocean" toggleGroup="$styleGroup" />
+            </RXRadioToggleButton>
+            <RXRadioToggleButton text="Sunset" toggleGroup="$styleGroup" />
+            <RXRadioToggleButton text="Ocean" toggleGroup="$styleGroup" />
          </children>
          <padding>
             <Insets left="5.0" right="5.0" />

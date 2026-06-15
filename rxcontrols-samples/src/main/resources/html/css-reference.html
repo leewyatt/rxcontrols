@@ -98,6 +98,7 @@
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxPagination">RXPagination</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
+    <li><a href="#rxRadioToggleButton">RXRadioToggleButton</a></li>
     <li><a href="#rxRipplePane">RXRipplePane</a></li>
     <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
@@ -895,8 +896,50 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
 <p><b>Note:</b> The user-agent stylesheet provides differential <code>-rx-text-padding</code> defaults via <code>:has-left-node</code> / <code>:has-right-node</code>. If you override <code>-rx-text-padding</code> in an author stylesheet without using these pseudo-classes, the UA defaults no longer apply.</p>
 
 <h3 id="rxToggleButton">RXToggleButton</h3>
-<p class="fxClass">Style class: rx-toggle-button</p>
-<p>The RXAvatar control has all the properties of ToggleButton;</p>
+<p class="fxClass">Style class: rx-toggle-button (also: toggle-button)</p>
+<p>The RXToggleButton control has all the properties of ToggleButton and keeps the standard toggle semantics (the selected button in a group can be deselected by re-clicking it). It adds a bounded Material ripple on press plus a low-opacity hover state overlay, clipped to the button's shape or background geometry — the same ripple contract as RXButton / RXRipplePane.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-ripple-fill</td>
+        <td>Paint (also used by the hover overlay)</td>
+        <td>black</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-opacity</td>
+        <td>Number (peak ripple opacity, clamped to 0–1 at render)</td>
+        <td>0.12</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-enabled</td>
+        <td>Boolean (also gates the hover overlay)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-centered</td>
+        <td>Boolean (ripple starts from the button center)</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-corner-radius</td>
+        <td>1-4 sizes in border-radius order<br/>
+            (top-left, top-right, bottom-right, bottom-left);<br/>
+            negative = auto; ignored when a shape is set</td>
+        <td>auto: mirror the painted background geometry</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxRadioToggleButton">RXRadioToggleButton</h3>
+<p class="fxClass">Style class: rx-radio-toggle-button (also: rx-toggle-button, toggle-button)</p>
+<p>RadioButton-like selection behaviour with plain ToggleButton appearance (no radio dot). Extends RXToggleButton, inheriting all of its ripple properties (see the table above) and CSS. The only difference is selection: once added to a ToggleGroup the selected button cannot be deselected by re-clicking it, so the group always keeps one selection. Outside a group it toggles normally.</p>
 
 <h3 id="rxTransitionPane">RXTransitionPane</h3>
 <p class="fxClass">Style class: rx-transition-pane</p>

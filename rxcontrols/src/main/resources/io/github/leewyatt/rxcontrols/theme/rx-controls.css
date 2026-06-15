@@ -857,3 +857,16 @@
     -rx-ripple-enabled: true;
     -rx-ripple-centered: false;
 }
+
+/*******************************************************************************
+ *                                                                             *
+ * RXToggleButton / RXRadioToggleButton                                        *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-toggle-button {
+    -rx-ripple-fill: black;
+    -rx-ripple-opacity: 0.12;
+    -rx-ripple-enabled: true;
+    -rx-ripple-centered: false;
+}

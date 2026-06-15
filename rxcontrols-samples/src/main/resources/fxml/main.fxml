@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import io.github.leewyatt.rxcontrols.RXCarousel?>
-<?import io.github.leewyatt.rxcontrols.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.RXRadioToggleButton?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
@@ -29,23 +29,23 @@
             <BorderPane.margin>
                <Insets/>
             </BorderPane.margin>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" selected="true" text="ABOUT">
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" selected="true" text="ABOUT">
                <toggleGroup>
                   <ToggleGroup fx:id="navGroup"/>
                </toggleGroup>
-            </RXToggleButton>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Avatar" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Clip Path Image" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Button / Labele" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Carousel" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Digit" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Highlight Text" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Password /Text Field" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="Number Field" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="SVG View" toggleGroup="$navGroup"/>
-            <RXToggleButton layoutX="10.0" layoutY="329.0" prefHeight="30.0" prefWidth="237.0"
+            </RXRadioToggleButton>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Avatar" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Clip Path Image" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Button / Labele" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Carousel" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Digit" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Highlight Text" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Password /Text Field" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Number Field" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="SVG View" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton layoutX="10.0" layoutY="329.0" prefHeight="30.0" prefWidth="237.0"
                             text="SeekBar/ LrcView/ Spectrum" toggleGroup="$navGroup"/>
-            <RXToggleButton prefHeight="30.0" prefWidth="237.0" text="CSS Reference" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="CSS Reference" toggleGroup="$navGroup"/>
          </VBox>
       </left>
       <center>

@@ -1,0 +1,18 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.block-title {
+    -fx-opacity: 0.7;
+    -fx-font-size: 12px;
+}
+
+.demo-toggle {
+    -fx-font-size: 14px;
+    -fx-padding: 8px 20px;
+}
+
+.status-label {
+    -fx-opacity: 0.6;
+    -fx-font-size: 11px;
+}

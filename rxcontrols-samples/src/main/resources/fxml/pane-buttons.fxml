@@ -2,7 +2,7 @@
 
 <?import io.github.leewyatt.rxcontrols.RXFillButton?>
 <?import io.github.leewyatt.rxcontrols.RXLineButton?>
-<?import io.github.leewyatt.rxcontrols.RXToggleButton?>
+<?import io.github.leewyatt.rxcontrols.RXRadioToggleButton?>
 <?import io.github.leewyatt.rxcontrols.RXTransitionButton?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ToggleGroup?>
@@ -131,14 +131,14 @@
       <Label layoutX="21.0" layoutY="149.0" text="Line Button: 带线条的按钮" />
       <HBox layoutX="17.0" layoutY="294.0" prefHeight="30.0" prefWidth="687.0" spacing="60.0">
          <children>
-            <RXToggleButton prefWidth="120.0" selected="true" text="HOME">
+            <RXRadioToggleButton prefWidth="120.0" selected="true" text="HOME">
                <toggleGroup>
                   <ToggleGroup fx:id="group123" />
                </toggleGroup>
-            </RXToggleButton>
-            <RXToggleButton prefWidth="120.0" text="Setting" toggleGroup="$group123" />
-            <RXToggleButton prefWidth="120.0" text="address" toggleGroup="$group123" />
-            <RXToggleButton prefWidth="120.0" text="aboud" toggleGroup="$group123" />
+            </RXRadioToggleButton>
+            <RXRadioToggleButton prefWidth="120.0" text="Setting" toggleGroup="$group123" />
+            <RXRadioToggleButton prefWidth="120.0" text="address" toggleGroup="$group123" />
+            <RXRadioToggleButton prefWidth="120.0" text="aboud" toggleGroup="$group123" />
          </children>
       </HBox>
       <Label layoutX="21.0" layoutY="256.0" text="Toggle Button : 具有单选按钮效果的ToggleButton" />
