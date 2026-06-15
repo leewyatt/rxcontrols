@@ -179,7 +179,6 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
 
     private Node buildSelectionGrid() {
         CheckBox selectableCheck = new CheckBox("selectable");
-        selectableCheck.setSelected(true);
         highlightTextView.selectableProperty().bind(selectableCheck.selectedProperty());
 
         Button selectAll = new Button("Select All");

@@ -127,6 +127,7 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
 
     private Node buildSelectionGrid() {
         CheckBox selectableCheck = new CheckBox("Mouse selectable");
+        selectableCheck.setSelected(true);
         textView.selectableProperty().bind(selectableCheck.selectedProperty());
 
         Button selectAll = new Button("Select All");
