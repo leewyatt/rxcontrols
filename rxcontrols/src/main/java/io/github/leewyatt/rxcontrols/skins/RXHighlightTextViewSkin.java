@@ -6,6 +6,7 @@ import javafx.scene.control.IndexRange;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 
 import java.util.ArrayList;
@@ -67,6 +68,16 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
 
     // ==================== Layout ====================
 
+    // The inputs that move keyword geometry, captured from the last rebuild. A pure
+    // selection change still requests a layout pass in the base skin, but leaves all of
+    // these unchanged, so the (O(matches)) rangeShape() rebuild is skipped on selection
+    // drags. Read from the live TextFlow after super.layoutChildren has laid it out, so
+    // they reflect the actual post-layout geometry without any listener-timing guesswork.
+    private List<IndexRange> lastRanges;
+    private double lastFlowWidth = -1.0;
+    private double lastFlowHeight = -1.0;
+    private TextAlignment lastAlignment;
+
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         super.layoutChildren(x, y, w, h);
@@ -75,6 +86,26 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
         // highlight shape outside the control.
         highlightShape.setLayoutX(x);
         highlightShape.setLayoutY(y);
+        rebuildHighlightShapeIfNeeded();
+    }
+
+    private void rebuildHighlightShapeIfNeeded() {
+        TextFlow flow = getTextFlow();
+        List<IndexRange> ranges = control().getHighlightRanges();
+        TextAlignment alignment = getSkinnable().getTextAlignment();
+        // highlightRanges is a fresh list on every recompute, so identity tracks content;
+        // flow width/height tracks wrap / font / multi-line line-spacing; alignment tracks
+        // the horizontal shift that does not change the flow's bounds.
+        if (ranges == lastRanges
+                && flow.getWidth() == lastFlowWidth
+                && flow.getHeight() == lastFlowHeight
+                && alignment == lastAlignment) {
+            return;
+        }
+        lastRanges = ranges;
+        lastFlowWidth = flow.getWidth();
+        lastFlowHeight = flow.getHeight();
+        lastAlignment = alignment;
         rebuildHighlightShape();
     }
 

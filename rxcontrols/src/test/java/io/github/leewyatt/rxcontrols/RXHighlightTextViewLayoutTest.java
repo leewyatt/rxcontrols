@@ -10,6 +10,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Path;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -332,5 +334,56 @@ public class RXHighlightTextViewLayoutTest {
                 "the highlight shape fill must track the control's highlightFill");
         assertEquals(Color.RED, nodeAfter.get(),
                 "a runtime setHighlightFill must reach the rendered highlight shape");
+    }
+
+    @Test
+    public void selectionChangesDoNotRebuildHighlightGeometry() throws Exception {
+        // Perf guard: with selection enabled, drag-selecting fires a selection change per
+        // event, each requesting a layout pass. The keyword geometry does not move, so the
+        // O(matches) rangeShape() rebuild must be skipped — the existing PathElement
+        // instances must survive across selection-only layouts.
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox jumps over", "o");
+            control.setSelectable(true);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            for (int i = 1; i <= 6; i++) {
+                control.selectRange(0, i);   // simulate a drag growing the selection
+                root.layout();
+            }
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertSame(before.get(), after.get(),
+                "selection-only layouts must not rebuild the keyword highlight geometry");
+    }
+
+    @Test
+    public void textAlignmentChangeRebuildsHighlightGeometry() throws Exception {
+        // Counterpart to the perf guard: a change that DOES move the glyphs (alignment
+        // shifts x without changing the flow bounds) must still rebuild the highlight.
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            control.setTextAlignment(TextAlignment.RIGHT);
+            root.layout();
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertNotSame(before.get(), after.get(),
+                "a text-alignment change must rebuild the keyword highlight geometry");
     }
 }
