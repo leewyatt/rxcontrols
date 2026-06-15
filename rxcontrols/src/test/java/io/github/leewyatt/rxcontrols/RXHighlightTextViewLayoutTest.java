@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
@@ -385,5 +386,86 @@ public class RXHighlightTextViewLayoutTest {
         assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
         assertNotSame(before.get(), after.get(),
                 "a text-alignment change must rebuild the keyword highlight geometry");
+    }
+
+    @Test
+    public void lineSpacingChangeRebuildsMultiLineHighlight() throws Exception {
+        // The showcase exposes a line-spacing slider; on multi-line text it pushes lines
+        // apart, moving the keyword geometry. The TextFlow is stretched to the allocated
+        // height (maxHeight=MAX_VALUE), so flow.getHeight() does NOT reflect spacing — the
+        // rebuild is keyed on getLineSpacing() directly, which this test guards.
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView(
+                    "alpha beta\ngamma delta\nepsilon target", "target");
+            control.setPrefWidth(200);
+            control.setMaxWidth(Region.USE_PREF_SIZE);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 400);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            control.setLineSpacing(24);
+            root.layout();
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertNotSame(before.get(), after.get(),
+                "a line-spacing change on multi-line text must rebuild the keyword highlight");
+    }
+
+    @Test
+    public void nodeOrientationChangeRebuildsHighlightGeometry() throws Exception {
+        // rangeShape() geometry is text-direction dependent: an RTL flip mirrors the glyphs.
+        // A runtime node-orientation change leaves width/spacing/alignment/font/ranges
+        // untouched, so the highlight rebuild must be keyed on the effective orientation,
+        // otherwise the fill would stay stranded at the old LTR position.
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "fox");
+            StackPane root = new StackPane(control);
+            Scene scene = new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            scene.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            root.applyCss();
+            root.layout();
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertNotSame(before.get(), after.get(),
+                "a node-orientation (RTL) flip must rebuild the keyword highlight geometry");
+    }
+
+    @Test
+    public void tabSizeChangeRebuildsHighlightGeometry() throws Exception {
+        // Tab size shifts the x of glyphs after a tab; for a keyword past a tab the highlight
+        // geometry depends on it. tabSize is only reachable via the .text-flow stylesheet,
+        // but the rebuild must still be keyed on it to stay correct on a runtime change.
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("a\ttarget here", "target");
+            control.setPrefWidth(400);
+            control.setMaxWidth(Region.USE_PREF_SIZE);
+            StackPane root = new StackPane(control);
+            new Scene(root, 600, 200);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.setTabSize(16);
+            root.layout();
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertNotSame(before.get(), after.get(),
+                "a tab-size change must rebuild the keyword highlight after a tab");
     }
 }

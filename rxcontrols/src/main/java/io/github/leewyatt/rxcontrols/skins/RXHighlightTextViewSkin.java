@@ -2,9 +2,12 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXTextView;
+import javafx.geometry.NodeOrientation;
+import javafx.scene.Node;
 import javafx.scene.control.IndexRange;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
@@ -12,6 +15,7 @@ import javafx.scene.text.TextFlow;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Skin for {@link RXHighlightTextView}. Extends {@link RXTextViewSkin} with a single
@@ -68,15 +72,25 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
 
     // ==================== Layout ====================
 
-    // The inputs that move keyword geometry, captured from the last rebuild. A pure
-    // selection change still requests a layout pass in the base skin, but leaves all of
-    // these unchanged, so the (O(matches)) rangeShape() rebuild is skipped on selection
-    // drags. Read from the live TextFlow after super.layoutChildren has laid it out, so
-    // they reflect the actual post-layout geometry without any listener-timing guesswork.
+    // The text-layout inputs that move keyword geometry, captured from the last rebuild.
+    // A pure selection change still requests a layout pass in the base skin, but leaves all
+    // of these unchanged, so the (O(matches)) rangeShape() rebuild is skipped on selection
+    // drags. These are exactly the inputs TextFlow feeds to its TextLayout geometry (see
+    // TextFlow: layout.setContent / setWrapWidth / setAlignment / setLineSpacing /
+    // setDirection / setTabSize — it never calls setBoundsType), so the set is complete:
+    //   - content  -> ranges identity (text) + body-run font
+    //   - wrapWidth -> getTextFlow().getWidth()
+    //   - alignment, lineSpacing, direction (effective node orientation), tab size
+    // Keyed on the inputs themselves, not any derived bounds: the TextFlow is stretched to
+    // the allocated height and the body run's intrinsic layoutBounds ignores line spacing,
+    // so neither reflects the real geometry.
     private List<IndexRange> lastRanges;
-    private double lastFlowWidth = -1.0;
-    private double lastFlowHeight = -1.0;
+    private double lastWrapWidth = -1.0;
+    private double lastLineSpacing = Double.NaN;
     private TextAlignment lastAlignment;
+    private Font lastFont;
+    private NodeOrientation lastOrientation;
+    private int lastTabSize = -1;
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
@@ -90,23 +104,44 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
     }
 
     private void rebuildHighlightShapeIfNeeded() {
+        Text body = bodyRun();
         TextFlow flow = getTextFlow();
+        // highlightRanges is a fresh list on every non-empty recompute, so identity tracks
+        // content; the empty case reuses the List.of() singleton, which is also correct —
+        // empty ranges always clear the Path, so an empty -> empty skip leaves it empty.
         List<IndexRange> ranges = control().getHighlightRanges();
+        double wrapWidth = flow.getWidth();
+        double lineSpacing = getSkinnable().getLineSpacing();
         TextAlignment alignment = getSkinnable().getTextAlignment();
-        // highlightRanges is a fresh list on every recompute, so identity tracks content;
-        // flow width/height tracks wrap / font / multi-line line-spacing; alignment tracks
-        // the horizontal shift that does not change the flow's bounds.
+        Font font = (body == null) ? null : body.getFont();
+        NodeOrientation orientation = flow.getEffectiveNodeOrientation();
+        int tabSize = flow.getTabSize();
         if (ranges == lastRanges
-                && flow.getWidth() == lastFlowWidth
-                && flow.getHeight() == lastFlowHeight
-                && alignment == lastAlignment) {
+                && wrapWidth == lastWrapWidth
+                && lineSpacing == lastLineSpacing
+                && alignment == lastAlignment
+                && Objects.equals(font, lastFont)
+                && orientation == lastOrientation
+                && tabSize == lastTabSize) {
             return;
         }
         lastRanges = ranges;
-        lastFlowWidth = flow.getWidth();
-        lastFlowHeight = flow.getHeight();
+        lastWrapWidth = wrapWidth;
+        lastLineSpacing = lineSpacing;
         lastAlignment = alignment;
+        lastFont = font;
+        lastOrientation = orientation;
+        lastTabSize = tabSize;
         rebuildHighlightShape();
+    }
+
+    private Text bodyRun() {
+        for (Node child : getTextFlow().getChildrenUnmodifiable()) {
+            if (child instanceof Text run) {
+                return run;
+            }
+        }
+        return null;
     }
 
     private void rebuildHighlightShape() {
