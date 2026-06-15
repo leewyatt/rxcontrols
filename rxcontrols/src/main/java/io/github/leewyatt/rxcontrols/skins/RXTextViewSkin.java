@@ -26,7 +26,8 @@ import javafx.scene.text.TextFlow;
  * one {@code .plain} {@link Text} run (so long runs wrap), and layers a selection
  * background Path beneath it. Selection geometry comes from
  * {@link TextFlow#rangeShape(int, int)}, which is inset-free on JFX 17, so the unmanaged
- * Path only needs to share the TextFlow's origin.
+ * Path is placed at the TextFlow's content origin — its layout origin plus the flow's own
+ * snapped insets — to stay aligned with the glyphs when {@code .text-flow} carries padding.
  *
  * <p>This is a selectable text view, not a text input: there is no visible blinking caret
  * and no arrow-key insertion-point navigation. The selected-glyph foreground is rendered
