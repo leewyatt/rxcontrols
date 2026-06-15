@@ -2,12 +2,14 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Path;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -259,6 +261,32 @@ public class RXTextViewLayoutTest {
                 "the body Text fill must track the control's textFill");
         assertEquals(Color.RED, nodeAfter.get(), "a runtime setTextFill must update the body Text fill");
         assertSame(before.get(), after.get(), "setTextFill must update the existing run, not rebuild it");
+    }
+
+    @Test
+    public void selectionShapeFollowsTextFlowPadding() throws Exception {
+        // Padding set on the internal .text-flow lays the glyphs out after that inset, while
+        // rangeShape is inset-free; the selection background must still sit on the glyphs.
+        AtomicReference<Double> textMinX = new AtomicReference<>();
+        AtomicReference<Double> selMinX = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.setPadding(new Insets(0, 0, 0, 30));
+            root.layout();
+            control.selectAll();
+            root.layout();
+            Text plain = (Text) control.lookup(".plain");
+            Path selection = (Path) control.lookup(".selection-shape");
+            textMinX.set(plain.localToScene(plain.getBoundsInLocal()).getMinX());
+            selMinX.set(selection.localToScene(selection.getBoundsInLocal()).getMinX());
+        });
+        assertEquals(textMinX.get(), selMinX.get(), 1.5,
+                "the selection background must follow the glyphs when .text-flow has padding");
     }
 
     @Test

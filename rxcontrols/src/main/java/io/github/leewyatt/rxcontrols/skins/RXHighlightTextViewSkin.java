@@ -79,7 +79,7 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
     // TextFlow: layout.setContent / setWrapWidth / setAlignment / setLineSpacing /
     // setDirection / setTabSize — it never calls setBoundsType), so the set is complete:
     //   - content  -> ranges identity (text) + body-run font
-    //   - wrapWidth -> getTextFlow().getWidth()
+    //   - wrapWidth -> getTextFlow().getWidth() minus the flow's own left/right insets
     //   - alignment, lineSpacing, direction (effective node orientation), tab size
     // Keyed on the inputs themselves, not any derived bounds: the TextFlow is stretched to
     // the allocated height and the body run's intrinsic layoutBounds ignores line spacing,
@@ -95,11 +95,12 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         super.layoutChildren(x, y, w, h);
-        // Set the origin directly, not relocate() — see RXTextViewSkin#layoutChildren:
-        // relocate would subtract the Path's layoutBounds min and drift a lower-line
-        // highlight shape outside the control.
-        highlightShape.setLayoutX(x);
-        highlightShape.setLayoutY(y);
+        // Same origin rule as the selection layer (see RXTextViewSkin#layoutChildren):
+        // TextFlow origin plus the flow's snapped insets, so the inset-free rangeShape
+        // geometry stays aligned when .text-flow carries padding.
+        TextFlow flow = getTextFlow();
+        highlightShape.setLayoutX(x + flow.snappedLeftInset());
+        highlightShape.setLayoutY(y + flow.snappedTopInset());
         rebuildHighlightShapeIfNeeded();
     }
 
@@ -110,7 +111,9 @@ public class RXHighlightTextViewSkin extends RXTextViewSkin {
         // content; the empty case reuses the List.of() singleton, which is also correct —
         // empty ranges always clear the Path, so an empty -> empty skip leaves it empty.
         List<IndexRange> ranges = control().getHighlightRanges();
-        double wrapWidth = flow.getWidth();
+        // Effective wrap width: the flow's own left/right padding narrows the content box,
+        // so it must be folded out of the allocated width to catch a .text-flow padding change.
+        double wrapWidth = flow.getWidth() - flow.snappedLeftInset() - flow.snappedRightInset();
         double lineSpacing = getSkinnable().getLineSpacing();
         TextAlignment alignment = getSkinnable().getTextAlignment();
         Font font = (body == null) ? null : body.getFont();

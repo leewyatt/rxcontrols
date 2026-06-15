@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.IndexRange;
@@ -268,6 +269,29 @@ public class RXTextViewInteractionTest {
         });
         assertEquals(pressAnchor.get(), finalAnchor.get(),
                 "drag must keep the anchor fixed at the press position");
+    }
+
+    @Test
+    public void hitTestAccountsForTextFlowPadding() throws Exception {
+        // With left padding on the internal .text-flow, the inset-free hitTest must subtract
+        // the inset so a click at the padded text start still resolves to index 0.
+        AtomicReference<Integer> caret = new AtomicReference<>();
+        onFx(() -> {
+            RXTextView control = new RXTextView("hello world");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.setPadding(new Insets(0, 0, 0, 50));
+            root.layout();
+            // x=51 is just past the 50px left padding; without the inset-aware hitTest it
+            // would map ~50px into the text and land mid-word.
+            flow.fireEvent(press(51, 5, 1));
+            caret.set(control.getCaretPosition());
+        });
+        assertEquals(0, caret.get(),
+                "a click at the padded text start must map to index 0");
     }
 
     // ==================== Cursor ====================

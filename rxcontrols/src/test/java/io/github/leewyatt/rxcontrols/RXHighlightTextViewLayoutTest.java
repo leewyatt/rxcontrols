@@ -468,4 +468,61 @@ public class RXHighlightTextViewLayoutTest {
         assertNotSame(before.get(), after.get(),
                 "a tab-size change must rebuild the keyword highlight after a tab");
     }
+
+    @Test
+    public void highlightShapeFollowsTextFlowPadding() throws Exception {
+        // The highlight Path origin must include the TextFlow's own insets, since the
+        // glyphs are laid out after the flow padding while rangeShape is inset-free.
+        AtomicReference<Double> dx = new AtomicReference<>();
+        AtomicReference<Double> dy = new AtomicReference<>();
+        AtomicReference<Double> left = new AtomicReference<>();
+        AtomicReference<Double> top = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView("the quick brown fox", "quick");
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 200);
+            root.applyCss();
+            root.layout();
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.setPadding(new Insets(12, 0, 0, 24));
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            dx.set(shape.getLayoutX() - flow.getLayoutX());
+            dy.set(shape.getLayoutY() - flow.getLayoutY());
+            left.set(flow.snappedLeftInset());
+            top.set(flow.snappedTopInset());
+        });
+        assertEquals(left.get(), dx.get(), 0.5,
+                "highlight origin must include the TextFlow left inset");
+        assertEquals(top.get(), dy.get(), 0.5,
+                "highlight origin must include the TextFlow top inset");
+    }
+
+    @Test
+    public void textFlowPaddingChangeRebuildsHighlight() throws Exception {
+        // Left/right padding on .text-flow narrows the effective wrap width, re-wrapping the
+        // text and moving the keyword geometry — the cache must rebuild (it keys on the
+        // effective wrap width = allocated width minus the flow's left/right insets).
+        AtomicReference<Object> before = new AtomicReference<>();
+        AtomicReference<Object> after = new AtomicReference<>();
+        onFx(() -> {
+            RXHighlightTextView control = new RXHighlightTextView(
+                    "alpha beta gamma delta target epsilon zeta", "target");
+            control.setPrefWidth(200);
+            control.setMaxWidth(Region.USE_PREF_SIZE);
+            StackPane root = new StackPane(control);
+            new Scene(root, 400, 300);
+            root.applyCss();
+            root.layout();
+            Path shape = (Path) control.lookup(".highlight-shape");
+            before.set(shape.getElements().get(0));
+            TextFlow flow = (TextFlow) control.lookup(".text-flow");
+            flow.setPadding(new Insets(0, 60, 0, 60));
+            root.layout();
+            after.set(shape.getElements().get(0));
+        });
+        assertNotNull(before.get(), "the keyword highlight should have geometry to begin with");
+        assertNotSame(before.get(), after.get(),
+                "a .text-flow padding change that re-wraps the text must rebuild the keyword highlight");
+    }
 }

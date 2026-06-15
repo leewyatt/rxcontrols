@@ -356,6 +356,11 @@ skin into the internal text / selection nodes; the substructure style classes ar
 advanced hooks (font, effect) rather than the colour entry points, so set colours
 through the <code>-rx-*</code> properties below, e.g.
 <code>.rx-text-view { -rx-selection-fill: #0078d7; -rx-selected-text-fill: white; }</code>.</p>
+<p>To inset the text, use control-level padding
+(<code>.rx-text-view { -fx-padding: … }</code> or <code>setPadding(…)</code>) — the
+simplest option. Padding set directly on the internal <code>.text-flow</code> is also
+honored: the selection background, the keyword highlight and mouse hit-testing all
+follow the TextFlow's insets.</p>
 <h4>Substructure</h4>
 selection-shape — Path<br/>
 text-flow — TextFlow<br/>

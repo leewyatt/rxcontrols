@@ -218,9 +218,12 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         // origin directly rather than relocate(x, y): relocate subtracts the Path's own
         // layoutBounds min, which — because the inset-free range shape is TextFlow-local (a
         // multi-line or lower-line shape has minY > 0) — would drift the shape outside the
-        // control. The Path origin must simply equal the TextFlow origin.
-        selectionShape.setLayoutX(x);
-        selectionShape.setLayoutY(y);
+        // control. rangeShape() is inset-free (relative to the TextFlow's content box,
+        // before its own padding), but the glyphs are laid out after that padding, so the
+        // Path origin is the TextFlow origin plus the flow's snapped insets — keeping the
+        // layer aligned when .text-flow carries padding (zero insets ⇒ just the origin).
+        selectionShape.setLayoutX(x + textFlow.snappedLeftInset());
+        selectionShape.setLayoutY(y + textFlow.snappedTopInset());
         rebuildSelectionShape();
     }
 
@@ -278,9 +281,12 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
     }
 
     private int hitIndex(MouseEvent event) {
-        // The handler is on the TextFlow, so event coordinates are TextFlow-local; the
-        // JFX 17 hitTest is inset-free, so they can be fed directly.
-        HitInfo hit = textFlow.hitTest(new Point2D(event.getX(), event.getY()));
+        // The handler is on the TextFlow, so event coordinates are TextFlow-local. hitTest
+        // is inset-free, so subtract the flow's snapped insets to map a click into content
+        // coordinates (zero insets ⇒ the coordinates are used unchanged).
+        HitInfo hit = textFlow.hitTest(new Point2D(
+                event.getX() - textFlow.snappedLeftInset(),
+                event.getY() - textFlow.snappedTopInset()));
         return hit.getInsertionIndex();
     }
 
