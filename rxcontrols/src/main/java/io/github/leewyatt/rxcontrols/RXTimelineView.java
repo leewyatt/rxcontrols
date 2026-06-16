@@ -47,8 +47,9 @@ import java.util.List;
  *
  * <p>Colors are styled purely through CSS looked-up colors
  * ({@code -rx-dot-fill}, {@code -rx-line-fill}); sizes ({@code -rx-dot-size},
- * {@code -rx-line-width}, {@code -rx-item-spacing}, {@code -rx-axis-spacing}) are
- * styleable properties the skin reads and applies. The control does not embed a
+ * {@code -rx-line-width}, {@code -rx-item-spacing}, {@code -rx-axis-spacing},
+ * {@code -rx-connector-gap}) are styleable properties the skin reads and applies.
+ * The control does not embed a
  * {@code ScrollPane}; wrap it in {@code ScrollPane} with {@code
  * setFitToWidth(true)} (vertical) or {@code setFitToHeight(true)} (horizontal)
  * when scrolling is needed.
@@ -107,6 +108,11 @@ public class RXTimelineView extends Control {
      * Default horizontal spacing between the axis column and the content in pixels.
      */
     public static final double DEFAULT_AXIS_SPACING = 12.0;
+
+    /**
+     * Default gap between a dot and the connector line (none).
+     */
+    public static final double DEFAULT_CONNECTOR_GAP = 0.0;
 
     /**
      * Default display order.
@@ -424,6 +430,43 @@ public class RXTimelineView extends Control {
         axisSpacing.set(value);
     }
 
+    // ==================== Connector Gap ====================
+
+    private final DoubleProperty connectorGap =
+            new SimpleStyleableDoubleProperty(StyleableProperties.CONNECTOR_GAP, this, "connectorGap", DEFAULT_CONNECTOR_GAP);
+
+    /**
+     * The gap, in pixels, left between a dot and the connector line at each end of
+     * the line (so the line stops short of the dots rather than touching them).
+     * Defaults to {@code 0} (the line abuts the dot edges). This only shortens the
+     * rendered line; it does not move the dots or change item sizes. A gap larger
+     * than the available line length simply collapses the line to zero rather than
+     * a negative length. Negative values are sanitized to {@code 0} by the skin.
+     *
+     * @return the connector gap property
+     */
+    public final DoubleProperty connectorGapProperty() {
+        return connectorGap;
+    }
+
+    /**
+     * Returns the gap between a dot and the connector line.
+     *
+     * @return the connector gap
+     */
+    public final double getConnectorGap() {
+        return connectorGap.get();
+    }
+
+    /**
+     * Sets the gap between a dot and the connector line.
+     *
+     * @param value the connector gap
+     */
+    public final void setConnectorGap(double value) {
+        connectorGap.set(value);
+    }
+
     // ==================== Placeholder ====================
 
     private final ObjectProperty<Node> placeholder =
@@ -658,12 +701,27 @@ public class RXTimelineView extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTimelineView, Number> CONNECTOR_GAP =
+                new CssMetaData<>("-rx-connector-gap", SizeConverter.getInstance(), DEFAULT_CONNECTOR_GAP) {
+
+                    @Override
+                    public boolean isSettable(RXTimelineView control) {
+                        return !control.connectorGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTimelineView control) {
+                        return (StyleableProperty<Number>) control.connectorGapProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, DOT_SIZE, LINE_WIDTH, ITEM_SPACING, AXIS_SPACING);
+            Collections.addAll(styleables, DOT_SIZE, LINE_WIDTH, ITEM_SPACING, AXIS_SPACING, CONNECTOR_GAP);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

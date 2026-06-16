@@ -85,6 +85,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         disposer.registerListener(control.lineWidthProperty(), metricsAction);
         disposer.registerListener(control.itemSpacingProperty(), metricsAction);
         disposer.registerListener(control.axisSpacingProperty(), metricsAction);
+        disposer.registerListener(control.connectorGapProperty(), metricsAction);
         disposer.registerListener(control.positionProperty(), positionAction);
         disposer.registerListener(control.orientationProperty(), orientationAction);
         disposer.registerListener(control.showOppositeContentProperty(), oppositeAction);
@@ -243,8 +244,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         double lineWidth = RXMath.sanitizeNonNegative(getSkinnable().getLineWidth());
         double itemSpacing = RXMath.sanitizeNonNegative(getSkinnable().getItemSpacing());
         double axisSpacing = RXMath.sanitizeNonNegative(getSkinnable().getAxisSpacing());
+        double connectorGap = RXMath.sanitizeNonNegative(getSkinnable().getConnectorGap());
         for (ItemNode node : itemNodes) {
-            node.applyMetrics(dotSize, lineWidth, itemSpacing, axisSpacing);
+            node.applyMetrics(dotSize, lineWidth, itemSpacing, axisSpacing, connectorGap);
         }
     }
 
@@ -554,17 +556,31 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             timestamp.setWrapText(vertical);
         }
 
-        private void applyMetrics(double dotSize, double lineWidth, double itemSpacing, double axisSpacing) {
+        private void applyMetrics(double dotSize, double lineWidth, double itemSpacing, double axisSpacing,
+                                  double connectorGap) {
             boolean vertical = orientation == Orientation.VERTICAL;
             dot.setPrefSize(dotSize, dotSize);
+            // Pin the axis column's cross-size (min AND pref) to the dot so the connector's
+            // gap margins never inflate the row — they only shorten the rendered line. The
+            // StackPane's own min/pref would otherwise include those margins (so a huge gap
+            // would grow the item). fillCrossAxis still stretches the axis to the content-
+            // driven row size, within which the connector fills (clamping to zero if huge).
             if (vertical) {
                 connector.setPrefWidth(lineWidth);
                 connector.setPrefHeight(USE_COMPUTED_SIZE);
+                axis.setMinHeight(dotSize);
+                axis.setPrefHeight(dotSize);
+                axis.setMinWidth(USE_COMPUTED_SIZE);
+                axis.setPrefWidth(USE_COMPUTED_SIZE);
             } else {
                 connector.setPrefHeight(lineWidth);
                 connector.setPrefWidth(USE_COMPUTED_SIZE);
+                axis.setMinWidth(dotSize);
+                axis.setPrefWidth(dotSize);
+                axis.setMinHeight(USE_COMPUTED_SIZE);
+                axis.setPrefHeight(USE_COMPUTED_SIZE);
             }
-            configureConnector(lineWidth, dotSize);
+            configureConnector(lineWidth, dotSize, connectorGap);
             setSpacing(axisSpacing);
             // itemSpacing is the gap between items, carried on the trailing edge of
             // BOTH non-axis columns (content and the opposite holder); the last item
@@ -588,7 +604,12 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         // never enters a dot, a hollow (ring) dot shows no stub through its transparent
         // center; for a solid dot this is pixel-identical to a center-to-center line
         // (the dot covered the crossing part anyway).
-        private void configureConnector(double lineWidth, double dotSize) {
+        //
+        // connectorGap insets the line a further `connectorGap` at each end, so it stops
+        // short of both dots. It only trims the rendered line (the dot and the row size
+        // are unaffected); if 2*gap exceeds the segment, layoutInArea clamps the line to
+        // zero length rather than negative.
+        private void configureConnector(double lineWidth, double dotSize, double connectorGap) {
             if (last) {
                 connector.setVisible(false);
                 return;
@@ -596,11 +617,11 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             connector.setVisible(true);
             if (orientation == Orientation.VERTICAL) {
                 StackPane.setAlignment(connector, Pos.TOP_CENTER);
-                StackPane.setMargin(connector, new Insets(dotSize, 0.0, 0.0, 0.0));
+                StackPane.setMargin(connector, new Insets(dotSize + connectorGap, 0.0, connectorGap, 0.0));
                 connector.setMaxSize(lineWidth, Double.MAX_VALUE);
             } else {
                 StackPane.setAlignment(connector, Pos.CENTER_LEFT);
-                StackPane.setMargin(connector, new Insets(0.0, 0.0, 0.0, dotSize));
+                StackPane.setMargin(connector, new Insets(0.0, connectorGap, 0.0, dotSize + connectorGap));
                 connector.setMaxSize(Double.MAX_VALUE, lineWidth);
             }
         }

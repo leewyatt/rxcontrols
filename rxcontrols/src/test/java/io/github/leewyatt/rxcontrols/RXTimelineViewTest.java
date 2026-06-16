@@ -87,6 +87,7 @@ public class RXTimelineViewTest {
         assertEquals(Orientation.VERTICAL, view.getOrientation());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
         assertEquals(AccessibleRole.PARENT, view.getAccessibleRole());
+        assertEquals(RXTimelineView.DEFAULT_CONNECTOR_GAP, view.getConnectorGap(), EPSILON);
     }
 
     @Test
@@ -130,6 +131,7 @@ public class RXTimelineViewTest {
         assertTrue(properties.contains("-rx-line-width"));
         assertTrue(properties.contains("-rx-item-spacing"));
         assertTrue(properties.contains("-rx-axis-spacing"));
+        assertTrue(properties.contains("-rx-connector-gap"));
         // Colors are pure CSS looked-up colors, not styleable properties.
         assertFalse(properties.contains("-rx-dot-fill"));
         assertFalse(properties.contains("-rx-line-fill"));
@@ -936,6 +938,36 @@ public class RXTimelineViewTest {
         assertTrue(row.getChildrenUnmodifiable().get(1).getStyleClass().contains("axis"));
         assertTrue(row.getChildrenUnmodifiable().get(2).getStyleClass().contains("opposite"));
         assertTrue(row.getPseudoClassStates().contains(RIGHT));
+    }
+
+    @Test
+    public void connectorGapShortensLineWithoutAffectingLayout() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        showInScene(view);
+        Region item0 = (Region) itemNodes(view).get(0);
+        Region connector = (Region) item0.lookup(".connector");
+        double dotSize = view.getDotSize();
+        double rowHeight = item0.getHeight();
+        double baseLength = connector.getBoundsInParent().getHeight();
+        assertTrue(baseLength > 0.0);
+
+        view.setConnectorGap(6.0);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        // The gap insets the line dotSize+gap at the leading end and gap at the trailing
+        // end; the line shortens by 2*gap but the row height is unchanged.
+        assertEquals(dotSize + 6.0, StackPane.getMargin(connector).getTop(), EPSILON);
+        assertEquals(6.0, StackPane.getMargin(connector).getBottom(), EPSILON);
+        assertEquals(rowHeight, item0.getHeight(), EPSILON);
+        assertEquals(baseLength - 12.0, connector.getBoundsInParent().getHeight(), 1.0);
+
+        // A gap larger than the segment collapses the line to zero (never negative) and
+        // still does not grow the row.
+        view.setConnectorGap(1000.0);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertEquals(0.0, connector.getBoundsInParent().getHeight(), EPSILON);
+        assertEquals(rowHeight, item0.getHeight(), EPSILON);
     }
 
     // ==================== Helpers ====================

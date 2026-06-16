@@ -167,11 +167,16 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         timeline.axisSpacingProperty().bind(axisSpacing.valueProperty());
         Label axisSpacingValue = createValueLabel(axisSpacing, "%.0f px");
 
+        Slider connectorGap = createSlider(0.0, 24.0, RXTimelineView.DEFAULT_CONNECTOR_GAP);
+        timeline.connectorGapProperty().bind(connectorGap.valueProperty());
+        Label connectorGapValue = createValueLabel(connectorGap, "%.0f px");
+
         return createGrid(
                 row("Dot size", dotSize, dotSizeValue),
                 row("Line width", lineWidth, lineWidthValue),
                 row("Item spacing", itemSpacing, itemSpacingValue),
-                row("Axis spacing", axisSpacing, axisSpacingValue));
+                row("Axis spacing", axisSpacing, axisSpacingValue),
+                row("Connector gap", connectorGap, connectorGapValue));
     }
 
     private Node buildViewColorsGrid() {
