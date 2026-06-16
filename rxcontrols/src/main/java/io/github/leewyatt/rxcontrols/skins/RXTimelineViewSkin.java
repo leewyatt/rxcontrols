@@ -101,11 +101,13 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             layoutInArea(placeholderRegion, contentX, contentY, contentWidth, contentHeight,
                     -1, HPos.CENTER, VPos.CENTER);
         } else if (orientationOrDefault() == Orientation.HORIZONTAL) {
-            // Size the row to its preferred extents (not the full area) so the axis
-            // and content stay together. fillCrossAxis then makes every item as tall
-            // as the tallest one, keeping the horizontal axis line aligned.
+            // LEFT/RIGHT: size the row to its preferred height (not the full area) so
+            // the axis and content stay together. ALTERNATE needs a real height to
+            // split for the centered axis, so fill the height; fillCrossAxis then
+            // makes every item that tall, keeping the centered axis line aligned.
+            boolean alternate = positionOrDefault() == RXTimelineView.Position.ALTERNATE;
             layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
-                    -1, Insets.EMPTY, false, false, HPos.LEFT, VPos.TOP);
+                    -1, Insets.EMPTY, false, alternate, HPos.LEFT, VPos.TOP);
         } else {
             layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
                     -1, Insets.EMPTY, true, true, HPos.LEFT, VPos.TOP);
@@ -196,9 +198,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             itemNodes.add(new ItemNode(items.get(modelIndex), modelIndex));
         }
         itemsBox.getChildren().setAll(itemNodes);
-        int lastDisplayIndex = itemNodes.size() - 1;
-        for (int i = 0; i < itemNodes.size(); i++) {
-            itemNodes.get(i).setRole(i == 0, i == lastDisplayIndex);
+        for (int i = 0; i < count; i++) {
+            itemNodes.get(i).setRole(i, count);
         }
         applyOrientation();
         applyMetrics();
@@ -361,6 +362,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private final RXTimelineItem item;
         private final int modelIndex;
+        private int displayIndex;
         private boolean first;
         private boolean last;
         private Orientation orientation = Orientation.VERTICAL;
@@ -369,6 +371,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private final Region connector = new Region();
         private final StackPane dot = new StackPane();
         private final VBox content = new VBox();
+        // Empty filler reserving the opposite half in ALTERNATE so the axis centers.
+        private final Region spacer = new Region();
         private final Label title = new Label();
         private final Label description = new Label();
         private final Label timestamp = new Label();
@@ -568,41 +572,89 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             }
         }
 
-        private void setRole(boolean first, boolean last) {
-            this.first = first;
-            this.last = last;
+        private void setRole(int displayIndex, int count) {
+            this.displayIndex = displayIndex;
+            this.first = displayIndex == 0;
+            this.last = displayIndex == count - 1;
             pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
         }
 
-        // Places the axis on the leading (LEFT) or trailing (RIGHT) cross-side by
-        // swapping the box order. A vertical timeline also right-aligns the content
-        // text toward a trailing axis so it reads the same on either side.
+        // Places content relative to the axis. LEFT / RIGHT pin the axis to one
+        // cross-side with content filling the rest; ALTERNATE centers the axis
+        // between equal-width halves and puts content on the leading or trailing
+        // half by display-order parity. Content text hugs the axis either way.
         private void applyPosition(RXTimelineView.Position position) {
-            boolean trailing = position == RXTimelineView.Position.RIGHT;
-            if (trailing) {
+            boolean vertical = orientation == Orientation.VERTICAL;
+            boolean alternate = position == RXTimelineView.Position.ALTERNATE;
+            boolean leftSide;
+            boolean contentBeforeAxis;
+            if (alternate) {
+                leftSide = displayIndex % 2 == 0;
+                contentBeforeAxis = leftSide;
+            } else {
+                leftSide = position != RXTimelineView.Position.RIGHT;
+                contentBeforeAxis = !leftSide;
+            }
+
+            // Reset content sizing; ALTERNATE forces equal halves by zeroing BOTH the
+            // main-axis min and preferred size on content and the filler, so grow
+            // splits evenly even when the content's natural min would resist shrinking.
+            content.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+            content.setMinSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+            if (alternate) {
+                if (contentBeforeAxis) {
+                    getChildren().setAll(content, axis, spacer);
+                } else {
+                    getChildren().setAll(spacer, axis, content);
+                }
+                setMainPref(content, 0.0);
+                setMainMin(content, 0.0);
+                setMainPref(spacer, 0.0);
+                setMainMin(spacer, 0.0);
+                setGrow(content, Priority.ALWAYS);
+                setGrow(spacer, Priority.ALWAYS);
+            } else if (contentBeforeAxis) {
                 getChildren().setAll(content, axis);
+                setGrow(content, Priority.ALWAYS);
             } else {
                 getChildren().setAll(axis, content);
+                setGrow(content, Priority.ALWAYS);
             }
-            boolean vertical = orientation == Orientation.VERTICAL;
-            boolean rightAlign = vertical && trailing;
-            // Content hugs the axis: vertical pins to the top; a horizontal trailing
-            // axis (below the content) bottom-anchors the text so it sits next to it.
-            Pos contentAlignment;
+
             if (vertical) {
-                contentAlignment = rightAlign ? Pos.TOP_RIGHT : Pos.TOP_LEFT;
+                content.setAlignment(contentBeforeAxis ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
+                Pos labelAlignment = contentBeforeAxis ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
+                TextAlignment textAlignment = contentBeforeAxis ? TextAlignment.RIGHT : TextAlignment.LEFT;
+                for (Label label : new Label[]{title, description, timestamp}) {
+                    label.setAlignment(labelAlignment);
+                    label.setTextAlignment(textAlignment);
+                }
             } else {
-                contentAlignment = trailing ? Pos.BOTTOM_LEFT : Pos.TOP_LEFT;
+                content.setAlignment(contentBeforeAxis ? Pos.BOTTOM_LEFT : Pos.TOP_LEFT);
+                for (Label label : new Label[]{title, description, timestamp}) {
+                    label.setAlignment(Pos.CENTER_LEFT);
+                    label.setTextAlignment(TextAlignment.LEFT);
+                }
             }
-            content.setAlignment(contentAlignment);
-            Pos labelAlignment = rightAlign ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
-            TextAlignment textAlignment = rightAlign ? TextAlignment.RIGHT : TextAlignment.LEFT;
-            for (Label label : new Label[]{title, description, timestamp}) {
-                label.setAlignment(labelAlignment);
-                label.setTextAlignment(textAlignment);
+
+            pseudoClassStateChanged(LEFT_PSEUDO_CLASS, leftSide);
+            pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, !leftSide);
+        }
+
+        private void setMainPref(Region node, double value) {
+            if (orientation == Orientation.VERTICAL) {
+                node.setPrefWidth(value);
+            } else {
+                node.setPrefHeight(value);
             }
-            pseudoClassStateChanged(LEFT_PSEUDO_CLASS, !trailing);
-            pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, trailing);
+        }
+
+        private void setMainMin(Region node, double value) {
+            if (orientation == Orientation.VERTICAL) {
+                node.setMinWidth(value);
+            } else {
+                node.setMinHeight(value);
+            }
         }
 
         private RXTimelineItem getItem() {

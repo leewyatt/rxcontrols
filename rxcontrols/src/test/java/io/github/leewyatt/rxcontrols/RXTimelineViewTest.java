@@ -302,6 +302,34 @@ public class RXTimelineViewTest {
     }
 
     @Test
+    public void alternatePositionAlternatesContentSideByParity() {
+        RXTimelineView view = new RXTimelineView(
+                new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
+        view.setPosition(Position.ALTERNATE);
+        showInScene(view);
+
+        List<Node> nodes = itemNodes(view);
+        RXBox even = (RXBox) nodes.get(0);
+        RXBox odd = (RXBox) nodes.get(1);
+
+        // Alternate rows are three-slot (content | axis | spacer); the axis is centered.
+        assertEquals(3, even.getChildrenUnmodifiable().size());
+        assertEquals(3, odd.getChildrenUnmodifiable().size());
+
+        // Even item: content on the leading side (before the axis), :left.
+        assertTrue(even.getChildrenUnmodifiable().get(0).getStyleClass().contains("content"));
+        assertTrue(even.getChildrenUnmodifiable().get(1).getStyleClass().contains("axis"));
+        assertTrue(even.getPseudoClassStates().contains(LEFT));
+        assertFalse(even.getPseudoClassStates().contains(RIGHT));
+
+        // Odd item: content on the trailing side (after the axis), :right.
+        assertTrue(odd.getChildrenUnmodifiable().get(2).getStyleClass().contains("content"));
+        assertTrue(odd.getChildrenUnmodifiable().get(1).getStyleClass().contains("axis"));
+        assertTrue(odd.getPseudoClassStates().contains(RIGHT));
+        assertFalse(odd.getPseudoClassStates().contains(LEFT));
+    }
+
+    @Test
     public void nullPositionFallsBackToLeft() {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
         view.setPosition(null);

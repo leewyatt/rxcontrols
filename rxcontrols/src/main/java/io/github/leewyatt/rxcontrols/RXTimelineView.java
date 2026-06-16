@@ -66,7 +66,14 @@ public class RXTimelineView extends Control {
          * (content on the left, right-aligned toward the axis); in a horizontal
          * timeline this is the bottom (content above).
          */
-        RIGHT
+        RIGHT,
+        /**
+         * Axis centered, with content alternating sides by display order: the
+         * first item's content sits on the leading side (left in a vertical
+         * timeline, top in a horizontal one), the next on the trailing side, and
+         * so on. The two sides are kept equal width so the axis stays centered.
+         */
+        ALTERNATE
     }
 
     // ==================== Constants ====================
