@@ -527,6 +527,33 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies the symmetric counterpart of the timeline bug: a VERTICAL,
+     * grow + content-bias child with a zero preferred height. RXBox must still
+     * match VBox here (its width path is intentionally NOT given the
+     * getMaxAreaHeight-style fix), so the pref width is measured at the capped
+     * (pref) height like VBox, not the grown height.
+     */
+    @Test
+    public void verticalContentBiasZeroPrefWidthMatchesVBox() {
+        HeightBiasedRegion vFirst = zeroPrefHeightBiasedRegion(20.0);
+        FixedRegion vSecond = fixedRegion(30.0, 20.0);
+        VBox vbox = new VBox(4.0, vFirst, vSecond);
+        VBox.setVgrow(vFirst, Priority.ALWAYS);
+
+        HeightBiasedRegion rFirst = zeroPrefHeightBiasedRegion(20.0);
+        FixedRegion rSecond = fixedRegion(30.0, 20.0);
+        RXBox rxBox = new RXBox(Orientation.VERTICAL, 4.0, rFirst, rSecond);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+
+        assertClose(vbox.prefWidth(120.0), rxBox.prefWidth(120.0), "pref width");
+        layout(vbox, 90.0, 120.0);
+        layout(rxBox, 90.0, 120.0);
+
+        assertNodeMatches(vFirst, rFirst, "biased");
+        assertNodeMatches(vSecond, rSecond, "fixed");
+    }
+
+    /**
      * Verifies CSS metadata exposes RXBox styleable properties.
      */
     @Test
@@ -595,6 +622,16 @@ public class RXBoxTest {
         region.setMinHeight(10.0);
         region.setPrefHeight(20.0);
         region.setMaxHeight(40.0);
+        return region;
+    }
+
+    // Mirrors the timeline's content node: zero min/pref main size + unbounded
+    // growth, so the grown size diverges sharply from the pref.
+    private static HeightBiasedRegion zeroPrefHeightBiasedRegion(double baseWidth) {
+        HeightBiasedRegion region = new HeightBiasedRegion(baseWidth);
+        region.setMinHeight(0.0);
+        region.setPrefHeight(0.0);
+        region.setMaxHeight(Double.MAX_VALUE);
         return region;
     }
 

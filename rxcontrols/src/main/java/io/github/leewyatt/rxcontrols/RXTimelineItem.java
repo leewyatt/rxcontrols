@@ -22,9 +22,10 @@ import javafx.scene.paint.Color;
  * properties default to {@code null}, which carries a fall-through meaning
  * (no custom content, no icon, no semantic level, no per-item color override).
  *
- * <p><b>Single-occupancy contract:</b> {@link #contentProperty() content} and
- * {@link #dotGraphicProperty() dotGraphic} are live scene-graph nodes, and a
- * JavaFX node may have only one parent. An {@code RXTimelineItem} instance (and
+ * <p><b>Single-occupancy contract:</b> {@link #contentProperty() content},
+ * {@link #dotGraphicProperty() dotGraphic}, and
+ * {@link #oppositeContentProperty() oppositeContent} are live scene-graph nodes,
+ * and a JavaFX node may have only one parent. An {@code RXTimelineItem} instance (and
  * the nodes it carries) must therefore appear at most once in a single
  * {@link RXTimelineView#getItems()} list, just as the same node must not be
  * placed in two {@code Tab}s or {@code TreeItem}s. Reusing one instance in two
@@ -221,6 +222,45 @@ public class RXTimelineItem {
      */
     public final void setContent(Node value) {
         content.set(value);
+    }
+
+    // ==================== Opposite Content ====================
+
+    private final ObjectProperty<Node> oppositeContent = new SimpleObjectProperty<>(this, "oppositeContent", null);
+
+    /**
+     * A node rendered on the far side of the axis from {@link #contentProperty()
+     * content} — typically a timestamp or short label. It is shown only when the
+     * view's {@link RXTimelineView#showOppositeContentProperty() showOppositeContent}
+     * is enabled; that view-wide switch (not this per-item value) decides whether
+     * the axis is centered. A {@code null} value is fine: the row still reserves an
+     * empty opposite column so the axis stays aligned with its neighbors.
+     *
+     * <p>Subject to the single-occupancy contract described in the class
+     * documentation.
+     *
+     * @return the opposite content property
+     */
+    public final ObjectProperty<Node> oppositeContentProperty() {
+        return oppositeContent;
+    }
+
+    /**
+     * Returns the opposite-side content node.
+     *
+     * @return the opposite content node, or {@code null}
+     */
+    public final Node getOppositeContent() {
+        return oppositeContent.get();
+    }
+
+    /**
+     * Sets the opposite-side content node.
+     *
+     * @param value the opposite content node, or {@code null}
+     */
+    public final void setOppositeContent(Node value) {
+        oppositeContent.set(value);
     }
 
     // ==================== Dot Graphic ====================

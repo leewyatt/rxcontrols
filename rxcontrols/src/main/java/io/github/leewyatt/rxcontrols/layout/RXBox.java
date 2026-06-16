@@ -810,6 +810,13 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             double childHeight = childHeights == null ? -1 : childHeights[i];
+            // fill=false on purpose: the cross-axis (height) is capped at the child's
+            // pref, mirroring VBox.computePrefWidth, which calls Region.getMaxAreaWidth
+            // with fillHeight=false. Do NOT "symmetrize" this to true to match
+            // computeMaxAreaHeight below — JavaFX's getMaxAreaHeight (no cap) and
+            // getMaxAreaWidth (capped) are intentionally asymmetric, and RXBox matches
+            // each. Changing it would diverge from VBox for a vertical vgrow +
+            // content-bias child whose pref height is small (see RXBoxTest).
             double areaWidth = minimum
                     ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
                             childHeight, false)
@@ -830,10 +837,12 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1 : childWidths[i];
-            // Measure the child's height at its allocated (grown) width, matching
-            // HBox.computePrefHeight and layoutChildren (which fills the main axis).
-            // Passing false would cap the width at the child's pref, mismeasuring a
-            // grow + content-bias child whose pref width is small (e.g. 0).
+            // fill=true: measure each child's height at its allocated (grown) main-axis
+            // width, NOT a pref-capped width. This mirrors HBox.computePrefHeight, which
+            // feeds the adjusted widths to Region.getMaxAreaHeight — a method that has no
+            // fill flag and uses the width as-is. Passing false would mismeasure a grow +
+            // content-bias child whose pref width is small (e.g. 0), inflating the box.
+            // Deliberately asymmetric with computeMaxAreaWidth above (see note there).
             double areaHeight = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
                             childWidth, true)

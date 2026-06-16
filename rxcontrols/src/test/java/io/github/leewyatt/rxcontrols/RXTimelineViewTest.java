@@ -9,6 +9,7 @@ import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.event.Event;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -351,6 +352,133 @@ public class RXTimelineViewTest {
     }
 
     @Test
+    public void showOppositeContentKeepsAxisAlignedAcrossMixedRows() {
+        // Three rows, only some carrying an opposite node: the axis must land on the
+        // same x on every row (the whole reason centering is a view-wide decision).
+        RXTimelineItem withA = new RXTimelineItem("Alpha", "09:00");
+        withA.setOppositeContent(new Label("09:00"));
+        RXTimelineItem none = new RXTimelineItem("Bravo");
+        RXTimelineItem withC = new RXTimelineItem("Charlie", "09:10");
+        withC.setOppositeContent(new Label("09:10"));
+        RXTimelineView view = new RXTimelineView(withA, none, withC);
+        view.setShowOppositeContent(true);
+        showInScene(view);
+
+        List<Node> nodes = itemNodes(view);
+        double baseX = dotCenterX((Region) nodes.get(0).lookup(".dot"));
+        for (Node node : nodes) {
+            // Even the row with no opposite node is centered three-slot.
+            assertEquals(3, ((Parent) node).getChildrenUnmodifiable().size());
+            double x = dotCenterX((Region) node.lookup(".dot"));
+            assertEquals(baseX, x, 0.5, "dot center x must be identical on every row");
+        }
+    }
+
+    @Test
+    public void showOppositeContentHorizontalDoesNotCollapseContent() {
+        // Regression for the layoutChildren/applyPosition divergence: a horizontal
+        // centered row (showOppositeContent, non-ALTERNATE) must fill the height so the
+        // centered axis has room — otherwise content collapses to height 0.
+        Region tall = new Region();
+        tall.setMinSize(80.0, 120.0);
+        tall.setPrefSize(80.0, 120.0);
+        RXTimelineItem withContent = new RXTimelineItem("a");
+        withContent.setContent(tall);
+        RXTimelineItem other = new RXTimelineItem("b", "09:05");
+        other.setOppositeContent(new Label("09:05"));
+        RXTimelineView view = new RXTimelineView(withContent, other);
+        view.setOrientation(Orientation.HORIZONTAL);
+        view.setShowOppositeContent(true);
+        StackPane root = new StackPane(view);
+        new Scene(root, 800.0, 400.0);
+        root.applyCss();
+        root.layout();
+
+        assertTrue(tall.getHeight() >= 100.0,
+                "horizontal centered content must not collapse, was " + tall.getHeight());
+
+        // The dot center sits on the same y on every row (axis aligned along the timeline).
+        double baseY = dotCenterY((Region) itemNodes(view).get(0).lookup(".dot"));
+        double otherY = dotCenterY((Region) itemNodes(view).get(1).lookup(".dot"));
+        assertEquals(baseY, otherY, 0.5, "dot center y must align across horizontal rows");
+    }
+
+    @Test
+    public void alternateWithOppositeContentHostsOnOppositeSide() {
+        Label stamp0 = new Label("t0");
+        Label stamp1 = new Label("t1");
+        RXTimelineItem even = new RXTimelineItem("a");
+        even.setOppositeContent(stamp0);
+        RXTimelineItem odd = new RXTimelineItem("b");
+        odd.setOppositeContent(stamp1);
+        RXTimelineView view = new RXTimelineView(even, odd);
+        view.setPosition(Position.ALTERNATE);
+        view.setShowOppositeContent(true);
+        showInScene(view);
+
+        RXBox evenRow = (RXBox) itemNodes(view).get(0);
+        RXBox oddRow = (RXBox) itemNodes(view).get(1);
+        // The opposite node lands on the half opposite the content, mirrored by parity.
+        assertTrue(evenRow.getChildrenUnmodifiable().get(0).getStyleClass().contains("content"));
+        assertTrue(evenRow.getChildrenUnmodifiable().get(2).getStyleClass().contains("opposite"));
+        assertTrue(oddRow.getChildrenUnmodifiable().get(0).getStyleClass().contains("opposite"));
+        assertTrue(oddRow.getChildrenUnmodifiable().get(2).getStyleClass().contains("content"));
+        assertSame(stamp0, ((Parent) evenRow.lookup(".opposite")).getChildrenUnmodifiable().get(0));
+        assertSame(stamp1, ((Parent) oddRow.lookup(".opposite")).getChildrenUnmodifiable().get(0));
+    }
+
+    @Test
+    public void oppositeContentRuntimeChangeRehosts() {
+        RXTimelineItem item = new RXTimelineItem("a");
+        RXTimelineView view = new RXTimelineView(item);
+        view.setShowOppositeContent(true);
+        showInScene(view);
+
+        RXBox row = (RXBox) itemNodes(view).get(0);
+        Parent holder = (Parent) row.lookup(".opposite");
+        assertNotNull(holder);
+        // showOppositeContent on but no node yet: the column is reserved but empty.
+        assertTrue(holder.getChildrenUnmodifiable().isEmpty());
+
+        Label stamp = new Label("09:00");
+        item.setOppositeContent(stamp);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        // The oppositeListener -> refreshOpposite path hosts the node without a rebuild.
+        assertSame(stamp, holder.getChildrenUnmodifiable().get(0));
+
+        item.setOppositeContent(null);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertTrue(holder.getChildrenUnmodifiable().isEmpty());
+        // The column is still reserved while showOppositeContent stays on.
+        assertEquals(3, row.getChildrenUnmodifiable().size());
+    }
+
+    @Test
+    public void oppositeContentSurvivesRebuildSingleOccupancy() {
+        Label stamp = new Label("09:00");
+        RXTimelineItem survivor = new RXTimelineItem("a");
+        survivor.setOppositeContent(stamp);
+        RXTimelineView view = new RXTimelineView(survivor);
+        view.setShowOppositeContent(true);
+        showInScene(view);
+
+        Parent oldHolder = (Parent) itemNodes(view).get(0).lookup(".opposite");
+        assertSame(stamp, oldHolder.getChildrenUnmodifiable().get(0));
+
+        // A full rebuild discards the old ItemNode; its dispose() releases the opposite
+        // node so the fresh ItemNode can re-parent it (single-occupancy preserved).
+        view.getItems().setAll(survivor);
+        view.getParent().applyCss();
+        view.getParent().layout();
+
+        Parent newHolder = (Parent) itemNodes(view).get(0).lookup(".opposite");
+        assertSame(stamp, newHolder.getChildrenUnmodifiable().get(0));
+        assertTrue(oldHolder.getChildrenUnmodifiable().isEmpty());
+    }
+
+    @Test
     public void nullPositionFallsBackToLeft() {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
         view.setPosition(null);
@@ -543,6 +671,16 @@ public class RXTimelineViewTest {
         Parent itemsBox = (Parent) view.lookup(".items");
         assertNotNull(itemsBox);
         return List.copyOf(itemsBox.getChildrenUnmodifiable());
+    }
+
+    private static double dotCenterX(Region dot) {
+        Bounds bounds = dot.localToScene(dot.getBoundsInLocal());
+        return (bounds.getMinX() + bounds.getMaxX()) / 2.0;
+    }
+
+    private static double dotCenterY(Region dot) {
+        Bounds bounds = dot.localToScene(dot.getBoundsInLocal());
+        return (bounds.getMinY() + bounds.getMaxY()) / 2.0;
     }
 
     private static CssMetaData<? extends Styleable, ?> findMeta(RXTimelineView view, String property) {

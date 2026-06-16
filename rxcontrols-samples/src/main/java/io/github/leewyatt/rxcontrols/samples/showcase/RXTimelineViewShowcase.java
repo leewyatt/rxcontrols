@@ -24,14 +24,17 @@ import java.util.Locale;
 /**
  * Showcase application for {@link RXTimelineView}.
  *
- * <p>The preview shows a six-row activity stream that already exercises the
- * five semantic {@code type} levels and a wrapping description. The right panel
- * drives every public knob: {@code reverse}; the {@code dotSize} /
- * {@code lineWidth} / {@code itemSpacing} styleable sizes (dot size reaches
- * negative values and all reach the {@code 0} boundary so non-negative
- * sanitizing is observable); the view-level
- * looked-up colors {@code -rx-dot-fill} / {@code -rx-line-fill} via inline
- * style; and per-item {@code type}, {@code dotFill}, {@code dotGraphic}
+ * <p>The preview shows a five-row activity stream that already exercises the
+ * five semantic {@code type} levels and a wrapping description, with each row's
+ * timestamp carried in the {@code oppositeContent} column. The right panel
+ * drives every public knob: {@code reverse}, {@code orientation},
+ * {@code position}, and the view-wide {@code showOppositeContent} switch (on by
+ * default here, so the centered axis with the timestamp column is visible); the
+ * {@code dotSize} / {@code lineWidth} / {@code itemSpacing} / {@code axisSpacing}
+ * styleable sizes (dot size reaches negative values and all reach the {@code 0}
+ * boundary so non-negative sanitizing is observable); the view-level looked-up
+ * colors {@code -rx-dot-fill} / {@code -rx-line-fill} via inline style; and
+ * per-item {@code type}, {@code dotFill}, {@code dotGraphic}
  * (a {@code ProgressIndicator} loading marker) and custom {@code content} on a
  * selected row. A width slider verifies wrapped-height layout, and the data
  * section toggles the empty state with and without a placeholder.
@@ -94,7 +97,7 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         items = new RXTimelineItem[]{
                 item("Placed", "06-12 09:24", "Order created.", Type.PRIMARY),
                 item("Paid", "06-12 09:31", "", Type.SUCCESS),
-                item("Low stock", "06-12 11:02", "One SKU low.", Type.WARNING),
+                item("Low stock", "", "One SKU low.", Type.WARNING),
                 item("Delayed", "06-13 08:40", "Hub closed.", Type.DANGER),
                 item("Notified", "06-13 19:15", "Email sent.", Type.INFO)
         };
@@ -132,10 +135,17 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         positionBox.setMaxWidth(Double.MAX_VALUE);
         timeline.positionProperty().bind(positionBox.valueProperty());
 
+        // View-wide switch: every item reserves the opposite (timestamp) column so the
+        // axis stays aligned across rows. Enabled by default here to show the centered look.
+        CheckBox oppositeBox = new CheckBox("Show opposite content");
+        oppositeBox.setSelected(true);
+        timeline.showOppositeContentProperty().bind(oppositeBox.selectedProperty());
+
         return createGrid(
                 row(reverseBox),
                 row("Orientation", orientationBox),
-                row("Axis position", positionBox));
+                row("Axis position", positionBox),
+                row(oppositeBox));
     }
 
     private Node buildMetricsGrid() {
@@ -320,9 +330,14 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     }
 
     private RXTimelineItem item(String title, String timestamp, String description, Type type) {
-        RXTimelineItem timelineItem = new RXTimelineItem(title, timestamp);
+        RXTimelineItem timelineItem = new RXTimelineItem(title);
         timelineItem.setDescription(description);
         timelineItem.setType(type);
+        // The timestamp lives in the opposite column (shown when showOppositeContent is on).
+        // An empty timestamp leaves oppositeContent null, demonstrating mixed support.
+        if (!timestamp.isEmpty()) {
+            timelineItem.setOppositeContent(new Label(timestamp));
+        }
         return timelineItem;
     }
 

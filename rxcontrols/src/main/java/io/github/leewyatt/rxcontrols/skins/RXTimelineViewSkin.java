@@ -55,6 +55,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     private final Runnable metricsAction = this::applyMetricsAndRequestLayout;
     private final Runnable positionAction = this::applyPositionAndRequestLayout;
     private final Runnable orientationAction = this::applyOrientationAndRequestLayout;
+    private final Runnable oppositeAction = this::applyShowOppositeAndRequestLayout;
     private final ChangeListener<Node> placeholderListener =
             (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
     private final EventHandler<MouseEvent> clickHandler = this::onItemsClicked;
@@ -84,6 +85,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         disposer.registerListener(control.axisSpacingProperty(), metricsAction);
         disposer.registerListener(control.positionProperty(), positionAction);
         disposer.registerListener(control.orientationProperty(), orientationAction);
+        disposer.registerListener(control.showOppositeContentProperty(), oppositeAction);
         disposer.registerListener(control.placeholderProperty(), placeholderListener);
         disposer.registerEventHandler(itemsBox, MouseEvent.MOUSE_CLICKED, clickHandler);
 
@@ -101,13 +103,14 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             layoutInArea(placeholderRegion, contentX, contentY, contentWidth, contentHeight,
                     -1, HPos.CENTER, VPos.CENTER);
         } else if (orientationOrDefault() == Orientation.HORIZONTAL) {
-            // LEFT/RIGHT: size the row to its preferred height (not the full area) so
-            // the axis and content stay together. ALTERNATE needs a real height to
-            // split for the centered axis, so fill the height; fillCrossAxis then
-            // makes every item that tall, keeping the centered axis line aligned.
-            boolean alternate = positionOrDefault() == RXTimelineView.Position.ALTERNATE;
+            // Non-centered LEFT/RIGHT: size the row to its preferred height (not the
+            // full area) so the axis and content stay together. A centered form
+            // (ALTERNATE or showOppositeContent) splits the height for the centered
+            // axis, so it must fill the height; fillCrossAxis then makes every item
+            // that tall, keeping the centered axis line aligned across rows.
+            boolean centered = isCentered();
             layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
-                    -1, Insets.EMPTY, false, alternate, HPos.LEFT, VPos.TOP);
+                    -1, Insets.EMPTY, false, centered, HPos.LEFT, VPos.TOP);
         } else {
             layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
                     -1, Insets.EMPTY, true, true, HPos.LEFT, VPos.TOP);
@@ -195,7 +198,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         int count = items.size();
         for (int i = 0; i < count; i++) {
             int modelIndex = reverse ? count - 1 - i : i;
-            itemNodes.add(new ItemNode(items.get(modelIndex), modelIndex));
+            itemNodes.add(new ItemNode(getSkinnable(), items.get(modelIndex), modelIndex));
         }
         itemsBox.getChildren().setAll(itemNodes);
         for (int i = 0; i < count; i++) {
@@ -265,6 +268,28 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     private RXTimelineView.Position positionOrDefault() {
         RXTimelineView.Position position = getSkinnable().getPosition();
         return position == null ? RXTimelineView.DEFAULT_POSITION : position;
+    }
+
+    // The axis is centered between two equal halves (rather than pinned to one edge)
+    // whenever ALTERNATE or the view-wide showOppositeContent switch is in effect.
+    // Both layoutChildren and ItemNode.applyPosition must agree on this, or a centered
+    // row can be sized as if it were edge-pinned and collapse its content.
+    private boolean isCentered() {
+        return positionOrDefault() == RXTimelineView.Position.ALTERNATE
+                || getSkinnable().isShowOppositeContent();
+    }
+
+    // ==================== Opposite Content ====================
+
+    private void applyShowOpposite() {
+        for (ItemNode node : itemNodes) {
+            node.refreshOpposite();
+        }
+    }
+
+    private void applyShowOppositeAndRequestLayout() {
+        applyShowOpposite();
+        getSkinnable().requestLayout();
     }
 
     // ==================== Placeholder ====================
@@ -360,19 +385,23 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private static final PseudoClass HOLLOW_PSEUDO_CLASS = PseudoClass.getPseudoClass("hollow");
 
         private final SkinDisposer itemDisposer = new SkinDisposer();
+        private final RXTimelineView control;
         private final RXTimelineItem item;
         private final int modelIndex;
         private int displayIndex;
         private boolean first;
         private boolean last;
         private Orientation orientation = Orientation.VERTICAL;
+        private RXTimelineView.Position position = RXTimelineView.DEFAULT_POSITION;
 
         private final StackPane axis = new StackPane();
         private final Region connector = new Region();
         private final StackPane dot = new StackPane();
         private final VBox content = new VBox();
-        // Empty filler reserving the opposite half in ALTERNATE so the axis centers.
-        private final Region spacer = new Region();
+        // Hosts the optional opposite-side content; also reserves the opposite half
+        // (empty) whenever the axis is centered (ALTERNATE, or showOppositeContent),
+        // so the axis stays aligned across rows even when this item has none.
+        private final StackPane oppositeHolder = new StackPane();
         private final Label title = new Label();
         private final Label description = new Label();
         private final Label timestamp = new Label();
@@ -381,8 +410,12 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 (observable, oldValue, newValue) -> updateContent(newValue);
         private final ChangeListener<Node> dotGraphicListener =
                 (observable, oldValue, newValue) -> updateDotGraphic(newValue);
+        // Opposite content may add/remove the third slot, so re-run the position layout.
+        private final ChangeListener<Node> oppositeListener =
+                (observable, oldValue, newValue) -> refreshOpposite();
 
-        private ItemNode(RXTimelineItem item, int modelIndex) {
+        private ItemNode(RXTimelineView control, RXTimelineItem item, int modelIndex) {
+            this.control = control;
             this.item = item;
             this.modelIndex = modelIndex;
 
@@ -391,6 +424,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             connector.getStyleClass().add("connector");
             dot.getStyleClass().add("dot");
             content.getStyleClass().add("content");
+            oppositeHolder.getStyleClass().add("opposite");
             title.getStyleClass().add("title");
             description.getStyleClass().add("description");
             timestamp.getStyleClass().add("timestamp");
@@ -414,6 +448,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
             itemDisposer.registerListener(item.contentProperty(), contentListener);
             itemDisposer.registerListener(item.dotGraphicProperty(), dotGraphicListener);
+            itemDisposer.registerListener(item.oppositeContentProperty(), oppositeListener);
             itemDisposer.registerListener(item.typeProperty(), () -> applyTypePseudo(item.getType()));
             itemDisposer.registerListener(item.dotFillProperty(), this::applyDotAppearance);
             itemDisposer.registerListener(item.hollowProperty(), this::applyHollow);
@@ -421,9 +456,27 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
             updateContent(item.getContent());
             updateDotGraphic(item.getDotGraphic());
+            updateOpposite(item.getOppositeContent());
             applyTypePseudo(item.getType());
             applyHollow();
             applyLineFill();
+        }
+
+        // Re-hosts the opposite node and re-runs the position layout; called when the
+        // item's oppositeContent changes or the view's showOppositeContent toggles.
+        private void refreshOpposite() {
+            updateOpposite(item.getOppositeContent());
+            applyPosition(position);
+        }
+
+        private void updateOpposite(Node oppositeContent) {
+            // Opposite content is only hosted when the view-wide switch is on; otherwise
+            // the holder stays empty (and unused), so a per-item node never shows alone.
+            if (oppositeContent != null && control.isShowOppositeContent()) {
+                oppositeHolder.getChildren().setAll(oppositeContent);
+            } else {
+                oppositeHolder.getChildren().clear();
+            }
         }
 
         private void bindCollapseWhenEmpty(Label label) {
@@ -582,10 +635,16 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         // Places content relative to the axis. LEFT / RIGHT pin the axis to one
         // cross-side with content filling the rest; ALTERNATE centers the axis
         // between equal-width halves and puts content on the leading or trailing
-        // half by display-order parity. Content text hugs the axis either way.
+        // half by display-order parity. The view-wide showOppositeContent switch
+        // also forces the centered three-slot form (content one half, opposite the
+        // other) on every row, so the axis stays aligned. Content text hugs the axis.
         private void applyPosition(RXTimelineView.Position position) {
+            this.position = position;
             boolean vertical = orientation == Orientation.VERTICAL;
             boolean alternate = position == RXTimelineView.Position.ALTERNATE;
+            // Centering is a view-wide decision so the axis stays aligned on every row:
+            // ALTERNATE always centers; showOppositeContent centers every row uniformly.
+            boolean centered = alternate || control.isShowOppositeContent();
             boolean leftSide;
             boolean contentBeforeAxis;
             if (alternate) {
@@ -596,23 +655,25 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 contentBeforeAxis = !leftSide;
             }
 
-            // Reset content sizing; ALTERNATE forces equal halves by zeroing BOTH the
-            // main-axis min and preferred size on content and the filler, so grow
-            // splits evenly even when the content's natural min would resist shrinking.
+            // Reset overrides; the centered form forces equal halves by zeroing BOTH
+            // the main-axis min and preferred size on content and the opposite holder,
+            // so grow splits evenly even when natural min would resist shrinking.
             content.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
             content.setMinSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
-            if (alternate) {
+            oppositeHolder.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+            oppositeHolder.setMinSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+            if (centered) {
                 if (contentBeforeAxis) {
-                    getChildren().setAll(content, axis, spacer);
+                    getChildren().setAll(content, axis, oppositeHolder);
                 } else {
-                    getChildren().setAll(spacer, axis, content);
+                    getChildren().setAll(oppositeHolder, axis, content);
                 }
                 setMainPref(content, 0.0);
                 setMainMin(content, 0.0);
-                setMainPref(spacer, 0.0);
-                setMainMin(spacer, 0.0);
                 setGrow(content, Priority.ALWAYS);
-                setGrow(spacer, Priority.ALWAYS);
+                setMainPref(oppositeHolder, 0.0);
+                setMainMin(oppositeHolder, 0.0);
+                setGrow(oppositeHolder, Priority.ALWAYS);
             } else if (contentBeforeAxis) {
                 getChildren().setAll(content, axis);
                 setGrow(content, Priority.ALWAYS);
@@ -621,8 +682,10 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 setGrow(content, Priority.ALWAYS);
             }
 
+            // Content hugs the axis; the opposite holder hugs it from the other side.
             if (vertical) {
                 content.setAlignment(contentBeforeAxis ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
+                oppositeHolder.setAlignment(contentBeforeAxis ? Pos.TOP_LEFT : Pos.TOP_RIGHT);
                 Pos labelAlignment = contentBeforeAxis ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
                 TextAlignment textAlignment = contentBeforeAxis ? TextAlignment.RIGHT : TextAlignment.LEFT;
                 for (Label label : new Label[]{title, description, timestamp}) {
@@ -631,6 +694,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 }
             } else {
                 content.setAlignment(contentBeforeAxis ? Pos.BOTTOM_LEFT : Pos.TOP_LEFT);
+                oppositeHolder.setAlignment(contentBeforeAxis ? Pos.TOP_LEFT : Pos.BOTTOM_LEFT);
                 for (Label label : new Label[]{title, description, timestamp}) {
                     label.setAlignment(Pos.CENTER_LEFT);
                     label.setTextAlignment(TextAlignment.LEFT);
@@ -671,6 +735,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             // by the next ItemNode and are not retained by this discarded node.
             dot.getChildren().clear();
             content.getChildren().clear();
+            oppositeHolder.getChildren().clear();
         }
     }
 }

@@ -118,6 +118,11 @@ public class RXTimelineView extends Control {
      */
     public static final Orientation DEFAULT_ORIENTATION = Orientation.VERTICAL;
 
+    /**
+     * Default opposite-content visibility.
+     */
+    public static final boolean DEFAULT_SHOW_OPPOSITE_CONTENT = false;
+
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
 
     // ==================== Items ====================
@@ -230,6 +235,53 @@ public class RXTimelineView extends Control {
      */
     public final void setOrientation(Orientation value) {
         orientation.set(value);
+    }
+
+    // ==================== Show Opposite Content ====================
+
+    private final BooleanProperty showOppositeContent =
+            new SimpleBooleanProperty(this, "showOppositeContent", DEFAULT_SHOW_OPPOSITE_CONTENT);
+
+    /**
+     * Whether every item reserves a column on the far side of the axis for its
+     * {@link RXTimelineItem#oppositeContentProperty() oppositeContent}.
+     *
+     * <p>This is a view-wide layout switch, not a per-item one: when {@code true}
+     * the axis is centered between two equal halves on <em>every</em> row, so the
+     * axis stays vertically (or horizontally) aligned across the whole timeline.
+     * An item whose {@code oppositeContent} is {@code null} simply contributes an
+     * empty (zero-size) opposite column — it does not break the alignment, so
+     * mixing items with and without opposite content is fine. When {@code false}
+     * (the default) no opposite column is reserved and any per-item
+     * {@code oppositeContent} is not shown.
+     *
+     * <p>It composes with {@link #positionProperty() position}: {@code position}
+     * still chooses which half holds the primary content (right for
+     * {@link Position#LEFT}, left for {@link Position#RIGHT}, alternating for
+     * {@link Position#ALTERNATE}), and the opposite content fills the other half.
+     *
+     * @return the show-opposite-content property
+     */
+    public final BooleanProperty showOppositeContentProperty() {
+        return showOppositeContent;
+    }
+
+    /**
+     * Returns whether the opposite-content column is shown.
+     *
+     * @return {@code true} if every item reserves an opposite column
+     */
+    public final boolean isShowOppositeContent() {
+        return showOppositeContent.get();
+    }
+
+    /**
+     * Sets whether the opposite-content column is shown.
+     *
+     * @param value {@code true} to reserve an opposite column on every item
+     */
+    public final void setShowOppositeContent(boolean value) {
+        showOppositeContent.set(value);
     }
 
     // ==================== Dot Size ====================

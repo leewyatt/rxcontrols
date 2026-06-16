@@ -966,6 +966,11 @@
     -fx-font-size: 0.85em;
 }
 
+.rx-timeline-view > .items > .item > .opposite {
+    -fx-text-fill: -fx-mid-text-color;
+    -fx-font-size: 0.85em;
+}
+
 .rx-timeline-view > .placeholder {
     -fx-text-fill: -fx-mid-text-color;
     -fx-opacity: 0.62;
