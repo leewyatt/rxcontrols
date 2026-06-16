@@ -917,7 +917,6 @@
 .rx-timeline-view > .items > .item > .axis > .dot {
     -fx-background-color: -rx-dot-fill;
     -fx-background-radius: 50%;
-    -fx-translate-y: 2; /* nudge dot toward the title's first line */
 }
 
 .rx-timeline-view > .items > .item > .axis > .connector {
