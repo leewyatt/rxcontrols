@@ -923,10 +923,6 @@
     -fx-background-color: -rx-line-fill;
 }
 
-.rx-timeline-view > .items > .item:last > .axis > .connector {
-    visibility: hidden;
-}
-
 .rx-timeline-view > .items > .item:success > .axis > .dot {
     -fx-background-color: #67c23a;
 }

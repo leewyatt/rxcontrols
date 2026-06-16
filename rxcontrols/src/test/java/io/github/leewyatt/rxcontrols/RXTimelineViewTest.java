@@ -15,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
@@ -228,6 +229,37 @@ public class RXTimelineViewTest {
         assertFalse(itemNodes(view).contains(oldItem));
         survivor.setTitle("changed");
         assertEquals("original", oldTitle.getText());
+    }
+
+    @Test
+    public void connectorRunsDotCenterToDotCenter() {
+        RXTimelineView view = new RXTimelineView(
+                new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
+        showInScene(view);
+        double half = view.getDotSize() / 2.0;
+
+        List<Node> nodes = itemNodes(view);
+        Region firstConnector = (Region) nodes.get(0).lookup(".connector");
+        Region midConnector = (Region) nodes.get(1).lookup(".connector");
+        Region lastConnector = (Region) nodes.get(2).lookup(".connector");
+
+        // First item's segment starts at its dot center and runs to the row bottom.
+        assertEquals(half, StackPane.getMargin(firstConnector).getTop(), EPSILON);
+        assertEquals(Double.MAX_VALUE, firstConnector.getMaxHeight(), EPSILON);
+        // Middle item spans the full row height with no top inset.
+        assertEquals(0.0, StackPane.getMargin(midConnector).getTop(), EPSILON);
+        assertEquals(Double.MAX_VALUE, midConnector.getMaxHeight(), EPSILON);
+        // Last item's segment stops at its dot center (visible, not hidden).
+        assertTrue(lastConnector.isVisible());
+        assertEquals(half, lastConnector.getMaxHeight(), EPSILON);
+    }
+
+    @Test
+    public void singleItemHasNoConnector() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("only"));
+        showInScene(view);
+        Region connector = (Region) itemNodes(view).get(0).lookup(".connector");
+        assertFalse(connector.isVisible());
     }
 
     @Test

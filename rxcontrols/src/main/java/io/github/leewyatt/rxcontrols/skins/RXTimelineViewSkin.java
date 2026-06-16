@@ -178,7 +178,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         itemsBox.getChildren().setAll(itemNodes);
         int lastDisplayIndex = itemNodes.size() - 1;
         for (int i = 0; i < itemNodes.size(); i++) {
-            itemNodes.get(i).setLast(i == lastDisplayIndex);
+            itemNodes.get(i).setRole(i == 0, i == lastDisplayIndex);
         }
         applyMetrics();
         updatePlaceholderState();
@@ -293,6 +293,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private final RXTimelineItem item;
         private final int modelIndex;
+        private boolean first;
         private boolean last;
 
         private final StackPane axis = new StackPane();
@@ -360,10 +361,35 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private void applyMetrics(double dotSize, double lineWidth, double itemSpacing) {
             dot.setPrefSize(dotSize, dotSize);
             connector.setPrefWidth(lineWidth);
-            connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+            configureConnector(lineWidth, dotSize / 2.0);
             // itemSpacing is the gap between items, so the last row carries no trailing padding.
             double bottom = last ? 0.0 : itemSpacing;
             content.setPadding(new Insets(0.0, 0.0, bottom, 0.0));
+        }
+
+        // The connector is one continuous line from the first dot's center to the
+        // last dot's center, drawn behind the dots. The first item starts its
+        // segment at the dot center (nothing above it), the last item stops at the
+        // dot center (nothing below it), and middle items span the full row height.
+        private void configureConnector(double lineWidth, double dotCenter) {
+            if (first && last) {
+                connector.setVisible(false);
+                return;
+            }
+            connector.setVisible(true);
+            if (first) {
+                StackPane.setAlignment(connector, Pos.CENTER);
+                StackPane.setMargin(connector, new Insets(dotCenter, 0.0, 0.0, 0.0));
+                connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+            } else if (last) {
+                StackPane.setAlignment(connector, Pos.TOP_CENTER);
+                StackPane.setMargin(connector, Insets.EMPTY);
+                connector.setMaxSize(lineWidth, dotCenter);
+            } else {
+                StackPane.setAlignment(connector, Pos.CENTER);
+                StackPane.setMargin(connector, Insets.EMPTY);
+                connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+            }
         }
 
         private void updateContent(Node custom) {
@@ -398,7 +424,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             }
         }
 
-        private void setLast(boolean last) {
+        private void setRole(boolean first, boolean last) {
+            this.first = first;
             this.last = last;
             pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
         }
