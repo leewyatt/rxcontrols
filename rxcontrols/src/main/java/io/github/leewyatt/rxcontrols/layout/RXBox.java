@@ -830,11 +830,15 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1 : childWidths[i];
+            // Measure the child's height at its allocated (grown) width, matching
+            // HBox.computePrefHeight and layoutChildren (which fills the main axis).
+            // Passing false would cap the width at the child's pref, mismeasuring a
+            // grow + content-bias child whose pref width is small (e.g. 0).
             double areaHeight = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                            childWidth, false)
+                            childWidth, true)
                     : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                            childWidth, false);
+                            childWidth, true);
             max = Math.max(max, areaHeight);
         }
         return max;

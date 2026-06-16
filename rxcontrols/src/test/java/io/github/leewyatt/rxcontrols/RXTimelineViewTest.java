@@ -330,6 +330,27 @@ public class RXTimelineViewTest {
     }
 
     @Test
+    public void alternateItemHeightMatchesContent() {
+        RXTimelineItem withDesc = new RXTimelineItem("Placed", "06-12 09:24");
+        withDesc.setDescription("Order created.");
+        RXTimelineView view = new RXTimelineView(withDesc, new RXTimelineItem("Paid", "06-12 09:31"));
+        view.setPosition(Position.ALTERNATE);
+        StackPane root = new StackPane(view);
+        new Scene(root, 360, 600);
+        root.applyCss();
+        root.layout();
+
+        Region first = (Region) itemNodes(view).get(0);
+        Region content = (Region) first.lookup(".content");
+        // Regression for the RXBox mismeasurement: the old code measured a grow +
+        // content-bias child's height at its (zero) pref width, inflating the item to
+        // a multi-line height (~280px) while content laid out at the half width (~60px).
+        // The item height must match the content measured at its laid-out width.
+        assertEquals(content.prefHeight(content.getWidth()), first.getHeight(), 2.0,
+                "alternate item height should match its content at the laid-out width");
+    }
+
+    @Test
     public void nullPositionFallsBackToLeft() {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
         view.setPosition(null);
