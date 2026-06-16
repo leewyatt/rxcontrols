@@ -1,0 +1,54 @@
+.live-preview {
+    -fx-padding: 24;
+}
+
+.live-preview > .value-readout {
+    -fx-font-size: 1.1em;
+    -fx-text-fill: #2c3e50;
+}
+
+.live-preview > .hint-label {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: #95a5a6;
+}
+
+.rx-segmented-control .seg-icon {
+    -fx-pref-width: 11;
+    -fx-pref-height: 11;
+    -fx-background-color: rgba(0, 0, 0, 0.55);
+    -fx-shape: "M5.5,0 A5.5,5.5 0 1 0 5.5,11 A5.5,5.5 0 1 0 5.5,0 Z";
+}
+
+.rx-segmented-control > .segment:selected .seg-icon {
+    -fx-background-color: rgba(0, 0, 0, 0.85);
+}
+
+.rx-segmented-control .seg-dot {
+    -fx-pref-width: 10;
+    -fx-pref-height: 10;
+    -fx-background-radius: 5;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Ocean theme override (toggled by the showcase)                             *
+ *                                                                             *
+ ******************************************************************************/
+.rx-segmented-control.ocean {
+    -fx-background-color: #0b3d5c;
+    -fx-background-radius: 18;
+}
+
+.rx-segmented-control.ocean > .indicator {
+    -fx-background-color: #1abc9c;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0, 0, 2);
+}
+
+.rx-segmented-control.ocean > .segment > .label {
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+}
+
+.rx-segmented-control.ocean > .segment:selected > .label {
+    -fx-text-fill: white;
+}
