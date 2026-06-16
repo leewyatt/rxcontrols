@@ -606,6 +606,29 @@ public class RXSegmentedControlTest {
     }
 
     @Test
+    public void contentWidthCompressesToFitNarrowControl() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedControl<String> control = styledDaily(500.0, 60.0);
+            double pref = control.prefWidth(-1);
+            double min = control.minWidth(-1);
+            // A width between min and pref: the parent allocated less than the
+            // natural content width.
+            double narrow = (min + pref) / 2.0;
+            layout(control, narrow, 60.0);
+
+            double leftInset = control.getInsets().getLeft();
+            double rightInset = control.getInsets().getRight();
+            int last = control.getItems().size() - 1;
+            double leftEdge = cell(control, 0).getLayoutX();
+            double rightEdge = cell(control, last).getLayoutX() + cell(control, last).getWidth();
+
+            assertEquals(leftInset, leftEdge, 0.5, "first segment starts at the left inset");
+            assertTrue(rightEdge <= narrow - rightInset + 0.5,
+                    "segments stay within the control background when width is short");
+        });
+    }
+
+    @Test
     public void prefHeightFollowsFontSize() throws Exception {
         runOnFx(() -> {
             RXSegmentedControl<String> control = styledDaily(500.0, 200.0);

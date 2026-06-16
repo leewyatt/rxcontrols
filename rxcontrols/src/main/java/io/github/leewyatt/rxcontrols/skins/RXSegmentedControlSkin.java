@@ -369,16 +369,65 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
                 cursor += cellWidth + spacing;
             }
         } else {
-            // Content width: each segment takes its own preferred width.
+            // Content width: each segment takes its preferred width, but is
+            // compressed proportionally toward its minimum when the available
+            // width is short, so the strip never overflows its background.
+            double[] widths = contentWidths(count, w - spacing * (count - 1), h);
             double cursor = x;
             for (int i = 0; i < count; i++) {
-                SegmentCell cell = cells.get(i);
-                double cellWidth = snapSizeX(cell.prefWidth(h));
                 double cellX = snapPositionX(cursor);
-                cell.resizeRelocate(cellX, y, cellWidth, h);
-                cursor = cellX + cellWidth + spacing;
+                cells.get(i).resizeRelocate(cellX, y, widths[i], h);
+                cursor = cellX + widths[i] + spacing;
             }
         }
+    }
+
+    /**
+     * Computes content-mode segment widths: preferred widths when they fit the
+     * available space, otherwise an HBox-style proportional shrink toward each
+     * segment's minimum (clamped at the minimum). Cumulative edges are snapped
+     * so adjacent segments meet without a sub-pixel gap.
+     */
+    private double[] contentWidths(int count, double available, double height) {
+        double[] pref = new double[count];
+        double totalPref = 0.0;
+        for (int i = 0; i < count; i++) {
+            pref[i] = cells.get(i).prefWidth(height);
+            totalPref += pref[i];
+        }
+        double[] widths = new double[count];
+        if (totalPref <= available) {
+            for (int i = 0; i < count; i++) {
+                widths[i] = snapSizeX(pref[i]);
+            }
+            return widths;
+        }
+        double[] min = new double[count];
+        double totalMin = 0.0;
+        for (int i = 0; i < count; i++) {
+            min[i] = cells.get(i).minWidth(height);
+            totalMin += min[i];
+        }
+        double headroom = totalPref - totalMin;
+        // Shrink each segment toward its minimum in proportion to its own
+        // pref-to-min headroom. When even the minimums do not fit, segments are
+        // scaled below their minimum so the strip still fits (labels ellipsize).
+        double shrinkRatio = headroom <= 0.0 ? 1.0 : (totalPref - available) / headroom;
+        double consumed = 0.0;
+        double idealEdge = 0.0;
+        for (int i = 0; i < count; i++) {
+            if (i < count - 1) {
+                idealEdge += pref[i] - (pref[i] - min[i]) * shrinkRatio;
+                double snappedEdge = snapSizeX(idealEdge);
+                widths[i] = Math.max(0.0, snappedEdge - consumed);
+                consumed = snappedEdge;
+            } else {
+                // The last segment absorbs the snapping remainder so the strip
+                // fills the available width exactly, never overflowing it.
+                widths[i] = Math.max(0.0, available - consumed);
+            }
+        }
+        return widths;
     }
 
     @Override
