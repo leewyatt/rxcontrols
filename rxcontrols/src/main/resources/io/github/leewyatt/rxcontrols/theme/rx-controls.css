@@ -333,9 +333,8 @@
  ******************************************************************************/
 .rx-cascader > .display {
     -fx-alignment: center-left;
-    -fx-background-color:
-        linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
-        linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
     -fx-padding: 0.333333em 0.583em 0.333333em 0.583em; /* 4 7 4 7 */
@@ -344,11 +343,10 @@
 
 .rx-cascader:focused > .display,
 .rx-cascader:showing > .display {
-    -fx-background-color:
-        -fx-focus-color,
-        -fx-control-inner-background,
-        -fx-faint-focus-color,
-        linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-color: -fx-focus-color,
+    -fx-control-inner-background,
+    -fx-faint-focus-color,
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
     -fx-background-insets: -0.2, 1, -1.4, 3;
     -fx-background-radius: 3, 2, 4, 0;
 }
@@ -852,6 +850,58 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXSidebar                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-sidebar {
+    -fx-background-color: -fx-base;
+}
+
+.rx-sidebar > .container > .content {
+    -fx-background-color: transparent;
+}
+
+.rx-sidebar > .container > .content > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Items inherit modena's .button / .toggle-button chrome; flatten it to a row.
+   Static layout (alignment, content display, text overrun) lives here; the
+   dynamic left padding (icon column = miniWidth/2) is set in Java by the skin. */
+.rx-sidebar .item {
+    -fx-background-color: transparent;
+    -rx-ripple-enabled: false;
+    -fx-background-radius: 6;
+    -fx-alignment: center-left;
+    -fx-content-display: left;
+    -fx-text-overrun: clip;
+    -fx-graphic-text-gap: 12;
+}
+
+.rx-sidebar .item:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.rx-sidebar .item:armed {
+    -fx-background-color: -fx-pressed-base;
+}
+
+.rx-sidebar .item:selected {
+    -fx-background-color: derive(-fx-accent, 80%);
+}
+
+.rx-sidebar .item:focused {
+    -fx-background-color: -fx-hover-base;
+}
+
+.rx-sidebar .item > .graphic {
+    -fx-pref-width: 24;
+    -fx-pref-height: 24;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXTimelineView                                                              *
  *                                                                             *
  ******************************************************************************/
@@ -878,10 +928,21 @@
     visibility: hidden;
 }
 
-.rx-timeline-view > .items > .item:success > .axis > .dot { -fx-background-color: #67c23a; }
-.rx-timeline-view > .items > .item:warning > .axis > .dot { -fx-background-color: #e6a23c; }
-.rx-timeline-view > .items > .item:danger  > .axis > .dot { -fx-background-color: #f56c6c; }
-.rx-timeline-view > .items > .item:info    > .axis > .dot { -fx-background-color: #909399; }
+.rx-timeline-view > .items > .item:success > .axis > .dot {
+    -fx-background-color: #67c23a;
+}
+
+.rx-timeline-view > .items > .item:warning > .axis > .dot {
+    -fx-background-color: #e6a23c;
+}
+
+.rx-timeline-view > .items > .item:danger > .axis > .dot {
+    -fx-background-color: #f56c6c;
+}
+
+.rx-timeline-view > .items > .item:info > .axis > .dot {
+    -fx-background-color: #909399;
+}
 
 .rx-timeline-view > .items > .item > .content > .title {
     -fx-font-weight: bold;
