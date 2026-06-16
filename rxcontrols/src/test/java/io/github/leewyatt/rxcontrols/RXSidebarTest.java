@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;

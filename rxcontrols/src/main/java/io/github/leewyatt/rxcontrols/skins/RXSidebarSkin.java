@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
-import io.github.leewyatt.rxcontrols.enums.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;

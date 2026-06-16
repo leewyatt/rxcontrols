@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
-import io.github.leewyatt.rxcontrols.enums.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
 import javafx.animation.Interpolator;

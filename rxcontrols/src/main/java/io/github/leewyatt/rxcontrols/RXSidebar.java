@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.SidebarMode;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 
@@ -44,6 +43,21 @@ import java.util.List;
  * give each item a graphic to keep it visible when collapsed.</p>
  */
 public class RXSidebar extends Control {
+
+    // ==================== Enums ====================
+
+    /**
+     * Width state of an {@link RXSidebar}. The sidebar is always present; only its
+     * width and label visibility change.
+     */
+    public enum SidebarMode {
+
+        /** Icon + text, full {@code expandedWidth}. */
+        EXPANDED,
+
+        /** Icon only, narrow {@code miniWidth}; labels hidden, exposed via tooltip. */
+        MINI
+    }
 
     // ==================== Constants ====================
 

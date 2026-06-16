@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
-import io.github.leewyatt.rxcontrols.enums.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
