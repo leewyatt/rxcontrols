@@ -112,7 +112,6 @@ public class RXTimelineView extends Control {
     public static final Orientation DEFAULT_ORIENTATION = Orientation.VERTICAL;
 
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
-    private static final PseudoClass LARGE_PSEUDO_CLASS = PseudoClass.getPseudoClass("large");
 
     // ==================== Items ====================
 
@@ -224,45 +223,6 @@ public class RXTimelineView extends Control {
      */
     public final void setOrientation(Orientation value) {
         orientation.set(value);
-    }
-
-    // ==================== Large ====================
-
-    private final BooleanProperty large = new SimpleBooleanProperty(this, "large", false) {
-        @Override
-        protected void invalidated() {
-            pseudoClassStateChanged(LARGE_PSEUDO_CLASS, get());
-        }
-    };
-
-    /**
-     * Whether the larger size tier is active. When {@code true} the {@code :large}
-     * pseudo-class is set on the control, and the user-agent stylesheet bumps the
-     * dot / line / spacing sizes and font sizes. Style {@code :large} in your own
-     * stylesheet to customize the tier.
-     *
-     * @return the large property
-     */
-    public final BooleanProperty largeProperty() {
-        return large;
-    }
-
-    /**
-     * Returns whether the larger size tier is active.
-     *
-     * @return {@code true} if the large tier is active
-     */
-    public final boolean isLarge() {
-        return large.get();
-    }
-
-    /**
-     * Sets whether the larger size tier is active.
-     *
-     * @param value {@code true} to activate the large tier
-     */
-    public final void setLarge(boolean value) {
-        large.set(value);
     }
 
     // ==================== Dot Size ====================

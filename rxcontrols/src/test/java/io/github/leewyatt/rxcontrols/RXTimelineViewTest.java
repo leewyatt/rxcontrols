@@ -48,7 +48,6 @@ public class RXTimelineViewTest {
     private static final PseudoClass LEFT = PseudoClass.getPseudoClass("left");
     private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
     private static final PseudoClass HOLLOW = PseudoClass.getPseudoClass("hollow");
-    private static final PseudoClass LARGE = PseudoClass.getPseudoClass("large");
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -82,7 +81,6 @@ public class RXTimelineViewTest {
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
         assertEquals(Position.LEFT, view.getPosition());
-        assertFalse(view.isLarge());
         assertEquals(Orientation.VERTICAL, view.getOrientation());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
     }
@@ -416,16 +414,6 @@ public class RXTimelineViewTest {
         assertFalse(itemNode.getPseudoClassStates().contains(HOLLOW));
         assertTrue(dot.getStyle().contains("-fx-background-color"));
         assertFalse(dot.getStyle().contains("-fx-border-color"));
-    }
-
-    @Test
-    public void largeSetsPseudoClass() {
-        RXTimelineView view = new RXTimelineView();
-        assertFalse(view.getPseudoClassStates().contains(LARGE));
-        view.setLarge(true);
-        assertTrue(view.getPseudoClassStates().contains(LARGE));
-        view.setLarge(false);
-        assertFalse(view.getPseudoClassStates().contains(LARGE));
     }
 
     @Test

@@ -132,15 +132,10 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         positionBox.setMaxWidth(Double.MAX_VALUE);
         timeline.positionProperty().bind(positionBox.valueProperty());
 
-        CheckBox largeBox = new CheckBox("Large size tier (:large)");
-        largeBox.setSelected(timeline.isLarge());
-        timeline.largeProperty().bind(largeBox.selectedProperty());
-
         return createGrid(
                 row(reverseBox),
                 row("Orientation", orientationBox),
-                row("Axis position", positionBox),
-                row(largeBox));
+                row("Axis position", positionBox));
     }
 
     private Node buildMetricsGrid() {

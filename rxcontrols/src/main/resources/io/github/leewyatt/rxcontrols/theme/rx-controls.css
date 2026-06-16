@@ -970,13 +970,3 @@
     -fx-text-fill: -fx-mid-text-color;
     -fx-opacity: 0.62;
 }
-
-.rx-timeline-view:large {
-    -rx-dot-size: 18;
-    -rx-line-width: 3;
-    -rx-item-spacing: 24;
-    -rx-axis-spacing: 16;
-}
-
-.rx-timeline-view:large > .items > .item > .content > .title { -fx-font-size: 1.1em; }
-.rx-timeline-view:large > .items > .item > .content > .description { -fx-font-size: 1.05em; }
