@@ -2,8 +2,6 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
-import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
-import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.BooleanBinding;
@@ -211,7 +209,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     // ==================== Position ====================
 
     private void applyPosition() {
-        TimelinePosition position = positionOrDefault();
+        RXTimelineView.Position position = positionOrDefault();
         for (ItemNode node : itemNodes) {
             node.applyPosition(position);
         }
@@ -222,8 +220,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         getSkinnable().requestLayout();
     }
 
-    private TimelinePosition positionOrDefault() {
-        TimelinePosition position = getSkinnable().getPosition();
+    private RXTimelineView.Position positionOrDefault() {
+        RXTimelineView.Position position = getSkinnable().getPosition();
         return position == null ? RXTimelineView.DEFAULT_POSITION : position;
     }
 
@@ -437,12 +435,12 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             }
         }
 
-        private void applyTypePseudo(TimelineItemType type) {
-            pseudoClassStateChanged(PRIMARY_PSEUDO_CLASS, type == TimelineItemType.PRIMARY);
-            pseudoClassStateChanged(SUCCESS_PSEUDO_CLASS, type == TimelineItemType.SUCCESS);
-            pseudoClassStateChanged(WARNING_PSEUDO_CLASS, type == TimelineItemType.WARNING);
-            pseudoClassStateChanged(DANGER_PSEUDO_CLASS, type == TimelineItemType.DANGER);
-            pseudoClassStateChanged(INFO_PSEUDO_CLASS, type == TimelineItemType.INFO);
+        private void applyTypePseudo(RXTimelineItem.Type type) {
+            pseudoClassStateChanged(PRIMARY_PSEUDO_CLASS, type == RXTimelineItem.Type.PRIMARY);
+            pseudoClassStateChanged(SUCCESS_PSEUDO_CLASS, type == RXTimelineItem.Type.SUCCESS);
+            pseudoClassStateChanged(WARNING_PSEUDO_CLASS, type == RXTimelineItem.Type.WARNING);
+            pseudoClassStateChanged(DANGER_PSEUDO_CLASS, type == RXTimelineItem.Type.DANGER);
+            pseudoClassStateChanged(INFO_PSEUDO_CLASS, type == RXTimelineItem.Type.INFO);
         }
 
         private void applyDotFill(Color color) {
@@ -461,8 +459,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
         // Mirrors the row for a right-side axis: swap the column order and align
         // the content text toward the axis so it reads the same on either side.
-        private void applyPosition(TimelinePosition position) {
-            boolean right = position == TimelinePosition.RIGHT;
+        private void applyPosition(RXTimelineView.Position position) {
+            boolean right = position == RXTimelineView.Position.RIGHT;
             if (right) {
                 getChildren().setAll(content, axis);
             } else {

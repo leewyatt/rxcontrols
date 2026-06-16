@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -34,6 +33,35 @@ import javafx.scene.paint.Color;
  * overridden) — two distinct items are never "equal".
  */
 public class RXTimelineItem {
+
+    /**
+     * Semantic color level of a timeline item, mapped by the skin to a
+     * pseudo-class so the actual color stays in CSS. A {@code null} type means
+     * "no semantic level" (the item falls back to the view's default dot color);
+     * there is deliberately no {@code NONE} constant duplicating {@code null}.
+     */
+    public enum Type {
+        /**
+         * Primary level, the default accent color.
+         */
+        PRIMARY,
+        /**
+         * Success level, typically green.
+         */
+        SUCCESS,
+        /**
+         * Warning level, typically amber.
+         */
+        WARNING,
+        /**
+         * Danger level, typically red.
+         */
+        DANGER,
+        /**
+         * Informational level, typically a muted gray.
+         */
+        INFO
+    }
 
     // ==================== Constructors ====================
 
@@ -231,7 +259,7 @@ public class RXTimelineItem {
 
     // ==================== Type ====================
 
-    private final ObjectProperty<TimelineItemType> type =
+    private final ObjectProperty<Type> type =
             new SimpleObjectProperty<>(this, "type", null);
 
     /**
@@ -240,7 +268,7 @@ public class RXTimelineItem {
      *
      * @return the type property
      */
-    public final ObjectProperty<TimelineItemType> typeProperty() {
+    public final ObjectProperty<Type> typeProperty() {
         return type;
     }
 
@@ -249,7 +277,7 @@ public class RXTimelineItem {
      *
      * @return the type, or {@code null}
      */
-    public final TimelineItemType getType() {
+    public final Type getType() {
         return type.get();
     }
 
@@ -258,7 +286,7 @@ public class RXTimelineItem {
      *
      * @param value the type, or {@code null}
      */
-    public final void setType(TimelineItemType value) {
+    public final void setType(Type value) {
         type.set(value);
     }
 

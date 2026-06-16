@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
-import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
+import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
+import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -79,7 +79,7 @@ public class RXTimelineViewTest {
         assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, view.getAxisSpacing(), EPSILON);
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
-        assertEquals(TimelinePosition.LEFT, view.getPosition());
+        assertEquals(Position.LEFT, view.getPosition());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
     }
 
@@ -176,7 +176,7 @@ public class RXTimelineViewTest {
     public void lastAndTypePseudoClassesApply() {
         RXTimelineItem first = new RXTimelineItem("first");
         RXTimelineItem success = new RXTimelineItem("ok");
-        success.setType(TimelineItemType.SUCCESS);
+        success.setType(Type.SUCCESS);
         RXTimelineItem last = new RXTimelineItem("last");
         RXTimelineView view = new RXTimelineView(first, success, last);
         showInScene(view);
@@ -286,7 +286,7 @@ public class RXTimelineViewTest {
         assertTrue(row.getPseudoClassStates().contains(LEFT));
         assertFalse(row.getPseudoClassStates().contains(RIGHT));
 
-        view.setPosition(TimelinePosition.RIGHT);
+        view.setPosition(Position.RIGHT);
         view.getParent().applyCss();
         view.getParent().layout();
 

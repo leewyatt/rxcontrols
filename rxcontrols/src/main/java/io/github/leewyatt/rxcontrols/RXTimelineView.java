@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTimelineViewSkin;
@@ -51,6 +50,21 @@ import java.util.List;
  */
 public class RXTimelineView extends Control {
 
+    /**
+     * Which side of the vertical timeline the axis column (dot and connector)
+     * sits on.
+     */
+    public enum Position {
+        /**
+         * Axis on the left, content on the right (the default).
+         */
+        LEFT,
+        /**
+         * Axis on the right, content on the left and right-aligned toward the axis.
+         */
+        RIGHT
+    }
+
     // ==================== Constants ====================
 
     /**
@@ -86,7 +100,7 @@ public class RXTimelineView extends Control {
     /**
      * Default axis position.
      */
-    public static final TimelinePosition DEFAULT_POSITION = TimelinePosition.LEFT;
+    public static final Position DEFAULT_POSITION = Position.LEFT;
 
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
 
@@ -130,18 +144,18 @@ public class RXTimelineView extends Control {
 
     // ==================== Position ====================
 
-    private final ObjectProperty<TimelinePosition> position =
+    private final ObjectProperty<Position> position =
             new SimpleObjectProperty<>(this, "position", DEFAULT_POSITION);
 
     /**
      * Which side the axis column (dot and connector) sits on.
-     * {@link TimelinePosition#LEFT} (the default) places the axis on the left
-     * with content on the right; {@link TimelinePosition#RIGHT} mirrors it.
-     * {@code null} is treated as {@link #DEFAULT_POSITION} by the skin.
+     * {@link Position#LEFT} (the default) places the axis on the left with
+     * content on the right; {@link Position#RIGHT} mirrors it. {@code null} is
+     * treated as {@link #DEFAULT_POSITION} by the skin.
      *
      * @return the position property
      */
-    public final ObjectProperty<TimelinePosition> positionProperty() {
+    public final ObjectProperty<Position> positionProperty() {
         return position;
     }
 
@@ -150,7 +164,7 @@ public class RXTimelineView extends Control {
      *
      * @return the position, or {@code null}
      */
-    public final TimelinePosition getPosition() {
+    public final Position getPosition() {
         return position.get();
     }
 
@@ -159,7 +173,7 @@ public class RXTimelineView extends Control {
      *
      * @param value the position, or {@code null} for the default
      */
-    public final void setPosition(TimelinePosition value) {
+    public final void setPosition(Position value) {
         position.set(value);
     }
 

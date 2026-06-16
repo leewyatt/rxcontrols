@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
+import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
-import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
-import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
+import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTimelineViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.scene.Node;
@@ -81,14 +81,14 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         items = new RXTimelineItem[]{
                 item("Order placed", "2026-06-12 09:24",
-                        "Order #20260612-0098 created, awaiting payment.", TimelineItemType.PRIMARY),
-                item("Payment confirmed", "2026-06-12 09:31", "", TimelineItemType.SUCCESS),
-                item("Inventory check", "2026-06-12 11:02", "Stock running low for one SKU.", TimelineItemType.WARNING),
+                        "Order #20260612-0098 created, awaiting payment.", Type.PRIMARY),
+                item("Payment confirmed", "2026-06-12 09:31", "", Type.SUCCESS),
+                item("Inventory check", "2026-06-12 11:02", "Stock running low for one SKU.", Type.WARNING),
                 item("Shipment delayed", "2026-06-13 08:40",
                         "Carrier reported a regional delay; the parcel will continue once the hub reopens.",
-                        TimelineItemType.DANGER),
-                item("Tracking note", "2026-06-13 19:15", "Customer notified by email.", TimelineItemType.INFO),
-                item("Delivered", "2026-06-14 11:58", "Signed for at the front desk.", TimelineItemType.SUCCESS)
+                        Type.DANGER),
+                item("Tracking note", "2026-06-13 19:15", "Customer notified by email.", Type.INFO),
+                item("Delivered", "2026-06-14 11:58", "Signed for at the front desk.", Type.SUCCESS)
         };
         timeline = new RXTimelineView(items);
         return timeline;
@@ -112,8 +112,8 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         reverseBox.setSelected(timeline.isReverse());
         timeline.reverseProperty().bind(reverseBox.selectedProperty());
 
-        ChoiceBox<TimelinePosition> positionBox = new ChoiceBox<>();
-        positionBox.getItems().addAll(TimelinePosition.values());
+        ChoiceBox<Position> positionBox = new ChoiceBox<>();
+        positionBox.getItems().addAll(Position.values());
         positionBox.setValue(timeline.getPosition());
         positionBox.setMaxWidth(Double.MAX_VALUE);
         timeline.positionProperty().bind(positionBox.valueProperty());
@@ -178,7 +178,7 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
 
         typeBox = new ChoiceBox<>();
         typeBox.getItems().add(TYPE_NONE);
-        for (TimelineItemType type : TimelineItemType.values()) {
+        for (Type type : Type.values()) {
             typeBox.getItems().add(type.name());
         }
         typeBox.setMaxWidth(Double.MAX_VALUE);
@@ -276,18 +276,18 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         return items[indexBox.getValue()];
     }
 
-    private RXTimelineItem item(String title, String timestamp, String description, TimelineItemType type) {
+    private RXTimelineItem item(String title, String timestamp, String description, Type type) {
         RXTimelineItem timelineItem = new RXTimelineItem(title, timestamp);
         timelineItem.setDescription(description);
         timelineItem.setType(type);
         return timelineItem;
     }
 
-    private static TimelineItemType mapType(String name) {
+    private static Type mapType(String name) {
         if (name == null || TYPE_NONE.equals(name)) {
             return null;
         }
-        return TimelineItemType.valueOf(name);
+        return Type.valueOf(name);
     }
 
     private ProgressIndicator newLoadingIndicator() {
