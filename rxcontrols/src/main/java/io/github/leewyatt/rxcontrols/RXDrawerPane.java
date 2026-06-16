@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDrawerPaneSkin;
@@ -61,15 +60,35 @@ import java.util.List;
  * openButton.setOnAction(e -> drawer.open());
  * }</pre>
  *
- * <p>The drawer can {@link RXDrawerMode#OVERLAY overlay} the content (optionally
+ * <p>The drawer can {@link DrawerMode#OVERLAY overlay} the content (optionally
  * over a dimming, click-catching overlay pane that makes it modal) or
- * {@link RXDrawerMode#PUSH push} it aside. Closing flows through a vetoable
+ * {@link DrawerMode#PUSH push} it aside. Closing flows through a vetoable
  * {@code CLOSE_REQUEST} {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent}
  * before any close proceeds. Drawer content
  * is rendered directly; applications own any header, body, footer, scrolling, and
  * close-button layout they need.</p>
  */
 public class RXDrawerPane extends Control {
+
+    // ==================== Enums ====================
+
+    /**
+     * How an {@link RXDrawerPane} positions its drawer panel relative to the main
+     * content.
+     */
+    public enum DrawerMode {
+
+        /**
+         * The panel floats over the content, which stays in place.
+         */
+        OVERLAY,
+
+        /**
+         * The panel pushes the content aside and relayouts the content area as it
+         * opens.
+         */
+        PUSH
+    }
 
     // ==================== Constants ====================
 
@@ -81,7 +100,7 @@ public class RXDrawerPane extends Control {
     /**
      * Default drawer mode (overlay).
      */
-    public static final RXDrawerMode DEFAULT_DRAWER_MODE = RXDrawerMode.OVERLAY;
+    public static final DrawerMode DEFAULT_DRAWER_MODE = DrawerMode.OVERLAY;
 
     /**
      * Default open/close animation enabled state.
@@ -298,7 +317,7 @@ public class RXDrawerPane extends Control {
 
     // ==================== Drawer Mode ====================
 
-    private final ObjectProperty<RXDrawerMode> drawerMode =
+    private final ObjectProperty<DrawerMode> drawerMode =
             new StyleableObjectProperty<>(DEFAULT_DRAWER_MODE) {
                 @Override
                 protected void invalidated() {
@@ -307,7 +326,7 @@ public class RXDrawerPane extends Control {
                 }
 
                 @Override
-                public CssMetaData<? extends Styleable, RXDrawerMode> getCssMetaData() {
+                public CssMetaData<? extends Styleable, DrawerMode> getCssMetaData() {
                     return StyleableProperties.DRAWER_MODE;
                 }
 
@@ -323,14 +342,14 @@ public class RXDrawerPane extends Control {
             };
 
     /**
-     * Whether the drawer overlays the content ({@link RXDrawerMode#OVERLAY}, the
-     * default) or pushes it aside ({@link RXDrawerMode#PUSH}). A {@code null} value
+     * Whether the drawer overlays the content ({@link DrawerMode#OVERLAY}, the
+     * default) or pushes it aside ({@link DrawerMode#PUSH}). A {@code null} value
      * is not rejected; it resolves to the default {@link #DEFAULT_DRAWER_MODE} at the
      * use site.
      *
      * @return the drawer mode property
      */
-    public final ObjectProperty<RXDrawerMode> drawerModeProperty() {
+    public final ObjectProperty<DrawerMode> drawerModeProperty() {
         return drawerMode;
     }
 
@@ -339,7 +358,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the drawer mode
      */
-    public final RXDrawerMode getDrawerMode() {
+    public final DrawerMode getDrawerMode() {
         return drawerMode.get();
     }
 
@@ -348,7 +367,7 @@ public class RXDrawerPane extends Control {
      *
      * @param value the drawer mode, or {@code null} to fall back to the default
      */
-    public final void setDrawerMode(RXDrawerMode value) {
+    public final void setDrawerMode(DrawerMode value) {
         drawerMode.set(value);
     }
 
@@ -622,7 +641,7 @@ public class RXDrawerPane extends Control {
 
     /**
      * Whether the overlay pane (the dimmed, click-catching backdrop) is shown
-     * behind the open drawer. Only effective in {@link RXDrawerMode#OVERLAY} mode:
+     * behind the open drawer. Only effective in {@link DrawerMode#OVERLAY} mode:
      * showing it makes the drawer modal; hiding it yields a non-modal overlay. The
      * dim level is styled on {@code .overlay-pane} via {@code -fx-background-color}
      * (e.g. {@code rgba(0,0,0,0.32)}), so there is no opacity property.
@@ -967,7 +986,7 @@ public class RXDrawerPane extends Control {
     }
 
     private void updatePushPseudoClass() {
-        pseudoClassStateChanged(PUSH_PSEUDO_CLASS, getDrawerMode() == RXDrawerMode.PUSH);
+        pseudoClassStateChanged(PUSH_PSEUDO_CLASS, getDrawerMode() == DrawerMode.PUSH);
     }
 
     // ==================== CSS ====================
@@ -1017,9 +1036,9 @@ public class RXDrawerPane extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXDrawerPane, RXDrawerMode> DRAWER_MODE =
+        private static final CssMetaData<RXDrawerPane, DrawerMode> DRAWER_MODE =
                 new CssMetaData<>("-rx-drawer-mode",
-                        new EnumConverter<>(RXDrawerMode.class), DEFAULT_DRAWER_MODE) {
+                        new EnumConverter<>(DrawerMode.class), DEFAULT_DRAWER_MODE) {
                     @Override
                     public boolean isSettable(RXDrawerPane node) {
                         return !node.drawerMode.isBound();
@@ -1027,8 +1046,8 @@ public class RXDrawerPane extends Control {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXDrawerMode> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<RXDrawerMode>) node.drawerModeProperty();
+                    public StyleableProperty<DrawerMode> getStyleableProperty(RXDrawerPane node) {
+                        return (StyleableProperty<DrawerMode>) node.drawerModeProperty();
                     }
                 };
 

@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
@@ -35,7 +35,7 @@ public abstract class RXAnimatedButton extends RXButton {
     /**
      * Default animation trigger.
      */
-    public static final RXAnimationTrigger DEFAULT_ANIMATION_TRIGGER = RXAnimationTrigger.HOVER;
+    public static final AnimationTrigger DEFAULT_ANIMATION_TRIGGER = AnimationTrigger.HOVER;
 
     /**
      * Default animation duration.
@@ -83,10 +83,10 @@ public abstract class RXAnimatedButton extends RXButton {
 
     // ==================== Animation Trigger ====================
 
-    private final ObjectProperty<RXAnimationTrigger> animationTrigger =
+    private final ObjectProperty<AnimationTrigger> animationTrigger =
             new StyleableObjectProperty<>(DEFAULT_ANIMATION_TRIGGER) {
                 @Override
-                public CssMetaData<? extends Styleable, RXAnimationTrigger> getCssMetaData() {
+                public CssMetaData<? extends Styleable, AnimationTrigger> getCssMetaData() {
                     return StyleableProperties.ANIMATION_TRIGGER;
                 }
 
@@ -104,12 +104,12 @@ public abstract class RXAnimatedButton extends RXButton {
     /**
      * State source driving the decoration animation. A {@code null} value
      * falls back to {@link #DEFAULT_ANIMATION_TRIGGER} at render time, while
-     * {@link RXAnimationTrigger#NONE} explicitly disables automatic
+     * {@link AnimationTrigger#NONE} explicitly disables automatic
      * triggering so the decoration moves only via {@link #playAnimation()}.
      *
      * @return the animation trigger property
      */
-    public final ObjectProperty<RXAnimationTrigger> animationTriggerProperty() {
+    public final ObjectProperty<AnimationTrigger> animationTriggerProperty() {
         return animationTrigger;
     }
 
@@ -118,7 +118,7 @@ public abstract class RXAnimatedButton extends RXButton {
      *
      * @return the animation trigger
      */
-    public final RXAnimationTrigger getAnimationTrigger() {
+    public final AnimationTrigger getAnimationTrigger() {
         return animationTrigger.get();
     }
 
@@ -127,7 +127,7 @@ public abstract class RXAnimatedButton extends RXButton {
      *
      * @param value the animation trigger
      */
-    public final void setAnimationTrigger(RXAnimationTrigger value) {
+    public final void setAnimationTrigger(AnimationTrigger value) {
         animationTrigger.set(value);
     }
 
@@ -185,9 +185,9 @@ public abstract class RXAnimatedButton extends RXButton {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXAnimatedButton, RXAnimationTrigger> ANIMATION_TRIGGER =
+        private static final CssMetaData<RXAnimatedButton, AnimationTrigger> ANIMATION_TRIGGER =
                 new CssMetaData<>("-rx-animation-trigger",
-                        new EnumConverter<>(RXAnimationTrigger.class), DEFAULT_ANIMATION_TRIGGER) {
+                        new EnumConverter<>(AnimationTrigger.class), DEFAULT_ANIMATION_TRIGGER) {
                     @Override
                     public boolean isSettable(RXAnimatedButton button) {
                         return !button.animationTrigger.isBound();
@@ -195,8 +195,8 @@ public abstract class RXAnimatedButton extends RXButton {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXAnimationTrigger> getStyleableProperty(RXAnimatedButton button) {
-                        return (StyleableProperty<RXAnimationTrigger>) button.animationTriggerProperty();
+                    public StyleableProperty<AnimationTrigger> getStyleableProperty(RXAnimatedButton button) {
+                        return (StyleableProperty<AnimationTrigger>) button.animationTriggerProperty();
                     }
                 };
 

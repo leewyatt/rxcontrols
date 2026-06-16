@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineEdges;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -138,8 +138,8 @@ public class RXLineButtonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildAnimationGrid() {
-        ComboBox<RXAnimationTrigger> triggerBox = new ComboBox<>();
-        triggerBox.getItems().setAll(RXAnimationTrigger.values());
+        ComboBox<AnimationTrigger> triggerBox = new ComboBox<>();
+        triggerBox.getItems().setAll(AnimationTrigger.values());
         triggerBox.setValue(button.getAnimationTrigger());
         triggerBox.setMaxWidth(Double.MAX_VALUE);
         button.animationTriggerProperty().bind(triggerBox.valueProperty());

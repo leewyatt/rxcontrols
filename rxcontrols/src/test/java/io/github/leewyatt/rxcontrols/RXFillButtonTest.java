@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.application.Platform;
@@ -367,7 +367,7 @@ public class RXFillButtonTest {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             button.setAnimationDuration(Duration.ZERO);
-            button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            button.setAnimationTrigger(AnimationTrigger.PRESSED);
             layout(button, 100.0, 40.0);
             Pane content = fillContent(button);
 
@@ -383,13 +383,13 @@ public class RXFillButtonTest {
 
             assertEquals(0.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
 
-            button.setAnimationTrigger(RXAnimationTrigger.HOVER);
+            button.setAnimationTrigger(AnimationTrigger.HOVER);
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
             assertEquals(100.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
 
             // switching away from HOVER re-evaluates: not pressed -> empty
-            button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            button.setAnimationTrigger(AnimationTrigger.PRESSED);
 
             assertEquals(0.0, ((Rectangle) content.getClip()).getWidth(), EPSILON);
         });
@@ -416,7 +416,7 @@ public class RXFillButtonTest {
             root.applyCss();
 
             assertSame(FillAnimation.CIRCLE, button.getFillAnimation());
-            assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
+            assertSame(AnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
             assertEquals(new Insets(10.0, 10.0, 4.0, 4.0), button.getFillInsets());
             assertEquals(new CornerRadii(10.0), button.getFillCornerRadius());

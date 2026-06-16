@@ -5,7 +5,7 @@ package io.github.leewyatt.rxcontrols.enums;
  * forward while the trigger state is active and reverses from the current
  * progress when it turns inactive.
  */
-public enum RXAnimationTrigger {
+public enum AnimationTrigger {
 
     /**
      * Animate while the pointer hovers the control.

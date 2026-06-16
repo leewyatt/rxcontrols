@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.line;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.DecorationProgress;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -71,7 +71,7 @@ public final class LineDecoration {
      */
     public LineDecoration(Control host,
                           ObjectProperty<LineAnimation> animation,
-                          ObjectProperty<RXAnimationTrigger> trigger,
+                          ObjectProperty<AnimationTrigger> trigger,
                           ObjectProperty<Duration> duration,
                           DoubleProperty thickness,
                           DoubleProperty gap) {

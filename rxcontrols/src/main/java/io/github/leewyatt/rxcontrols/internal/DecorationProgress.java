@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -48,7 +48,7 @@ public final class DecorationProgress {
     /**
      * Fallback trigger when the trigger property holds {@code null}.
      */
-    public static final RXAnimationTrigger DEFAULT_TRIGGER = RXAnimationTrigger.HOVER;
+    public static final AnimationTrigger DEFAULT_TRIGGER = AnimationTrigger.HOVER;
 
     /**
      * Fallback duration when the duration property holds no usable value.
@@ -56,7 +56,7 @@ public final class DecorationProgress {
     public static final Duration DEFAULT_DURATION = Duration.millis(200.0);
 
     private final Control host;
-    private final ObjectProperty<RXAnimationTrigger> trigger;
+    private final ObjectProperty<AnimationTrigger> trigger;
     private final ObjectProperty<Duration> duration;
 
     private final SkinDisposer disposer = new SkinDisposer();
@@ -74,7 +74,7 @@ public final class DecorationProgress {
      * @param duration the animation duration property
      */
     public DecorationProgress(Control host,
-                              ObjectProperty<RXAnimationTrigger> trigger,
+                              ObjectProperty<AnimationTrigger> trigger,
                               ObjectProperty<Duration> duration) {
         this.host = host;
         this.trigger = trigger;
@@ -84,23 +84,23 @@ public final class DecorationProgress {
 
         // ==================== Triggers ====================
         disposer.registerEventHandler(host, MouseEvent.MOUSE_ENTERED, event -> {
-            if (triggerOrDefault() == RXAnimationTrigger.HOVER) {
+            if (triggerOrDefault() == AnimationTrigger.HOVER) {
                 animateTo(true);
             }
         });
         disposer.registerEventHandler(host, MouseEvent.MOUSE_EXITED, event -> {
-            if (triggerOrDefault() == RXAnimationTrigger.HOVER) {
+            if (triggerOrDefault() == AnimationTrigger.HOVER) {
                 animateTo(false);
             }
         });
         disposer.registerEventHandler(host, MouseEvent.MOUSE_PRESSED, event -> {
-            if (triggerOrDefault() == RXAnimationTrigger.PRESSED
+            if (triggerOrDefault() == AnimationTrigger.PRESSED
                     && event.getButton() == MouseButton.PRIMARY) {
                 animateTo(true);
             }
         });
         disposer.registerEventHandler(host, MouseEvent.MOUSE_RELEASED, event -> {
-            if (triggerOrDefault() == RXAnimationTrigger.PRESSED
+            if (triggerOrDefault() == AnimationTrigger.PRESSED
                     && event.getButton() == MouseButton.PRIMARY) {
                 animateTo(false);
             }
@@ -258,8 +258,8 @@ public final class DecorationProgress {
 
     // ==================== Trigger State ====================
 
-    private RXAnimationTrigger triggerOrDefault() {
-        RXAnimationTrigger value = trigger.get();
+    private AnimationTrigger triggerOrDefault() {
+        AnimationTrigger value = trigger.get();
         return value == null ? DEFAULT_TRIGGER : value;
     }
 

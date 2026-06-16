@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimZigzag;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -144,8 +144,8 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildAnimationGrid() {
-        ComboBox<RXAnimationTrigger> triggerBox = new ComboBox<>();
-        triggerBox.getItems().setAll(RXAnimationTrigger.values());
+        ComboBox<AnimationTrigger> triggerBox = new ComboBox<>();
+        triggerBox.getItems().setAll(AnimationTrigger.values());
         triggerBox.setValue(button.getAnimationTrigger());
         triggerBox.setMaxWidth(Double.MAX_VALUE);
         button.animationTriggerProperty().bind(triggerBox.valueProperty());

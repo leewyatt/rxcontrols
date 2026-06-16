@@ -21,7 +21,7 @@ public class RXLineButtonDemo extends Application {
         button.setLineAnimation(LineAnimation.TOP_BOTTOM_CONVERGE);
         // Parameterized effects use constructors, for example:
         // setLineAnimation(new LineAnimSlide(LineEdges.BOTTOM, 20)).
-        // The default trigger is HOVER; use setAnimationTrigger(RXAnimationTrigger.PRESSED) for press.
+        // The default trigger is HOVER; use setAnimationTrigger(AnimationTrigger.PRESSED) for press.
         // The default duration is 200ms; use setAnimationDuration(Duration.millis(300)) to override it.
 
         root.setCenter(button);

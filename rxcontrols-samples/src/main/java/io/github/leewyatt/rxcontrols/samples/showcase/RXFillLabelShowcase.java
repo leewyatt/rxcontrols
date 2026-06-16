@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXFillLabel;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -107,9 +107,9 @@ public class RXFillLabelShowcase extends RXShowcaseApplication {
         modeBox.valueProperty().addListener((obs, oldV, newV) ->
                 labels.forEach(label -> label.setFillAnimation(ANIMATIONS.get(newV))));
 
-        ComboBox<RXAnimationTrigger> triggerBox = new ComboBox<>();
-        triggerBox.getItems().setAll(RXAnimationTrigger.values());
-        triggerBox.setValue(RXAnimationTrigger.HOVER);
+        ComboBox<AnimationTrigger> triggerBox = new ComboBox<>();
+        triggerBox.getItems().setAll(AnimationTrigger.values());
+        triggerBox.setValue(AnimationTrigger.HOVER);
         triggerBox.setMaxWidth(Double.MAX_VALUE);
         triggerBox.valueProperty().addListener((obs, oldV, newV) ->
                 labels.forEach(label -> label.setAnimationTrigger(newV)));

@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineEdges;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXLineButtonSkin;
 import javafx.application.Platform;
@@ -329,7 +329,7 @@ public class RXLineButtonTest {
         runOnFx(() -> {
             RXLineButton button = withSkin(new RXLineButton("Line"));
             button.setAnimationDuration(Duration.ZERO);
-            button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            button.setAnimationTrigger(AnimationTrigger.PRESSED);
             layout(button, 200.0, 60.0);
 
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
@@ -344,13 +344,13 @@ public class RXLineButtonTest {
 
             assertFalse(isLineShowing(button));
 
-            button.setAnimationTrigger(RXAnimationTrigger.HOVER);
+            button.setAnimationTrigger(AnimationTrigger.HOVER);
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
             assertTrue(isLineShowing(button));
 
             // switching away from HOVER re-evaluates: not pressed -> hidden
-            button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            button.setAnimationTrigger(AnimationTrigger.PRESSED);
 
             assertFalse(isLineShowing(button));
         });
@@ -462,7 +462,7 @@ public class RXLineButtonTest {
             assertSame(LineAnimation.UNDERLINE_SLIDE_UP, button.getLineAnimation());
             assertEquals(4.0, button.getLineThickness(), EPSILON);
             assertEquals(6.0, button.getLineGap(), EPSILON);
-            assertSame(RXAnimationTrigger.PRESSED, button.getAnimationTrigger());
+            assertSame(AnimationTrigger.PRESSED, button.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), button.getAnimationDuration());
         });
     }

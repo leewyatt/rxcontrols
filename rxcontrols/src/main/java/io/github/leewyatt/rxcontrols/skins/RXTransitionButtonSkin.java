@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXAnimatedButton;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
@@ -342,7 +342,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     private void updateHoverOverlay(RXTransitionButton button) {
         // The face swap is the hover affordance when hover-triggered; the
         // ripple hover overlay would only tint it (the press ripple stays).
-        ripple.setHoverOverlayEnabled(triggerOrDefault(button) != RXAnimationTrigger.HOVER);
+        ripple.setHoverOverlayEnabled(triggerOrDefault(button) != AnimationTrigger.HOVER);
     }
 
     private static void setPageContent(StackPane page, Node content) {
@@ -353,8 +353,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         }
     }
 
-    private static RXAnimationTrigger triggerOrDefault(RXTransitionButton button) {
-        RXAnimationTrigger trigger = button.getAnimationTrigger();
+    private static AnimationTrigger triggerOrDefault(RXTransitionButton button) {
+        AnimationTrigger trigger = button.getAnimationTrigger();
         return trigger == null ? RXAnimatedButton.DEFAULT_ANIMATION_TRIGGER : trigger;
     }
 

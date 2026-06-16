@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -121,7 +121,7 @@ public class RXTransitionButtonTest {
     @Test
     public void pressedTriggerSwapsFacesAndPlaysBackOnDisarm() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         button.setAnimation(recording);
 
@@ -143,7 +143,7 @@ public class RXTransitionButtonTest {
     @Test
     public void nullAlternateContentUsesDirectCut() {
         RXTransitionButton button = laidOutButton("Front", null);
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         button.setAnimation(recording);
 
@@ -163,7 +163,7 @@ public class RXTransitionButtonTest {
     public void durationContractMatchesAnimatedButtonBase() {
         // null duration falls back to the default and still animates
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         button.setAnimation(recording);
         button.setAnimationDuration(null);
@@ -179,7 +179,7 @@ public class RXTransitionButtonTest {
 
         // ZERO disables the animation: direct cut
         button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         recording = new RecordingAnimation(Duration.seconds(30.0));
         button.setAnimation(recording);
         button.setAnimationDuration(Duration.ZERO);
@@ -200,7 +200,7 @@ public class RXTransitionButtonTest {
         // blank instead of showing the alternate face.
         Label alternate = new Label("Back");
         RXTransitionButton button = laidOutButton("Front", alternate);
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         button.setAnimationDuration(Duration.ZERO);
 
         try {
@@ -285,7 +285,7 @@ public class RXTransitionButtonTest {
     @Test
     public void playAnimationRoundTripsWithTriggerNone() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.NONE);
+        button.setAnimationTrigger(AnimationTrigger.NONE);
         RecordingAnimation recording = new RecordingAnimation(Duration.ZERO);
         button.setAnimation(recording);
 
@@ -305,7 +305,7 @@ public class RXTransitionButtonTest {
     @Test
     public void playAnimationHasNoEffectWhenDisabled() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.NONE);
+        button.setAnimationTrigger(AnimationTrigger.NONE);
         RecordingAnimation recording = new RecordingAnimation(Duration.ZERO);
         button.setAnimation(recording);
         button.setDisable(true);
@@ -477,7 +477,7 @@ public class RXTransitionButtonTest {
     @Test
     public void disposeReleasesAnimationAndListeners() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
-        button.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         button.setAnimation(recording);
         button.arm();

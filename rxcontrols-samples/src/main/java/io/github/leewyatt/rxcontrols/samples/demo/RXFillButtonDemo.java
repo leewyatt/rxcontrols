@@ -19,11 +19,11 @@ public class RXFillButtonDemo extends Application {
         button.setPrefSize(230, 50);
         button.setMaxSize(230, 50);
         button.setOnAction(event -> System.out.println("FillButton onAction"));
-        // 填充效果; 也可用 CSS: -rx-fill-animation: top-to-bottom
+        // Fill effect; CSS can also set -rx-fill-animation: top-to-bottom.
         button.setFillAnimation(FillAnimation.TOP_TO_BOTTOM);
-        // 自定义参数走构造器, 例如 setFillAnimation(new FillAnimZigzag(6))
-        // 触发方式默认 HOVER; 也可 setAnimationTrigger(RXAnimationTrigger.PRESSED)
-        // 动画时长默认 200ms; 也可 setAnimationDuration(Duration.millis(300))
+        // Parameterized effects use constructors, for example setFillAnimation(new FillAnimZigzag(6)).
+        // The default trigger is HOVER; use setAnimationTrigger(AnimationTrigger.PRESSED) for press.
+        // The default duration is 200ms; use setAnimationDuration(Duration.millis(300)) to override it.
 
         root.setCenter(button);
         primaryStage.setScene(new Scene(root, 500, 320));

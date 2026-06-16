@@ -16,7 +16,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWhipPan;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
@@ -123,8 +123,8 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildTriggerGrid() {
-        ComboBox<RXAnimationTrigger> triggerBox = new ComboBox<>();
-        triggerBox.getItems().setAll(RXAnimationTrigger.values());
+        ComboBox<AnimationTrigger> triggerBox = new ComboBox<>();
+        triggerBox.getItems().setAll(AnimationTrigger.values());
         triggerBox.setValue(RXAnimatedButton.DEFAULT_ANIMATION_TRIGGER);
         triggerBox.setMaxWidth(Double.MAX_VALUE);
         emailButton.animationTriggerProperty().bind(triggerBox.valueProperty());

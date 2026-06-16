@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
@@ -58,14 +58,14 @@ public class RXDrawerPushTest {
 
     @Test
     public void defaultModeIsOverlay() throws Exception {
-        runOnFx(() -> assertEquals(RXDrawerMode.OVERLAY, new RXDrawerPane().getDrawerMode()));
+        runOnFx(() -> assertEquals(DrawerMode.OVERLAY, new RXDrawerPane().getDrawerMode()));
     }
 
     @Test
     public void drawerModeNullDegradesToDefault() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
-            pane.setDrawerMode(RXDrawerMode.PUSH);
+            pane.setDrawerMode(DrawerMode.PUSH);
             // Lenient: null is not rejected; the effective mode falls back to the default.
             pane.setDrawerMode(null);
             assertNull(pane.getDrawerMode(), "null is stored, not rejected");
@@ -79,7 +79,7 @@ public class RXDrawerPushTest {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
             pane.setPrefDrawerWidth(THICKNESS);
-            ObjectProperty<RXDrawerMode> source = new SimpleObjectProperty<>(RXDrawerMode.PUSH);
+            ObjectProperty<DrawerMode> source = new SimpleObjectProperty<>(DrawerMode.PUSH);
             pane.drawerModeProperty().bind(source);
             assertTrue(pane.getPseudoClassStates().contains(PUSH));
 
@@ -102,9 +102,9 @@ public class RXDrawerPushTest {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             assertFalse(pane.getPseudoClassStates().contains(PUSH), "overlay by default");
-            pane.setDrawerMode(RXDrawerMode.PUSH);
+            pane.setDrawerMode(DrawerMode.PUSH);
             assertTrue(pane.getPseudoClassStates().contains(PUSH));
-            pane.setDrawerMode(RXDrawerMode.OVERLAY);
+            pane.setDrawerMode(DrawerMode.OVERLAY);
             assertFalse(pane.getPseudoClassStates().contains(PUSH));
         });
     }
@@ -233,7 +233,7 @@ public class RXDrawerPushTest {
             pane.layout();
             assertEquals(WIDTH, contentLayer(pane).getWidth(), EPSILON, "overlay: content full");
 
-            pane.setDrawerMode(RXDrawerMode.PUSH);
+            pane.setDrawerMode(DrawerMode.PUSH);
             pane.layout();
             assertEquals(WIDTH - THICKNESS, contentLayer(pane).getWidth(), EPSILON,
                     "switching to PUSH while open squeezes the content");
@@ -246,7 +246,7 @@ public class RXDrawerPushTest {
 
     private static RXDrawerPane pushDrawer(Side side) {
         RXDrawerPane pane = new RXDrawerPane();
-        pane.setDrawerMode(RXDrawerMode.PUSH);
+        pane.setDrawerMode(DrawerMode.PUSH);
         pane.setSide(side);
         pane.setPrefDrawerWidth(THICKNESS);
         pane.setPrefDrawerHeight(THICKNESS);

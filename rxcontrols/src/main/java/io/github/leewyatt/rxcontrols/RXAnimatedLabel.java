@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.NamedArg;
@@ -38,7 +38,7 @@ public abstract class RXAnimatedLabel extends Label {
     /**
      * Default animation trigger.
      */
-    public static final RXAnimationTrigger DEFAULT_ANIMATION_TRIGGER = RXAnimationTrigger.HOVER;
+    public static final AnimationTrigger DEFAULT_ANIMATION_TRIGGER = AnimationTrigger.HOVER;
 
     /**
      * Default animation duration.
@@ -96,10 +96,10 @@ public abstract class RXAnimatedLabel extends Label {
 
     // ==================== Animation Trigger ====================
 
-    private final ObjectProperty<RXAnimationTrigger> animationTrigger =
+    private final ObjectProperty<AnimationTrigger> animationTrigger =
             new StyleableObjectProperty<>(DEFAULT_ANIMATION_TRIGGER) {
                 @Override
-                public CssMetaData<? extends Styleable, RXAnimationTrigger> getCssMetaData() {
+                public CssMetaData<? extends Styleable, AnimationTrigger> getCssMetaData() {
                     return StyleableProperties.ANIMATION_TRIGGER;
                 }
 
@@ -117,12 +117,12 @@ public abstract class RXAnimatedLabel extends Label {
     /**
      * State source driving the decoration animation. A {@code null} value
      * falls back to {@link #DEFAULT_ANIMATION_TRIGGER} at render time, while
-     * {@link RXAnimationTrigger#NONE} explicitly disables automatic
+     * {@link AnimationTrigger#NONE} explicitly disables automatic
      * triggering so the decoration moves only via {@link #playAnimation()}.
      *
      * @return the animation trigger property
      */
-    public final ObjectProperty<RXAnimationTrigger> animationTriggerProperty() {
+    public final ObjectProperty<AnimationTrigger> animationTriggerProperty() {
         return animationTrigger;
     }
 
@@ -131,7 +131,7 @@ public abstract class RXAnimatedLabel extends Label {
      *
      * @return the animation trigger
      */
-    public final RXAnimationTrigger getAnimationTrigger() {
+    public final AnimationTrigger getAnimationTrigger() {
         return animationTrigger.get();
     }
 
@@ -140,7 +140,7 @@ public abstract class RXAnimatedLabel extends Label {
      *
      * @param value the animation trigger
      */
-    public final void setAnimationTrigger(RXAnimationTrigger value) {
+    public final void setAnimationTrigger(AnimationTrigger value) {
         animationTrigger.set(value);
     }
 
@@ -198,9 +198,9 @@ public abstract class RXAnimatedLabel extends Label {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXAnimatedLabel, RXAnimationTrigger> ANIMATION_TRIGGER =
+        private static final CssMetaData<RXAnimatedLabel, AnimationTrigger> ANIMATION_TRIGGER =
                 new CssMetaData<>("-rx-animation-trigger",
-                        new EnumConverter<>(RXAnimationTrigger.class), DEFAULT_ANIMATION_TRIGGER) {
+                        new EnumConverter<>(AnimationTrigger.class), DEFAULT_ANIMATION_TRIGGER) {
                     @Override
                     public boolean isSettable(RXAnimatedLabel label) {
                         return !label.animationTrigger.isBound();
@@ -208,8 +208,8 @@ public abstract class RXAnimatedLabel extends Label {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXAnimationTrigger> getStyleableProperty(RXAnimatedLabel label) {
-                        return (StyleableProperty<RXAnimationTrigger>) label.animationTriggerProperty();
+                    public StyleableProperty<AnimationTrigger> getStyleableProperty(RXAnimatedLabel label) {
+                        return (StyleableProperty<AnimationTrigger>) label.animationTriggerProperty();
                     }
                 };
 

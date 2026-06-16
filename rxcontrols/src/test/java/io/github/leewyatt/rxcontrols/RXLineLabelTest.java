@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import io.github.leewyatt.rxcontrols.skins.RXLineLabelSkin;
 import javafx.animation.PauseTransition;
@@ -153,7 +153,7 @@ public class RXLineLabelTest {
         runOnFx(() -> {
             RXLineLabel label = withSkin(new RXLineLabel("Link"));
             label.setAnimationDuration(Duration.ZERO);
-            label.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            label.setAnimationTrigger(AnimationTrigger.PRESSED);
             layout(label, 120.0, 40.0);
 
             label.fireEvent(mouse(label, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
@@ -182,7 +182,7 @@ public class RXLineLabelTest {
         runOnFx(() -> {
             RXLineLabel label = withSkin(new RXLineLabel("Link"));
             label.setAnimationDuration(Duration.ZERO);
-            label.setAnimationTrigger(RXAnimationTrigger.NONE);
+            label.setAnimationTrigger(AnimationTrigger.NONE);
             layout(label, 120.0, 40.0);
 
             label.fireEvent(mouse(label, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
@@ -190,12 +190,12 @@ public class RXLineLabelTest {
 
             assertFalse(isLineShowing(label));
 
-            label.setAnimationTrigger(RXAnimationTrigger.HOVER);
+            label.setAnimationTrigger(AnimationTrigger.HOVER);
             label.fireEvent(mouse(label, MouseEvent.MOUSE_ENTERED, 10.0, 10.0, false));
 
             assertTrue(isLineShowing(label));
 
-            label.setAnimationTrigger(RXAnimationTrigger.NONE);
+            label.setAnimationTrigger(AnimationTrigger.NONE);
 
             assertFalse(isLineShowing(label));
 
@@ -211,7 +211,7 @@ public class RXLineLabelTest {
 
             root.applyCss();
 
-            assertSame(RXAnimationTrigger.NONE, styled.getAnimationTrigger());
+            assertSame(AnimationTrigger.NONE, styled.getAnimationTrigger());
         });
     }
 
@@ -223,8 +223,8 @@ public class RXLineLabelTest {
      */
     @Test
     public void playAnimationPulsesOnceInNoneAndHoverModes() throws Exception {
-        assertPulseCompletes(RXAnimationTrigger.NONE, false);
-        assertPulseCompletes(RXAnimationTrigger.HOVER, false);
+        assertPulseCompletes(AnimationTrigger.NONE, false);
+        assertPulseCompletes(AnimationTrigger.HOVER, false);
     }
 
     /**
@@ -235,7 +235,7 @@ public class RXLineLabelTest {
      */
     @Test
     public void pulseCompletesDespiteHoverExitMidFlight() throws Exception {
-        assertPulseCompletes(RXAnimationTrigger.HOVER, true);
+        assertPulseCompletes(AnimationTrigger.HOVER, true);
     }
 
     /**
@@ -340,7 +340,7 @@ public class RXLineLabelTest {
             assertSame(LineAnimation.LEFT_RIGHT_CONVERGE, label.getLineAnimation());
             assertEquals(4.0, label.getLineThickness(), EPSILON);
             assertEquals(6.0, label.getLineGap(), EPSILON);
-            assertSame(RXAnimationTrigger.PRESSED, label.getAnimationTrigger());
+            assertSame(AnimationTrigger.PRESSED, label.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), label.getAnimationDuration());
         });
     }
@@ -383,7 +383,7 @@ public class RXLineLabelTest {
      * again. With {@code exitMidFlight} a hover exit event is fired right
      * after the pulse starts; the gate must absorb it.
      */
-    private static void assertPulseCompletes(RXAnimationTrigger trigger,
+    private static void assertPulseCompletes(AnimationTrigger trigger,
                                              boolean exitMidFlight) throws Exception {
         CountDownLatch shown = new CountDownLatch(1);
         CountDownLatch fullExtent = new CountDownLatch(1);

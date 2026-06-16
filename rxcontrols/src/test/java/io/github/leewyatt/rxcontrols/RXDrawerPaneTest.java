@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
@@ -173,7 +173,7 @@ public class RXDrawerPaneTest {
             attach(pane);
 
             assertEquals(Side.LEFT, pane.getSide());
-            assertEquals(RXDrawerMode.PUSH, pane.getDrawerMode());
+            assertEquals(DrawerMode.PUSH, pane.getDrawerMode());
             assertFalse(pane.isAnimated());
             assertEquals(Duration.millis(75.0), pane.getAnimationDuration());
             assertFalse(pane.isOverlayPaneVisible());

@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXLineLabel;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineEdges;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -110,9 +110,9 @@ public class RXLineLabelShowcase extends RXShowcaseApplication {
         animationBox.valueProperty().addListener((obs, oldV, newV) ->
                 labels.forEach(label -> label.setLineAnimation(ANIMATIONS.get(newV))));
 
-        ComboBox<RXAnimationTrigger> triggerBox = new ComboBox<>();
-        triggerBox.getItems().setAll(RXAnimationTrigger.values());
-        triggerBox.setValue(RXAnimationTrigger.HOVER);
+        ComboBox<AnimationTrigger> triggerBox = new ComboBox<>();
+        triggerBox.getItems().setAll(AnimationTrigger.values());
+        triggerBox.setValue(AnimationTrigger.HOVER);
         triggerBox.setMaxWidth(Double.MAX_VALUE);
         triggerBox.valueProperty().addListener((obs, oldV, newV) ->
                 labels.forEach(label -> label.setAnimationTrigger(newV)));

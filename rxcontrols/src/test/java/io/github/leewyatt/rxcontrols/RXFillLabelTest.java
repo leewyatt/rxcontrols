@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.skins.RXFillLabelSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -143,7 +143,7 @@ public class RXFillLabelTest {
         runOnFx(() -> {
             RXFillLabel label = withSkin(new RXFillLabel("Tag"));
             label.setAnimationDuration(Duration.ZERO);
-            label.setAnimationTrigger(RXAnimationTrigger.PRESSED);
+            label.setAnimationTrigger(AnimationTrigger.PRESSED);
             layout(label, 100.0, 30.0);
             Pane content = fillContent(label);
 
@@ -183,7 +183,7 @@ public class RXFillLabelTest {
             root.applyCss();
 
             assertSame(FillAnimation.CIRCLE, label.getFillAnimation());
-            assertSame(RXAnimationTrigger.PRESSED, label.getAnimationTrigger());
+            assertSame(AnimationTrigger.PRESSED, label.getAnimationTrigger());
             assertEquals(Duration.millis(80.0), label.getAnimationDuration());
             assertEquals(new Insets(2.0), label.getFillInsets());
             assertEquals(new CornerRadii(10.0, 10.0, 4.0, 4.0, false), label.getFillCornerRadius());

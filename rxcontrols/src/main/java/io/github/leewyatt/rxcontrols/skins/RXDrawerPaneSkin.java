@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.animation.Animation;
@@ -552,13 +552,13 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         applyDrawerWrapperRest(open);
     }
 
-    private RXDrawerMode drawerModeOrDefault() {
-        RXDrawerMode mode = getSkinnable().getDrawerMode();
+    private DrawerMode drawerModeOrDefault() {
+        DrawerMode mode = getSkinnable().getDrawerMode();
         return mode == null ? RXDrawerPane.DEFAULT_DRAWER_MODE : mode;
     }
 
     private boolean isPush() {
-        return drawerModeOrDefault() == RXDrawerMode.PUSH;
+        return drawerModeOrDefault() == DrawerMode.PUSH;
     }
 
     /**
@@ -566,7 +566,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
      * enabled. PUSH is never modal.
      */
     private boolean overlayPaneActive() {
-        return drawerModeOrDefault() == RXDrawerMode.OVERLAY && getSkinnable().isOverlayPaneVisible();
+        return drawerModeOrDefault() == DrawerMode.OVERLAY && getSkinnable().isOverlayPaneVisible();
     }
 
     /**

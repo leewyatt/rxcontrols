@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
-import io.github.leewyatt.rxcontrols.enums.RXDrawerMode;
+import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
@@ -144,8 +144,8 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         side.valueProperty().addListener((obs, old, value) -> drawer.setSide(value));
         side.setMaxWidth(Double.MAX_VALUE);
 
-        ComboBox<RXDrawerMode> mode = new ComboBox<>(FXCollections.observableArrayList(
-                RXDrawerMode.OVERLAY, RXDrawerMode.PUSH));
+        ComboBox<DrawerMode> mode = new ComboBox<>(FXCollections.observableArrayList(
+                DrawerMode.OVERLAY, DrawerMode.PUSH));
         mode.setValue(drawer.getDrawerMode());
         mode.valueProperty().addListener((obs, old, value) -> drawer.setDrawerMode(value));
         mode.setMaxWidth(Double.MAX_VALUE);

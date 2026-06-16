@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.fill;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.RXAnimationTrigger;
+import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
 import io.github.leewyatt.rxcontrols.internal.DecorationProgress;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
@@ -63,7 +63,7 @@ public final class FillDecoration {
      */
     public FillDecoration(Control host,
                           ObjectProperty<FillAnimation> animation,
-                          ObjectProperty<RXAnimationTrigger> trigger,
+                          ObjectProperty<AnimationTrigger> trigger,
                           ObjectProperty<Duration> duration,
                           ObjectProperty<Insets> insets,
                           ObjectProperty<CornerRadii> radius) {
