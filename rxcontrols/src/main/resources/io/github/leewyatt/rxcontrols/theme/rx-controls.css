@@ -849,3 +849,55 @@
     -rx-ripple-enabled: true;
     -rx-ripple-centered: false;
 }
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTimelineView                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.rx-timeline-view {
+    -rx-dot-fill: #409eff;
+    -rx-line-fill: #c0c4cc;
+    -rx-dot-size: 12;
+    -rx-line-width: 2;
+    -rx-item-spacing: 16;
+    -fx-background-color: transparent;
+}
+
+.rx-timeline-view > .items > .item > .axis > .dot {
+    -fx-background-color: -rx-dot-fill;
+    -fx-background-radius: 50%;
+    -fx-translate-y: 2; /* nudge dot toward the title's first line */
+}
+
+.rx-timeline-view > .items > .item > .axis > .connector {
+    -fx-background-color: -rx-line-fill;
+}
+
+.rx-timeline-view > .items > .item:last > .axis > .connector {
+    visibility: hidden;
+}
+
+.rx-timeline-view > .items > .item:success > .axis > .dot { -fx-background-color: #67c23a; }
+.rx-timeline-view > .items > .item:warning > .axis > .dot { -fx-background-color: #e6a23c; }
+.rx-timeline-view > .items > .item:danger  > .axis > .dot { -fx-background-color: #f56c6c; }
+.rx-timeline-view > .items > .item:info    > .axis > .dot { -fx-background-color: #909399; }
+
+.rx-timeline-view > .items > .item > .content > .title {
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.rx-timeline-view > .items > .item > .content > .description {
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.rx-timeline-view > .items > .item > .content > .timestamp {
+    -fx-text-fill: -fx-mid-text-color;
+    -fx-font-size: 0.85em;
+}
+
+.rx-timeline-view > .placeholder {
+    -fx-text-fill: -fx-mid-text-color;
+    -fx-opacity: 0.62;
+}
