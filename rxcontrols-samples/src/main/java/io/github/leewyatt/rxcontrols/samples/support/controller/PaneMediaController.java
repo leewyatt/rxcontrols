@@ -5,7 +5,7 @@ import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.StyleUtil;
+import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -188,9 +188,9 @@ public class PaneMediaController {
         styleGroup.selectedToggleProperty().addListener((ob, ov, nv) -> {
             int index = styleGroup.getToggles().indexOf(nv);
             if (index == 0) {
-                StyleUtil.removeSheets(spectrum, styleSheets);
+                RXStyles.removeSheets(spectrum, styleSheets);
             } else {
-                StyleUtil.toggleSheets(spectrum, styleSheets, styleSheets[index - 1]);
+                RXStyles.toggleSheets(spectrum, styleSheets, styleSheets[index - 1]);
             }
         });
     }
