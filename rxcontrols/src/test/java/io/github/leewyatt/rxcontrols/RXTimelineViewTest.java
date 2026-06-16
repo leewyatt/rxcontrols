@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
+import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -44,6 +45,8 @@ public class RXTimelineViewTest {
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
     private static final PseudoClass SUCCESS = PseudoClass.getPseudoClass("success");
+    private static final PseudoClass LEFT = PseudoClass.getPseudoClass("left");
+    private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -76,6 +79,7 @@ public class RXTimelineViewTest {
         assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, view.getAxisSpacing(), EPSILON);
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
+        assertEquals(TimelinePosition.LEFT, view.getPosition());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
     }
 
@@ -269,6 +273,39 @@ public class RXTimelineViewTest {
         view.getParent().applyCss();
         view.getParent().layout();
         assertEquals(30.0, firstRow.getSpacing(), EPSILON);
+    }
+
+    @Test
+    public void positionRightReordersColumnsAndPseudoClass() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
+        showInScene(view);
+
+        HBox row = (HBox) itemNodes(view).get(0);
+        // Left (default): axis column first, :left pseudo set.
+        assertTrue(row.getChildrenUnmodifiable().get(0).getStyleClass().contains("axis"));
+        assertTrue(row.getPseudoClassStates().contains(LEFT));
+        assertFalse(row.getPseudoClassStates().contains(RIGHT));
+
+        view.setPosition(TimelinePosition.RIGHT);
+        view.getParent().applyCss();
+        view.getParent().layout();
+
+        // Right: axis column moves to the end, :right pseudo set.
+        int lastIndex = row.getChildrenUnmodifiable().size() - 1;
+        assertTrue(row.getChildrenUnmodifiable().get(lastIndex).getStyleClass().contains("axis"));
+        assertTrue(row.getPseudoClassStates().contains(RIGHT));
+        assertFalse(row.getPseudoClassStates().contains(LEFT));
+    }
+
+    @Test
+    public void nullPositionFallsBackToLeft() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
+        view.setPosition(null);
+        showInScene(view);
+
+        HBox row = (HBox) itemNodes(view).get(0);
+        assertTrue(row.getChildrenUnmodifiable().get(0).getStyleClass().contains("axis"));
+        assertTrue(row.getPseudoClassStates().contains(LEFT));
     }
 
     @Test

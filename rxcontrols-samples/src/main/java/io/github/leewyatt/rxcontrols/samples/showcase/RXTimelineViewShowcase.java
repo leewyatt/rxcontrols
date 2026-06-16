@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
+import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTimelineViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.scene.Node;
@@ -110,7 +111,16 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         CheckBox reverseBox = new CheckBox("Reverse display order");
         reverseBox.setSelected(timeline.isReverse());
         timeline.reverseProperty().bind(reverseBox.selectedProperty());
-        return createGrid(row(reverseBox));
+
+        ChoiceBox<TimelinePosition> positionBox = new ChoiceBox<>();
+        positionBox.getItems().addAll(TimelinePosition.values());
+        positionBox.setValue(timeline.getPosition());
+        positionBox.setMaxWidth(Double.MAX_VALUE);
+        timeline.positionProperty().bind(positionBox.valueProperty());
+
+        return createGrid(
+                row(reverseBox),
+                row("Axis position", positionBox));
     }
 
     private Node buildMetricsGrid() {

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTimelineViewSkin;
@@ -82,6 +83,11 @@ public class RXTimelineView extends Control {
      */
     public static final boolean DEFAULT_REVERSE = false;
 
+    /**
+     * Default axis position.
+     */
+    public static final TimelinePosition DEFAULT_POSITION = TimelinePosition.LEFT;
+
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
 
     // ==================== Items ====================
@@ -120,6 +126,41 @@ public class RXTimelineView extends Control {
      */
     public final void setReverse(boolean value) {
         reverse.set(value);
+    }
+
+    // ==================== Position ====================
+
+    private final ObjectProperty<TimelinePosition> position =
+            new SimpleObjectProperty<>(this, "position", DEFAULT_POSITION);
+
+    /**
+     * Which side the axis column (dot and connector) sits on.
+     * {@link TimelinePosition#LEFT} (the default) places the axis on the left
+     * with content on the right; {@link TimelinePosition#RIGHT} mirrors it.
+     * {@code null} is treated as {@link #DEFAULT_POSITION} by the skin.
+     *
+     * @return the position property
+     */
+    public final ObjectProperty<TimelinePosition> positionProperty() {
+        return position;
+    }
+
+    /**
+     * Returns the axis position.
+     *
+     * @return the position, or {@code null}
+     */
+    public final TimelinePosition getPosition() {
+        return position.get();
+    }
+
+    /**
+     * Sets the axis position.
+     *
+     * @param value the position, or {@code null} for the default
+     */
+    public final void setPosition(TimelinePosition value) {
+        position.set(value);
     }
 
     // ==================== Dot Size ====================

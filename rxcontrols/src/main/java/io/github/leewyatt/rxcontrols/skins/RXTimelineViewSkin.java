@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.enums.TimelineItemType;
+import io.github.leewyatt.rxcontrols.enums.TimelinePosition;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.BooleanBinding;
@@ -22,6 +23,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +53,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
     private final Runnable rebuildAction = this::rebuildItemNodes;
     private final Runnable metricsAction = this::applyMetricsAndRequestLayout;
+    private final Runnable positionAction = this::applyPositionAndRequestLayout;
     private final ChangeListener<Node> placeholderListener =
             (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
     private final EventHandler<MouseEvent> clickHandler = this::onItemsClicked;
@@ -78,6 +81,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         disposer.registerListener(control.lineWidthProperty(), metricsAction);
         disposer.registerListener(control.itemSpacingProperty(), metricsAction);
         disposer.registerListener(control.axisSpacingProperty(), metricsAction);
+        disposer.registerListener(control.positionProperty(), positionAction);
         disposer.registerListener(control.placeholderProperty(), placeholderListener);
         disposer.registerEventHandler(itemsBox, MouseEvent.MOUSE_CLICKED, clickHandler);
 
@@ -182,6 +186,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             itemNodes.get(i).setRole(i == 0, i == lastDisplayIndex);
         }
         applyMetrics();
+        applyPosition();
         updatePlaceholderState();
         getSkinnable().requestLayout();
     }
@@ -201,6 +206,25 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     private void applyMetricsAndRequestLayout() {
         applyMetrics();
         getSkinnable().requestLayout();
+    }
+
+    // ==================== Position ====================
+
+    private void applyPosition() {
+        TimelinePosition position = positionOrDefault();
+        for (ItemNode node : itemNodes) {
+            node.applyPosition(position);
+        }
+    }
+
+    private void applyPositionAndRequestLayout() {
+        applyPosition();
+        getSkinnable().requestLayout();
+    }
+
+    private TimelinePosition positionOrDefault() {
+        TimelinePosition position = getSkinnable().getPosition();
+        return position == null ? RXTimelineView.DEFAULT_POSITION : position;
     }
 
     // ==================== Placeholder ====================
@@ -291,6 +315,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private static final PseudoClass WARNING_PSEUDO_CLASS = PseudoClass.getPseudoClass("warning");
         private static final PseudoClass DANGER_PSEUDO_CLASS = PseudoClass.getPseudoClass("danger");
         private static final PseudoClass INFO_PSEUDO_CLASS = PseudoClass.getPseudoClass("info");
+        private static final PseudoClass LEFT_PSEUDO_CLASS = PseudoClass.getPseudoClass("left");
+        private static final PseudoClass RIGHT_PSEUDO_CLASS = PseudoClass.getPseudoClass("right");
 
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private final RXTimelineItem item;
@@ -431,6 +457,26 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             this.first = first;
             this.last = last;
             pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
+        }
+
+        // Mirrors the row for a right-side axis: swap the column order and align
+        // the content text toward the axis so it reads the same on either side.
+        private void applyPosition(TimelinePosition position) {
+            boolean right = position == TimelinePosition.RIGHT;
+            if (right) {
+                getChildren().setAll(content, axis);
+            } else {
+                getChildren().setAll(axis, content);
+            }
+            content.setAlignment(right ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
+            Pos labelAlignment = right ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
+            TextAlignment textAlignment = right ? TextAlignment.RIGHT : TextAlignment.LEFT;
+            for (Label label : new Label[]{title, description, timestamp}) {
+                label.setAlignment(labelAlignment);
+                label.setTextAlignment(textAlignment);
+            }
+            pseudoClassStateChanged(LEFT_PSEUDO_CLASS, !right);
+            pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, right);
         }
 
         private RXTimelineItem getItem() {
