@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.scene.control.Control;
 import javafx.scene.control.SkinBase;
@@ -25,7 +25,7 @@ public abstract class RXSkinBase<C extends Control> extends SkinBase<C> {
      */
     protected final SkinDisposer disposer = new SkinDisposer();
 
-    private TreeShowingProperty controlTreeShowing;
+    private RXTreeShowingProperty controlTreeShowing;
 
     /**
      * Constructs the skin for the given control.
@@ -44,7 +44,7 @@ public abstract class RXSkinBase<C extends Control> extends SkinBase<C> {
      */
     protected final ReadOnlyBooleanProperty controlTreeShowingProperty() {
         if (controlTreeShowing == null) {
-            controlTreeShowing = new TreeShowingProperty(getSkinnable());
+            controlTreeShowing = new RXTreeShowingProperty(getSkinnable());
             disposer.registerDisposeTask(controlTreeShowing::dispose);
         }
         return controlTreeShowing;

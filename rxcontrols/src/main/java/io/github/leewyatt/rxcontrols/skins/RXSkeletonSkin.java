@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSkeleton.Variant;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -33,7 +33,7 @@ import java.util.List;
  *   <li>The band moves inside a fixed viewport clipped by rectangles computed
  *       from the same geometry as the base layer — this prevents the gradient
  *       from spilling into rounded corners or text-line gaps.</li>
- *   <li>{@link TreeShowingProperty} auto-pauses the scroll when the skeleton is
+ *   <li>{@link RXTreeShowingProperty} auto-pauses the scroll when the skeleton is
  *       detached, hidden, or hosted by a hidden window — see
  *       {@code AGENTS.md} §3.1.</li>
  *   <li>{@code maxWidth} / {@code maxHeight} report {@link Double#MAX_VALUE},

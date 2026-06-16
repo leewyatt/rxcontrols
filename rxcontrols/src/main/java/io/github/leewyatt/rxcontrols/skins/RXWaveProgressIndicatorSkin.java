@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
@@ -63,7 +63,7 @@ import java.util.List;
  *
  * <p>The indeterminate animation breathes {@code displayedProgress} between
  * {@code 0.35} and {@code 0.65}. The frame timer auto-stops whenever the host
- * window or any ancestor is hidden (via {@link TreeShowingProperty}) or when
+ * window or any ancestor is hidden (via {@link RXTreeShowingProperty}) or when
  * the surface has nothing left to animate, and resumes on the next change.
  */
 public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndicator> {

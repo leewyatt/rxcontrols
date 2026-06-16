@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
@@ -120,7 +120,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private final Region loadingGlyph = new Region();
 
     /** True only when this cell is in a visible chain on a showing window. */
-    private final ReadOnlyBooleanProperty treeShowing = TreeShowingProperty.of(this);
+    private final ReadOnlyBooleanProperty treeShowing = RXTreeShowingProperty.of(this);
 
     // ==================== Listeners ====================
 

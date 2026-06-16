@@ -28,7 +28,7 @@ import javafx.scene.layout.Region;
  * ({@code loading: true → false → true}) reuses the same skeleton instance
  * with zero reconstruction. When the skeleton is out of the scene graph its
  * internal shimmer animation auto-pauses via
- * {@link io.github.leewyatt.rxcontrols.utils.TreeShowingProperty TreeShowingProperty}.
+ * {@link io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty RXTreeShowingProperty}.
  *
  * <p><b>Child-inference sizing.</b> The pane's {@code prefWidth} / {@code
  * prefHeight} fall back to the real content's preferred size when present, so

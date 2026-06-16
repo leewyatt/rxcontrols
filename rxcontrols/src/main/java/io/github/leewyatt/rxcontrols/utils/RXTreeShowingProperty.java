@@ -31,7 +31,7 @@ import java.util.Objects;
  * <h2>Lifecycle — two modes</h2>
  * <ol>
  *   <li><strong>Explicit ownership (recommended for {@code Skin}s):</strong>
- *       construct with {@code new TreeShowingProperty(node)} and call
+ *       construct with {@code new RXTreeShowingProperty(node)} and call
  *       {@link #dispose()} when finished. After disposal the property
  *       reports {@code false} permanently and no further events are fired.</li>
  *   <li><strong>Shared cache (recommended for ad-hoc consumers):</strong>
@@ -44,7 +44,7 @@ import java.util.Objects;
  * <p>If you only need a single read and do not want to register listeners, use
  * {@link #isTreeShowing(Node)}.</p>
  */
-public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
+public final class RXTreeShowingProperty extends ReadOnlyBooleanPropertyBase {
 
     /**
      * Sentinel key for caching the shared per-node instance in {@link Node#getProperties()}.
@@ -77,23 +77,32 @@ public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
      * @param target the node whose effective showing state will be observed
      * @throws NullPointerException if {@code target} is {@code null}
      */
-    public TreeShowingProperty(Node target) {
+    public RXTreeShowingProperty(Node target) {
         this.target = Objects.requireNonNull(target, "target must not be null");
         target.sceneProperty().addListener(sceneChangeListener);
         rebuildChain();
         attachScene(target.getScene());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Object getBean() {
         return target;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return "treeShowing";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean get() {
         if (!valid) {
@@ -136,17 +145,17 @@ public final class TreeShowingProperty extends ReadOnlyBooleanPropertyBase {
     public static ReadOnlyBooleanProperty of(Node node) {
         Objects.requireNonNull(node, "node must not be null");
         Object cached = node.getProperties().get(CACHE_KEY);
-        if (cached instanceof TreeShowingProperty existing && !existing.disposed) {
+        if (cached instanceof RXTreeShowingProperty existing && !existing.disposed) {
             return existing;
         }
-        TreeShowingProperty fresh = new TreeShowingProperty(node);
+        RXTreeShowingProperty fresh = new RXTreeShowingProperty(node);
         node.getProperties().put(CACHE_KEY, fresh);
         return fresh;
     }
 
     /**
      * Computes the tree-showing state once, without registering any listener.
-     * Equivalent to constructing a {@link TreeShowingProperty}, reading
+     * Equivalent to constructing a {@link RXTreeShowingProperty}, reading
      * {@link #get()} and immediately calling {@link #dispose()} — but without
      * the allocation and listener overhead.
      *

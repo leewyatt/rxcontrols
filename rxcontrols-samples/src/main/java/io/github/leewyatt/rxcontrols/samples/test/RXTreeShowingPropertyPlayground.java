@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.test;
 
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -29,11 +29,11 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Interactive playground for {@link TreeShowingProperty} that exercises every
+ * Interactive playground for {@link RXTreeShowingProperty} that exercises every
  * lifecycle path: explicit ownership, shared cache, one-shot read, visibility
  * toggling, reparenting, detachment, and window show/hide.
  */
-public class TreeShowingPropertyPlayground extends Application {
+public class RXTreeShowingPropertyPlayground extends Application {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -93,7 +93,7 @@ public class TreeShowingPropertyPlayground extends Application {
 
     // ==================== Property under test ====================
 
-    private TreeShowingProperty prop;
+    private RXTreeShowingProperty prop;
 
     // ==================== Log ====================
 
@@ -108,11 +108,11 @@ public class TreeShowingPropertyPlayground extends Application {
     public void start(Stage primaryStage) {
         buildPreview();
 
-        prop = new TreeShowingProperty(target);
+        prop = new RXTreeShowingProperty(target);
         prop.addListener((obs, oldV, newV) -> log("treeShowing → " + newV));
 
         primaryStage.setScene(buildControlPanel());
-        primaryStage.setTitle("TreeShowingProperty Playground");
+        primaryStage.setTitle("RXTreeShowingProperty Playground");
 
         layoutWindows(primaryStage);
 
@@ -213,17 +213,17 @@ public class TreeShowingPropertyPlayground extends Application {
             log("→ prop.dispose(); prop.get() = " + prop.get());
         });
 
-        Button btnVerifyCache = new Button("Verify TreeShowingProperty.of() cache");
+        Button btnVerifyCache = new Button("Verify RXTreeShowingProperty.of() cache");
         btnVerifyCache.setOnAction(e -> {
-            ReadOnlyBooleanProperty a = TreeShowingProperty.of(target);
-            ReadOnlyBooleanProperty b = TreeShowingProperty.of(target);
-            log("→ TreeShowingProperty.of(target): same instance = " + (a == b)
+            ReadOnlyBooleanProperty a = RXTreeShowingProperty.of(target);
+            ReadOnlyBooleanProperty b = RXTreeShowingProperty.of(target);
+            log("→ RXTreeShowingProperty.of(target): same instance = " + (a == b)
                     + ", value = " + a.get());
         });
 
         Button btnOneShot = new Button("Static isTreeShowing(target)");
         btnOneShot.setOnAction(e -> {
-            boolean snapshot = TreeShowingProperty.isTreeShowing(target);
+            boolean snapshot = RXTreeShowingProperty.isTreeShowing(target);
             log("→ isTreeShowing() one-shot = " + snapshot);
         });
 

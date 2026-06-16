@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
@@ -25,15 +25,15 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Sample application demonstrating {@link TreeShowingProperty}.
+ * Sample application demonstrating {@link RXTreeShowingProperty}.
  *
  * <p>A {@link RotateTransition} runs on a node hosted inside a {@link TabPane}.
  * When the user switches to another tab, the node leaves the visible chain,
- * {@code TreeShowingProperty} flips to {@code false}, and the animation
+ * {@code RXTreeShowingProperty} flips to {@code false}, and the animation
  * auto-pauses; switching back resumes it. This is the classic use case: avoid
  * spending CPU/render work on visuals that are not currently on screen.</p>
  */
-public class TreeShowingPropertyDemo extends Application {
+public class RXTreeShowingPropertyDemo extends Application {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
@@ -71,7 +71,7 @@ public class TreeShowingPropertyDemo extends Application {
 
         TabPane tabPane = new TabPane(animatedTab, idleTab);
 
-        ReadOnlyBooleanProperty shapeShowing = TreeShowingProperty.of(shape);
+        ReadOnlyBooleanProperty shapeShowing = RXTreeShowingProperty.of(shape);
         shapeShowing.addListener((obs, was, now) -> {
             if (now) {
                 rotate.play();
@@ -94,7 +94,7 @@ public class TreeShowingPropertyDemo extends Application {
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         primaryStage.setScene(new Scene(root, 440, 340));
-        primaryStage.setTitle("TreeShowingProperty Demo");
+        primaryStage.setTitle("RXTreeShowingProperty Demo");
         primaryStage.show();
     }
 

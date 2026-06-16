@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -30,7 +30,7 @@ import javafx.util.Callback;
  * <p>The indeterminate animation is a Material-style sweep
  * ({@code progressArc.length} animated between a short and long sweep) combined
  * with a continuous rotation. It auto-pauses whenever the host window or any
- * ancestor of the control is hidden, via {@link TreeShowingProperty}.
+ * ancestor of the control is hidden, via {@link RXTreeShowingProperty}.
  *
  * <p>An internal {@code displayedProgress} lets the control's logical
  * {@code progress} jump while the visible arc tweens.

@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXBarSpinner.AnimationMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import io.github.leewyatt.rxcontrols.utils.TreeShowingProperty;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -34,7 +34,7 @@ import java.util.List;
  *   <li>The driver is a single {@link Timeline}, not one timeline per bar,
  *       so phase relationships stay exact across the cycle boundary and there
  *       is only one play / pause site to wire up to
- *       {@link TreeShowingProperty}.</li>
+ *       {@link RXTreeShowingProperty}.</li>
  *   <li>Each bar's "local time" is {@code (phase + i/N) % 1.0}; this maps
  *       through {@link AnimationMode#WAVE} ({@code sin}) or {@link AnimationMode#BOUNCE}
  *       (tent) to a value in {@code [0, 1]}, then lerped from
