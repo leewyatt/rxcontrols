@@ -77,6 +77,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         disposer.registerListener(control.dotSizeProperty(), metricsAction);
         disposer.registerListener(control.lineWidthProperty(), metricsAction);
         disposer.registerListener(control.itemSpacingProperty(), metricsAction);
+        disposer.registerListener(control.axisSpacingProperty(), metricsAction);
         disposer.registerListener(control.placeholderProperty(), placeholderListener);
         disposer.registerEventHandler(itemsBox, MouseEvent.MOUSE_CLICKED, clickHandler);
 
@@ -191,8 +192,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         double dotSize = RXMath.sanitizeNonNegative(getSkinnable().getDotSize());
         double lineWidth = RXMath.sanitizeNonNegative(getSkinnable().getLineWidth());
         double itemSpacing = RXMath.sanitizeNonNegative(getSkinnable().getItemSpacing());
+        double axisSpacing = RXMath.sanitizeNonNegative(getSkinnable().getAxisSpacing());
         for (ItemNode node : itemNodes) {
-            node.applyMetrics(dotSize, lineWidth, itemSpacing);
+            node.applyMetrics(dotSize, lineWidth, itemSpacing, axisSpacing);
         }
     }
 
@@ -358,10 +360,11 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             itemDisposer.registerBinding(label.visibleProperty(), nonEmpty);
         }
 
-        private void applyMetrics(double dotSize, double lineWidth, double itemSpacing) {
+        private void applyMetrics(double dotSize, double lineWidth, double itemSpacing, double axisSpacing) {
             dot.setPrefSize(dotSize, dotSize);
             connector.setPrefWidth(lineWidth);
             configureConnector(lineWidth, dotSize / 2.0);
+            setSpacing(axisSpacing);
             // itemSpacing is the gap between items, so the last row carries no trailing padding.
             double bottom = last ? 0.0 : itemSpacing;
             content.setPadding(new Insets(0.0, 0.0, bottom, 0.0));

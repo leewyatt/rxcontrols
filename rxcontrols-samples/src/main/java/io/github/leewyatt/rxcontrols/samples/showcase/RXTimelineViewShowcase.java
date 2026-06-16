@@ -126,10 +126,15 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         timeline.itemSpacingProperty().bind(itemSpacing.valueProperty());
         Label itemSpacingValue = createValueLabel(itemSpacing, "%.0f px");
 
+        Slider axisSpacing = createSlider(0.0, 48.0, RXTimelineView.DEFAULT_AXIS_SPACING);
+        timeline.axisSpacingProperty().bind(axisSpacing.valueProperty());
+        Label axisSpacingValue = createValueLabel(axisSpacing, "%.0f px");
+
         return createGrid(
                 row("Dot size", dotSize, dotSizeValue),
                 row("Line width", lineWidth, lineWidthValue),
-                row("Item spacing", itemSpacing, itemSpacingValue));
+                row("Item spacing", itemSpacing, itemSpacingValue),
+                row("Axis spacing", axisSpacing, axisSpacingValue));
     }
 
     private Node buildViewColorsGrid() {

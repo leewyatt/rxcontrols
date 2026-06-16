@@ -73,6 +73,11 @@ public class RXTimelineView extends Control {
     public static final double DEFAULT_ITEM_SPACING = 16.0;
 
     /**
+     * Default horizontal spacing between the axis column and the content in pixels.
+     */
+    public static final double DEFAULT_AXIS_SPACING = 12.0;
+
+    /**
      * Default display order.
      */
     public static final boolean DEFAULT_REVERSE = false;
@@ -214,6 +219,40 @@ public class RXTimelineView extends Control {
      */
     public final void setItemSpacing(double value) {
         itemSpacing.set(value);
+    }
+
+    // ==================== Axis Spacing ====================
+
+    private final DoubleProperty axisSpacing =
+            new SimpleStyleableDoubleProperty(StyleableProperties.AXIS_SPACING, this, "axisSpacing", DEFAULT_AXIS_SPACING);
+
+    /**
+     * The horizontal spacing between the axis column (dot and connector) and the
+     * content column, in pixels. Negative values are sanitized to {@code 0} by
+     * the skin when applied.
+     *
+     * @return the axis spacing property
+     */
+    public final DoubleProperty axisSpacingProperty() {
+        return axisSpacing;
+    }
+
+    /**
+     * Returns the horizontal spacing between the axis column and the content.
+     *
+     * @return the axis spacing
+     */
+    public final double getAxisSpacing() {
+        return axisSpacing.get();
+    }
+
+    /**
+     * Sets the horizontal spacing between the axis column and the content.
+     *
+     * @param value the axis spacing
+     */
+    public final void setAxisSpacing(double value) {
+        axisSpacing.set(value);
     }
 
     // ==================== Placeholder ====================
@@ -426,12 +465,27 @@ public class RXTimelineView extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTimelineView, Number> AXIS_SPACING =
+                new CssMetaData<>("-rx-axis-spacing", SizeConverter.getInstance(), DEFAULT_AXIS_SPACING) {
+
+                    @Override
+                    public boolean isSettable(RXTimelineView control) {
+                        return !control.axisSpacing.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTimelineView control) {
+                        return (StyleableProperty<Number>) control.axisSpacingProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, DOT_SIZE, LINE_WIDTH, ITEM_SPACING);
+            Collections.addAll(styleables, DOT_SIZE, LINE_WIDTH, ITEM_SPACING, AXIS_SPACING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

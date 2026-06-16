@@ -911,6 +911,7 @@
     -rx-dot-size: 12;
     -rx-line-width: 2;
     -rx-item-spacing: 16;
+    -rx-axis-spacing: 12;
     -fx-background-color: transparent;
 }
 

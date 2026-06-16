@@ -15,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -72,6 +73,7 @@ public class RXTimelineViewTest {
         assertEquals(RXTimelineView.DEFAULT_DOT_SIZE, view.getDotSize(), EPSILON);
         assertEquals(RXTimelineView.DEFAULT_LINE_WIDTH, view.getLineWidth(), EPSILON);
         assertEquals(RXTimelineView.DEFAULT_ITEM_SPACING, view.getItemSpacing(), EPSILON);
+        assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, view.getAxisSpacing(), EPSILON);
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
@@ -114,6 +116,7 @@ public class RXTimelineViewTest {
         assertTrue(properties.contains("-rx-dot-size"));
         assertTrue(properties.contains("-rx-line-width"));
         assertTrue(properties.contains("-rx-item-spacing"));
+        assertTrue(properties.contains("-rx-axis-spacing"));
         // Colors are pure CSS looked-up colors, not styleable properties.
         assertFalse(properties.contains("-rx-dot-fill"));
         assertFalse(properties.contains("-rx-line-fill"));
@@ -252,6 +255,20 @@ public class RXTimelineViewTest {
         // Last item's segment stops at its dot center (visible, not hidden).
         assertTrue(lastConnector.isVisible());
         assertEquals(half, lastConnector.getMaxHeight(), EPSILON);
+    }
+
+    @Test
+    public void axisSpacingDrivesRowGap() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        showInScene(view);
+
+        HBox firstRow = (HBox) itemNodes(view).get(0);
+        assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, firstRow.getSpacing(), EPSILON);
+
+        view.setAxisSpacing(30.0);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertEquals(30.0, firstRow.getSpacing(), EPSILON);
     }
 
     @Test
