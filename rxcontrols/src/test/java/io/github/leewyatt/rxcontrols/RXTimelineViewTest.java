@@ -744,23 +744,27 @@ public class RXTimelineViewTest {
 
         view.setDisable(true);
         for (Node node : itemNodes(view)) {
-            // A disabled view dims every item via the inherited :disabled pseudo-class
-            // (the single .item:disabled CSS rule, no compounding view-level opacity).
+            // A disabled view cascades :disabled onto every item (its text dims via the
+            // JavaFX default; the dot and connector keep their color).
             assertTrue(node.isDisabled());
             assertTrue(node.getPseudoClassStates().contains(DISABLED));
         }
     }
 
     @Test
-    public void disabledItemActuallyRendersDimmed() {
-        RXTimelineItem item = new RXTimelineItem("a");
-        item.setDisable(true);
-        RXTimelineView view = new RXTimelineView(item);
+    public void disabledItemKeepsDotAndConnectorVivid() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        view.getItems().get(0).setDisable(true);
         showInScene(view);
 
-        // Lock the rendered opacity, not just the pseudo-class: the .item:disabled CSS
-        // rule was once silently lost while the Javadoc/tests still promised dimming.
-        assertEquals(0.4, itemNodes(view).get(0).getOpacity(), EPSILON);
+        // Decision: a disabled item dims only its text (the JavaFX default on Labels); the
+        // dot and the connector keep full color, so the continuous timeline line shows no
+        // faded patch. We intentionally add NO .item:disabled opacity rule (a uniform
+        // opacity would fade a middle item's line segment — steppers avoid this only because
+        // their connectors are discrete, whereas this line is continuous).
+        Node node = itemNodes(view).get(0);
+        assertEquals(1.0, node.lookup(".dot").getOpacity(), EPSILON);
+        assertEquals(1.0, node.lookup(".connector").getOpacity(), EPSILON);
     }
 
     @Test

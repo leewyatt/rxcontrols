@@ -442,9 +442,11 @@ public class RXTimelineItem {
     private final BooleanProperty disable = new SimpleBooleanProperty(this, "disable", false);
 
     /**
-     * Whether this item is disabled. A disabled item is rendered muted (the skin
-     * mirrors this onto its node's {@code disabled} state, yielding the
-     * {@code :disabled} pseudo-class) and does not fire
+     * Whether this item is disabled. The skin mirrors this onto the item node's
+     * {@code disabled} state, which exposes the {@code :disabled} pseudo-class
+     * (for author styling) and applies the JavaFX default: the item's text dims,
+     * while the dot and connector keep their color so the continuous timeline line
+     * shows no faded segment. A disabled item does not fire
      * {@link RXTimelineView#onItemClickedProperty() onItemClicked}.
      *
      * @return the disable property

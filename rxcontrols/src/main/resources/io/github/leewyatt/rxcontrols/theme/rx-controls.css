@@ -976,13 +976,6 @@
     -fx-text-fill: -fx-mid-text-color;
 }
 
-/* Per-item disable; a disabled view also cascades :disabled onto every item, so this
-   single rule dims dot, connector, text, and custom content together for both the
-   per-item and whole-view cases, with no compounding view-level opacity rule. */
-.rx-timeline-view > .items > .item:disabled {
-    -fx-opacity: 0.4;
-}
-
 .rx-timeline-view > .placeholder {
     -fx-text-fill: -fx-mid-text-color;
     -fx-opacity: 0.62;
