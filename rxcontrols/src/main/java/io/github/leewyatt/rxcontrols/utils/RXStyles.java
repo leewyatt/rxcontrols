@@ -85,18 +85,24 @@ public final class RXStyles {
     }
 
     /**
-     * Replaces {@code oldClass} with {@code newClass}, keeping {@code newClass}
-     * at the position {@code oldClass} held when possible. If {@code oldClass} is
-     * absent, {@code newClass} is appended (if not already present); if
-     * {@code newClass} is already present, {@code oldClass} is simply removed.
+     * Replaces {@code oldClass} with {@code newClass}: places {@code newClass} at
+     * the first slot {@code oldClass} held and removes every {@code oldClass}
+     * occurrence. If {@code oldClass} is absent, or equals {@code newClass},
+     * {@code newClass} is simply ensured present.
      *
      * @param target   the styleable to modify
      * @param oldClass the style class to remove
      * @param newClass the style class to ensure present
-     * @throws NullPointerException if {@code target} is null
+     * @throws NullPointerException if {@code target} or {@code oldClass} is null
      */
     public static void replaceClass(Styleable target, String oldClass, String newClass) {
         ObservableList<String> list = target.getStyleClass();
+        if (oldClass.equals(newClass)) {
+            if (!list.contains(newClass)) {
+                list.add(newClass);
+            }
+            return;
+        }
         int index = list.indexOf(oldClass);
         if (index < 0) {
             if (!list.contains(newClass)) {
@@ -104,11 +110,10 @@ public final class RXStyles {
             }
             return;
         }
-        if (list.contains(newClass)) {
-            list.removeAll(oldClass);
-        } else {
+        if (!list.contains(newClass)) {
             list.set(index, newClass);
         }
+        list.removeAll(oldClass);
     }
 
     /**
@@ -184,11 +189,11 @@ public final class RXStyles {
      * theme for another in a single call.
      *
      * @param parent       the parent to modify
-     * @param removeSheets  the stylesheet URLs to remove unless re-added
-     * @param addSheets     the stylesheet URLs to add
+     * @param removeSheets the stylesheet URLs to remove unless re-added
+     * @param addSheets    the stylesheet URLs to add
      * @throws NullPointerException if {@code parent} is null
      */
-    public static void toggleSheets(Parent parent, String[] removeSheets, String... addSheets) {
+    public static void replaceSheets(Parent parent, String[] removeSheets, String... addSheets) {
         diffReplace(parent.getStylesheets(), removeSheets, addSheets);
     }
 
@@ -268,7 +273,7 @@ public final class RXStyles {
      * @param addSheets    the stylesheet URLs to add
      * @throws NullPointerException if {@code scene} is null
      */
-    public static void toggleSheets(Scene scene, String[] removeSheets, String... addSheets) {
+    public static void replaceSheets(Scene scene, String[] removeSheets, String... addSheets) {
         diffReplace(scene.getStylesheets(), removeSheets, addSheets);
     }
 

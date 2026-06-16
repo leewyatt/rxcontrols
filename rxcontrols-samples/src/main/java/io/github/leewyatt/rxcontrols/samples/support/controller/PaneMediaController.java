@@ -190,7 +190,7 @@ public class PaneMediaController {
             if (index == 0) {
                 RXStyles.removeSheets(spectrum, styleSheets);
             } else {
-                RXStyles.toggleSheets(spectrum, styleSheets, styleSheets[index - 1]);
+                RXStyles.replaceSheets(spectrum, styleSheets, styleSheets[index - 1]);
             }
         });
     }
