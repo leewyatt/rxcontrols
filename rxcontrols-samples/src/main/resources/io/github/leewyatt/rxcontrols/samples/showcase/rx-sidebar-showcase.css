@@ -27,16 +27,37 @@
     -fx-max-width: 320;
 }
 
-/* The brand block in the header slot and its logo mark. */
+/* Header collapse toggle: a flat icon button whose left edge lines up with the
+   item icon column (header padding 12 + button padding 8 = 20 = item left inset). */
 .rx-sidebar > .container > .header > .brand {
-    -fx-padding: 6 0 6 20;
+    -fx-padding: 6 0 6 12;
 }
 
-.rx-sidebar .header .graphic.logo {
-    -fx-pref-width: 28;
-    -fx-pref-height: 28;
-    -fx-background-color: -fx-accent;
-    -fx-shape: "M12 2 L21 7 V17 L12 22 L3 17 V7 Z";
+.menu-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 8;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.menu-button:armed {
+    -fx-background-color: -fx-pressed-base;
+}
+
+.menu-button > .graphic {
+    -fx-pref-width: 24;
+    -fx-pref-height: 24;
+    -fx-background-color: derive(-fx-text-base-color, 15%);
+    -fx-shape: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"; /* chevron-left = collapse */
+}
+
+/* MINI: flip the chevron to point right (= expand). */
+.rx-sidebar:mini .menu-button > .graphic {
+    -fx-rotate: 180;
 }
 
 .rx-sidebar .footer .version {

@@ -28,13 +28,14 @@ import java.util.function.Consumer;
 /**
  * Showcase application for {@link RXSidebar}.
  *
- * <p>Hosts a permanent navigation sidebar (header logo, navigation + action
- * items across the three lists, footer) inside an app-like frame, with a
- * control panel that drives every configurable property: mode (EXPANDED /
+ * <p>Hosts a permanent navigation sidebar (a header collapse toggle, navigation
+ * + action items across the three lists, footer) inside an app-like frame, with
+ * a control panel that drives every configurable property: mode (EXPANDED /
  * MINI), expanded / mini width, animation toggle / duration / easing, plus a
  * live read-out of the selected navigation item and a clear-selection action.
- * It demonstrates the in-layout rail, mutually-exclusive selection, action
- * items that fire without changing selection, and the width animation.</p>
+ * It demonstrates the in-layout rail, the header collapse toggle, mutually-
+ * exclusive selection, action items that fire without changing selection, and
+ * the width animation.</p>
  */
 public class RXSidebarShowcase extends RXShowcaseApplication {
 
@@ -61,7 +62,17 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         sidebar = new RXSidebar();
 
-        HBox header = new HBox(icon("logo"));
+        // Header collapse toggle: in EXPANDED it collapses to MINI, in MINI it
+        // expands back. The chevron flips direction via the sidebar's :mini
+        // pseudo-class (CSS), so there is no setText/swap in Java. The control has
+        // no built-in collapse button by design — the trigger lives in the header.
+        Button collapseButton = new Button();
+        collapseButton.getStyleClass().add("menu-button");
+        collapseButton.setGraphic(icon("chevron"));
+        collapseButton.setOnAction(event -> sidebar.setMode(
+                sidebar.getMode() == SidebarMode.MINI ? SidebarMode.EXPANDED : SidebarMode.MINI));
+
+        HBox header = new HBox(collapseButton);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setMaxWidth(Double.MAX_VALUE);
         header.getStyleClass().add("brand");
@@ -123,7 +134,15 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         ComboBox<SidebarMode> mode = new ComboBox<>(FXCollections.observableArrayList(
                 SidebarMode.EXPANDED, SidebarMode.MINI));
         mode.setValue(sidebar.getMode());
-        mode.valueProperty().addListener((obs, old, value) -> sidebar.setMode(value));
+        // Two-way: combo drives mode, and mode reflects back so the header collapse
+        // toggle keeps the combo in sync. Enum singletons + no-fire-on-same-value
+        // make this terminate without an explicit guard.
+        mode.valueProperty().addListener((obs, old, value) -> {
+            if (value != null) {
+                sidebar.setMode(value);
+            }
+        });
+        sidebar.modeProperty().addListener((obs, old, value) -> mode.setValue(value));
         mode.setMaxWidth(Double.MAX_VALUE);
         return createGrid(row("Mode", mode));
     }
