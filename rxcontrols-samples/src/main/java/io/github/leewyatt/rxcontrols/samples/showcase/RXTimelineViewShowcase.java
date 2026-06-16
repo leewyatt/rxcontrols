@@ -35,9 +35,10 @@ import java.util.Locale;
  * boundary so non-negative sanitizing is observable); the view-level looked-up
  * colors {@code -rx-dot-fill} / {@code -rx-line-fill} via inline style; and
  * per-item {@code type}, {@code dotFill}, {@code dotGraphic}
- * (a {@code ProgressIndicator} loading marker) and custom {@code content} on a
- * selected row. A width slider verifies wrapped-height layout, and the data
- * section toggles the empty state with and without a placeholder.
+ * (a {@code ProgressIndicator} loading marker), custom {@code content}, and
+ * {@code disable} (muted, non-clickable) on a selected row. A width slider
+ * verifies wrapped-height layout, and the data section toggles the empty state
+ * with and without a placeholder.
  *
  * <p>For a minimal "few lines of code" example see {@link RXTimelineViewDemo}.
  */
@@ -60,6 +61,7 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     private CheckBox hollowToggle;
     private CheckBox loadingToggle;
     private CheckBox customContentToggle;
+    private CheckBox disableToggle;
     private boolean syncing;
 
     // ==================== Showcase wiring ====================
@@ -246,6 +248,13 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
             }
         });
 
+        disableToggle = new CheckBox("Disable item (muted, no click)");
+        disableToggle.selectedProperty().addListener((obs, oldV, newV) -> {
+            if (!syncing) {
+                selectedItem().setDisable(newV);
+            }
+        });
+
         syncSelectedControls();
 
         return createGrid(
@@ -257,7 +266,8 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
                 row("Line color", itemLineColor),
                 row(hollowToggle),
                 row(loadingToggle),
-                row(customContentToggle));
+                row(customContentToggle),
+                row(disableToggle));
     }
 
     private Node buildLayoutGrid() {
@@ -322,6 +332,7 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         hollowToggle.setSelected(item.isHollow());
         loadingToggle.setSelected(item.getDotGraphic() != null);
         customContentToggle.setSelected(item.getContent() != null);
+        disableToggle.setSelected(item.isDisable());
         syncing = false;
     }
 

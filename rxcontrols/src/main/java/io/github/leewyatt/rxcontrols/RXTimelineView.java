@@ -19,6 +19,7 @@ import javafx.css.StyleableProperty;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
@@ -495,6 +496,13 @@ public class RXTimelineView extends Control {
      */
     public RXTimelineView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // A plain container role: items are read as ordinary scene-graph children (each
+        // exposing its composed accessibleText). LIST_VIEW/LIST_ITEM are deliberately NOT
+        // used — those trigger JavaFX's virtualized row protocol (ITEM_COUNT/ITEM_AT_INDEX/
+        // INDEX), which this non-virtualized control does not implement; the role
+        // description still lets assistive tech announce it as a timeline.
+        setAccessibleRole(AccessibleRole.PARENT);
+        setAccessibleRoleDescription("timeline");
         items.addListener((InvalidationListener) observable -> updateEmptyPseudoClass());
         updateEmptyPseudoClass();
     }

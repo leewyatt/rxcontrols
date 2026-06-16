@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
@@ -14,6 +15,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
@@ -328,7 +330,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
     private void onItemsClicked(MouseEvent event) {
         ItemNode node = findItemNode(event.getTarget());
-        if (node == null) {
+        if (node == null || node.isDisabled()) {
             return;
         }
         getSkinnable().fireEvent(new RXTimelineItemEvent(
@@ -420,6 +422,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             this.modelIndex = modelIndex;
 
             getStyleClass().add("item");
+            // A container role (not LIST_ITEM, which expects the virtualized row protocol):
+            // the item stays reachable as an ordinary child and carries composed text.
+            setAccessibleRole(AccessibleRole.PARENT);
             axis.getStyleClass().add("axis");
             connector.getStyleClass().add("connector");
             dot.getStyleClass().add("dot");
@@ -445,6 +450,14 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             bindCollapseWhenEmpty(title);
             bindCollapseWhenEmpty(description);
             bindCollapseWhenEmpty(timestamp);
+
+            // A disabled item mirrors onto the node's disabled state: it yields the
+            // :disabled pseudo-class, dims via CSS, and drops mouse input (the click
+            // handler also guards on isDisabled). Screen readers read the composed text.
+            itemDisposer.registerBinding(disableProperty(), item.disableProperty());
+            itemDisposer.registerBinding(accessibleTextProperty(), Bindings.createStringBinding(
+                    this::composeAccessibleText,
+                    item.titleProperty(), item.descriptionProperty(), item.timestampTextProperty()));
 
             itemDisposer.registerListener(item.contentProperty(), contentListener);
             itemDisposer.registerListener(item.dotGraphicProperty(), dotGraphicListener);
@@ -477,6 +490,31 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             } else {
                 oppositeHolder.getChildren().clear();
             }
+        }
+
+        // Joins the non-empty text lines into one accessible string read by screen
+        // readers. Returns null (not "") when there is no text so a custom-content /
+        // opposite-only item falls back to its descendants' own accessibility instead
+        // of being pinned to an empty accessible name.
+        private String composeAccessibleText() {
+            StringBuilder text = new StringBuilder();
+            appendAccessiblePart(text, item.getTitle());
+            appendAccessiblePart(text, item.getDescription());
+            appendAccessiblePart(text, item.getTimestampText());
+            return text.length() == 0 ? null : text.toString();
+        }
+
+        private static void appendAccessiblePart(StringBuilder text, String part) {
+            if (part == null || part.isEmpty()) {
+                return;
+            }
+            if (text.length() > 0) {
+                // Separate fields with a sentence break, but don't double up when the
+                // previous field already ends with its own punctuation.
+                char last = text.charAt(text.length() - 1);
+                text.append(".;:!?,".indexOf(last) >= 0 ? " " : ". ");
+            }
+            text.append(part);
         }
 
         private void bindCollapseWhenEmpty(Label label) {

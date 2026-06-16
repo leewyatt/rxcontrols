@@ -11,6 +11,7 @@ import javafx.css.Styleable;
 import javafx.event.Event;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -49,6 +50,7 @@ public class RXTimelineViewTest {
     private static final PseudoClass LEFT = PseudoClass.getPseudoClass("left");
     private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
     private static final PseudoClass HOLLOW = PseudoClass.getPseudoClass("hollow");
+    private static final PseudoClass DISABLED = PseudoClass.getPseudoClass("disabled");
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -84,6 +86,7 @@ public class RXTimelineViewTest {
         assertEquals(Position.LEFT, view.getPosition());
         assertEquals(Orientation.VERTICAL, view.getOrientation());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
+        assertEquals(AccessibleRole.PARENT, view.getAccessibleRole());
     }
 
     @Test
@@ -98,6 +101,7 @@ public class RXTimelineViewTest {
         assertNull(item.getDotFill());
         assertNull(item.getLineFill());
         assertFalse(item.isHollow());
+        assertFalse(item.isDisable());
 
         RXTimelineItem titled = new RXTimelineItem("hello");
         assertEquals("hello", titled.getTitle());
@@ -656,6 +660,94 @@ public class RXTimelineViewTest {
         view.getParent().layout();
         assertFalse(placeholderRegion.isVisible());
         assertTrue(items.isManaged());
+    }
+
+    @Test
+    public void itemNodesExposeAccessibleRoleAndComposedText() {
+        RXTimelineItem shipped = new RXTimelineItem("Shipped", "09:00");
+        shipped.setDescription("Left the depot.");
+        RXTimelineView view = new RXTimelineView(shipped, new RXTimelineItem("Delivered"));
+        showInScene(view);
+
+        Node first = itemNodes(view).get(0);
+        // A plain container role (not the virtualized LIST_ITEM); items stay reachable.
+        assertEquals(AccessibleRole.PARENT, first.getAccessibleRole());
+        // Non-empty title + description + timestamp joined into one readable line.
+        assertEquals("Shipped. Left the depot. 09:00", first.getAccessibleText());
+
+        // Recomposes reactively when the model text changes.
+        shipped.setDescription("");
+        assertEquals("Shipped. 09:00", first.getAccessibleText());
+    }
+
+    @Test
+    public void accessibleTextIsNullWhenItemHasNoText() {
+        // A custom-content / opposite-only item has no title/description/timestamp: the
+        // composed text must be null (not ""), so AT falls back to the item's descendants.
+        RXTimelineItem custom = new RXTimelineItem();
+        custom.setContent(new Label("rich"));
+        RXTimelineView view = new RXTimelineView(custom);
+        showInScene(view);
+
+        assertNull(itemNodes(view).get(0).getAccessibleText());
+    }
+
+    @Test
+    public void disabledItemSetsPseudoClassAndSuppressesClick() {
+        RXTimelineItem enabled = new RXTimelineItem("a");
+        RXTimelineItem disabled = new RXTimelineItem("b");
+        disabled.setDisable(true);
+        RXTimelineView view = new RXTimelineView(enabled, disabled);
+        showInScene(view);
+
+        Node enabledNode = itemNodes(view).get(0);
+        Node disabledNode = itemNodes(view).get(1);
+        assertFalse(enabledNode.getPseudoClassStates().contains(DISABLED));
+        assertTrue(disabledNode.getPseudoClassStates().contains(DISABLED));
+        assertTrue(disabledNode.isDisabled());
+
+        AtomicReference<RXTimelineItemEvent> received = new AtomicReference<>();
+        view.setOnItemClicked(received::set);
+
+        // A disabled item must not fire onItemClicked, even on a directly dispatched click.
+        Event.fireEvent(disabledNode, syntheticClick(disabledNode));
+        assertNull(received.get());
+
+        Event.fireEvent(enabledNode, syntheticClick(enabledNode));
+        assertNotNull(received.get());
+        assertSame(enabled, received.get().getItem());
+    }
+
+    @Test
+    public void itemDisableTogglesAtRuntime() {
+        RXTimelineItem item = new RXTimelineItem("a");
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        Node node = itemNodes(view).get(0);
+        assertFalse(node.isDisabled());
+
+        item.setDisable(true);
+        assertTrue(node.isDisabled());
+        assertTrue(node.getPseudoClassStates().contains(DISABLED));
+
+        item.setDisable(false);
+        assertFalse(node.isDisabled());
+        assertFalse(node.getPseudoClassStates().contains(DISABLED));
+    }
+
+    @Test
+    public void disabledViewCascadesDisabledOntoItems() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        showInScene(view);
+
+        view.setDisable(true);
+        for (Node node : itemNodes(view)) {
+            // A disabled view dims every item via the inherited :disabled pseudo-class
+            // (the single .item:disabled CSS rule, no compounding view-level opacity).
+            assertTrue(node.isDisabled());
+            assertTrue(node.getPseudoClassStates().contains(DISABLED));
+        }
     }
 
     // ==================== Helpers ====================

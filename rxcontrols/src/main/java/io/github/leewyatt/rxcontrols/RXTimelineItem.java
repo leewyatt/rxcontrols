@@ -435,4 +435,38 @@ public class RXTimelineItem {
     public final void setHollow(boolean value) {
         hollow.set(value);
     }
+
+    // ==================== Disable ====================
+
+    private final BooleanProperty disable = new SimpleBooleanProperty(this, "disable", false);
+
+    /**
+     * Whether this item is disabled. A disabled item is rendered muted (the skin
+     * mirrors this onto its node's {@code disabled} state, yielding the
+     * {@code :disabled} pseudo-class) and does not fire
+     * {@link RXTimelineView#onItemClickedProperty() onItemClicked}.
+     *
+     * @return the disable property
+     */
+    public final BooleanProperty disableProperty() {
+        return disable;
+    }
+
+    /**
+     * Returns whether this item is disabled.
+     *
+     * @return {@code true} if the item is disabled
+     */
+    public final boolean isDisable() {
+        return disable.get();
+    }
+
+    /**
+     * Sets whether this item is disabled.
+     *
+     * @param value {@code true} to disable the item
+     */
+    public final void setDisable(boolean value) {
+        disable.set(value);
+    }
 }
