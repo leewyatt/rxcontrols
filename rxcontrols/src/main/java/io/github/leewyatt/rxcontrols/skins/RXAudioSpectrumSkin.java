@@ -1,7 +1,10 @@
-package io.github.leewyatt.rxcontrols.spectrum;
+package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
-import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
+import io.github.leewyatt.rxcontrols.internal.spectrum.MutableSpectrumContext;
+import io.github.leewyatt.rxcontrols.spectrum.BandLayout;
+import io.github.leewyatt.rxcontrols.spectrum.SpectrumVisualization;
+import io.github.leewyatt.rxcontrols.spectrum.VisBars;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.AnimationTimer;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -28,7 +31,7 @@ import java.util.Arrays;
  * pushes for the save/restore pair that isolates visualization state, an
  * accepted cost of that isolation.
  */
-public class AudioSpectrumSkin extends RXSkinBase<RXAudioSpectrum> {
+public class RXAudioSpectrumSkin extends RXSkinBase<RXAudioSpectrum> {
 
     // ==================== Constants ====================
 
@@ -78,7 +81,7 @@ public class AudioSpectrumSkin extends RXSkinBase<RXAudioSpectrum> {
 
     private final Canvas canvas;
 
-    private final SpectrumContext context = new SpectrumContext();
+    private final MutableSpectrumContext context = new MutableSpectrumContext();
 
     private final ReadOnlyBooleanProperty treeShowing;
 
@@ -121,7 +124,7 @@ public class AudioSpectrumSkin extends RXSkinBase<RXAudioSpectrum> {
      *
      * @param control the skinnable control
      */
-    public AudioSpectrumSkin(RXAudioSpectrum control) {
+    public RXAudioSpectrumSkin(RXAudioSpectrum control) {
         super(control);
 
         canvas = new Canvas();

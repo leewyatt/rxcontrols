@@ -1,13 +1,14 @@
-package io.github.leewyatt.rxcontrols.carousel;
+package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.animation.page.AnimNone;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
+import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
-import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -38,7 +39,7 @@ import java.util.Set;
 /**
  * Default skin for the {@link RXCarousel} control.
  */
-public class CarouselSkin extends RXSkinBase<RXCarousel> {
+public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     private static final Duration MIN_AUTOPLAY_INTERVAL = Duration.millis(100);
     private static final Duration FADE_DURATION = Duration.millis(200);
@@ -88,7 +89,7 @@ public class CarouselSkin extends RXSkinBase<RXCarousel> {
      *
      * @param carousel the carousel control
      */
-    public CarouselSkin(RXCarousel carousel) {
+    public RXCarouselSkin(RXCarousel carousel) {
         super(carousel);
 
         treeShowing = controlTreeShowingProperty();

@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.skins;
+package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import javafx.css.ParsedValue;

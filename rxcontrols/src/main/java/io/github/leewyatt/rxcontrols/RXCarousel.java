@@ -4,11 +4,11 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
-import io.github.leewyatt.rxcontrols.carousel.CarouselSkin;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
 import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -95,7 +95,7 @@ public class RXCarousel extends Control {
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new CarouselSkin(this);
+        return new RXCarouselSkin(this);
     }
 
     @Override
@@ -1116,8 +1116,8 @@ public class RXCarousel extends Control {
      * {@link PageLifecycleEvent#EVICTED} events will be fired.
      */
     public void clearPageCache() {
-        if (getSkin() instanceof CarouselSkin) {
-            ((CarouselSkin) getSkin()).clearPageCache();
+        if (getSkin() instanceof RXCarouselSkin) {
+            ((RXCarouselSkin) getSkin()).clearPageCache();
         }
     }
 
@@ -1129,8 +1129,8 @@ public class RXCarousel extends Control {
      * @param index the page index to clear
      */
     public void clearPageCache(int index) {
-        if (getSkin() instanceof CarouselSkin) {
-            ((CarouselSkin) getSkin()).clearPageCache(index);
+        if (getSkin() instanceof RXCarouselSkin) {
+            ((RXCarouselSkin) getSkin()).clearPageCache(index);
         }
     }
 }

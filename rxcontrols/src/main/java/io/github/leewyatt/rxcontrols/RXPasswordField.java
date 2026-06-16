@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.EchoCharConverter;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.skins.EchoCharConverter;
 import io.github.leewyatt.rxcontrols.skins.RXPasswordFieldSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;

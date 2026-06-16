@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.spectrum.AudioSpectrumSkin;
+import io.github.leewyatt.rxcontrols.skins.RXAudioSpectrumSkin;
 import io.github.leewyatt.rxcontrols.spectrum.BandLayout;
 import io.github.leewyatt.rxcontrols.spectrum.SpectrumVisualization;
 import io.github.leewyatt.rxcontrols.spectrum.VisBars;
@@ -133,7 +133,7 @@ public class RXAudioSpectrum extends Control {
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new AudioSpectrumSkin(this);
+        return new RXAudioSpectrumSkin(this);
     }
 
     @Override
