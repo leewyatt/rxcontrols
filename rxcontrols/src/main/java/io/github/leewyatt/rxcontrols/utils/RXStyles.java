@@ -18,9 +18,11 @@ import java.util.Objects;
  * two carriers of {@code getStylesheets()}.</p>
  *
  * <p>These helpers target application code. Internal control state is expressed
- * with {@code PseudoClass}, not by imperatively juggling style classes. Arguments
- * are never null-tolerant: a null target throws {@link NullPointerException} so
- * caller bugs surface immediately.</p>
+ * with {@code PseudoClass}, not by imperatively juggling style classes. The
+ * {@code target} must not be null (it throws {@link NullPointerException} so
+ * caller bugs surface immediately); style-class and stylesheet entries are passed
+ * straight through to the backing list, mirroring JavaFX's own
+ * {@code getStyleClass()} / {@code getStylesheets()} behaviour.</p>
  */
 public final class RXStyles {
 
@@ -81,10 +83,11 @@ public final class RXStyles {
     }
 
     /**
-     * Replaces {@code oldClass} with {@code newClass}: places {@code newClass} at
-     * the first slot {@code oldClass} held and removes every {@code oldClass}
-     * occurrence. If {@code oldClass} is absent, or equals {@code newClass},
-     * {@code newClass} is simply ensured present.
+     * Replaces {@code oldClass} with {@code newClass} and removes every
+     * {@code oldClass} occurrence. When {@code newClass} is not yet present it
+     * takes {@code oldClass}'s first slot; when {@code newClass} is already
+     * present it keeps its existing position. If {@code oldClass} is absent, or
+     * equals {@code newClass}, {@code newClass} is simply ensured present.
      *
      * @param target   the styleable to modify
      * @param oldClass the style class to remove

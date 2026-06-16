@@ -251,6 +251,27 @@ public class RXStylesTest {
     }
 
     @Test
+    public void distinctSheetsOnlyRemovesDuplicateOccurrences() {
+        Group root = new Group();
+        root.getStylesheets().setAll("a.css", "b.css", "a.css", "b.css", "c.css");
+        List<String> removed = new ArrayList<>();
+        root.getStylesheets().addListener((ListChangeListener<String>) c -> {
+            while (c.next()) {
+                if (c.wasRemoved()) {
+                    removed.addAll(c.getRemoved());
+                }
+            }
+        });
+        RXStyles.distinctSheets(root);
+        // Only the duplicate occurrences are reported removed; first a/b/c stay put.
+        assertEquals(2, removed.size());
+        assertTrue(removed.contains("a.css"));
+        assertTrue(removed.contains("b.css"));
+        assertFalse(removed.contains("c.css"));
+        assertEquals(List.of("a.css", "b.css", "c.css"), root.getStylesheets());
+    }
+
+    @Test
     public void clearSheetsEmptiesList() {
         Group root = new Group();
         root.getStylesheets().setAll("a.css");
