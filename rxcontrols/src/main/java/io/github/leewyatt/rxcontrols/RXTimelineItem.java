@@ -17,10 +17,11 @@ import javafx.scene.paint.Color;
  * the whole view. All getters and setters are pure pass-through.
  *
  * <p>Text properties default to the empty string so the skin can collapse an
- * empty line by testing {@code isEmpty()} rather than {@code null}. The
- * {@code content}, {@code dotGraphic}, {@code type}, and {@code dotFill}
- * properties default to {@code null}, which carries a fall-through meaning
- * (no custom content, no icon, no semantic level, no per-item color override).
+ * empty line by testing {@code isEmpty()} rather than {@code null}. The node and
+ * color/level properties — {@code content}, {@code oppositeContent},
+ * {@code dotGraphic}, {@code type}, {@code dotFill}, {@code lineFill} — default to
+ * {@code null}, each carrying a fall-through meaning (no custom content, no
+ * opposite content, no icon, no semantic level, no per-item color override).
  *
  * <p><b>Single-occupancy contract:</b> {@link #contentProperty() content},
  * {@link #dotGraphicProperty() dotGraphic}, and

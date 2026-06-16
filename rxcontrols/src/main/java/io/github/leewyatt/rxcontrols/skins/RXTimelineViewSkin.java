@@ -456,7 +456,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             // handler also guards on isDisabled). Screen readers read the composed text.
             itemDisposer.registerBinding(disableProperty(), item.disableProperty());
             itemDisposer.registerBinding(accessibleTextProperty(), Bindings.createStringBinding(
-                    this::composeAccessibleText,
+                    this::composeAccessibleText, item.contentProperty(),
                     item.titleProperty(), item.descriptionProperty(), item.timestampTextProperty()));
 
             itemDisposer.registerListener(item.contentProperty(), contentListener);
@@ -497,6 +497,12 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         // opposite-only item falls back to its descendants' own accessibility instead
         // of being pinned to an empty accessible name.
         private String composeAccessibleText() {
+            // A custom content node replaces the title/description/timestamp labels, so
+            // defer to its own descendants' accessibility instead of announcing the
+            // now-hidden text fields.
+            if (item.getContent() != null) {
+                return null;
+            }
             StringBuilder text = new StringBuilder();
             appendAccessiblePart(text, item.getTitle());
             appendAccessiblePart(text, item.getDescription());
@@ -652,9 +658,10 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             if (color == null) {
                 dot.setStyle("");
             } else if (item.isHollow()) {
-                String web = toCssColor(color);
-                dot.setStyle("-fx-background-color: transparent; -fx-border-color: " + web
-                        + "; -fx-border-width: 2; -fx-border-radius: 50%;");
+                // Only override the ring color inline; the :hollow rule owns the ring
+                // geometry (transparent fill, border width, radius) and the inline
+                // (highest precedence) replaces just its border color.
+                dot.setStyle("-fx-border-color: " + toCssColor(color) + ";");
             } else {
                 dot.setStyle("-fx-background-color: " + toCssColor(color) + ";");
             }

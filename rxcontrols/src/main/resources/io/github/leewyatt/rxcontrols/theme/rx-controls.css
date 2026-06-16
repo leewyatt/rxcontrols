@@ -967,8 +967,20 @@
 }
 
 .rx-timeline-view > .items > .item > .opposite {
-    -fx-text-fill: -fx-mid-text-color;
     -fx-font-size: 0.85em;
+}
+
+/* -fx-text-fill does not inherit, so color the opposite text on its label, not the
+   holder; -fx-font-size above does inherit (font is an inherited property). */
+.rx-timeline-view > .items > .item > .opposite .label {
+    -fx-text-fill: -fx-mid-text-color;
+}
+
+/* Per-item disable; a disabled view also cascades :disabled onto every item, so this
+   single rule dims dot, connector, text, and custom content together for both the
+   per-item and whole-view cases, with no compounding view-level opacity rule. */
+.rx-timeline-view > .items > .item:disabled {
+    -fx-opacity: 0.4;
 }
 
 .rx-timeline-view > .placeholder {

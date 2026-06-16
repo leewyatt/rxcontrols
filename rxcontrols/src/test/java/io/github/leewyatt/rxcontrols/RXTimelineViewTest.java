@@ -586,10 +586,11 @@ public class RXTimelineViewTest {
         item.setHollow(true);
         assertTrue(itemNode.getPseudoClassStates().contains(HOLLOW));
 
-        // A per-item dotFill on a hollow dot colors the ring (border), not the fill.
+        // A per-item dotFill on a hollow dot colors the ring (border) inline; the ring
+        // geometry (transparent fill, width, radius) comes from the :hollow CSS rule.
         item.setDotFill(Color.RED);
         assertTrue(dot.getStyle().contains("-fx-border-color"));
-        assertTrue(dot.getStyle().contains("transparent"));
+        assertFalse(dot.getStyle().contains("-fx-background-color"));
 
         item.setHollow(false);
         assertFalse(itemNode.getPseudoClassStates().contains(HOLLOW));
@@ -751,6 +752,18 @@ public class RXTimelineViewTest {
     }
 
     @Test
+    public void disabledItemActuallyRendersDimmed() {
+        RXTimelineItem item = new RXTimelineItem("a");
+        item.setDisable(true);
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        // Lock the rendered opacity, not just the pseudo-class: the .item:disabled CSS
+        // rule was once silently lost while the Javadoc/tests still promised dimming.
+        assertEquals(0.4, itemNodes(view).get(0).getOpacity(), EPSILON);
+    }
+
+    @Test
     public void itemSpacingSeparatesWiderOppositeColumn() {
         Label wideOpposite = new Label("2026-06-12 09:31:00");
         RXTimelineItem paid = new RXTimelineItem("P");        // narrow content
@@ -775,6 +788,150 @@ public class RXTimelineViewTest {
         double oppositePref = wideOpposite.prefWidth(-1);
         assertEquals(oppositePref + 28.0, item0.getWidth(), 2.0,
                 "item pitch should clear the wider opposite column plus itemSpacing");
+    }
+
+    @Test
+    public void dotGraphicHostsClearsAndSurvivesRebuild() {
+        Label graphic = new Label("✓");
+        RXTimelineItem item = new RXTimelineItem("a");
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        Parent dot = (Parent) itemNodes(view).get(0).lookup(".dot");
+        assertTrue(dot.getChildrenUnmodifiable().isEmpty());
+
+        item.setDotGraphic(graphic);   // runtime set via the dotGraphic listener
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertSame(graphic, dot.getChildrenUnmodifiable().get(0));
+
+        // Survives a rebuild: re-hosted into the fresh dot, old node released.
+        view.getItems().setAll(item);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        Parent newDot = (Parent) itemNodes(view).get(0).lookup(".dot");
+        assertSame(graphic, newDot.getChildrenUnmodifiable().get(0));
+        assertTrue(dot.getChildrenUnmodifiable().isEmpty());
+
+        item.setDotGraphic(null);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertTrue(newDot.getChildrenUnmodifiable().isEmpty());
+    }
+
+    @Test
+    public void customContentSurvivesRebuildSingleOccupancy() {
+        Label rich = new Label("rich");
+        RXTimelineItem item = new RXTimelineItem("a");
+        item.setContent(rich);
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        Parent content = (Parent) itemNodes(view).get(0).lookup(".content");
+        assertSame(content, rich.getParent());
+
+        view.getItems().setAll(item);
+        view.getParent().applyCss();
+        view.getParent().layout();
+
+        Parent newContent = (Parent) itemNodes(view).get(0).lookup(".content");
+        assertSame(rich, newContent.getChildrenUnmodifiable().get(0));
+        assertSame(newContent, rich.getParent());
+    }
+
+    @Test
+    public void accessibleTextDefersToCustomContentEvenWithTitle() {
+        RXTimelineItem item = new RXTimelineItem("Shipped", "09:00");
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+        Node node = itemNodes(view).get(0);
+        assertEquals("Shipped. 09:00", node.getAccessibleText());
+
+        // Custom content replaces the text fields, so a11y defers to its descendants.
+        item.setContent(new Label("rich"));
+        assertNull(node.getAccessibleText());
+
+        // Clearing it restores the composed text.
+        item.setContent(null);
+        assertEquals("Shipped. 09:00", node.getAccessibleText());
+    }
+
+    @Test
+    public void rebuildReleasesDisableAndAccessibleTextBindings() {
+        RXTimelineItem survivor = new RXTimelineItem("orig");
+        RXTimelineView view = new RXTimelineView(survivor);
+        showInScene(view);
+
+        Node oldNode = itemNodes(view).get(0);
+        assertEquals("orig", oldNode.getAccessibleText());
+
+        view.getItems().setAll(survivor);   // rebuild discards oldNode + disposes its bindings
+        view.getParent().applyCss();
+        view.getParent().layout();
+        assertFalse(itemNodes(view).contains(oldNode));
+
+        // The discarded node's disable and accessibleText bindings were released:
+        // mutating the surviving model item must not reach the stale node.
+        survivor.setDisable(true);
+        assertFalse(oldNode.isDisabled());
+        survivor.setTitle("changed");
+        assertEquals("orig", oldNode.getAccessibleText());
+    }
+
+    @Test
+    public void alternateParityFollowsDisplayOrderUnderReverse() {
+        RXTimelineView view = new RXTimelineView(
+                new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
+        view.setPosition(Position.ALTERNATE);
+        view.setReverse(true);
+        showInScene(view);
+
+        // Parity is keyed off DISPLAY order, so reverse does not scramble the sides:
+        // display 0 leads (:left), 1 trails (:right), 2 leads (:left).
+        List<Node> nodes = itemNodes(view);
+        assertTrue(nodes.get(0).getPseudoClassStates().contains(LEFT));
+        assertTrue(nodes.get(1).getPseudoClassStates().contains(RIGHT));
+        assertTrue(nodes.get(2).getPseudoClassStates().contains(LEFT));
+    }
+
+    @Test
+    public void connectorEndpointsInHorizontalOrientation() {
+        RXTimelineView view = new RXTimelineView(
+                new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
+        view.setOrientation(Orientation.HORIZONTAL);
+        showInScene(view);
+        double half = view.getDotSize() / 2.0;
+
+        List<Node> nodes = itemNodes(view);
+        Region first = (Region) nodes.get(0).lookup(".connector");
+        Region mid = (Region) nodes.get(1).lookup(".connector");
+        Region last = (Region) nodes.get(2).lookup(".connector");
+
+        // Horizontal mirror of the vertical endpoint geometry: the run is along width.
+        assertEquals(half, StackPane.getMargin(first).getLeft(), EPSILON);
+        assertEquals(Double.MAX_VALUE, first.getMaxWidth(), EPSILON);
+        assertEquals(0.0, StackPane.getMargin(mid).getLeft(), EPSILON);
+        assertEquals(Double.MAX_VALUE, mid.getMaxWidth(), EPSILON);
+        assertTrue(last.isVisible());
+        assertEquals(half, last.getMaxWidth(), EPSILON);
+    }
+
+    @Test
+    public void showOppositeContentWithRightPosition() {
+        RXTimelineItem item = new RXTimelineItem("a", "09:00");
+        item.setOppositeContent(new Label("09:00"));
+        RXTimelineView view = new RXTimelineView(item);
+        view.setPosition(Position.RIGHT);
+        view.setShowOppositeContent(true);
+        showInScene(view);
+
+        // RIGHT + centered mirrors LEFT: content leads, axis centers, opposite trails; :right.
+        RXBox row = (RXBox) itemNodes(view).get(0);
+        assertEquals(3, row.getChildrenUnmodifiable().size());
+        assertTrue(row.getChildrenUnmodifiable().get(0).getStyleClass().contains("content"));
+        assertTrue(row.getChildrenUnmodifiable().get(1).getStyleClass().contains("axis"));
+        assertTrue(row.getChildrenUnmodifiable().get(2).getStyleClass().contains("opposite"));
+        assertTrue(row.getPseudoClassStates().contains(RIGHT));
     }
 
     // ==================== Helpers ====================

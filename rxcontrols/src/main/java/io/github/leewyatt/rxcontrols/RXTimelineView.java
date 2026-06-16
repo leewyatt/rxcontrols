@@ -29,25 +29,29 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Renders an ordered list of {@link RXTimelineItem}s as a vertical sequence of
- * dots, connector axis, and content. It visualizes <em>what happened and in
- * what order</em> — activity streams, order tracking, change logs, history —
- * not a measured time scale: adjacent items are spaced equally regardless of
+ * Renders an ordered list of {@link RXTimelineItem}s as a vertical or horizontal
+ * sequence of dots, connector axis, and content. It visualizes <em>what happened
+ * and in what order</em> — activity streams, order tracking, change logs, history
+ * — not a measured time scale: adjacent items are spaced equally regardless of
  * how far apart their timestamps are.
  *
  * <p>This control is unrelated to {@code javafx.animation.Timeline}.
  *
- * <p>The control owns the observable item list and a few view-level knobs.
- * Layout, rendering, and the optional item-click interaction are handled by
- * {@link RXTimelineViewSkin}. Per-item visual configuration (title, type,
- * color, custom content) lives on {@link RXTimelineItem}.
+ * <p>The control owns the observable item list and a few view-level knobs
+ * ({@link #orientationProperty() orientation}, {@link #positionProperty()
+ * position}, {@link #reverseProperty() reverse}, {@link
+ * #showOppositeContentProperty() showOppositeContent}). Layout, rendering, and
+ * the optional item-click interaction are handled by {@link RXTimelineViewSkin}.
+ * Per-item visual configuration (title, type, color, custom content) lives on
+ * {@link RXTimelineItem}.
  *
  * <p>Colors are styled purely through CSS looked-up colors
  * ({@code -rx-dot-fill}, {@code -rx-line-fill}); sizes ({@code -rx-dot-size},
- * {@code -rx-line-width}, {@code -rx-item-spacing}) are styleable properties the
- * skin reads and applies. The control does not embed a {@code ScrollPane}; wrap
- * it in {@code ScrollPane} with {@code setFitToWidth(true)} when scrolling is
- * needed.
+ * {@code -rx-line-width}, {@code -rx-item-spacing}, {@code -rx-axis-spacing}) are
+ * styleable properties the skin reads and applies. The control does not embed a
+ * {@code ScrollPane}; wrap it in {@code ScrollPane} with {@code
+ * setFitToWidth(true)} (vertical) or {@code setFitToHeight(true)} (horizontal)
+ * when scrolling is needed.
  */
 public class RXTimelineView extends Control {
 
@@ -357,8 +361,9 @@ public class RXTimelineView extends Control {
             new SimpleStyleableDoubleProperty(StyleableProperties.ITEM_SPACING, this, "itemSpacing", DEFAULT_ITEM_SPACING);
 
     /**
-     * The vertical spacing between items in pixels. Negative values are
-     * sanitized to {@code 0} by the skin when applied.
+     * The spacing between adjacent items, in pixels, measured along the timeline
+     * (vertical in a vertical timeline, horizontal in a horizontal one). Negative
+     * values are sanitized to {@code 0} by the skin when applied.
      *
      * @return the item spacing property
      */
@@ -367,7 +372,7 @@ public class RXTimelineView extends Control {
     }
 
     /**
-     * Returns the vertical spacing between items.
+     * Returns the spacing between adjacent items.
      *
      * @return the item spacing
      */
@@ -376,7 +381,7 @@ public class RXTimelineView extends Control {
     }
 
     /**
-     * Sets the vertical spacing between items.
+     * Sets the spacing between adjacent items.
      *
      * @param value the item spacing
      */
@@ -390,9 +395,10 @@ public class RXTimelineView extends Control {
             new SimpleStyleableDoubleProperty(StyleableProperties.AXIS_SPACING, this, "axisSpacing", DEFAULT_AXIS_SPACING);
 
     /**
-     * The horizontal spacing between the axis column (dot and connector) and the
-     * content column, in pixels. Negative values are sanitized to {@code 0} by
-     * the skin when applied.
+     * The spacing between the axis column (dot and connector) and the content
+     * column, in pixels, measured across the timeline (horizontal in a vertical
+     * timeline, vertical in a horizontal one). Negative values are sanitized to
+     * {@code 0} by the skin when applied.
      *
      * @return the axis spacing property
      */
@@ -401,7 +407,7 @@ public class RXTimelineView extends Control {
     }
 
     /**
-     * Returns the horizontal spacing between the axis column and the content.
+     * Returns the spacing between the axis column and the content.
      *
      * @return the axis spacing
      */
@@ -410,7 +416,7 @@ public class RXTimelineView extends Control {
     }
 
     /**
-     * Sets the horizontal spacing between the axis column and the content.
+     * Sets the spacing between the axis column and the content.
      *
      * @param value the axis spacing
      */
