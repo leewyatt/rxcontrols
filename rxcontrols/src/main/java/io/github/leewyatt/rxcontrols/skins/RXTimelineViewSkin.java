@@ -560,12 +560,18 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             }
             configureConnector(lineWidth, dotSize / 2.0);
             setSpacing(axisSpacing);
-            // itemSpacing is the gap between items, carried on the content's
-            // main-axis trailing edge; the last item carries none.
+            // itemSpacing is the gap between items, carried on the trailing edge of
+            // BOTH non-axis columns (content and the opposite holder); the last item
+            // carries none. Both must carry it because either can be the wider column
+            // that drives the item pitch — if only content did, a wider opposite node
+            // would set the pitch with no trailing gap and adjacent opposite blocks
+            // would touch. The axis column stays gap-free so connectors stay continuous.
             double gap = last ? 0.0 : itemSpacing;
-            content.setPadding(vertical
+            Insets gapPadding = vertical
                     ? new Insets(0.0, 0.0, gap, 0.0)
-                    : new Insets(0.0, gap, 0.0, 0.0));
+                    : new Insets(0.0, gap, 0.0, 0.0);
+            content.setPadding(gapPadding);
+            oppositeHolder.setPadding(gapPadding);
         }
 
         // The connector is one continuous line from the first dot's center to the

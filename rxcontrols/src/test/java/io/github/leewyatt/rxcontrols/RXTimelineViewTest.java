@@ -750,6 +750,33 @@ public class RXTimelineViewTest {
         }
     }
 
+    @Test
+    public void itemSpacingSeparatesWiderOppositeColumn() {
+        Label wideOpposite = new Label("2026-06-12 09:31:00");
+        RXTimelineItem paid = new RXTimelineItem("P");        // narrow content
+        paid.setOppositeContent(wideOpposite);                // wide opposite drives the pitch
+        RXTimelineItem next = new RXTimelineItem("Next");
+        next.setOppositeContent(new Label("t"));
+        RXTimelineView view = new RXTimelineView(paid, next);
+        view.setOrientation(Orientation.HORIZONTAL);
+        view.setPosition(Position.ALTERNATE);
+        view.setShowOppositeContent(true);
+        view.setItemSpacing(28.0);
+        StackPane root = new StackPane(view);
+        new Scene(root, 900, 400);
+        root.applyCss();
+        root.layout();
+
+        // The item pitch (item0 width, since items abut) must clear the wider opposite
+        // column PLUS itemSpacing, so adjacent opposite blocks do not touch. Regression:
+        // the gap used to live only on the content column, so a wider opposite drove the
+        // pitch with zero trailing gap (item0 width == opposite width, no spacing).
+        Region item0 = (Region) itemNodes(view).get(0);
+        double oppositePref = wideOpposite.prefWidth(-1);
+        assertEquals(oppositePref + 28.0, item0.getWidth(), 2.0,
+                "item pitch should clear the wider opposite column plus itemSpacing");
+    }
+
     // ==================== Helpers ====================
 
     private static void showInScene(RXTimelineView view) {
