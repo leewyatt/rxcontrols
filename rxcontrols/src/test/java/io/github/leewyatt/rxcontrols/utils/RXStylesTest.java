@@ -8,6 +8,7 @@ import javafx.scene.control.MenuItem;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -155,6 +156,24 @@ public class RXStylesTest {
         RXStyles.distinctClass(item);
         assertEquals(0, changes.get());
         assertEquals(List.of("a", "b", "c"), item.getStyleClass());
+    }
+
+    @Test
+    public void distinctOnlyRemovesDuplicateOccurrences() {
+        MenuItem item = new MenuItem();
+        item.getStyleClass().setAll("a", "b", "a");
+        List<String> removed = new ArrayList<>();
+        item.getStyleClass().addListener((ListChangeListener<String>) c -> {
+            while (c.next()) {
+                if (c.wasRemoved()) {
+                    removed.addAll(c.getRemoved());
+                }
+            }
+        });
+        RXStyles.distinctClass(item);
+        // Only the duplicate "a" is reported removed; the kept "b" is never touched.
+        assertEquals(List.of("a"), removed);
+        assertEquals(List.of("a", "b"), item.getStyleClass());
     }
 
     @Test

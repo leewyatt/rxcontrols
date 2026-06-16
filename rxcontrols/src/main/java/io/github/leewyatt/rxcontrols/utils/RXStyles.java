@@ -5,11 +5,7 @@ import javafx.css.Styleable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Convenience helpers for manipulating CSS style classes on any {@link Styleable}
@@ -342,19 +338,34 @@ public final class RXStyles {
             remove(list, removes);
             return;
         }
-        Set<String> keep = new HashSet<>(Arrays.asList(adds));
+        // Keep entries that are about to be re-added: removing then re-adding a
+        // stylesheet would force a needless re-parse. Arrays are tiny, so a linear
+        // scan beats allocating a HashSet.
         for (String entry : removes) {
-            if (!keep.contains(entry)) {
+            if (!contains(adds, entry)) {
                 list.removeAll(entry);
             }
         }
         add(list, adds);
     }
 
+    private static boolean contains(String[] entries, String value) {
+        for (String entry : entries) {
+            if (Objects.equals(entry, value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Removes duplicate entries in place, keeping each first occurrence untouched.
+    // Touching only the duplicates avoids the full-list replace a setAll would
+    // report and the stylesheet reprocessing it can trigger.
     private static void distinct(ObservableList<String> list) {
-        List<String> deduped = list.stream().distinct().collect(Collectors.toList());
-        if (deduped.size() != list.size()) {
-            list.setAll(deduped);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.indexOf(list.get(i)) != i) {
+                list.remove(i);
+            }
         }
     }
 }
