@@ -564,7 +564,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 connector.setPrefHeight(lineWidth);
                 connector.setPrefWidth(USE_COMPUTED_SIZE);
             }
-            configureConnector(lineWidth, dotSize / 2.0);
+            configureConnector(lineWidth, dotSize);
             setSpacing(axisSpacing);
             // itemSpacing is the gap between items, carried on the trailing edge of
             // BOTH non-axis columns (content and the opposite holder); the last item
@@ -580,44 +580,28 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             oppositeHolder.setPadding(gapPadding);
         }
 
-        // The connector is one continuous line from the first dot's center to the
-        // last dot's center, drawn behind the dots. The first item starts its
-        // segment at the dot center (nothing before it), the last item stops at the
-        // dot center (nothing after it), and middle items span the full extent.
-        private void configureConnector(double lineWidth, double dotCenter) {
-            if (first && last) {
+        // The connector lies in the gap between this item's dot and the next item's
+        // dot, abutting their outer edges instead of crossing them: each item draws the
+        // segment after its own dot — from the dot's trailing edge (a full diameter from
+        // the leading edge of the axis) to the next dot's leading edge (the row's far
+        // edge). The last item (and a lone single item) draws nothing. Because the line
+        // never enters a dot, a hollow (ring) dot shows no stub through its transparent
+        // center; for a solid dot this is pixel-identical to a center-to-center line
+        // (the dot covered the crossing part anyway).
+        private void configureConnector(double lineWidth, double dotSize) {
+            if (last) {
                 connector.setVisible(false);
                 return;
             }
             connector.setVisible(true);
             if (orientation == Orientation.VERTICAL) {
-                if (first) {
-                    StackPane.setAlignment(connector, Pos.CENTER);
-                    StackPane.setMargin(connector, new Insets(dotCenter, 0.0, 0.0, 0.0));
-                    connector.setMaxSize(lineWidth, Double.MAX_VALUE);
-                } else if (last) {
-                    StackPane.setAlignment(connector, Pos.TOP_CENTER);
-                    StackPane.setMargin(connector, Insets.EMPTY);
-                    connector.setMaxSize(lineWidth, dotCenter);
-                } else {
-                    StackPane.setAlignment(connector, Pos.CENTER);
-                    StackPane.setMargin(connector, Insets.EMPTY);
-                    connector.setMaxSize(lineWidth, Double.MAX_VALUE);
-                }
+                StackPane.setAlignment(connector, Pos.TOP_CENTER);
+                StackPane.setMargin(connector, new Insets(dotSize, 0.0, 0.0, 0.0));
+                connector.setMaxSize(lineWidth, Double.MAX_VALUE);
             } else {
-                if (first) {
-                    StackPane.setAlignment(connector, Pos.CENTER);
-                    StackPane.setMargin(connector, new Insets(0.0, 0.0, 0.0, dotCenter));
-                    connector.setMaxSize(Double.MAX_VALUE, lineWidth);
-                } else if (last) {
-                    StackPane.setAlignment(connector, Pos.CENTER_LEFT);
-                    StackPane.setMargin(connector, Insets.EMPTY);
-                    connector.setMaxSize(dotCenter, lineWidth);
-                } else {
-                    StackPane.setAlignment(connector, Pos.CENTER);
-                    StackPane.setMargin(connector, Insets.EMPTY);
-                    connector.setMaxSize(Double.MAX_VALUE, lineWidth);
-                }
+                StackPane.setAlignment(connector, Pos.CENTER_LEFT);
+                StackPane.setMargin(connector, new Insets(0.0, 0.0, 0.0, dotSize));
+                connector.setMaxSize(Double.MAX_VALUE, lineWidth);
             }
         }
 

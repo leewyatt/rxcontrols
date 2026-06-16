@@ -248,26 +248,26 @@ public class RXTimelineViewTest {
     }
 
     @Test
-    public void connectorRunsDotCenterToDotCenter() {
+    public void connectorAbutsDotEdgesWithoutCrossing() {
         RXTimelineView view = new RXTimelineView(
                 new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
         showInScene(view);
-        double half = view.getDotSize() / 2.0;
+        double dotSize = view.getDotSize();
 
         List<Node> nodes = itemNodes(view);
         Region firstConnector = (Region) nodes.get(0).lookup(".connector");
         Region midConnector = (Region) nodes.get(1).lookup(".connector");
         Region lastConnector = (Region) nodes.get(2).lookup(".connector");
 
-        // First item's segment starts at its dot center and runs to the row bottom.
-        assertEquals(half, StackPane.getMargin(firstConnector).getTop(), EPSILON);
+        // Each non-last item draws the gap from its own dot's trailing edge (a full dot
+        // diameter inset, so the line never enters the dot) to the next dot's edge.
+        assertTrue(firstConnector.isVisible());
+        assertEquals(dotSize, StackPane.getMargin(firstConnector).getTop(), EPSILON);
         assertEquals(Double.MAX_VALUE, firstConnector.getMaxHeight(), EPSILON);
-        // Middle item spans the full row height with no top inset.
-        assertEquals(0.0, StackPane.getMargin(midConnector).getTop(), EPSILON);
+        assertEquals(dotSize, StackPane.getMargin(midConnector).getTop(), EPSILON);
         assertEquals(Double.MAX_VALUE, midConnector.getMaxHeight(), EPSILON);
-        // Last item's segment stops at its dot center (visible, not hidden).
-        assertTrue(lastConnector.isVisible());
-        assertEquals(half, lastConnector.getMaxHeight(), EPSILON);
+        // The last item draws no segment; the previous item's segment reaches its edge.
+        assertFalse(lastConnector.isVisible());
     }
 
     @Test
@@ -899,25 +899,25 @@ public class RXTimelineViewTest {
     }
 
     @Test
-    public void connectorEndpointsInHorizontalOrientation() {
+    public void connectorAbutsDotEdgesInHorizontalOrientation() {
         RXTimelineView view = new RXTimelineView(
                 new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
         view.setOrientation(Orientation.HORIZONTAL);
         showInScene(view);
-        double half = view.getDotSize() / 2.0;
+        double dotSize = view.getDotSize();
 
         List<Node> nodes = itemNodes(view);
         Region first = (Region) nodes.get(0).lookup(".connector");
         Region mid = (Region) nodes.get(1).lookup(".connector");
         Region last = (Region) nodes.get(2).lookup(".connector");
 
-        // Horizontal mirror of the vertical endpoint geometry: the run is along width.
-        assertEquals(half, StackPane.getMargin(first).getLeft(), EPSILON);
+        // Horizontal mirror: the gap runs along width, inset a full dot from the leading edge.
+        assertTrue(first.isVisible());
+        assertEquals(dotSize, StackPane.getMargin(first).getLeft(), EPSILON);
         assertEquals(Double.MAX_VALUE, first.getMaxWidth(), EPSILON);
-        assertEquals(0.0, StackPane.getMargin(mid).getLeft(), EPSILON);
+        assertEquals(dotSize, StackPane.getMargin(mid).getLeft(), EPSILON);
         assertEquals(Double.MAX_VALUE, mid.getMaxWidth(), EPSILON);
-        assertTrue(last.isVisible());
-        assertEquals(half, last.getMaxWidth(), EPSILON);
+        assertFalse(last.isVisible());
     }
 
     @Test
