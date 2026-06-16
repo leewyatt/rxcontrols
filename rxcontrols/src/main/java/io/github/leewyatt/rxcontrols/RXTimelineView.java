@@ -56,11 +56,15 @@ public class RXTimelineView extends Control {
      */
     public enum Position {
         /**
-         * Axis on the left, content on the right (the default).
+         * Axis on the leading side. In a vertical timeline this is the left
+         * (content on the right); in a horizontal timeline this is the top
+         * (content below). This is the default.
          */
         LEFT,
         /**
-         * Axis on the right, content on the left and right-aligned toward the axis.
+         * Axis on the trailing side. In a vertical timeline this is the right
+         * (content on the left, right-aligned toward the axis); in a horizontal
+         * timeline this is the bottom (content above).
          */
         RIGHT
     }
@@ -102,7 +106,13 @@ public class RXTimelineView extends Control {
      */
     public static final Position DEFAULT_POSITION = Position.LEFT;
 
+    /**
+     * Default layout orientation.
+     */
+    public static final Orientation DEFAULT_ORIENTATION = Orientation.VERTICAL;
+
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
+    private static final PseudoClass LARGE_PSEUDO_CLASS = PseudoClass.getPseudoClass("large");
 
     // ==================== Items ====================
 
@@ -175,6 +185,84 @@ public class RXTimelineView extends Control {
      */
     public final void setPosition(Position value) {
         position.set(value);
+    }
+
+    // ==================== Orientation ====================
+
+    private final ObjectProperty<Orientation> orientation =
+            new SimpleObjectProperty<>(this, "orientation", DEFAULT_ORIENTATION);
+
+    /**
+     * The layout orientation. {@link Orientation#VERTICAL} (the default) stacks
+     * items top-to-bottom with a vertical axis; {@link Orientation#HORIZONTAL}
+     * lays items left-to-right with a horizontal axis. {@code null} is treated as
+     * {@link #DEFAULT_ORIENTATION} by the skin.
+     *
+     * <p>A horizontal timeline does not wrap item text by width (items take their
+     * natural size); it suits short labels and is typically wrapped in a
+     * horizontally-scrolling {@code ScrollPane}.
+     *
+     * @return the orientation property
+     */
+    public final ObjectProperty<Orientation> orientationProperty() {
+        return orientation;
+    }
+
+    /**
+     * Returns the layout orientation.
+     *
+     * @return the orientation, or {@code null}
+     */
+    public final Orientation getOrientation() {
+        return orientation.get();
+    }
+
+    /**
+     * Sets the layout orientation.
+     *
+     * @param value the orientation, or {@code null} for the default
+     */
+    public final void setOrientation(Orientation value) {
+        orientation.set(value);
+    }
+
+    // ==================== Large ====================
+
+    private final BooleanProperty large = new SimpleBooleanProperty(this, "large", false) {
+        @Override
+        protected void invalidated() {
+            pseudoClassStateChanged(LARGE_PSEUDO_CLASS, get());
+        }
+    };
+
+    /**
+     * Whether the larger size tier is active. When {@code true} the {@code :large}
+     * pseudo-class is set on the control, and the user-agent stylesheet bumps the
+     * dot / line / spacing sizes and font sizes. Style {@code :large} in your own
+     * stylesheet to customize the tier.
+     *
+     * @return the large property
+     */
+    public final BooleanProperty largeProperty() {
+        return large;
+    }
+
+    /**
+     * Returns whether the larger size tier is active.
+     *
+     * @return {@code true} if the large tier is active
+     */
+    public final boolean isLarge() {
+        return large.get();
+    }
+
+    /**
+     * Sets whether the larger size tier is active.
+     *
+     * @param value {@code true} to activate the large tier
+     */
+    public final void setLarge(boolean value) {
+        large.set(value);
     }
 
     // ==================== Dot Size ====================
@@ -440,14 +528,16 @@ public class RXTimelineView extends Control {
     }
 
     /**
-     * Declares a horizontal content bias: the wrapped item height depends on the
-     * available width, so parents must resolve height from width.
+     * Content bias depends on orientation. A vertical timeline reports
+     * {@link Orientation#HORIZONTAL} (wrapped item height depends on the
+     * available width); a horizontal timeline reports {@code null} (items take
+     * their natural size and do not wrap by width).
      *
-     * @return {@link Orientation#HORIZONTAL}
+     * @return the content bias, or {@code null} for a horizontal timeline
      */
     @Override
     public Orientation getContentBias() {
-        return Orientation.HORIZONTAL;
+        return getOrientation() == Orientation.HORIZONTAL ? null : Orientation.HORIZONTAL;
     }
 
     /**

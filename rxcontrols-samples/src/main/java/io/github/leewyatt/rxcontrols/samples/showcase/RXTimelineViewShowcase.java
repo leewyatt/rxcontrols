@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTimelineViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -51,6 +52,9 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     private ChoiceBox<String> typeBox;
     private CheckBox dotColorOverride;
     private ColorPicker itemDotColor;
+    private CheckBox lineColorOverride;
+    private ColorPicker itemLineColor;
+    private CheckBox hollowToggle;
     private CheckBox loadingToggle;
     private CheckBox customContentToggle;
     private boolean syncing;
@@ -73,22 +77,26 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     }
 
     @Override
+    protected double sceneWidth() {
+        // Wide enough that a horizontal timeline at the max-width setting fits the
+        // preview pane without squeezing the items.
+        return 1180.0;
+    }
+
+    @Override
     protected String stylesheetPath() {
         return getClass().getResource("rx-timeline-view-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
+        // Short text keeps items compact so they read well in horizontal mode too.
         items = new RXTimelineItem[]{
-                item("Order placed", "2026-06-12 09:24",
-                        "Order #20260612-0098 created, awaiting payment.", Type.PRIMARY),
-                item("Payment confirmed", "2026-06-12 09:31", "", Type.SUCCESS),
-                item("Inventory check", "2026-06-12 11:02", "Stock running low for one SKU.", Type.WARNING),
-                item("Shipment delayed", "2026-06-13 08:40",
-                        "Carrier reported a regional delay; the parcel will continue once the hub reopens.",
-                        Type.DANGER),
-                item("Tracking note", "2026-06-13 19:15", "Customer notified by email.", Type.INFO),
-                item("Delivered", "2026-06-14 11:58", "Signed for at the front desk.", Type.SUCCESS)
+                item("Placed", "06-12 09:24", "Order created.", Type.PRIMARY),
+                item("Paid", "06-12 09:31", "", Type.SUCCESS),
+                item("Low stock", "06-12 11:02", "One SKU low.", Type.WARNING),
+                item("Delayed", "06-13 08:40", "Hub closed.", Type.DANGER),
+                item("Notified", "06-13 19:15", "Email sent.", Type.INFO)
         };
         timeline = new RXTimelineView(items);
         return timeline;
@@ -112,15 +120,27 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         reverseBox.setSelected(timeline.isReverse());
         timeline.reverseProperty().bind(reverseBox.selectedProperty());
 
+        ChoiceBox<Orientation> orientationBox = new ChoiceBox<>();
+        orientationBox.getItems().addAll(Orientation.values());
+        orientationBox.setValue(timeline.getOrientation());
+        orientationBox.setMaxWidth(Double.MAX_VALUE);
+        timeline.orientationProperty().bind(orientationBox.valueProperty());
+
         ChoiceBox<Position> positionBox = new ChoiceBox<>();
         positionBox.getItems().addAll(Position.values());
         positionBox.setValue(timeline.getPosition());
         positionBox.setMaxWidth(Double.MAX_VALUE);
         timeline.positionProperty().bind(positionBox.valueProperty());
 
+        CheckBox largeBox = new CheckBox("Large size tier (:large)");
+        largeBox.setSelected(timeline.isLarge());
+        timeline.largeProperty().bind(largeBox.selectedProperty());
+
         return createGrid(
                 row(reverseBox),
-                row("Axis position", positionBox));
+                row("Orientation", orientationBox),
+                row("Axis position", positionBox),
+                row(largeBox));
     }
 
     private Node buildMetricsGrid() {
@@ -194,6 +214,19 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         dotColorOverride.selectedProperty().addListener((obs, oldV, newV) -> applyItemDotColor());
         itemDotColor.valueProperty().addListener((obs, oldV, newV) -> applyItemDotColor());
 
+        lineColorOverride = new CheckBox("Override line color");
+        itemLineColor = new ColorPicker(Color.web("#e67e22"));
+        itemLineColor.setMaxWidth(Double.MAX_VALUE);
+        lineColorOverride.selectedProperty().addListener((obs, oldV, newV) -> applyItemLineColor());
+        itemLineColor.valueProperty().addListener((obs, oldV, newV) -> applyItemLineColor());
+
+        hollowToggle = new CheckBox("Hollow dot (ring)");
+        hollowToggle.selectedProperty().addListener((obs, oldV, newV) -> {
+            if (!syncing) {
+                selectedItem().setHollow(newV);
+            }
+        });
+
         loadingToggle = new CheckBox("Loading dot (ProgressIndicator)");
         loadingToggle.selectedProperty().addListener((obs, oldV, newV) -> {
             if (!syncing) {
@@ -215,12 +248,15 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
                 row("Type", typeBox),
                 row(dotColorOverride),
                 row("Dot color", itemDotColor),
+                row(lineColorOverride),
+                row("Line color", itemLineColor),
+                row(hollowToggle),
                 row(loadingToggle),
                 row(customContentToggle));
     }
 
     private Node buildLayoutGrid() {
-        Slider widthSlider = createSlider(220.0, 680.0, 680.0);
+        Slider widthSlider = createSlider(220.0, 1000.0, 1000.0);
         timeline.maxWidthProperty().bind(widthSlider.valueProperty());
         Label widthValue = createValueLabel(widthSlider, "%.0f px");
         return createGrid(row("Max width", widthSlider, widthValue));
@@ -259,6 +295,13 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         selectedItem().setDotFill(dotColorOverride.isSelected() ? itemDotColor.getValue() : null);
     }
 
+    private void applyItemLineColor() {
+        if (syncing) {
+            return;
+        }
+        selectedItem().setLineFill(lineColorOverride.isSelected() ? itemLineColor.getValue() : null);
+    }
+
     private void syncSelectedControls() {
         syncing = true;
         RXTimelineItem item = selectedItem();
@@ -267,6 +310,11 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         if (item.getDotFill() != null) {
             itemDotColor.setValue(item.getDotFill());
         }
+        lineColorOverride.setSelected(item.getLineFill() != null);
+        if (item.getLineFill() != null) {
+            itemLineColor.setValue(item.getLineFill());
+        }
+        hollowToggle.setSelected(item.isHollow());
         loadingToggle.setSelected(item.getDotGraphic() != null);
         customContentToggle.setSelected(item.getContent() != null);
         syncing = false;
@@ -301,11 +349,9 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     }
 
     private static Node buildCustomContent() {
-        Label heading = new Label("Custom content node");
+        Label heading = new Label("Custom node");
         heading.setStyle("-fx-font-weight: bold;");
-        Label body = new Label("This row replaces title / description / timestamp "
-                + "with an arbitrary Node via RXTimelineItem.content.");
-        body.setWrapText(true);
+        Label body = new Label("Any Node via content.");
         return new VBox(4.0, heading, body);
     }
 

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ChangeListener;
@@ -10,12 +11,12 @@ import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -30,20 +31,21 @@ import java.util.Locale;
 /**
  * Skin for {@link RXTimelineView}.
  *
- * <p>Items are rendered into a {@link VBox} (spacing 0) of {@code ItemNode}
- * {@link HBox}es. Each item's axis column is a {@link StackPane} holding a
- * full-height connector {@link Region} with the dot {@link StackPane} pinned to
- * its top, so the connector runs continuously through the inter-item gap
- * (carried by the content column's bottom padding) and behind the dot. The skin
- * owns control-level long-lived resources; each {@code ItemNode} owns a private
- * {@link SkinDisposer} for its per-item bindings, disposed and rebuilt on every
- * list / reverse change.
+ * <p>Items are rendered into an {@link RXBox} (spacing 0) of {@code ItemNode}
+ * {@link RXBox}es. The container's orientation follows the control's
+ * orientation; each item's box runs on the perpendicular axis so the axis
+ * column / row sits beside (vertical) or above/below (horizontal) the content.
+ * The axis is a {@link StackPane} holding a connector {@link Region} that spans
+ * from the first dot's center to the last dot's center, with the dot pinned to
+ * the leading edge. The skin owns control-level long-lived resources; each
+ * {@code ItemNode} owns a private {@link SkinDisposer} for its per-item
+ * bindings, disposed and rebuilt on every list / reverse change.
  */
 public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
     // ==================== Nodes ====================
 
-    private final VBox itemsBox = new VBox();
+    private final RXBox itemsBox = new RXBox();
     private final StackPane placeholderRegion = new StackPane();
     private final List<ItemNode> itemNodes = new ArrayList<>();
 
@@ -52,6 +54,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     private final Runnable rebuildAction = this::rebuildItemNodes;
     private final Runnable metricsAction = this::applyMetricsAndRequestLayout;
     private final Runnable positionAction = this::applyPositionAndRequestLayout;
+    private final Runnable orientationAction = this::applyOrientationAndRequestLayout;
     private final ChangeListener<Node> placeholderListener =
             (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
     private final EventHandler<MouseEvent> clickHandler = this::onItemsClicked;
@@ -67,7 +70,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         super(control);
 
         itemsBox.getStyleClass().add("items");
-        itemsBox.setFillWidth(true);
+        itemsBox.setFillCrossAxis(true);
         itemsBox.setSpacing(0.0);
         placeholderRegion.getStyleClass().add("placeholder");
         getChildren().setAll(itemsBox, placeholderRegion);
@@ -80,6 +83,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         disposer.registerListener(control.itemSpacingProperty(), metricsAction);
         disposer.registerListener(control.axisSpacingProperty(), metricsAction);
         disposer.registerListener(control.positionProperty(), positionAction);
+        disposer.registerListener(control.orientationProperty(), orientationAction);
         disposer.registerListener(control.placeholderProperty(), placeholderListener);
         disposer.registerEventHandler(itemsBox, MouseEvent.MOUSE_CLICKED, clickHandler);
 
@@ -96,9 +100,15 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         if (isEmpty()) {
             layoutInArea(placeholderRegion, contentX, contentY, contentWidth, contentHeight,
                     -1, HPos.CENTER, VPos.CENTER);
+        } else if (orientationOrDefault() == Orientation.HORIZONTAL) {
+            // Size the row to its preferred extents (not the full area) so the axis
+            // and content stay together. fillCrossAxis then makes every item as tall
+            // as the tallest one, keeping the horizontal axis line aligned.
+            layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
+                    -1, Insets.EMPTY, false, false, HPos.LEFT, VPos.TOP);
         } else {
             layoutInArea(itemsBox, contentX, contentY, contentWidth, contentHeight,
-                    -1, HPos.CENTER, VPos.TOP);
+                    -1, Insets.EMPTY, true, true, HPos.LEFT, VPos.TOP);
         }
     }
 
@@ -109,8 +119,13 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         Region active = activeRegion();
-        double inner = (active == null) ? 0.0 : active.prefWidth(-1);
-        return leftInset + inner + rightInset;
+        if (active == null) {
+            return leftInset + rightInset;
+        }
+        double innerHeight = (height < 0) ? -1 : Math.max(0.0, height - topInset - bottomInset);
+        double width = (active.getContentBias() == Orientation.VERTICAL)
+                ? active.prefWidth(innerHeight) : active.prefWidth(-1);
+        return leftInset + width + rightInset;
     }
 
     /**
@@ -124,7 +139,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             return topInset + bottomInset;
         }
         double innerWidth = (width < 0) ? -1 : Math.max(0.0, width - leftInset - rightInset);
-        return topInset + active.prefHeight(innerWidth) + bottomInset;
+        double height = (active.getContentBias() == Orientation.HORIZONTAL)
+                ? active.prefHeight(innerWidth) : active.prefHeight(-1);
+        return topInset + height + bottomInset;
     }
 
     /**
@@ -183,10 +200,34 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         for (int i = 0; i < itemNodes.size(); i++) {
             itemNodes.get(i).setRole(i == 0, i == lastDisplayIndex);
         }
+        applyOrientation();
         applyMetrics();
         applyPosition();
         updatePlaceholderState();
         getSkinnable().requestLayout();
+    }
+
+    // ==================== Orientation ====================
+
+    private void applyOrientation() {
+        Orientation orientation = orientationOrDefault();
+        itemsBox.setOrientation(orientation);
+        for (ItemNode node : itemNodes) {
+            node.applyOrientation(orientation);
+        }
+    }
+
+    private void applyOrientationAndRequestLayout() {
+        applyOrientation();
+        // Orientation flips the connector geometry and content padding edge.
+        applyMetrics();
+        applyPosition();
+        getSkinnable().requestLayout();
+    }
+
+    private Orientation orientationOrDefault() {
+        Orientation orientation = getSkinnable().getOrientation();
+        return orientation == null ? RXTimelineView.DEFAULT_ORIENTATION : orientation;
     }
 
     // ==================== Metrics ====================
@@ -305,7 +346,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
 
     // ==================== Item Node ====================
 
-    private static final class ItemNode extends HBox {
+    private static final class ItemNode extends RXBox {
 
         private static final PseudoClass LAST_PSEUDO_CLASS = PseudoClass.getPseudoClass("last");
         private static final PseudoClass PRIMARY_PSEUDO_CLASS = PseudoClass.getPseudoClass("primary");
@@ -315,12 +356,14 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         private static final PseudoClass INFO_PSEUDO_CLASS = PseudoClass.getPseudoClass("info");
         private static final PseudoClass LEFT_PSEUDO_CLASS = PseudoClass.getPseudoClass("left");
         private static final PseudoClass RIGHT_PSEUDO_CLASS = PseudoClass.getPseudoClass("right");
+        private static final PseudoClass HOLLOW_PSEUDO_CLASS = PseudoClass.getPseudoClass("hollow");
 
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private final RXTimelineItem item;
         private final int modelIndex;
         private boolean first;
         private boolean last;
+        private Orientation orientation = Orientation.VERTICAL;
 
         private final StackPane axis = new StackPane();
         private final Region connector = new Region();
@@ -349,16 +392,14 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             timestamp.getStyleClass().add("timestamp");
 
             dot.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
-            StackPane.setAlignment(dot, Pos.TOP_CENTER);
-            // Dot is added after the connector so it paints over the connector's top.
+            // Dot is added after the connector so it paints over the connector's leading end.
             axis.getChildren().setAll(connector, dot);
-            axis.setMinWidth(USE_PREF_SIZE);
 
-            description.setWrapText(true);
             content.getChildren().setAll(title, description, timestamp);
 
             getChildren().setAll(axis, content);
-            setHgrow(content, Priority.ALWAYS);
+            // Content takes the remaining cross-axis space after the fixed axis column.
+            setGrow(content, Priority.ALWAYS);
 
             itemDisposer.registerBinding(title.textProperty(), item.titleProperty());
             itemDisposer.registerBinding(description.textProperty(), item.descriptionProperty());
@@ -370,12 +411,15 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             itemDisposer.registerListener(item.contentProperty(), contentListener);
             itemDisposer.registerListener(item.dotGraphicProperty(), dotGraphicListener);
             itemDisposer.registerListener(item.typeProperty(), () -> applyTypePseudo(item.getType()));
-            itemDisposer.registerListener(item.dotFillProperty(), () -> applyDotFill(item.getDotFill()));
+            itemDisposer.registerListener(item.dotFillProperty(), this::applyDotAppearance);
+            itemDisposer.registerListener(item.hollowProperty(), this::applyHollow);
+            itemDisposer.registerListener(item.lineFillProperty(), this::applyLineFill);
 
             updateContent(item.getContent());
             updateDotGraphic(item.getDotGraphic());
             applyTypePseudo(item.getType());
-            applyDotFill(item.getDotFill());
+            applyHollow();
+            applyLineFill();
         }
 
         private void bindCollapseWhenEmpty(Label label) {
@@ -384,38 +428,89 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             itemDisposer.registerBinding(label.visibleProperty(), nonEmpty);
         }
 
+        // Sets the box / axis / dot / wrap orientation. Called before applyMetrics
+        // and applyPosition, which both read the stored orientation.
+        private void applyOrientation(Orientation orientation) {
+            this.orientation = orientation;
+            boolean vertical = orientation == Orientation.VERTICAL;
+            // The item box runs perpendicular to the timeline so the axis sits
+            // beside the content (vertical) or above / below it (horizontal).
+            setOrientation(vertical ? Orientation.HORIZONTAL : Orientation.VERTICAL);
+            // Dot pinned to the axis leading edge: top (vertical) or left (horizontal).
+            StackPane.setAlignment(dot, vertical ? Pos.TOP_CENTER : Pos.CENTER_LEFT);
+            // Lock the axis cross-size to its preferred so it never collapses.
+            if (vertical) {
+                axis.setMinWidth(USE_PREF_SIZE);
+                axis.setMinHeight(USE_COMPUTED_SIZE);
+            } else {
+                axis.setMinHeight(USE_PREF_SIZE);
+                axis.setMinWidth(USE_COMPUTED_SIZE);
+            }
+            // A vertical timeline wraps the description by width; a horizontal one
+            // lets items take their natural width.
+            title.setWrapText(vertical);
+            description.setWrapText(vertical);
+            timestamp.setWrapText(vertical);
+        }
+
         private void applyMetrics(double dotSize, double lineWidth, double itemSpacing, double axisSpacing) {
+            boolean vertical = orientation == Orientation.VERTICAL;
             dot.setPrefSize(dotSize, dotSize);
-            connector.setPrefWidth(lineWidth);
+            if (vertical) {
+                connector.setPrefWidth(lineWidth);
+                connector.setPrefHeight(USE_COMPUTED_SIZE);
+            } else {
+                connector.setPrefHeight(lineWidth);
+                connector.setPrefWidth(USE_COMPUTED_SIZE);
+            }
             configureConnector(lineWidth, dotSize / 2.0);
             setSpacing(axisSpacing);
-            // itemSpacing is the gap between items, so the last row carries no trailing padding.
-            double bottom = last ? 0.0 : itemSpacing;
-            content.setPadding(new Insets(0.0, 0.0, bottom, 0.0));
+            // itemSpacing is the gap between items, carried on the content's
+            // main-axis trailing edge; the last item carries none.
+            double gap = last ? 0.0 : itemSpacing;
+            content.setPadding(vertical
+                    ? new Insets(0.0, 0.0, gap, 0.0)
+                    : new Insets(0.0, gap, 0.0, 0.0));
         }
 
         // The connector is one continuous line from the first dot's center to the
         // last dot's center, drawn behind the dots. The first item starts its
-        // segment at the dot center (nothing above it), the last item stops at the
-        // dot center (nothing below it), and middle items span the full row height.
+        // segment at the dot center (nothing before it), the last item stops at the
+        // dot center (nothing after it), and middle items span the full extent.
         private void configureConnector(double lineWidth, double dotCenter) {
             if (first && last) {
                 connector.setVisible(false);
                 return;
             }
             connector.setVisible(true);
-            if (first) {
-                StackPane.setAlignment(connector, Pos.CENTER);
-                StackPane.setMargin(connector, new Insets(dotCenter, 0.0, 0.0, 0.0));
-                connector.setMaxSize(lineWidth, Double.MAX_VALUE);
-            } else if (last) {
-                StackPane.setAlignment(connector, Pos.TOP_CENTER);
-                StackPane.setMargin(connector, Insets.EMPTY);
-                connector.setMaxSize(lineWidth, dotCenter);
+            if (orientation == Orientation.VERTICAL) {
+                if (first) {
+                    StackPane.setAlignment(connector, Pos.CENTER);
+                    StackPane.setMargin(connector, new Insets(dotCenter, 0.0, 0.0, 0.0));
+                    connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+                } else if (last) {
+                    StackPane.setAlignment(connector, Pos.TOP_CENTER);
+                    StackPane.setMargin(connector, Insets.EMPTY);
+                    connector.setMaxSize(lineWidth, dotCenter);
+                } else {
+                    StackPane.setAlignment(connector, Pos.CENTER);
+                    StackPane.setMargin(connector, Insets.EMPTY);
+                    connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+                }
             } else {
-                StackPane.setAlignment(connector, Pos.CENTER);
-                StackPane.setMargin(connector, Insets.EMPTY);
-                connector.setMaxSize(lineWidth, Double.MAX_VALUE);
+                if (first) {
+                    StackPane.setAlignment(connector, Pos.CENTER);
+                    StackPane.setMargin(connector, new Insets(0.0, 0.0, 0.0, dotCenter));
+                    connector.setMaxSize(Double.MAX_VALUE, lineWidth);
+                } else if (last) {
+                    StackPane.setAlignment(connector, Pos.CENTER_LEFT);
+                    StackPane.setMargin(connector, Insets.EMPTY);
+                    connector.setMaxSize(dotCenter, lineWidth);
+                } else {
+                    StackPane.setAlignment(connector, Pos.CENTER);
+                    StackPane.setMargin(connector, Insets.EMPTY);
+                    connector.setMaxSize(Double.MAX_VALUE, lineWidth);
+                }
             }
         }
 
@@ -443,11 +538,33 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             pseudoClassStateChanged(INFO_PSEUDO_CLASS, type == RXTimelineItem.Type.INFO);
         }
 
-        private void applyDotFill(Color color) {
+        private void applyHollow() {
+            pseudoClassStateChanged(HOLLOW_PSEUDO_CLASS, item.isHollow());
+            applyDotAppearance();
+        }
+
+        // Per-item dot color (dotFill) is written inline; null clears the inline so
+        // the :type / -rx-dot-fill cascade (and the :hollow ring rule) take over.
+        // When hollow, a non-null dotFill colors the ring (border) instead of the fill.
+        private void applyDotAppearance() {
+            Color color = item.getDotFill();
             if (color == null) {
                 dot.setStyle("");
+            } else if (item.isHollow()) {
+                String web = toCssColor(color);
+                dot.setStyle("-fx-background-color: transparent; -fx-border-color: " + web
+                        + "; -fx-border-width: 2; -fx-border-radius: 50%;");
             } else {
                 dot.setStyle("-fx-background-color: " + toCssColor(color) + ";");
+            }
+        }
+
+        private void applyLineFill() {
+            Color color = item.getLineFill();
+            if (color == null) {
+                connector.setStyle("");
+            } else {
+                connector.setStyle("-fx-background-color: " + toCssColor(color) + ";");
             }
         }
 
@@ -457,24 +574,35 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
         }
 
-        // Mirrors the row for a right-side axis: swap the column order and align
-        // the content text toward the axis so it reads the same on either side.
+        // Places the axis on the leading (LEFT) or trailing (RIGHT) cross-side by
+        // swapping the box order. A vertical timeline also right-aligns the content
+        // text toward a trailing axis so it reads the same on either side.
         private void applyPosition(RXTimelineView.Position position) {
-            boolean right = position == RXTimelineView.Position.RIGHT;
-            if (right) {
+            boolean trailing = position == RXTimelineView.Position.RIGHT;
+            if (trailing) {
                 getChildren().setAll(content, axis);
             } else {
                 getChildren().setAll(axis, content);
             }
-            content.setAlignment(right ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
-            Pos labelAlignment = right ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
-            TextAlignment textAlignment = right ? TextAlignment.RIGHT : TextAlignment.LEFT;
+            boolean vertical = orientation == Orientation.VERTICAL;
+            boolean rightAlign = vertical && trailing;
+            // Content hugs the axis: vertical pins to the top; a horizontal trailing
+            // axis (below the content) bottom-anchors the text so it sits next to it.
+            Pos contentAlignment;
+            if (vertical) {
+                contentAlignment = rightAlign ? Pos.TOP_RIGHT : Pos.TOP_LEFT;
+            } else {
+                contentAlignment = trailing ? Pos.BOTTOM_LEFT : Pos.TOP_LEFT;
+            }
+            content.setAlignment(contentAlignment);
+            Pos labelAlignment = rightAlign ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT;
+            TextAlignment textAlignment = rightAlign ? TextAlignment.RIGHT : TextAlignment.LEFT;
             for (Label label : new Label[]{title, description, timestamp}) {
                 label.setAlignment(labelAlignment);
                 label.setTextAlignment(textAlignment);
             }
-            pseudoClassStateChanged(LEFT_PSEUDO_CLASS, !right);
-            pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, right);
+            pseudoClassStateChanged(LEFT_PSEUDO_CLASS, !trailing);
+            pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, trailing);
         }
 
         private RXTimelineItem getItem() {

@@ -940,6 +940,18 @@
     -fx-background-color: #909399;
 }
 
+.rx-timeline-view > .items > .item:hollow > .axis > .dot {
+    -fx-background-color: transparent;
+    -fx-border-color: -rx-dot-fill;
+    -fx-border-width: 2;
+    -fx-border-radius: 50%;
+}
+
+.rx-timeline-view > .items > .item:hollow:success > .axis > .dot { -fx-border-color: #67c23a; }
+.rx-timeline-view > .items > .item:hollow:warning > .axis > .dot { -fx-border-color: #e6a23c; }
+.rx-timeline-view > .items > .item:hollow:danger  > .axis > .dot { -fx-border-color: #f56c6c; }
+.rx-timeline-view > .items > .item:hollow:info    > .axis > .dot { -fx-border-color: #909399; }
+
 .rx-timeline-view > .items > .item > .content > .title {
     -fx-font-weight: bold;
     -fx-text-fill: -fx-text-base-color;
@@ -958,3 +970,13 @@
     -fx-text-fill: -fx-mid-text-color;
     -fx-opacity: 0.62;
 }
+
+.rx-timeline-view:large {
+    -rx-dot-size: 18;
+    -rx-line-width: 3;
+    -rx-item-spacing: 24;
+    -rx-axis-spacing: 16;
+}
+
+.rx-timeline-view:large > .items > .item > .content > .title { -fx-font-size: 1.1em; }
+.rx-timeline-view:large > .items > .item > .content > .description { -fx-font-size: 1.05em; }

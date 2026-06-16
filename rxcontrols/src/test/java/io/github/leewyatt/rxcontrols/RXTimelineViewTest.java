@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -16,7 +17,6 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -47,6 +47,8 @@ public class RXTimelineViewTest {
     private static final PseudoClass SUCCESS = PseudoClass.getPseudoClass("success");
     private static final PseudoClass LEFT = PseudoClass.getPseudoClass("left");
     private static final PseudoClass RIGHT = PseudoClass.getPseudoClass("right");
+    private static final PseudoClass HOLLOW = PseudoClass.getPseudoClass("hollow");
+    private static final PseudoClass LARGE = PseudoClass.getPseudoClass("large");
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -80,6 +82,8 @@ public class RXTimelineViewTest {
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
         assertEquals(Position.LEFT, view.getPosition());
+        assertFalse(view.isLarge());
+        assertEquals(Orientation.VERTICAL, view.getOrientation());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
     }
 
@@ -93,6 +97,8 @@ public class RXTimelineViewTest {
         assertNull(item.getDotGraphic());
         assertNull(item.getType());
         assertNull(item.getDotFill());
+        assertNull(item.getLineFill());
+        assertFalse(item.isHollow());
 
         RXTimelineItem titled = new RXTimelineItem("hello");
         assertEquals("hello", titled.getTitle());
@@ -266,7 +272,7 @@ public class RXTimelineViewTest {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
         showInScene(view);
 
-        HBox firstRow = (HBox) itemNodes(view).get(0);
+        RXBox firstRow = (RXBox) itemNodes(view).get(0);
         assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, firstRow.getSpacing(), EPSILON);
 
         view.setAxisSpacing(30.0);
@@ -280,7 +286,7 @@ public class RXTimelineViewTest {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
         showInScene(view);
 
-        HBox row = (HBox) itemNodes(view).get(0);
+        RXBox row = (RXBox) itemNodes(view).get(0);
         // Left (default): axis column first, :left pseudo set.
         assertTrue(row.getChildrenUnmodifiable().get(0).getStyleClass().contains("axis"));
         assertTrue(row.getPseudoClassStates().contains(LEFT));
@@ -303,9 +309,47 @@ public class RXTimelineViewTest {
         view.setPosition(null);
         showInScene(view);
 
-        HBox row = (HBox) itemNodes(view).get(0);
+        RXBox row = (RXBox) itemNodes(view).get(0);
         assertTrue(row.getChildrenUnmodifiable().get(0).getStyleClass().contains("axis"));
         assertTrue(row.getPseudoClassStates().contains(LEFT));
+    }
+
+    @Test
+    public void verticalOrientationArrangesBoxes() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        showInScene(view);
+
+        assertEquals(Orientation.HORIZONTAL, view.getContentBias());
+        RXBox items = (RXBox) view.lookup(".items");
+        assertEquals(Orientation.VERTICAL, items.getOrientation());
+        // Each item box runs perpendicular to the timeline (horizontal: axis | content).
+        RXBox firstItem = (RXBox) itemNodes(view).get(0);
+        assertEquals(Orientation.HORIZONTAL, firstItem.getOrientation());
+    }
+
+    @Test
+    public void horizontalOrientationFlipsBoxesAndBias() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
+        view.setOrientation(Orientation.HORIZONTAL);
+        showInScene(view);
+
+        // Horizontal timelines do not wrap by width.
+        assertNull(view.getContentBias());
+        RXBox items = (RXBox) view.lookup(".items");
+        assertEquals(Orientation.HORIZONTAL, items.getOrientation());
+        RXBox firstItem = (RXBox) itemNodes(view).get(0);
+        assertEquals(Orientation.VERTICAL, firstItem.getOrientation());
+    }
+
+    @Test
+    public void nullOrientationFallsBackToVertical() {
+        RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"));
+        view.setOrientation(null);
+        showInScene(view);
+
+        RXBox items = (RXBox) view.lookup(".items");
+        assertEquals(Orientation.VERTICAL, items.getOrientation());
+        assertEquals(Orientation.HORIZONTAL, view.getContentBias());
     }
 
     @Test
@@ -331,6 +375,57 @@ public class RXTimelineViewTest {
 
         item.setDotFill(null);
         assertEquals("", dot.getStyle());
+    }
+
+    @Test
+    public void lineFillInlineStyleAppliesAndClears() {
+        RXTimelineItem item = new RXTimelineItem("a");
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        Region connector = (Region) itemNodes(view).get(0).lookup(".connector");
+        assertNotNull(connector);
+        assertEquals("", connector.getStyle());
+
+        item.setLineFill(Color.RED);
+        assertTrue(connector.getStyle().contains("-fx-background-color"));
+
+        item.setLineFill(null);
+        assertEquals("", connector.getStyle());
+    }
+
+    @Test
+    public void hollowSetsPseudoClassAndRingStyle() {
+        RXTimelineItem item = new RXTimelineItem("a");
+        RXTimelineView view = new RXTimelineView(item);
+        showInScene(view);
+
+        Node itemNode = itemNodes(view).get(0);
+        Node dot = itemNode.lookup(".dot");
+        assertFalse(itemNode.getPseudoClassStates().contains(HOLLOW));
+
+        item.setHollow(true);
+        assertTrue(itemNode.getPseudoClassStates().contains(HOLLOW));
+
+        // A per-item dotFill on a hollow dot colors the ring (border), not the fill.
+        item.setDotFill(Color.RED);
+        assertTrue(dot.getStyle().contains("-fx-border-color"));
+        assertTrue(dot.getStyle().contains("transparent"));
+
+        item.setHollow(false);
+        assertFalse(itemNode.getPseudoClassStates().contains(HOLLOW));
+        assertTrue(dot.getStyle().contains("-fx-background-color"));
+        assertFalse(dot.getStyle().contains("-fx-border-color"));
+    }
+
+    @Test
+    public void largeSetsPseudoClass() {
+        RXTimelineView view = new RXTimelineView();
+        assertFalse(view.getPseudoClassStates().contains(LARGE));
+        view.setLarge(true);
+        assertTrue(view.getPseudoClassStates().contains(LARGE));
+        view.setLarge(false);
+        assertFalse(view.getPseudoClassStates().contains(LARGE));
     }
 
     @Test

@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -325,5 +327,72 @@ public class RXTimelineItem {
      */
     public final void setDotFill(Color value) {
         dotFill.set(value);
+    }
+
+    // ==================== Line Fill ====================
+
+    private final ObjectProperty<Color> lineFill = new SimpleObjectProperty<>(this, "lineFill", null);
+
+    /**
+     * A per-item connector-line color that overrides the view's
+     * {@code -rx-line-fill} default for this item's segment. {@code null} falls
+     * back to the view default. Like {@link #dotFillProperty() dotFill}, it is a
+     * {@link Color} so the skin can serialize it into an inline CSS string.
+     *
+     * @return the line fill property
+     */
+    public final ObjectProperty<Color> lineFillProperty() {
+        return lineFill;
+    }
+
+    /**
+     * Returns the per-item connector-line color.
+     *
+     * @return the line color, or {@code null}
+     */
+    public final Color getLineFill() {
+        return lineFill.get();
+    }
+
+    /**
+     * Sets the per-item connector-line color.
+     *
+     * @param value the line color, or {@code null}
+     */
+    public final void setLineFill(Color value) {
+        lineFill.set(value);
+    }
+
+    // ==================== Hollow ====================
+
+    private final BooleanProperty hollow = new SimpleBooleanProperty(this, "hollow", false);
+
+    /**
+     * Whether the dot is rendered as a hollow ring rather than a filled disc.
+     * The ring color follows the resolved dot color ({@code dotFill}, then
+     * {@code type}, then the {@code -rx-dot-fill} default).
+     *
+     * @return the hollow property
+     */
+    public final BooleanProperty hollowProperty() {
+        return hollow;
+    }
+
+    /**
+     * Returns whether the dot is rendered as a hollow ring.
+     *
+     * @return {@code true} if the dot is hollow
+     */
+    public final boolean isHollow() {
+        return hollow.get();
+    }
+
+    /**
+     * Sets whether the dot is rendered as a hollow ring.
+     *
+     * @param value {@code true} for a hollow ring dot
+     */
+    public final void setHollow(boolean value) {
+        hollow.set(value);
     }
 }
