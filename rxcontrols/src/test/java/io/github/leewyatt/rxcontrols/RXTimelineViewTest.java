@@ -941,6 +941,28 @@ public class RXTimelineViewTest {
     }
 
     @Test
+    public void itemNodesCarryModelIndexStyleClass() {
+        RXTimelineView view = new RXTimelineView(
+                new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
+        showInScene(view);
+
+        List<Node> nodes = itemNodes(view);
+        assertTrue(nodes.get(0).getStyleClass().contains("item0"));
+        assertTrue(nodes.get(1).getStyleClass().contains("item1"));
+        assertTrue(nodes.get(2).getStyleClass().contains("item2"));
+        assertNotNull(view.lookup(".item0"));
+
+        // Model order: under reverse the index follows the model item, so the display-first
+        // node (model item "c", index 2) keeps item2 and the display-last keeps item0.
+        view.setReverse(true);
+        view.getParent().applyCss();
+        view.getParent().layout();
+        List<Node> reversed = itemNodes(view);
+        assertTrue(reversed.get(0).getStyleClass().contains("item2"));
+        assertTrue(reversed.get(2).getStyleClass().contains("item0"));
+    }
+
+    @Test
     public void connectorGapShortensLineWithoutAffectingLayout() {
         RXTimelineView view = new RXTimelineView(new RXTimelineItem("a"), new RXTimelineItem("b"));
         showInScene(view);

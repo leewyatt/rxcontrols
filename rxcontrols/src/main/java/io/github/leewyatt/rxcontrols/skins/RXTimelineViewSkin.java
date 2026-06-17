@@ -424,6 +424,11 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             this.modelIndex = modelIndex;
 
             getStyleClass().add("item");
+            // Positional style-class hook in the JavaFX chart idiom (data0/series0/...: index
+            // appended with no separator), keyed by MODEL index so it is stable under reverse
+            // — `.item0` always styles getItems().get(0). Authors reach sub-parts via descendant
+            // selectors (.item0 > .axis > .dot, etc.).
+            getStyleClass().add("item" + modelIndex);
             // A container role (not LIST_ITEM, which expects the virtualized row protocol):
             // the item stays reachable as an ordinary child and carries composed text.
             setAccessibleRole(AccessibleRole.PARENT);
