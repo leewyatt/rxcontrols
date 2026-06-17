@@ -40,7 +40,7 @@ public final class RippleLayer extends Region {
      * Peak opacity of the state overlay while pressed: deeper than the hover
      * level for a clear pressed affordance, layered under the ripple circle.
      */
-    private static final double PRESSED_OVERLAY_OPACITY = 0.16;
+    private static final double PRESSED_OVERLAY_OPACITY = 0.125;
 
     private static final Duration OVERLAY_FADE_DURATION = Duration.millis(150.0);
 
