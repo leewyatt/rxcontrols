@@ -175,17 +175,17 @@ public class RXCircularProgressIndicatorShowcase extends RXShowcaseApplication {
         Label sizeValue = createValueLabel(sizeSlider, "%.0f px");
 
         Slider startAngleSlider = createSlider(0.0, 360.0,
-                RXCircularProgressIndicator.DEFAULT_START_ANGLE);
+                indicator.getStartAngle());
         indicator.startAngleProperty().bind(startAngleSlider.valueProperty());
         Label startAngleValue = createValueLabel(startAngleSlider, "%.0f°");
 
         Slider trackWidthSlider = createSlider(0.0, 32.0,
-                RXCircularProgressIndicator.DEFAULT_TRACK_STROKE_WIDTH);
+                indicator.getTrackStrokeWidth());
         indicator.trackStrokeWidthProperty().bind(trackWidthSlider.valueProperty());
         Label trackWidthValue = createValueLabel(trackWidthSlider, "%.0f");
 
         Slider progressWidthSlider = createSlider(0.0, 32.0,
-                RXCircularProgressIndicator.DEFAULT_PROGRESS_STROKE_WIDTH);
+                indicator.getProgressStrokeWidth());
         indicator.progressStrokeWidthProperty().bind(progressWidthSlider.valueProperty());
         Label progressWidthValue = createValueLabel(progressWidthSlider, "%.0f");
 
@@ -219,13 +219,13 @@ public class RXCircularProgressIndicatorShowcase extends RXShowcaseApplication {
         // cycle = 0  → indeterminate spinner stops (ring stays static)
         // tween = 0  → determinate progress jumps instead of tweening
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXCircularProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION.toMillis());
+                indicator.getIndeterminateCycleDuration().toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setIndeterminateCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");
 
         Slider tweenSlider = createSlider(0.0, 1000.0,
-                RXCircularProgressIndicator.DEFAULT_PROGRESS_TRANSITION_DURATION.toMillis());
+                indicator.getProgressTransitionDuration().toMillis());
         tweenSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setProgressTransitionDuration(Duration.millis(newV.doubleValue())));
         Label tweenValue = createValueLabel(tweenSlider, "%.0f ms");

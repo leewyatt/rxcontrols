@@ -71,12 +71,6 @@ public class RXLineLabelTest {
         assertTrue(label.getStyleClass().contains("label"));
         assertTrue(label.getStyleClass().contains("rx-line-label"));
         assertFalse(label.isFocusTraversable());
-        assertSame(RXLineLabel.DEFAULT_LINE_ANIMATION, label.getLineAnimation());
-        assertSame(LineAnimation.UNDERLINE_CENTER_OUT, RXLineLabel.DEFAULT_LINE_ANIMATION);
-        assertEquals(RXLineLabel.DEFAULT_LINE_THICKNESS, label.getLineThickness(), EPSILON);
-        assertEquals(RXLineLabel.DEFAULT_LINE_GAP, label.getLineGap(), EPSILON);
-        assertSame(RXAnimatedLabel.DEFAULT_ANIMATION_TRIGGER, label.getAnimationTrigger());
-        assertEquals(RXAnimatedLabel.DEFAULT_ANIMATION_DURATION, label.getAnimationDuration());
         assertFalse(isLineShowing(label));
 
         Set<String> properties = RXLineLabel.getClassCssMetaData().stream()

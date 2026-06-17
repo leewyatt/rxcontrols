@@ -85,7 +85,7 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
         highlightTextView = new RXHighlightTextView(DEFAULT_TEXT.text());
         highlightTextView.getStyleClass().add("showcase-highlight-text-view");
         highlightTextView.getKeywords().setAll(parseKeywordLines(DEFAULT_KEYWORDS.keywords()));
-        highlightTextView.setMatchRules(RXHighlightTextView.DEFAULT_MATCH_RULES);
+        highlightTextView.setMatchRules(MatchRules.LITERAL_IGNORE_CASE);
         highlightTextView.setLineSpacing(7.0);
         highlightTextView.setPrefWidth(DEFAULT_PREVIEW_WIDTH);
         highlightTextView.setMaxWidth(Region.USE_PREF_SIZE);
@@ -162,7 +162,7 @@ public class RXHighlightTextViewShowcase extends RXShowcaseApplication {
     private Node buildMatchingGrid() {
         ComboBox<MatchRules> rulesBox = new ComboBox<>();
         rulesBox.getItems().setAll(MatchRules.values());
-        rulesBox.setValue(RXHighlightTextView.DEFAULT_MATCH_RULES);
+        rulesBox.setValue(MatchRules.LITERAL_IGNORE_CASE);
         rulesBox.setMaxWidth(Double.MAX_VALUE);
         highlightTextView.matchRulesProperty().bind(rulesBox.valueProperty());
 

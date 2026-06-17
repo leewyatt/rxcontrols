@@ -70,49 +70,49 @@ public class RXMasonryPane extends Pane {
     /**
      * Default target column width used to derive the responsive column count.
      */
-    public static final double DEFAULT_COLUMN_WIDTH = 250.0;
+    private static final double DEFAULT_COLUMN_WIDTH = 250.0;
 
     /**
      * Default horizontal gap between columns.
      */
-    public static final double DEFAULT_HGAP = 8.0;
+    private static final double DEFAULT_HGAP = 8.0;
 
     /**
      * Default vertical gap between stacked children in a column.
      */
-    public static final double DEFAULT_VGAP = 8.0;
+    private static final double DEFAULT_VGAP = 8.0;
 
     /**
      * Default forced column count. {@code 0} means the count is computed
      * automatically from {@link #columnWidthProperty() columnWidth}.
      */
-    public static final int DEFAULT_COLUMN_COUNT = 0;
+    private static final int DEFAULT_COLUMN_COUNT = 0;
 
     /**
      * Default number of columns reported by {@link #computePrefWidth(double)} when
      * the pane is laid out without a width constraint.
      */
-    public static final int DEFAULT_PREF_COLUMNS = 3;
+    private static final int DEFAULT_PREF_COLUMNS = 3;
 
     /**
      * Default maximum column count. {@code 0} means unbounded.
      */
-    public static final int DEFAULT_MAX_COLUMNS = 0;
+    private static final int DEFAULT_MAX_COLUMNS = 0;
 
     /**
      * Default fill-width behavior.
      */
-    public static final boolean DEFAULT_FILL_WIDTH = true;
+    private static final boolean DEFAULT_FILL_WIDTH = true;
 
     /**
      * Default content alignment.
      */
-    public static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
+    private static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
 
     /**
      * Default breakpoint profile used to resolve the active breakpoint.
      */
-    public static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ANT_DESIGN;
+    private static final RXBreakpointProfile DEFAULT_BREAKPOINT_PROFILE = RXBreakpointProfile.ANT_DESIGN;
 
     /**
      * Sentinel breakpoint column count that restores
@@ -127,22 +127,22 @@ public class RXMasonryPane extends Pane {
     /**
      * Default column span constraint for a child.
      */
-    public static final int DEFAULT_COLUMN_SPAN = 1;
+    private static final int DEFAULT_COLUMN_SPAN = 1;
 
     /**
      * Default layout-animation enabled state.
      */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
 
     /**
      * Default layout-animation duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(220.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(220.0);
 
     /**
      * Default layout-animation interpolator.
      */
-    public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
+    private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-masonry-pane";
     private static final String MARGIN_CONSTRAINT = "rx-masonry-margin";

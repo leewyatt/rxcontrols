@@ -156,7 +156,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
         modeBox.setMaxWidth(Double.MAX_VALUE);
         mainIndicator.animationModeProperty().bind(modeBox.valueProperty());
 
-        Slider minRatioSlider = createSlider(0.0, 1.0, RXBarSpinner.DEFAULT_MIN_BAR_HEIGHT_RATIO);
+        Slider minRatioSlider = createSlider(0.0, 1.0, mainIndicator.getMinBarHeightRatio());
         mainIndicator.minBarHeightRatioProperty().bind(minRatioSlider.valueProperty());
         Label minRatioValue = createValueLabel(minRatioSlider, "%.2f");
 
@@ -167,7 +167,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
 
     private Node buildGeometryGrid() {
         // Showcase range is arbitrary; the control itself does not cap positive bar counts.
-        Slider countSlider = createSlider(-1.0, 20.0, RXBarSpinner.DEFAULT_BAR_COUNT);
+        Slider countSlider = createSlider(-1.0, 20.0, mainIndicator.getBarCount());
         countSlider.setSnapToTicks(true);
         countSlider.setMajorTickUnit(1.0);
         countSlider.setMinorTickCount(0);
@@ -176,15 +176,15 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
                 mainIndicator.setBarCount(newV.intValue()));
         Label countValue = createValueLabel(countSlider, "%.0f");
 
-        Slider widthSlider = createSlider(2.0, 16.0, RXBarSpinner.DEFAULT_BAR_WIDTH);
+        Slider widthSlider = createSlider(2.0, 16.0, mainIndicator.getBarWidth());
         mainIndicator.barWidthProperty().bind(widthSlider.valueProperty());
         Label widthValue = createValueLabel(widthSlider, "%.0f px");
 
-        Slider heightSlider = createSlider(8.0, 64.0, RXBarSpinner.DEFAULT_BAR_HEIGHT);
+        Slider heightSlider = createSlider(8.0, 64.0, mainIndicator.getBarHeight());
         mainIndicator.barHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 
-        Slider gapSlider = createSlider(0.0, 16.0, RXBarSpinner.DEFAULT_BAR_GAP);
+        Slider gapSlider = createSlider(0.0, 16.0, mainIndicator.getBarGap());
         mainIndicator.barGapProperty().bind(gapSlider.valueProperty());
         Label gapValue = createValueLabel(gapSlider, "%.0f px");
 
@@ -217,7 +217,7 @@ public class RXBarSpinnerShowcase extends RXShowcaseApplication {
         // The cycle slider reaches 0 to demonstrate the "non-positive disables
         // animation" semantic — the bars snap to their minimum height.
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXBarSpinner.DEFAULT_CYCLE_DURATION.toMillis());
+                mainIndicator.getCycleDuration().toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 mainIndicator.setCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");

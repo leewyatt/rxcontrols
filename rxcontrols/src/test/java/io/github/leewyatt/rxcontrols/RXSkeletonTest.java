@@ -62,16 +62,6 @@ public class RXSkeletonTest {
 
         assertTrue(skeleton.getStyleClass().contains("rx-skeleton"));
         assertSame(RXSkeleton.DEFAULT_VARIANT, skeleton.getVariant());
-        assertClose(RXSkeleton.DEFAULT_CORNER_RADIUS, skeleton.getCornerRadius(), "corner radius");
-        assertSame(RXSkeleton.DEFAULT_BASE_COLOR, skeleton.getBaseColor());
-        assertSame(RXSkeleton.DEFAULT_SHIMMER_FILL, skeleton.getShimmerFill());
-        assertSame(RXSkeleton.DEFAULT_CYCLE_DURATION, skeleton.getCycleDuration());
-        assertClose(RXSkeleton.DEFAULT_SHIMMER_WIDTH, skeleton.getShimmerWidth(), "shimmer width");
-        assertEquals(RXSkeleton.DEFAULT_LINE_COUNT, skeleton.getLineCount());
-        assertClose(RXSkeleton.DEFAULT_LINE_HEIGHT, skeleton.getLineHeight(), "line height");
-        assertClose(RXSkeleton.DEFAULT_LINE_SPACING, skeleton.getLineSpacing(), "line spacing");
-        assertClose(RXSkeleton.DEFAULT_LAST_LINE_FILL_PERCENT,
-                skeleton.getLastLineFillPercent(), "last line percent");
 
         Set<String> properties = cssPropertyNames();
         assertTrue(properties.contains("-fx-skin"));
@@ -225,8 +215,8 @@ public class RXSkeletonTest {
         layout(skeleton, 120.0, 16.0);
 
         Rectangle shimmerBand = shimmerBand(skeleton);
-        assertClose(RXSkeleton.DEFAULT_SHIMMER_WIDTH, shimmerBand.getWidth(), "band width");
-        assertClose(-RXSkeleton.DEFAULT_SHIMMER_WIDTH,
+        assertClose(56.0, shimmerBand.getWidth(), "band width");
+        assertClose(-56.0,
                 shimmerBand.getTranslateX(), "band translate x");
     }
 

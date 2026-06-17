@@ -53,12 +53,12 @@ public class RXLrcLineView extends Control {
     /**
      * Default style class for this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-lrc-line-view";
+    private static final String DEFAULT_STYLE_CLASS = "rx-lrc-line-view";
 
     /**
      * Default line transition duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
 
     private static final int NO_LINE_INDEX = -1;
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");

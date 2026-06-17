@@ -49,7 +49,7 @@ public class RXFillLabel extends RXAnimatedLabel {
     /**
      * Default fill animation.
      */
-    public static final FillAnimation DEFAULT_FILL_ANIMATION = FillAnimation.LEFT_TO_RIGHT;
+    private static final FillAnimation DEFAULT_FILL_ANIMATION = FillAnimation.LEFT_TO_RIGHT;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-fill-label";
 

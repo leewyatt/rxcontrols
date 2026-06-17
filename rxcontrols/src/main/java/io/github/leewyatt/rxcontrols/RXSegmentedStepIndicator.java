@@ -48,7 +48,7 @@ public class RXSegmentedStepIndicator extends Control {
     /**
      * Default number of segments.
      */
-    public static final int DEFAULT_STEP_COUNT = 5;
+    private static final int DEFAULT_STEP_COUNT = 5;
 
     /**
      * Maximum rendered segment count.
@@ -58,12 +58,12 @@ public class RXSegmentedStepIndicator extends Control {
     /**
      * Default horizontal gap between adjacent segments, in pixels.
      */
-    public static final double DEFAULT_SEGMENT_GAP = 4.0;
+    private static final double DEFAULT_SEGMENT_GAP = 4.0;
 
     /**
      * Default segment height, in pixels.
      */
-    public static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
+    private static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
 
     // ==================== Constructors ====================
 

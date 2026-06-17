@@ -123,19 +123,19 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node buildColumnsGrid() {
-        Slider columnWidthSlider = createSlider(80.0, 400.0, RXMasonryPane.DEFAULT_COLUMN_WIDTH);
+        Slider columnWidthSlider = createSlider(80.0, 400.0, masonry.getColumnWidth());
         masonry.columnWidthProperty().bind(columnWidthSlider.valueProperty());
 
-        Slider columnCountSlider = integerSlider(0.0, 8.0, RXMasonryPane.DEFAULT_COLUMN_COUNT);
+        Slider columnCountSlider = integerSlider(0.0, 8.0, masonry.getColumnCount());
         columnCountSlider.valueProperty().addListener((obs, oldV, newV) ->
                 masonry.setColumnCount((int) Math.round(newV.doubleValue())));
 
-        Slider maxColumnsSlider = integerSlider(0.0, 10.0, RXMasonryPane.DEFAULT_MAX_COLUMNS);
+        Slider maxColumnsSlider = integerSlider(0.0, 10.0, masonry.getMaxColumns());
         maxColumnsSlider.valueProperty().addListener((obs, oldV, newV) ->
                 masonry.setMaxColumns((int) Math.round(newV.doubleValue())));
 
         CheckBox fillWidthBox = new CheckBox("Stretch columns to fill the width");
-        fillWidthBox.setSelected(RXMasonryPane.DEFAULT_FILL_WIDTH);
+        fillWidthBox.setSelected(masonry.isFillWidth());
         masonry.fillWidthProperty().bind(fillWidthBox.selectedProperty());
 
         return createGrid(
@@ -146,10 +146,10 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     }
 
     private Node buildGapsGrid() {
-        Slider hgapSlider = createSlider(0.0, 40.0, RXMasonryPane.DEFAULT_HGAP);
+        Slider hgapSlider = createSlider(0.0, 40.0, masonry.getHgap());
         masonry.hgapProperty().bind(hgapSlider.valueProperty());
 
-        Slider vgapSlider = createSlider(0.0, 40.0, RXMasonryPane.DEFAULT_VGAP);
+        Slider vgapSlider = createSlider(0.0, 40.0, masonry.getVgap());
         masonry.vgapProperty().bind(vgapSlider.valueProperty());
 
         return createGrid(
@@ -160,7 +160,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     private Node buildResponsiveGrid() {
         ComboBox<RXBreakpointProfile> profileBox = new ComboBox<>(FXCollections.observableArrayList(
                 RXBreakpointProfile.ANT_DESIGN, RXBreakpointProfile.ELEMENT, RXBreakpointProfile.BOOTSTRAP));
-        profileBox.setValue(RXMasonryPane.DEFAULT_BREAKPOINT_PROFILE);
+        profileBox.setValue(masonry.getBreakpointProfile());
         profileBox.setMaxWidth(Double.MAX_VALUE);
         profileBox.setConverter(new StringConverter<>() {
             @Override
@@ -236,17 +236,17 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
 
     private Node buildAnimationGrid() {
         CheckBox animatedBox = new CheckBox("Animate relayout, insertion and removal");
-        animatedBox.setSelected(RXMasonryPane.DEFAULT_ANIMATED);
+        animatedBox.setSelected(masonry.isAnimated());
         masonry.animatedProperty().bind(animatedBox.selectedProperty());
 
         Slider durationSlider =
-                createSlider(0.0, 600.0, RXMasonryPane.DEFAULT_ANIMATION_DURATION.toMillis());
+                createSlider(0.0, 600.0, masonry.getAnimationDuration().toMillis());
         durationSlider.valueProperty().addListener((obs, oldV, newV) ->
                 masonry.setAnimationDuration(Duration.millis(Math.round(newV.doubleValue()))));
 
         ComboBox<Interpolator> interpolatorBox = new ComboBox<>(FXCollections.observableArrayList(
                 Interpolator.EASE_BOTH, Interpolator.EASE_OUT, Interpolator.EASE_IN, Interpolator.LINEAR));
-        interpolatorBox.setValue(RXMasonryPane.DEFAULT_ANIMATION_INTERPOLATOR);
+        interpolatorBox.setValue(masonry.getAnimationInterpolator());
         interpolatorBox.setMaxWidth(Double.MAX_VALUE);
         interpolatorBox.setConverter(new StringConverter<>() {
             @Override
@@ -270,7 +270,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     private Node buildContentGrid() {
         ComboBox<Pos> alignmentBox =
                 new ComboBox<>(FXCollections.observableArrayList(Pos.values()));
-        alignmentBox.setValue(RXMasonryPane.DEFAULT_ALIGNMENT);
+        alignmentBox.setValue(masonry.getAlignment());
         alignmentBox.setMaxWidth(Double.MAX_VALUE);
         masonry.alignmentProperty().bind(alignmentBox.valueProperty());
 

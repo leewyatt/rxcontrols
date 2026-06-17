@@ -71,7 +71,7 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
     /**
      * Default number of segments.
      */
-    public static final int DEFAULT_SEGMENT_COUNT = 5;
+    private static final int DEFAULT_SEGMENT_COUNT = 5;
 
     /**
      * Minimum permitted {@link #segmentCountProperty() segmentCount} at render time.
@@ -88,28 +88,28 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
     /**
      * Default horizontal gap between adjacent segments, in pixels.
      */
-    public static final double DEFAULT_SEGMENT_GAP = 4.0;
+    private static final double DEFAULT_SEGMENT_GAP = 4.0;
 
     /**
      * Default segment height (also drives {@code prefHeight}), in pixels.
      */
-    public static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
+    private static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
 
     /**
      * Default tween duration applied to determinate progress changes.
      */
-    public static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
+    private static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
 
     /**
      * Default cycle duration for the indeterminate highlight sweep.
      */
-    public static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1600.0);
+    private static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1600.0);
 
     /**
      * Default width of the indeterminate highlight band, expressed as a
      * fraction of the content width.
      */
-    public static final double DEFAULT_INDETERMINATE_BAND_RATIO = 0.35;
+    private static final double DEFAULT_INDETERMINATE_BAND_RATIO = 0.35;
 
     // ==================== Constructors ====================
 

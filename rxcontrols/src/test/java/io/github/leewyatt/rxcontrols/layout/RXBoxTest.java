@@ -114,7 +114,7 @@ public class RXBoxTest {
         FixedRegion defaultFirst = fixedRegion(30.0, 10.0);
         FixedRegion defaultSecond = fixedRegion(40.0, 20.0);
         RXBox defaultBox = new RXBox(Orientation.HORIZONTAL, defaultFirst, defaultSecond);
-        defaultBox.setAlignment(RXBox.DEFAULT_ALIGNMENT);
+        defaultBox.setAlignment(Pos.TOP_LEFT);
 
         layout(nullBox, 200.0, 80.0);
         layout(defaultBox, 200.0, 80.0);

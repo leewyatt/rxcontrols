@@ -146,27 +146,27 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
 
         // ==================== Wave shape ====================
         Slider amplitudeSlider = createSlider(0.0, 20.0,
-                RXWaveProgressIndicator.DEFAULT_WAVE_AMPLITUDE);
+                indicator.getWaveAmplitude());
         indicator.waveAmplitudeProperty().bind(amplitudeSlider.valueProperty());
         Label amplitudeValue = createValueLabel(amplitudeSlider, "%.0f");
 
         Slider waveLengthSlider = createSlider(0.0, 240.0,
-                RXWaveProgressIndicator.DEFAULT_WAVE_LENGTH);
+                indicator.getWaveLength());
         indicator.waveLengthProperty().bind(waveLengthSlider.valueProperty());
         Label waveLengthValue = createValueLabel(waveLengthSlider, "%.0f");
 
         Slider waveCycleSlider = createSlider(0.0, 5000.0,
-                RXWaveProgressIndicator.DEFAULT_WAVE_CYCLE_DURATION.toMillis());
+                indicator.getWaveCycleDuration().toMillis());
         waveCycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setWaveCycleDuration(Duration.millis(newV.doubleValue())));
         Label waveCycleValue = createValueLabel(waveCycleSlider, "%.0f ms");
 
         // ==================== Colours ====================
-        ColorPicker frontColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_FRONT_WAVE_FILL);
+        ColorPicker frontColor = new ColorPicker((Color) indicator.getFrontWaveFill());
         frontColor.setMaxWidth(Double.MAX_VALUE);
         indicator.frontWaveFillProperty().bind(frontColor.valueProperty());
 
-        ColorPicker backColor = new ColorPicker((Color) RXWaveProgressIndicator.DEFAULT_BACK_WAVE_FILL);
+        ColorPicker backColor = new ColorPicker((Color) indicator.getBackWaveFill());
         backColor.setMaxWidth(Double.MAX_VALUE);
         indicator.backWaveFillProperty().bind(backColor.valueProperty());
 
@@ -176,13 +176,13 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
         // indeterminate cycle = 0  → breathing stops (level pinned to mid-range)
         // tween = 0  → determinate progress jumps instead of tweening
         Slider tweenSlider = createSlider(0.0, 1000.0,
-                RXWaveProgressIndicator.DEFAULT_PROGRESS_TRANSITION_DURATION.toMillis());
+                indicator.getProgressTransitionDuration().toMillis());
         tweenSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setProgressTransitionDuration(Duration.millis(newV.doubleValue())));
         Label tweenValue = createValueLabel(tweenSlider, "%.0f ms");
 
         Slider indeterminateSlider = createSlider(0.0, 6000.0,
-                RXWaveProgressIndicator.DEFAULT_INDETERMINATE_CYCLE_DURATION.toMillis());
+                indicator.getIndeterminateCycleDuration().toMillis());
         indeterminateSlider.valueProperty().addListener((obs, oldV, newV) ->
                 indicator.setIndeterminateCycleDuration(Duration.millis(newV.doubleValue())));
         Label indeterminateValue = createValueLabel(indeterminateSlider, "%.0f ms");

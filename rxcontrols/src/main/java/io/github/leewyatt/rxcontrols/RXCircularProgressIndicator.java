@@ -69,12 +69,12 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default ring start angle in degrees (12 o'clock).
      */
-    public static final double DEFAULT_START_ANGLE = 90.0;
+    private static final double DEFAULT_START_ANGLE = 90.0;
 
     /**
      * Default sweep direction.
      */
-    public static final boolean DEFAULT_CLOCKWISE = true;
+    private static final boolean DEFAULT_CLOCKWISE = true;
 
     /**
      * Default track stroke paint (used when CSS does not resolve {@code -rx-track-stroke}).
@@ -89,12 +89,12 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default stroke width for the track ring, in pixels.
      */
-    public static final double DEFAULT_TRACK_STROKE_WIDTH = 4.0;
+    private static final double DEFAULT_TRACK_STROKE_WIDTH = 4.0;
 
     /**
      * Default stroke width for the progress arc, in pixels.
      */
-    public static final double DEFAULT_PROGRESS_STROKE_WIDTH = 4.0;
+    private static final double DEFAULT_PROGRESS_STROKE_WIDTH = 4.0;
 
     /**
      * Default stroke line cap.
@@ -104,12 +104,12 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default cycle duration for the indeterminate animation.
      */
-    public static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1500.0);
+    private static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(1500.0);
 
     /**
      * Default tween duration applied to determinate progress changes.
      */
-    public static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
+    private static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
 
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.

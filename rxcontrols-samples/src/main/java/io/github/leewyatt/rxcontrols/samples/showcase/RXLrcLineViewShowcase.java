@@ -204,7 +204,7 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
         });
 
         Slider durationSlider = createSlider(100.0, 1500.0,
-                RXLrcLineView.DEFAULT_ANIMATION_DURATION.toMillis());
+                lineView.getAnimationDuration().toMillis());
         lineView.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty()));

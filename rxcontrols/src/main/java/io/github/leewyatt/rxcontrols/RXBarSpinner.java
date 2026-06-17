@@ -114,34 +114,34 @@ public class RXBarSpinner extends Control {
     /**
      * Default number of bars.
      */
-    public static final int DEFAULT_BAR_COUNT = 5;
+    private static final int DEFAULT_BAR_COUNT = 5;
 
     /**
      * Default bar width, in pixels.
      */
-    public static final double DEFAULT_BAR_WIDTH = 4.0;
+    private static final double DEFAULT_BAR_WIDTH = 4.0;
 
     /**
      * Default peak bar height, in pixels.
      */
-    public static final double DEFAULT_BAR_HEIGHT = 24.0;
+    private static final double DEFAULT_BAR_HEIGHT = 24.0;
 
     /**
      * Default horizontal gap between adjacent bars, in pixels.
      */
-    public static final double DEFAULT_BAR_GAP = 4.0;
+    private static final double DEFAULT_BAR_GAP = 4.0;
 
     /**
      * Default cycle duration for one full staggered pass over all bars.
      */
-    public static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1000.0);
+    private static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1000.0);
 
     /**
      * Default minimum-bar-height ratio. Bars never shrink below
      * {@code barHeight * DEFAULT_MIN_BAR_HEIGHT_RATIO} so the row stays
      * visually present at the trough of the cycle.
      */
-    public static final double DEFAULT_MIN_BAR_HEIGHT_RATIO = 0.2;
+    private static final double DEFAULT_MIN_BAR_HEIGHT_RATIO = 0.2;
 
     // ==================== Constructors ====================
 

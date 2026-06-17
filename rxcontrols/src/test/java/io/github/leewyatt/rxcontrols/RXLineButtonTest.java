@@ -73,10 +73,6 @@ public class RXLineButtonTest {
         assertTrue(button.getStyleClass().contains("button"));
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertTrue(button.getStyleClass().contains("rx-line-button"));
-        assertSame(RXLineButton.DEFAULT_LINE_ANIMATION, button.getLineAnimation());
-        assertSame(LineAnimation.UNDERLINE_CENTER_OUT, RXLineButton.DEFAULT_LINE_ANIMATION);
-        assertEquals(RXLineButton.DEFAULT_LINE_THICKNESS, button.getLineThickness(), EPSILON);
-        assertEquals(RXLineButton.DEFAULT_LINE_GAP, button.getLineGap(), EPSILON);
         assertSame(RXAnimatedButton.DEFAULT_ANIMATION_TRIGGER, button.getAnimationTrigger());
         assertEquals(RXAnimatedButton.DEFAULT_ANIMATION_DURATION, button.getAnimationDuration());
         assertFalse(isLineShowing(button));

@@ -105,12 +105,12 @@ public class RXDrawerPane extends Control {
     /**
      * Default open/close animation enabled state.
      */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
 
     /**
      * Default open/close animation duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(250.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(250.0);
 
     /**
      * Default open/close animation interpolator, also the {@code null} fallback.
@@ -120,34 +120,34 @@ public class RXDrawerPane extends Control {
     /**
      * Default showing state.
      */
-    public static final boolean DEFAULT_SHOWING = false;
+    private static final boolean DEFAULT_SHOWING = false;
 
     /**
      * Default preferred drawer width. {@link Region#USE_COMPUTED_SIZE} lets the skin
      * size the {@link Side#LEFT} / {@link Side#RIGHT} panel to fit its content.
      */
-    public static final double DEFAULT_PREF_DRAWER_WIDTH = Region.USE_COMPUTED_SIZE;
+    private static final double DEFAULT_PREF_DRAWER_WIDTH = Region.USE_COMPUTED_SIZE;
 
     /**
      * Default preferred drawer height. {@link Region#USE_COMPUTED_SIZE} lets the skin
      * size the {@link Side#TOP} / {@link Side#BOTTOM} panel to fit its content.
      */
-    public static final double DEFAULT_PREF_DRAWER_HEIGHT = Region.USE_COMPUTED_SIZE;
+    private static final double DEFAULT_PREF_DRAWER_HEIGHT = Region.USE_COMPUTED_SIZE;
 
     /**
      * Default for whether the overlay pane (dimmed backdrop) is shown.
      */
-    public static final boolean DEFAULT_OVERLAY_PANE_VISIBLE = true;
+    private static final boolean DEFAULT_OVERLAY_PANE_VISIBLE = true;
 
     /**
      * Default for whether clicking the overlay pane requests a close.
      */
-    public static final boolean DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK = true;
+    private static final boolean DEFAULT_CLOSE_ON_OVERLAY_PANE_CLICK = true;
 
     /**
      * Default for whether pressing ESC requests a close.
      */
-    public static final boolean DEFAULT_CLOSE_ON_ESC = true;
+    private static final boolean DEFAULT_CLOSE_ON_ESC = true;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-drawer-pane";
 

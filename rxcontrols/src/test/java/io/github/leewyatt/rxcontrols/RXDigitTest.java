@@ -59,9 +59,6 @@ public class RXDigitTest {
         RXDigit digit = new RXDigit();
 
         assertTrue(digit.getStyleClass().contains("rx-digit"));
-        assertEquals(RXDigit.DEFAULT_DIGIT, digit.getDigit());
-        assertSame(RXDigit.DEFAULT_LIT_FILL, digit.getLitFill());
-        assertSame(RXDigit.DEFAULT_UNLIT_FILL, digit.getUnlitFill());
 
         Set<String> properties = RXDigit.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())

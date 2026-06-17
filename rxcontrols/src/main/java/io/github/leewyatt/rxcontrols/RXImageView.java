@@ -51,17 +51,17 @@ public class RXImageView extends Region {
     /**
      * Default image fitting mode.
      */
-    public static final ImageFit DEFAULT_IMAGE_FIT = ImageFit.COVER;
+    private static final ImageFit DEFAULT_IMAGE_FIT = ImageFit.COVER;
 
     /**
      * Default image allocation insets.
      */
-    public static final Insets DEFAULT_IMAGE_INSETS = Insets.EMPTY;
+    private static final Insets DEFAULT_IMAGE_INSETS = Insets.EMPTY;
 
     /**
      * Default fixed-pixel image corner radius.
      */
-    public static final double DEFAULT_IMAGE_RADIUS = 0.0;
+    private static final double DEFAULT_IMAGE_RADIUS = 0.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-image-view";
     private static final double DEFAULT_PREF_SIZE = 100.0;

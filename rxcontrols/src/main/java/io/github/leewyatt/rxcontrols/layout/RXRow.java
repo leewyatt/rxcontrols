@@ -85,7 +85,7 @@ public class RXRow extends Pane {
     /**
      * Default column count from the default Ant Design-style profile.
      */
-    public static final int DEFAULT_COLUMNS = RXBreakpointProfile.ANT_DESIGN.getColumns();
+    private static final int DEFAULT_COLUMNS = RXBreakpointProfile.ANT_DESIGN.getColumns();
 
     /**
      * Default horizontal gutter.
@@ -95,7 +95,7 @@ public class RXRow extends Pane {
     /**
      * Default vertical row gap.
      */
-    public static final double DEFAULT_ROW_GAP = 0.0;
+    private static final double DEFAULT_ROW_GAP = 0.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-row";
     private static final Logger LOGGER = Logger.getLogger(RXRow.class.getName());

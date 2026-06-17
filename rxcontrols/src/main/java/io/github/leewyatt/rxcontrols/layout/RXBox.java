@@ -55,22 +55,22 @@ public class RXBox extends Pane {
     /**
      * Default orientation.
      */
-    public static final Orientation DEFAULT_ORIENTATION = Orientation.HORIZONTAL;
+    private static final Orientation DEFAULT_ORIENTATION = Orientation.HORIZONTAL;
 
     /**
      * Default child spacing.
      */
-    public static final double DEFAULT_SPACING = 0.0;
+    private static final double DEFAULT_SPACING = 0.0;
 
     /**
      * Default child alignment.
      */
-    public static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
+    private static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
 
     /**
      * Default cross-axis fill behavior.
      */
-    public static final boolean DEFAULT_FILL_CROSS_AXIS = true;
+    private static final boolean DEFAULT_FILL_CROSS_AXIS = true;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-box";
     private static final String GROW_CONSTRAINT = "rxbox-grow";

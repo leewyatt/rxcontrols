@@ -172,7 +172,7 @@ public class RXSidebarAnimationTest {
     @Test
     public void animatedFalseSnapsInstantly() throws Exception {
         runOnFx(() -> {
-            RXSidebar sidebar = laidOut(new RXSidebar(), RXSidebar.DEFAULT_ANIMATION_DURATION);
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(200.0));
             sidebar.setAnimated(false);
             sidebar.setMode(SidebarMode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), WIDTH_TOLERANCE);

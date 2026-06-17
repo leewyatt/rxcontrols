@@ -81,38 +81,38 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     /**
      * Default resting crest height of the wave, in pixels.
      */
-    public static final double DEFAULT_WAVE_AMPLITUDE = 6.0;
+    private static final double DEFAULT_WAVE_AMPLITUDE = 6.0;
 
     /**
      * Default base wavelength, in pixels. A value of {@code 0} lets the skin
      * fall back to the container diameter.
      */
-    public static final double DEFAULT_WAVE_LENGTH = 0.0;
+    private static final double DEFAULT_WAVE_LENGTH = 0.0;
 
     /**
      * Default cycle duration for the front wave's horizontal scroll.
      */
-    public static final Duration DEFAULT_WAVE_CYCLE_DURATION = Duration.millis(2000.0);
+    private static final Duration DEFAULT_WAVE_CYCLE_DURATION = Duration.millis(2000.0);
 
     /**
      * Default front-wave fill (opaque blue).
      */
-    public static final Paint DEFAULT_FRONT_WAVE_FILL = Color.web("#1E90FF");
+    private static final Paint DEFAULT_FRONT_WAVE_FILL = Color.web("#1E90FF");
 
     /**
      * Default back-wave fill (transparent).
      */
-    public static final Paint DEFAULT_BACK_WAVE_FILL = Color.TRANSPARENT;
+    private static final Paint DEFAULT_BACK_WAVE_FILL = Color.TRANSPARENT;
 
     /**
      * Default cycle duration for the indeterminate breathing animation.
      */
-    public static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(2500.0);
+    private static final Duration DEFAULT_INDETERMINATE_CYCLE_DURATION = Duration.millis(2500.0);
 
     /**
      * Default tween duration applied to determinate progress changes.
      */
-    public static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
+    private static final Duration DEFAULT_PROGRESS_TRANSITION_DURATION = Duration.millis(250.0);
 
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.

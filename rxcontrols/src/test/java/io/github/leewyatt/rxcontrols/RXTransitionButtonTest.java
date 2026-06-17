@@ -71,7 +71,7 @@ public class RXTransitionButtonTest {
     public void defaultsAndCssMetadataMatchContract() {
         RXTransitionButton button = new RXTransitionButton("Hi");
 
-        assertTrue(button.getStyleClass().contains(RXTransitionButton.DEFAULT_STYLE_CLASS));
+        assertTrue(button.getStyleClass().contains("rx-transition-button"));
         assertTrue(button.getStyleClass().contains("button"));
         assertNull(button.getAlternateContent());
         assertInstanceOf(AnimSlide.class, button.getAnimation());

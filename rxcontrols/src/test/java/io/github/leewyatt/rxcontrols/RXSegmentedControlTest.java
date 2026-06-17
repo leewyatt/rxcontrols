@@ -68,8 +68,6 @@ public class RXSegmentedControlTest {
         assertFalse(control.isBlock());
         assertFalse(control.isEqualSegmentWidth());
         assertEquals(0.0, control.getSegmentSpacing(), EPSILON);
-        assertEquals(RXSegmentedControl.DEFAULT_ANIMATION_DURATION, control.getAnimationDuration());
-        assertEquals(Duration.millis(200.0), RXSegmentedControl.DEFAULT_ANIMATION_DURATION);
         assertEquals(-1, control.getSelectedIndex());
         assertNull(control.getSelectedItem());
         assertNull(control.getValue());

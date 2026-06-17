@@ -233,7 +233,7 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
         previewSkeleton.prefHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 
-        Slider cornerSlider = createSlider(0.0, 40.0, RXSkeleton.DEFAULT_CORNER_RADIUS);
+        Slider cornerSlider = createSlider(0.0, 40.0, previewSkeleton.getCornerRadius());
         previewSkeleton.cornerRadiusProperty().bind(cornerSlider.valueProperty());
         Label cornerValue = createValueLabel(cornerSlider, "%.0f");
 
@@ -247,7 +247,7 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        ColorPicker baseColorPicker = new ColorPicker((Color) RXSkeleton.DEFAULT_BASE_COLOR);
+        ColorPicker baseColorPicker = new ColorPicker((Color) previewSkeleton.getBaseColor());
         baseColorPicker.setMaxWidth(Double.MAX_VALUE);
         previewSkeleton.baseColorProperty().bind(baseColorPicker.valueProperty());
 
@@ -264,13 +264,13 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
 
     private Node buildAnimationGrid() {
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXSkeleton.DEFAULT_CYCLE_DURATION.toMillis());
+                previewSkeleton.getCycleDuration().toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 previewSkeleton.setCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");
 
         Slider shimmerWidthSlider = createSlider(0.0, 160.0,
-                RXSkeleton.DEFAULT_SHIMMER_WIDTH);
+                previewSkeleton.getShimmerWidth());
         previewSkeleton.shimmerWidthProperty().bind(shimmerWidthSlider.valueProperty());
         Label shimmerWidthValue = createValueLabel(shimmerWidthSlider, "%.0f px");
 
@@ -280,7 +280,7 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildTextGrid() {
-        Slider lineCountSlider = createSlider(1.0, 6.0, RXSkeleton.DEFAULT_LINE_COUNT);
+        Slider lineCountSlider = createSlider(1.0, 6.0, previewSkeleton.getLineCount());
         lineCountSlider.setSnapToTicks(true);
         lineCountSlider.setMajorTickUnit(1.0);
         lineCountSlider.setMinorTickCount(0);
@@ -289,16 +289,16 @@ public class RXSkeletonShowcase extends RXShowcaseApplication {
                 previewSkeleton.setLineCount(newV.intValue()));
         Label lineCountValue = createValueLabel(lineCountSlider, "%.0f");
 
-        Slider lineHeightSlider = createSlider(6.0, 40.0, RXSkeleton.DEFAULT_LINE_HEIGHT);
+        Slider lineHeightSlider = createSlider(6.0, 40.0, previewSkeleton.getLineHeight());
         previewSkeleton.lineHeightProperty().bind(lineHeightSlider.valueProperty());
         Label lineHeightValue = createValueLabel(lineHeightSlider, "%.0f");
 
-        Slider lineSpacingSlider = createSlider(0.0, 24.0, RXSkeleton.DEFAULT_LINE_SPACING);
+        Slider lineSpacingSlider = createSlider(0.0, 24.0, previewSkeleton.getLineSpacing());
         previewSkeleton.lineSpacingProperty().bind(lineSpacingSlider.valueProperty());
         Label lineSpacingValue = createValueLabel(lineSpacingSlider, "%.0f");
 
         Slider lastLineSlider = createSlider(0.0, 100.0,
-                RXSkeleton.DEFAULT_LAST_LINE_FILL_PERCENT);
+                previewSkeleton.getLastLineFillPercent());
         previewSkeleton.lastLineFillPercentProperty().bind(lastLineSlider.valueProperty());
         Label lastLineValue = createValueLabel(lastLineSlider, "%.0f%%");
 

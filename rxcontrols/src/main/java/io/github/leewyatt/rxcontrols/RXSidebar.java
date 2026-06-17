@@ -68,9 +68,9 @@ public class RXSidebar extends Control {
     /** Default mini width; icon (24px) is centered at miniWidth/2. */
     public static final double DEFAULT_MINI_WIDTH = 64.0;
     /** Default whether mode transitions animate. */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
     /** Default mode-transition duration. */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     /** Default mode-transition interpolator, also the null fallback. */
     public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 

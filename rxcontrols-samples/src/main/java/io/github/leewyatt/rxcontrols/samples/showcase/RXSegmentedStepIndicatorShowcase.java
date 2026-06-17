@@ -115,7 +115,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
 
     private Node buildStateGrid() {
         stepSlider = createSlider(0.0, RXSegmentedStepIndicator.MAX_STEP_COUNT,
-                RXSegmentedStepIndicator.DEFAULT_STEP_COUNT);
+                mainIndicator.getStepCount());
         configureIntegerSlider(stepSlider);
         stepSlider.valueProperty().addListener((obs, oldV, newV) -> {
             mainIndicator.setStepCount(newV.intValue());
@@ -123,7 +123,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         });
         Label stepValue = createValueLabel(stepSlider, "%.0f");
 
-        selectedSlider = createSlider(0.0, RXSegmentedStepIndicator.DEFAULT_STEP_COUNT - 1.0,
+        selectedSlider = createSlider(0.0, mainIndicator.getStepCount() - 1.0,
                 mainIndicator.getSelectedIndex());
         configureIntegerSlider(selectedSlider);
         selectedSlider.valueProperty().addListener((obs, oldV, newV) ->
@@ -154,11 +154,11 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         paddingSlider.valueProperty().addListener((obs, oldV, newV) -> updateInlineStyle());
         Label paddingValue = createValueLabel(paddingSlider, "%.0f px");
 
-        gapSlider = createSlider(0.0, 12.0, RXSegmentedStepIndicator.DEFAULT_SEGMENT_GAP);
+        gapSlider = createSlider(0.0, 12.0, mainIndicator.getSegmentGap());
         gapSlider.valueProperty().addListener((obs, oldV, newV) -> updateInlineStyle());
         Label gapValue = createValueLabel(gapSlider, "%.0f px");
 
-        heightSlider = createSlider(2.0, 24.0, RXSegmentedStepIndicator.DEFAULT_SEGMENT_HEIGHT);
+        heightSlider = createSlider(2.0, 24.0, mainIndicator.getSegmentHeight());
         heightSlider.valueProperty().addListener((obs, oldV, newV) -> updateInlineStyle());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 

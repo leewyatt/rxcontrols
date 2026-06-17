@@ -154,7 +154,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
         modeBox.setMaxWidth(Double.MAX_VALUE);
         mainIndicator.animationModeProperty().bind(modeBox.valueProperty());
 
-        Slider amplitudeSlider = createSlider(0.0, 3.0, RXDotPulse.DEFAULT_AMPLITUDE);
+        Slider amplitudeSlider = createSlider(0.0, 3.0, mainIndicator.getAmplitude());
         mainIndicator.amplitudeProperty().bind(amplitudeSlider.valueProperty());
         Label amplitudeValue = createValueLabel(amplitudeSlider, "%.2f");
 
@@ -165,7 +165,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
 
     private Node buildGeometryGrid() {
         Slider countSlider = createSlider(RXDotPulse.MIN_DOT_COUNT, RXDotPulse.MAX_DOT_COUNT,
-                RXDotPulse.DEFAULT_DOT_COUNT);
+                mainIndicator.getDotCount());
         countSlider.setSnapToTicks(true);
         countSlider.setMajorTickUnit(1.0);
         countSlider.setMinorTickCount(0);
@@ -174,11 +174,11 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
                 mainIndicator.setDotCount(newV.intValue()));
         Label countValue = createValueLabel(countSlider, "%.0f");
 
-        Slider sizeSlider = createSlider(4.0, 32.0, RXDotPulse.DEFAULT_DOT_SIZE);
+        Slider sizeSlider = createSlider(4.0, 32.0, mainIndicator.getDotSize());
         mainIndicator.dotSizeProperty().bind(sizeSlider.valueProperty());
         Label sizeValue = createValueLabel(sizeSlider, "%.0f px");
 
-        Slider gapSlider = createSlider(0.0, 32.0, RXDotPulse.DEFAULT_DOT_GAP);
+        Slider gapSlider = createSlider(0.0, 32.0, mainIndicator.getDotGap());
         mainIndicator.dotGapProperty().bind(gapSlider.valueProperty());
         Label gapValue = createValueLabel(gapSlider, "%.0f px");
 
@@ -214,7 +214,7 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
         // The cycle slider reaches 0 to demonstrate the "non-positive disables
         // animation" semantic — the dots snap to their rest pose.
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXDotPulse.DEFAULT_CYCLE_DURATION.toMillis());
+                mainIndicator.getCycleDuration().toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 mainIndicator.setCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");

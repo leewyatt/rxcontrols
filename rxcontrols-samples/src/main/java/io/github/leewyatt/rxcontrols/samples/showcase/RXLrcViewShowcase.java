@@ -177,19 +177,19 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         lrcView.animatedProperty().bind(animatedBox.selectedProperty());
 
         Slider durationSlider = createSlider(0.0, 1200.0,
-                RXLrcView.DEFAULT_ANIMATION_DURATION.toMillis());
+                lrcView.getAnimationDuration().toMillis());
         lrcView.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty()));
 
         Slider positionSlider = createSlider(0.15, 0.85,
-                RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+                lrcView.getCurrentLinePosition());
         lrcView.currentLinePositionProperty().bind(positionSlider.valueProperty());
 
-        Slider spacingSlider = createSlider(0.0, 24.0, RXLrcView.DEFAULT_LINE_SPACING);
+        Slider spacingSlider = createSlider(0.0, 24.0, lrcView.getLineSpacing());
         lrcView.lineSpacingProperty().bind(spacingSlider.valueProperty());
 
-        Slider scaleSlider = createSlider(1.0, 1.8, RXLrcView.DEFAULT_CURRENT_LINE_SCALE);
+        Slider scaleSlider = createSlider(1.0, 1.8, lrcView.getCurrentLineScale());
         lrcView.currentLineScaleProperty().bind(scaleSlider.valueProperty());
 
         return createGrid(

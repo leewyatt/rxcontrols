@@ -51,17 +51,17 @@ public class RXDigit extends Control {
     /**
      * Default displayed digit.
      */
-    public static final int DEFAULT_DIGIT = 0;
+    private static final int DEFAULT_DIGIT = 0;
 
     /**
      * Default fill for lit segments.
      */
-    public static final Paint DEFAULT_LIT_FILL = Color.BLACK;
+    private static final Paint DEFAULT_LIT_FILL = Color.BLACK;
 
     /**
      * Default fill for unlit segments.
      */
-    public static final Paint DEFAULT_UNLIT_FILL = Color.web("#dddddd");
+    private static final Paint DEFAULT_UNLIT_FILL = Color.web("#dddddd");
 
     // ==================== Constructors ====================
 

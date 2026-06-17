@@ -48,37 +48,37 @@ public class RXLrcView extends Control {
     /**
      * Default style class for this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-lrc-view";
+    private static final String DEFAULT_STYLE_CLASS = "rx-lrc-view";
 
     /**
      * Default scroll animation duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(300.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(300.0);
 
     /**
      * Default vertical anchor position for the current line.
      */
-    public static final double DEFAULT_CURRENT_LINE_POSITION = 0.45;
+    private static final double DEFAULT_CURRENT_LINE_POSITION = 0.45;
 
     /**
      * Default spacing between lyric lines.
      */
-    public static final double DEFAULT_LINE_SPACING = 8.0;
+    private static final double DEFAULT_LINE_SPACING = 8.0;
 
     /**
      * Default scale applied to the current line by the skin.
      */
-    public static final double DEFAULT_CURRENT_LINE_SCALE = 1.1;
+    private static final double DEFAULT_CURRENT_LINE_SCALE = 1.1;
 
     /**
      * Default setting for mouse drag lyric browsing.
      */
-    public static final boolean DEFAULT_MANUAL_BROWSE_ENABLED = true;
+    private static final boolean DEFAULT_MANUAL_BROWSE_ENABLED = true;
 
     /**
      * Default setting for mouse wheel lyric browsing.
      */
-    public static final boolean DEFAULT_MOUSE_WHEEL_BROWSE_ENABLED = true;
+    private static final boolean DEFAULT_MOUSE_WHEEL_BROWSE_ENABLED = true;
 
     /**
      * Default delay before manual browsing recovers to automatic following.

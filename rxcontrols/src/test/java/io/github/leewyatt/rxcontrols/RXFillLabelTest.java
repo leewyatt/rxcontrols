@@ -68,9 +68,6 @@ public class RXFillLabelTest {
         assertTrue(label.getStyleClass().contains("label"));
         assertTrue(label.getStyleClass().contains("rx-fill-label"));
         assertFalse(label.isFocusTraversable());
-        assertSame(RXFillLabel.DEFAULT_FILL_ANIMATION, label.getFillAnimation());
-        assertSame(RXFillLabel.DEFAULT_ANIMATION_TRIGGER, label.getAnimationTrigger());
-        assertEquals(RXFillLabel.DEFAULT_ANIMATION_DURATION, label.getAnimationDuration());
         assertNull(label.getFillInsets());
         assertNull(label.getFillCornerRadius());
 

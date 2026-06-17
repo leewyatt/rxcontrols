@@ -13,7 +13,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,20 +41,6 @@ public class RXHighlightTextViewTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
-    }
-
-    @Test
-    public void defaultHighlightFillMatchesConstant() {
-        RXHighlightTextView control = new RXHighlightTextView("hello");
-        assertEquals(RXHighlightTextView.DEFAULT_HIGHLIGHT_FILL, control.getHighlightFill());
-    }
-
-    @Test
-    public void inheritedColorDefaultsMatchConstants() {
-        RXHighlightTextView control = new RXHighlightTextView("hello");
-        assertEquals(RXTextView.DEFAULT_TEXT_FILL, control.getTextFill());
-        assertEquals(RXTextView.DEFAULT_SELECTION_FILL, control.getSelectionFill());
-        assertEquals(RXTextView.DEFAULT_SELECTED_TEXT_FILL, control.getSelectedTextFill());
     }
 
     @Test

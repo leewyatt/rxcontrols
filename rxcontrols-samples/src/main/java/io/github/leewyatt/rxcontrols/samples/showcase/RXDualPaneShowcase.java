@@ -135,7 +135,7 @@ public class RXDualPaneShowcase extends RXShowcaseApplication {
         });
 
         Slider durationSlider = createSlider(100.0, 1500.0,
-                RXDualPane.DEFAULT_ANIMATION_DURATION.toMillis());
+                dualPane.getAnimationDuration().toMillis());
         dualPane.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty()));

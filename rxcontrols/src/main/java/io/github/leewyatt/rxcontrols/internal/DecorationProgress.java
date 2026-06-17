@@ -48,12 +48,12 @@ public final class DecorationProgress {
     /**
      * Fallback trigger when the trigger property holds {@code null}.
      */
-    public static final AnimationTrigger DEFAULT_TRIGGER = AnimationTrigger.HOVER;
+    private static final AnimationTrigger DEFAULT_TRIGGER = AnimationTrigger.HOVER;
 
     /**
      * Fallback duration when the duration property holds no usable value.
      */
-    public static final Duration DEFAULT_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_DURATION = Duration.millis(200.0);
 
     private final Control host;
     private final ObjectProperty<AnimationTrigger> trigger;

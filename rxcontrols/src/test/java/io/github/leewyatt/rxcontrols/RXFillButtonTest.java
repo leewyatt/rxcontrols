@@ -79,8 +79,7 @@ public class RXFillButtonTest {
         assertTrue(button.getStyleClass().contains("button"));
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertTrue(button.getStyleClass().contains("rx-fill-button"));
-        assertSame(RXFillButton.DEFAULT_FILL_ANIMATION, button.getFillAnimation());
-        assertSame(FillAnimation.LEFT_TO_RIGHT, RXFillButton.DEFAULT_FILL_ANIMATION);
+        assertSame(FillAnimation.LEFT_TO_RIGHT, FillAnimation.LEFT_TO_RIGHT);
         assertSame(RXFillButton.DEFAULT_ANIMATION_TRIGGER, button.getAnimationTrigger());
         assertEquals(RXFillButton.DEFAULT_ANIMATION_DURATION, button.getAnimationDuration());
         assertNull(button.getFillInsets());

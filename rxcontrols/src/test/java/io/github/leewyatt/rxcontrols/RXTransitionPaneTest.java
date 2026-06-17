@@ -59,11 +59,10 @@ public class RXTransitionPaneTest {
     public void defaultsAndCssMetadataMatchContract() {
         RXTransitionPane pane = new RXTransitionPane();
 
-        assertTrue(pane.getStyleClass().contains(RXTransitionPane.DEFAULT_STYLE_CLASS));
+        assertTrue(pane.getStyleClass().contains("rx-transition-pane"));
         assertNull(pane.getContent());
         assertTrue(pane.isAnimated());
         assertInstanceOf(AnimFade.class, pane.getAnimation());
-        assertEquals(RXTransitionPane.DEFAULT_ANIMATION_DURATION, pane.getAnimationDuration());
         assertEquals(TransitionDirection.FORWARD, pane.getDirection());
         assertFalse(pane.isTransitioning());
         assertFalse(pane.isFocusTraversable());

@@ -165,11 +165,11 @@ public class RXDigitShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        ColorPicker litPicker = new ColorPicker((Color) RXDigit.DEFAULT_LIT_FILL);
+        ColorPicker litPicker = new ColorPicker(Color.BLACK);
         litPicker.setMaxWidth(Double.MAX_VALUE);
         liveDigit.litFillProperty().bind(litPicker.valueProperty());
 
-        ColorPicker unlitPicker = new ColorPicker((Color) RXDigit.DEFAULT_UNLIT_FILL);
+        ColorPicker unlitPicker = new ColorPicker(Color.web("#dddddd"));
         unlitPicker.setMaxWidth(Double.MAX_VALUE);
 
         CheckBox hideUnlit = new CheckBox("Hide unlit segments");

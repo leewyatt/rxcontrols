@@ -67,7 +67,7 @@ public class RXAudioSpectrum extends Control {
     /**
      * Default number of display bands.
      */
-    public static final int DEFAULT_BAND_COUNT = 128;
+    private static final int DEFAULT_BAND_COUNT = 128;
 
     /**
      * Minimum allowed number of display bands.
@@ -77,7 +77,7 @@ public class RXAudioSpectrum extends Control {
     /**
      * Default lower bound of the decibel window mapped to zero amplitude.
      */
-    public static final double DEFAULT_MIN_DECIBELS = -60.0;
+    private static final double DEFAULT_MIN_DECIBELS = -60.0;
 
     /**
      * Default arrangement of source bands across the display slots.

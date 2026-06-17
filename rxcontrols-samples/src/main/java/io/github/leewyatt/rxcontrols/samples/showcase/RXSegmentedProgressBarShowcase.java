@@ -191,7 +191,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
     private Node buildGeometryGrid() {
         Slider countSlider = createSlider(RXSegmentedProgressBar.MIN_SEGMENT_COUNT,
                 RXSegmentedProgressBar.MAX_SEGMENT_COUNT,
-                RXSegmentedProgressBar.DEFAULT_SEGMENT_COUNT);
+                mainBar.getSegmentCount());
         countSlider.setSnapToTicks(true);
         countSlider.setMajorTickUnit(1.0);
         countSlider.setMinorTickCount(0);
@@ -201,12 +201,12 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         Label countValue = createValueLabel(countSlider, "%.0f");
 
         Slider gapSlider = createSlider(0.0, 24.0,
-                RXSegmentedProgressBar.DEFAULT_SEGMENT_GAP);
+                mainBar.getSegmentGap());
         mainBar.segmentGapProperty().bind(gapSlider.valueProperty());
         Label gapValue = createValueLabel(gapSlider, "%.0f px");
 
         Slider heightSlider = createSlider(2.0, 48.0,
-                RXSegmentedProgressBar.DEFAULT_SEGMENT_HEIGHT);
+                mainBar.getSegmentHeight());
         mainBar.segmentHeightProperty().bind(heightSlider.valueProperty());
         Label heightValue = createValueLabel(heightSlider, "%.0f px");
 
@@ -221,18 +221,18 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
         // cycle = 0 -> indeterminate band stops (row stays empty)
         // tween = 0 -> determinate progress jumps instead of tweening
         Slider cycleSlider = createSlider(0.0, 4000.0,
-                RXSegmentedProgressBar.DEFAULT_INDETERMINATE_CYCLE_DURATION.toMillis());
+                mainBar.getIndeterminateCycleDuration().toMillis());
         cycleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 mainBar.setIndeterminateCycleDuration(Duration.millis(newV.doubleValue())));
         Label cycleValue = createValueLabel(cycleSlider, "%.0f ms");
 
         Slider bandRatioSlider = createSlider(0.05, 1.0,
-                RXSegmentedProgressBar.DEFAULT_INDETERMINATE_BAND_RATIO);
+                mainBar.getIndeterminateBandRatio());
         mainBar.indeterminateBandRatioProperty().bind(bandRatioSlider.valueProperty());
         Label bandRatioValue = createValueLabel(bandRatioSlider, "%.2f");
 
         Slider tweenSlider = createSlider(0.0, 1000.0,
-                RXSegmentedProgressBar.DEFAULT_PROGRESS_TRANSITION_DURATION.toMillis());
+                mainBar.getProgressTransitionDuration().toMillis());
         tweenSlider.valueProperty().addListener((obs, oldV, newV) ->
                 mainBar.setProgressTransitionDuration(Duration.millis(newV.doubleValue())));
         Label tweenValue = createValueLabel(tweenSlider, "%.0f ms");

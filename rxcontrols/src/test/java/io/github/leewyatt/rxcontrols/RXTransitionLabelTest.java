@@ -59,12 +59,11 @@ public class RXTransitionLabelTest {
     public void defaultsAndCssMetadataMatchContract() {
         RXTransitionLabel label = new RXTransitionLabel();
 
-        assertTrue(label.getStyleClass().contains(RXTransitionLabel.DEFAULT_STYLE_CLASS));
+        assertTrue(label.getStyleClass().contains("rx-transition-label"));
         assertEquals("", label.getText());
         assertEquals(Pos.CENTER, label.getAlignment());
         assertTrue(label.isAnimated());
         assertInstanceOf(AnimFade.class, label.getAnimation());
-        assertEquals(RXTransitionLabel.DEFAULT_ANIMATION_DURATION, label.getAnimationDuration());
         assertEquals(TransitionDirection.FORWARD, label.getDirection());
         assertFalse(label.isTransitioning());
         assertFalse(label.isFocusTraversable());

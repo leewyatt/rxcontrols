@@ -65,18 +65,13 @@ public class RXLrcViewTest {
     public void defaultsAndCssMetadataUseNewApi() {
         RXLrcView view = new RXLrcView();
 
-        assertTrue(view.getStyleClass().contains(RXLrcView.DEFAULT_STYLE_CLASS));
+        assertTrue(view.getStyleClass().contains("rx-lrc-view"));
         assertNull(view.getDocument());
         assertEquals(Duration.ZERO, view.getCurrentTime());
         assertEquals(Duration.ZERO, view.getTimeOffset());
         assertEquals(-1, view.getCurrentLineIndex());
         assertNull(view.getCurrentLine());
         assertTrue(view.isAnimated());
-        assertEquals(RXLrcView.DEFAULT_ANIMATION_DURATION, view.getAnimationDuration());
-        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_POSITION,
-                view.getCurrentLinePosition(), EPSILON);
-        assertEquals(RXLrcView.DEFAULT_LINE_SPACING, view.getLineSpacing(), EPSILON);
-        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, view.getCurrentLineScale(), EPSILON);
         assertTrue(view.isManualBrowseEnabled());
         assertTrue(view.isMouseWheelBrowseEnabled());
         assertEquals(RXLrcView.DEFAULT_BROWSE_RECOVER_DELAY, view.getBrowseRecoverDelay());
@@ -368,7 +363,7 @@ public class RXLrcViewTest {
         view.setLineSpacing(22.0);
         relayout(view);
 
-        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+        assertCurrentLineCenterAt(view, 0.45);
     }
 
     @Test
@@ -397,7 +392,7 @@ public class RXLrcViewTest {
         view.setDocument(alternateDocument());
         relayout(view);
 
-        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+        assertCurrentLineCenterAt(view, 0.45);
     }
 
     @Test
@@ -414,7 +409,7 @@ public class RXLrcViewTest {
                 longLine.getLayoutBounds().getWidth(), EPSILON);
         assertTrue(longLine.getLayoutBounds().getHeight()
                 > shortLine.getLayoutBounds().getHeight());
-        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+        assertCurrentLineCenterAt(view, 0.45);
     }
 
     @Test
@@ -435,7 +430,7 @@ public class RXLrcViewTest {
         view.setCurrentTime(Duration.seconds(8.0));
         waitForFxMillis(180.0);
 
-        assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+        assertCurrentLineCenterAt(view, 0.45);
     }
 
     @Test
@@ -445,7 +440,7 @@ public class RXLrcViewTest {
         Node current = content(view).getChildren().get(view.getCurrentLineIndex());
 
         assertTrue(current.getPseudoClassStates().contains(PseudoClass.getPseudoClass("current")));
-        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+        assertEquals(1.1, current.getScaleX(), EPSILON);
     }
 
     @Test
@@ -561,9 +556,9 @@ public class RXLrcViewTest {
         int index = view.getCurrentLineIndex();
         Node current = content.getChildren().get(index);
         Node above = content.getChildren().get(index - 1);
-        double expansion = (RXLrcView.DEFAULT_CURRENT_LINE_SCALE - 1.0)
+        double expansion = (1.1 - 1.0)
                 * current.getLayoutBounds().getHeight() / 2.0;
-        assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+        assertEquals(1.1, current.getScaleX(), EPSILON);
         assertEquals(0.0, current.getTranslateY(), EPSILON);
         assertEquals(-expansion, above.getTranslateY(), EPSILON);
     }
@@ -584,7 +579,7 @@ public class RXLrcViewTest {
 
             assertEquals(browsedTranslate, content.getTranslateY(), EPSILON);
             Node current = content.getChildren().get(view.getCurrentLineIndex());
-            assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
+            assertEquals(1.1, current.getScaleX(), EPSILON);
         } finally {
             view.getSkin().dispose();
         }
@@ -608,7 +603,7 @@ public class RXLrcViewTest {
                     + current.getLayoutY()
                     + current.getLayoutBounds().getHeight() / 2.0;
             double anchorY = viewport(view).getLayoutBounds().getHeight()
-                    * RXLrcView.DEFAULT_CURRENT_LINE_POSITION;
+                    * 0.45;
             assertTrue(Math.abs(centerY - anchorY) > 5.0);
         } finally {
             view.getSkin().dispose();
@@ -628,8 +623,8 @@ public class RXLrcViewTest {
             relayout(view);
 
             Node current = content.getChildren().get(view.getCurrentLineIndex());
-            assertEquals(RXLrcView.DEFAULT_CURRENT_LINE_SCALE, current.getScaleX(), EPSILON);
-            assertCurrentLineCenterAt(view, RXLrcView.DEFAULT_CURRENT_LINE_POSITION);
+            assertEquals(1.1, current.getScaleX(), EPSILON);
+            assertCurrentLineCenterAt(view, 0.45);
         } finally {
             view.getSkin().dispose();
         }

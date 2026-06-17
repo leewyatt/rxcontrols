@@ -96,50 +96,50 @@ public class RXSkeleton extends Control {
     /**
      * Default corner radius for {@link Variant#ROUNDED_RECTANGLE}, in pixels.
      */
-    public static final double DEFAULT_CORNER_RADIUS = 4.0;
+    private static final double DEFAULT_CORNER_RADIUS = 4.0;
 
     /**
      * Default cycle duration for one full shimmer sweep across the placeholder.
      */
-    public static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1500.0);
+    private static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1500.0);
 
     /**
      * Default shimmer band width, in pixels.
      */
-    public static final double DEFAULT_SHIMMER_WIDTH = 56.0;
+    private static final double DEFAULT_SHIMMER_WIDTH = 56.0;
 
     /**
      * Default number of lines for {@link Variant#TEXT}.
      */
-    public static final int DEFAULT_LINE_COUNT = 1;
+    private static final int DEFAULT_LINE_COUNT = 1;
 
     /**
      * Default per-line height for {@link Variant#TEXT}, in pixels.
      */
-    public static final double DEFAULT_LINE_HEIGHT = 14.0;
+    private static final double DEFAULT_LINE_HEIGHT = 14.0;
 
     /**
      * Default spacing between lines for {@link Variant#TEXT}, in pixels.
      */
-    public static final double DEFAULT_LINE_SPACING = 8.0;
+    private static final double DEFAULT_LINE_SPACING = 8.0;
 
     /**
      * Default fill percent for the last line of {@link Variant#TEXT},
      * expressed as {@code [0, 100]}. The classic value of {@code 70} mimics
      * the way real paragraphs rarely fill the last line edge-to-edge.
      */
-    public static final double DEFAULT_LAST_LINE_FILL_PERCENT = 70.0;
+    private static final double DEFAULT_LAST_LINE_FILL_PERCENT = 70.0;
 
     /**
      * Default base color painted under the shimmer band.
      */
-    public static final Paint DEFAULT_BASE_COLOR = Color.web("#e0e0e0");
+    private static final Paint DEFAULT_BASE_COLOR = Color.web("#e0e0e0");
 
     /**
      * Default shimmer band fill. It is a standard left-to-right shimmer
      * gradient with transparent edges and a translucent white highlight center.
      */
-    public static final Paint DEFAULT_SHIMMER_FILL =
+    private static final Paint DEFAULT_SHIMMER_FILL =
             createShimmerGradient(Color.web("#ffffff", 0.6));
 
     /**

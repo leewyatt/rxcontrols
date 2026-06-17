@@ -48,17 +48,17 @@ public class RXLineLabel extends RXAnimatedLabel {
     /**
      * Default line animation.
      */
-    public static final LineAnimation DEFAULT_LINE_ANIMATION = LineAnimation.UNDERLINE_CENTER_OUT;
+    private static final LineAnimation DEFAULT_LINE_ANIMATION = LineAnimation.UNDERLINE_CENTER_OUT;
 
     /**
      * Default line thickness in pixels.
      */
-    public static final double DEFAULT_LINE_THICKNESS = 2.0;
+    private static final double DEFAULT_LINE_THICKNESS = 2.0;
 
     /**
      * Default gap between a resting line and the content bounds, in pixels.
      */
-    public static final double DEFAULT_LINE_GAP = 2.0;
+    private static final double DEFAULT_LINE_GAP = 2.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-line-label";
 

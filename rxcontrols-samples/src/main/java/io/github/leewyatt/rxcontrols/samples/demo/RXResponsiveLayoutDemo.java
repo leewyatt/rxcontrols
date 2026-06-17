@@ -51,7 +51,7 @@ public class RXResponsiveLayoutDemo extends Application {
                 new ComboBox<>(FXCollections.observableArrayList(ProfilePreset.values()));
         profileBox.setValue(ProfilePreset.ANT_DESIGN);
 
-        Slider columnsSlider = new Slider(4.0, 24.0, RXRow.DEFAULT_COLUMNS);
+        Slider columnsSlider = new Slider(4.0, 24.0, row.getColumns());
         columnsSlider.setSnapToTicks(true);
         columnsSlider.setMajorTickUnit(4.0);
         columnsSlider.setMinorTickCount(3);

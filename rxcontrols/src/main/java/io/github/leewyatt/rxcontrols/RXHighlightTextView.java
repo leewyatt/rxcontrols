@@ -48,12 +48,12 @@ public class RXHighlightTextView extends RXTextView {
     /**
      * Default matching rule: literal substring, case-insensitive.
      */
-    public static final MatchRules DEFAULT_MATCH_RULES = MatchRules.LITERAL_IGNORE_CASE;
+    private static final MatchRules DEFAULT_MATCH_RULES = MatchRules.LITERAL_IGNORE_CASE;
 
     /**
      * Default {@link #highlightFillProperty() highlightFill}: the keyword background.
      */
-    public static final Paint DEFAULT_HIGHLIGHT_FILL = Color.web("#ffff00");
+    private static final Paint DEFAULT_HIGHLIGHT_FILL = Color.web("#ffff00");
 
     // ==================== Constructors ====================
 

@@ -13,7 +13,7 @@ public final class FillAnimZigzag implements FillAnimation {
     /**
      * Default stripe count.
      */
-    public static final int DEFAULT_STRIPES = 4;
+    private static final int DEFAULT_STRIPES = 4;
 
     /**
      * Overlap into the next stripe; abutting antialiased stripes would

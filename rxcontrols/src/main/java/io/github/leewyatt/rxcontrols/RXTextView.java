@@ -72,19 +72,19 @@ public class RXTextView extends Control {
     /**
      * Default {@link #textFillProperty() textFill}: the colour of ordinary text.
      */
-    public static final Paint DEFAULT_TEXT_FILL = Color.web("#1b1f2a");
+    private static final Paint DEFAULT_TEXT_FILL = Color.web("#1b1f2a");
 
     /**
      * Default {@link #selectionFillProperty() selectionFill}: the selection background.
      */
-    public static final Paint DEFAULT_SELECTION_FILL = Color.rgb(0, 120, 215, 0.30);
+    private static final Paint DEFAULT_SELECTION_FILL = Color.rgb(0, 120, 215, 0.30);
 
     /**
      * Default {@link #selectedTextFillProperty() selectedTextFill}: equal to
      * {@link #DEFAULT_TEXT_FILL}, so selected glyphs keep the ordinary text colour until a
      * caller overrides it.
      */
-    public static final Paint DEFAULT_SELECTED_TEXT_FILL = DEFAULT_TEXT_FILL;
+    private static final Paint DEFAULT_SELECTED_TEXT_FILL = DEFAULT_TEXT_FILL;
 
     // ==================== Constructors ====================
 

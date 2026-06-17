@@ -89,7 +89,7 @@ public class RXDotPulse extends Control {
     /**
      * Default number of dots.
      */
-    public static final int DEFAULT_DOT_COUNT = 3;
+    private static final int DEFAULT_DOT_COUNT = 3;
 
     /**
      * Minimum permitted {@link #dotCountProperty() dotCount} at render time.
@@ -106,24 +106,24 @@ public class RXDotPulse extends Control {
     /**
      * Default layout size of each dot, in pixels.
      */
-    public static final double DEFAULT_DOT_SIZE = 8.0;
+    private static final double DEFAULT_DOT_SIZE = 8.0;
 
     /**
      * Default horizontal gap between adjacent dots, in pixels.
      */
-    public static final double DEFAULT_DOT_GAP = 6.0;
+    private static final double DEFAULT_DOT_GAP = 6.0;
 
     /**
      * Default cycle duration for one full staggered pass over all dots.
      */
-    public static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1200.0);
+    private static final Duration DEFAULT_CYCLE_DURATION = Duration.millis(1200.0);
 
     /**
      * Default amplitude multiplier. {@code 1.0} yields the visual defaults
      * tuned per {@link AnimationMode}; {@code 0} flattens the animation; values
      * above {@code 1.0} exaggerate the effect.
      */
-    public static final double DEFAULT_AMPLITUDE = 1.0;
+    private static final double DEFAULT_AMPLITUDE = 1.0;
 
     // ==================== Constructors ====================
 

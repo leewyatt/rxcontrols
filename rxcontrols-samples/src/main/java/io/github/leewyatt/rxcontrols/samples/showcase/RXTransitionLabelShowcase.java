@@ -203,7 +203,7 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
         messageLabel.alignmentProperty().bind(alignmentBox.valueProperty());
 
         Slider durationSlider = createSlider(100.0, 1500.0,
-                RXTransitionLabel.DEFAULT_ANIMATION_DURATION.toMillis());
+                messageLabel.getAnimationDuration().toMillis());
         messageLabel.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty()));

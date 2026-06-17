@@ -37,7 +37,7 @@ public class RXTransitionButton extends RXAnimatedButton {
     /**
      * The default style class of this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-transition-button";
+    private static final String DEFAULT_STYLE_CLASS = "rx-transition-button";
 
     // ==================== Constructors ====================
 

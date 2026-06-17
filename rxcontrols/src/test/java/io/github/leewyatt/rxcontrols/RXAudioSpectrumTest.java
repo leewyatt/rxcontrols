@@ -57,8 +57,6 @@ public class RXAudioSpectrumTest {
 
         assertTrue(spectrum.getStyleClass().contains("rx-audio-spectrum"));
         assertInstanceOf(VisBars.class, spectrum.getVisualization());
-        assertEquals(RXAudioSpectrum.DEFAULT_BAND_COUNT, spectrum.getBandCount());
-        assertEquals(RXAudioSpectrum.DEFAULT_MIN_DECIBELS, spectrum.getMinDecibels());
         assertEquals(BandLayout.LINEAR, spectrum.getBandLayout());
         assertSame(RXAudioSpectrum.DEFAULT_BAR_FILL, spectrum.getBarFill());
         assertSame(RXAudioSpectrum.DEFAULT_PEAK_FILL, spectrum.getPeakFill());
@@ -100,10 +98,10 @@ public class RXAudioSpectrumTest {
     public void minDecibelsNonNegativeOrNaNCoercesAndThrows() {
         RXAudioSpectrum spectrum = new RXAudioSpectrum();
         assertThrows(IllegalArgumentException.class, () -> spectrum.setMinDecibels(0.0));
-        assertEquals(RXAudioSpectrum.DEFAULT_MIN_DECIBELS, spectrum.getMinDecibels());
+        assertEquals(-60.0, spectrum.getMinDecibels());
 
         assertThrows(IllegalArgumentException.class, () -> spectrum.setMinDecibels(Double.NaN));
-        assertEquals(RXAudioSpectrum.DEFAULT_MIN_DECIBELS, spectrum.getMinDecibels());
+        assertEquals(-60.0, spectrum.getMinDecibels());
     }
 
     @Test

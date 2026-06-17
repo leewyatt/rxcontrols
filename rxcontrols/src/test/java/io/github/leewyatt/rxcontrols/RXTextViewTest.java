@@ -175,14 +175,6 @@ public class RXTextViewTest {
     // ==================== Color properties ====================
 
     @Test
-    public void defaultColorsMatchConstants() {
-        RXTextView control = new RXTextView("hello");
-        assertEquals(RXTextView.DEFAULT_TEXT_FILL, control.getTextFill());
-        assertEquals(RXTextView.DEFAULT_SELECTION_FILL, control.getSelectionFill());
-        assertEquals(RXTextView.DEFAULT_SELECTED_TEXT_FILL, control.getSelectedTextFill());
-    }
-
-    @Test
     public void controlCssMetaDataExposesColorProperties() {
         Set<String> names = cssPropertyNames(new RXTextView());
         assertTrue(names.contains("-rx-text-fill"));

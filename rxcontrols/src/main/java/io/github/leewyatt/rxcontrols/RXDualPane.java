@@ -61,12 +61,12 @@ public class RXDualPane extends Control {
     /**
      * The default style class of this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-dual-pane";
+    private static final String DEFAULT_STYLE_CLASS = "rx-dual-pane";
 
     /**
      * The default transition duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
 
     private static final PseudoClass SHOWING_SECOND = PseudoClass.getPseudoClass("showing-second");
 

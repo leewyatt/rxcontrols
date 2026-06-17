@@ -64,7 +64,7 @@ public class RXCol extends StackPane {
     /**
      * Default left offset.
      */
-    public static final int DEFAULT_OFFSET = 0;
+    private static final int DEFAULT_OFFSET = 0;
 
     /**
      * Default visual order.
@@ -74,7 +74,7 @@ public class RXCol extends StackPane {
     /**
      * Default hidden state.
      */
-    public static final boolean DEFAULT_HIDDEN = false;
+    private static final boolean DEFAULT_HIDDEN = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-col";
 

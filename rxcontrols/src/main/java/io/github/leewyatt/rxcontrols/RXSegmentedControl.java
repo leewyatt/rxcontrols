@@ -68,27 +68,27 @@ public class RXSegmentedControl<T> extends Control {
     /**
      * Default sliding animation duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     /**
      * Default value of {@code animated}.
      */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
     /**
      * Default value of {@code block}.
      */
-    public static final boolean DEFAULT_BLOCK = false;
+    private static final boolean DEFAULT_BLOCK = false;
     /**
      * Default value of {@code equalSegmentWidth}.
      */
-    public static final boolean DEFAULT_EQUAL_SEGMENT_WIDTH = false;
+    private static final boolean DEFAULT_EQUAL_SEGMENT_WIDTH = false;
     /**
      * Default value of {@code allowEmptySelection}.
      */
-    public static final boolean DEFAULT_ALLOW_EMPTY_SELECTION = false;
+    private static final boolean DEFAULT_ALLOW_EMPTY_SELECTION = false;
     /**
      * Default segment spacing.
      */
-    public static final double DEFAULT_SEGMENT_SPACING = 0.0;
+    private static final double DEFAULT_SEGMENT_SPACING = 0.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-segmented-control";
 

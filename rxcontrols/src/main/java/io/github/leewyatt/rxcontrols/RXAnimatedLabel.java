@@ -38,12 +38,12 @@ public abstract class RXAnimatedLabel extends Label {
     /**
      * Default animation trigger.
      */
-    public static final AnimationTrigger DEFAULT_ANIMATION_TRIGGER = AnimationTrigger.HOVER;
+    private static final AnimationTrigger DEFAULT_ANIMATION_TRIGGER = AnimationTrigger.HOVER;
 
     /**
      * Default animation duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     // ==================== Constructors ====================
 

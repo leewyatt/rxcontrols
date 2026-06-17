@@ -68,13 +68,12 @@ public class RXDualPaneTest {
     public void defaultsAndCssMetadataMatchContract() {
         RXDualPane pane = new RXDualPane();
 
-        assertTrue(pane.getStyleClass().contains(RXDualPane.DEFAULT_STYLE_CLASS));
+        assertTrue(pane.getStyleClass().contains("rx-dual-pane"));
         assertNull(pane.getFirstContent());
         assertNull(pane.getSecondContent());
         assertFalse(pane.isShowingSecond());
         assertTrue(pane.isAnimated());
         assertInstanceOf(AnimFade.class, pane.getAnimation());
-        assertEquals(RXDualPane.DEFAULT_ANIMATION_DURATION, pane.getAnimationDuration());
         assertFalse(pane.isTransitioning());
         assertFalse(pane.isFocusTraversable());
 

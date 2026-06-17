@@ -53,12 +53,12 @@ public class RXTransitionLabel extends Control {
     /**
      * The default style class of this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-transition-label";
+    private static final String DEFAULT_STYLE_CLASS = "rx-transition-label";
 
     /**
      * The default transition duration.
      */
-    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
 
     // ==================== Constructors ====================
 

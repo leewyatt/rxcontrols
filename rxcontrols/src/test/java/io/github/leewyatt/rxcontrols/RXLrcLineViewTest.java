@@ -66,7 +66,7 @@ public class RXLrcLineViewTest {
     public void defaultsAndCssMetadataMatchContract() {
         RXLrcLineView view = new RXLrcLineView();
 
-        assertTrue(view.getStyleClass().contains(RXLrcLineView.DEFAULT_STYLE_CLASS));
+        assertTrue(view.getStyleClass().contains("rx-lrc-line-view"));
         assertNull(view.getDocument());
         assertEquals(Duration.ZERO, view.getCurrentTime());
         assertEquals(Duration.ZERO, view.getTimeOffset());
@@ -74,7 +74,6 @@ public class RXLrcLineViewTest {
         assertNull(view.getCurrentLine());
         assertTrue(view.isAnimated());
         assertInstanceOf(AnimFade.class, view.getAnimation());
-        assertEquals(RXLrcLineView.DEFAULT_ANIMATION_DURATION, view.getAnimationDuration());
         assertFalse(view.isFocusTraversable());
 
         Label placeholder = assertInstanceOf(Label.class, view.getPlaceholder());

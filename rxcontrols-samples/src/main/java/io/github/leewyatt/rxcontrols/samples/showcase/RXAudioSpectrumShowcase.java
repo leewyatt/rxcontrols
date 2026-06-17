@@ -332,7 +332,7 @@ public class RXAudioSpectrumShowcase extends RXShowcaseApplication {
         spectrum.barGapRatioProperty().bind(gapSlider.valueProperty());
         Label gapValue = createValueLabel(gapSlider, "%.2f");
 
-        Slider minDbSlider = createSlider(-90.0, -10.0, RXAudioSpectrum.DEFAULT_MIN_DECIBELS);
+        Slider minDbSlider = createSlider(-90.0, -10.0, spectrum.getMinDecibels());
         minDbSlider.valueProperty().addListener((obs, oldV, newV) ->
                 spectrum.setMinDecibels(newV.doubleValue()));
         Label minDbValue = createValueLabel(minDbSlider, "%.0f dB");

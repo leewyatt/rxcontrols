@@ -148,7 +148,7 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
         });
 
         Slider durationSlider = createSlider(100.0, 1500.0,
-                RXTransitionPane.DEFAULT_ANIMATION_DURATION.toMillis());
+                transitionPane.getAnimationDuration().toMillis());
         transitionPane.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty()));

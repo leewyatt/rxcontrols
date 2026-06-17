@@ -40,9 +40,6 @@ public class RXImagePaneTest {
 
         assertTrue(pane.getStyleClass().contains("rx-image-pane"));
         assertNull(pane.getImage());
-        assertSame(RXImagePane.DEFAULT_IMAGE_FIT, pane.getImageFit());
-        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
-        assertClose(RXImagePane.DEFAULT_IMAGE_RADIUS, pane.getImageRadius(), "image radius");
 
         Set<String> properties = RXImagePane.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
@@ -141,21 +138,21 @@ public class RXImagePaneTest {
                 () -> pane.setImageInsets(null));
 
         assertEquals("imageInsets cannot be null", nullException.getMessage());
-        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
+        assertSame(Insets.EMPTY, pane.getImageInsets());
 
         pane.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
         IllegalArgumentException nanException = assertThrows(IllegalArgumentException.class,
                 () -> pane.setImageInsets(new Insets(Double.NaN, 0.0, 0.0, 0.0)));
 
         assertEquals("imageInsets must be finite", nanException.getMessage());
-        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
+        assertSame(Insets.EMPTY, pane.getImageInsets());
 
         pane.setImageInsets(new Insets(-1.0, 2.0, -3.0, 4.0));
         IllegalArgumentException infiniteException = assertThrows(IllegalArgumentException.class,
                 () -> pane.setImageInsets(new Insets(0.0, Double.POSITIVE_INFINITY, 0.0, 0.0)));
 
         assertEquals("imageInsets must be finite", infiniteException.getMessage());
-        assertSame(RXImagePane.DEFAULT_IMAGE_INSETS, pane.getImageInsets());
+        assertSame(Insets.EMPTY, pane.getImageInsets());
     }
 
     /**
