@@ -817,7 +817,7 @@
 
 .rx-ripple-pane {
     -rx-ripple-fill: black;
-    -rx-ripple-opacity: 0.12;
+    -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-hover-overlay-enabled: true;
     -rx-ripple-centered: false;
@@ -831,7 +831,7 @@
 
 .rx-button {
     -rx-ripple-fill: black;
-    -rx-ripple-opacity: 0.12;
+    -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-hover-overlay-enabled: true;
     -rx-ripple-centered: false;
@@ -851,7 +851,7 @@
 
 .rx-toggle-button {
     -rx-ripple-fill: black;
-    -rx-ripple-opacity: 0.12;
+    -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-hover-overlay-enabled: true;
     -rx-ripple-centered: false;
@@ -1017,7 +1017,7 @@
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -rx-ripple-fill: black;
-    -rx-ripple-opacity: 0.12;
+    -rx-ripple-opacity: 0.18;
 }
 
 .rx-segmented-control > .segment:selected {

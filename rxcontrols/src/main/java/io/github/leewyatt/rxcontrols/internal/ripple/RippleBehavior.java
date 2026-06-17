@@ -29,10 +29,20 @@ public final class RippleBehavior {
     // keeps the overlap smooth; it stays small so runaway input cannot
     // accumulate ripple nodes and timelines without bound. Not a Material rule.
     private static final int MAX_RIPPLE_COUNT = 5;
-    private static final Duration ENTER_DURATION = Duration.millis(225.0);
-    private static final Duration EXIT_DURATION = Duration.millis(150.0);
+    // Press ripple timing favours a desktop M2 / JFoenix feel: a slow, clearly
+    // visible grow rather than M3's near-instant subtle state layer.
+    private static final Duration ENTER_DURATION = Duration.millis(500.0);
+    private static final Duration EXIT_DURATION = Duration.millis(375.0);
+    // Opacity reaches its peak well before the grow finishes and then holds, so
+    // the still-small circle is already visible while it expands. Ramping
+    // opacity together with scale (as one fast EASE_OUT) hides the small phase
+    // and reads as "started big".
+    private static final Duration OPACITY_RAMP_DURATION = Duration.millis(120.0);
     private static final double MINIMUM_VISIBLE_MILLIS = 150.0;
     private static final double NANOS_PER_MILLI = 1_000_000.0;
+    // Decelerating grow (Material standard easing): the gentle start keeps the
+    // small circle on screen long enough to read, unlike a front-loaded EASE_OUT.
+    private static final Interpolator GROW_INTERPOLATOR = Interpolator.SPLINE(0.4, 0.0, 0.2, 1.0);
 
     private final RippleLayer layer;
     private final Supplier<Paint> fillSupplier;
@@ -105,10 +115,12 @@ public final class RippleBehavior {
                         new KeyValue(circle.scaleXProperty(), 0.0),
                         new KeyValue(circle.scaleYProperty(), 0.0),
                         new KeyValue(circle.opacityProperty(), 0.0)),
+                new KeyFrame(OPACITY_RAMP_DURATION,
+                        new KeyValue(circle.opacityProperty(), targetOpacity, Interpolator.EASE_OUT)),
                 new KeyFrame(ENTER_DURATION,
-                        new KeyValue(circle.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
-                        new KeyValue(circle.scaleYProperty(), 1.0, Interpolator.EASE_OUT),
-                        new KeyValue(circle.opacityProperty(), targetOpacity, Interpolator.EASE_OUT)));
+                        new KeyValue(circle.scaleXProperty(), 1.0, GROW_INTERPOLATOR),
+                        new KeyValue(circle.scaleYProperty(), 1.0, GROW_INTERPOLATOR),
+                        new KeyValue(circle.opacityProperty(), targetOpacity)));
         handle.enterTimeline.play();
     }
 

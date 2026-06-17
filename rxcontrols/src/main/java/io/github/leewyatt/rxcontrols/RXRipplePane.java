@@ -80,7 +80,7 @@ public class RXRipplePane extends Region {
     /**
      * Default peak ripple opacity.
      */
-    public static final double DEFAULT_RIPPLE_OPACITY = 0.12;
+    public static final double DEFAULT_RIPPLE_OPACITY = 0.18;
 
     /**
      * Default ripple enabled state.
