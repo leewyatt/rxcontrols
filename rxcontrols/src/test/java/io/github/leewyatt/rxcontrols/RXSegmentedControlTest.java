@@ -702,6 +702,32 @@ public class RXSegmentedControlTest {
         assertTrue(new RXSegmentedControl<>().isFocusTraversable());
     }
 
+    @Test
+    public void positionalPseudoClassesTrackFirstLastOnly() throws Exception {
+        runOnFx(() -> {
+            PseudoClass first = PseudoClass.getPseudoClass("first");
+            PseudoClass last = PseudoClass.getPseudoClass("last");
+            PseudoClass only = PseudoClass.getPseudoClass("only");
+
+            RXSegmentedControl<String> control = withSkin(daily());
+            int count = control.getItems().size();
+            for (int i = 0; i < count; i++) {
+                Set<PseudoClass> states = cell(control, i).getPseudoClassStates();
+                assertEquals(i == 0, states.contains(first), "first @ " + i);
+                assertEquals(i == count - 1, states.contains(last), "last @ " + i);
+                assertFalse(states.contains(only), "only must be unset with many segments @ " + i);
+            }
+
+            // A lone segment is :only, never :first / :last.
+            RXSegmentedControl<String> single = withSkin(
+                    new RXSegmentedControl<>(RXSegmentedItem.of("a", "A")));
+            Set<PseudoClass> lone = cell(single, 0).getPseudoClassStates();
+            assertTrue(lone.contains(only));
+            assertFalse(lone.contains(first));
+            assertFalse(lone.contains(last));
+        });
+    }
+
     // ==================== Dynamic items & per-item (Phase 4) ====================
 
     @Test

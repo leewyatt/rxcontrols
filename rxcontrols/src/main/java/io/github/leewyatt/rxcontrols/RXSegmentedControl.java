@@ -65,17 +65,29 @@ public class RXSegmentedControl<T> extends Control {
 
     // ==================== Constants ====================
 
-    /** Default sliding animation duration. */
+    /**
+     * Default sliding animation duration.
+     */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
-    /** Default value of {@code animated}. */
+    /**
+     * Default value of {@code animated}.
+     */
     public static final boolean DEFAULT_ANIMATED = true;
-    /** Default value of {@code block}. */
+    /**
+     * Default value of {@code block}.
+     */
     public static final boolean DEFAULT_BLOCK = false;
-    /** Default value of {@code equalSegmentWidth}. */
+    /**
+     * Default value of {@code equalSegmentWidth}.
+     */
     public static final boolean DEFAULT_EQUAL_SEGMENT_WIDTH = false;
-    /** Default value of {@code allowEmptySelection}. */
+    /**
+     * Default value of {@code allowEmptySelection}.
+     */
     public static final boolean DEFAULT_ALLOW_EMPTY_SELECTION = false;
-    /** Default segment spacing. */
+    /**
+     * Default segment spacing.
+     */
     public static final double DEFAULT_SEGMENT_SPACING = 0.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-segmented-control";
@@ -133,13 +145,17 @@ public class RXSegmentedControl<T> extends Control {
         this.items.setAll(items);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXSegmentedControlSkin<>(this);
@@ -712,7 +728,9 @@ public class RXSegmentedControl<T> extends Control {
         return StyleableProperties.STYLEABLES;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();

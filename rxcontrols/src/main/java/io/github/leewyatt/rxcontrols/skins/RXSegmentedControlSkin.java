@@ -52,6 +52,9 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass BLOCK = PseudoClass.getPseudoClass("block");
+    private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
+    private static final PseudoClass ONLY = PseudoClass.getPseudoClass("only");
 
     private static final double GEOMETRY_EPSILON = 0.5;
 
@@ -133,8 +136,20 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         // runs before the control corrects the selection). Plain selection
         // changes leave it set, so those still animate.
         indicatorPositioned = false;
+        updateSegmentPositions();
         updateSelectedPseudoClass();
         getSkinnable().requestLayout();
+    }
+
+    private void updateSegmentPositions() {
+        int count = cells.size();
+        boolean only = count == 1;
+        for (int i = 0; i < count; i++) {
+            SegmentCell cell = cells.get(i);
+            cell.pseudoClassStateChanged(ONLY, only);
+            cell.pseudoClassStateChanged(FIRST, !only && i == 0);
+            cell.pseudoClassStateChanged(LAST, !only && i == count - 1);
+        }
     }
 
     private void updateSelectedPseudoClass() {
