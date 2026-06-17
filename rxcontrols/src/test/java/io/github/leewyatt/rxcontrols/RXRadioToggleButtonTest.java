@@ -61,7 +61,7 @@ public class RXRadioToggleButtonTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, toggle.getRippleFill());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, toggle.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, toggle.isRippleEnabled());
-        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, toggle.isHoverOverlayEnabled());
+        assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, toggle.isStateOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, toggle.isRippleCentered());
         assertNull(toggle.getRippleCornerRadius());
     }

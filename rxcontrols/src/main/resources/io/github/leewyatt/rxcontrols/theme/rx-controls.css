@@ -819,7 +819,7 @@
     -rx-ripple-fill: black;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
-    -rx-ripple-hover-overlay-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
     -rx-ripple-centered: false;
 }
 
@@ -833,14 +833,14 @@
     -rx-ripple-fill: black;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
-    -rx-ripple-hover-overlay-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
     -rx-ripple-centered: false;
 }
 
 .rx-button.rx-fill-button,
 .rx-button.rx-line-button,
 .rx-button.rx-transition-button {
-    -rx-ripple-hover-overlay-enabled: false;
+    -rx-ripple-state-overlay-enabled: false;
 }
 
 /*******************************************************************************
@@ -853,7 +853,7 @@
     -rx-ripple-fill: black;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
-    -rx-ripple-hover-overlay-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
     -rx-ripple-centered: false;
 }
 
@@ -881,7 +881,7 @@
 .rx-sidebar .item {
     -fx-background-color: transparent;
     -rx-ripple-enabled: false;
-    -rx-ripple-hover-overlay-enabled: false;
+    -rx-ripple-state-overlay-enabled: false;
     -fx-background-radius: 6;
     -fx-alignment: center-left;
     -fx-content-display: left;
@@ -1021,7 +1021,7 @@
 }
 
 .rx-segmented-control > .segment:selected {
-    -rx-ripple-hover-overlay-enabled: false;
+    -rx-ripple-state-overlay-enabled: false;
 }
 
 .rx-segmented-control > .segment .label {

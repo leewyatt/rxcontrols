@@ -37,7 +37,7 @@ public class RXButtonSkin extends ButtonSkin {
     public RXButtonSkin(RXButton button) {
         super(button);
         ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
-                button.hoverOverlayEnabledProperty(), button.rippleFillProperty(),
+                button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
                 button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
 
         disposer.registerEventFilter(button, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);

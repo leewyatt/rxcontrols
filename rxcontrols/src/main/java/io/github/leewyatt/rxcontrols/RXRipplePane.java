@@ -59,9 +59,10 @@ import java.util.List;
  * mutating the geometry of an installed shape instance only updates the pane
  * itself.</p>
  *
- * <p>Beyond the press ripple, a low-opacity hover state overlay tints the pane
- * while the pointer is inside, using {@link #rippleFillProperty() rippleFill}
- * and gated by {@link #hoverOverlayEnabledProperty() hoverOverlayEnabled}.
+ * <p>Beyond the press ripple, a low-opacity state overlay tints the pane
+ * while the pointer is inside — a light hover tint that deepens while pressed —
+ * using {@link #rippleFillProperty() rippleFill}
+ * and gated by {@link #stateOverlayEnabledProperty() stateOverlayEnabled}.
  * {@link #rippleInsetsProperty() rippleInsets} insets (or, when negative,
  * bleeds) the ripple region, and {@link #rippleCornerRadiusProperty()
  * rippleCornerRadius} overrides the mirrored clip corners with explicit
@@ -88,9 +89,9 @@ public class RXRipplePane extends Region {
     public static final boolean DEFAULT_RIPPLE_ENABLED = true;
 
     /**
-     * Default hover overlay enabled state.
+     * Default state-overlay enabled state.
      */
-    public static final boolean DEFAULT_HOVER_OVERLAY_ENABLED = true;
+    public static final boolean DEFAULT_STATE_OVERLAY_ENABLED = true;
 
     /**
      * Default pointer-origin mode.
@@ -123,7 +124,7 @@ public class RXRipplePane extends Region {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         ripple = new RippleDecoration(this, rippleEnabledProperty(),
-                hoverOverlayEnabledProperty(), rippleFillProperty(),
+                stateOverlayEnabledProperty(), rippleFillProperty(),
                 this::getRippleOpacity, rippleInsetsProperty(),
                 rippleCornerRadiusProperty());
 
@@ -353,13 +354,13 @@ public class RXRipplePane extends Region {
         rippleEnabled.set(value);
     }
 
-    // ==================== Hover Overlay Enabled ====================
+    // ==================== State Overlay Enabled ====================
 
-    private final BooleanProperty hoverOverlayEnabled =
-            new StyleableBooleanProperty(DEFAULT_HOVER_OVERLAY_ENABLED) {
+    private final BooleanProperty stateOverlayEnabled =
+            new StyleableBooleanProperty(DEFAULT_STATE_OVERLAY_ENABLED) {
                 @Override
                 public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-                    return StyleableProperties.RIPPLE_HOVER_OVERLAY_ENABLED;
+                    return StyleableProperties.RIPPLE_STATE_OVERLAY_ENABLED;
                 }
 
                 @Override
@@ -369,38 +370,39 @@ public class RXRipplePane extends Region {
 
                 @Override
                 public String getName() {
-                    return "hoverOverlayEnabled";
+                    return "stateOverlayEnabled";
                 }
             };
 
     /**
-     * Whether the low-opacity hover state overlay may show while the pointer is
-     * inside. The press ripple is unaffected (it stays gated only by
+     * Whether the low-opacity state overlay may show while the pointer is
+     * inside: a light hover tint that deepens while pressed. The press ripple
+     * is unaffected (it stays gated only by
      * {@link #rippleEnabledProperty() rippleEnabled}). Initial value is
-     * {@link #DEFAULT_HOVER_OVERLAY_ENABLED}.
+     * {@link #DEFAULT_STATE_OVERLAY_ENABLED}.
      *
-     * @return the hover-overlay-enabled property
+     * @return the state-overlay-enabled property
      */
-    public final BooleanProperty hoverOverlayEnabledProperty() {
-        return hoverOverlayEnabled;
+    public final BooleanProperty stateOverlayEnabledProperty() {
+        return stateOverlayEnabled;
     }
 
     /**
-     * Returns whether the hover state overlay may show.
+     * Returns whether the state overlay may show.
      *
-     * @return whether the hover state overlay may show
+     * @return whether the state overlay may show
      */
-    public final boolean isHoverOverlayEnabled() {
-        return hoverOverlayEnabled.get();
+    public final boolean isStateOverlayEnabled() {
+        return stateOverlayEnabled.get();
     }
 
     /**
-     * Sets whether the hover state overlay may show.
+     * Sets whether the state overlay may show.
      *
-     * @param value {@code true} to allow the hover overlay
+     * @param value {@code true} to allow the state overlay
      */
-    public final void setHoverOverlayEnabled(boolean value) {
-        hoverOverlayEnabled.set(value);
+    public final void setStateOverlayEnabled(boolean value) {
+        stateOverlayEnabled.set(value);
     }
 
     // ==================== Ripple Centered ====================
@@ -478,7 +480,7 @@ public class RXRipplePane extends Region {
      * bleed outside as a pure visual effect that never affects the pane's size.
      * The default {@code null} follows the inner edge of the pane's real border
      * automatically. Only the ripple clip is inset; the layer keeps full bounds,
-     * so press location and radius are unaffected and the hover overlay shares
+     * so press location and radius are unaffected and the state overlay shares
      * the same inset region. Shape-based clips ignore these insets.
      *
      * @return the ripple insets property
@@ -712,18 +714,18 @@ public class RXRipplePane extends Region {
                     }
                 };
 
-        private static final CssMetaData<RXRipplePane, Boolean> RIPPLE_HOVER_OVERLAY_ENABLED =
-                new CssMetaData<>("-rx-ripple-hover-overlay-enabled",
-                        BooleanConverter.getInstance(), DEFAULT_HOVER_OVERLAY_ENABLED) {
+        private static final CssMetaData<RXRipplePane, Boolean> RIPPLE_STATE_OVERLAY_ENABLED =
+                new CssMetaData<>("-rx-ripple-state-overlay-enabled",
+                        BooleanConverter.getInstance(), DEFAULT_STATE_OVERLAY_ENABLED) {
                     @Override
                     public boolean isSettable(RXRipplePane pane) {
-                        return !pane.hoverOverlayEnabled.isBound();
+                        return !pane.stateOverlayEnabled.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Boolean> getStyleableProperty(RXRipplePane pane) {
-                        return (StyleableProperty<Boolean>) pane.hoverOverlayEnabledProperty();
+                        return (StyleableProperty<Boolean>) pane.stateOverlayEnabledProperty();
                     }
                 };
 
@@ -779,7 +781,7 @@ public class RXRipplePane extends Region {
             styleables.add(RIPPLE_FILL);
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
-            styleables.add(RIPPLE_HOVER_OVERLAY_ENABLED);
+            styleables.add(RIPPLE_STATE_OVERLAY_ENABLED);
             styleables.add(RIPPLE_CENTERED);
             styleables.add(RIPPLE_INSETS);
             styleables.add(RIPPLE_CORNER_RADIUS);

@@ -73,7 +73,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         super(button);
 
         ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
-                button.hoverOverlayEnabledProperty(), button.rippleFillProperty(),
+                button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
                 button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
         getChildren().addAll(ripple.getLayer(), pages.getContentPane());
 

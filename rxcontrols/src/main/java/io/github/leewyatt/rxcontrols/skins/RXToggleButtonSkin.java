@@ -37,7 +37,7 @@ public class RXToggleButtonSkin extends ToggleButtonSkin {
     public RXToggleButtonSkin(RXToggleButton toggle) {
         super(toggle);
         ripple = new RippleDecoration(toggle, toggle.rippleEnabledProperty(),
-                toggle.hoverOverlayEnabledProperty(), toggle.rippleFillProperty(),
+                toggle.stateOverlayEnabledProperty(), toggle.rippleFillProperty(),
                 toggle::getRippleOpacity, null, toggle.rippleCornerRadiusProperty());
 
         disposer.registerEventFilter(toggle, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);

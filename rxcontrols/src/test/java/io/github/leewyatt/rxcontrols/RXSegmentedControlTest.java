@@ -802,15 +802,15 @@ public class RXSegmentedControlTest {
                 RXRipplePane cell = (RXRipplePane) cell(control, i);
                 // CSS suppresses the selected segment's overlay because the
                 // sliding pill is its indicator; other segments keep it.
-                assertEquals(i != 2, cell.isHoverOverlayEnabled(), "hover overlay @ " + i);
+                assertEquals(i != 2, cell.isStateOverlayEnabled(), "hover overlay @ " + i);
                 // The press ripple stays enabled on every segment.
                 assertTrue(cell.isRippleEnabled(), "ripple still enabled @ " + i);
             }
 
             control.selectIndex(0);
             relayout(control, 420.0, 44.0);
-            assertFalse(((RXRipplePane) cell(control, 0)).isHoverOverlayEnabled());
-            assertTrue(((RXRipplePane) cell(control, 2)).isHoverOverlayEnabled(),
+            assertFalse(((RXRipplePane) cell(control, 0)).isStateOverlayEnabled());
+            assertTrue(((RXRipplePane) cell(control, 2)).isStateOverlayEnabled(),
                     "previously-selected segment regains its hover overlay");
         });
     }

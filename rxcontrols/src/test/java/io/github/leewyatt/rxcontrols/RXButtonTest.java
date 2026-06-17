@@ -67,7 +67,7 @@ public class RXButtonTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, button.getRippleFill());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, button.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, button.isRippleEnabled());
-        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, button.isHoverOverlayEnabled());
+        assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, button.isStateOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, button.isRippleCentered());
         assertNull(button.getRippleCornerRadius());
 
@@ -77,7 +77,7 @@ public class RXButtonTest {
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
-        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
+        assertTrue(properties.contains("-rx-ripple-state-overlay-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
@@ -199,7 +199,7 @@ public class RXButtonTest {
     public void hoverOverlayDisabledDoesNotDisablePressRipple() throws Exception {
         runOnFx(() -> {
             RXButton button = withSkin(new RXButton("OK"));
-            button.setHoverOverlayEnabled(false);
+            button.setStateOverlayEnabled(false);
             layout(button, 100.0, 40.0);
             RippleLayer layer = rippleLayer(button);
 
@@ -383,10 +383,10 @@ public class RXButtonTest {
             button.setRippleEnabled(false);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
 
-            button.setHoverOverlayEnabled(false);
+            button.setStateOverlayEnabled(false);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
 
-            button.setHoverOverlayEnabled(true);
+            button.setStateOverlayEnabled(true);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
             button.setDisable(true);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);

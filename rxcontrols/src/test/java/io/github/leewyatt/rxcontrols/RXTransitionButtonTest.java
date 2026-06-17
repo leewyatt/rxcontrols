@@ -92,7 +92,7 @@ public class RXTransitionButtonTest {
             if ("-rx-animation-duration".equals(metaData.getProperty())) {
                 durationStyleable = true;
             }
-            if ("-rx-ripple-hover-overlay-enabled".equals(metaData.getProperty())) {
+            if ("-rx-ripple-state-overlay-enabled".equals(metaData.getProperty())) {
                 hoverOverlayStyleable = true;
             }
             assertFalse("-rx-translation-dir".equals(metaData.getProperty()));
@@ -110,12 +110,12 @@ public class RXTransitionButtonTest {
 
         root.applyCss();
 
-        assertFalse(button.isHoverOverlayEnabled());
+        assertFalse(button.isStateOverlayEnabled());
 
-        button.setStyle("-rx-ripple-hover-overlay-enabled: true;");
+        button.setStyle("-rx-ripple-state-overlay-enabled: true;");
         root.applyCss();
 
-        assertTrue(button.isHoverOverlayEnabled());
+        assertTrue(button.isStateOverlayEnabled());
     }
 
     @Test

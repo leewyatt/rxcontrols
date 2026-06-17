@@ -31,10 +31,16 @@ public final class RippleLayer extends Region {
     private static final String OVERLAY_STYLE_CLASS = "state-overlay";
 
     /**
-     * Peak opacity of the hover state overlay: a fixed Material-style level,
-     * independent of the ripple opacity and not exposed for styling.
+     * Peak opacity of the state overlay while hovered: a fixed Material-style
+     * level, independent of the ripple opacity and not exposed for styling.
      */
     private static final double HOVER_OVERLAY_OPACITY = 0.08;
+
+    /**
+     * Peak opacity of the state overlay while pressed: deeper than the hover
+     * level for a clear pressed affordance, layered under the ripple circle.
+     */
+    private static final double PRESSED_OVERLAY_OPACITY = 0.16;
 
     private static final Duration OVERLAY_FADE_DURATION = Duration.millis(150.0);
 
@@ -160,19 +166,22 @@ public final class RippleLayer extends Region {
     }
 
     /**
-     * Shows or hides the hover state overlay, fading toward its target opacity.
-     * The overlay node is attached only while shown and below the ripple
-     * circles, so an idle layer keeps only its ripple children.
+     * Drives the state overlay toward the opacity for the current interaction
+     * state: deeper while pressed, lighter while merely hovered, hidden
+     * otherwise. The overlay node is attached only while visible and below the
+     * ripple circles, so an idle layer keeps only its ripple children.
      *
-     * @param active whether the overlay should be visible
+     * @param pressed whether the host is pressed (deepest tint)
+     * @param hovered whether the pointer is inside (light tint)
      */
-    public void setOverlayState(boolean active) {
-        double target = active ? HOVER_OVERLAY_OPACITY : 0.0;
+    public void setOverlayState(boolean pressed, boolean hovered) {
+        double target = pressed ? PRESSED_OVERLAY_OPACITY
+                : hovered ? HOVER_OVERLAY_OPACITY : 0.0;
         if (target == overlayTarget) {
             return;
         }
         overlayTarget = target;
-        if (active && !getChildren().contains(stateOverlay)) {
+        if (target > 0.0 && !getChildren().contains(stateOverlay)) {
             // The overlay keeps the bounds set by the last updateClipFor (which
             // resizes it even while detached), so it stays expanded for any
             // negative-inset bleed; resizing here would reset that to the plain

@@ -70,7 +70,7 @@ public class RXToggleButtonTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, toggle.getRippleFill());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, toggle.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, toggle.isRippleEnabled());
-        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, toggle.isHoverOverlayEnabled());
+        assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, toggle.isStateOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, toggle.isRippleCentered());
         assertNull(toggle.getRippleCornerRadius());
         // Standard toggle (not radio): keeps the inherited ToggleButton role.
@@ -82,7 +82,7 @@ public class RXToggleButtonTest {
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
-        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
+        assertTrue(properties.contains("-rx-ripple-state-overlay-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
@@ -259,7 +259,7 @@ public class RXToggleButtonTest {
     public void hoverOverlayDisabledDoesNotDisablePressRipple() throws Exception {
         runOnFx(() -> {
             RXToggleButton toggle = withSkin(new RXToggleButton("OK"));
-            toggle.setHoverOverlayEnabled(false);
+            toggle.setStateOverlayEnabled(false);
             layout(toggle, 100.0, 40.0);
             RippleLayer layer = rippleLayer(toggle);
 
@@ -412,10 +412,10 @@ public class RXToggleButtonTest {
             toggle.setRippleEnabled(false);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
 
-            toggle.setHoverOverlayEnabled(false);
+            toggle.setStateOverlayEnabled(false);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
 
-            toggle.setHoverOverlayEnabled(true);
+            toggle.setStateOverlayEnabled(true);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
             toggle.setDisable(true);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);

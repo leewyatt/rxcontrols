@@ -86,7 +86,7 @@ public class RXLineButtonTest {
         assertTrue(properties.contains("-rx-animation-trigger"));
         assertTrue(properties.contains("-rx-animation-duration"));
         assertTrue(properties.contains("-rx-ripple-fill"));
-        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
+        assertTrue(properties.contains("-rx-ripple-state-overlay-enabled"));
     }
 
     /**
@@ -104,12 +104,12 @@ public class RXLineButtonTest {
 
             root.applyCss();
 
-            assertFalse(button.isHoverOverlayEnabled());
+            assertFalse(button.isStateOverlayEnabled());
 
-            button.setStyle("-rx-ripple-hover-overlay-enabled: true;");
+            button.setStyle("-rx-ripple-state-overlay-enabled: true;");
             root.applyCss();
 
-            assertTrue(button.isHoverOverlayEnabled());
+            assertTrue(button.isStateOverlayEnabled());
         });
     }
 

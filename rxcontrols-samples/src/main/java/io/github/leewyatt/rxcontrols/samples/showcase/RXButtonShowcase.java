@@ -95,8 +95,8 @@ public class RXButtonShowcase extends RXShowcaseApplication {
         button.rippleEnabledProperty().bind(enabledBox.selectedProperty());
 
         CheckBox hoverBox = new CheckBox();
-        hoverBox.setSelected(button.isHoverOverlayEnabled());
-        button.hoverOverlayEnabledProperty().bind(hoverBox.selectedProperty());
+        hoverBox.setSelected(button.isStateOverlayEnabled());
+        button.stateOverlayEnabledProperty().bind(hoverBox.selectedProperty());
 
         CheckBox centeredBox = new CheckBox();
         centeredBox.setSelected(button.isRippleCentered());
@@ -106,7 +106,7 @@ public class RXButtonShowcase extends RXShowcaseApplication {
                 row("Fill", fillPicker),
                 row("Opacity", opacitySlider, createValueLabel(opacitySlider, "%.2f")),
                 row("Enabled", enabledBox),
-                row("Hover overlay", hoverBox),
+                row("State overlay", hoverBox),
                 row("Centered", centeredBox));
     }
 

@@ -45,7 +45,7 @@ import java.util.List;
  * geometry clip) matches {@link RXRipplePane}; the ripple properties share
  * names, CSS properties and defaults with that container. A low-opacity hover
  * state overlay tints the button while the pointer is inside and
- * {@link #hoverOverlayEnabledProperty() hoverOverlayEnabled} is true.
+ * {@link #stateOverlayEnabledProperty() stateOverlayEnabled} is true.
  * {@link #rippleCornerRadiusProperty() rippleCornerRadius} overrides the
  * mirrored clip corners with explicit radii.</p>
  */
@@ -263,13 +263,13 @@ public class RXButton extends Button {
         rippleEnabled.set(value);
     }
 
-    // ==================== Hover Overlay Enabled ====================
+    // ==================== State Overlay Enabled ====================
 
-    private final BooleanProperty hoverOverlayEnabled =
-            new StyleableBooleanProperty(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED) {
+    private final BooleanProperty stateOverlayEnabled =
+            new StyleableBooleanProperty(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED) {
                 @Override
                 public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-                    return StyleableProperties.RIPPLE_HOVER_OVERLAY_ENABLED;
+                    return StyleableProperties.RIPPLE_STATE_OVERLAY_ENABLED;
                 }
 
                 @Override
@@ -279,38 +279,38 @@ public class RXButton extends Button {
 
                 @Override
                 public String getName() {
-                    return "hoverOverlayEnabled";
+                    return "stateOverlayEnabled";
                 }
             };
 
     /**
-     * Whether the low-opacity hover state overlay may show while the pointer is
+     * Whether the low-opacity state overlay may show while the pointer is
      * inside. The press ripple is unaffected (it stays gated only by
      * {@link #rippleEnabledProperty() rippleEnabled}). Initial value is
-     * {@link RXRipplePane#DEFAULT_HOVER_OVERLAY_ENABLED}.
+     * {@link RXRipplePane#DEFAULT_STATE_OVERLAY_ENABLED}.
      *
-     * @return the hover-overlay-enabled property
+     * @return the state-overlay-enabled property
      */
-    public final BooleanProperty hoverOverlayEnabledProperty() {
-        return hoverOverlayEnabled;
+    public final BooleanProperty stateOverlayEnabledProperty() {
+        return stateOverlayEnabled;
     }
 
     /**
-     * Returns whether the hover state overlay may show.
+     * Returns whether the state overlay may show.
      *
-     * @return whether the hover state overlay may show
+     * @return whether the state overlay may show
      */
-    public final boolean isHoverOverlayEnabled() {
-        return hoverOverlayEnabled.get();
+    public final boolean isStateOverlayEnabled() {
+        return stateOverlayEnabled.get();
     }
 
     /**
-     * Sets whether the hover state overlay may show.
+     * Sets whether the state overlay may show.
      *
-     * @param value {@code true} to allow the hover overlay
+     * @param value {@code true} to allow the state overlay
      */
-    public final void setHoverOverlayEnabled(boolean value) {
-        hoverOverlayEnabled.set(value);
+    public final void setStateOverlayEnabled(boolean value) {
+        stateOverlayEnabled.set(value);
     }
 
     // ==================== Ripple Centered ====================
@@ -464,18 +464,18 @@ public class RXButton extends Button {
                     }
                 };
 
-        private static final CssMetaData<RXButton, Boolean> RIPPLE_HOVER_OVERLAY_ENABLED =
-                new CssMetaData<>("-rx-ripple-hover-overlay-enabled",
-                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED) {
+        private static final CssMetaData<RXButton, Boolean> RIPPLE_STATE_OVERLAY_ENABLED =
+                new CssMetaData<>("-rx-ripple-state-overlay-enabled",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED) {
                     @Override
                     public boolean isSettable(RXButton button) {
-                        return !button.hoverOverlayEnabled.isBound();
+                        return !button.stateOverlayEnabled.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Boolean> getStyleableProperty(RXButton button) {
-                        return (StyleableProperty<Boolean>) button.hoverOverlayEnabledProperty();
+                        return (StyleableProperty<Boolean>) button.stateOverlayEnabledProperty();
                     }
                 };
 
@@ -516,7 +516,7 @@ public class RXButton extends Button {
             styleables.add(RIPPLE_FILL);
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
-            styleables.add(RIPPLE_HOVER_OVERLAY_ENABLED);
+            styleables.add(RIPPLE_STATE_OVERLAY_ENABLED);
             styleables.add(RIPPLE_CENTERED);
             styleables.add(RIPPLE_CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
