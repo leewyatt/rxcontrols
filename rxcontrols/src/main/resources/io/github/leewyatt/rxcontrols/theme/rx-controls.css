@@ -993,12 +993,6 @@
     -fx-padding: 2;
 }
 
-.rx-segmented-control:focused {
-    -fx-background-color: -fx-faint-focus-color, #f5f5f5;
-    -fx-background-insets: -1.4, 0;
-    -fx-background-radius: 7.4, 6;
-}
-
 .rx-segmented-control > .indicator {
     -fx-background-color: white;
     -fx-background-radius: 4;
