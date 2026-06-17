@@ -9,6 +9,7 @@ import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -120,6 +121,8 @@ public class RXRipplePane extends Region {
         ripple = new RippleDecoration(this, rippleEnabledProperty(),
                 rippleFillProperty(), this::getRippleOpacity,
                 rippleInsetsProperty(), rippleCornerRadiusProperty());
+
+        ripple.setHoverOverlayEnabled(isHoverOverlayEnabled());
         getChildren().add(ripple.getLayer());
 
         // Pointer-press trigger; the decoration owns hover, overlay, the
@@ -344,6 +347,47 @@ public class RXRipplePane extends Region {
      */
     public final void setRippleEnabled(boolean value) {
         rippleEnabled.set(value);
+    }
+
+    // ==================== Hover Overlay Enabled ====================
+
+    private final BooleanProperty hoverOverlayEnabled =
+            new SimpleBooleanProperty(this, "hoverOverlayEnabled", true) {
+                @Override
+                protected void invalidated() {
+                    ripple.setHoverOverlayEnabled(get());
+                }
+            };
+
+    /**
+     * Whether the low-opacity hover state overlay may show while the pointer is
+     * inside. The press ripple is unaffected (it stays gated only by
+     * {@link #rippleEnabledProperty() rippleEnabled}). Disable this on a host
+     * that already represents the hovered / active state another way, so the
+     * overlay does not tint it.
+     *
+     * @return the hover-overlay-enabled property
+     */
+    public final BooleanProperty hoverOverlayEnabledProperty() {
+        return hoverOverlayEnabled;
+    }
+
+    /**
+     * Returns whether the hover state overlay may show.
+     *
+     * @return whether the hover state overlay may show
+     */
+    public final boolean isHoverOverlayEnabled() {
+        return hoverOverlayEnabled.get();
+    }
+
+    /**
+     * Sets whether the hover state overlay may show.
+     *
+     * @param value {@code true} to allow the hover overlay
+     */
+    public final void setHoverOverlayEnabled(boolean value) {
+        hoverOverlayEnabled.set(value);
     }
 
     // ==================== Ripple Centered ====================

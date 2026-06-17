@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import javafx.animation.Interpolator;
@@ -15,7 +16,6 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
@@ -55,6 +55,10 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
     private static final PseudoClass ONLY = PseudoClass.getPseudoClass("only");
+
+    /** Structural style classes on each cell; never treated as item-contributed. */
+    private static final String SEGMENT_STYLE_CLASS = "segment";
+    private static final String RIPPLE_PANE_STYLE_CLASS = "rx-ripple-pane";
 
     private static final double GEOMETRY_EPSILON = 0.5;
 
@@ -155,7 +159,13 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     private void updateSelectedPseudoClass() {
         int selected = getSkinnable().getSelectedIndex();
         for (int i = 0; i < cells.size(); i++) {
-            cells.get(i).pseudoClassStateChanged(SELECTED, i == selected);
+            SegmentCell cell = cells.get(i);
+            boolean isSelected = i == selected;
+            cell.pseudoClassStateChanged(SELECTED, isSelected);
+            // The selected segment is represented by the sliding pill, so its
+            // hover tint is suppressed (otherwise it stays grey until the pointer
+            // leaves). The press ripple is kept enabled.
+            cell.setHoverOverlayEnabled(!isSelected);
         }
     }
 
@@ -525,11 +535,17 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
     // ==================== Segment cell ====================
 
-    private final class SegmentCell extends StackPane {
+    private final class SegmentCell extends RXRipplePane {
 
         private final RXSegmentedItem<T> item;
         private final Label label = new Label();
+        // RXRipplePane lays its content out top-left; this holder re-centers the
+        // label / custom content and stays mouse-transparent so presses reach the
+        // pane for both selection and the ripple.
+        private final StackPane contentHolder = new StackPane();
         private final int index;
+
+        private List<String> appliedItemStyleClasses = new ArrayList<>();
 
         // Per-item listeners are held as fields and removed in detach(): a
         // discarded cell would otherwise leak through the (user-owned) item.
@@ -549,7 +565,10 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             this.index = index;
             // Basic accessibility: announce each segment as a radio option.
             setAccessibleRole(AccessibleRole.RADIO_BUTTON);
-            label.setMouseTransparent(true);
+            getStyleClass().add(SEGMENT_STYLE_CLASS);
+            contentHolder.setMouseTransparent(true);
+            setContent(contentHolder);
+
             updateStyleClass();
             updateContent();
             updateTooltip();
@@ -567,23 +586,34 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         private void updateContent() {
             Node content = item.getContent();
             if (content != null) {
-                getChildren().setAll(content);
+                contentHolder.getChildren().setAll(content);
             } else {
                 label.setText(displayText(item));
                 label.setGraphic(item.getGraphic());
-                getChildren().setAll(label);
+                contentHolder.getChildren().setAll(label);
             }
         }
 
         private void updateDisabledState() {
             // setDisable drives the framework-owned :disabled pseudo-class
-            // natively and also blocks pointer events / hover on the segment.
+            // natively, blocks pointer events / hover, and suppresses the ripple
+            // on a disabled segment.
             setDisable(item.isDisabled());
         }
 
         private void updateStyleClass() {
-            getStyleClass().setAll("segment");
-            getStyleClass().addAll(item.getStyleClass());
+            // Preserve the structural classes (rx-ripple-pane from RXRipplePane
+            // plus segment); replace only the item-contributed extra classes. The
+            // structural names are filtered out so a colliding item class cannot
+            // strip them on the next removeAll (which drops every occurrence).
+            getStyleClass().removeAll(appliedItemStyleClasses);
+            appliedItemStyleClasses = new ArrayList<>();
+            for (String styleClass : item.getStyleClass()) {
+                if (!SEGMENT_STYLE_CLASS.equals(styleClass) && !RIPPLE_PANE_STYLE_CLASS.equals(styleClass)) {
+                    appliedItemStyleClasses.add(styleClass);
+                }
+            }
+            getStyleClass().addAll(appliedItemStyleClasses);
         }
 
         private void updateTooltip() {

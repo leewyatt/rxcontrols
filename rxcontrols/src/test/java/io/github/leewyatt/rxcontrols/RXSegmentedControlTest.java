@@ -745,15 +745,15 @@ public class RXSegmentedControlTest {
         runOnFx(() -> {
             RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
             RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
-            Region cell = cell(control, 0);
-            assertTrue(cell.getChildrenUnmodifiable().get(0) instanceof Label);
+            Region holder = contentHolder(control, 0);
+            assertTrue(holder.getChildrenUnmodifiable().get(0) instanceof Label);
 
             Region custom = new Region();
             item.setContent(custom);
-            assertSame(custom, cell.getChildrenUnmodifiable().get(0), "content replaces the label");
+            assertSame(custom, holder.getChildrenUnmodifiable().get(0), "content replaces the label");
 
             item.setContent(null);
-            assertTrue(cell.getChildrenUnmodifiable().get(0) instanceof Label,
+            assertTrue(holder.getChildrenUnmodifiable().get(0) instanceof Label,
                     "clearing content restores the text label");
         });
     }
@@ -778,6 +778,42 @@ public class RXSegmentedControlTest {
     }
 
     @Test
+    public void segmentsAreRippleEnabledRipplePanes() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedControl<String> control = withSkin(daily());
+            for (int i = 0; i < control.getItems().size(); i++) {
+                Region cell = cell(control, i);
+                assertTrue(cell instanceof RXRipplePane, "segment " + i + " is an RXRipplePane");
+                assertTrue(((RXRipplePane) cell).isRippleEnabled());
+                assertTrue(cell.getStyleClass().contains("segment"));
+                assertTrue(cell.getStyleClass().contains("rx-ripple-pane"));
+            }
+        });
+    }
+
+    @Test
+    public void selectedSegmentSuppressesHoverOverlay() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedControl<String> control = withSkin(daily());
+            control.selectIndex(2);
+
+            for (int i = 0; i < control.getItems().size(); i++) {
+                RXRipplePane cell = (RXRipplePane) cell(control, i);
+                // Selected segment has its hover overlay off (the pill is its
+                // indicator); others keep it for the hover affordance.
+                assertEquals(i != 2, cell.isHoverOverlayEnabled(), "hover overlay @ " + i);
+                // The press ripple stays enabled on every segment.
+                assertTrue(cell.isRippleEnabled(), "ripple still enabled @ " + i);
+            }
+
+            control.selectIndex(0);
+            assertFalse(((RXRipplePane) cell(control, 0)).isHoverOverlayEnabled());
+            assertTrue(((RXRipplePane) cell(control, 2)).isHoverOverlayEnabled(),
+                    "previously-selected segment regains its hover overlay");
+        });
+    }
+
+    @Test
     public void dynamicStyleClassUpdatesCell() throws Exception {
         runOnFx(() -> {
             RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
@@ -791,6 +827,23 @@ public class RXSegmentedControlTest {
             item.getStyleClass().remove("highlight");
             assertTrue(cell.getStyleClass().contains("segment"));
             assertFalse(cell.getStyleClass().contains("highlight"));
+        });
+    }
+
+    @Test
+    public void structuralStyleClassesSurviveCollidingItemClass() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
+            RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
+            Region cell = cell(control, 0);
+
+            // A user item class that collides with an internal structural class
+            // must not be able to strip it via the next removeAll.
+            item.getStyleClass().addAll("segment", "rx-ripple-pane", "custom");
+            item.getStyleClass().remove("custom");
+
+            assertTrue(cell.getStyleClass().contains("segment"), "segment survives");
+            assertTrue(cell.getStyleClass().contains("rx-ripple-pane"), "rx-ripple-pane survives");
         });
     }
 
@@ -962,8 +1015,14 @@ public class RXSegmentedControlTest {
         return (Region) control.getChildrenUnmodifiable().get(index + 1);
     }
 
+    private static Region contentHolder(RXSegmentedControl<?> control, int index) {
+        // Each segment is an RXRipplePane whose first child is the centering
+        // content holder (the ripple layer is the second child).
+        return (Region) cell(control, index).getChildrenUnmodifiable().get(0);
+    }
+
     private static Label cellLabel(RXSegmentedControl<?> control, int index) {
-        return (Label) cell(control, index).getChildrenUnmodifiable().get(0);
+        return (Label) contentHolder(control, index).getChildrenUnmodifiable().get(0);
     }
 
     private static void assertIndicatorMatchesCell(RXSegmentedControl<?> control, int index) {

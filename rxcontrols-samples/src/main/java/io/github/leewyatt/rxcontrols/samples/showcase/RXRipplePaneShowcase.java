@@ -102,6 +102,10 @@ public class RXRipplePaneShowcase extends RXShowcaseApplication {
         enabledBox.setSelected(ripplePane.isRippleEnabled());
         ripplePane.rippleEnabledProperty().bind(enabledBox.selectedProperty());
 
+        CheckBox hoverBox = new CheckBox();
+        hoverBox.setSelected(ripplePane.isHoverOverlayEnabled());
+        hoverBox.selectedProperty().bindBidirectional(ripplePane.hoverOverlayEnabledProperty());
+
         CheckBox centeredBox = new CheckBox();
         centeredBox.setSelected(ripplePane.isRippleCentered());
         ripplePane.rippleCenteredProperty().bind(centeredBox.selectedProperty());
@@ -114,6 +118,7 @@ public class RXRipplePaneShowcase extends RXShowcaseApplication {
                 row("Fill", rippleFillPicker),
                 row("Opacity", opacitySlider, createValueLabel(opacitySlider, "%.2f")),
                 row("Enabled", enabledBox),
+                row("Hover overlay", hoverBox),
                 row("Centered", centeredBox),
                 row("Inset", insetSlider, createValueLabel(insetSlider, "%.0f px")));
     }

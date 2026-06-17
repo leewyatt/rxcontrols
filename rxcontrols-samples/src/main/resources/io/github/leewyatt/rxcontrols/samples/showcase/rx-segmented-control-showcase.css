@@ -45,10 +45,10 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0, 0, 2);
 }
 
-.rx-segmented-control.ocean > .segment > .label {
+.rx-segmented-control.ocean > .segment .label {
     -fx-text-fill: rgba(255, 255, 255, 0.7);
 }
 
-.rx-segmented-control.ocean > .segment:selected > .label {
+.rx-segmented-control.ocean > .segment:selected .label {
     -fx-text-fill: white;
 }

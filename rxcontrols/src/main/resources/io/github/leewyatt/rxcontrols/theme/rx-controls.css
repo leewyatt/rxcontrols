@@ -999,28 +999,25 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.10), 4, 0, 0, 2);
 }
 
+/* Each segment is an RXRipplePane: a transparent fill keeps it pickable and
+   shapes the bounded press ripple + hover overlay; the radius rounds that
+   overlay. The hover tint comes from the ripple overlay, not a background. */
 .rx-segmented-control > .segment {
     -fx-padding: 5 11;
     -fx-background-color: transparent;
     -fx-background-radius: 4;
+    -rx-ripple-fill: black;
+    -rx-ripple-opacity: 0.12;
 }
 
-.rx-segmented-control > .segment > .label {
+.rx-segmented-control > .segment .label {
     -fx-text-fill: rgba(0, 0, 0, 0.65);
 }
 
-.rx-segmented-control > .segment:hover {
-    -fx-background-color: rgba(0, 0, 0, 0.06);
-}
-
-.rx-segmented-control > .segment:selected {
-    -fx-background-color: transparent;
-}
-
-.rx-segmented-control > .segment:selected > .label {
+.rx-segmented-control > .segment:selected .label {
     -fx-text-fill: rgba(0, 0, 0, 0.88);
 }
 
-.rx-segmented-control > .segment:disabled > .label {
+.rx-segmented-control > .segment:disabled .label {
     -fx-text-fill: rgba(0, 0, 0, 0.25);
 }
