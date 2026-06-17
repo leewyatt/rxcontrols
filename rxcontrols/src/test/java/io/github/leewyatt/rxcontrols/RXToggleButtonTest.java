@@ -251,6 +251,31 @@ public class RXToggleButtonTest {
     }
 
     /**
+     * Verifies the hover overlay switch does not affect press ripples.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverOverlayDisabledDoesNotDisablePressRipple() throws Exception {
+        runOnFx(() -> {
+            RXToggleButton toggle = withSkin(new RXToggleButton("OK"));
+            toggle.setHoverOverlayEnabled(false);
+            layout(toggle, 100.0, 40.0);
+            RippleLayer layer = rippleLayer(toggle);
+
+            toggle.fireEvent(mouse(toggle, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false, false));
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
+
+            toggle.fireEvent(mouse(toggle, MouseEvent.MOUSE_PRESSED, 20.0, 10.0,
+                    MouseButton.PRIMARY, true, false));
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+            assertTrue(layer.getChildrenUnmodifiable().get(0) instanceof Circle);
+        });
+    }
+
+    /**
      * Verifies disabling the ripple clears live state and disabling the
      * control releases the active ripple.
      *

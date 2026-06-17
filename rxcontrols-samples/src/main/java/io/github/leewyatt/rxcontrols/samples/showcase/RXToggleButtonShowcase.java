@@ -28,8 +28,9 @@ import java.util.List;
  * standard {@code RXToggleButton} group can be emptied by re-clicking the
  * selected button, while the {@code RXRadioToggleButton} group always keeps one
  * selection (radio-like). The right panel drives the shared ripple properties
- * (fill, opacity, enabled, centered) plus the disabled state across every
- * toggle, and a {@code playRipple()} button fires the programmatic ripple.</p>
+ * (fill, opacity, enabled, hover overlay, centered) plus the disabled state
+ * across every toggle, and a {@code playRipple()} button fires the
+ * programmatic ripple.</p>
  */
 public class RXToggleButtonShowcase extends RXShowcaseApplication {
 
@@ -123,6 +124,11 @@ public class RXToggleButtonShowcase extends RXShowcaseApplication {
         enabledBox.selectedProperty().addListener((obs, oldValue, newValue) ->
                 allToggles.forEach(toggle -> toggle.setRippleEnabled(newValue)));
 
+        CheckBox hoverBox = new CheckBox();
+        hoverBox.setSelected(allToggles.get(0).isHoverOverlayEnabled());
+        hoverBox.selectedProperty().addListener((obs, oldValue, newValue) ->
+                allToggles.forEach(toggle -> toggle.setHoverOverlayEnabled(newValue)));
+
         CheckBox centeredBox = new CheckBox();
         centeredBox.setSelected(allToggles.get(0).isRippleCentered());
         centeredBox.selectedProperty().addListener((obs, oldValue, newValue) ->
@@ -132,6 +138,7 @@ public class RXToggleButtonShowcase extends RXShowcaseApplication {
                 row("Fill", fillPicker),
                 row("Opacity", opacitySlider, createValueLabel(opacitySlider, "%.2f")),
                 row("Enabled", enabledBox),
+                row("Hover overlay", hoverBox),
                 row("Centered", centeredBox));
     }
 

@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -19,6 +20,7 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -114,6 +116,21 @@ public class RXTransitionButtonTest {
         root.applyCss();
 
         assertTrue(button.isHoverOverlayEnabled());
+    }
+
+    @Test
+    public void userAgentHoverOverlaySuppressionReachesRippleLayer() {
+        RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+
+        try {
+            RippleLayer layer = (RippleLayer) button.getChildrenUnmodifiable().get(0);
+
+            button.fireEvent(mouseEntered(button));
+
+            assertEquals(0.0, layer.getOverlayTargetOpacity(), 1.0e-12);
+        } finally {
+            button.getSkin().dispose();
+        }
     }
 
     @Test
@@ -546,6 +563,16 @@ public class RXTransitionButtonTest {
                 false, false, false, false,
                 true, false, false,
                 false, false, false, null);
+    }
+
+    private static MouseEvent mouseEntered(Node target) {
+        return new MouseEvent(MouseEvent.MOUSE_ENTERED,
+                10.0, 10.0, 10.0, 10.0,
+                MouseButton.NONE, 0,
+                false, false, false, false,
+                false, false, false,
+                false, false, true,
+                new PickResult(target, 10.0, 10.0));
     }
 
     private static KeyEvent keyEvent(javafx.event.EventType<KeyEvent> type, KeyCode code) {

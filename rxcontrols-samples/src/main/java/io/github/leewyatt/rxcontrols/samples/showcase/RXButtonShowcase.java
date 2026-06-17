@@ -18,7 +18,7 @@ import java.util.List;
  * Showcase application for {@link RXButton}.
  *
  * <p>Exercises the armed-driven ripple (pointer press, SPACE activation,
- * drag-out cancel), the four ripple properties and standard button states.
+ * drag-out cancel), the ripple properties and standard button states.
  * Programmatic {@code fire()} and the default-button ENTER accelerator show
  * no ripple by design.</p>
  */
@@ -94,6 +94,10 @@ public class RXButtonShowcase extends RXShowcaseApplication {
         enabledBox.setSelected(button.isRippleEnabled());
         button.rippleEnabledProperty().bind(enabledBox.selectedProperty());
 
+        CheckBox hoverBox = new CheckBox();
+        hoverBox.setSelected(button.isHoverOverlayEnabled());
+        button.hoverOverlayEnabledProperty().bind(hoverBox.selectedProperty());
+
         CheckBox centeredBox = new CheckBox();
         centeredBox.setSelected(button.isRippleCentered());
         button.rippleCenteredProperty().bind(centeredBox.selectedProperty());
@@ -102,6 +106,7 @@ public class RXButtonShowcase extends RXShowcaseApplication {
                 row("Fill", fillPicker),
                 row("Opacity", opacitySlider, createValueLabel(opacitySlider, "%.2f")),
                 row("Enabled", enabledBox),
+                row("Hover overlay", hoverBox),
                 row("Centered", centeredBox));
     }
 

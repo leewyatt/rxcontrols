@@ -740,6 +740,9 @@ public class RXRipplePaneTest {
 
             pane.setHoverOverlayEnabled(true);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            pane.setDisable(true);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay while disabled");
         });
     }
 
