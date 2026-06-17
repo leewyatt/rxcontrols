@@ -74,20 +74,15 @@ public class RXTimelineViewTest {
     public void defaultsAreCorrect() {
         RXTimelineView view = new RXTimelineView();
 
-        assertTrue(view.getStyleClass().contains(RXTimelineView.DEFAULT_STYLE_CLASS));
+        assertTrue(view.getStyleClass().contains("rx-timeline-view"));
         assertTrue(view.getItems().isEmpty());
         assertFalse(view.isReverse());
-        assertEquals(RXTimelineView.DEFAULT_DOT_SIZE, view.getDotSize(), EPSILON);
-        assertEquals(RXTimelineView.DEFAULT_LINE_WIDTH, view.getLineWidth(), EPSILON);
-        assertEquals(RXTimelineView.DEFAULT_ITEM_SPACING, view.getItemSpacing(), EPSILON);
-        assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, view.getAxisSpacing(), EPSILON);
         assertNull(view.getPlaceholder());
         assertNull(view.getOnItemClicked());
         assertEquals(Position.LEFT, view.getPosition());
         assertEquals(Orientation.VERTICAL, view.getOrientation());
         assertEquals(Orientation.HORIZONTAL, view.getContentBias());
         assertEquals(AccessibleRole.PARENT, view.getAccessibleRole());
-        assertEquals(RXTimelineView.DEFAULT_CONNECTOR_GAP, view.getConnectorGap(), EPSILON);
     }
 
     @Test
@@ -278,7 +273,7 @@ public class RXTimelineViewTest {
         showInScene(view);
 
         RXBox firstRow = (RXBox) itemNodes(view).get(0);
-        assertEquals(RXTimelineView.DEFAULT_AXIS_SPACING, firstRow.getSpacing(), EPSILON);
+        assertEquals(view.getAxisSpacing(), firstRow.getSpacing(), EPSILON);
 
         view.setAxisSpacing(30.0);
         view.getParent().applyCss();

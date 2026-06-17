@@ -151,23 +151,23 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildMetricsGrid() {
-        Slider dotSize = createSlider(0, 32.0, RXTimelineView.DEFAULT_DOT_SIZE);
+        Slider dotSize = createSlider(0, 32.0, timeline.getDotSize());
         timeline.dotSizeProperty().bind(dotSize.valueProperty());
         Label dotSizeValue = createValueLabel(dotSize, "%.0f px");
 
-        Slider lineWidth = createSlider(0.0, 10.0, RXTimelineView.DEFAULT_LINE_WIDTH);
+        Slider lineWidth = createSlider(0.0, 10.0, timeline.getLineWidth());
         timeline.lineWidthProperty().bind(lineWidth.valueProperty());
         Label lineWidthValue = createValueLabel(lineWidth, "%.0f px");
 
-        Slider itemSpacing = createSlider(0.0, 64.0, RXTimelineView.DEFAULT_ITEM_SPACING);
+        Slider itemSpacing = createSlider(0.0, 64.0, timeline.getItemSpacing());
         timeline.itemSpacingProperty().bind(itemSpacing.valueProperty());
         Label itemSpacingValue = createValueLabel(itemSpacing, "%.0f px");
 
-        Slider axisSpacing = createSlider(0.0, 32.0, RXTimelineView.DEFAULT_AXIS_SPACING);
+        Slider axisSpacing = createSlider(0.0, 32.0, timeline.getAxisSpacing());
         timeline.axisSpacingProperty().bind(axisSpacing.valueProperty());
         Label axisSpacingValue = createValueLabel(axisSpacing, "%.0f px");
 
-        Slider connectorGap = createSlider(0.0, 8.0, RXTimelineView.DEFAULT_CONNECTOR_GAP);
+        Slider connectorGap = createSlider(0.0, 8.0, timeline.getConnectorGap());
         timeline.connectorGapProperty().bind(connectorGap.valueProperty());
         Label connectorGapValue = createValueLabel(connectorGap, "%.0f px");
 

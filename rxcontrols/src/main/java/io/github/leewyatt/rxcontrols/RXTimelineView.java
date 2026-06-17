@@ -87,37 +87,37 @@ public class RXTimelineView extends Control {
     /**
      * Default style class for this control.
      */
-    public static final String DEFAULT_STYLE_CLASS = "rx-timeline-view";
+    private static final String DEFAULT_STYLE_CLASS = "rx-timeline-view";
 
     /**
      * Default dot diameter in pixels.
      */
-    public static final double DEFAULT_DOT_SIZE = 12.0;
+    private static final double DEFAULT_DOT_SIZE = 12.0;
 
     /**
      * Default connector line width in pixels.
      */
-    public static final double DEFAULT_LINE_WIDTH = 2.0;
+    private static final double DEFAULT_LINE_WIDTH = 2.0;
 
     /**
      * Default vertical spacing between items in pixels.
      */
-    public static final double DEFAULT_ITEM_SPACING = 16.0;
+    private static final double DEFAULT_ITEM_SPACING = 16.0;
 
     /**
      * Default horizontal spacing between the axis column and the content in pixels.
      */
-    public static final double DEFAULT_AXIS_SPACING = 12.0;
+    private static final double DEFAULT_AXIS_SPACING = 12.0;
 
     /**
      * Default gap between a dot and the connector line (none).
      */
-    public static final double DEFAULT_CONNECTOR_GAP = 0.0;
+    private static final double DEFAULT_CONNECTOR_GAP = 0.0;
 
     /**
      * Default display order.
      */
-    public static final boolean DEFAULT_REVERSE = false;
+    private static final boolean DEFAULT_REVERSE = false;
 
     /**
      * Default axis position.
@@ -132,7 +132,7 @@ public class RXTimelineView extends Control {
     /**
      * Default opposite-content visibility.
      */
-    public static final boolean DEFAULT_SHOW_OPPOSITE_CONTENT = false;
+    private static final boolean DEFAULT_SHOW_OPPOSITE_CONTENT = false;
 
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
 
