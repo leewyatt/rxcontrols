@@ -53,6 +53,12 @@ import java.util.List;
  * exit fade the active ripple out. Existing fading ripples may coexist with a
  * new press, with an internal cap to prevent buildup.</p>
  *
+ * <p>The single {@linkplain #contentProperty() content} node is laid out within
+ * the pane's padded area: a resizable node is sized to fill that area (clamped
+ * to its own maximum size), and any node that does not fill the area is then
+ * positioned by {@link #alignmentProperty() alignment}, which defaults to
+ * {@link #DEFAULT_ALIGNMENT centered}.</p>
+ *
  * <p>The pane listens for bubbling mouse events on itself; if the content
  * consumes {@code MOUSE_PRESSED}, no ripple starts. A ripple's radius is fixed
  * at press time, so resizing the pane while a ripple is live does not expand
@@ -100,7 +106,7 @@ public class RXRipplePane extends Region {
     public static final boolean DEFAULT_RIPPLE_CENTERED = false;
 
     /**
-     * Default content alignment, matching {@link javafx.scene.layout.StackPane}.
+     * Default content alignment: content that does not fill the pane is centered.
      */
     public static final Pos DEFAULT_ALIGNMENT = Pos.CENTER;
 
@@ -595,10 +601,10 @@ public class RXRipplePane extends Region {
 
     /**
      * Alignment of the {@linkplain #contentProperty() content} within the pane's
-     * padded area, matching {@link javafx.scene.layout.StackPane}: content that
-     * fills the area is unaffected, smaller content is positioned per this value.
-     * Initial value is {@link #DEFAULT_ALIGNMENT}; {@code null} is treated as
-     * {@link #DEFAULT_ALIGNMENT} at layout time.
+     * padded area. A resizable node fills the area (clamped to its maximum size),
+     * so content that fully fills it is unaffected; content that does not fill it
+     * is positioned per this value. Initial value is {@link #DEFAULT_ALIGNMENT};
+     * {@code null} is treated as {@link #DEFAULT_ALIGNMENT} at layout time.
      *
      * @return the alignment property
      */
