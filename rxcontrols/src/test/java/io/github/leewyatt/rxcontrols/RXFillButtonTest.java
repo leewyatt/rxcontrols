@@ -94,6 +94,31 @@ public class RXFillButtonTest {
         assertTrue(properties.contains("-rx-animation-duration"));
         assertTrue(properties.contains("-rx-fill-insets"));
         assertTrue(properties.contains("-rx-ripple-fill"));
+        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
+    }
+
+    /**
+     * Verifies the user-agent stylesheet disables the inherited hover overlay
+     * by default and author CSS can opt it back in.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void userAgentDisablesHoverOverlayAndAuthorCssCanEnableIt() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = new RXFillButton("Fill");
+            StackPane root = new StackPane(button);
+            new Scene(root);
+
+            root.applyCss();
+
+            assertFalse(button.isHoverOverlayEnabled());
+
+            button.setStyle("-rx-ripple-hover-overlay-enabled: true;");
+            root.applyCss();
+
+            assertTrue(button.isHoverOverlayEnabled());
+        });
     }
 
     /**
@@ -468,9 +493,9 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies the fill button suppresses the inherited ripple hover overlay
-     * (the fill sweep is its own hover affordance), so hovering never tints the
-     * fill.
+     * Verifies the user-agent stylesheet suppresses the inherited ripple hover
+     * overlay (the fill sweep is its own hover affordance), so hovering never
+     * tints the fill.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -478,6 +503,9 @@ public class RXFillButtonTest {
     public void fillButtonSuppressesHoverOverlay() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
+            StackPane root = new StackPane(button);
+            new Scene(root);
+            root.applyCss();
             layout(button, 100.0, 40.0);
             RippleLayer rippleLayer = (RippleLayer) button.getChildrenUnmodifiable().get(1);
 

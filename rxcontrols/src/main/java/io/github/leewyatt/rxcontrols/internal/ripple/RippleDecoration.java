@@ -18,12 +18,12 @@ import java.util.function.DoubleSupplier;
  * clipped to the host's painted geometry.
  *
  * <p>The decoration owns the layer, the ripple state machine, the hover
- * overlay (enter/exit driven, gated by {@code rippleEnabled} and the disabled
- * state), the shared lifecycle that releases or clears the ripple when the
- * host is disabled, leaves the scene, or turns the ripple off, and the clip
- * refresh as the host geometry or the optional ripple insets / corner radius
- * change. The host keeps its own ripple <em>trigger</em> — armed-driven for a
- * button, pointer-press for a pane — and calls
+ * overlay (enter/exit driven, gated by its own enabled property and the
+ * disabled state), the shared lifecycle that releases or clears the ripple
+ * when the host is disabled, leaves the scene, or turns the ripple off, and
+ * the clip refresh as the host geometry or the optional ripple insets / corner
+ * radius change. The host keeps its own ripple <em>trigger</em> — armed-driven
+ * for a button, pointer-press for a pane — and calls
  * {@link #press(double, double, boolean)} / {@link #release()} accordingly.</p>
  *
  * <p>The host inserts {@link #getLayer()} into its children at the desired
@@ -35,6 +35,7 @@ public final class RippleDecoration {
 
     private final Region host;
     private final ObservableValue<Boolean> rippleEnabled;
+    private final ObservableValue<Boolean> hoverOverlayEnabled;
     private final ObservableValue<Insets> rippleInsets;
     private final ObservableValue<CornerRadii> rippleCornerRadius;
     private final RippleLayer layer = new RippleLayer();
@@ -42,15 +43,15 @@ public final class RippleDecoration {
     private final SkinDisposer disposer = new SkinDisposer();
 
     private boolean pointerInside;
-    private boolean hoverOverlayEnabled = true;
 
     /**
      * Creates the decoration and wires the hover overlay, shared lifecycle and
      * clip-refresh listeners on the host.
      *
      * @param host               the region carrying the ripple
-     * @param rippleEnabled      whether ripple interaction is enabled (gates
-     *                           the overlay and clears live state when off)
+     * @param rippleEnabled      whether press ripple interaction is enabled
+     *                           (clears live ripple state when off)
+     * @param hoverOverlayEnabled whether the hover state overlay is enabled
      * @param rippleFill         the ripple and overlay fill
      * @param rippleOpacity      the peak ripple opacity
      * @param rippleInsets       extra clip insets, or {@code null} if the host
@@ -58,17 +59,20 @@ public final class RippleDecoration {
      * @param rippleCornerRadius explicit clip corner radii, or {@code null} if
      *                           the host has no corner-radius override
      * @throws NullPointerException if {@code host}, {@code rippleEnabled},
-     *                              {@code rippleFill} or {@code rippleOpacity}
-     *                              is {@code null}
+     *                              {@code hoverOverlayEnabled}, {@code rippleFill}
+     *                              or {@code rippleOpacity} is {@code null}
      */
     public RippleDecoration(Region host,
                             ObservableValue<Boolean> rippleEnabled,
+                            ObservableValue<Boolean> hoverOverlayEnabled,
                             ObservableValue<Paint> rippleFill,
                             DoubleSupplier rippleOpacity,
                             ObservableValue<Insets> rippleInsets,
                             ObservableValue<CornerRadii> rippleCornerRadius) {
         this.host = Objects.requireNonNull(host, "host cannot be null");
         this.rippleEnabled = Objects.requireNonNull(rippleEnabled, "rippleEnabled cannot be null");
+        this.hoverOverlayEnabled = Objects.requireNonNull(
+                hoverOverlayEnabled, "hoverOverlayEnabled cannot be null");
         Objects.requireNonNull(rippleFill, "rippleFill cannot be null");
         Objects.requireNonNull(rippleOpacity, "rippleOpacity cannot be null");
         this.rippleInsets = rippleInsets;
@@ -86,12 +90,12 @@ public final class RippleDecoration {
             updateOverlay();
         });
         disposer.registerListener(rippleFill, () -> layer.setOverlayFill(rippleFill.getValue()));
+        disposer.registerListener(hoverOverlayEnabled, this::updateOverlay);
 
         // Shared lifecycle.
         disposer.registerListener(rippleEnabled, () -> {
             if (!isRippleEnabled()) {
-                clear();
-                host.requestLayout();
+                behavior.clear();
             }
             updateOverlay();
         });
@@ -149,21 +153,6 @@ public final class RippleDecoration {
     }
 
     /**
-     * Enables or disables the hover state overlay (the press ripple is
-     * unaffected). Hosts whose own decoration already covers the hover state,
-     * such as a fill sweep, turn it off to avoid tinting that decoration.
-     *
-     * @param enabled whether the hover overlay may show
-     */
-    public void setHoverOverlayEnabled(boolean enabled) {
-        if (hoverOverlayEnabled == enabled) {
-            return;
-        }
-        hoverOverlayEnabled = enabled;
-        updateOverlay();
-    }
-
-    /**
      * Stops all ripple animations, removes the ripple nodes and clears the
      * bounded clip (the hover overlay is torn down with the clip).
      */
@@ -208,11 +197,14 @@ public final class RippleDecoration {
     }
 
     private void updateOverlay() {
-        layer.setOverlayState(hoverOverlayEnabled && pointerInside
-                && isRippleEnabled() && !host.isDisabled());
+        layer.setOverlayState(isHoverOverlayEnabled() && pointerInside && !host.isDisabled());
     }
 
     private boolean isRippleEnabled() {
         return Boolean.TRUE.equals(rippleEnabled.getValue());
+    }
+
+    private boolean isHoverOverlayEnabled() {
+        return Boolean.TRUE.equals(hoverOverlayEnabled.getValue());
     }
 }

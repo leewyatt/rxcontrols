@@ -24,9 +24,6 @@ public class RXLineButtonSkin extends RXButtonSkin {
      */
     public RXLineButtonSkin(RXLineButton button) {
         super(button);
-        // The lines are the hover affordance; the ripple hover overlay would
-        // only dilute them, so it is suppressed (the press ripple stays).
-        setHoverOverlayEnabled(false);
         line = new LineDecoration(button,
                 button.lineAnimationProperty(),
                 button.animationTriggerProperty(),

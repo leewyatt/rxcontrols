@@ -37,8 +37,8 @@ public class RXButtonSkin extends ButtonSkin {
     public RXButtonSkin(RXButton button) {
         super(button);
         ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
-                button.rippleFillProperty(), button::getRippleOpacity,
-                null, button.rippleCornerRadiusProperty());
+                button.hoverOverlayEnabledProperty(), button.rippleFillProperty(),
+                button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
 
         disposer.registerEventFilter(button, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);
         disposer.registerEventFilter(button, MouseEvent.MOUSE_RELEASED,
@@ -85,17 +85,6 @@ public class RXButtonSkin extends ButtonSkin {
             return;
         }
         SkinDisposer.disposeInOrder(this::disposeRipple, disposer::dispose, super::dispose);
-    }
-
-    /**
-     * Enables or disables the hover state overlay. Subclasses whose own
-     * decoration already covers the hover state (such as a fill sweep) turn it
-     * off so they do not tint that decoration.
-     *
-     * @param enabled whether the hover overlay may show
-     */
-    protected final void setHoverOverlayEnabled(boolean enabled) {
-        ripple.setHoverOverlayEnabled(enabled);
     }
 
     // ==================== Ripple Trigger ====================

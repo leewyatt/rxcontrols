@@ -70,6 +70,7 @@ public class RXToggleButtonTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, toggle.getRippleFill());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, toggle.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, toggle.isRippleEnabled());
+        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, toggle.isHoverOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, toggle.isRippleCentered());
         assertNull(toggle.getRippleCornerRadius());
         // Standard toggle (not radio): keeps the inherited ToggleButton role.
@@ -81,6 +82,7 @@ public class RXToggleButtonTest {
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
+        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
@@ -266,7 +268,6 @@ public class RXToggleButtonTest {
             toggle.setRippleEnabled(false);
 
             assertEquals(0, layer.getChildrenUnmodifiable().size());
-            assertNull(layer.getClip());
 
             toggle.setRippleEnabled(true);
             toggle.fireEvent(mouse(toggle, MouseEvent.MOUSE_RELEASED, 20.0, 10.0,
@@ -356,13 +357,13 @@ public class RXToggleButtonTest {
 
     /**
      * Verifies pointer enter shows the hover state overlay carrying the ripple
-     * fill, exit hides it, and disabling the ripple or the control suppresses
+     * fill, exit hides it, and disabling the overlay or the control suppresses
      * it.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void hoverShowsStateOverlayGatedByEnabledAndDisable() throws Exception {
+    public void hoverShowsStateOverlayGatedByHoverOverlayAndDisable() throws Exception {
         runOnFx(() -> {
             RXToggleButton toggle = withSkin(new RXToggleButton("OK"));
             toggle.setRippleFill(Color.RED);
@@ -384,9 +385,12 @@ public class RXToggleButtonTest {
             toggle.fireEvent(mouse(toggle, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
                     MouseButton.NONE, false, false));
             toggle.setRippleEnabled(false);
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            toggle.setHoverOverlayEnabled(false);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
 
-            toggle.setRippleEnabled(true);
+            toggle.setHoverOverlayEnabled(true);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
             toggle.setDisable(true);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);

@@ -82,6 +82,7 @@ public class RXRipplePaneTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, pane.getRippleFill());
         assertClose(RXRipplePane.DEFAULT_RIPPLE_OPACITY, pane.getRippleOpacity(), "ripple opacity");
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, pane.isRippleEnabled());
+        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, pane.isHoverOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, pane.isRippleCentered());
         assertNull(pane.getRippleInsets());
         assertNull(pane.getRippleCornerRadius());
@@ -98,6 +99,7 @@ public class RXRipplePaneTest {
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
+        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-insets"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
@@ -457,7 +459,6 @@ public class RXRipplePaneTest {
             pane.setRippleEnabled(false);
 
             assertEquals(0, layer.getChildrenUnmodifiable().size());
-            assertNull(layer.getClip());
         });
     }
 
@@ -622,6 +623,7 @@ public class RXRipplePaneTest {
             pane.setStyle("-rx-ripple-fill: red;"
                     + " -rx-ripple-opacity: 0.3;"
                     + " -rx-ripple-enabled: false;"
+                    + " -rx-ripple-hover-overlay-enabled: false;"
                     + " -rx-ripple-centered: true;");
 
             root.applyCss();
@@ -629,6 +631,7 @@ public class RXRipplePaneTest {
             assertEquals(Color.RED, pane.getRippleFill());
             assertClose(0.3, pane.getRippleOpacity(), "ripple opacity");
             assertFalse(pane.isRippleEnabled());
+            assertFalse(pane.isHoverOverlayEnabled());
             assertTrue(pane.isRippleCentered());
         });
     }
@@ -700,12 +703,13 @@ public class RXRipplePaneTest {
 
     /**
      * Verifies hovering shows the state overlay, leaving hides it, and the
-     * overlay carries the ripple fill, while disabling the ripple suppresses it.
+     * overlay carries the ripple fill. The hover overlay is gated by
+     * hoverOverlayEnabled, independently from the press ripple gate.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void hoverShowsStateOverlayGatedByRippleEnabled() throws Exception {
+    public void hoverShowsStateOverlayGatedByHoverOverlayEnabled() throws Exception {
         runOnFx(() -> {
             RXRipplePane pane = new RXRipplePane(new Region());
             pane.setRippleFill(Color.RED);
@@ -727,8 +731,40 @@ public class RXRipplePaneTest {
             pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
                     MouseButton.NONE, false));
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
             pane.setRippleEnabled(false);
-            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay with ripple off");
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            pane.setHoverOverlayEnabled(false);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay disabled");
+
+            pane.setHoverOverlayEnabled(true);
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+        });
+    }
+
+    /**
+     * Verifies the hover overlay switch does not affect press ripples.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverOverlayDisabledDoesNotDisablePressRipple() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            pane.setHoverOverlayEnabled(false);
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay disabled");
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 20.0, 10.0,
+                    MouseButton.PRIMARY, true));
+
+            assertEquals(1, layer.getChildrenUnmodifiable().size());
+            assertTrue(layer.getChildrenUnmodifiable().get(0) instanceof Circle);
         });
     }
 

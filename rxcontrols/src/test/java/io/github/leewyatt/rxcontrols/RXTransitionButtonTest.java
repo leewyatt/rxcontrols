@@ -82,6 +82,7 @@ public class RXTransitionButtonTest {
 
         boolean triggerStyleable = false;
         boolean durationStyleable = false;
+        boolean hoverOverlayStyleable = false;
         for (CssMetaData<?, ?> metaData : button.getCssMetaData()) {
             if ("-rx-animation-trigger".equals(metaData.getProperty())) {
                 triggerStyleable = true;
@@ -89,10 +90,30 @@ public class RXTransitionButtonTest {
             if ("-rx-animation-duration".equals(metaData.getProperty())) {
                 durationStyleable = true;
             }
+            if ("-rx-ripple-hover-overlay-enabled".equals(metaData.getProperty())) {
+                hoverOverlayStyleable = true;
+            }
             assertFalse("-rx-translation-dir".equals(metaData.getProperty()));
         }
         assertTrue(triggerStyleable);
         assertTrue(durationStyleable);
+        assertTrue(hoverOverlayStyleable);
+    }
+
+    @Test
+    public void userAgentDisablesHoverOverlayAndAuthorCssCanEnableIt() {
+        RXTransitionButton button = new RXTransitionButton("Hi");
+        StackPane root = new StackPane(button);
+        new Scene(root);
+
+        root.applyCss();
+
+        assertFalse(button.isHoverOverlayEnabled());
+
+        button.setStyle("-rx-ripple-hover-overlay-enabled: true;");
+        root.applyCss();
+
+        assertTrue(button.isHoverOverlayEnabled());
     }
 
     @Test

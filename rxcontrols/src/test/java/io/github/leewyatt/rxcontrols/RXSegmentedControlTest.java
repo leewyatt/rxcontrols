@@ -794,19 +794,21 @@ public class RXSegmentedControlTest {
     @Test
     public void selectedSegmentSuppressesHoverOverlay() throws Exception {
         runOnFx(() -> {
-            RXSegmentedControl<String> control = withSkin(daily());
+            RXSegmentedControl<String> control = styledDaily(420.0, 44.0);
             control.selectIndex(2);
+            relayout(control, 420.0, 44.0);
 
             for (int i = 0; i < control.getItems().size(); i++) {
                 RXRipplePane cell = (RXRipplePane) cell(control, i);
-                // Selected segment has its hover overlay off (the pill is its
-                // indicator); others keep it for the hover affordance.
+                // CSS suppresses the selected segment's overlay because the
+                // sliding pill is its indicator; other segments keep it.
                 assertEquals(i != 2, cell.isHoverOverlayEnabled(), "hover overlay @ " + i);
                 // The press ripple stays enabled on every segment.
                 assertTrue(cell.isRippleEnabled(), "ripple still enabled @ " + i);
             }
 
             control.selectIndex(0);
+            relayout(control, 420.0, 44.0);
             assertFalse(((RXRipplePane) cell(control, 0)).isHoverOverlayEnabled());
             assertTrue(((RXRipplePane) cell(control, 2)).isHoverOverlayEnabled(),
                     "previously-selected segment regains its hover overlay");

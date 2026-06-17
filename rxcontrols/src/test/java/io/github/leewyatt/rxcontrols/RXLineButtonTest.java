@@ -86,6 +86,31 @@ public class RXLineButtonTest {
         assertTrue(properties.contains("-rx-animation-trigger"));
         assertTrue(properties.contains("-rx-animation-duration"));
         assertTrue(properties.contains("-rx-ripple-fill"));
+        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
+    }
+
+    /**
+     * Verifies the user-agent stylesheet disables the inherited hover overlay
+     * by default and author CSS can opt it back in.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void userAgentDisablesHoverOverlayAndAuthorCssCanEnableIt() throws Exception {
+        runOnFx(() -> {
+            RXLineButton button = new RXLineButton("Line");
+            StackPane root = new StackPane(button);
+            new Scene(root);
+
+            root.applyCss();
+
+            assertFalse(button.isHoverOverlayEnabled());
+
+            button.setStyle("-rx-ripple-hover-overlay-enabled: true;");
+            root.applyCss();
+
+            assertTrue(button.isHoverOverlayEnabled());
+        });
     }
 
     /**
@@ -464,8 +489,8 @@ public class RXLineButtonTest {
     }
 
     /**
-     * Verifies the line button suppresses the inherited ripple hover overlay
-     * (the lines are their own hover affordance).
+     * Verifies the user-agent stylesheet suppresses the inherited ripple hover
+     * overlay (the lines are their own hover affordance).
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -473,6 +498,9 @@ public class RXLineButtonTest {
     public void lineButtonSuppressesHoverOverlay() throws Exception {
         runOnFx(() -> {
             RXLineButton button = withSkin(new RXLineButton("Line"));
+            StackPane root = new StackPane(button);
+            new Scene(root);
+            root.applyCss();
             layout(button, 200.0, 60.0);
             RippleLayer rippleLayer = (RippleLayer) button.getChildrenUnmodifiable().get(1);
 

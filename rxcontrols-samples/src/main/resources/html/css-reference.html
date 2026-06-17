@@ -277,7 +277,9 @@ nav-pane — Pane<br/>
 
 <h3 id="rxFillButton">RXFillButton</h3>
 <p class="fxClass">Style class: rx-fill-button (also: button, rx-button)</p>
-<p>The RXFillButton control has all the properties of RXButton (including the ripple properties);</p>
+<p>The RXFillButton control has all the properties of RXButton (including the
+ripple properties). Its user-agent stylesheet disables the hover overlay by
+default to avoid stacking it with the fill sweep.</p>
 <h4>Substructure</h4>
 fill-layer — Pane<br/>
 &emsp;&emsp;fill-content — Pane<br/>
@@ -528,7 +530,9 @@ text-flow — TextFlow<br/>
 <h3 id="rxLineButton">RXLineButton</h3>
 <p class="fxClass">Style class: rx-line-button (also: button, rx-button)</p>
 <p>The RXLineButton control has all the properties of RXButton (including the
-ripple properties). The lines are a pure decoration overlay: they take no part
+ripple properties). Its user-agent stylesheet disables the hover overlay by
+default to avoid stacking it with the line decoration. The lines are a pure
+decoration overlay: they take no part
 in size computation or content layout, follow the text/graphic bounds, and may
 extend beyond the button bounds (never clipped by the button).</p>
 <h4>Substructure</h4>
@@ -822,7 +826,12 @@ ripple-layer — Region (unmanaged, mouse-transparent; hosts the ripple circles)
     </tr>
     <tr>
         <td>-rx-ripple-enabled</td>
-        <td>Boolean (also gates the hover overlay)</td>
+        <td>Boolean (press ripple enabled)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-hover-overlay-enabled</td>
+        <td>Boolean (hover state overlay enabled)</td>
         <td>true</td>
     </tr>
     <tr>
@@ -986,7 +995,12 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     </tr>
     <tr>
         <td>-rx-ripple-enabled</td>
-        <td>Boolean (also gates the hover overlay)</td>
+        <td>Boolean (press ripple enabled)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-hover-overlay-enabled</td>
+        <td>Boolean (hover state overlay enabled)</td>
         <td>true</td>
     </tr>
     <tr>
@@ -1100,7 +1114,9 @@ pane.</p>
 
 <h3 id="rxTransitionButton">RXTransitionButton</h3>
 <p class="fxClass">Style class: rx-transition-button</p>
-<p>A button with two content faces: the normal face mirrors the button's own
+<p>A button with two content faces and the RXButton ripple properties; its
+user-agent stylesheet disables the hover overlay by default to avoid stacking it
+with the face transition. The normal face mirrors the button's own
 text and graphic in an internal label
 (<code>.rx-transition-button .label</code>), the alternate face hosts the
 <code>alternateContent</code> node. The face swap plays a

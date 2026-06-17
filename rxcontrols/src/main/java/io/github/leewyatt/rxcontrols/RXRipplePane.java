@@ -9,7 +9,6 @@ import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -62,7 +61,7 @@ import java.util.List;
  *
  * <p>Beyond the press ripple, a low-opacity hover state overlay tints the pane
  * while the pointer is inside, using {@link #rippleFillProperty() rippleFill}
- * and gated by {@link #rippleEnabledProperty() rippleEnabled}.
+ * and gated by {@link #hoverOverlayEnabledProperty() hoverOverlayEnabled}.
  * {@link #rippleInsetsProperty() rippleInsets} insets (or, when negative,
  * bleeds) the ripple region, and {@link #rippleCornerRadiusProperty()
  * rippleCornerRadius} overrides the mirrored clip corners with explicit
@@ -87,6 +86,11 @@ public class RXRipplePane extends Region {
      * Default ripple enabled state.
      */
     public static final boolean DEFAULT_RIPPLE_ENABLED = true;
+
+    /**
+     * Default hover overlay enabled state.
+     */
+    public static final boolean DEFAULT_HOVER_OVERLAY_ENABLED = true;
 
     /**
      * Default pointer-origin mode.
@@ -119,10 +123,10 @@ public class RXRipplePane extends Region {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         ripple = new RippleDecoration(this, rippleEnabledProperty(),
-                rippleFillProperty(), this::getRippleOpacity,
-                rippleInsetsProperty(), rippleCornerRadiusProperty());
+                hoverOverlayEnabledProperty(), rippleFillProperty(),
+                this::getRippleOpacity, rippleInsetsProperty(),
+                rippleCornerRadiusProperty());
 
-        ripple.setHoverOverlayEnabled(isHoverOverlayEnabled());
         getChildren().add(ripple.getLayer());
 
         // Pointer-press trigger; the decoration owns hover, overlay, the
@@ -352,19 +356,28 @@ public class RXRipplePane extends Region {
     // ==================== Hover Overlay Enabled ====================
 
     private final BooleanProperty hoverOverlayEnabled =
-            new SimpleBooleanProperty(this, "hoverOverlayEnabled", true) {
+            new StyleableBooleanProperty(DEFAULT_HOVER_OVERLAY_ENABLED) {
                 @Override
-                protected void invalidated() {
-                    ripple.setHoverOverlayEnabled(get());
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_HOVER_OVERLAY_ENABLED;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXRipplePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "hoverOverlayEnabled";
                 }
             };
 
     /**
      * Whether the low-opacity hover state overlay may show while the pointer is
      * inside. The press ripple is unaffected (it stays gated only by
-     * {@link #rippleEnabledProperty() rippleEnabled}). Disable this on a host
-     * that already represents the hovered / active state another way, so the
-     * overlay does not tint it.
+     * {@link #rippleEnabledProperty() rippleEnabled}). Initial value is
+     * {@link #DEFAULT_HOVER_OVERLAY_ENABLED}.
      *
      * @return the hover-overlay-enabled property
      */
@@ -699,6 +712,21 @@ public class RXRipplePane extends Region {
                     }
                 };
 
+        private static final CssMetaData<RXRipplePane, Boolean> RIPPLE_HOVER_OVERLAY_ENABLED =
+                new CssMetaData<>("-rx-ripple-hover-overlay-enabled",
+                        BooleanConverter.getInstance(), DEFAULT_HOVER_OVERLAY_ENABLED) {
+                    @Override
+                    public boolean isSettable(RXRipplePane pane) {
+                        return !pane.hoverOverlayEnabled.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXRipplePane pane) {
+                        return (StyleableProperty<Boolean>) pane.hoverOverlayEnabledProperty();
+                    }
+                };
+
         private static final CssMetaData<RXRipplePane, Boolean> RIPPLE_CENTERED =
                 new CssMetaData<>("-rx-ripple-centered",
                         BooleanConverter.getInstance(), DEFAULT_RIPPLE_CENTERED) {
@@ -751,6 +779,7 @@ public class RXRipplePane extends Region {
             styleables.add(RIPPLE_FILL);
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
+            styleables.add(RIPPLE_HOVER_OVERLAY_ENABLED);
             styleables.add(RIPPLE_CENTERED);
             styleables.add(RIPPLE_INSETS);
             styleables.add(RIPPLE_CORNER_RADIUS);

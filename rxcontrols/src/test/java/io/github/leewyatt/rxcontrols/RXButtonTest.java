@@ -67,6 +67,7 @@ public class RXButtonTest {
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, button.getRippleFill());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, button.getRippleOpacity(), EPSILON);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, button.isRippleEnabled());
+        assertEquals(RXRipplePane.DEFAULT_HOVER_OVERLAY_ENABLED, button.isHoverOverlayEnabled());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, button.isRippleCentered());
         assertNull(button.getRippleCornerRadius());
 
@@ -76,6 +77,7 @@ public class RXButtonTest {
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
         assertTrue(properties.contains("-rx-ripple-enabled"));
+        assertTrue(properties.contains("-rx-ripple-hover-overlay-enabled"));
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
         assertTrue(properties.contains("-fx-font"));
@@ -206,7 +208,6 @@ public class RXButtonTest {
             button.setRippleEnabled(false);
 
             assertEquals(0, layer.getChildrenUnmodifiable().size());
-            assertNull(layer.getClip());
 
             button.setRippleEnabled(true);
             button.fireEvent(mouse(button, MouseEvent.MOUSE_RELEASED, 20.0, 10.0,
@@ -327,13 +328,13 @@ public class RXButtonTest {
 
     /**
      * Verifies pointer enter shows the hover state overlay carrying the ripple
-     * fill, exit hides it, and disabling the ripple or the control suppresses
+     * fill, exit hides it, and disabling the overlay or the control suppresses
      * it.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void hoverShowsStateOverlayGatedByEnabledAndDisable() throws Exception {
+    public void hoverShowsStateOverlayGatedByHoverOverlayAndDisable() throws Exception {
         runOnFx(() -> {
             RXButton button = withSkin(new RXButton("OK"));
             button.setRippleFill(Color.RED);
@@ -355,9 +356,12 @@ public class RXButtonTest {
             button.fireEvent(mouse(button, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
                     MouseButton.NONE, false, false));
             button.setRippleEnabled(false);
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            button.setHoverOverlayEnabled(false);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);
 
-            button.setRippleEnabled(true);
+            button.setHoverOverlayEnabled(true);
             assertTrue(layer.getOverlayTargetOpacity() > 0.0);
             button.setDisable(true);
             assertEquals(0.0, layer.getOverlayTargetOpacity(), EPSILON);

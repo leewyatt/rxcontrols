@@ -73,8 +73,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         super(button);
 
         ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
-                button.rippleFillProperty(), button::getRippleOpacity,
-                null, button.rippleCornerRadiusProperty());
+                button.hoverOverlayEnabledProperty(), button.rippleFillProperty(),
+                button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
         getChildren().addAll(ripple.getLayer(), pages.getContentPane());
 
         // Front face: an internal label mirroring the button's Labeled API.
@@ -90,7 +90,6 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         wireFaces(button);
         wireBehavior(button);
         wireAccelerators(button);
-        updateHoverOverlay(button);
     }
 
     private void bindFrontLabel(RXTransitionButton button) {
@@ -115,10 +114,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
             handleArmedChanged();
             updateFace();
         });
-        disposer.registerListener(button.animationTriggerProperty(), () -> {
-            updateHoverOverlay(button);
-            updateFace();
-        });
+        disposer.registerListener(button.animationTriggerProperty(), this::updateFace);
         disposer.registerListener(button.alternateContentProperty(),
                 () -> setPageContent(pages.getPageB(), button.getAlternateContent()));
         disposer.registerEventHandler(button, RXAnimationEvent.PLAY_ANIMATION, event -> {
@@ -337,12 +333,6 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
             return;
         }
         showFace(true, this::updateFace);
-    }
-
-    private void updateHoverOverlay(RXTransitionButton button) {
-        // The face swap is the hover affordance when hover-triggered; the
-        // ripple hover overlay would only tint it (the press ripple stays).
-        ripple.setHoverOverlayEnabled(triggerOrDefault(button) != AnimationTrigger.HOVER);
     }
 
     private static void setPageContent(StackPane page, Node content) {

@@ -162,10 +162,6 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             SegmentCell cell = cells.get(i);
             boolean isSelected = i == selected;
             cell.pseudoClassStateChanged(SELECTED, isSelected);
-            // The selected segment is represented by the sliding pill, so its
-            // hover tint is suppressed (otherwise it stays grey until the pointer
-            // leaves). The press ripple is kept enabled.
-            cell.setHoverOverlayEnabled(!isSelected);
         }
     }
 
