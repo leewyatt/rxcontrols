@@ -808,7 +808,7 @@ public class RXRipplePaneTest {
 
     /**
      * Verifies content alignment positions a non-filling content node: centered
-     * by default, and honoring an explicit alignment like StackPane.
+     * by default, and honoring an explicit alignment.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -835,6 +835,60 @@ public class RXRipplePaneTest {
             layout(pane, 100.0, 50.0);
             assertClose(60.0, content.getLayoutX(), "bottom-right x");
             assertClose(30.0, content.getLayoutY(), "bottom-right y");
+        });
+    }
+
+    /**
+     * Verifies disabling clears the hover state so re-enabling does not restore a
+     * stale overlay: a disabled node receives no MOUSE_EXITED, so pointer-inside
+     * must be cleared on disable rather than on a (never-delivered) exit.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void disableClearsHoverSoReenableDoesNotStickOverlay() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0);
+
+            pane.setDisable(true);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay off while disabled");
+
+            pane.setDisable(false);
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "overlay stays off after re-enable");
+        });
+    }
+
+    /**
+     * Verifies turning the ripple off while pressed drops the pressed deepen back
+     * to the hover level immediately, rather than lingering until the next release.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void disablingRippleWhilePressedDropsPressedDeepen() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            double hover = layer.getOverlayTargetOpacity();
+            assertTrue(hover > 0.0);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_PRESSED, 20.0, 10.0,
+                    MouseButton.PRIMARY, true));
+            assertTrue(layer.getOverlayTargetOpacity() > hover);
+
+            pane.setRippleEnabled(false);
+            assertClose(hover, layer.getOverlayTargetOpacity(),
+                    "pressed deepen drops to the hover level when the ripple is disabled");
         });
     }
 

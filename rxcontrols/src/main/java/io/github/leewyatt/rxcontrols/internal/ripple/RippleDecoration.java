@@ -96,12 +96,21 @@ public final class RippleDecoration {
         // Shared lifecycle.
         disposer.registerListener(rippleEnabled, () -> {
             if (!isRippleEnabled()) {
+                // rippleEnabled gates the press interaction (it triggers press()),
+                // so turning it off cancels both the in-flight circle and the
+                // pressed deepen; the hover tint still follows pointerInside.
+                pressed = false;
                 behavior.clear();
             }
             updateOverlay();
         });
         disposer.registerListener(host.disabledProperty(), () -> {
             if (host.isDisabled()) {
+                // A disabled node receives no MOUSE_EXITED, so treat disabling as
+                // an implicit exit/release and clear the interaction state here;
+                // otherwise re-enabling would restore a stale overlay with the
+                // pointer no longer inside.
+                pointerInside = false;
                 pressed = false;
                 behavior.release();
             }
