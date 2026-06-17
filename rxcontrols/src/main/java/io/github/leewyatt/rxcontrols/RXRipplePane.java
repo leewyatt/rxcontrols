@@ -17,13 +17,14 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
-import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.input.MouseButton;
@@ -97,6 +98,11 @@ public class RXRipplePane extends Region {
      * Default pointer-origin mode.
      */
     public static final boolean DEFAULT_RIPPLE_CENTERED = false;
+
+    /**
+     * Default content alignment, matching {@link javafx.scene.layout.StackPane}.
+     */
+    public static final Pos DEFAULT_ALIGNMENT = Pos.CENTER;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-ripple-pane";
 
@@ -562,6 +568,62 @@ public class RXRipplePane extends Region {
         rippleCornerRadius.set(value);
     }
 
+    // ==================== Alignment ====================
+
+    private final ObjectProperty<Pos> alignment =
+            new StyleableObjectProperty<>(DEFAULT_ALIGNMENT) {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, Pos> getCssMetaData() {
+                    return StyleableProperties.ALIGNMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXRipplePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "alignment";
+                }
+            };
+
+    /**
+     * Alignment of the {@linkplain #contentProperty() content} within the pane's
+     * padded area, matching {@link javafx.scene.layout.StackPane}: content that
+     * fills the area is unaffected, smaller content is positioned per this value.
+     * Initial value is {@link #DEFAULT_ALIGNMENT}; {@code null} is treated as
+     * {@link #DEFAULT_ALIGNMENT} at layout time.
+     *
+     * @return the alignment property
+     */
+    public final ObjectProperty<Pos> alignmentProperty() {
+        return alignment;
+    }
+
+    /**
+     * Returns the content alignment.
+     *
+     * @return the content alignment, or {@code null}
+     */
+    public final Pos getAlignment() {
+        return alignment.get();
+    }
+
+    /**
+     * Sets the content alignment.
+     *
+     * @param value the alignment, or {@code null} to use {@link #DEFAULT_ALIGNMENT}
+     */
+    public final void setAlignment(Pos value) {
+        alignment.set(value);
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -576,7 +638,7 @@ public class RXRipplePane extends Region {
         double bottom = snappedBottomInset();
         double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
         Node node = getContent();
-        return snappedLeftInset() + (node == null ? 0.0 : node.minWidth(contentHeight)) + snappedRightInset();
+        return snappedLeftInset() + (node == null ? 0.0 : snapSizeX(node.minWidth(contentHeight))) + snappedRightInset();
     }
 
     @Override
@@ -585,7 +647,7 @@ public class RXRipplePane extends Region {
         double right = snappedRightInset();
         double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
         Node node = getContent();
-        return snappedTopInset() + (node == null ? 0.0 : node.minHeight(contentWidth)) + snappedBottomInset();
+        return snappedTopInset() + (node == null ? 0.0 : snapSizeY(node.minHeight(contentWidth))) + snappedBottomInset();
     }
 
     @Override
@@ -594,7 +656,7 @@ public class RXRipplePane extends Region {
         double bottom = snappedBottomInset();
         double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
         Node node = getContent();
-        return snappedLeftInset() + (node == null ? 0.0 : node.prefWidth(contentHeight)) + snappedRightInset();
+        return snappedLeftInset() + (node == null ? 0.0 : snapSizeX(node.prefWidth(contentHeight))) + snappedRightInset();
     }
 
     @Override
@@ -603,7 +665,7 @@ public class RXRipplePane extends Region {
         double right = snappedRightInset();
         double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
         Node node = getContent();
-        return snappedTopInset() + (node == null ? 0.0 : node.prefHeight(contentWidth)) + snappedBottomInset();
+        return snappedTopInset() + (node == null ? 0.0 : snapSizeY(node.prefHeight(contentWidth))) + snappedBottomInset();
     }
 
     @Override
@@ -631,7 +693,13 @@ public class RXRipplePane extends Region {
         if (node != null) {
             double contentW = valid ? Math.max(0.0, width - left - right) : 0.0;
             double contentH = valid ? Math.max(0.0, height - top - bottom) : 0.0;
-            layoutInArea(node, left, top, contentW, contentH, 0.0, HPos.LEFT, VPos.TOP);
+            Pos align = getAlignment();
+            if (align == null) {
+                align = DEFAULT_ALIGNMENT;
+            }
+            double baselineOffset = align.getVpos() == VPos.BASELINE ? node.getBaselineOffset() : 0.0;
+            layoutInArea(node, left, top, contentW, contentH, baselineOffset,
+                    align.getHpos(), align.getVpos());
         }
         // The decoration reads its insets/corner-radius and collapses and
         // clears itself on an invalid size.
@@ -773,6 +841,21 @@ public class RXRipplePane extends Region {
                     }
                 };
 
+        private static final CssMetaData<RXRipplePane, Pos> ALIGNMENT =
+                new CssMetaData<>("-fx-alignment",
+                        new EnumConverter<>(Pos.class), DEFAULT_ALIGNMENT) {
+                    @Override
+                    public boolean isSettable(RXRipplePane pane) {
+                        return !pane.alignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Pos> getStyleableProperty(RXRipplePane pane) {
+                        return (StyleableProperty<Pos>) pane.alignmentProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -785,6 +868,7 @@ public class RXRipplePane extends Region {
             styleables.add(RIPPLE_CENTERED);
             styleables.add(RIPPLE_INSETS);
             styleables.add(RIPPLE_CORNER_RADIUS);
+            styleables.add(ALIGNMENT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

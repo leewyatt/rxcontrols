@@ -7,6 +7,7 @@ import javafx.beans.DefaultProperty;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.MouseButton;
@@ -86,6 +87,7 @@ public class RXRipplePaneTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_CENTERED, pane.isRippleCentered());
         assertNull(pane.getRippleInsets());
         assertNull(pane.getRippleCornerRadius());
+        assertEquals(RXRipplePane.DEFAULT_ALIGNMENT, pane.getAlignment());
 
         RippleLayer layer = rippleLayer(pane);
         assertFalse(layer.isManaged());
@@ -103,6 +105,7 @@ public class RXRipplePaneTest {
         assertTrue(properties.contains("-rx-ripple-centered"));
         assertTrue(properties.contains("-rx-ripple-insets"));
         assertTrue(properties.contains("-rx-ripple-corner-radius"));
+        assertTrue(properties.contains("-fx-alignment"));
     }
 
     /**
@@ -800,6 +803,38 @@ public class RXRipplePaneTest {
             pane.fireEvent(mouse(pane, MouseEvent.MOUSE_EXITED, -5.0, 10.0,
                     MouseButton.NONE, false));
             assertClose(0.0, layer.getOverlayTargetOpacity(), "hidden after exit");
+        });
+    }
+
+    /**
+     * Verifies content alignment positions a non-filling content node: centered
+     * by default, and honoring an explicit alignment like StackPane.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void alignmentPositionsContent() throws Exception {
+        runOnFx(() -> {
+            Region content = new Region();
+            content.setPrefSize(40.0, 20.0);
+            // Cap the size so the content does not fill the pane and alignment applies.
+            content.setMaxSize(40.0, 20.0);
+            RXRipplePane pane = new RXRipplePane(content);
+
+            assertEquals(RXRipplePane.DEFAULT_ALIGNMENT, pane.getAlignment());
+            layout(pane, 100.0, 50.0);
+            assertClose(30.0, content.getLayoutX(), "centered x");
+            assertClose(15.0, content.getLayoutY(), "centered y");
+
+            pane.setAlignment(Pos.TOP_LEFT);
+            layout(pane, 100.0, 50.0);
+            assertClose(0.0, content.getLayoutX(), "top-left x");
+            assertClose(0.0, content.getLayoutY(), "top-left y");
+
+            pane.setAlignment(Pos.BOTTOM_RIGHT);
+            layout(pane, 100.0, 50.0);
+            assertClose(60.0, content.getLayoutX(), "bottom-right x");
+            assertClose(30.0, content.getLayoutY(), "bottom-right y");
         });
     }
 

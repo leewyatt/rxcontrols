@@ -19,7 +19,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -535,10 +534,6 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
         private final RXSegmentedItem<T> item;
         private final Label label = new Label();
-        // RXRipplePane lays its content out top-left; this holder re-centers the
-        // label / custom content and stays mouse-transparent so presses reach the
-        // pane for both selection and the ripple.
-        private final StackPane contentHolder = new StackPane();
         private final int index;
 
         private List<String> appliedItemStyleClasses = new ArrayList<>();
@@ -562,8 +557,9 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             // Basic accessibility: announce each segment as a radio option.
             setAccessibleRole(AccessibleRole.RADIO_BUTTON);
             getStyleClass().add(SEGMENT_STYLE_CLASS);
-            contentHolder.setMouseTransparent(true);
-            setContent(contentHolder);
+            // Content is display-only and stays mouse-transparent so every press
+            // lands on the segment for selection + ripple; RXRipplePane centers it.
+            label.setMouseTransparent(true);
 
             updateStyleClass();
             updateContent();
@@ -582,11 +578,12 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         private void updateContent() {
             Node content = item.getContent();
             if (content != null) {
-                contentHolder.getChildren().setAll(content);
+                content.setMouseTransparent(true);
+                setContent(content);
             } else {
                 label.setText(displayText(item));
                 label.setGraphic(item.getGraphic());
-                contentHolder.getChildren().setAll(label);
+                setContent(label);
             }
         }
 

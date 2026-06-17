@@ -745,15 +745,14 @@ public class RXSegmentedControlTest {
         runOnFx(() -> {
             RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
             RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
-            Region holder = contentHolder(control, 0);
-            assertTrue(holder.getChildrenUnmodifiable().get(0) instanceof Label);
+            assertTrue(cellContent(control, 0) instanceof Label);
 
             Region custom = new Region();
             item.setContent(custom);
-            assertSame(custom, holder.getChildrenUnmodifiable().get(0), "content replaces the label");
+            assertSame(custom, cellContent(control, 0), "content replaces the label");
 
             item.setContent(null);
-            assertTrue(holder.getChildrenUnmodifiable().get(0) instanceof Label,
+            assertTrue(cellContent(control, 0) instanceof Label,
                     "clearing content restores the text label");
         });
     }
@@ -1017,14 +1016,14 @@ public class RXSegmentedControlTest {
         return (Region) control.getChildrenUnmodifiable().get(index + 1);
     }
 
-    private static Region contentHolder(RXSegmentedControl<?> control, int index) {
-        // Each segment is an RXRipplePane whose first child is the centering
-        // content holder (the ripple layer is the second child).
-        return (Region) cell(control, index).getChildrenUnmodifiable().get(0);
+    private static Node cellContent(RXSegmentedControl<?> control, int index) {
+        // Each segment is an RXRipplePane whose content slot holds the label or
+        // the item's custom content directly (RXRipplePane centers it).
+        return ((RXRipplePane) cell(control, index)).getContent();
     }
 
     private static Label cellLabel(RXSegmentedControl<?> control, int index) {
-        return (Label) contentHolder(control, index).getChildrenUnmodifiable().get(0);
+        return (Label) cellContent(control, index);
     }
 
     private static void assertIndicatorMatchesCell(RXSegmentedControl<?> control, int index) {
