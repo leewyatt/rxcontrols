@@ -10,6 +10,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
+import javafx.scene.control.Tooltip;
 
 /**
  * One option of an {@link RXSegmentedControl}. It pairs an application
@@ -185,6 +186,12 @@ public class RXSegmentedItem<T> {
      * Fully custom segment content. When non-null it replaces the
      * {@link #textProperty() text} and {@link #graphicProperty() graphic}.
      *
+     * <p>The content is display-only: the skin sets it
+     * {@link Node#setMouseTransparent(boolean) mouse-transparent} so presses fall
+     * through to the segment cell for selection and ripple. Selection is driven by
+     * the control (its {@code value}/{@code select(...)}), not by the content node
+     * receiving mouse events.
+     *
      * @return content property
      */
     public final ObjectProperty<Node> contentProperty() {
@@ -209,20 +216,23 @@ public class RXSegmentedItem<T> {
         content.set(value);
     }
 
-    // ==================== Disabled ====================
+    // ==================== Disable ====================
 
-    private final BooleanProperty disabled = new SimpleBooleanProperty(this, "disabled", false);
+    private final BooleanProperty disable = new SimpleBooleanProperty(this, "disable", false);
 
     /**
      * Whether this segment is disabled. A disabled segment cannot be selected
      * through user interaction or keyboard navigation; it may still be selected
-     * programmatically. Combined (logical OR) with the control-level disabled
-     * state.
+     * programmatically. The skin mirrors this onto the segment cell's
+     * {@code disabled} state, which JavaFX's node-disable inheritance then
+     * combines (logical OR) with the control-level disabled state. Named
+     * {@code disable} (not {@code disabled}) to match the JavaFX writable-disable
+     * convention of {@code Node}/{@code MenuItem}/{@code Tab}.
      *
-     * @return disabled property
+     * @return disable property
      */
-    public final BooleanProperty disabledProperty() {
-        return disabled;
+    public final BooleanProperty disableProperty() {
+        return disable;
     }
 
     /**
@@ -230,8 +240,8 @@ public class RXSegmentedItem<T> {
      *
      * @return {@code true} if disabled
      */
-    public final boolean isDisabled() {
-        return disabled.get();
+    public final boolean isDisable() {
+        return disable.get();
     }
 
     /**
@@ -239,39 +249,42 @@ public class RXSegmentedItem<T> {
      *
      * @param value {@code true} if disabled
      */
-    public final void setDisabled(boolean value) {
-        disabled.set(value);
+    public final void setDisable(boolean value) {
+        disable.set(value);
     }
 
     // ==================== Tooltip ====================
 
-    private final ObjectProperty<String> tooltip = new SimpleObjectProperty<>(this, "tooltip");
+    private final ObjectProperty<Tooltip> tooltip = new SimpleObjectProperty<>(this, "tooltip");
 
     /**
-     * Optional native tooltip text shown when hovering the segment. May be
-     * {@code null} (no tooltip).
+     * Optional {@link Tooltip} shown when hovering the segment. Exposing a
+     * {@code Tooltip} (rather than a plain string) lets the caller configure its
+     * graphic, show/hide delay, duration and styling, mirroring
+     * {@code Tab.tooltip}; the skin installs and uninstalls this instance
+     * directly. May be {@code null} (no tooltip).
      *
      * @return tooltip property
      */
-    public final ObjectProperty<String> tooltipProperty() {
+    public final ObjectProperty<Tooltip> tooltipProperty() {
         return tooltip;
     }
 
     /**
-     * Returns the tooltip text.
+     * Returns the tooltip.
      *
-     * @return tooltip text, may be {@code null}
+     * @return the tooltip, may be {@code null}
      */
-    public final String getTooltip() {
+    public final Tooltip getTooltip() {
         return tooltip.get();
     }
 
     /**
-     * Sets the tooltip text.
+     * Sets the tooltip.
      *
-     * @param value tooltip text, may be {@code null}
+     * @param value the tooltip, may be {@code null}
      */
-    public final void setTooltip(String value) {
+    public final void setTooltip(Tooltip value) {
         tooltip.set(value);
     }
 

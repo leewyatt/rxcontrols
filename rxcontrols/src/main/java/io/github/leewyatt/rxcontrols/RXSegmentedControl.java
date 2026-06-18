@@ -476,7 +476,7 @@ public class RXSegmentedControl<T> extends Control {
 
     private boolean isEnabled(int index) {
         RXSegmentedItem<T> item = items.get(index);
-        return item != null && !item.isDisabled();
+        return item != null && !item.isDisable();
     }
 
     private int firstEnabledIndex() {

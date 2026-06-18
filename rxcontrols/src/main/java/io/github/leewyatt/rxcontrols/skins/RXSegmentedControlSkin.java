@@ -7,7 +7,6 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
@@ -164,7 +163,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
     private void onCellPressed(SegmentCell cell) {
         RXSegmentedControl<T> control = getSkinnable();
-        if (cell.item.isDisabled()) {
+        if (cell.item.isDisable()) {
             return;
         }
         control.requestFocus();
@@ -230,7 +229,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     }
 
     private boolean isEnabled(int index) {
-        return !cells.get(index).item.isDisabled();
+        return !cells.get(index).item.isDisable();
     }
 
     private static String displayText(RXSegmentedItem<?> item) {
@@ -536,18 +535,17 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
         private List<String> appliedItemStyleClasses = new ArrayList<>();
 
-        // Per-item listeners are held as fields and removed in detach(): a
-        // discarded cell would otherwise leak through the (user-owned) item.
-        private final InvalidationListener contentListener = observable -> updateContent();
-        private final InvalidationListener disabledListener = observable -> updateDisabledState();
-        private final InvalidationListener styleClassListener = observable -> updateStyleClass();
-        private final InvalidationListener tooltipListener = observable -> updateTooltip();
+        // All per-item listeners, the press handler and the node / tooltip teardown
+        // funnel through one disposer; detach() is a single dispose(). The cell
+        // (not a Skin) owns the disposer because the cell is what holds references
+        // onto the user-owned item.
+        private final SkinDisposer disposer = new SkinDisposer();
         private final EventHandler<MouseEvent> pressHandler = event -> {
             onCellPressed(this);
             event.consume();
         };
 
-        private Tooltip tooltip;
+        private Tooltip installedTooltip;
 
         SegmentCell(RXSegmentedItem<T> item, int index) {
             getStyleClass().add(SEGMENT_STYLE_CLASS);
@@ -564,18 +562,26 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             updateTooltip();
             updateDisabledState();
 
-            item.textProperty().addListener(contentListener);
-            item.graphicProperty().addListener(contentListener);
-            item.contentProperty().addListener(contentListener);
-            item.disabledProperty().addListener(disabledListener);
-            item.tooltipProperty().addListener(tooltipListener);
-            item.getStyleClass().addListener(styleClassListener);
-            addEventHandler(MouseEvent.MOUSE_PRESSED, pressHandler);
+            disposer.registerListener(item.textProperty(), this::updateContent);
+            disposer.registerListener(item.graphicProperty(), this::updateContent);
+            disposer.registerListener(item.contentProperty(), this::updateContent);
+            disposer.registerListener(item.disableProperty(), this::updateDisabledState);
+            disposer.registerListener(item.tooltipProperty(), this::updateTooltip);
+            disposer.registerListener(item.getStyleClass(), this::updateStyleClass);
+            disposer.registerEventHandler(this, MouseEvent.MOUSE_PRESSED, pressHandler);
+            // Release the item-owned content / graphic node and uninstall the
+            // tooltip on teardown so a discarded cell never retains them via the
+            // user-owned nodes' parent links (matching RXTimelineViewSkin.ItemNode).
+            disposer.registerDisposeTask(this::releaseItemResources);
         }
 
         private void updateContent() {
             Node content = item.getContent();
             if (content != null) {
+                // Custom content takes over: drop the graphic the internal label
+                // was holding so the item-owned graphic node is not retained on the
+                // now off-screen label.
+                label.setGraphic(null);
                 content.setMouseTransparent(true);
                 setContent(content);
             } else {
@@ -589,7 +595,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             // setDisable drives the framework-owned :disabled pseudo-class
             // natively, blocks pointer events / hover, and suppresses the ripple
             // on a disabled segment.
-            setDisable(item.isDisabled());
+            setDisable(item.isDisable());
         }
 
         private void updateStyleClass() {
@@ -608,32 +614,33 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         }
 
         private void updateTooltip() {
-            String text = item.getTooltip();
-            if (text == null || text.isEmpty()) {
-                if (tooltip != null) {
-                    Tooltip.uninstall(this, tooltip);
-                    tooltip = null;
-                }
-            } else {
-                if (tooltip == null) {
-                    tooltip = new Tooltip();
-                    Tooltip.install(this, tooltip);
-                }
-                tooltip.setText(text);
+            Tooltip next = item.getTooltip();
+            if (next == installedTooltip) {
+                return;
+            }
+            if (installedTooltip != null) {
+                Tooltip.uninstall(this, installedTooltip);
+            }
+            installedTooltip = next;
+            if (installedTooltip != null) {
+                Tooltip.install(this, installedTooltip);
             }
         }
 
         private void detach() {
-            item.textProperty().removeListener(contentListener);
-            item.graphicProperty().removeListener(contentListener);
-            item.contentProperty().removeListener(contentListener);
-            item.disabledProperty().removeListener(disabledListener);
-            item.tooltipProperty().removeListener(tooltipListener);
-            item.getStyleClass().removeListener(styleClassListener);
-            removeEventHandler(MouseEvent.MOUSE_PRESSED, pressHandler);
-            if (tooltip != null) {
-                Tooltip.uninstall(this, tooltip);
-                tooltip = null;
+            disposer.dispose();
+        }
+
+        // Runs as the disposer's teardown task: drops both content paths (custom
+        // content lives directly in the ripple pane; the item graphic lives on the
+        // internal label) and uninstalls the tooltip, so a discarded cell does not
+        // stay reachable through the user-owned nodes' parent links.
+        private void releaseItemResources() {
+            setContent(null);
+            label.setGraphic(null);
+            if (installedTooltip != null) {
+                Tooltip.uninstall(this, installedTooltip);
+                installedTooltip = null;
             }
         }
     }

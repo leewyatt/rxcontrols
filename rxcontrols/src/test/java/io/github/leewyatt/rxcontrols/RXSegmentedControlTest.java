@@ -6,6 +6,7 @@ import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -42,6 +43,9 @@ public class RXSegmentedControlTest {
 
     private static final double EPSILON = 0.0001;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
+    // Key under which Tooltip.install/uninstall stores the installed tooltip on a
+    // node's properties (Tooltip.TOOLTIP_PROP_KEY), used to observe install state.
+    private static final Object TOOLTIP_KEY = "javafx.scene.control.Tooltip";
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -93,7 +97,7 @@ public class RXSegmentedControlTest {
     public void initialSelectionSkipsDisabledFirstSegment() {
         RXSegmentedControl<String> control = new RXSegmentedControl<>();
         RXSegmentedItem<String> first = RXSegmentedItem.of("a", "A");
-        first.setDisabled(true);
+        first.setDisable(true);
         control.getItems().addAll(first, RXSegmentedItem.of("b", "B"), RXSegmentedItem.of("c", "C"));
 
         assertEquals(1, control.getSelectedIndex());
@@ -277,7 +281,7 @@ public class RXSegmentedControlTest {
     public void programmaticSelectionMayLandOnDisabled() {
         RXSegmentedControl<String> control = new RXSegmentedControl<>();
         RXSegmentedItem<String> b = RXSegmentedItem.of("b", "B");
-        b.setDisabled(true);
+        b.setDisable(true);
         control.getItems().addAll(RXSegmentedItem.of("a", "A"), b, RXSegmentedItem.of("c", "C"));
 
         control.selectIndex(1);
@@ -296,7 +300,7 @@ public class RXSegmentedControlTest {
         runOnFx(() -> {
             RXSegmentedControl<String> control = new RXSegmentedControl<>();
             RXSegmentedItem<String> b = RXSegmentedItem.of("b", "B");
-            b.setDisabled(true);
+            b.setDisable(true);
             control.getItems().addAll(RXSegmentedItem.of("a", "A"), b, RXSegmentedItem.of("c", "C"));
             withSkin(control);
             layout(control, 300.0, 32.0);
@@ -325,7 +329,7 @@ public class RXSegmentedControlTest {
     public void removingSelectedRecoverySkipsDisabled() {
         RXSegmentedControl<String> control = new RXSegmentedControl<>();
         RXSegmentedItem<String> c = RXSegmentedItem.of("c", "C");
-        c.setDisabled(true);
+        c.setDisable(true);
         control.getItems().addAll(RXSegmentedItem.of("a", "A"), RXSegmentedItem.of("b", "B"),
                 c, RXSegmentedItem.of("d", "D"));
         control.selectIndex(1);
@@ -669,7 +673,7 @@ public class RXSegmentedControlTest {
         runOnFx(() -> {
             RXSegmentedControl<String> control = new RXSegmentedControl<>();
             RXSegmentedItem<String> b = RXSegmentedItem.of("b", "B");
-            b.setDisabled(true);
+            b.setDisable(true);
             control.getItems().addAll(RXSegmentedItem.of("a", "A"), b, RXSegmentedItem.of("c", "C"));
             withSkin(control);
 
@@ -765,12 +769,12 @@ public class RXSegmentedControlTest {
                     RXSegmentedItem.of("a", "A"), b, RXSegmentedItem.of("c", "C")));
             layout(control, 300.0, 32.0);
 
-            b.setDisabled(true);
+            b.setDisable(true);
             assertTrue(cell(control, 1).isDisabled(), "cell tracks item disabled state");
             pressCell(control, 1);
             assertEquals(0, control.getSelectedIndex(), "disabled segment cannot be clicked");
 
-            b.setDisabled(false);
+            b.setDisable(false);
             pressCell(control, 1);
             assertEquals(1, control.getSelectedIndex(), "re-enabled segment is selectable");
         });
@@ -849,17 +853,40 @@ public class RXSegmentedControlTest {
     }
 
     @Test
-    public void tooltipLifecycleDoesNotThrow() throws Exception {
+    public void tooltipInstallsReplacesUninstallsOnCell() throws Exception {
         runOnFx(() -> {
             RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
             RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
+            Region cell = cell(control, 0);
 
-            item.setTooltip("Install");
-            item.setTooltip("Update");
+            Tooltip first = new Tooltip("Install");
+            item.setTooltip(first);
+            assertSame(first, cell.getProperties().get(TOOLTIP_KEY), "tooltip installed on the cell");
+
+            Tooltip second = new Tooltip("Replace");
+            item.setTooltip(second);
+            assertSame(second, cell.getProperties().get(TOOLTIP_KEY),
+                    "old tooltip uninstalled, new instance installed");
+
             item.setTooltip(null);
-            item.setTooltip("Reinstall");
-            // Visual display is verified manually; here we exercise the
-            // install / update / uninstall transitions without error.
+            assertNull(cell.getProperties().get(TOOLTIP_KEY), "tooltip uninstalled when cleared");
+        });
+    }
+
+    @Test
+    public void tooltipUninstalledOnDispose() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
+            Tooltip hint = new Tooltip("Hint");
+            item.setTooltip(hint);
+            RXSegmentedControl<String> control = new RXSegmentedControl<>(item);
+            RXSegmentedControlSkin<String> skin = new RXSegmentedControlSkin<>(control);
+            control.setSkin(skin);
+            Region cell = cell(control, 0);
+            assertSame(hint, cell.getProperties().get(TOOLTIP_KEY), "tooltip installed");
+
+            skin.dispose();
+            assertNull(cell.getProperties().get(TOOLTIP_KEY), "tooltip uninstalled on dispose");
         });
     }
 
@@ -968,6 +995,74 @@ public class RXSegmentedControlTest {
             oldItem.setText("Stale");
 
             assertEquals("Live", oldLabel.getText(), "old cell detached when items rebuilt");
+        });
+    }
+
+    // ==================== Item-owned node lifecycle (Step 1) ====================
+
+    @Test
+    public void customContentReleasedWhenItemRemoved() throws Exception {
+        runOnFx(() -> {
+            Region custom = new Region();
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
+            item.setContent(custom);
+            RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
+            assertSame(custom, cellContent(control, 0), "content mounted on the cell");
+
+            // Remove the item entirely: no new cell re-mounts the node, so without
+            // detach() releasing it the discarded cell would stay reachable via
+            // custom.getParent().
+            control.getItems().setAll(RXSegmentedItem.of("b", "B"));
+            assertNull(custom.getParent(),
+                    "removed item's content node is released, not retained by the discarded cell");
+        });
+    }
+
+    @Test
+    public void customContentReleasedOnDispose() throws Exception {
+        runOnFx(() -> {
+            Region custom = new Region();
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A");
+            item.setContent(custom);
+            RXSegmentedControl<String> control = new RXSegmentedControl<>(item);
+            RXSegmentedControlSkin<String> skin = new RXSegmentedControlSkin<>(control);
+            control.setSkin(skin);
+            assertSame(custom, cellContent(control, 0));
+
+            skin.dispose();
+            assertNull(custom.getParent(), "content node released on skin dispose");
+        });
+    }
+
+    @Test
+    public void itemGraphicReleasedWhenContentTakesOver() throws Exception {
+        runOnFx(() -> {
+            Region graphic = new Region();
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A", graphic);
+            RXSegmentedControl<String> control = withSkin(new RXSegmentedControl<>(item));
+            Label label = cellLabel(control, 0);
+            assertSame(graphic, label.getGraphic(), "graphic shown on the label");
+
+            // Custom content takes over: the internal label drops the graphic so the
+            // item-owned graphic node is not retained on the now off-screen label.
+            item.setContent(new Region());
+            assertNull(label.getGraphic(), "label drops the item graphic when content takes over");
+        });
+    }
+
+    @Test
+    public void itemGraphicReleasedOnDispose() throws Exception {
+        runOnFx(() -> {
+            Region graphic = new Region();
+            RXSegmentedItem<String> item = RXSegmentedItem.of("a", "A", graphic);
+            RXSegmentedControl<String> control = new RXSegmentedControl<>(item);
+            RXSegmentedControlSkin<String> skin = new RXSegmentedControlSkin<>(control);
+            control.setSkin(skin);
+            Label label = cellLabel(control, 0);
+            assertSame(graphic, label.getGraphic());
+
+            skin.dispose();
+            assertNull(label.getGraphic(), "graphic released from the label on dispose");
         });
     }
 

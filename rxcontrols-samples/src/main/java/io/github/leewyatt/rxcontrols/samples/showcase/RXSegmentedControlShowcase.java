@@ -211,7 +211,7 @@ public class RXSegmentedControlShowcase extends RXShowcaseApplication {
 
     private void applySegmentDisable() {
         if (disableSegmentBox != null && segmented.getItems().size() > 2) {
-            segmented.getItems().get(2).setDisabled(disableSegmentBox.isSelected());
+            segmented.getItems().get(2).setDisable(disableSegmentBox.isSelected());
         }
     }
 
