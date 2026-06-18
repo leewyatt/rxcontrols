@@ -1,11 +1,9 @@
 package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * Makes RxControls follow an <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
@@ -77,8 +75,7 @@ public final class RXAtlantaFX {
      * @param scene the scene to bridge; must not be null
      */
     public static void install(Scene scene) {
-        Objects.requireNonNull(scene, "scene");
-        addOnce(scene.getStylesheets());
+        RXStyles.addSheets(scene, getStylesheet());
     }
 
     /**
@@ -88,8 +85,7 @@ public final class RXAtlantaFX {
      * @param parent the parent to bridge; must not be null
      */
     public static void install(Parent parent) {
-        Objects.requireNonNull(parent, "parent");
-        addOnce(parent.getStylesheets());
+        RXStyles.addSheets(parent, getStylesheet());
     }
 
     /**
@@ -98,8 +94,7 @@ public final class RXAtlantaFX {
      * @param scene the scene to unbridge; must not be null
      */
     public static void uninstall(Scene scene) {
-        Objects.requireNonNull(scene, "scene");
-        scene.getStylesheets().remove(getStylesheet());
+        RXStyles.removeSheets(scene, getStylesheet());
     }
 
     /**
@@ -108,14 +103,6 @@ public final class RXAtlantaFX {
      * @param parent the parent to unbridge; must not be null
      */
     public static void uninstall(Parent parent) {
-        Objects.requireNonNull(parent, "parent");
-        parent.getStylesheets().remove(getStylesheet());
-    }
-
-    private static void addOnce(List<String> stylesheets) {
-        String url = getStylesheet();
-        if (!stylesheets.contains(url)) {
-            stylesheets.add(url);
-        }
+        RXStyles.removeSheets(parent, getStylesheet());
     }
 }
