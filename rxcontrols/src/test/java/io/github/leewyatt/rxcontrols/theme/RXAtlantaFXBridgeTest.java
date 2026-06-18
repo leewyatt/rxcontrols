@@ -9,8 +9,10 @@ import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -190,7 +192,7 @@ public class RXAtlantaFXBridgeTest {
             host.getChildren().addAll(probes.values());
             host.getChildren().addAll(refHover, refActive);
             Scene scene = new Scene(host, 200, 200);
-            RXAtlantaFX.applyTo(scene);
+            RXAtlantaFX.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -238,7 +240,7 @@ public class RXAtlantaFXBridgeTest {
 
             StackPane host = new StackPane(fillButton, plain, timeline);
             Scene scene = new Scene(host, 360, 220);
-            RXAtlantaFX.applyTo(scene);
+            RXAtlantaFX.install(scene);
             host.applyCss();
             host.layout();
 
@@ -281,7 +283,7 @@ public class RXAtlantaFXBridgeTest {
             StackPane subtree = new StackPane(insideButton);
             StackPane root = new StackPane(subtree, outsideButton);
             Scene scene = new Scene(root, 320, 200);
-            RXAtlantaFX.applyTo(subtree);
+            RXAtlantaFX.install(subtree);
             root.applyCss();
             root.layout();
             inside.set(fillRegionColor(insideButton));
@@ -314,7 +316,7 @@ public class RXAtlantaFXBridgeTest {
             StackPane host = new StackPane();
             host.getChildren().addAll(probes.values());
             Scene scene = new Scene(host, 200, 200);
-            RXAtlantaFX.applyTo(scene);
+            RXAtlantaFX.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -339,7 +341,7 @@ public class RXAtlantaFXBridgeTest {
             cascader.getRootItems().add(new RXCascaderItem<>("a"));
             StackPane host = new StackPane(cascader);
             Scene scene = new Scene(host, 320, 120);
-            RXAtlantaFX.applyTo(scene);
+            RXAtlantaFX.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -348,6 +350,38 @@ public class RXAtlantaFXBridgeTest {
         assertTrue(failures.isEmpty(),
                 "rx-controls.css still has unresolved colors under the bridge (compat layer "
                         + "is missing a -fx-* var):\n" + String.join("\n", failures));
+    }
+
+    /**
+     * A fill button pressed while filling is both {@code :armed} (AtlantaFX sets a
+     * themed, light-theme-dark text there) and {@code :filling} (rx-controls sets
+     * on-primary). Those user-agent rules tie on specificity; the bridge re-asserts
+     * on-primary from author origin so the label stays readable on the dark fill.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void fillButtonArmedTextStaysOnPrimaryUnderTheBridge() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+
+        runOnFx(() -> {
+            // Reproduce the cascade on one node: .button (AtlantaFX :armed text rule)
+            // + .rx-fill-button:filling (the bridge's author on-primary text rule).
+            Label probe = new Label("x");
+            probe.getStyleClass().addAll("button", "rx-fill-button");
+            probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("filling"), true);
+            probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("armed"), true);
+            StackPane host = new StackPane(probe);
+            Scene scene = new Scene(host, 120, 60);
+            RXAtlantaFX.install(scene);
+            host.applyCss();
+            host.layout();
+            textFill.set(probe.getTextFill());
+        });
+
+        assertEquals(Color.web("#ffffff"), textFill.get(),
+                "a filling+armed fill button must keep -rx-on-primary text (else AtlantaFX "
+                        + "':armed' wins the user-agent tie and the label goes dark on the fill)");
     }
 
     // ==================== Helpers ====================

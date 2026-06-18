@@ -168,9 +168,9 @@
    stylesheet <b>before</b> building the scene, then apply the bridge:</p>
 <pre><code>Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 Scene scene = new Scene(root);
-RXAtlantaFX.applyTo(scene);   // popups opened afterwards follow it too</code></pre>
+RXAtlantaFX.install(scene);   // popups opened afterwards follow it too</code></pre>
 <p>Apply at scene level (recommended) or to a single <code>Parent</code> subtree
-   (<code>applyTo(Parent)</code>) when mixing themes. A scene-level bridge reaches popups (e.g.
+   (<code>install(Parent)</code>) when mixing themes. A scene-level bridge reaches popups (e.g.
    <code>RXCascader</code>'s) because the popup snapshots its owner scene's stylesheets at show time;
    a parent-level bridge reaches a popup only when that parent is on the owning control's ancestor
    chain.</p>

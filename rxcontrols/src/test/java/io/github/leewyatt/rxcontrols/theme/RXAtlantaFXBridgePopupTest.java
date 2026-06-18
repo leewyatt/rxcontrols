@@ -132,7 +132,7 @@ public class RXAtlantaFXBridgePopupTest {
             RXCascader<String> cascader = newCascader();
             StackPane root = new StackPane(cascader);
             stage = show(root);
-            RXAtlantaFX.applyTo(stage.getScene());
+            RXAtlantaFX.install(stage.getScene());
             stage.getScene().getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();
@@ -175,7 +175,7 @@ public class RXAtlantaFXBridgePopupTest {
             StackPane ancestor = new StackPane(cascader);
             StackPane root = new StackPane(ancestor);
             stage = show(root);
-            RXAtlantaFX.applyTo(ancestor);
+            RXAtlantaFX.install(ancestor);
             ancestor.getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();
@@ -210,7 +210,7 @@ public class RXAtlantaFXBridgePopupTest {
             StackPane unrelated = new StackPane();
             StackPane root = new StackPane(cascaderHolder, unrelated);
             stage = show(root);
-            RXAtlantaFX.applyTo(unrelated);
+            RXAtlantaFX.install(unrelated);
             unrelated.getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();

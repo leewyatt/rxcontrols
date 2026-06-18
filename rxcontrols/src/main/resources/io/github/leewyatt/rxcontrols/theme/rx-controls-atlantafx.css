@@ -3,7 +3,7 @@
  * RxControls x AtlantaFX bridge (author stylesheet)                           *
  *                                                                             *
  * Author-origin overrides that re-point the 19 -rx-* color role tokens at     *
- * AtlantaFX functional tokens (-color-*). Apply via RXAtlantaFX.applyTo(...)   *
+ * AtlantaFX functional tokens (-color-*). Apply via RXAtlantaFX.install(...)   *
  * in an app whose Application UA is an AtlantaFX theme (e.g. PrimerLight). On  *
  * a given control root the author origin wins over the rx-controls.css UA      *
  * baseline, and -color-* resolves from the AtlantaFX Application-UA `.root`.   *
@@ -69,4 +69,15 @@
     -fx-accent: -color-accent-emphasis;
     -fx-focus-color: -color-accent-emphasis;
     -fx-faint-focus-color: -color-accent-muted;
+}
+
+/* AtlantaFX's .button:armed sets a themed text color (-color-fg-default: dark on
+   light themes) that ties on specificity with rx-controls' .rx-fill-button:filling
+   in the user-agent cascade and can win when a fill button is pressed while filling,
+   leaving hard-to-read dark text on the dark pressed fill. Re-assert the on-primary
+   text from author origin (always beats the user-agent tie) wherever the fill covers
+   the label. */
+.rx-fill-button:filling,
+.rx-fill-label:filling {
+    -fx-text-fill: -rx-on-primary;
 }

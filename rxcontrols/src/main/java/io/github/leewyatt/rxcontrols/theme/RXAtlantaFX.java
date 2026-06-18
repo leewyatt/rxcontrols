@@ -24,19 +24,19 @@ import java.util.Objects;
  * <pre>{@code
  * Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
  * Scene scene = new Scene(root);
- * RXAtlantaFX.applyTo(scene);
+ * RXAtlantaFX.install(scene);
  * stage.setScene(scene);
  * stage.show();
  * }</pre>
  *
  * <h2>Scene vs Parent</h2>
- * Prefer {@link #applyTo(Scene)}. A scene-level bridge is the most predictable and
+ * Prefer {@link #install(Scene)}. A scene-level bridge is the most predictable and
  * also reaches popups (such as {@code RXCascader}'s): a popup opened afterwards
- * snapshots its owner scene's stylesheets, so it follows the bridge too. Apply it
+ * snapshots its owner scene's stylesheets, so it follows the bridge too. Install it
  * before opening popups; popups already open when the bridge is added do not pick
  * it up until reopened.
  *
- * <p>{@link #applyTo(Parent)} scopes the bridge to one subtree (useful for mixing
+ * <p>{@link #install(Parent)} scopes the bridge to one subtree (useful for mixing
  * themes within a scene). A popup follows a parent-level bridge only when that
  * parent is on the ancestor chain of the control that owns the popup; a bridge on
  * an unrelated parent does not reach the popup.
@@ -70,43 +70,44 @@ public final class RXAtlantaFX {
     }
 
     /**
-     * Adds the AtlantaFX bridge to the scene's stylesheets if not already present.
-     * Install before showing the scene and before opening popups (see class doc).
+     * Installs the AtlantaFX bridge on the scene (adds it to the scene's
+     * stylesheets if not already present). Install before showing the scene and
+     * before opening popups (see class doc).
      *
      * @param scene the scene to bridge; must not be null
      */
-    public static void applyTo(Scene scene) {
+    public static void install(Scene scene) {
         Objects.requireNonNull(scene, "scene");
         addOnce(scene.getStylesheets());
     }
 
     /**
-     * Adds the AtlantaFX bridge to the parent's stylesheets if not already present,
-     * scoping it to that subtree.
+     * Installs the AtlantaFX bridge on the parent's subtree (adds it to the
+     * parent's stylesheets if not already present).
      *
      * @param parent the parent to bridge; must not be null
      */
-    public static void applyTo(Parent parent) {
+    public static void install(Parent parent) {
         Objects.requireNonNull(parent, "parent");
         addOnce(parent.getStylesheets());
     }
 
     /**
-     * Removes the AtlantaFX bridge from the scene's stylesheets if present.
+     * Uninstalls the AtlantaFX bridge from the scene if present.
      *
      * @param scene the scene to unbridge; must not be null
      */
-    public static void removeFrom(Scene scene) {
+    public static void uninstall(Scene scene) {
         Objects.requireNonNull(scene, "scene");
         scene.getStylesheets().remove(getStylesheet());
     }
 
     /**
-     * Removes the AtlantaFX bridge from the parent's stylesheets if present.
+     * Uninstalls the AtlantaFX bridge from the parent if present.
      *
      * @param parent the parent to unbridge; must not be null
      */
-    public static void removeFrom(Parent parent) {
+    public static void uninstall(Parent parent) {
         Objects.requireNonNull(parent, "parent");
         parent.getStylesheets().remove(getStylesheet());
     }

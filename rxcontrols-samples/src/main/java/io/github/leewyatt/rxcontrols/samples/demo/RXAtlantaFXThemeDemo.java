@@ -37,7 +37,7 @@ import java.util.List;
  * <p>The key ordering rule (see {@link RXAtlantaFX}) is shown at the top of
  * {@link #start(Stage)}: the AtlantaFX theme is installed as the Application
  * user-agent stylesheet <em>before</em> the scene is built, then the bridge is
- * applied to the scene with {@link RXAtlantaFX#applyTo(Scene)}. The theme selector
+ * applied to the scene with {@link RXAtlantaFX#install(Scene)}. The theme selector
  * swaps the AtlantaFX theme live, and the checkbox toggles the bridge so you can
  * see RxControls follow AtlantaFX colors versus keep their built-in palette.
  *
@@ -65,9 +65,9 @@ public class RXAtlantaFXThemeDemo extends Application {
         root.setCenter(buildShowroom());
         root.setBottom(buildCaption());
 
-        // 2) Apply the bridge to the scene; popups opened afterwards follow it too.
+        // 2) Install the bridge on the scene; popups opened afterwards follow it too.
         Scene scene = new Scene(root, 760, 580);
-        RXAtlantaFX.applyTo(scene);
+        RXAtlantaFX.install(scene);
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RxControls × AtlantaFX bridge");
@@ -99,9 +99,9 @@ public class RXAtlantaFXThemeDemo extends Application {
         bridge.setSelected(true);
         bridge.selectedProperty().addListener((obs, old, on) -> {
             if (on) {
-                RXAtlantaFX.applyTo(root.getScene());
+                RXAtlantaFX.install(root.getScene());
             } else {
-                RXAtlantaFX.removeFrom(root.getScene());
+                RXAtlantaFX.uninstall(root.getScene());
             }
         });
 
