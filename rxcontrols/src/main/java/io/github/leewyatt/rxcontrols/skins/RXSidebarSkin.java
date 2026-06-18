@@ -126,7 +126,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         // The rail is a single Tab stop; roving moves focus inside it (§2.5).
         control.setFocusTraversable(false);
-        disposer.registerListener(control.selectedItemProperty(), this::refreshTabStop);
+        disposer.registerListener(control.selectedItemProperty(), this::onSelectionChanged);
         installKeyboardNavigation();
 
         snapToMode(); // initialize fraction + per-item mode without animating
@@ -434,6 +434,24 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private void refreshTabStop() {
         List<Node> ring = focusRing();
         setSoleTabStop(ring, preferredTabStop(ring));
+    }
+
+    // Selection changed: re-establish the single Tab stop, then — only when a rail
+    // item currently holds focus — move that focus onto the new Tab stop. The item
+    // that was focused is no longer the Tab stop and so is not focus-traversable;
+    // by ButtonBehavior's "request focus on press only when traversable" rule, a
+    // later click on another (also non-traversable) item never takes focus from it,
+    // leaving it stranded as focused-but-unselected (stuck showing the :focused
+    // background). Migrating focus now prevents that. The rail-focused guard keeps
+    // programmatic selection from stealing focus when the user is elsewhere.
+    private void onSelectionChanged() {
+        List<Node> ring = focusRing();
+        Node tabStop = preferredTabStop(ring);
+        boolean railFocused = indexOfFocused(ring) >= 0;
+        setSoleTabStop(ring, tabStop);
+        if (railFocused && tabStop != null) {
+            tabStop.requestFocus();
+        }
     }
 
     private Node preferredTabStop(List<Node> ring) {

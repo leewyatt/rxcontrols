@@ -897,12 +897,16 @@
     -fx-background-color: -fx-pressed-base;
 }
 
-.rx-sidebar .item:selected {
-    -fx-background-color: derive(-fx-accent, 80%);
-}
-
+/* :selected must out-prioritize :focused: a selected item that also holds focus
+   (e.g. re-clicking it, which focuses the sole Tab stop) has to keep its accent
+   fill, not the focus highlight. These rules share specificity, so the later one
+   in source order wins — hence :selected is placed after :focused. */
 .rx-sidebar .item:focused {
     -fx-background-color: -fx-hover-base;
+}
+
+.rx-sidebar .item:selected {
+    -fx-background-color: derive(-fx-accent, 80%);
 }
 
 .rx-sidebar .item > .graphic {

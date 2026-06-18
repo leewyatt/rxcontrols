@@ -183,6 +183,60 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
+     * Regression: when the focused (and selected) item is the sole Tab stop,
+     * selecting another item migrates focus to the new selection instead of
+     * stranding it on the old item. A stranded item stays focus-traversable=false
+     * yet keeps scene focus, so it never relinquishes it on a later click of
+     * another non-traversable item — leaving it stuck showing the {@code :focused}
+     * background (the white-row bug).
+     */
+    @Test
+    public void selectionMigratesFocusOffStrandedItem() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            sidebar.getItems().addAll(a, b);
+            Scene scene = hostFor(sidebar).getScene();
+
+            sidebar.setSelectedItem(a);   // a is the sole Tab stop
+            a.requestFocus();             // re-clicking the selected Tab stop focuses it
+            assertSame(a, scene.getFocusOwner());
+
+            sidebar.setSelectedItem(b);   // selecting another item
+            assertSame(b, scene.getFocusOwner(),
+                    "focus migrates to the newly selected item, not stranded on a");
+            assertSoleTabStop(b, a, b);
+        });
+    }
+
+    /**
+     * Selection changes while the rail holds no focus must not steal focus into
+     * the rail (the migration is guarded on the rail already owning focus).
+     */
+    @Test
+    public void selectionWithoutRailFocusDoesNotStealFocus() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            sidebar.getItems().addAll(a, b);
+            Button outside = new Button("Out");
+            Scene scene = new Scene(new VBox(sidebar, outside), 400, 600);
+            ((Pane) scene.getRoot()).applyCss();
+            ((Pane) scene.getRoot()).layout();
+
+            outside.requestFocus();
+            assertSame(outside, scene.getFocusOwner());
+
+            sidebar.setSelectedItem(a);
+            sidebar.setSelectedItem(b);
+            assertSame(outside, scene.getFocusOwner(),
+                    "programmatic selection must not pull focus into the rail");
+        });
+    }
+
+    /**
      * accessibleText mirrors text live (skin-applied binding).
      */
     @Test
