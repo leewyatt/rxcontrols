@@ -55,8 +55,6 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
     private static final PseudoClass ONLY = PseudoClass.getPseudoClass("only");
 
-    /** Structural style classes on each cell; never treated as item-contributed. */
-    private static final String SEGMENT_STYLE_CLASS = "segment";
     private static final String RIPPLE_PANE_STYLE_CLASS = "rx-ripple-pane";
 
     private static final double GEOMETRY_EPSILON = 0.5;
@@ -531,7 +529,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     // ==================== Segment cell ====================
 
     private final class SegmentCell extends RXRipplePane {
-
+        private static final String SEGMENT_STYLE_CLASS = "segment";
         private final RXSegmentedItem<T> item;
         private final Label label = new Label();
         private final int index;
@@ -552,11 +550,11 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         private Tooltip tooltip;
 
         SegmentCell(RXSegmentedItem<T> item, int index) {
+            getStyleClass().add(SEGMENT_STYLE_CLASS);
             this.item = item;
             this.index = index;
             // Basic accessibility: announce each segment as a radio option.
             setAccessibleRole(AccessibleRole.RADIO_BUTTON);
-            getStyleClass().add(SEGMENT_STYLE_CLASS);
             // Content is display-only and stays mouse-transparent so every press
             // lands on the segment for selection + ripple; RXRipplePane centers it.
             label.setMouseTransparent(true);
