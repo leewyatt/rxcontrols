@@ -12,8 +12,7 @@ import javafx.scene.Node;
  * shared selection group, and mode delivery) are applied uniformly by
  * {@code RXSidebarSkin}.
  */
-public sealed interface RXSidebarItem
-        permits RXSidebarNavItem, RXSidebarActionItem {
+public sealed interface RXSidebarItem permits RXSidebarNavItem, RXSidebarActionItem {
 
     /**
      * Style class shared by every sidebar item, scoped under {@code .rx-sidebar}

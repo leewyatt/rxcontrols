@@ -44,6 +44,7 @@ import java.util.List;
  */
 public class RXSidebar extends Control {
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-sidebar";
     // ==================== Enums ====================
 
     /**
@@ -52,29 +53,43 @@ public class RXSidebar extends Control {
      */
     public enum SidebarMode {
 
-        /** Icon + text, full {@code expandedWidth}. */
+        /**
+         * Icon + text, full {@code expandedWidth}.
+         */
         EXPANDED,
 
-        /** Icon only, narrow {@code miniWidth}; labels hidden, exposed via tooltip. */
+        /**
+         * Icon only, narrow {@code miniWidth}; labels hidden, exposed via tooltip.
+         */
         MINI
     }
 
     // ==================== Constants ====================
 
-    /** Default mode (expanded). */
+    /**
+     * Default mode (expanded).
+     */
     public static final SidebarMode DEFAULT_MODE = SidebarMode.EXPANDED;
-    /** Default expanded width. */
+    /**
+     * Default expanded width.
+     */
     public static final double DEFAULT_EXPANDED_WIDTH = 260.0;
-    /** Default mini width; icon (24px) is centered at miniWidth/2. */
+    /**
+     * Default mini width; icon (24px) is centered at miniWidth/2.
+     */
     public static final double DEFAULT_MINI_WIDTH = 64.0;
-    /** Default whether mode transitions animate. */
+    /**
+     * Default whether mode transitions animate.
+     */
     private static final boolean DEFAULT_ANIMATED = true;
-    /** Default mode-transition duration. */
+    /**
+     * Default mode-transition duration.
+     */
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
-    /** Default mode-transition interpolator, also the null fallback. */
+    /**
+     * Default mode-transition interpolator, also the null fallback.
+     */
     public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-sidebar";
 
     private static final PseudoClass EXPANDED_PSEUDO_CLASS = PseudoClass.getPseudoClass("expanded");
     private static final PseudoClass MINI_PSEUDO_CLASS = PseudoClass.getPseudoClass("mini");
@@ -85,7 +100,9 @@ public class RXSidebar extends Control {
 
     // ==================== Constructor ====================
 
-    /** Creates an empty, expanded sidebar with default settings. */
+    /**
+     * Creates an empty, expanded sidebar with default settings.
+     */
     public RXSidebar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         updateModePseudoClass();
@@ -104,17 +121,23 @@ public class RXSidebar extends Control {
 
     // ==================== Item Lists ====================
 
-    /** @return the live list of pinned-top items */
+    /**
+     * @return the live list of pinned-top items
+     */
     public final ObservableList<RXSidebarItem> getTopItems() {
         return topItems;
     }
 
-    /** @return the live list of main (scrollable) items */
+    /**
+     * @return the live list of main (scrollable) items
+     */
     public final ObservableList<RXSidebarItem> getItems() {
         return items;
     }
 
-    /** @return the live list of pinned-bottom items */
+    /**
+     * @return the live list of pinned-bottom items
+     */
     public final ObservableList<RXSidebarItem> getBottomItems() {
         return bottomItems;
     }
@@ -140,12 +163,16 @@ public class RXSidebar extends Control {
         return mode;
     }
 
-    /** @return the mode, possibly {@code null} */
+    /**
+     * @return the mode, possibly {@code null}
+     */
     public final SidebarMode getMode() {
         return mode.get();
     }
 
-    /** @param value the mode, or {@code null} to fall back to the default */
+    /**
+     * @param value the mode, or {@code null} to fall back to the default
+     */
     public final void setMode(SidebarMode value) {
         mode.set(value);
     }
@@ -172,12 +199,16 @@ public class RXSidebar extends Control {
         return selectedItem;
     }
 
-    /** @return the selected item, or {@code null} */
+    /**
+     * @return the selected item, or {@code null}
+     */
     public final RXSidebarItem getSelectedItem() {
         return selectedItem.get();
     }
 
-    /** @param value the item to select, or {@code null} */
+    /**
+     * @param value the item to select, or {@code null}
+     */
     public final void setSelectedItem(RXSidebarItem value) {
         selectedItem.set(value);
     }
@@ -197,7 +228,9 @@ public class RXSidebar extends Control {
         return selectedNavigationItem.getReadOnlyProperty();
     }
 
-    /** @return the selected navigation item, or {@code null} */
+    /**
+     * @return the selected navigation item, or {@code null}
+     */
     public final RXSidebarNavItem getSelectedNavigationItem() {
         return selectedNavigationItem.get();
     }
@@ -212,17 +245,23 @@ public class RXSidebar extends Control {
                 }
             };
 
-    /** @return the expanded-width property (clamped/defaulted by the skin) */
+    /**
+     * @return the expanded-width property (clamped/defaulted by the skin)
+     */
     public final DoubleProperty expandedWidthProperty() {
         return expandedWidth;
     }
 
-    /** @return the expanded width */
+    /**
+     * @return the expanded width
+     */
     public final double getExpandedWidth() {
         return expandedWidth.get();
     }
 
-    /** @param value the expanded width */
+    /**
+     * @param value the expanded width
+     */
     public final void setExpandedWidth(double value) {
         expandedWidth.set(value);
     }
@@ -237,17 +276,23 @@ public class RXSidebar extends Control {
                 }
             };
 
-    /** @return the mini-width property (clamped/defaulted by the skin) */
+    /**
+     * @return the mini-width property (clamped/defaulted by the skin)
+     */
     public final DoubleProperty miniWidthProperty() {
         return miniWidth;
     }
 
-    /** @return the mini width */
+    /**
+     * @return the mini width
+     */
     public final double getMiniWidth() {
         return miniWidth.get();
     }
 
-    /** @param value the mini width */
+    /**
+     * @param value the mini width
+     */
     public final void setMiniWidth(double value) {
         miniWidth.set(value);
     }
@@ -256,34 +301,46 @@ public class RXSidebar extends Control {
 
     private final ObjectProperty<Node> header = new SimpleObjectProperty<>(this, "header");
 
-    /** @return the header slot property */
+    /**
+     * @return the header slot property
+     */
     public final ObjectProperty<Node> headerProperty() {
         return header;
     }
 
-    /** @return the header node, or {@code null} */
+    /**
+     * @return the header node, or {@code null}
+     */
     public final Node getHeader() {
         return header.get();
     }
 
-    /** @param value the header node, or {@code null} */
+    /**
+     * @param value the header node, or {@code null}
+     */
     public final void setHeader(Node value) {
         header.set(value);
     }
 
     private final ObjectProperty<Node> footer = new SimpleObjectProperty<>(this, "footer");
 
-    /** @return the footer slot property */
+    /**
+     * @return the footer slot property
+     */
     public final ObjectProperty<Node> footerProperty() {
         return footer;
     }
 
-    /** @return the footer node, or {@code null} */
+    /**
+     * @return the footer node, or {@code null}
+     */
     public final Node getFooter() {
         return footer.get();
     }
 
-    /** @param value the footer node, or {@code null} */
+    /**
+     * @param value the footer node, or {@code null}
+     */
     public final void setFooter(Node value) {
         footer.set(value);
     }
@@ -307,17 +364,23 @@ public class RXSidebar extends Control {
         }
     };
 
-    /** @return the animated property */
+    /**
+     * @return the animated property
+     */
     public final BooleanProperty animatedProperty() {
         return animated;
     }
 
-    /** @return whether mode transitions animate */
+    /**
+     * @return whether mode transitions animate
+     */
     public final boolean isAnimated() {
         return animated.get();
     }
 
-    /** @param value whether mode transitions animate */
+    /**
+     * @param value whether mode transitions animate
+     */
     public final void setAnimated(boolean value) {
         animated.set(value);
     }
@@ -342,17 +405,23 @@ public class RXSidebar extends Control {
                 }
             };
 
-    /** @return the animation-duration property; null/non-positive disables animation */
+    /**
+     * @return the animation-duration property; null/non-positive disables animation
+     */
     public final ObjectProperty<Duration> animationDurationProperty() {
         return animationDuration;
     }
 
-    /** @return the animation duration, possibly {@code null} */
+    /**
+     * @return the animation duration, possibly {@code null}
+     */
     public final Duration getAnimationDuration() {
         return animationDuration.get();
     }
 
-    /** @param value the duration; {@code null} or non-positive disables animation */
+    /**
+     * @param value the duration; {@code null} or non-positive disables animation
+     */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);
     }
@@ -362,17 +431,23 @@ public class RXSidebar extends Control {
     private final ObjectProperty<Interpolator> animationInterpolator =
             new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
 
-    /** @return the animation-interpolator property; {@code null} uses the default */
+    /**
+     * @return the animation-interpolator property; {@code null} uses the default
+     */
     public final ObjectProperty<Interpolator> animationInterpolatorProperty() {
         return animationInterpolator;
     }
 
-    /** @return the animation interpolator, possibly {@code null} */
+    /**
+     * @return the animation interpolator, possibly {@code null}
+     */
     public final Interpolator getAnimationInterpolator() {
         return animationInterpolator.get();
     }
 
-    /** @param value the interpolator, or {@code null} for the default */
+    /**
+     * @param value the interpolator, or {@code null} for the default
+     */
     public final void setAnimationInterpolator(Interpolator value) {
         animationInterpolator.set(value);
     }
@@ -496,7 +571,9 @@ public class RXSidebar extends Control {
         }
     }
 
-    /** @return the CSS metadata associated with this class */
+    /**
+     * @return the CSS metadata associated with this class
+     */
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
         return StyleableProperties.STYLEABLES;
     }
