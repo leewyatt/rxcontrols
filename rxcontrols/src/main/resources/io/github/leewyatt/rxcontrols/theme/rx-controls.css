@@ -1,5 +1,55 @@
 /*******************************************************************************
  *                                                                             *
+ * RxControls color tokens (baseline)                                          *
+ *                                                                             *
+ * Looked-up color role layer. Declared on every control root so each control  *
+ * — and its descendants, via the looked-up walk-up — resolves the full set    *
+ * with zero install. JFX17 scope pitfall: a looked-up color only reaches a    *
+ * control subtree from its control root, never from `.root` or `*` (a `.root` *
+ * definition is out of scope inside a per-control UA stylesheet, and `*`      *
+ * defines tokens on leaves too and so blocks author overrides). New control   *
+ * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
+ *                                                                             *
+ ******************************************************************************/
+.rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
+.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-formatted-number-field,
+.rx-highlight-text-view, .rx-image-pane, .rx-image-view, .rx-integer-field,
+.rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
+.rx-masonry-pane, .rx-number-field, .rx-password-field, .rx-radio-toggle-button,
+.rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
+.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
+.rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
+    /* brand / primary */
+    -rx-primary: #616dff;
+    -rx-primary-hover: derive(-rx-primary, 8%);
+    -rx-primary-active: derive(-rx-primary, -10%);
+    -rx-primary-bg: derive(-rx-primary, 85%);
+    -rx-on-primary: white;
+    /* semantic */
+    -rx-success: #67c23a;
+    -rx-warning: #e6a23c;
+    -rx-danger: #f56c6c;
+    -rx-info: #909399;
+    /* surface / text / outline — alias modena so the default tracks the host theme */
+    -rx-surface: -fx-background;
+    -rx-surface-variant: #f5f5f5;
+    -rx-on-surface: -fx-text-base-color;
+    -rx-on-surface-secondary: -fx-mid-text-color;
+    -rx-on-surface-disabled: rgba(0, 0, 0, 0.25);
+    -rx-outline: -fx-text-box-border;
+    -rx-outline-variant: #c0c4cc;
+    -rx-focus: -fx-focus-color;
+    -rx-selection: rgba(0, 120, 215, 0.3);
+    /* interaction state overlay (ripple / hover tint); dark theme flips to white */
+    -rx-state-overlay-color: black;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXTransitionButton                                                          *
  *                                                                             *
  ******************************************************************************/
@@ -10,19 +60,19 @@
 
 /*fill button*/
 .rx-fill-button {
-    -rx-fill: #616dff;
+    -rx-fill: -rx-primary;
     -rx-fill-animation: left-to-right;
     -rx-animation-trigger: hover;
     -rx-animation-duration: 200ms;
 }
 
 .rx-fill-button:filling {
-    -fx-text-fill: white;
+    -fx-text-fill: -rx-on-primary;
 }
 
 /*fill label*/
 .rx-fill-label {
-    -rx-fill: #616dff;
+    -rx-fill: -rx-primary;
     -rx-fill-animation: left-to-right;
     -rx-animation-trigger: hover;
     -rx-animation-duration: 200ms;
@@ -33,7 +83,7 @@
 }
 
 .rx-fill-label:filling {
-    -fx-text-fill: white;
+    -fx-text-fill: -rx-on-primary;
 }
 
 .rx-fill-button > .fill-layer > .fill-content > .fill-region {
@@ -51,7 +101,7 @@
        hyperlink pattern), so gaining focus never shifts the content */
     -fx-border-color: transparent;
     -fx-border-width: 1px;
-    -rx-line-color: #616dff;
+    -rx-line-color: -rx-primary;
     -rx-line-animation: underline-center-out;
     -rx-line-thickness: 2px;
     -rx-line-gap: 2px;
@@ -61,7 +111,7 @@
 
 .rx-line-button:focused {
     -fx-background-color: transparent;
-    -fx-border-color: -fx-focus-color;
+    -fx-border-color: -rx-focus;
     -fx-border-style: segments(0.166667em, 0.166667em);
     -fx-border-width: 1px;
 }
@@ -76,7 +126,7 @@
 
 /*line label*/
 .rx-line-label {
-    -rx-line-color: #616dff;
+    -rx-line-color: -rx-primary;
     -rx-line-animation: underline-center-out;
     -rx-line-thickness: 2px;
     -rx-line-gap: 2px;
@@ -94,7 +144,7 @@
 
 .rx-text-view {
     -rx-text-fill: #1b1f2a;
-    -rx-selection-fill: rgba(0, 120, 215, 0.3);
+    -rx-selection-fill: -rx-selection;
     -rx-selected-text-fill: #1b1f2a;
 }
 
@@ -176,7 +226,7 @@
     -fx-alignment: center;
     -fx-opacity: 0.58;
     -fx-padding: 2px 8px;
-    -fx-text-fill: -fx-text-base-color;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-lrc-view > .viewport > .content > .line {
@@ -191,7 +241,7 @@
 
 .rx-lrc-view > .viewport > .placeholder {
     -fx-opacity: 0.62;
-    -fx-text-fill: -fx-mid-text-color;
+    -fx-text-fill: -rx-on-surface-secondary;
 }
 
 /*******************************************************************************
@@ -206,7 +256,7 @@
 
 .rx-lrc-line-view > .placeholder {
     -fx-opacity: 0.62;
-    -fx-text-fill: -fx-mid-text-color;
+    -fx-text-fill: -rx-on-surface-secondary;
 }
 
 /*******************************************************************************
@@ -321,7 +371,7 @@
 
 .rx-circular-progress-indicator > .progress-label {
     -fx-font-size: 0.9em;
-    -fx-text-fill: -fx-text-base-color;
+    -fx-text-fill: -rx-on-surface;
     -fx-alignment: center;
     -fx-content-display: top;
 }
@@ -523,7 +573,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-bar-spinner {
-    -rx-bar-fill: #616dfe;
+    -rx-bar-fill: -rx-primary;
 }
 
 .rx-bar-spinner > .bar {
@@ -537,7 +587,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-dot-pulse {
-    -rx-dot-fill: #616dfe;
+    -rx-dot-fill: -rx-primary;
 }
 
 .rx-dot-pulse > .dot {
@@ -551,7 +601,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-segmented-progress-bar {
-    -rx-filled-color: #616dfe;
+    -rx-filled-color: -rx-primary;
     -rx-unfilled-color: rgba(0, 0, 0, 0.12);
 }
 
@@ -575,7 +625,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-segmented-step-indicator {
-    -rx-filled-color: #616dfe;
+    -rx-filled-color: -rx-primary;
     -rx-unfilled-color: rgba(0, 0, 0, 0.12);
 }
 
@@ -765,8 +815,6 @@
     -rx-filled-color: white;
     -rx-unfilled-color: rgba(255, 255, 255, 0.35);
     -rx-segment-height: 8px;
-    -fx-border-color: blue;
-    -fx-border-width: 2px;
 }
 
 .rx-segmented-step-indicator > .track,
@@ -785,7 +833,7 @@
 }
 
 .rx-drawer-pane > .drawer-wrapper {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -rx-surface;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 16, 0, 0, 0);
 }
 
@@ -816,7 +864,7 @@
  ******************************************************************************/
 
 .rx-ripple-pane {
-    -rx-ripple-fill: black;
+    -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
@@ -830,7 +878,7 @@
  ******************************************************************************/
 
 .rx-button {
-    -rx-ripple-fill: black;
+    -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
@@ -850,7 +898,7 @@
  ******************************************************************************/
 
 .rx-toggle-button {
-    -rx-ripple-fill: black;
+    -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
@@ -921,7 +969,7 @@
  ******************************************************************************/
 .rx-timeline-view {
     -rx-dot-fill: #409eff;
-    -rx-line-fill: #c0c4cc;
+    -rx-line-fill: -rx-outline-variant;
     -rx-dot-size: 12;
     -rx-line-width: 2;
     -rx-item-spacing: 16;
@@ -939,19 +987,19 @@
 }
 
 .rx-timeline-view > .items > .item:success > .axis > .dot {
-    -fx-background-color: #67c23a;
+    -fx-background-color: -rx-success;
 }
 
 .rx-timeline-view > .items > .item:warning > .axis > .dot {
-    -fx-background-color: #e6a23c;
+    -fx-background-color: -rx-warning;
 }
 
 .rx-timeline-view > .items > .item:danger > .axis > .dot {
-    -fx-background-color: #f56c6c;
+    -fx-background-color: -rx-danger;
 }
 
 .rx-timeline-view > .items > .item:info > .axis > .dot {
-    -fx-background-color: #909399;
+    -fx-background-color: -rx-info;
 }
 
 .rx-timeline-view > .items > .item:hollow > .axis > .dot {
@@ -961,22 +1009,22 @@
     -fx-border-radius: 50%;
 }
 
-.rx-timeline-view > .items > .item:hollow:success > .axis > .dot { -fx-border-color: #67c23a; }
-.rx-timeline-view > .items > .item:hollow:warning > .axis > .dot { -fx-border-color: #e6a23c; }
-.rx-timeline-view > .items > .item:hollow:danger  > .axis > .dot { -fx-border-color: #f56c6c; }
-.rx-timeline-view > .items > .item:hollow:info    > .axis > .dot { -fx-border-color: #909399; }
+.rx-timeline-view > .items > .item:hollow:success > .axis > .dot { -fx-border-color: -rx-success; }
+.rx-timeline-view > .items > .item:hollow:warning > .axis > .dot { -fx-border-color: -rx-warning; }
+.rx-timeline-view > .items > .item:hollow:danger  > .axis > .dot { -fx-border-color: -rx-danger; }
+.rx-timeline-view > .items > .item:hollow:info    > .axis > .dot { -fx-border-color: -rx-info; }
 
 .rx-timeline-view > .items > .item > .content > .title {
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text-base-color;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-timeline-view > .items > .item > .content > .description {
-    -fx-text-fill: -fx-text-base-color;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-timeline-view > .items > .item > .content > .timestamp {
-    -fx-text-fill: -fx-mid-text-color;
+    -fx-text-fill: -rx-on-surface-secondary;
     -fx-font-size: 0.85em;
 }
 
@@ -987,11 +1035,11 @@
 /* -fx-text-fill does not inherit, so color the opposite text on its label, not the
    holder; -fx-font-size above does inherit (font is an inherited property). */
 .rx-timeline-view > .items > .item > .opposite .label {
-    -fx-text-fill: -fx-mid-text-color;
+    -fx-text-fill: -rx-on-surface-secondary;
 }
 
 .rx-timeline-view > .placeholder {
-    -fx-text-fill: -fx-mid-text-color;
+    -fx-text-fill: -rx-on-surface-secondary;
     -fx-opacity: 0.62;
 }
 
@@ -1002,7 +1050,7 @@
  ******************************************************************************/
 .rx-segmented-control {
     -rx-animation-duration: 200ms;
-    -fx-background-color: #f5f5f5;
+    -fx-background-color: -rx-surface-variant;
     -fx-background-radius: 6;
     -fx-padding: 2;
 }
@@ -1035,5 +1083,5 @@
 }
 
 .rx-segmented-control > .segment:disabled .label {
-    -fx-text-fill: rgba(0, 0, 0, 0.25);
+    -fx-text-fill: -rx-on-surface-disabled;
 }

@@ -96,18 +96,70 @@
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxLrcLineView">RXLrcLineView</a></li>
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
-    <li><a href="#rxPagination">RXPagination</a></li>
+    <li><a href="#rxSegmentedControl">RXSegmentedControl</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
     <li><a href="#rxRadioToggleButton">RXRadioToggleButton</a></li>
     <li><a href="#rxRipplePane">RXRipplePane</a></li>
-    <li><a href="#rxSvgView">RXSvgView</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#rxTextView">RXTextView</a></li>
+    <li><a href="#rxTimelineView">RXTimelineView</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
     <li><a href="#rxTransitionButton">RXTransitionButton</a></li>
     <li><a href="#rxTransitionLabel">RXTransitionLabel</a></li>
     <li><a href="#rxTransitionPane">RXTransitionPane</a></li>
 </ul>
+
+<h2 id="colorTokens">Global Color Tokens</h2>
+<p>RxControls ships a <b>looked-up color role layer</b> declared on every control root in the
+   user-agent stylesheet (<code>rx-controls.css</code>). Every control — and its descendants, via
+   the looked-up walk-up — resolves the full set with zero setup. To retheme, override a token in
+   an author stylesheet on the control root selector (a future <code>RXTheme</code> overlay does
+   exactly this).</p>
+<p>Three layers — do not confuse them:</p>
+<ul>
+    <li><b>Global color tokens</b> (table below) — looked-up colors with role names
+        (<code>-rx-primary</code>, <code>-rx-on-surface</code>, …). Defined on the control root,
+        referenced from any descendant rule; this is the theming override point.</li>
+    <li><b>Component styleable properties</b> — part names (<code>-rx-fill</code>,
+        <code>-rx-line-color</code>, <code>-rx-dot-fill</code>, <code>-rx-ripple-fill</code>, …),
+        documented per control. Their defaults now reference a role token; they remain the
+        per-control override point.</li>
+    <li><b>Non-color</b> (radius, spacing, elevation / shadow, state opacity, sizes) — <b>not</b>
+        global tokens. JavaFX&nbsp;17 resolves looked-up values only for colors, so these stay
+        literal per component or remain component styleable Number / Insets properties.</li>
+</ul>
+<table>
+    <thead>
+    <tr>
+        <th>Token</th>
+        <th>Type</th>
+        <th>Default (baseline)</th>
+        <th>Role</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr><td>-rx-primary</td><td>Paint</td><td>#616dff</td><td>Brand / primary accent</td></tr>
+    <tr><td>-rx-primary-hover</td><td>Paint</td><td>derive(-rx-primary, 8%)</td><td>Primary, hover state</td></tr>
+    <tr><td>-rx-primary-active</td><td>Paint</td><td>derive(-rx-primary, -10%)</td><td>Primary, pressed / active state</td></tr>
+    <tr><td>-rx-primary-bg</td><td>Paint</td><td>derive(-rx-primary, 85%)</td><td>Light primary tint (soft / selected background)</td></tr>
+    <tr><td>-rx-on-primary</td><td>Paint</td><td>white</td><td>Foreground on a primary fill</td></tr>
+    <tr><td>-rx-success</td><td>Paint</td><td>#67c23a</td><td>Success / positive</td></tr>
+    <tr><td>-rx-warning</td><td>Paint</td><td>#e6a23c</td><td>Warning</td></tr>
+    <tr><td>-rx-danger</td><td>Paint</td><td>#f56c6c</td><td>Danger / error</td></tr>
+    <tr><td>-rx-info</td><td>Paint</td><td>#909399</td><td>Info / neutral</td></tr>
+    <tr><td>-rx-surface</td><td>Paint</td><td>-fx-background</td><td>Panel / surface background (tracks host theme)</td></tr>
+    <tr><td>-rx-surface-variant</td><td>Paint</td><td>#f5f5f5</td><td>Secondary surface (containers)</td></tr>
+    <tr><td>-rx-on-surface</td><td>Paint</td><td>-fx-text-base-color</td><td>Primary text on a surface (tracks host theme)</td></tr>
+    <tr><td>-rx-on-surface-secondary</td><td>Paint</td><td>-fx-mid-text-color</td><td>Secondary / muted text (tracks host theme)</td></tr>
+    <tr><td>-rx-on-surface-disabled</td><td>Paint</td><td>rgba(0, 0, 0, 0.25)</td><td>Disabled text</td></tr>
+    <tr><td>-rx-outline</td><td>Paint</td><td>-fx-text-box-border</td><td>Border / outline (tracks host theme)</td></tr>
+    <tr><td>-rx-outline-variant</td><td>Paint</td><td>#c0c4cc</td><td>Subtle divider / connector</td></tr>
+    <tr><td>-rx-focus</td><td>Paint</td><td>-fx-focus-color</td><td>Focus ring (tracks host theme)</td></tr>
+    <tr><td>-rx-selection</td><td>Paint</td><td>rgba(0, 120, 215, 0.3)</td><td>Text selection highlight</td></tr>
+    <tr><td>-rx-state-overlay-color</td><td>Paint</td><td>black</td><td>Ripple / hover-overlay tint (dark theme flips to white)</td></tr>
+    </tbody>
+</table>
+
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
 <p>The RXAudioSpectrum control has all the properties of Control; pseudo-classes: :active, :silent</p>
@@ -719,23 +771,56 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 .bar — Region <br>
 .thumb — StackPane <br>
 
-<h3 id="rxPagination">RXPagination</h3>
-<p class="fxClass">Style class: rx-pagination</p>
-<p>The control has all the properties of Pagination;</p>
+<h3 id="rxSegmentedControl">RXSegmentedControl</h3>
+<p class="fxClass">Style class: rx-segmented-control</p>
+<p>A single-select segmented control (extends Control). Each segment is an RXRipplePane; a
+   selection indicator slides between segments, and the hover tint comes from the ripple state
+   overlay rather than a segment background.</p>
 <h4>Substructure</h4>
-page — StackPane <br>
-pagination-control — StackPane <br>
-&emsp;&emsp;leftArrowButton — Button <br>
-&emsp;&emsp;&emsp;&emsp;leftArrow — StackPane <br>
-&emsp;&emsp;rightArrowButton — Button <br>
-&emsp;&emsp;&emsp;&emsp;rightArrow — StackPane <br>
-&emsp;&emsp;bullet-button — ToggleButton <br>
-&emsp;&emsp;number-button — ToggleButton <br>
-&emsp;&emsp;page-information — Label <br>
-&emsp;&emsp;label-go — Label <br>
-&emsp;&emsp;page-text-field — TextField <br>
-&emsp;&emsp;label-page — Label <br>
-&emsp;&emsp;ok-button — Button <br>
+.indicator — Region (the sliding selection background)<br/>
+.segment — RXRipplePane (one per item; transparent fill, bounded ripple + hover overlay)<br/>
+&emsp;&emsp;.label — Label (the segment text / graphic)<br/><br/>
+<p>Pseudo-classes (on .segment)</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>selected</td>
+        <td>applies to the chosen segment (also disables that segment's state overlay)</td>
+    </tr>
+    <tr>
+        <td>disabled</td>
+        <td>applies to a disabled segment</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p>CSS Properties</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration (indicator slide)</td>
+        <td>200ms</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p><b>Colors.</b> The container uses <code>-rx-surface-variant</code>; the hover / press feedback
+   uses the segment's ripple <code>-rx-ripple-*</code> properties (see RXRipplePane). Segment text
+   tints are literal per state. See <a href="#colorTokens">Global Color Tokens</a>.</p>
 
 <h3 id="rxPasswordField">RXPasswordField</h3>
 <p class="fxClass">Style class: rx-password-field</p>
@@ -890,13 +975,41 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     </tbody>
 </table>
 
-<h3 id="rxSvgView">RXSVGView</h3>
-<p class="fxClass">Style class: rx-svg-view</p>
-<p>The control has all the properties of Control;</p>
+<h3 id="rxTimelineView">RXTimelineView</h3>
+<p class="fxClass">Style class: rx-timeline-view</p>
+<p>A vertical timeline (extends Control) of items, each with a status dot on an axis and a content
+   block; an optional "opposite" block renders on the other side of the axis.</p>
 <h4>Substructure</h4>
-.svg-pane — Pane <br/>
-&emsp;&emsp;.p-id0 ; .p-id1 ; .p-d...  — SVGPath<br/>
-
+.items — Region (item container)<br/>
+&emsp;&emsp;.item — Region (one per entry)<br/>
+&emsp;&emsp;&emsp;&emsp;.axis — Region<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;.dot — Region (status marker)<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;.connector — Region (line between dots)<br/>
+&emsp;&emsp;&emsp;&emsp;.content — Region<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;.title ; .description ; .timestamp — Label<br/>
+&emsp;&emsp;&emsp;&emsp;.opposite — Region (content mirrored across the axis)<br/>
+.placeholder — Label (shown when empty)<br/><br/>
+<p>Pseudo-classes (on .item)</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>success ; warning ; danger ; info</td>
+        <td>status of the item; tints the dot (and its border when <code>:hollow</code>)</td>
+    </tr>
+    <tr>
+        <td>hollow</td>
+        <td>renders the dot as an outline rather than a filled marker</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<p>CSS Properties</p>
 <table>
     <thead>
     <tr>
@@ -907,17 +1020,42 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-brighten-color</td>
-        <td>Paint</td>
-        <td>black</td>
+        <td>-rx-dot-fill</td>
+        <td>Paint (default-status dot)</td>
+        <td>#409eff</td>
     </tr>
     <tr>
-        <td>-rx-darken-color</td>
-        <td>Paint</td>
-        <td>#dddddd</td>
+        <td>-rx-line-fill</td>
+        <td>Paint (connector line)</td>
+        <td>-rx-outline-variant (#c0c4cc)</td>
+    </tr>
+    <tr>
+        <td>-rx-dot-size</td>
+        <td>Number (dot diameter, px)</td>
+        <td>12</td>
+    </tr>
+    <tr>
+        <td>-rx-line-width</td>
+        <td>Number (connector thickness, px)</td>
+        <td>2</td>
+    </tr>
+    <tr>
+        <td>-rx-item-spacing</td>
+        <td>Number (gap between items, px)</td>
+        <td>16</td>
+    </tr>
+    <tr>
+        <td>-rx-axis-spacing</td>
+        <td>Number (gap between axis and content, px)</td>
+        <td>12</td>
     </tr>
     </tbody>
 </table>
+<br/>
+<p><b>Status colors.</b> The four status dots resolve the semantic role tokens
+   (<code>-rx-success</code> / <code>-rx-warning</code> / <code>-rx-danger</code> /
+   <code>-rx-info</code>); the default dot keeps its own <code>-rx-dot-fill</code>. See
+   <a href="#colorTokens">Global Color Tokens</a>.</p>
 
 <h3 id="rxTextField">RXTextField</h3>
 <p class="fxClass">Style class: rx-text-field</p>
