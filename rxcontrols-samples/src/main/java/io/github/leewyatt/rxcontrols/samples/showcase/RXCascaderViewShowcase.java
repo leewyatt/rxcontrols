@@ -195,7 +195,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
     private static List<RXCascaderItem<Option>> sampleOptions() {
         RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
-        disabledCity.setDisabled(true);
+        disabledCity.setDisable(true);
 
         RXCascaderItem<Option> china = item("china", "China");
         china.getChildren().setAll(List.of(

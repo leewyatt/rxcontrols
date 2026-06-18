@@ -275,7 +275,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private void attachObservedItem(RXCascaderItem<T> item) {
         item.checkedProperty().addListener(weakStateListener);
         item.indeterminateProperty().addListener(weakStateListener);
-        item.disabledProperty().addListener(weakStateListener);
+        item.disableProperty().addListener(weakStateListener);
         item.loadStateProperty().addListener(weakStateListener);
         item.leafHintProperty().addListener(weakStateListener);
         item.valueProperty().addListener(weakContentListener);
@@ -283,7 +283,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         // Effective-disabled depends on the whole ancestor chain, so react to an
         // ancestor becoming (un)disabled too, not only this item.
         for (RXCascaderItem<T> ancestor = item.getParent(); ancestor != null; ancestor = ancestor.getParent()) {
-            ancestor.disabledProperty().addListener(weakStateListener);
+            ancestor.disableProperty().addListener(weakStateListener);
             observedAncestors.add(ancestor);
         }
     }
@@ -294,13 +294,13 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         }
         observedItem.checkedProperty().removeListener(weakStateListener);
         observedItem.indeterminateProperty().removeListener(weakStateListener);
-        observedItem.disabledProperty().removeListener(weakStateListener);
+        observedItem.disableProperty().removeListener(weakStateListener);
         observedItem.loadStateProperty().removeListener(weakStateListener);
         observedItem.leafHintProperty().removeListener(weakStateListener);
         observedItem.valueProperty().removeListener(weakContentListener);
         observedItem.getChildren().removeListener(weakChildrenListener);
         for (RXCascaderItem<T> ancestor : observedAncestors) {
-            ancestor.disabledProperty().removeListener(weakStateListener);
+            ancestor.disableProperty().removeListener(weakStateListener);
         }
         observedAncestors.clear();
         observedItem = null;

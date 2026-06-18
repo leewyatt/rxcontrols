@@ -59,7 +59,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> shanghai = item("shanghai");
         RXCascaderItem<String> hangzhou = item("hangzhou");
         RXCascaderItem<String> disabled = item("disabled");
-        disabled.setDisabled(true);
+        disabled.setDisable(true);
         china.getChildren().setAll(List.of(shanghai, hangzhou, disabled));
         root.getChildren().setAll(List.of(china, japan));
         panel.getRootItems().add(root);
@@ -87,7 +87,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> first = item("first");
         RXCascaderItem<String> disabled = item("disabled");
-        disabled.setDisabled(true);
+        disabled.setDisable(true);
         disabled.setChecked(true);
         root.getChildren().setAll(List.of(first, disabled));
         panel.getRootItems().add(root);
@@ -112,7 +112,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> first = item("first");
         RXCascaderItem<String> second = item("second");
         RXCascaderItem<String> disabled = item("disabled");
-        disabled.setDisabled(true);
+        disabled.setDisable(true);
         root.getChildren().setAll(List.of(first, second, disabled));
         panel.getRootItems().add(root);
 
@@ -161,7 +161,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> enabled = leaf("enabled");
         RXCascaderItem<String> disabled = leaf("disabled");
-        disabled.setDisabled(true);
+        disabled.setDisable(true);
         panel.setChildrenLoader(item ->
                 CompletableFuture.completedFuture(List.of(enabled, disabled)));
         panel.getRootItems().add(root);
@@ -645,7 +645,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> b = item("b");
         RXCascaderItem<String> a1 = leaf("a1");
         RXCascaderItem<String> a2 = leaf("a2");
-        a2.setDisabled(true);
+        a2.setDisable(true);
         a.getChildren().addAll(List.of(a1, a2));
         RXCascaderItem<String> b1 = leaf("b1");
         b.getChildren().add(b1);
@@ -879,7 +879,7 @@ public class RXCascaderViewTest {
         preCheckedEnabled2.setChecked(true);
         RXCascaderItem<String> preCheckedDisabled = leaf("disabled2");
         preCheckedDisabled.setChecked(true);
-        preCheckedDisabled.setDisabled(true);
+        preCheckedDisabled.setDisable(true);
         uncheckedParent.setChildrenLoader(it ->
                 CompletableFuture.completedFuture(List.of(preCheckedEnabled2, preCheckedDisabled)));
         uncheckedParent.getRootItems().add(branch2);
@@ -1119,7 +1119,7 @@ public class RXCascaderViewTest {
         RXCascaderItem<String> root = item("root");
         RXCascaderItem<String> enabled = leaf("enabled");
         RXCascaderItem<String> disabledLeaf = leaf("disabled");
-        disabledLeaf.setDisabled(true);
+        disabledLeaf.setDisable(true);
         root.getChildren().setAll(List.of(enabled, disabledLeaf));
         panel.getRootItems().add(root);
 

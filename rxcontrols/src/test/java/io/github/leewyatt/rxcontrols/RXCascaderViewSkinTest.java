@@ -516,7 +516,7 @@ public class RXCascaderViewSkinTest {
             assertNotNull(leafCell, "the leaf's cell should be realized");
             assertFalse(leafCell.isDisabled(), "precondition: descendant cell starts enabled");
 
-            ancestor.setDisabled(true);
+            ancestor.setDisable(true);
             relayout(scene);
             leafColumn.applyCss();
             leafColumn.layout();

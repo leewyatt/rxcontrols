@@ -781,7 +781,7 @@ public class RXCascaderView<T> extends Control {
         if (item == null) {
             return false;
         }
-        return item.isDisabled() || isEffectivelyDisabled(item.getParent());
+        return item.isDisable() || isEffectivelyDisabled(item.getParent());
     }
 
     /**

@@ -94,7 +94,7 @@ public class RXCascaderDemo extends Application {
         RXCascaderItem<Option> germany = item("germany", "Germany");
         RXCascaderItem<Option> berlin = item("berlin", "Berlin");
         RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
-        disabledCity.setDisabled(true);
+        disabledCity.setDisable(true);
 
         china.getChildren().setAll(List.of(
                 item("shanghai", "Shanghai"),

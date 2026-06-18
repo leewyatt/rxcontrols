@@ -133,18 +133,22 @@ public class RXCascaderItem<T> {
         return children;
     }
 
-    // ==================== Disabled ====================
+    // ==================== Disable ====================
 
-    private final BooleanProperty disabled =
-            new SimpleBooleanProperty(this, "disabled", false);
+    private final BooleanProperty disable =
+            new SimpleBooleanProperty(this, "disable", false);
 
     /**
-     * Whether this item itself is disabled.
+     * Whether this item itself is disabled. Named {@code disable} (not
+     * {@code disabled}) to match the JavaFX writable-disable convention of
+     * {@code Node}/{@code MenuItem}/{@code Tab}; the effective disabled state
+     * (this item OR-ed with any disabled ancestor) is computed by the owning
+     * {@code RXCascaderView}.
      *
-     * @return disabled property
+     * @return disable property
      */
-    public final BooleanProperty disabledProperty() {
-        return disabled;
+    public final BooleanProperty disableProperty() {
+        return disable;
     }
 
     /**
@@ -152,8 +156,8 @@ public class RXCascaderItem<T> {
      *
      * @return {@code true} if disabled
      */
-    public final boolean isDisabled() {
-        return disabled.get();
+    public final boolean isDisable() {
+        return disable.get();
     }
 
     /**
@@ -161,8 +165,8 @@ public class RXCascaderItem<T> {
      *
      * @param value {@code true} if disabled
      */
-    public final void setDisabled(boolean value) {
-        disabled.set(value);
+    public final void setDisable(boolean value) {
+        disable.set(value);
     }
 
     // ==================== Leaf Hint ====================
