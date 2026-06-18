@@ -23,8 +23,10 @@ import java.util.concurrent.CompletableFuture;
  * {@code setItemTextFactory(Option::label)}, not from the item — items no longer
  * store text.
  *
- * <p>For the full property-driven explorer see
- * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderShowcase}.
+ * <p>For the field-property explorer see
+ * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderShowcase};
+ * for lazy loading see
+ * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXCascaderLazyShowcase}.
  */
 public class RXCascaderDemo extends Application {
 

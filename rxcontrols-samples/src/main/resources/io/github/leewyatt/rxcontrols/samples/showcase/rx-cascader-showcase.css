@@ -9,14 +9,6 @@
     -fx-font-size: 11px;
 }
 
-.demo-wide-col2 .rx-cascader-column-1 {
-    -fx-pref-width: 300px;
-}
-
-.demo-tall .rx-cascader-column {
-    -fx-fixed-cell-size: 44px;
-}
-
 .cascader-preview {
     -fx-alignment: top-center;
     -fx-padding: 16px;

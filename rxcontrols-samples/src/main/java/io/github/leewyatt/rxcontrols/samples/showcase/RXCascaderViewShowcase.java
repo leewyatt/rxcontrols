@@ -1,10 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXCascaderCell;
-import io.github.leewyatt.rxcontrols.RXCascaderItem;
-import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
-import javafx.scene.control.SelectionMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCascaderViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -14,14 +10,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 
 import java.util.List;
-import java.util.StringJoiner;
 
 /**
  * Showcase application for {@link RXCascaderView} — the standalone inline
@@ -31,8 +24,9 @@ import java.util.StringJoiner;
  * The sample tree contains a disabled leaf so the locked tri-state rollup is
  * directly observable.
  *
- * <p>The value type is an {@link Option} record; visible node text comes from
- * {@code setItemTextFactory(Option::label)} and path text from a local helper.
+ * <p>The value type is a {@link CascaderOption} record; visible node text comes
+ * from {@code setItemTextFactory(CascaderOption::label)} and path text from the
+ * shared showcase helper.
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderViewDemo}.
  * For the popup/input-field wrapper, see {@link RXCascaderShowcase}.
@@ -41,18 +35,8 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
     private static final double MIN_VISIBLE_ROWS = 3.0;
     private static final double MAX_VISIBLE_ROWS = 10.0;
-    private static final String SEPARATOR = " / ";
 
-    private RXCascaderView<Option> view;
-
-    /**
-     * Backend-style value carrying an id and a display label.
-     *
-     * @param id stable identifier
-     * @param label human-facing text rendered by {@code itemTextFactory}
-     */
-    public record Option(String id, String label) {
-    }
+    private RXCascaderView<CascaderOption> view;
 
     // ==================== Showcase wiring ====================
 
@@ -79,14 +63,14 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         view = new RXCascaderView<>();
-        view.setItemTextFactory(Option::label);
-        view.getRootItems().setAll(sampleOptions());
+        view.setItemTextFactory(CascaderOption::label);
+        view.getRootItems().setAll(CascaderShowcaseSupport.sampleOptions());
 
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
         readout.setWrapText(true);
         readout.textProperty().bind(Bindings.createStringBinding(
-                this::describeSelection,
+                () -> CascaderShowcaseSupport.describeSelection(view),
                 view.selectedPathProperty(),
                 view.getCheckedPaths(),
                 view.selectionModeProperty()));
@@ -118,7 +102,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
 
         CheckBox customCell = new CheckBox("Custom cell (colored dot + text)");
         customCell.selectedProperty().addListener((obs, was, on) ->
-                view.setCellFactory(on ? DotCell::new : null));
+                view.setCellFactory(on ? CascaderShowcaseSupport.DotCell::new : null));
 
         Label hint = new Label("\"Disabled City\" under Asia / China is a locked "
                 + "leaf. In multiple mode it keeps China and Asia indeterminate "
@@ -161,95 +145,6 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
         view.getStyleClass().removeAll(SizePreset.WIDE_COL2.styleClass(), SizePreset.TALL_ROWS.styleClass());
         if (preset != null && !preset.styleClass().isEmpty()) {
             view.getStyleClass().add(preset.styleClass());
-        }
-    }
-
-    // ==================== Readout ====================
-
-    private String describeSelection() {
-        if (view.getSelectionMode() == SelectionMode.MULTIPLE) {
-            List<RXCascaderPath<Option>> checked = view.getCheckedPaths();
-            if (checked.isEmpty()) {
-                return "checked: (none)";
-            }
-            StringJoiner joiner = new StringJoiner("\n");
-            for (RXCascaderPath<Option> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, pathTexts(view.getItemTextFactory(), path)));
-            }
-            return "checked (" + checked.size() + "):\n" + joiner;
-        }
-        RXCascaderPath<Option> path = view.getSelectedPath();
-        if (path == null) {
-            return "selected: (none)";
-        }
-        return "selected: " + String.join(SEPARATOR, pathTexts(view.getItemTextFactory(), path));
-    }
-
-    private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
-        return path.getValues().stream()
-                .map(value -> itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value))
-                .toList();
-    }
-
-    // ==================== Sample data ====================
-
-    private static List<RXCascaderItem<Option>> sampleOptions() {
-        RXCascaderItem<Option> disabledCity = item("disabled", "Disabled City");
-        disabledCity.setDisable(true);
-
-        RXCascaderItem<Option> china = item("china", "China");
-        china.getChildren().setAll(List.of(
-                item("shanghai", "Shanghai"),
-                item("hangzhou", "Hangzhou"),
-                disabledCity));
-
-        RXCascaderItem<Option> japan = item("japan", "Japan");
-        japan.getChildren().setAll(List.of(
-                item("tokyo", "Tokyo"),
-                item("osaka", "Osaka")));
-
-        RXCascaderItem<Option> asia = item("asia", "Asia");
-        asia.getChildren().setAll(List.of(china, japan));
-
-        RXCascaderItem<Option> germany = item("germany", "Germany");
-        germany.getChildren().setAll(List.of(
-                item("berlin", "Berlin"),
-                item("munich", "Munich")));
-
-        RXCascaderItem<Option> europe = item("europe", "Europe");
-        europe.getChildren().setAll(List.of(germany));
-
-        return List.of(asia, europe);
-    }
-
-    private static RXCascaderItem<Option> item(String id, String label) {
-        return new RXCascaderItem<>(new Option(id, label));
-    }
-
-    // ==================== Custom cell ====================
-
-    /**
-     * Cell that overrides only the content area with a colored dot plus the item
-     * text, keeping the built-in check box / arrow / loading and interaction.
-     *
-     * @param <T> application value type
-     */
-    private static final class DotCell<T> extends RXCascaderCell<T> {
-
-        private DotCell(RXCascaderView<T> view) {
-            super(view);
-        }
-
-        @Override
-        protected Node createContent(RXCascaderItem<T> item) {
-            Region dot = new Region();
-            dot.getStyleClass().add("demo-cell-dot");
-            dot.setMinSize(8.0, 8.0);
-            dot.setPrefSize(8.0, 8.0);
-            dot.setMaxSize(8.0, 8.0);
-            HBox box = new HBox(8.0, dot, new Label(getDisplayText(item.getValue())));
-            box.setAlignment(Pos.CENTER_LEFT);
-            return box;
         }
     }
 
