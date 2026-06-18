@@ -34,6 +34,9 @@
 
         <javafx.version>17.0.13</javafx.version>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
+        <!-- Pinned to the Java 17 line; 2.1.0 requires Java 21. Only consumed by
+             samples (compile) and core tests (the AtlantaFX theme bridge). -->
+        <atlantafx.version>2.0.1</atlantafx.version>
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
@@ -72,6 +75,11 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.jupiter.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.github.mkpaz</groupId>
+                <artifactId>atlantafx-base</artifactId>
+                <version>${atlantafx.version}</version>
             </dependency>
 
             <dependency>

@@ -160,6 +160,58 @@
     </tbody>
 </table>
 
+<h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>
+<p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> can make RxControls
+   follow the host theme with <code>RXAtlantaFX</code>. It layers an <b>author-origin</b> stylesheet
+   (<code>rx-controls-atlantafx.css</code>) that re-points the color role tokens above at AtlantaFX
+   <code>-color-*</code> functional tokens. Install the AtlantaFX theme as the Application user-agent
+   stylesheet <b>before</b> building the scene, then apply the bridge:</p>
+<pre><code>Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+Scene scene = new Scene(root);
+RXAtlantaFX.applyTo(scene);   // popups opened afterwards follow it too</code></pre>
+<p>Apply at scene level (recommended) or to a single <code>Parent</code> subtree
+   (<code>applyTo(Parent)</code>) when mixing themes. A scene-level bridge reaches popups (e.g.
+   <code>RXCascader</code>'s) because the popup snapshots its owner scene's stylesheets at show time;
+   a parent-level bridge reaches a popup only when that parent is on the owning control's ancestor
+   chain.</p>
+<p><b>Scope.</b> The bridge re-points the color role tokens and, because AtlantaFX does not define the
+   Modena <code>-fx-*</code> palette, also supplies the few Modena base colors RxControls rules still
+   reference directly (<code>-fx-control-inner-background</code>, <code>-fx-accent</code>,
+   <code>-fx-text-base-color</code>, …) mapped to <code>-color-*</code> — so controls not yet migrated
+   to role tokens (e.g. the cascader) follow the theme too. Non-color values (radius, spacing, sizes)
+   are not themed.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Role token</th>
+        <th>AtlantaFX mapping</th>
+        <th>Primer Light</th>
+        <th>Primer Dark</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr><td>-rx-primary</td><td>-color-accent-emphasis</td><td>#0969da</td><td>#1f6feb</td></tr>
+    <tr><td>-rx-primary-hover</td><td>derive(-color-accent-emphasis, 8%)</td><td>—</td><td>—</td></tr>
+    <tr><td>-rx-primary-active</td><td>derive(-color-accent-emphasis, -10%)</td><td>—</td><td>—</td></tr>
+    <tr><td>-rx-primary-bg</td><td>-color-accent-subtle</td><td>#ddf4ff</td><td>rgba(56,139,253,.15)</td></tr>
+    <tr><td>-rx-on-primary</td><td>-color-fg-emphasis</td><td>#ffffff</td><td>#ffffff</td></tr>
+    <tr><td>-rx-success</td><td>-color-success-emphasis</td><td>#2da44e</td><td>#238636</td></tr>
+    <tr><td>-rx-warning</td><td>-color-warning-emphasis</td><td>#bf8700</td><td>#9e6a03</td></tr>
+    <tr><td>-rx-danger</td><td>-color-danger-emphasis</td><td>#cf222e</td><td>#da3633</td></tr>
+    <tr><td>-rx-info</td><td>-color-neutral-emphasis</td><td>#6e7781</td><td>#6e7681</td></tr>
+    <tr><td>-rx-surface</td><td>-color-bg-default</td><td>#ffffff</td><td>#0d1117</td></tr>
+    <tr><td>-rx-surface-variant</td><td>-color-bg-subtle</td><td>#f6f8fa</td><td>#161b22</td></tr>
+    <tr><td>-rx-on-surface</td><td>-color-fg-default</td><td>#24292f</td><td>#c9d1d9</td></tr>
+    <tr><td>-rx-on-surface-secondary</td><td>-color-fg-muted</td><td>#57606a</td><td>#8b949e</td></tr>
+    <tr><td>-rx-on-surface-disabled</td><td>-color-fg-subtle</td><td>#6e7781</td><td>#6e7681</td></tr>
+    <tr><td>-rx-outline</td><td>-color-border-default</td><td>#d0d7de</td><td>#30363d</td></tr>
+    <tr><td>-rx-outline-variant</td><td>-color-border-muted</td><td>#d0d7de</td><td>#21262d</td></tr>
+    <tr><td>-rx-focus</td><td>-color-accent-emphasis</td><td>#0969da</td><td>#1f6feb</td></tr>
+    <tr><td>-rx-selection</td><td>-color-accent-muted</td><td>rgba(84,174,255,.4)</td><td>rgba(56,139,253,.4)</td></tr>
+    <tr><td>-rx-state-overlay-color</td><td>-color-fg-default</td><td>#24292f</td><td>#c9d1d9</td></tr>
+    </tbody>
+</table>
+
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
 <p>The RXAudioSpectrum control has all the properties of Control; pseudo-classes: :active, :silent</p>

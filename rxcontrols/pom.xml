@@ -30,6 +30,13 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
         </dependency>
+        <!-- Test-only: the AtlantaFX theme-bridge regression suite installs a real
+             PrimerLight Application UA. Core production code never depends on AtlantaFX. -->
+        <dependency>
+            <groupId>io.github.mkpaz</groupId>
+            <artifactId>atlantafx-base</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

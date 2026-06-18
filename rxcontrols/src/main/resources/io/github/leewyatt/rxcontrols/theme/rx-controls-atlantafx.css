@@ -1,0 +1,72 @@
+/*******************************************************************************
+ *                                                                             *
+ * RxControls x AtlantaFX bridge (author stylesheet)                           *
+ *                                                                             *
+ * Author-origin overrides that re-point the 19 -rx-* color role tokens at     *
+ * AtlantaFX functional tokens (-color-*). Apply via RXAtlantaFX.applyTo(...)   *
+ * in an app whose Application UA is an AtlantaFX theme (e.g. PrimerLight). On  *
+ * a given control root the author origin wins over the rx-controls.css UA      *
+ * baseline, and -color-* resolves from the AtlantaFX Application-UA `.root`.   *
+ *                                                                             *
+ * All 19 tokens are listed explicitly (no reliance on "omit = auto-follow      *
+ * -rx-primary"): the same -rx-* <- -color-* fragment is reused by the Phase 3  *
+ * UA entry. The selector list MUST stay identical to the baseline list in     *
+ * rx-controls.css; RXAtlantaFXBridgeTest fails otherwise.                     *
+ *                                                                             *
+ ******************************************************************************/
+.rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
+.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-formatted-number-field,
+.rx-highlight-text-view, .rx-image-pane, .rx-image-view, .rx-integer-field,
+.rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
+.rx-masonry-pane, .rx-number-field, .rx-password-field, .rx-radio-toggle-button,
+.rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
+.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
+.rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
+    /* brand / primary */
+    -rx-primary: -color-accent-emphasis;
+    -rx-primary-hover: derive(-color-accent-emphasis, 8%);
+    -rx-primary-active: derive(-color-accent-emphasis, -10%);
+    -rx-primary-bg: -color-accent-subtle;
+    -rx-on-primary: -color-fg-emphasis;
+    /* semantic */
+    -rx-success: -color-success-emphasis;
+    -rx-warning: -color-warning-emphasis;
+    -rx-danger: -color-danger-emphasis;
+    -rx-info: -color-neutral-emphasis;
+    /* surface / text / outline */
+    -rx-surface: -color-bg-default;
+    -rx-surface-variant: -color-bg-subtle;
+    -rx-on-surface: -color-fg-default;
+    -rx-on-surface-secondary: -color-fg-muted;
+    -rx-on-surface-disabled: -color-fg-subtle;
+    -rx-outline: -color-border-default;
+    -rx-outline-variant: -color-border-muted;
+    -rx-focus: -color-accent-emphasis;
+    -rx-selection: -color-accent-muted;
+    /* interaction state overlay (ripple / hover tint); flips with the theme */
+    -rx-state-overlay-color: -color-fg-default;
+
+    /* Modena base palette that AtlantaFX does not define. RxControls component
+       rules that still reference raw -fx-* colors directly (the not-yet
+       role-tokenized recolor backlog: cascader, digit, focus glow, …) would
+       otherwise fail to resolve under AtlantaFX and render transparent/black.
+       Supplying them here (author origin, on the control roots) keeps those
+       controls following the theme until they are migrated to role tokens. */
+    -fx-base: -color-bg-default;
+    -fx-color: -color-bg-default;
+    -fx-control-inner-background: -color-bg-default;
+    -fx-hover-base: -color-bg-subtle;
+    -fx-pressed-base: -color-bg-inset;
+    -fx-text-base-color: -color-fg-default;
+    -fx-text-inner-color: -color-fg-default;
+    -fx-mid-text-color: -color-fg-muted;
+    -fx-box-border: -color-border-default;
+    -fx-text-box-border: -color-border-default;
+    -fx-accent: -color-accent-emphasis;
+    -fx-focus-color: -color-accent-emphasis;
+    -fx-faint-focus-color: -color-accent-muted;
+}
