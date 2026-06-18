@@ -2,12 +2,12 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.animation.page.*;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
+import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -16,26 +16,39 @@ import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
-import javafx.scene.control.*;
+import javafx.scene.control.Accordion;
+import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TitledPane;
 import javafx.scene.image.WritableImage;
-import javafx.scene.layout.*;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-
 import java.util.function.Supplier;
 
 /**
  * Comprehensive showcase of all CarouselFX features: animations, navigation,
  * playback, display modes, and more.
  */
-public class RXCarouselShowcase extends Application {
+public class RXCarouselShowcase extends RXShowcaseApplication {
 
     private static final double DEFAULT_ANIM_DURATION = 580;
     private static final int SCREENSHOT_COUNT = 10;
@@ -49,9 +62,51 @@ public class RXCarouselShowcase extends Application {
             "#C678DD", "#2DBCB6", "#E5855A", "#5C6BC0"
     };
 
+    private RXCarousel carousel;
+
     @Override
-    public void start(Stage primaryStage) {
-        RXCarousel carousel = new RXCarousel();
+    protected String title() {
+        return "RXCarousel";
+    }
+
+    @Override
+    protected String subtitle() {
+        return "Animations, navigation, playback, display modes, and page caching.";
+    }
+
+    @Override
+    protected String windowTitle() {
+        return "CarouselFX Showcase";
+    }
+
+    @Override
+    protected double sceneWidth() {
+        return 1100.0;
+    }
+
+    @Override
+    protected double sceneHeight() {
+        return 650.0;
+    }
+
+    @Override
+    protected double controlPaneWidth() {
+        return 380.0;
+    }
+
+    @Override
+    protected String stylesheetPath() {
+        return getClass().getResource("rx-carousel-showcase.css").toExternalForm();
+    }
+
+    @Override
+    protected void configureScene(Scene scene) {
+        scene.setCamera(new PerspectiveCamera());
+    }
+
+    @Override
+    protected Node createPreview() {
+        carousel = new RXCarousel();
         carousel.setAnimation(new AnimSlide());
         carousel.setPrefSize(700, 400);
         carousel.setAnimationDuration(Duration.millis(DEFAULT_ANIM_DURATION));
@@ -69,21 +124,18 @@ public class RXCarouselShowcase extends Application {
         carousel.setOnPageClosed(e -> System.out.println("CLOSED page index = " + e.getPageIndex()));
         carousel.setOnPageEvicted(e -> System.out.println("EVICTED page index = " + e.getPageIndex()));
 
-        VBox rightPanel = createControlPanel(carousel);
-        rightPanel.setPrefWidth(280);
+        return carousel;
+    }
 
-        BorderPane root = new BorderPane();
-        root.setCenter(carousel);
-        root.setRight(rightPanel);
-        BorderPane.setMargin(rightPanel, new Insets(10));
-        BorderPane.setMargin(carousel, new Insets(10));
-
-        Scene scene = new Scene(root, 1100, 650);
-        scene.getStylesheets().add(getClass().getResource("rx-carousel-showcase.css").toExternalForm());
-        primaryStage.setTitle("CarouselFX Showcase");
-        primaryStage.setScene(scene);
-        scene.setCamera(new PerspectiveCamera());
-        primaryStage.show();
+    @Override
+    protected List<Section> createSections() {
+        return List.of(
+                section("Animation (70+)", createAnimationSection()),
+                section("Navigation", createNavigationSection()),
+                section("Playback", createPlaybackSection()),
+                section("Display", createDisplaySection())
+                // , section("Screenshot", createScreenshotSection())
+        );
     }
 
     private StackPane createColorPage(int index) {
@@ -97,35 +149,9 @@ public class RXCarouselShowcase extends Application {
         return page;
     }
 
-    // ==================== Control Panel ====================
+    // ==================== Sections ====================
 
-    private VBox createControlPanel(RXCarousel carousel) {
-        Label titleLabel = new Label("CarouselFX");
-        titleLabel.getStyleClass().add("showcase-title");
-        titleLabel.setMaxWidth(Double.MAX_VALUE);
-
-        VBox scrollContent = new VBox(12,
-                createAnimationSection(carousel),
-                createNavigationSection(carousel),
-                createPlaybackSection(carousel),
-                createDisplaySection(carousel)
-                // , createScreenshotSection(carousel)
-        );
-        scrollContent.setPadding(new Insets(10));
-
-        ScrollPane scrollPane = new ScrollPane(scrollContent);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
-
-        VBox panel = new VBox(8, titleLabel, scrollPane);
-        return panel;
-    }
-
-    // ---- Animation Section ----
-
-    private Node createAnimationSection(RXCarousel carousel) {
-        // Duration slider
+    private Node createAnimationSection() {
         Label durationLabel = new Label(String.format("Duration: %dms", (int) DEFAULT_ANIM_DURATION));
         durationLabel.setMaxWidth(Double.MAX_VALUE);
 
@@ -163,14 +189,10 @@ public class RXCarouselShowcase extends Application {
             }
         }
 
-        VBox content = new VBox(6, durationLabel, durationSlider, accordion);
-        return createSection("Animation (70+)", content);
+        return new VBox(6, durationLabel, durationSlider, accordion);
     }
 
-    // ---- Navigation Section ----
-
-    private Node createNavigationSection(RXCarousel carousel) {
-        // Page indicator
+    private Node createNavigationSection() {
         Label pageLabel = new Label("Page: 1 / " + carousel.getPageCount());
         pageLabel.getStyleClass().add("showcase-page-label");
         carousel.selectedIndexProperty().addListener((obs, o, n) ->
@@ -216,17 +238,13 @@ public class RXCarouselShowcase extends Application {
         goDirect.setOnAction(e -> carousel.goToPage(pageSpinner.getValue() - 1, false));
         HBox goButtons = new HBox(5, goAnimated, goDirect);
 
-        VBox content = new VBox(6, navButtons, separator, goToRow, goButtons);
-        return createSection("Navigation", content);
+        return new VBox(6, navButtons, separator, goToRow, goButtons);
     }
 
-    // ---- Playback Section ----
-
-    private Node createPlaybackSection(RXCarousel carousel) {
+    private Node createPlaybackSection() {
         CheckBox autoPlayCb = new CheckBox("Auto Play");
         autoPlayCb.selectedProperty().bindBidirectional(carousel.autoPlayProperty());
 
-        // Countdown indicator
         RXCircularProgressIndicator progressIndicator = new RXCircularProgressIndicator(0);
         progressIndicator.setPrefSize(28, 28);
         progressIndicator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -254,13 +272,10 @@ public class RXCarouselShowcase extends Application {
         CheckBox circularCb = new CheckBox("Circular");
         circularCb.selectedProperty().bindBidirectional(carousel.circularProperty());
 
-        VBox content = new VBox(6, autoPlayRow, hoverPauseCb, circularCb);
-        return createSection("Playback", content);
+        return new VBox(6, autoPlayRow, hoverPauseCb, circularCb);
     }
 
-    // ---- Display Section ----
-
-    private Node createDisplaySection(RXCarousel carousel) {
+    private Node createDisplaySection() {
         ComboBox<DisplayMode> arrowCombo = new ComboBox<>();
         arrowCombo.getItems().addAll(DisplayMode.values());
         arrowCombo.setValue(carousel.getArrowDisplayMode());
@@ -298,26 +313,17 @@ public class RXCarouselShowcase extends Application {
             }
         });
 
-        GridPane grid = new GridPane();
-        grid.setHgap(8);
-        grid.setVgap(6);
-        ColumnConstraints labelCol = new ColumnConstraints();
-        ColumnConstraints comboCol = new ColumnConstraints();
-        comboCol.setHgrow(Priority.ALWAYS);
-        grid.getColumnConstraints().addAll(labelCol, comboCol);
-
-        grid.addRow(0, new Label("Arrow"), arrowCombo);
-        grid.addRow(1, new Label("Nav Mode"), navCombo);
-        grid.addRow(2, new Label("Navigator"), navigatorCombo);
-        grid.addRow(3, new Label("Cache"), cacheCombo);
-
-        VBox content = new VBox(6, grid);
-        return createSection("Display", content);
+        return createGrid(
+                row("Arrow", arrowCombo),
+                row("Nav Mode", navCombo),
+                row("Navigator", navigatorCombo),
+                row("Cache", cacheCombo)
+        );
     }
 
     // ---- Screenshot Section (Development-only: captures animation frames for visual debugging.)----
 
-    private Node createScreenshotSection(RXCarousel carousel) {
+    private Node createScreenshotSection() {
         Button nextScreenshot = new Button("Next + Screenshot");
         nextScreenshot.setMaxWidth(Double.MAX_VALUE);
         nextScreenshot.setOnAction(e -> {
@@ -332,22 +338,7 @@ public class RXCarouselShowcase extends Application {
             startScreenshotTimer(carousel, "prev");
         });
 
-        VBox content = new VBox(6, nextScreenshot, prevScreenshot);
-        return createSection("Screenshot", content);
-    }
-
-    // ==================== Section Helper ====================
-
-    private Node createSection(String title, VBox content) {
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("showcase-section-title");
-        titleLabel.setMaxWidth(Double.MAX_VALUE);
-
-        content.setPadding(new Insets(8));
-
-        VBox section = new VBox(titleLabel, content);
-        section.getStyleClass().add("showcase-section");
-        return section;
+        return new VBox(6, nextScreenshot, prevScreenshot);
     }
 
     // ==================== Categorized Animations ====================

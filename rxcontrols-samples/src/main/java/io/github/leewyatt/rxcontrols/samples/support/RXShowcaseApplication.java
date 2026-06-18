@@ -57,6 +57,7 @@ public abstract class RXShowcaseApplication extends Application {
         scene.getStylesheets().add(
                 RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm());
         scene.getStylesheets().add(stylesheetPath());
+        configureScene(scene);
 
         primaryStage.setScene(scene);
         primaryStage.setTitle(windowTitle());
@@ -90,6 +91,15 @@ public abstract class RXShowcaseApplication extends Application {
      *         {@code getClass().getResource("xxx.css").toExternalForm()})
      */
     protected abstract String stylesheetPath();
+
+    /**
+     * Gives subclasses a final chance to configure the scene before it is
+     * attached to the stage.
+     *
+     * @param scene the scene created by this showcase shell
+     */
+    protected void configureScene(Scene scene) {
+    }
 
     /**
      * @return the {@link Stage} title; defaults to {@link #title()}
