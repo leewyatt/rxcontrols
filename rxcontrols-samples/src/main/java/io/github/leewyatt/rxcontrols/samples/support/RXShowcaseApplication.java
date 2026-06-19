@@ -1,16 +1,20 @@
 package io.github.leewyatt.rxcontrols.samples.support;
 
+import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -46,17 +50,23 @@ public abstract class RXShowcaseApplication extends Application {
 
     // ==================== Application lifecycle ====================
 
+    private StackPane previewPane;
+
     @Override
     public final void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        root.setCenter(buildPreviewPane());
+        previewPane = buildPreviewPane();
+        root.setCenter(previewPane);
         root.setRight(buildControlPane());
 
         Scene scene = new Scene(root, sceneWidth(), sceneHeight());
         scene.getStylesheets().add(
                 RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm());
         scene.getStylesheets().add(stylesheetPath());
+        if (enableTheme()) {
+            root.setTop(buildThemeBar(scene));
+        }
         configureScene(scene);
 
         primaryStage.setScene(scene);
@@ -109,6 +119,17 @@ public abstract class RXShowcaseApplication extends Application {
     }
 
     /**
+     * Whether to show the built-in theme picker at the top of the window (lets the
+     * showcase be viewed under the RxControls light/dark and AtlantaFX themes).
+     * Override to return {@code false} to opt out.
+     *
+     * @return {@code true} to show the theme picker
+     */
+    protected boolean enableTheme() {
+        return true;
+    }
+
+    /**
      * @return scene width in pixels
      */
     protected double sceneWidth() {
@@ -131,11 +152,39 @@ public abstract class RXShowcaseApplication extends Application {
 
     // ==================== Chrome assembly ====================
 
-    private Node buildPreviewPane() {
+    private StackPane buildPreviewPane() {
         StackPane pane = new StackPane(createPreview());
         pane.getStyleClass().add("preview-pane");
         pane.setAlignment(Pos.CENTER);
         return pane;
+    }
+
+    private HBox buildThemeBar(Scene scene) {
+        List<ThemeChoice> choices = ShowcaseThemes.all();
+        ComboBox<ThemeChoice> picker = new ComboBox<>();
+        picker.getItems().setAll(choices);
+        picker.valueProperty().addListener((obs, old, choice) -> {
+            if (choice != null) {
+                applyTheme(scene, choice);
+            }
+        });
+        picker.setValue(choices.get(0)); // applies the initial (light) theme
+
+        Label label = new Label("Theme:");
+        label.setStyle("-fx-text-fill: #344054;"); // fixed so the bar stays readable in any theme
+        HBox bar = new HBox(10.0, label, picker);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(10.0, 14.0, 10.0, 14.0));
+        bar.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 1 0;");
+        return bar;
+    }
+
+    private void applyTheme(Scene scene, ThemeChoice choice) {
+        choice.apply().accept(scene);
+        // Theme the preview surface (the control panel chrome is left as-is): a dark
+        // theme needs a dark canvas so transparent-background controls stay readable.
+        String preview = choice.previewBackground();
+        previewPane.setStyle(preview == null ? "" : "-fx-background-color: " + preview + ";");
     }
 
     private Node buildControlPane() {

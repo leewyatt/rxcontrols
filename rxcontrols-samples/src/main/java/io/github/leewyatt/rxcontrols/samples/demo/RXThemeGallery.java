@@ -1,16 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import atlantafx.base.theme.CupertinoDark;
-import atlantafx.base.theme.CupertinoLight;
-import atlantafx.base.theme.Dracula;
-import atlantafx.base.theme.NordDark;
-import atlantafx.base.theme.NordLight;
-import atlantafx.base.theme.PrimerDark;
-import atlantafx.base.theme.PrimerLight;
-import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
-import io.github.leewyatt.rxcontrols.theme.RXAtlantaFX;
-import io.github.leewyatt.rxcontrols.theme.RXTheme;
+import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
+import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -28,33 +20,17 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.StringConverter;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Theme gallery: a scrollable, alphabetised grid of every color-relevant RxControl
  * (each in a labelled card) with a theme switcher to compare the built-in light/dark
- * looks ({@link RXTheme}) against the AtlantaFX themes ({@link RXAtlantaFX}). Pure
- * layout containers (RXBox / RXRow / RXCol / RXMasonryPane) are omitted; every other
- * control is built by {@link ThemeGalleryCards}.
+ * looks against the AtlantaFX themes (see {@link ShowcaseThemes}). Pure layout
+ * containers (RXBox / RXRow / RXCol / RXMasonryPane) are omitted; every other control
+ * is built by {@link ThemeGalleryCards}.
  */
 public class RXThemeGallery extends Application {
-
-    private record ThemeOption(String label, Consumer<Scene> apply) {
-    }
-
-    private final List<ThemeOption> themes = List.of(
-            new ThemeOption("RxControls — Light", scene -> rxControls(scene, RXTheme.Variant.LIGHT)),
-            new ThemeOption("RxControls — Dark", scene -> rxControls(scene, RXTheme.Variant.DARK)),
-            new ThemeOption("AtlantaFX — Primer Light", scene -> atlanta(scene, new PrimerLight())),
-            new ThemeOption("AtlantaFX — Primer Dark", scene -> atlanta(scene, new PrimerDark())),
-            new ThemeOption("AtlantaFX — Nord Light", scene -> atlanta(scene, new NordLight())),
-            new ThemeOption("AtlantaFX — Nord Dark", scene -> atlanta(scene, new NordDark())),
-            new ThemeOption("AtlantaFX — Cupertino Light", scene -> atlanta(scene, new CupertinoLight())),
-            new ThemeOption("AtlantaFX — Cupertino Dark", scene -> atlanta(scene, new CupertinoDark())),
-            new ThemeOption("AtlantaFX — Dracula", scene -> atlanta(scene, new Dracula())));
 
     @Override
     public void start(Stage primaryStage) {
@@ -62,59 +38,32 @@ public class RXThemeGallery extends Application {
         scroll.setFitToWidth(true);
 
         BorderPane root = new BorderPane();
-        root.setTop(buildToolbar(root));
         root.setCenter(scroll);
 
         Scene scene = new Scene(root, 1100, 820);
-        themes.get(0).apply().accept(scene); // start on RxControls light
+        root.setTop(buildToolbar(scene)); // applies the initial theme
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RxControls Theme Gallery");
         primaryStage.show();
     }
 
-    // ==================== Theme switching ====================
-
-    private static void rxControls(Scene scene, RXTheme.Variant variant) {
-        Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
-        RXAtlantaFX.uninstall(scene);
-        RXTheme.install(scene, variant);
-    }
-
-    private static void atlanta(Scene scene, Theme theme) {
-        Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
-        RXTheme.install(scene, RXTheme.Variant.LIGHT); // ensure the dark overlay is off
-        RXAtlantaFX.install(scene);
-    }
-
-    private HBox buildToolbar(BorderPane root) {
-        ComboBox<ThemeOption> picker = new ComboBox<>();
-        picker.getItems().setAll(themes);
-        picker.setValue(themes.get(0));
-        picker.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(ThemeOption option) {
-                return option == null ? "" : option.label();
-            }
-
-            @Override
-            public ThemeOption fromString(String string) {
-                return null;
+    private HBox buildToolbar(Scene scene) {
+        List<ThemeChoice> choices = ShowcaseThemes.all();
+        ComboBox<ThemeChoice> picker = new ComboBox<>();
+        picker.getItems().setAll(choices);
+        picker.valueProperty().addListener((obs, old, choice) -> {
+            if (choice != null) {
+                choice.apply().accept(scene);
             }
         });
-        picker.valueProperty().addListener((obs, old, option) -> {
-            if (option != null && root.getScene() != null) {
-                option.apply().accept(root.getScene());
-            }
-        });
+        picker.setValue(choices.get(0)); // start on RxControls light
 
         HBox toolbar = new HBox(12, new Label("Theme:"), picker);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(14));
         return toolbar;
     }
-
-    // ==================== Gallery ====================
 
     private FlowPane buildGallery() {
         FlowPane grid = new FlowPane(18, 18);
@@ -134,8 +83,7 @@ public class RXThemeGallery extends Application {
         stage.setMinHeight(130);
         VBox.setVgrow(stage, Priority.ALWAYS);
 
-        Separator divider = new Separator();
-        VBox card = new VBox(10, name, divider, stage);
+        VBox card = new VBox(10, name, new Separator(), stage);
         card.setPadding(new Insets(16));
         card.setPrefWidth(360);
         card.setMinWidth(360);
