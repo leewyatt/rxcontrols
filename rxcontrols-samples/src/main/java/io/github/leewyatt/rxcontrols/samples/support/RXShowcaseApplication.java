@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.samples.support;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -14,7 +13,6 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -50,22 +48,22 @@ public abstract class RXShowcaseApplication extends Application {
 
     // ==================== Application lifecycle ====================
 
-    private StackPane previewPane;
+    private Scene scene;
+    private ComboBox<ThemeChoice> themePicker;
 
     @Override
     public final void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
-        previewPane = buildPreviewPane();
-        root.setCenter(previewPane);
+        root.setCenter(buildPreviewPane());
         root.setRight(buildControlPane());
 
-        Scene scene = new Scene(root, sceneWidth(), sceneHeight());
+        scene = new Scene(root, sceneWidth(), sceneHeight());
         scene.getStylesheets().add(
                 RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm());
         scene.getStylesheets().add(stylesheetPath());
-        if (enableTheme()) {
-            root.setTop(buildThemeBar(scene));
+        if (themePicker != null) {
+            themePicker.getSelectionModel().selectFirst(); // applies the initial theme
         }
         configureScene(scene);
 
@@ -159,32 +157,23 @@ public abstract class RXShowcaseApplication extends Application {
         return pane;
     }
 
-    private HBox buildThemeBar(Scene scene) {
-        List<ThemeChoice> choices = ShowcaseThemes.all();
+    private Node buildThemeBar() {
         ComboBox<ThemeChoice> picker = new ComboBox<>();
-        picker.getItems().setAll(choices);
+        picker.getItems().setAll(ShowcaseThemes.all());
+        picker.setMaxWidth(Double.MAX_VALUE);
         picker.valueProperty().addListener((obs, old, choice) -> {
-            if (choice != null) {
-                applyTheme(scene, choice);
+            if (choice != null && scene != null) {
+                choice.apply().accept(scene);
             }
         });
-        picker.setValue(choices.get(0)); // applies the initial (light) theme
+        themePicker = picker;
 
-        Label label = new Label("Theme:");
-        label.setStyle("-fx-text-fill: #344054;"); // fixed so the bar stays readable in any theme
-        HBox bar = new HBox(10.0, label, picker);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(10.0, 14.0, 10.0, 14.0));
-        bar.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 1 0;");
-        return bar;
-    }
-
-    private void applyTheme(Scene scene, ThemeChoice choice) {
-        choice.apply().accept(scene);
-        // Theme the preview surface (the control panel chrome is left as-is): a dark
-        // theme needs a dark canvas so transparent-background controls stay readable.
-        String preview = choice.previewBackground();
-        previewPane.setStyle(preview == null ? "" : "-fx-background-color: " + preview + ";");
+        Label label = new Label("Theme");
+        label.getStyleClass().add("section-label");
+        VBox box = new VBox(10.0, label, picker);
+        box.getStyleClass().add("section");
+        box.setFillWidth(true);
+        return box;
     }
 
     private Node buildControlPane() {
@@ -197,6 +186,9 @@ public abstract class RXShowcaseApplication extends Application {
 
         List<Node> children = new ArrayList<>();
         children.add(header);
+        if (enableTheme()) {
+            children.add(buildThemeBar());
+        }
         for (Section s : createSections()) {
             children.add(buildSection(s));
         }

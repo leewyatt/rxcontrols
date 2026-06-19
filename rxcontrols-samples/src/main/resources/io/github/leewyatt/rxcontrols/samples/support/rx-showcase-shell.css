@@ -1,15 +1,25 @@
+/*
+ * Showcase shell chrome. Colors are expressed through the Modena base looked-up
+ * vars (-fx-background, -fx-control-inner-background, -fx-text-base-color,
+ * -fx-mid-text-color, -fx-text-box-border) so the chrome follows the active theme:
+ * Modena (RxControls light), the RXTheme dark overlay, and the AtlantaFX bridge
+ * (which maps these vars to -color-* on the root). The editing controls
+ * (sliders, buttons, combos, check boxes) are intentionally left unstyled so they
+ * pick up the active theme natively.
+ */
+
 .root {
-    -fx-background-color: #eef1f6;
+    -fx-background-color: -fx-background;
 }
 
 .preview-pane {
-    -fx-background-color: linear-gradient(to bottom, #ffffff, #f8fafc);
+    -fx-background-color: -fx-control-inner-background;
     -fx-padding: 40px;
 }
 
 .control-pane {
-    -fx-background-color: #f8fafc;
-    -fx-border-color: #d9dee8;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-width: 0 0 0 1px;
     -fx-padding: 0;
 }
@@ -33,17 +43,16 @@
 .control-pane .title-label {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1d2433;
 }
 
 .control-pane .subtitle-label {
     -fx-font-size: 12px;
-    -fx-text-fill: #7b8494;
+    -fx-text-fill: -fx-mid-text-color;
 }
 
 .control-pane .section {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #dfe4ee;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 13px 14px 14px 14px;
@@ -52,85 +61,17 @@
 .control-pane .section-label {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-text-fill: #667085;
-}
-
-.control-pane .field-label {
-    -fx-text-fill: #344054;
+    -fx-text-fill: -fx-mid-text-color;
 }
 
 .control-pane .value-label {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -fx-mid-text-color;
     -fx-font-family: "Menlo", "Consolas", monospace;
     -fx-font-size: 12px;
 }
 
 .control-pane .slider {
     -fx-padding: 8px 0;
-}
-
-.control-pane .slider .track {
-    -fx-background-color: #e4e7ec;
-    -fx-background-radius: 2;
-    -fx-padding: 0;
-    -fx-pref-height: 4px;
-}
-
-.control-pane .slider .thumb {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #98a2b3;
-    -fx-border-radius: 2;
-    -fx-background-radius: 2;
-    -fx-pref-width: 14px;
-    -fx-pref-height: 14px;
-    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.16), 5, 0, 0, 1);
-}
-
-.control-pane .button {
-    -fx-background-color: #f2f4f7;
-    -fx-border-color: #cfd5df;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 5px 12px;
-    -fx-text-fill: #344054;
-}
-
-.control-pane .button:hover {
-    -fx-background-color: #e9edf3;
-}
-
-.control-pane .combo-box,
-.control-pane .color-picker {
-    -fx-background-color: #f9fafb;
-    -fx-border-color: #cfd5df;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-}
-
-.control-pane .combo-box:hover,
-.control-pane .color-picker:hover {
-    -fx-background-color: #ffffff;
-}
-
-.control-pane .check-box,
-.control-pane .check-box .text {
-    -fx-text-fill: #344054;
-}
-
-.control-pane .check-box .box {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #98a2b3;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-}
-
-.control-pane .check-box:selected .box {
-    -fx-background-color: #616dfe;
-    -fx-border-color: #616dfe;
-}
-
-.control-pane .check-box:selected .mark {
-    -fx-background-color: white;
 }
 
 .control-pane .toggle-row {

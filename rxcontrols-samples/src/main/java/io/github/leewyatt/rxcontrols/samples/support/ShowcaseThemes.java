@@ -27,15 +27,12 @@ public final class ShowcaseThemes {
     }
 
     /**
-     * A selectable theme: a display label, an action that applies it to a scene,
-     * and the CSS color a showcase should paint its preview surface with (null
-     * keeps the showcase's default light preview).
+     * A selectable theme: a display label and an action that applies it to a scene.
      *
-     * @param label             the display name
-     * @param apply             applies the theme to a scene
-     * @param previewBackground a CSS color for the preview surface, or null
+     * @param label the display name
+     * @param apply applies the theme to a scene
      */
-    public record ThemeChoice(String label, Consumer<Scene> apply, String previewBackground) {
+    public record ThemeChoice(String label, Consumer<Scene> apply) {
 
         @Override
         public String toString() {
@@ -49,15 +46,15 @@ public final class ShowcaseThemes {
      */
     public static List<ThemeChoice> all() {
         return List.of(
-                new ThemeChoice("RxControls — Light", scene -> rxControls(scene, RXTheme.Variant.LIGHT), null),
-                new ThemeChoice("RxControls — Dark", scene -> rxControls(scene, RXTheme.Variant.DARK), "#1e1f2b"),
-                new ThemeChoice("AtlantaFX — Primer Light", scene -> atlanta(scene, new PrimerLight()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Primer Dark", scene -> atlanta(scene, new PrimerDark()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Nord Light", scene -> atlanta(scene, new NordLight()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Nord Dark", scene -> atlanta(scene, new NordDark()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Cupertino Light", scene -> atlanta(scene, new CupertinoLight()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Cupertino Dark", scene -> atlanta(scene, new CupertinoDark()), "-color-bg-default"),
-                new ThemeChoice("AtlantaFX — Dracula", scene -> atlanta(scene, new Dracula()), "-color-bg-default"));
+                new ThemeChoice("RxControls — Light", scene -> rxControls(scene, RXTheme.Variant.LIGHT)),
+                new ThemeChoice("RxControls — Dark", scene -> rxControls(scene, RXTheme.Variant.DARK)),
+                new ThemeChoice("AtlantaFX — Primer Light", scene -> atlanta(scene, new PrimerLight())),
+                new ThemeChoice("AtlantaFX — Primer Dark", scene -> atlanta(scene, new PrimerDark())),
+                new ThemeChoice("AtlantaFX — Nord Light", scene -> atlanta(scene, new NordLight())),
+                new ThemeChoice("AtlantaFX — Nord Dark", scene -> atlanta(scene, new NordDark())),
+                new ThemeChoice("AtlantaFX — Cupertino Light", scene -> atlanta(scene, new CupertinoLight())),
+                new ThemeChoice("AtlantaFX — Cupertino Dark", scene -> atlanta(scene, new CupertinoDark())),
+                new ThemeChoice("AtlantaFX — Dracula", scene -> atlanta(scene, new Dracula())));
     }
 
     private static void rxControls(Scene scene, RXTheme.Variant variant) {
