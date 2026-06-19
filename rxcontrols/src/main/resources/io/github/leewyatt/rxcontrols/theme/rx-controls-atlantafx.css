@@ -81,3 +81,29 @@
 .rx-fill-label:filling {
     -fx-text-fill: -rx-on-primary;
 }
+
+/* Per-control re-points for controls whose baseline colors are hardcoded literals
+   (not role tokens / not -fx-*), so the token + compat layers above cannot reach
+   them. Re-pointed at role tokens, which map to -color-* and therefore auto-flip
+   for both light and dark AtlantaFX themes. (Same flip-list as the dark overlay;
+   the long-term fix is to tokenize these in the baseline.) */
+.rx-text-view {
+    -rx-text-fill: -rx-on-surface;
+    -rx-selected-text-fill: -rx-on-surface;
+}
+.rx-segmented-control > .segment .label {
+    -fx-text-fill: -rx-on-surface;
+}
+.rx-segmented-control > .segment:selected .label {
+    -fx-text-fill: rgba(0, 0, 0, 0.88); /* on the white indicator pill */
+}
+.rx-seek-bar {
+    -rx-track-fill: -rx-surface-variant;
+    -rx-secondary-fill: -rx-outline;
+}
+.rx-wave-progress-indicator > .wave-container {
+    -fx-background-color: -rx-surface-variant;
+}
+.rx-avatar > .default-icon-wrapper {
+    -fx-background-color: -rx-surface-variant;
+}

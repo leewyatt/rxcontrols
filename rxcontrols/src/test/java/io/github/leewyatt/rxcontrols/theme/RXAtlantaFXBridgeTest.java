@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import javafx.application.Application;
@@ -260,6 +261,30 @@ public class RXAtlantaFXBridgeTest {
                 "RXButton ripple -> -rx-state-overlay-color -> -color-fg-default");
         assertEquals(Color.web("#2da44e"), successDot.get(),
                 "RXTimelineView success dot -> -rx-success -> -color-success-emphasis");
+    }
+
+    /**
+     * Controls whose baseline colors are hardcoded literals (text-view text, …)
+     * follow the bridge via the flip-list re-points; checked through
+     * {@code RXTextView}, whose literal near-black would be wrong under AtlantaFX
+     * dark themes. Under Primer Light the role token resolves to {@code fg-default}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void literalColoredControlsFollowTheBridge() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTextView textView = new RXTextView("hello");
+            StackPane host = new StackPane(textView);
+            Scene scene = new Scene(host, 200, 80);
+            RXAtlantaFX.install(scene);
+            host.applyCss();
+            host.layout();
+            textFill.set(textView.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "RXTextView text must follow -rx-on-surface -> -color-fg-default under the bridge");
     }
 
     // ==================== Subtree scoping ====================
