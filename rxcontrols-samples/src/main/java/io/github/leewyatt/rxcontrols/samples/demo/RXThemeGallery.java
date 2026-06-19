@@ -8,40 +8,7 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
-import io.github.leewyatt.rxcontrols.RXAvatar;
-import io.github.leewyatt.rxcontrols.RXBarSpinner;
-import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXCascader;
-import io.github.leewyatt.rxcontrols.RXCascaderItem;
-import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
-import io.github.leewyatt.rxcontrols.RXDigit;
-import io.github.leewyatt.rxcontrols.RXDotPulse;
-import io.github.leewyatt.rxcontrols.RXFillButton;
-import io.github.leewyatt.rxcontrols.RXFillLabel;
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
-import io.github.leewyatt.rxcontrols.RXHighlightTextView;
-import io.github.leewyatt.rxcontrols.RXIntegerField;
-import io.github.leewyatt.rxcontrols.RXLineButton;
-import io.github.leewyatt.rxcontrols.RXLineLabel;
-import io.github.leewyatt.rxcontrols.RXPasswordField;
-import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
-import io.github.leewyatt.rxcontrols.RXRipplePane;
-import io.github.leewyatt.rxcontrols.RXSeekBar;
-import io.github.leewyatt.rxcontrols.RXSegmentedControl;
-import io.github.leewyatt.rxcontrols.RXSegmentedItem;
-import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
-import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
-import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
-import io.github.leewyatt.rxcontrols.RXSkeleton;
-import io.github.leewyatt.rxcontrols.RXTextField;
-import io.github.leewyatt.rxcontrols.RXTextView;
-import io.github.leewyatt.rxcontrols.RXTimelineItem;
-import io.github.leewyatt.rxcontrols.RXTimelineView;
-import io.github.leewyatt.rxcontrols.RXToggleButton;
-import io.github.leewyatt.rxcontrols.RXTransitionButton;
-import io.github.leewyatt.rxcontrols.RXTransitionLabel;
-import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
 import io.github.leewyatt.rxcontrols.theme.RXAtlantaFX;
 import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
@@ -52,11 +19,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
@@ -65,11 +34,11 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Theme gallery: a scrollable panel of the color-relevant RxControls with a theme
- * switcher to compare the built-in light/dark looks ({@link RXTheme}) against the
- * AtlantaFX themes ({@link RXAtlantaFX}). Pure layout containers (RXBox / RXRow /
- * RXCol / RXMasonryPane) and fixture-heavy controls (audio spectrum, lyric views,
- * carousel, drawer, image views) are intentionally omitted.
+ * Theme gallery: a scrollable, alphabetised grid of every color-relevant RxControl
+ * (each in a labelled card) with a theme switcher to compare the built-in light/dark
+ * looks ({@link RXTheme}) against the AtlantaFX themes ({@link RXAtlantaFX}). Pure
+ * layout containers (RXBox / RXRow / RXCol / RXMasonryPane) are omitted; every other
+ * control is built by {@link ThemeGalleryCards}.
  */
 public class RXThemeGallery extends Application {
 
@@ -96,7 +65,7 @@ public class RXThemeGallery extends Application {
         root.setTop(buildToolbar(root));
         root.setCenter(scroll);
 
-        Scene scene = new Scene(root, 920, 760);
+        Scene scene = new Scene(root, 1100, 820);
         themes.get(0).apply().accept(scene); // start on RxControls light
 
         primaryStage.setScene(scene);
@@ -147,128 +116,35 @@ public class RXThemeGallery extends Application {
 
     // ==================== Gallery ====================
 
-    private VBox buildGallery() {
-        VBox gallery = new VBox(22,
-                section("Buttons",
-                        new RXButton("Button"),
-                        new RXFillButton("Fill Button"),
-                        new RXLineButton("Line Button"),
-                        new RXTransitionButton("Transition")),
-                section("Toggles",
-                        new RXToggleButton("Toggle"),
-                        radioGroup()),
-                section("Labels (decorative fill / line)",
-                        new RXFillLabel("Fill Label"),
-                        new RXLineLabel("Line Label")),
-                section("Text inputs",
-                        promptField(),
-                        new RXPasswordField("secret"),
-                        new RXFormattedNumberField(),
-                        new RXIntegerField()),
-                section("Selection",
-                        new RXSegmentedControl<>(
-                                new RXSegmentedItem<>("day", "Day"),
-                                new RXSegmentedItem<>("week", "Week"),
-                                new RXSegmentedItem<>("month", "Month")),
-                        cascader()),
-                section("Progress & indicators",
-                        determinateCircular(),
-                        new RXCircularProgressIndicator(-1),
-                        new RXSegmentedProgressBar(0.6),
-                        new RXSegmentedStepIndicator(4),
-                        new RXSeekBar(0.5),
-                        new RXWaveProgressIndicator(0.6)),
-                section("Loading",
-                        new RXBarSpinner(),
-                        new RXDotPulse(),
-                        new RXSkeleton(),
-                        new RXSkeleton(RXSkeleton.Variant.TEXT)),
-                section("Text display",
-                        new RXTextView("RXTextView body text — readable in light and dark."),
-                        new RXHighlightTextView("RXHighlightTextView highlights keywords here.", "highlights", "keywords"),
-                        new RXTransitionLabel("Transition Label")),
-                section("Avatar & digit",
-                        new RXAvatar(),
-                        new RXDigit(),
-                        ripple()),
-                section("Timeline", timeline()),
-                section("Sidebar", sidebar()));
-        gallery.setPadding(new Insets(4, 14, 24, 14));
-        return gallery;
+    private FlowPane buildGallery() {
+        FlowPane grid = new FlowPane(18, 18);
+        grid.setPadding(new Insets(18));
+        for (NamedControl control : ThemeGalleryCards.cards()) {
+            grid.getChildren().add(card(control));
+        }
+        return grid;
     }
 
-    private static VBox section(String title, Node... nodes) {
-        Label heading = new Label(title);
-        heading.setStyle("-fx-font-weight: bold;");
-        FlowPane row = new FlowPane(14, 14, nodes);
-        row.setAlignment(Pos.CENTER_LEFT);
-        VBox box = new VBox(8, heading, row);
-        return box;
-    }
+    private static Node card(NamedControl control) {
+        Label name = new Label(control.name());
+        name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
-    private static RXTextField promptField() {
-        RXTextField field = new RXTextField();
-        field.setPromptText("Text field");
-        return field;
-    }
+        StackPane stage = new StackPane(control.node());
+        stage.setAlignment(Pos.CENTER);
+        stage.setMinHeight(130);
+        VBox.setVgrow(stage, Priority.ALWAYS);
 
-    private static RXCircularProgressIndicator determinateCircular() {
-        RXCircularProgressIndicator indicator = new RXCircularProgressIndicator(0.6);
-        indicator.setPrefSize(48, 48);
-        return indicator;
-    }
-
-    private static Node radioGroup() {
-        ToggleGroup group = new ToggleGroup();
-        RXRadioToggleButton a = new RXRadioToggleButton("One");
-        RXRadioToggleButton b = new RXRadioToggleButton("Two");
-        RXRadioToggleButton c = new RXRadioToggleButton("Three");
-        a.setToggleGroup(group);
-        b.setToggleGroup(group);
-        c.setToggleGroup(group);
-        a.setSelected(true);
-        return new HBox(8, a, b, c);
-    }
-
-    private static RXCascader<String> cascader() {
-        RXCascader<String> cascader = new RXCascader<>();
-        RXCascaderItem<String> asia = new RXCascaderItem<>("Asia");
-        asia.getChildren().addAll(new RXCascaderItem<>("China"), new RXCascaderItem<>("Japan"));
-        RXCascaderItem<String> europe = new RXCascaderItem<>("Europe");
-        europe.getChildren().addAll(new RXCascaderItem<>("France"), new RXCascaderItem<>("Germany"));
-        cascader.getRootItems().addAll(asia, europe);
-        return cascader;
-    }
-
-    private static RXRipplePane ripple() {
-        Label label = new Label("Ripple area");
-        label.setPadding(new Insets(16, 24, 16, 24));
-        return new RXRipplePane(label);
-    }
-
-    private static RXTimelineView timeline() {
-        return new RXTimelineView(
-                item("Created", RXTimelineItem.Type.PRIMARY),
-                item("Shipped", RXTimelineItem.Type.SUCCESS),
-                item("Delayed", RXTimelineItem.Type.WARNING),
-                item("Failed", RXTimelineItem.Type.DANGER),
-                item("Note", RXTimelineItem.Type.INFO));
-    }
-
-    private static RXTimelineItem item(String title, RXTimelineItem.Type type) {
-        RXTimelineItem item = new RXTimelineItem(title);
-        item.setType(type);
-        return item;
-    }
-
-    private static RXSidebar sidebar() {
-        RXSidebar sidebar = new RXSidebar();
-        RXSidebarNavItem home = new RXSidebarNavItem("Home");
-        sidebar.getItems().addAll(home, new RXSidebarNavItem("Files"), new RXSidebarNavItem("Settings"));
-        sidebar.setPrefHeight(220);
-        sidebar.setMaxWidth(240);
-        HBox.setHgrow(sidebar, Priority.NEVER);
-        return sidebar;
+        Separator divider = new Separator();
+        VBox card = new VBox(10, name, divider, stage);
+        card.setPadding(new Insets(16));
+        card.setPrefWidth(360);
+        card.setMinWidth(360);
+        card.setMinHeight(Region.USE_PREF_SIZE);
+        // Theme-neutral chrome: a translucent grey border reads on light and dark
+        // surfaces alike, with a transparent fill so the themed background shows.
+        card.setStyle("-fx-border-color: rgba(128, 128, 128, 0.35);"
+                + " -fx-border-radius: 10; -fx-border-width: 1; -fx-background-radius: 10;");
+        return card;
     }
 
     public static void main(String[] args) {
