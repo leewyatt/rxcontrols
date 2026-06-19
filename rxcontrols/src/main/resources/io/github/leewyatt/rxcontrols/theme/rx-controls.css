@@ -1052,6 +1052,11 @@
     -rx-animation-duration: 200ms;
     -fx-background-color: -rx-surface-variant;
     -fx-background-radius: 6;
+    /* Outline so the track reads as one unit even when its surface tint is close
+       to the surrounding background; tracks the theme via the -rx-outline token. */
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6;
     -fx-padding: 2;
 }
 

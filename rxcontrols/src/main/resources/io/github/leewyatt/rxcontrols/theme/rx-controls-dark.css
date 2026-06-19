@@ -1,0 +1,133 @@
+/*******************************************************************************
+ *                                                                             *
+ * RxControls dark theme (author overlay)                                      *
+ *                                                                             *
+ * Author-origin overlay that re-defines the 19 -rx-* color role tokens with   *
+ * a self-contained dark palette (literal values — no host theme required).    *
+ * Install via RXTheme.install(scene, Variant.DARK). On a control root the      *
+ * author origin wins over the rx-controls.css UA baseline.                    *
+ *                                                                             *
+ * Unlike the AtlantaFX bridge, this overlay also OVERRIDES the Modena -fx-*    *
+ * base palette (which Modena defines on .root in light values) with the dark   *
+ * role tokens, so RxControls rules still using raw -fx-* (cascader, digit, …)  *
+ * render dark too. The selector list MUST stay identical to the baseline in    *
+ * rx-controls.css; RXThemeDarkTest fails otherwise.                           *
+ *                                                                             *
+ ******************************************************************************/
+.rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
+.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-formatted-number-field,
+.rx-highlight-text-view, .rx-image-pane, .rx-image-view, .rx-integer-field,
+.rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
+.rx-masonry-pane, .rx-number-field, .rx-password-field, .rx-radio-toggle-button,
+.rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
+.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
+.rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
+    /* brand / primary (brand purple, lightened for dark contrast) */
+    -rx-primary: #7c86ff;
+    -rx-primary-hover: derive(-rx-primary, 8%);
+    -rx-primary-active: derive(-rx-primary, -10%);
+    -rx-primary-bg: rgba(124, 134, 255, 0.18);
+    -rx-on-primary: white;
+    /* semantic */
+    -rx-success: #6cc04a;
+    -rx-warning: #e6a23c;
+    -rx-danger: #f56c6c;
+    -rx-info: #a0a4ad;
+    /* surface / text / outline (dark) */
+    -rx-surface: #1e1f2b;
+    -rx-surface-variant: #2a2c3a;
+    -rx-on-surface: #e6e7ee;
+    -rx-on-surface-secondary: #a6a8b5;
+    -rx-on-surface-disabled: rgba(255, 255, 255, 0.35);
+    -rx-outline: #3a3d4d;
+    -rx-outline-variant: #2c2e3b;
+    -rx-focus: -rx-primary;
+    -rx-selection: rgba(124, 134, 255, 0.4);
+    /* interaction state overlay (ripple / hover tint) flips to white on dark */
+    -rx-state-overlay-color: white;
+
+    /* Modena base palette, overridden to the dark role tokens so RxControls
+       rules still referencing raw -fx-* (not yet role-tokenized) render dark
+       instead of taking Modena's light .root values. */
+    -fx-base: -rx-surface;
+    -fx-color: -rx-surface;
+    -fx-control-inner-background: -rx-surface;
+    -fx-hover-base: derive(-rx-surface, 12%);
+    -fx-pressed-base: derive(-rx-surface, 18%);
+    -fx-text-base-color: -rx-on-surface;
+    -fx-text-inner-color: -rx-on-surface;
+    -fx-mid-text-color: -rx-on-surface-secondary;
+    -fx-box-border: -rx-outline;
+    -fx-text-box-border: -rx-outline;
+    -fx-accent: -rx-primary;
+    -fx-focus-color: -rx-primary;
+    -fx-faint-focus-color: -rx-selection;
+}
+
+/* Scene-level install (RXTheme.install(scene, DARK)) darkens the whole scene by
+   flipping Modena's base palette on the scene root: the window background goes
+   dark, standard JavaFX controls re-derive dark (light text via Modena's ladders),
+   and RxControls with transparent backgrounds (text-view, timeline) sit on a dark
+   canvas. Matched only when the overlay is on a Scene (the .root style class is on
+   the scene root); inert for parent-level installs, which theme just their subtree. */
+.root {
+    -fx-base: #1e1f2b;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+    -fx-accent: #7c86ff;
+    -fx-focus-color: #7c86ff;
+}
+
+/* Modena's .button:armed text color ties on specificity with
+   .rx-fill-button:filling and can win, leaving themed (not on-primary) text on
+   the fill. Re-assert on-primary from author origin wherever a fill covers the
+   label (same fix as the AtlantaFX bridge). */
+.rx-fill-button:filling,
+.rx-fill-label:filling {
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* Per-control dark re-points for controls whose colors are baseline LITERALS
+   (not role tokens and not Modena -fx-*), so the token/compat layers above cannot
+   reach them. Each is re-pointed at a dark role token. The long-term fix is to
+   tokenize these in the baseline (recolor backlog), at which point these drop out.
+   First-cut values — tune on screen. */
+
+/* RXTextView body text is a literal near-black; would be unreadable on the dark surface. */
+.rx-text-view {
+    -rx-text-fill: -rx-on-surface;
+    -rx-selected-text-fill: -rx-on-surface;
+}
+
+/* Unselected segment labels are literal black; re-point to the bright on-surface
+   text for clear contrast on the dark track. */
+.rx-segmented-control > .segment .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/* The selected label sits on the (still white) indicator pill, so it must stay
+   dark — re-assert it more specifically than the rule above (which would otherwise
+   leave light-on-white text on the pill). */
+.rx-segmented-control > .segment:selected .label {
+    -fx-text-fill: rgba(0, 0, 0, 0.88);
+}
+
+/* Seek-bar track / buffer are light literals; the progress + thumb stay their bright accents. */
+.rx-seek-bar {
+    -rx-track-fill: -rx-surface-variant;
+    -rx-secondary-fill: -rx-outline;
+}
+
+/* Wave indicator container is a pale-blue literal disc. */
+.rx-wave-progress-indicator > .wave-container {
+    -fx-background-color: -rx-surface-variant;
+}
+
+/* Avatar placeholder disc is a light-grey literal; the white glyph reads fine on a dark disc. */
+.rx-avatar > .default-icon-wrapper {
+    -fx-background-color: -rx-surface-variant;
+}

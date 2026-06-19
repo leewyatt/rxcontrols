@@ -212,6 +212,18 @@ RXAtlantaFX.install(scene);   // popups opened afterwards follow it too</code></
     </tbody>
 </table>
 
+<h3 id="rxThemeDark">Built-in dark theme</h3>
+<p>For a built-in dark look (no external theme needed), <code>RXTheme</code> layers an
+   <b>author-origin</b> overlay (<code>rx-controls-dark.css</code>) that re-defines the color role
+   tokens with a self-contained dark palette and overrides the Modena <code>-fx-*</code> base colors,
+   so the whole library — including controls still using raw <code>-fx-*</code> — turns dark:</p>
+<pre><code>RXTheme.install(scene, RXTheme.Variant.DARK);  // go dark (popups follow if opened afterwards)
+RXTheme.install(scene, RXTheme.Variant.LIGHT); // back to the built-in light baseline
+RXTheme.uninstall(scene);                      // also back to the baseline</code></pre>
+<p>Unlike the AtlantaFX bridge (which references a host theme's <code>-color-*</code>), the dark overlay
+   uses literal dark values, so it works on the default Modena baseline. It also flips
+   <code>-rx-state-overlay-color</code> to white (ripple / hover tint on dark).</p>
+
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
 <p>The RXAudioSpectrum control has all the properties of Control; pseudo-classes: :active, :silent</p>
