@@ -107,15 +107,3 @@
 .rx-avatar > .default-icon-wrapper {
     -fx-background-color: -rx-surface-variant;
 }
-
-/* Modena base colors AtlantaFX does not define, mapped on the scene root so a host
-   author chrome that uses them (e.g. the samples showcase shell) follows AtlantaFX
-   too. Only consumed by code referencing these vars; AtlantaFX styles its own
-   controls via -color-* directly. */
-.root {
-    -fx-background: -color-bg-default;
-    -fx-control-inner-background: -color-bg-subtle;
-    -fx-text-base-color: -color-fg-default;
-    -fx-mid-text-color: -color-fg-muted;
-    -fx-text-box-border: -color-border-default;
-}

@@ -57,15 +57,32 @@ public final class ShowcaseThemes {
                 new ThemeChoice("AtlantaFX — Dracula", scene -> atlanta(scene, new Dracula())));
     }
 
+    // Samples-owned application-level chrome (window background, standard controls,
+    // showcase chrome). RXTheme / RXAtlantaFX only theme the RxControls components;
+    // these supply the rest for the demos.
+    private static final String DARK_CHROME =
+            ShowcaseThemes.class.getResource("rx-showcase-dark.css").toExternalForm();
+    private static final String ATLANTAFX_CHROME =
+            ShowcaseThemes.class.getResource("rx-showcase-atlantafx.css").toExternalForm();
+
     private static void rxControls(Scene scene, RXTheme.Variant variant) {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
         RXAtlantaFX.uninstall(scene);
         RXTheme.install(scene, variant);
+        setChrome(scene, variant == RXTheme.Variant.DARK ? DARK_CHROME : null);
     }
 
     private static void atlanta(Scene scene, Theme theme) {
         Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
         RXTheme.install(scene, RXTheme.Variant.LIGHT); // ensure the dark overlay is off
         RXAtlantaFX.install(scene);
+        setChrome(scene, ATLANTAFX_CHROME);
+    }
+
+    private static void setChrome(Scene scene, String sheet) {
+        scene.getStylesheets().removeAll(DARK_CHROME, ATLANTAFX_CHROME);
+        if (sheet != null) {
+            scene.getStylesheets().add(sheet);
+        }
     }
 }

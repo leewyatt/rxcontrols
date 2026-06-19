@@ -20,20 +20,21 @@ import java.util.Objects;
  * RXTheme.uninstall(scene);                      // also back to the baseline
  * }</pre>
  *
- * <p>Apply at scene level (recommended) or to a single {@link Parent} subtree. A
- * <em>scene-level</em> install also darkens the whole scene — the window background
- * and standard JavaFX controls — by flipping Modena's base palette on the scene
- * root, so transparent-background controls (text-view, timeline) sit on a dark
- * canvas; a <em>parent-level</em> install themes only the RxControls in that subtree
- * (the surrounding background is the app's responsibility).
- * The dark overlay also overrides the Modena {@code -fx-*} base colors (so controls
- * using raw {@code -fx-*}, like the cascader, turn dark) and carries per-control
- * re-points for the few controls whose baseline colors are hardcoded literals
- * (text-view text, segmented labels, seek track, …). A newly added control that
- * hardcodes literal colors would not turn dark until it is tokenized or added to
- * that flip-list. Popups (such as {@code RXCascader}'s) follow a scene-level overlay
- * installed before they open; switch the theme before opening popups, or reopen
- * them afterwards.
+ * <p><b>Scope = RxControls components only.</b> This themes the RxControls controls
+ * (their role tokens, a Modena {@code -fx-*} compat layer on the control roots so
+ * controls still using raw {@code -fx-*} like the cascader turn dark too, and
+ * per-control re-points for the few whose baseline colors are hardcoded literals).
+ * It does <em>not</em> theme the window background, standard JavaFX controls, or app
+ * chrome — that is the application's responsibility. For a fully dark UI, give your
+ * scene a dark background (e.g. flip Modena's base palette on {@code .root}); the
+ * samples do this in {@code rx-showcase-dark.css}. In particular, transparent-
+ * background controls (text-view, timeline) only read well on a dark surface the app
+ * provides.
+ *
+ * <p>Apply at scene level (recommended) or to a single {@link Parent} subtree.
+ * Popups (such as {@code RXCascader}'s) follow a scene-level overlay installed
+ * before they open; switch the theme before opening popups, or reopen them
+ * afterwards.
  *
  * <p>For matching an external <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
  * theme instead of the built-in palette, use {@link RXAtlantaFX}.

@@ -1,0 +1,18 @@
+/*
+ * Samples-only: the application-level part of "dark". RXTheme only themes the
+ * RxControls components; this overlay darkens the demo window, the standard JavaFX
+ * controls, and the showcase chrome by flipping Modena's base palette on the scene
+ * root. Applied by ShowcaseThemes when the RxControls Dark theme is selected.
+ */
+.root {
+    -fx-base: #1e1f2b;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+    /* Set the text colors explicitly: Modena derives -fx-mid-text-color as a
+       darker-than-base gray (tuned for light themes), unreadable on a dark base. */
+    -fx-text-base-color: #e6e7ee;
+    -fx-mid-text-color: #a6a8b5;
+    -fx-text-box-border: #3a3d4d;
+    -fx-accent: #7c86ff;
+    -fx-focus-color: #7c86ff;
+}

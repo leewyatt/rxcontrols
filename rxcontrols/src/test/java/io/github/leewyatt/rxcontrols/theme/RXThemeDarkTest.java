@@ -339,28 +339,6 @@ public class RXThemeDarkTest {
                 "unselected segment label must be light on the dark track");
     }
 
-    /**
-     * A scene-level dark install darkens the scene root background, so
-     * transparent-background controls (text-view, timeline) sit on a dark canvas
-     * instead of the default light scene.
-     *
-     * @throws Exception if the FX action fails
-     */
-    @Test
-    public void sceneLevelDarkInstallDarkensTheSceneRoot() throws Exception {
-        AtomicReference<Color> rootBackground = new AtomicReference<>();
-        runOnFx(() -> {
-            StackPane host = new StackPane();
-            Scene scene = new Scene(host, 200, 120);
-            RXTheme.install(scene, RXTheme.Variant.DARK);
-            host.applyCss();
-            host.layout();
-            rootBackground.set(background(host)); // host carries the .root style class
-        });
-        assertEquals(Color.web("#1e1f2b"), rootBackground.get(),
-                "scene-level dark install should darken the scene root background");
-    }
-
     // ==================== Revert ====================
 
     /**

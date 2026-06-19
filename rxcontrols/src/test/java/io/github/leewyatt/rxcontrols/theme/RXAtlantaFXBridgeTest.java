@@ -287,30 +287,6 @@ public class RXAtlantaFXBridgeTest {
                 "RXTextView text must follow -rx-on-surface -> -color-fg-default under the bridge");
     }
 
-    /**
-     * The bridge maps the Modena base colors host chrome may use (e.g. the samples
-     * showcase shell) to AtlantaFX tokens on the scene root, so a plain node that
-     * references {@code -fx-control-inner-background} resolves to {@code -color-bg-subtle}.
-     *
-     * @throws Exception if the FX action fails
-     */
-    @Test
-    public void bridgeMapsModenaChromeColorsOnTheRoot() throws Exception {
-        AtomicReference<Color> chromeSurface = new AtomicReference<>();
-        runOnFx(() -> {
-            Region probe = new Region();
-            probe.setStyle("-fx-background-color: -fx-control-inner-background;");
-            StackPane host = new StackPane(probe);
-            Scene scene = new Scene(host, 120, 80);
-            RXAtlantaFX.install(scene);
-            host.applyCss();
-            host.layout();
-            chromeSurface.set(background(probe));
-        });
-        assertEquals(Color.web("#f6f8fa"), chromeSurface.get(),
-                "the bridge should map -fx-control-inner-background to -color-bg-subtle on the root");
-    }
-
     // ==================== Subtree scoping ====================
 
     /**
