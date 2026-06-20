@@ -1,4 +1,4 @@
-/* Background + border show the pane bounds, so whole-block contentAlignment
+/* Background + border show the pane bounds, so whole-block alignment
    (the centering of the content within the pane) is visible. */
 .showcase-flow {
     -fx-background-color: #f8fafc;

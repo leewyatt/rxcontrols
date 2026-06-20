@@ -27,41 +27,99 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * An enhanced flow pane that lays managed children out in runs (rows), wrapping
- * at the available width, and — unlike {@link javafx.scene.layout.FlowPane} —
- * aligns the whole content block <em>once</em> ({@code contentAlignment}) and
- * then positions items inside each run by a separate {@code lineAlignment}.
+ * An enhanced {@link javafx.scene.layout.FlowPane} that lays managed children out in runs
+ * which wrap at the pane's boundary, and — unlike {@code FlowPane} — aligns the whole
+ * content block <em>once</em> ({@link #alignmentProperty() alignment}) and then aligns each
+ * run inside that block by a separate per-run alignment. A
+ * {@linkplain Orientation#HORIZONTAL horizontal} flow (the default) wraps rows at the
+ * width; a {@linkplain Orientation#VERTICAL vertical} flow wraps columns at the height.
  *
- * <p>This decoupling fixes FlowPane's "centered last row" behavior: with
- * {@code contentAlignment = Pos.TOP_CENTER} and {@code lineAlignment = HPos.LEFT},
- * a 7-card / 3-column flow renders
+ * <p>This decoupling fixes FlowPane's "centered last run" behavior. With
+ * {@code alignment = Pos.TOP_CENTER} and {@code rowHalignment = HPos.LEFT}, a horizontal
+ * 7-card / 3-column flow renders
  * <pre>
  *   [1][2][3]
  *   [4][5][6]
  *   [7]          &lt;- stays LEFT inside a centered content block, not self-centered
  * </pre>
- * because FlowPane centers each run independently against the inside width,
- * whereas RXFlowPane centers the bounding block of all runs once and then lays
- * each run out left-aligned within that block. Selecting
- * {@code lineAlignment = HPos.CENTER} reproduces FlowPane's centered-last-row
- * look as an explicit, opt-in special case.</p>
+ * FlowPane centers each run independently against the inside size, so the lone last run
+ * drifts to the middle; RXFlowPane centers the bounding block of all runs once and lays
+ * each run out at the block's leading edge. A vertical flow mirrors this with
+ * {@code columnValignment}.</p>
  *
- * <p>Each child keeps its own preferred width (there are no uniform tiles), so
- * this is a true "enhanced FlowPane" rather than a grid. The pane is
- * height-for-width ({@link #getContentBias()} is always
- * {@link Orientation#HORIZONTAL}). Only managed children take part in layout.</p>
+ * <h2>Alignment model</h2>
  *
- * <p>See also {@code RXWrapPane} (an earlier name considered for this class).</p>
+ * <p>Alignment is split into three orthogonal layers. {@code alignment} ({@link Pos})
+ * positions the whole block within the pane on both axes. The other two layers are
+ * direction-specific — only the pair matching the current orientation has any effect:</p>
+ *
+ * <table border="1">
+ * <caption>Per-direction alignment</caption>
+ * <tr><td></td><th scope="col">run within the block (main axis)</th>
+ *     <th scope="col">item within its run (cross axis)</th></tr>
+ * <tr><th scope="row">horizontal</th>
+ *     <td>{@link #rowHalignmentProperty() rowHalignment} (HPos)</td>
+ *     <td>{@link #rowValignmentProperty() rowValignment} (VPos)</td></tr>
+ * <tr><th scope="row">vertical</th>
+ *     <td>{@link #columnValignmentProperty() columnValignment} (VPos)</td>
+ *     <td>{@link #columnHalignmentProperty() columnHalignment} (HPos)</td></tr>
+ * </table>
+ *
+ * <p>The <em>run-within-block</em> layer (rowHalignment / columnValignment) is the fix:
+ * FlowPane lacks it and folds the main axis into its {@code alignment} as a per-run offset.
+ * The <em>item-within-run</em> layer (rowValignment / columnHalignment) matches FlowPane's
+ * properties of the same name.</p>
+ *
+ * <h2>Relationship to {@code FlowPane.alignment}</h2>
+ *
+ * <p>{@code alignment} shares its name with
+ * {@link javafx.scene.layout.FlowPane#alignmentProperty()} but differs on the
+ * <em>main-axis</em> component: FlowPane applies it per run (the source of the bug),
+ * RXFlowPane applies it to the whole block once. The cross-axis component is identical
+ * (whole block in both). FlowPane's exact behavior is reproducible as an opt-in special
+ * case: for a horizontal flow, {@code alignment = X} together with
+ * {@code rowHalignment = X.getHpos()} lays out identically to
+ * {@code FlowPane.alignment = X} — the block offset and the run-in-block offset compose to
+ * the per-run offset (the block extent cancels) — and choosing {@code rowHalignment = LEFT}
+ * instead is the fix. A vertical flow reproduces FlowPane the same way through
+ * {@code columnValignment}.</p>
+ *
+ * <p>The default {@code alignment} is {@link Pos#TOP_CENTER}, so the fix is visible out of
+ * the box for a horizontal flow (the block is centered on its main axis with the last row
+ * left). The axis {@code TOP_CENTER} centers depends on the orientation: a vertical flow
+ * centers the columns on the cross axis and pins the flow to the top, so a vertical fix is
+ * shown by centering the block on its main axis (e.g. {@code alignment = CENTER_LEFT}).</p>
+ *
+ * <h2>Other behavior</h2>
+ *
+ * <ul>
+ * <li>Each child keeps its own preferred size (no uniform tiles); this is an enhanced
+ *     FlowPane, not a grid.</li>
+ * <li>{@link #getContentBias()} follows the orientation: height-for-width when horizontal,
+ *     width-for-height when vertical. Max width/height stay unbounded so the block has room
+ *     to align.</li>
+ * <li>{@link #rowValignmentProperty() rowValignment} may be {@link VPos#BASELINE} — a
+ *     horizontal flow has a real per-item text baseline. A vertical flow has none, so its
+ *     item alignment is {@code columnHalignment} (an {@link HPos}); a {@code BASELINE}
+ *     value of any vertical positioning input degenerates to {@link VPos#TOP}.</li>
+ * <li>{@link #prefWrapLengthProperty() prefWrapLength} is the preferred wrap length along
+ *     the main axis (width when horizontal, height when vertical), used for preferred-size
+ *     computation only; the live wrap tracks the pane's actual main-axis size.</li>
+ * <li>Only managed children take part in layout.</li>
+ * </ul>
  */
 public class RXFlowPane extends Pane {
 
     // ==================== Constants ====================
 
+    private static final Orientation DEFAULT_ORIENTATION = Orientation.HORIZONTAL;
     private static final double DEFAULT_HGAP = 0.0;
     private static final double DEFAULT_VGAP = 0.0;
-    private static final Pos DEFAULT_CONTENT_ALIGNMENT = Pos.TOP_CENTER;
-    private static final HPos DEFAULT_LINE_ALIGNMENT = HPos.LEFT;
-    private static final VPos DEFAULT_ROW_ALIGNMENT = VPos.TOP;
+    private static final Pos DEFAULT_ALIGNMENT = Pos.TOP_CENTER;
+    private static final HPos DEFAULT_ROW_HALIGNMENT = HPos.LEFT;
+    private static final VPos DEFAULT_ROW_VALIGNMENT = VPos.TOP;
+    private static final VPos DEFAULT_COLUMN_VALIGNMENT = VPos.TOP;
+    private static final HPos DEFAULT_COLUMN_HALIGNMENT = HPos.LEFT;
     private static final double DEFAULT_PREF_WRAP_LENGTH = 400.0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-flow-pane";
@@ -167,11 +225,120 @@ public class RXFlowPane extends Pane {
     }
 
     /**
+     * Creates an RXFlowPane with the given orientation.
+     *
+     * @param orientation the flow orientation
+     */
+    public RXFlowPane(Orientation orientation) {
+        this();
+        setOrientation(orientation);
+    }
+
+    /**
+     * Creates an RXFlowPane with the given orientation and children.
+     *
+     * @param orientation the flow orientation
+     * @param children the initial children
+     */
+    public RXFlowPane(Orientation orientation, Node... children) {
+        this(orientation);
+        getChildren().addAll(children);
+    }
+
+    /**
+     * Creates an RXFlowPane with the given orientation and gaps.
+     *
+     * @param orientation the flow orientation
+     * @param hgap the horizontal gap
+     * @param vgap the vertical gap
+     */
+    public RXFlowPane(Orientation orientation, double hgap, double vgap) {
+        this(orientation);
+        setHgap(hgap);
+        setVgap(vgap);
+    }
+
+    /**
+     * Creates an RXFlowPane with the given orientation, gaps and children.
+     *
+     * @param orientation the flow orientation
+     * @param hgap the horizontal gap
+     * @param vgap the vertical gap
+     * @param children the initial children
+     */
+    public RXFlowPane(Orientation orientation, double hgap, double vgap, Node... children) {
+        this(orientation, hgap, vgap);
+        getChildren().addAll(children);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Orientation ====================
+
+    private final ObjectProperty<Orientation> orientation =
+            new StyleableObjectProperty<>(DEFAULT_ORIENTATION) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, Orientation> getCssMetaData() {
+                    return StyleableProperties.ORIENTATION;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFlowPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "orientation";
+                }
+            };
+
+    /**
+     * Flow orientation. {@link Orientation#HORIZONTAL} (the default) flows items into
+     * rows that wrap at the pane's width; {@link Orientation#VERTICAL} flows them into
+     * columns that wrap at the pane's height. Changing it flips
+     * {@link #getContentBias()} and rebuilds the runs. A {@code null} value is not
+     * rejected; it resolves to the default ({@link Orientation#HORIZONTAL}) at the use
+     * site.
+     *
+     * @return the orientation property
+     */
+    public final ObjectProperty<Orientation> orientationProperty() {
+        return orientation;
+    }
+
+    /**
+     * Returns the orientation.
+     *
+     * @return the orientation
+     */
+    public final Orientation getOrientation() {
+        return orientation.get();
+    }
+
+    /**
+     * Sets the orientation.
+     *
+     * @param value the orientation
+     */
+    public final void setOrientation(Orientation value) {
+        orientation.set(value);
+    }
+
+    private Orientation orientationOrDefault() {
+        Orientation value = getOrientation();
+        return value != null ? value : DEFAULT_ORIENTATION;
     }
 
     // ==================== Hgap ====================
@@ -289,10 +456,10 @@ public class RXFlowPane extends Pane {
         return Double.isFinite(value) ? value : DEFAULT_VGAP;
     }
 
-    // ==================== Content alignment ====================
+    // ==================== Alignment ====================
 
-    private final ObjectProperty<Pos> contentAlignment =
-            new StyleableObjectProperty<>(DEFAULT_CONTENT_ALIGNMENT) {
+    private final ObjectProperty<Pos> alignment =
+            new StyleableObjectProperty<>(DEFAULT_ALIGNMENT) {
                 @Override
                 protected void invalidated() {
                     requestLayout();
@@ -300,7 +467,7 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public CssMetaData<? extends Styleable, Pos> getCssMetaData() {
-                    return StyleableProperties.CONTENT_ALIGNMENT;
+                    return StyleableProperties.ALIGNMENT;
                 }
 
                 @Override
@@ -310,7 +477,7 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public String getName() {
-                    return "contentAlignment";
+                    return "alignment";
                 }
             };
 
@@ -319,46 +486,46 @@ public class RXFlowPane extends Pane {
      * the pane's inside area, applied once on both axes. With
      * {@link Pos#TOP_CENTER} (the default) the block is horizontally centered
      * while each run starts at the block's left edge (see
-     * {@link #lineAlignmentProperty()}). The content block has no baseline, so a
+     * {@link #rowHalignmentProperty()}). The content block has no baseline, so a
      * vertical {@link VPos#BASELINE} component is treated as {@link VPos#TOP}
      * (e.g. {@code BASELINE_CENTER} behaves like {@code TOP_CENTER}); per-item
-     * baseline alignment within a run is {@link #rowAlignmentProperty()}. A
+     * baseline alignment within a run is {@link #rowValignmentProperty()}. A
      * {@code null} value is not rejected; it resolves to the default
      * ({@link Pos#TOP_CENTER}) at the use site.
      *
-     * @return the content-alignment property
+     * @return the alignment property
      */
-    public final ObjectProperty<Pos> contentAlignmentProperty() {
-        return contentAlignment;
+    public final ObjectProperty<Pos> alignmentProperty() {
+        return alignment;
     }
 
     /**
-     * Returns the content alignment.
+     * Returns the alignment.
      *
-     * @return the content alignment
+     * @return the alignment
      */
-    public final Pos getContentAlignment() {
-        return contentAlignment.get();
+    public final Pos getAlignment() {
+        return alignment.get();
     }
 
     /**
-     * Sets the content alignment.
+     * Sets the alignment.
      *
-     * @param value the content alignment
+     * @param value the alignment
      */
-    public final void setContentAlignment(Pos value) {
-        contentAlignment.set(value);
+    public final void setAlignment(Pos value) {
+        alignment.set(value);
     }
 
-    private Pos contentAlignmentOrDefault() {
-        Pos value = getContentAlignment();
-        return value != null ? value : DEFAULT_CONTENT_ALIGNMENT;
+    private Pos alignmentOrDefault() {
+        Pos value = getAlignment();
+        return value != null ? value : DEFAULT_ALIGNMENT;
     }
 
-    // ==================== Line alignment ====================
+    // ==================== Row halignment ====================
 
-    private final ObjectProperty<HPos> lineAlignment =
-            new StyleableObjectProperty<>(DEFAULT_LINE_ALIGNMENT) {
+    private final ObjectProperty<HPos> rowHalignment =
+            new StyleableObjectProperty<>(DEFAULT_ROW_HALIGNMENT) {
                 @Override
                 protected void invalidated() {
                     requestLayout();
@@ -366,7 +533,7 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public CssMetaData<? extends Styleable, HPos> getCssMetaData() {
-                    return StyleableProperties.LINE_ALIGNMENT;
+                    return StyleableProperties.ROW_HALIGNMENT;
                 }
 
                 @Override
@@ -376,50 +543,50 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public String getName() {
-                    return "lineAlignment";
+                    return "rowHalignment";
                 }
             };
 
     /**
-     * Horizontal alignment of items <em>within each run</em>, relative to the
-     * content-block width (not the pane's inside width). With {@link HPos#LEFT}
-     * (the default) a short last row stays at the block's left edge instead of
-     * being centered by itself. A {@code null} value is not rejected; it
-     * resolves to the default ({@link HPos#LEFT}) at the use site.
+     * Horizontal alignment of each run <em>within the content block</em>,
+     * relative to the content-block width (not the pane's inside width). With
+     * {@link HPos#LEFT} (the default) a short last row stays at the block's left
+     * edge instead of being centered by itself. A {@code null} value is not
+     * rejected; it resolves to the default ({@link HPos#LEFT}) at the use site.
      *
-     * @return the line-alignment property
+     * @return the row-halignment property
      */
-    public final ObjectProperty<HPos> lineAlignmentProperty() {
-        return lineAlignment;
+    public final ObjectProperty<HPos> rowHalignmentProperty() {
+        return rowHalignment;
     }
 
     /**
-     * Returns the line alignment.
+     * Returns the row halignment.
      *
-     * @return the line alignment
+     * @return the row halignment
      */
-    public final HPos getLineAlignment() {
-        return lineAlignment.get();
+    public final HPos getRowHalignment() {
+        return rowHalignment.get();
     }
 
     /**
-     * Sets the line alignment.
+     * Sets the row halignment.
      *
-     * @param value the line alignment
+     * @param value the row halignment
      */
-    public final void setLineAlignment(HPos value) {
-        lineAlignment.set(value);
+    public final void setRowHalignment(HPos value) {
+        rowHalignment.set(value);
     }
 
-    private HPos lineAlignmentOrDefault() {
-        HPos value = getLineAlignment();
-        return value != null ? value : DEFAULT_LINE_ALIGNMENT;
+    private HPos rowHalignmentOrDefault() {
+        HPos value = getRowHalignment();
+        return value != null ? value : DEFAULT_ROW_HALIGNMENT;
     }
 
-    // ==================== Row alignment ====================
+    // ==================== Row valignment ====================
 
-    private final ObjectProperty<VPos> rowAlignment =
-            new StyleableObjectProperty<>(DEFAULT_ROW_ALIGNMENT) {
+    private final ObjectProperty<VPos> rowValignment =
+            new StyleableObjectProperty<>(DEFAULT_ROW_VALIGNMENT) {
                 @Override
                 protected void invalidated() {
                     requestLayout();
@@ -427,7 +594,7 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public CssMetaData<? extends Styleable, VPos> getCssMetaData() {
-                    return StyleableProperties.ROW_ALIGNMENT;
+                    return StyleableProperties.ROW_VALIGNMENT;
                 }
 
                 @Override
@@ -437,7 +604,7 @@ public class RXFlowPane extends Pane {
 
                 @Override
                 public String getName() {
-                    return "rowAlignment";
+                    return "rowValignment";
                 }
             };
 
@@ -451,33 +618,157 @@ public class RXFlowPane extends Pane {
      * margin is not reserved in a baseline run. A {@code null} value is not
      * rejected; it resolves to the default ({@link VPos#TOP}) at the use site.
      *
-     * @return the row-alignment property
+     * @return the row-valignment property
      */
-    public final ObjectProperty<VPos> rowAlignmentProperty() {
-        return rowAlignment;
+    public final ObjectProperty<VPos> rowValignmentProperty() {
+        return rowValignment;
     }
 
     /**
-     * Returns the row alignment.
+     * Returns the row valignment.
      *
-     * @return the row alignment
+     * @return the row valignment
      */
-    public final VPos getRowAlignment() {
-        return rowAlignment.get();
+    public final VPos getRowValignment() {
+        return rowValignment.get();
     }
 
     /**
-     * Sets the row alignment.
+     * Sets the row valignment.
      *
-     * @param value the row alignment
+     * @param value the row valignment
      */
-    public final void setRowAlignment(VPos value) {
-        rowAlignment.set(value);
+    public final void setRowValignment(VPos value) {
+        rowValignment.set(value);
     }
 
-    private VPos rowAlignmentOrDefault() {
-        VPos value = getRowAlignment();
-        return value != null ? value : DEFAULT_ROW_ALIGNMENT;
+    private VPos rowValignmentOrDefault() {
+        VPos value = getRowValignment();
+        return value != null ? value : DEFAULT_ROW_VALIGNMENT;
+    }
+
+    // ==================== Column valignment ====================
+
+    private final ObjectProperty<VPos> columnValignment =
+            new StyleableObjectProperty<>(DEFAULT_COLUMN_VALIGNMENT) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, VPos> getCssMetaData() {
+                    return StyleableProperties.COLUMN_VALIGNMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFlowPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "columnValignment";
+                }
+            };
+
+    /**
+     * Vertical alignment of each column <em>within the content block</em> in a vertical
+     * flow, relative to the content-block height. With {@link VPos#TOP} (the default) a
+     * short last column stays at the block's top edge instead of being centered by
+     * itself — the vertical-flow mirror of {@link #rowHalignmentProperty()}. Ignored for
+     * a horizontal flow. The content block has no baseline, so {@link VPos#BASELINE} is
+     * treated as {@link VPos#TOP}. A {@code null} value is not rejected; it resolves to
+     * the default ({@link VPos#TOP}) at the use site.
+     *
+     * @return the column-valignment property
+     */
+    public final ObjectProperty<VPos> columnValignmentProperty() {
+        return columnValignment;
+    }
+
+    /**
+     * Returns the column valignment.
+     *
+     * @return the column valignment
+     */
+    public final VPos getColumnValignment() {
+        return columnValignment.get();
+    }
+
+    /**
+     * Sets the column valignment.
+     *
+     * @param value the column valignment
+     */
+    public final void setColumnValignment(VPos value) {
+        columnValignment.set(value);
+    }
+
+    private VPos columnValignmentOrDefault() {
+        VPos value = getColumnValignment();
+        return value != null ? value : DEFAULT_COLUMN_VALIGNMENT;
+    }
+
+    // ==================== Column halignment ====================
+
+    private final ObjectProperty<HPos> columnHalignment =
+            new StyleableObjectProperty<>(DEFAULT_COLUMN_HALIGNMENT) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, HPos> getCssMetaData() {
+                    return StyleableProperties.COLUMN_HALIGNMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFlowPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "columnHalignment";
+                }
+            };
+
+    /**
+     * Horizontal alignment of each child within its column's width in a vertical flow.
+     * {@link HPos#LEFT} (the default) lines the items up along the left of each column —
+     * the vertical-flow mirror of {@link #rowValignmentProperty()}. Ignored for a
+     * horizontal flow. A {@code null} value is not rejected; it resolves to the default
+     * ({@link HPos#LEFT}) at the use site.
+     *
+     * @return the column-halignment property
+     */
+    public final ObjectProperty<HPos> columnHalignmentProperty() {
+        return columnHalignment;
+    }
+
+    /**
+     * Returns the column halignment.
+     *
+     * @return the column halignment
+     */
+    public final HPos getColumnHalignment() {
+        return columnHalignment.get();
+    }
+
+    /**
+     * Sets the column halignment.
+     *
+     * @param value the column halignment
+     */
+    public final void setColumnHalignment(HPos value) {
+        columnHalignment.set(value);
+    }
+
+    private HPos columnHalignmentOrDefault() {
+        HPos value = getColumnHalignment();
+        return value != null ? value : DEFAULT_COLUMN_HALIGNMENT;
     }
 
     // ==================== Preferred wrap length ====================
@@ -530,6 +821,33 @@ public class RXFlowPane extends Pane {
         prefWrapLength.set(value);
     }
 
+    // ==================== Axis abstraction ====================
+
+    private enum Axis {
+        X,
+        Y
+    }
+
+    // The flow runs along a "main" axis (items fill a run) and wraps onto a "cross" axis
+    // (runs stack). A horizontal flow maps main -> X and cross -> Y; a vertical flow swaps
+    // them. Every axis-generic helper reads orientationOrDefault() so both directions
+    // share one implementation.
+    private Axis mainAxis() {
+        return orientationOrDefault() == Orientation.HORIZONTAL ? Axis.X : Axis.Y;
+    }
+
+    private Axis crossAxis() {
+        return orientationOrDefault() == Orientation.HORIZONTAL ? Axis.Y : Axis.X;
+    }
+
+    private double mainGapOrDefault() {
+        return orientationOrDefault() == Orientation.HORIZONTAL ? hgapOrDefault() : vgapOrDefault();
+    }
+
+    private double crossGapOrDefault() {
+        return orientationOrDefault() == Orientation.HORIZONTAL ? vgapOrDefault() : hgapOrDefault();
+    }
+
     // ==================== Run machine ====================
 
     private List<Run> runs;
@@ -551,27 +869,27 @@ public class RXFlowPane extends Pane {
         if (runs == null || maxRunLength != lastMaxRunLength) {
             computingRuns = true;
             try {
-                double hgap = snapSpaceX(hgapOrDefault());
-                VPos rowAlignment = rowAlignmentOrDefault();
+                double mainGap = snapSpace(mainAxis(), mainGapOrDefault());
+                VPos rowValignment = rowValignmentOrDefault();
                 List<Run> built = new ArrayList<>();
                 double runLength = 0;
                 Run run = new Run();
                 for (Node child : getManagedChildren()) {
                     LayoutRect nodeRect = new LayoutRect();
                     nodeRect.node = child;
-                    nodeRect.width = prefAreaWidth(child);
-                    nodeRect.height = prefAreaHeight(child);
-                    if (runLength + nodeRect.width > maxRunLength && runLength > 0) {
+                    nodeRect.main = prefAreaMain(child);
+                    nodeRect.cross = prefAreaCross(child);
+                    if (runLength + nodeRect.main > maxRunLength && runLength > 0) {
                         // wrap to next run unless it is the only node in the run
-                        normalizeRun(run, hgap, rowAlignment);
+                        normalizeRun(run, mainGap, rowValignment);
                         built.add(run);
                         runLength = 0;
                         run = new Run();
                     }
-                    runLength += nodeRect.width + hgap;
+                    runLength += nodeRect.main + mainGap;
                     run.rects.add(nodeRect);
                 }
-                normalizeRun(run, hgap, rowAlignment);
+                normalizeRun(run, mainGap, rowValignment);
                 built.add(run);
                 // Publish the runs and their key together, only after a clean
                 // build, so a child measurement that throws leaves no half-built
@@ -585,63 +903,78 @@ public class RXFlowPane extends Pane {
         return runs;
     }
 
-    private void normalizeRun(Run run, double hgap, VPos rowAlignment) {
+    private void normalizeRun(Run run, double mainGap, VPos rowValignment) {
         int count = run.rects.size();
-        double width = count > 1 ? (count - 1) * hgap : 0;
-        double plainHeight = 0;
+        double main = count > 1 ? (count - 1) * mainGap : 0;
+        double plainCross = 0;
         for (LayoutRect lrect : run.rects) {
-            width += lrect.width;
-            plainHeight = Math.max(plainHeight, lrect.height);
+            main += lrect.main;
+            plainCross = Math.max(plainCross, lrect.cross);
         }
-        run.width = width;
-        if (rowAlignment != VPos.BASELINE) {
-            run.height = plainHeight;
+        run.main = main;
+        // Baseline alignment exists only for a horizontal flow: its cross axis is vertical
+        // and rowValignment can be BASELINE. A vertical flow stacks items along a
+        // horizontal cross axis with no shared text baseline, so it always takes the
+        // plain (max cross) path.
+        if (orientationOrDefault() != Orientation.HORIZONTAL || rowValignment != VPos.BASELINE) {
+            run.cross = plainCross;
             run.baselineOffset = 0;
             return;
         }
-        // Baseline rows size to maxAbove + maxBelow, exactly Region.getMaxAreaHeight's
+        // Baseline runs size to maxAbove + maxBelow, exactly Region.getMaxAreaHeight's
         // BASELINE path (and FlowPane): this can exceed the tallest child's pref-area
-        // height when a shallow-baseline child has a deep below-baseline part. No
-        // plainHeight floor on purpose — a SAME_AS_HEIGHT child's bottom margin stays
+        // cross size when a shallow-baseline child has a deep below-baseline part. No
+        // plainCross floor on purpose — a SAME_AS_HEIGHT child's trailing margin stays
         // below the implied baseline (as in FlowPane), and a floor would only wedge
         // empty space below it without un-compressing it. run.baselineOffset is the
-        // shared baseline from the run top, later fed to layoutInArea.
+        // shared baseline from the run's leading edge, later fed to layoutInArea.
+        Axis cross = crossAxis();
         double maxAbove = 0;
         double maxBelow = 0;
         for (LayoutRect lrect : run.rects) {
             Node child = lrect.node;
             Insets margin = getMargin(child);
-            double top = margin == null ? 0 : snapSpaceY(margin.getTop());
-            double bottom = margin == null ? 0 : snapSpaceY(margin.getBottom());
-            double childHeight = lrect.height - top - bottom;
+            double leading = marginLeading(cross, margin);
+            double trailing = marginTrailing(cross, margin);
+            double childCross = lrect.cross - leading - trailing;
             double baseline = child.getBaselineOffset();
             if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
-                maxAbove = Math.max(maxAbove, childHeight + top);
+                maxAbove = Math.max(maxAbove, childCross + leading);
             } else {
-                maxAbove = Math.max(maxAbove, baseline + top);
-                maxBelow = Math.max(maxBelow, childHeight - baseline + bottom);
+                maxAbove = Math.max(maxAbove, baseline + leading);
+                maxBelow = Math.max(maxBelow, childCross - baseline + trailing);
             }
         }
-        run.height = maxAbove + maxBelow;
+        run.cross = maxAbove + maxBelow;
         run.baselineOffset = maxAbove;
     }
 
-    private double computeContentWidth(List<Run> lines) {
-        double width = 0;
+    private double computeContentMain(List<Run> lines) {
+        double main = 0;
         for (Run run : lines) {
-            width = Math.max(width, run.width);
+            main = Math.max(main, run.main);
         }
-        return width;
+        return main;
+    }
+
+    private double computeContentCross(List<Run> lines) {
+        // getRuns always returns at least one run, so (size - 1) is never negative.
+        double crossGap = snapSpace(crossAxis(), crossGapOrDefault());
+        double cross = (lines.size() - 1) * crossGap;
+        for (Run run : lines) {
+            cross += run.cross;
+        }
+        return cross;
+    }
+
+    // Resolve the main/cross run extents onto the X/Y axes for the width/height-oriented
+    // size and block-alignment consumers.
+    private double computeContentWidth(List<Run> lines) {
+        return mainAxis() == Axis.X ? computeContentMain(lines) : computeContentCross(lines);
     }
 
     private double computeContentHeight(List<Run> lines) {
-        // getRuns always returns at least one run, so (size - 1) is never negative.
-        double vgap = snapSpaceY(vgapOrDefault());
-        double height = (lines.size() - 1) * vgap;
-        for (Run run : lines) {
-            height += run.height;
-        }
-        return height;
+        return mainAxis() == Axis.Y ? computeContentMain(lines) : computeContentCross(lines);
     }
 
     // ==================== Layout ====================
@@ -651,7 +984,17 @@ public class RXFlowPane extends Pane {
      */
     @Override
     public Orientation getContentBias() {
-        return Orientation.HORIZONTAL;
+        return orientationOrDefault();
+    }
+
+    // Largest single child along the main (wrap) axis — the pane's minimum size on that
+    // axis, so no child is ever clipped however narrow the wrap dimension gets.
+    private double maxChildMain() {
+        double max = 0;
+        for (Node child : getManagedChildren()) {
+            max = Math.max(max, prefAreaMain(child));
+        }
+        return max;
     }
 
     /**
@@ -659,11 +1002,12 @@ public class RXFlowPane extends Pane {
      */
     @Override
     protected double computeMinWidth(double height) {
-        double maxPref = 0;
-        for (Node child : getManagedChildren()) {
-            maxPref = Math.max(maxPref, prefAreaWidth(child));
+        if (orientationOrDefault() == Orientation.HORIZONTAL) {
+            // width is the wrap (main) axis: the narrowest the pane gets is its widest child.
+            return snappedLeftInset() + maxChildMain() + snappedRightInset();
         }
-        return snappedLeftInset() + maxPref + snappedRightInset();
+        // vertical: width is the cross axis -> min width equals pref width at this height.
+        return computePrefWidth(height);
     }
 
     /**
@@ -671,6 +1015,11 @@ public class RXFlowPane extends Pane {
      */
     @Override
     protected double computeMinHeight(double width) {
+        if (orientationOrDefault() == Orientation.VERTICAL) {
+            // height is the wrap (main) axis: the shortest the pane gets is its tallest child.
+            return snappedTopInset() + maxChildMain() + snappedBottomInset();
+        }
+        // horizontal: height is the cross axis -> min height equals pref height at this width.
         return computePrefHeight(width);
     }
 
@@ -679,21 +1028,35 @@ public class RXFlowPane extends Pane {
      */
     @Override
     protected double computePrefWidth(double height) {
-        double wrap = getPrefWrapLength();
+        if (orientationOrDefault() == Orientation.HORIZONTAL) {
+            // width is the wrap (main) axis, floored by prefWrapLength.
+            List<Run> lines = getRuns(getPrefWrapLength());
+            double width = Math.max(computeContentWidth(lines), getPrefWrapLength());
+            return snappedLeftInset() + snapSizeX(width) + snappedRightInset();
+        }
+        // vertical: width is the cross axis, sized to the content wrapped at the given height.
+        double wrap = height == -1
+                ? getPrefWrapLength()
+                : height - snappedTopInset() - snappedBottomInset();
         List<Run> lines = getRuns(wrap);
-        double width = computeContentWidth(lines);
-        width = Math.max(width, wrap);
-        return snappedLeftInset() + snapSizeX(width) + snappedRightInset();
+        return snappedLeftInset() + snapSizeX(computeContentWidth(lines)) + snappedRightInset();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected double computePrefHeight(double forWidth) {
-        double wrap = forWidth == -1
+    protected double computePrefHeight(double width) {
+        if (orientationOrDefault() == Orientation.VERTICAL) {
+            // height is the wrap (main) axis, floored by prefWrapLength.
+            List<Run> lines = getRuns(getPrefWrapLength());
+            double height = Math.max(computeContentHeight(lines), getPrefWrapLength());
+            return snappedTopInset() + snapSizeY(height) + snappedBottomInset();
+        }
+        // horizontal: height is the cross axis, sized to the content wrapped at the given width.
+        double wrap = width == -1
                 ? getPrefWrapLength()
-                : forWidth - snappedLeftInset() - snappedRightInset();
+                : width - snappedLeftInset() - snappedRightInset();
         List<Run> lines = getRuns(wrap);
         return snappedTopInset() + snapSizeY(computeContentHeight(lines)) + snappedBottomInset();
     }
@@ -706,60 +1069,131 @@ public class RXFlowPane extends Pane {
         double top = snappedTopInset();
         double left = snappedLeftInset();
         // Inside extents are kept unsnapped here so the run-cache key
-        // (maxRunLength == insideWidth) matches computePrefHeight's wrap width,
+        // (maxRunLength == inside main extent) matches computePref*'s wrap length,
         // mirroring FlowPane; the block/line offsets are snapped on output below.
         double insideWidth = getWidth() - left - snappedRightInset();
         double insideHeight = getHeight() - top - snappedBottomInset();
 
-        List<Run> lines = getRuns(insideWidth);
+        boolean horizontal = orientationOrDefault() == Orientation.HORIZONTAL;
+        List<Run> lines = getRuns(horizontal ? insideWidth : insideHeight);
         double blockWidth = computeContentWidth(lines);
         double blockHeight = computeContentHeight(lines);
 
-        Pos ca = contentAlignmentOrDefault();
-        HPos la = lineAlignmentOrDefault();
-        VPos ra = rowAlignmentOrDefault();
-
-        double blockX = snapPositionX(left + blockHOffset(insideWidth, blockWidth, ca.getHpos()));
-        double blockY = snapPositionY(top + blockVOffset(insideHeight, blockHeight, ca.getVpos()));
+        // The whole content block is aligned once on both axes (alignment), regardless of
+        // orientation; only managed children take part.
+        Pos align = alignmentOrDefault();
+        double blockX = snapPositionX(left + blockHOffset(insideWidth, blockWidth, align.getHpos()));
+        double blockY = snapPositionY(top + blockVOffset(insideHeight, blockHeight, align.getVpos()));
 
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
 
-        double y = blockY;
-        for (Run run : lines) {
-            double lineX = snapPositionX(blockX + blockHOffset(blockWidth, run.width, la));
-            double baselineOffset = ra == VPos.BASELINE ? run.baselineOffset : -1.0;
-            double x = lineX;
-            for (LayoutRect lrect : run.rects) {
-                Node child = lrect.node;
-                layoutInArea(child, x, y, lrect.width, run.height,
-                        baselineOffset, getMargin(child), false, false, HPos.LEFT, ra);
-                x += lrect.width + hgap;
+        if (horizontal) {
+            // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
+            // axis inside the block by rowHalignment; each item sits within the run's
+            // cross extent (height) by rowValignment.
+            HPos rowH = rowHalignmentOrDefault();
+            VPos rowV = rowValignmentOrDefault();
+            double y = blockY;
+            for (Run run : lines) {
+                double lineX = snapPositionX(blockX + blockHOffset(blockWidth, run.main, rowH));
+                double baselineOffset = rowV == VPos.BASELINE ? run.baselineOffset : -1.0;
+                double x = lineX;
+                for (LayoutRect lrect : run.rects) {
+                    layoutInArea(lrect.node, x, y, lrect.main, run.cross,
+                            baselineOffset, getMargin(lrect.node), false, false, HPos.LEFT, rowV);
+                    x += lrect.main + hgap;
+                }
+                y += run.cross + vgap;
             }
-            y += run.height + vgap;
+        } else {
+            // Columns stack across the cross (X) axis. Each column is aligned along the
+            // main (Y) axis inside the block by columnValignment; each item sits within
+            // the column's cross extent (width) by columnHalignment. Columns have no
+            // shared baseline, so -1 is passed for the baseline offset.
+            VPos colV = columnValignmentOrDefault();
+            HPos colH = columnHalignmentOrDefault();
+            double x = blockX;
+            for (Run run : lines) {
+                double lineY = snapPositionY(blockY + blockVOffset(blockHeight, run.main, colV));
+                double y = lineY;
+                for (LayoutRect lrect : run.rects) {
+                    layoutInArea(lrect.node, x, y, run.cross, lrect.main,
+                            -1.0, getMargin(lrect.node), false, false, colH, VPos.TOP);
+                    y += lrect.main + vgap;
+                }
+                x += run.cross + hgap;
+            }
         }
     }
 
     // ==================== Layout helpers ====================
 
-    private double prefAreaWidth(Node child) {
-        Insets margin = getMargin(child);
-        double left = margin == null ? 0 : snapSpaceX(margin.getLeft());
-        double right = margin == null ? 0 : snapSpaceX(margin.getRight());
-        double width = boundedSize(child.minWidth(-1), child.prefWidth(-1), child.maxWidth(-1));
-        return left + snapSizeX(width) + right;
+    private double prefAreaMain(Node child) {
+        return prefAreaSize(child, mainAxis());
     }
 
-    private double prefAreaHeight(Node child) {
+    private double prefAreaCross(Node child) {
+        return prefAreaSize(child, crossAxis());
+    }
+
+    /**
+     * Preferred size of the child plus its margins along {@code axis}. When {@code axis}
+     * is the child's <em>dependent</em> dimension — its content bias runs along the other
+     * axis — the size is measured at the child's own preferred size along the bias
+     * (driving) axis: height-for-width for a horizontally-biased child, width-for-height
+     * for a vertically-biased one. This generalizes FlowPane's height-for-width to both
+     * axes (FlowPane skips width-for-height); in a flow each item takes its preferred main
+     * size, so the driving size is the child's own preference, not an allocated extent.
+     */
+    private double prefAreaSize(Node child, Axis axis) {
         Insets margin = getMargin(child);
-        double top = margin == null ? 0 : snapSpaceY(margin.getTop());
-        double bottom = margin == null ? 0 : snapSpaceY(margin.getBottom());
         double alt = -1;
-        if (child.isResizable() && child.getContentBias() == Orientation.HORIZONTAL) {
-            alt = snapSizeX(boundedSize(child.minWidth(-1), child.prefWidth(-1), child.maxWidth(-1)));
+        Orientation bias = child.getContentBias();
+        if (child.isResizable() && bias != null) {
+            Axis biasAxis = bias == Orientation.HORIZONTAL ? Axis.X : Axis.Y;
+            if (axis != biasAxis) {
+                alt = snapSize(biasAxis, boundedSize(childMin(child, biasAxis, -1),
+                        childPref(child, biasAxis, -1), childMax(child, biasAxis, -1)));
+            }
         }
-        double height = boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt));
-        return top + snapSizeY(height) + bottom;
+        double size = boundedSize(childMin(child, axis, alt), childPref(child, axis, alt),
+                childMax(child, axis, alt));
+        return marginLeading(axis, margin) + snapSize(axis, size) + marginTrailing(axis, margin);
+    }
+
+    private static double childMin(Node child, Axis axis, double alt) {
+        return axis == Axis.X ? child.minWidth(alt) : child.minHeight(alt);
+    }
+
+    private static double childPref(Node child, Axis axis, double alt) {
+        return axis == Axis.X ? child.prefWidth(alt) : child.prefHeight(alt);
+    }
+
+    private static double childMax(Node child, Axis axis, double alt) {
+        return axis == Axis.X ? child.maxWidth(alt) : child.maxHeight(alt);
+    }
+
+    private double snapSize(Axis axis, double value) {
+        return axis == Axis.X ? snapSizeX(value) : snapSizeY(value);
+    }
+
+    private double snapSpace(Axis axis, double value) {
+        return axis == Axis.X ? snapSpaceX(value) : snapSpaceY(value);
+    }
+
+    private double marginLeading(Axis axis, Insets margin) {
+        if (margin == null) {
+            return 0.0;
+        }
+        return snapSpace(axis, axis == Axis.X ? margin.getLeft() : margin.getTop());
+    }
+
+    private double marginTrailing(Axis axis, Insets margin) {
+        if (margin == null) {
+            return 0.0;
+        }
+        return snapSpace(axis, axis == Axis.X ? margin.getRight() : margin.getBottom());
     }
 
     private static double boundedSize(double min, double pref, double max) {
@@ -797,6 +1231,26 @@ public class RXFlowPane extends Pane {
 
     private static class StyleableProperties {
 
+        private static final CssMetaData<RXFlowPane, Orientation> ORIENTATION =
+                new CssMetaData<>("-rx-orientation",
+                        new EnumConverter<>(Orientation.class), DEFAULT_ORIENTATION) {
+                    @Override
+                    public Orientation getInitialValue(RXFlowPane node) {
+                        return node.getOrientation();
+                    }
+
+                    @Override
+                    public boolean isSettable(RXFlowPane node) {
+                        return !node.orientation.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Orientation> getStyleableProperty(RXFlowPane node) {
+                        return (StyleableProperty<Orientation>) node.orientationProperty();
+                    }
+                };
+
         private static final CssMetaData<RXFlowPane, Number> HGAP =
                 new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
@@ -825,48 +1279,78 @@ public class RXFlowPane extends Pane {
                     }
                 };
 
-        private static final CssMetaData<RXFlowPane, Pos> CONTENT_ALIGNMENT =
-                new CssMetaData<>("-rx-content-alignment",
-                        new EnumConverter<>(Pos.class), DEFAULT_CONTENT_ALIGNMENT) {
+        private static final CssMetaData<RXFlowPane, Pos> ALIGNMENT =
+                new CssMetaData<>("-rx-alignment",
+                        new EnumConverter<>(Pos.class), DEFAULT_ALIGNMENT) {
                     @Override
                     public boolean isSettable(RXFlowPane node) {
-                        return !node.contentAlignment.isBound();
+                        return !node.alignment.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Pos> getStyleableProperty(RXFlowPane node) {
-                        return (StyleableProperty<Pos>) node.contentAlignmentProperty();
+                        return (StyleableProperty<Pos>) node.alignmentProperty();
                     }
                 };
 
-        private static final CssMetaData<RXFlowPane, HPos> LINE_ALIGNMENT =
-                new CssMetaData<>("-rx-line-alignment",
-                        new EnumConverter<>(HPos.class), DEFAULT_LINE_ALIGNMENT) {
+        private static final CssMetaData<RXFlowPane, HPos> ROW_HALIGNMENT =
+                new CssMetaData<>("-rx-row-halignment",
+                        new EnumConverter<>(HPos.class), DEFAULT_ROW_HALIGNMENT) {
                     @Override
                     public boolean isSettable(RXFlowPane node) {
-                        return !node.lineAlignment.isBound();
+                        return !node.rowHalignment.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<HPos> getStyleableProperty(RXFlowPane node) {
-                        return (StyleableProperty<HPos>) node.lineAlignmentProperty();
+                        return (StyleableProperty<HPos>) node.rowHalignmentProperty();
                     }
                 };
 
-        private static final CssMetaData<RXFlowPane, VPos> ROW_ALIGNMENT =
-                new CssMetaData<>("-rx-row-alignment",
-                        new EnumConverter<>(VPos.class), DEFAULT_ROW_ALIGNMENT) {
+        private static final CssMetaData<RXFlowPane, VPos> ROW_VALIGNMENT =
+                new CssMetaData<>("-rx-row-valignment",
+                        new EnumConverter<>(VPos.class), DEFAULT_ROW_VALIGNMENT) {
                     @Override
                     public boolean isSettable(RXFlowPane node) {
-                        return !node.rowAlignment.isBound();
+                        return !node.rowValignment.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<VPos> getStyleableProperty(RXFlowPane node) {
-                        return (StyleableProperty<VPos>) node.rowAlignmentProperty();
+                        return (StyleableProperty<VPos>) node.rowValignmentProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXFlowPane, VPos> COLUMN_VALIGNMENT =
+                new CssMetaData<>("-rx-column-valignment",
+                        new EnumConverter<>(VPos.class), DEFAULT_COLUMN_VALIGNMENT) {
+                    @Override
+                    public boolean isSettable(RXFlowPane node) {
+                        return !node.columnValignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<VPos> getStyleableProperty(RXFlowPane node) {
+                        return (StyleableProperty<VPos>) node.columnValignmentProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXFlowPane, HPos> COLUMN_HALIGNMENT =
+                new CssMetaData<>("-rx-column-halignment",
+                        new EnumConverter<>(HPos.class), DEFAULT_COLUMN_HALIGNMENT) {
+                    @Override
+                    public boolean isSettable(RXFlowPane node) {
+                        return !node.columnHalignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<HPos> getStyleableProperty(RXFlowPane node) {
+                        return (StyleableProperty<HPos>) node.columnHalignmentProperty();
                     }
                 };
 
@@ -875,7 +1359,8 @@ public class RXFlowPane extends Pane {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, HGAP, VGAP, CONTENT_ALIGNMENT, LINE_ALIGNMENT, ROW_ALIGNMENT);
+            Collections.addAll(styleables, ORIENTATION, HGAP, VGAP, ALIGNMENT,
+                    ROW_HALIGNMENT, ROW_VALIGNMENT, COLUMN_VALIGNMENT, COLUMN_HALIGNMENT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
@@ -901,14 +1386,14 @@ public class RXFlowPane extends Pane {
 
     private static final class LayoutRect {
         private Node node;
-        private double width;
-        private double height;
+        private double main;
+        private double cross;
     }
 
     private static final class Run {
         private final List<LayoutRect> rects = new ArrayList<>();
-        private double width;
-        private double height;
+        private double main;
+        private double cross;
         private double baselineOffset;
     }
 }

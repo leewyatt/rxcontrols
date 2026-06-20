@@ -60,11 +60,14 @@ public class RXFlowPaneTest {
         RXFlowPane pane = new RXFlowPane(card);
 
         assertTrue(pane.getStyleClass().contains("rx-flow-pane"));
+        assertSame(Orientation.HORIZONTAL, pane.getOrientation());
         assertClose(0.0, pane.getHgap(), "hgap");
         assertClose(0.0, pane.getVgap(), "vgap");
-        assertSame(Pos.TOP_CENTER, pane.getContentAlignment());
-        assertSame(HPos.LEFT, pane.getLineAlignment());
-        assertSame(VPos.TOP, pane.getRowAlignment());
+        assertSame(Pos.TOP_CENTER, pane.getAlignment());
+        assertSame(HPos.LEFT, pane.getRowHalignment());
+        assertSame(VPos.TOP, pane.getRowValignment());
+        assertSame(VPos.TOP, pane.getColumnValignment());
+        assertSame(HPos.LEFT, pane.getColumnHalignment());
         assertClose(400.0, pane.getPrefWrapLength(), "prefWrapLength");
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
 
@@ -89,7 +92,7 @@ public class RXFlowPaneTest {
     // ==================== Headline: last-row alignment ====================
 
     /**
-     * The core fix: with contentAlignment=TOP_CENTER + lineAlignment=LEFT, the
+     * The core fix: with alignment=TOP_CENTER + rowHalignment=LEFT, the
      * 7-card / 3-column flow keeps its lone last card at the centered block's
      * left edge — card7.x must equal card1.x, not be centered by itself.
      */
@@ -112,14 +115,14 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * Counter-proof: lineAlignment=CENTER reproduces FlowPane's centered last
+     * Counter-proof: rowHalignment=CENTER reproduces FlowPane's centered last
      * row as an explicit, opt-in special case.
      */
     @Test
-    public void lineAlignmentCenterReproducesFlowPaneCenteredLastRow() {
+    public void rowHalignmentCenterReproducesFlowPaneCenteredLastRow() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
-        pane.setLineAlignment(HPos.CENTER);
+        pane.setRowHalignment(HPos.CENTER);
 
         layout(pane, 340.0, 1000.0);
 
@@ -130,14 +133,14 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * lineAlignment=RIGHT pushes each run, including the short last row, to the
+     * rowHalignment=RIGHT pushes each run, including the short last row, to the
      * block's right edge.
      */
     @Test
-    public void lineAlignmentRightPushesLastRowToBlockRight() {
+    public void rowHalignmentRightPushesLastRowToBlockRight() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
-        pane.setLineAlignment(HPos.RIGHT);
+        pane.setRowHalignment(HPos.RIGHT);
 
         layout(pane, 340.0, 1000.0);
 
@@ -145,28 +148,28 @@ public class RXFlowPaneTest {
         assertClose(230.0, cards[6].getLayoutX(), "card7 x (right)");
     }
 
-    // ==================== contentAlignment ====================
+    // ==================== alignment ====================
 
     /**
      * Verifies the whole content block is aligned once on both axes by
-     * contentAlignment, given a pane larger than its content.
+     * alignment, given a pane larger than its content.
      */
     @Test
-    public void contentAlignmentPositionsTheWholeBlock() {
+    public void alignmentPositionsTheWholeBlock() {
         // Two cards in one row: blockWidth = 210, blockHeight = 60.
         RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 60.0), card(100.0, 60.0));
 
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
         layout(pane, 400.0, 300.0);
         assertClose(0.0, child(pane, 0).getLayoutX(), "TOP_LEFT x");
         assertClose(0.0, child(pane, 0).getLayoutY(), "TOP_LEFT y");
 
-        pane.setContentAlignment(Pos.CENTER);
+        pane.setAlignment(Pos.CENTER);
         layout(pane, 400.0, 300.0);
         assertClose(95.0, child(pane, 0).getLayoutX(), "CENTER x (400-210)/2");
         assertClose(120.0, child(pane, 0).getLayoutY(), "CENTER y (300-60)/2");
 
-        pane.setContentAlignment(Pos.BOTTOM_RIGHT);
+        pane.setAlignment(Pos.BOTTOM_RIGHT);
         layout(pane, 400.0, 300.0);
         assertClose(190.0, child(pane, 0).getLayoutX(), "BOTTOM_RIGHT x (400-210)");
         assertClose(240.0, child(pane, 0).getLayoutY(), "BOTTOM_RIGHT y (300-60)");
@@ -175,13 +178,13 @@ public class RXFlowPaneTest {
 
     /**
      * Verifies the content block has no baseline: a vertical BASELINE component
-     * of contentAlignment behaves like TOP (BASELINE_CENTER == TOP_CENTER).
+     * of alignment behaves like TOP (BASELINE_CENTER == TOP_CENTER).
      */
     @Test
-    public void contentAlignmentBaselineVPosActsAsTop() {
+    public void alignmentBaselineVPosActsAsTop() {
         RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 60.0), card(100.0, 60.0));
 
-        pane.setContentAlignment(Pos.BASELINE_CENTER);
+        pane.setAlignment(Pos.BASELINE_CENTER);
         layout(pane, 400.0, 300.0);
 
         // Same block origin as TOP_CENTER: x = (400-210)/2 = 95, y = 0 (not centered).
@@ -189,47 +192,47 @@ public class RXFlowPaneTest {
         assertClose(0.0, child(pane, 0).getLayoutY(), "BASELINE vpos pins the block to the top");
     }
 
-    // ==================== rowAlignment ====================
+    // ==================== rowValignment ====================
 
     /**
      * Verifies a short child is positioned within its run's height by
-     * rowAlignment (TOP / CENTER / BOTTOM), independent of the main axis.
+     * rowValignment (TOP / CENTER / BOTTOM), independent of the main axis.
      */
     @Test
-    public void rowAlignmentPositionsShortChildWithinRunHeight() {
+    public void rowValignmentPositionsShortChildWithinRunHeight() {
         // Row height is driven by the taller card (80); the short card (40) moves.
         Region shortCard = card(100.0, 40.0);
         Region tallCard = card(100.0, 80.0);
         RXFlowPane pane = flowPane(10.0, 10.0, shortCard, tallCard);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
 
-        pane.setRowAlignment(VPos.TOP);
+        pane.setRowValignment(VPos.TOP);
         layout(pane, 400.0, 300.0);
         assertClose(0.0, shortCard.getLayoutY(), "TOP short y");
         assertClose(0.0, tallCard.getLayoutY(), "TOP tall y");
 
-        pane.setRowAlignment(VPos.CENTER);
+        pane.setRowValignment(VPos.CENTER);
         layout(pane, 400.0, 300.0);
         assertClose(20.0, shortCard.getLayoutY(), "CENTER short y (80-40)/2");
         assertClose(0.0, tallCard.getLayoutY(), "CENTER tall y");
 
-        pane.setRowAlignment(VPos.BOTTOM);
+        pane.setRowValignment(VPos.BOTTOM);
         layout(pane, 400.0, 300.0);
         assertClose(40.0, shortCard.getLayoutY(), "BOTTOM short y (80-40)");
         assertClose(0.0, tallCard.getLayoutY(), "BOTTOM tall y");
     }
 
     /**
-     * Verifies rowAlignment=BASELINE lines up children by their text baseline
+     * Verifies rowValignment=BASELINE lines up children by their text baseline
      * within the run.
      */
     @Test
-    public void rowAlignmentBaselineAlignsByBaseline() {
+    public void rowValignmentBaselineAlignsByBaseline() {
         Region a = baselineCard(100.0, 60.0, 45.0);
         Region b = baselineCard(100.0, 80.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, a, b);
-        pane.setContentAlignment(Pos.TOP_LEFT);
-        pane.setRowAlignment(VPos.BASELINE);
+        pane.setAlignment(Pos.TOP_LEFT);
+        pane.setRowValignment(VPos.BASELINE);
 
         layout(pane, 400.0, 300.0);
 
@@ -254,8 +257,8 @@ public class RXFlowPaneTest {
         Region b = baselineCard(100.0, 100.0, 10.0);
         Region c = card(100.0, 30.0);
         RXFlowPane pane = flowPane(10.0, 10.0, a, b, c);
-        pane.setContentAlignment(Pos.TOP_LEFT);
-        pane.setRowAlignment(VPos.BASELINE);
+        pane.setAlignment(Pos.TOP_LEFT);
+        pane.setRowValignment(VPos.BASELINE);
 
         // insideWidth 250 keeps a+b on the first run and wraps c to the second.
         layout(pane, 250.0, 1000.0);
@@ -277,8 +280,8 @@ public class RXFlowPaneTest {
         Region plain = card(100.0, 40.0);
         Region baselined = baselineCard(100.0, 60.0, 50.0);
         RXFlowPane pane = flowPane(10.0, 10.0, plain, baselined);
-        pane.setContentAlignment(Pos.TOP_LEFT);
-        pane.setRowAlignment(VPos.BASELINE);
+        pane.setAlignment(Pos.TOP_LEFT);
+        pane.setRowValignment(VPos.BASELINE);
 
         layout(pane, 400.0, 300.0);
 
@@ -297,8 +300,8 @@ public class RXFlowPaneTest {
     public void baselineRunHeightExcludesSameAsHeightBottomMargin() {
         Region plain = card(100.0, 40.0);
         RXFlowPane pane = new RXFlowPane(plain);
-        pane.setContentAlignment(Pos.TOP_LEFT);
-        pane.setRowAlignment(VPos.BASELINE);
+        pane.setAlignment(Pos.TOP_LEFT);
+        pane.setRowValignment(VPos.BASELINE);
         RXFlowPane.setMargin(plain, new Insets(0.0, 0.0, 10.0, 0.0));
 
         // maxAbove = childHeight 40 + top 0 = 40, maxBelow = 0 -> run height 40,
@@ -339,7 +342,7 @@ public class RXFlowPaneTest {
         Region wide = card(500.0, 60.0);
         Region a = card(100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, wide, a);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
 
         layout(pane, 340.0, 1000.0);
 
@@ -374,13 +377,13 @@ public class RXFlowPaneTest {
     public void nullAlignmentsResolveToDefaults() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
-        pane.setContentAlignment(null);
-        pane.setLineAlignment(null);
-        pane.setRowAlignment(null);
+        pane.setAlignment(null);
+        pane.setRowHalignment(null);
+        pane.setRowValignment(null);
 
-        assertNull(pane.getContentAlignment(), "contentAlignment passes null through");
-        assertNull(pane.getLineAlignment(), "lineAlignment passes null through");
-        assertNull(pane.getRowAlignment(), "rowAlignment passes null through");
+        assertNull(pane.getAlignment(), "alignment passes null through");
+        assertNull(pane.getRowHalignment(), "rowHalignment passes null through");
+        assertNull(pane.getRowValignment(), "rowValignment passes null through");
 
         layout(pane, 340.0, 1000.0);
 
@@ -396,7 +399,7 @@ public class RXFlowPaneTest {
     public void negativeHgapOverlapsAndIsNotClamped() {
         Region[] cards = cards(3, 100.0, 60.0);
         RXFlowPane pane = flowPane(-20.0, 0.0, cards);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
 
         layout(pane, 1000.0, 300.0);
 
@@ -416,7 +419,7 @@ public class RXFlowPaneTest {
     public void nonFiniteHgapResolvesToZero() {
         Region[] cards = cards(2, 100.0, 60.0);
         RXFlowPane pane = flowPane(Double.POSITIVE_INFINITY, 0.0, cards);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
 
         assertTrue(Double.isInfinite(pane.getHgap()), "getter returns raw infinity");
 
@@ -436,7 +439,7 @@ public class RXFlowPaneTest {
     public void nonFiniteVgapResolvesToZero() {
         Region[] cards = cards(3, 100.0, 60.0);
         RXFlowPane pane = flowPane(0.0, Double.POSITIVE_INFINITY, cards);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
 
         assertTrue(Double.isInfinite(pane.getVgap()), "getter returns raw infinity");
 
@@ -521,13 +524,17 @@ public class RXFlowPaneTest {
 
     /**
      * Verifies max width/height stay unbounded (not overridden) — the hard
-     * prerequisite for contentAlignment to have room to work.
+     * prerequisite for alignment to have room to work.
      */
     @Test
     public void maxSizeStaysUnbounded() {
         RXFlowPane pane = new RXFlowPane(card(100.0, 60.0));
         assertEquals(Double.MAX_VALUE, pane.maxWidth(-1.0), "maxWidth unbounded");
         assertEquals(Double.MAX_VALUE, pane.maxHeight(-1.0), "maxHeight unbounded");
+
+        pane.setOrientation(Orientation.VERTICAL);
+        assertEquals(Double.MAX_VALUE, pane.maxWidth(-1.0), "maxWidth unbounded (vertical)");
+        assertEquals(Double.MAX_VALUE, pane.maxHeight(-1.0), "maxHeight unbounded (vertical)");
     }
 
     /**
@@ -541,6 +548,36 @@ public class RXFlowPaneTest {
         assertClose(400.0, pane.prefWidth(-1.0), "empty pref width floored to prefWrapLength");
     }
 
+    // ==================== Snap (fractional sizing) ====================
+
+    /**
+     * Verifies fractional child sizes and gaps are snapped to the pixel grid:
+     * child widths through {@code snapSizeX} (ceil) and gaps through
+     * {@code snapSpaceX}/{@code snapSpaceY} (round). This is a load-bearing
+     * regression net for the upcoming main/cross axis refactor — if a size or
+     * space snap is dropped while the per-axis helpers are rearranged, the
+     * laid-out coordinates drift off the integer grid and these assertions fail.
+     * (At render scale 1.0 {@code snapSizeX == snapSizeY}, so this cannot catch an
+     * X/Y snap-helper swap; it guards missing or extra snaps only.)
+     */
+    @Test
+    public void fractionalSizesAndGapsAreSnapped() {
+        // Card pref width 100.3 -> snapSizeX (ceil) = 101; gaps 10.7 -> snapSpace (round) = 11.
+        Region[] cards = cards(3, 100.3, 60.0);
+        RXFlowPane pane = flowPane(10.7, 10.7, cards);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        // insideWidth 250 keeps two snapped cards (101 + 11 + 101 = 213) on the first
+        // run and wraps the third (213 + 11 + 101 = 325 > 250) to the second.
+        layout(pane, 250.0, 1000.0);
+
+        assertClose(101.0, cards[0].getWidth(), "card width snapped up (100.3 -> 101)");
+        assertClose(0.0, cards[0].getLayoutX(), "card1 x");
+        assertClose(112.0, cards[1].getLayoutX(), "card2 x (101 + snapped hgap 11)");
+        assertClose(0.0, cards[1].getLayoutY(), "card2 stays on the first run");
+        assertClose(71.0, cards[2].getLayoutY(), "card3 y (run height 60 + snapped vgap 11)");
+    }
+
     // ==================== Margin ====================
 
     /**
@@ -551,7 +588,7 @@ public class RXFlowPaneTest {
     public void marginFeedsMeasurementAndLayout() {
         Region card = card(100.0, 60.0);
         RXFlowPane pane = new RXFlowPane(card);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
         // top=5, right=10, bottom=15, left=20.
         RXFlowPane.setMargin(card, new Insets(5.0, 10.0, 15.0, 20.0));
 
@@ -571,7 +608,7 @@ public class RXFlowPaneTest {
         Region a = card(100.0, 60.0);
         Region b = card(100.0, 40.0);
         RXFlowPane pane = flowPane(0.0, 10.0, a, b);
-        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setAlignment(Pos.TOP_LEFT);
         RXFlowPane.setMargin(a, new Insets(20.0, 0.0, 30.0, 0.0));
 
         // insideWidth 100 puts a on the first run and wraps b to the second.
@@ -629,18 +666,18 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * Verifies changing lineAlignment re-applies on the next layout (alignment
+     * Verifies changing rowHalignment re-applies on the next layout (alignment
      * is never baked into the cached runs).
      */
     @Test
-    public void changingLineAlignmentRelayouts() {
+    public void changingRowHalignmentRelayouts() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
 
         layout(pane, 340.0, 1000.0);
         assertClose(10.0, cards[6].getLayoutX(), "card7 left by default");
 
-        pane.setLineAlignment(HPos.CENTER);
+        pane.setRowHalignment(HPos.CENTER);
         pane.layout();
         assertClose(120.0, cards[6].getLayoutX(), "card7 centered after change");
     }
@@ -652,13 +689,365 @@ public class RXFlowPaneTest {
      */
     @Test
     public void cssMetadataExposesStyleableProperties() {
+        assertTrue(hasCssProperty("-rx-orientation"), "-rx-orientation");
         assertTrue(hasCssProperty("-rx-hgap"), "-rx-hgap");
         assertTrue(hasCssProperty("-rx-vgap"), "-rx-vgap");
-        assertTrue(hasCssProperty("-rx-content-alignment"), "-rx-content-alignment");
-        assertTrue(hasCssProperty("-rx-line-alignment"), "-rx-line-alignment");
-        assertTrue(hasCssProperty("-rx-row-alignment"), "-rx-row-alignment");
+        assertTrue(hasCssProperty("-rx-alignment"), "-rx-alignment");
+        assertTrue(hasCssProperty("-rx-row-halignment"), "-rx-row-halignment");
+        assertTrue(hasCssProperty("-rx-row-valignment"), "-rx-row-valignment");
+        assertTrue(hasCssProperty("-rx-column-valignment"), "-rx-column-valignment");
+        assertTrue(hasCssProperty("-rx-column-halignment"), "-rx-column-halignment");
         assertFalse(hasCssProperty("-rx-pref-wrap-length"), "prefWrapLength is not styleable");
-        assertFalse(hasCssProperty("-rx-orientation"), "no orientation property");
+    }
+
+    // ==================== Vertical: headline & column alignment ====================
+
+    /**
+     * The vertical mirror of the headline fix: with alignment=TOP_LEFT +
+     * columnValignment=TOP, a 7-card / 3-row column flow keeps its lone last card at the
+     * content block's top edge — card7.y must equal card1.y, not be centered by itself.
+     */
+    @Test
+    public void verticalSevenCardLastColumnStaysAtBlockTop() {
+        Region[] cards = cards(7, 100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        // Block centered on the vertical (main) axis, columns at the block top — the
+        // mirror of the horizontal headline's TOP_CENTER + rowHalignment=LEFT. A plain
+        // TOP_* alignment would NOT distinguish the block-relative fix from FlowPane's
+        // per-column centering, since both pin to y=0.
+        pane.setAlignment(Pos.CENTER_LEFT);
+
+        // insideHeight 250 fits three 60-tall cards per column (3*60 + 2*10 = 200) and
+        // overflows the fourth, so columns are [1,2,3]/[4,5,6]/[7]; the 200-tall block is
+        // centered in 250 -> blockY = (250-200)/2 = 25.
+        layout(pane, 1000.0, 250.0);
+
+        assertBox(cards[0], 0.0, 25.0, 100.0, 60.0, "card1");
+        assertBox(cards[2], 0.0, 165.0, 100.0, 60.0, "card3");
+        assertBox(cards[3], 110.0, 25.0, 100.0, 60.0, "card4");
+        // The lone last card stays at the centered block's top edge (y == card1.y == 25),
+        // NOT centered by itself within the pane (which would be y = (250-60)/2 = 95).
+        assertBox(cards[6], 220.0, 25.0, 100.0, 60.0, "card7");
+        assertClose(cards[0].getLayoutY(), cards[6].getLayoutY(), "card7.y == card1.y");
+    }
+
+    /**
+     * Counter-proof: columnValignment=CENTER reproduces FlowPane's centered last column
+     * as an explicit, opt-in special case.
+     */
+    @Test
+    public void columnValignmentCenterReproducesFlowPaneCenteredLastColumn() {
+        Region[] cards = cards(7, 100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setColumnValignment(VPos.CENTER);
+
+        layout(pane, 1000.0, 200.0);
+
+        // First column spans the full block height, so it stays put.
+        assertClose(0.0, cards[0].getLayoutY(), "card1 y");
+        // Last card is centered within the block height: 0 + (200-60)/2 = 70.
+        assertClose(70.0, cards[6].getLayoutY(), "card7 y (centered, FlowPane look)");
+    }
+
+    /**
+     * columnValignment=BOTTOM pushes each column, including the short last one, to the
+     * block's bottom edge.
+     */
+    @Test
+    public void columnValignmentBottomPushesLastColumnToBlockBottom() {
+        Region[] cards = cards(7, 100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setColumnValignment(VPos.BOTTOM);
+
+        layout(pane, 1000.0, 200.0);
+
+        // Last card aligned to the block's bottom edge: 0 + (200-60) = 140.
+        assertClose(140.0, cards[6].getLayoutY(), "card7 y (bottom)");
+    }
+
+    /**
+     * Verifies the whole content block is aligned once on both axes by alignment in a
+     * vertical flow, given a pane larger than its content.
+     */
+    @Test
+    public void alignmentPositionsTheWholeBlockVertically() {
+        // Two cards stacked in one column: blockWidth = 100, blockHeight = 130 (60+60+10).
+        RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 60.0), card(100.0, 60.0));
+        pane.setOrientation(Orientation.VERTICAL);
+
+        pane.setAlignment(Pos.TOP_LEFT);
+        layout(pane, 400.0, 300.0);
+        assertClose(0.0, child(pane, 0).getLayoutX(), "TOP_LEFT x");
+        assertClose(0.0, child(pane, 0).getLayoutY(), "TOP_LEFT y");
+
+        pane.setAlignment(Pos.CENTER);
+        layout(pane, 400.0, 300.0);
+        assertClose(150.0, child(pane, 0).getLayoutX(), "CENTER x (400-100)/2");
+        assertClose(85.0, child(pane, 0).getLayoutY(), "CENTER y (300-130)/2");
+
+        pane.setAlignment(Pos.BOTTOM_RIGHT);
+        layout(pane, 400.0, 300.0);
+        assertClose(300.0, child(pane, 0).getLayoutX(), "BOTTOM_RIGHT x (400-100)");
+        assertClose(170.0, child(pane, 0).getLayoutY(), "BOTTOM_RIGHT y (300-130)");
+        assertClose(240.0, child(pane, 1).getLayoutY(), "BOTTOM_RIGHT card2 y");
+    }
+
+    /**
+     * Verifies a narrow child is positioned within its column's width by columnHalignment
+     * (LEFT / CENTER / RIGHT), the vertical-flow mirror of rowValignment.
+     */
+    @Test
+    public void columnHalignmentPositionsNarrowItemWithinColumnWidth() {
+        // Column width is driven by the wide card (200); the narrow card (100) moves.
+        Region wide = card(200.0, 60.0);
+        Region narrow = card(100.0, 40.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, wide, narrow);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        pane.setColumnHalignment(HPos.LEFT);
+        layout(pane, 400.0, 300.0);
+        assertClose(0.0, wide.getLayoutX(), "LEFT wide x");
+        assertClose(0.0, narrow.getLayoutX(), "LEFT narrow x");
+
+        pane.setColumnHalignment(HPos.CENTER);
+        layout(pane, 400.0, 300.0);
+        assertClose(0.0, wide.getLayoutX(), "CENTER wide x");
+        assertClose(50.0, narrow.getLayoutX(), "CENTER narrow x (200-100)/2");
+
+        pane.setColumnHalignment(HPos.RIGHT);
+        layout(pane, 400.0, 300.0);
+        assertClose(100.0, narrow.getLayoutX(), "RIGHT narrow x (200-100)");
+    }
+
+    // ==================== Vertical: sizing & wrapping ====================
+
+    /**
+     * Verifies the vertical content bias and that computePrefWidth genuinely wraps by the
+     * supplied forHeight (the width tracks how many columns the height produces).
+     */
+    @Test
+    public void verticalContentBiasAndPrefWidthByForHeight() {
+        RXFlowPane pane = flowPane(10.0, 10.0, cards(7, 100.0, 60.0));
+        pane.setOrientation(Orientation.VERTICAL);
+
+        assertSame(Orientation.VERTICAL, pane.getContentBias());
+
+        // 200 -> 3 cards/column -> 3 columns -> 3*100 + 2*10 = 320.
+        assertClose(320.0, pane.prefWidth(200.0), "prefWidth(200) -> 3 columns");
+        // 130 -> 2 cards/column -> 4 columns -> 4*100 + 3*10 = 430.
+        assertClose(430.0, pane.prefWidth(130.0), "prefWidth(130) -> 4 columns");
+        // 1000 -> all 7 in one column -> 100.
+        assertClose(100.0, pane.prefWidth(1000.0), "prefWidth(1000) -> 1 column");
+        // -1 -> wrap at prefWrapLength 400 -> 5/column -> 2 columns -> 210.
+        assertClose(210.0, pane.prefWidth(-1.0), "prefWidth(-1) uses prefWrapLength");
+    }
+
+    /**
+     * Verifies a single child taller than the inside height occupies its own column (the
+     * {@code runLength > 0} guard) and overflows without throwing.
+     */
+    @Test
+    public void verticalOversizedChildOccupiesItsOwnColumn() {
+        Region a = card(100.0, 60.0);
+        Region tall = card(100.0, 500.0);
+        Region b = card(100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, a, tall, b);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        layout(pane, 1000.0, 200.0);
+
+        // tall (500) exceeds insideHeight 200 -> its own column; a precedes, b follows.
+        assertClose(500.0, tall.getHeight(), "tall keeps its pref height");
+        assertClose(0.0, a.getLayoutX(), "a in column 0");
+        assertClose(110.0, tall.getLayoutX(), "tall in column 1");
+        assertClose(0.0, tall.getLayoutY(), "tall at column top");
+        assertClose(220.0, b.getLayoutX(), "b in column 2");
+    }
+
+    /**
+     * Verifies a negative vgap (the main-axis gap in a vertical flow) overlaps column
+     * items and is not clamped.
+     */
+    @Test
+    public void verticalNegativeVgapOverlapsColumnItems() {
+        Region[] cards = cards(3, 100.0, 60.0);
+        RXFlowPane pane = flowPane(0.0, -20.0, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        layout(pane, 300.0, 1000.0);
+
+        assertClose(0.0, cards[0].getLayoutY(), "card1 y");
+        assertClose(40.0, cards[1].getLayoutY(), "card2 y (overlap by 20)");
+        assertClose(80.0, cards[2].getLayoutY(), "card3 y");
+    }
+
+    /**
+     * Verifies a non-finite vgap resolves to 0 at the use site in a vertical flow (vgap is
+     * the main-axis gap here, so its coercion governs the stacking of column items).
+     */
+    @Test
+    public void verticalNonFiniteVgapResolvesToZero() {
+        Region[] cards = cards(2, 100.0, 60.0);
+        RXFlowPane pane = flowPane(0.0, Double.POSITIVE_INFINITY, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        layout(pane, 300.0, 1000.0);
+
+        // Without coercion the second item would be pushed down by a huge gap.
+        assertClose(60.0, cards[1].getLayoutY(), "card2 y (vgap coerced to 0)");
+    }
+
+    /**
+     * Verifies switching orientation rebuilds the cached runs and flips the content bias.
+     * The wrap length (run-cache key) is held at 250 across the switch, so only the
+     * orientation invalidation can rebuild the runs: prefHeight(250) primes a horizontal
+     * cache (rows), then prefWidth(250) must report the vertical width (columns) — a stale
+     * horizontal cache would report 270 instead of 320. Exercised through the compute
+     * methods, which call getRuns directly, so the result does not depend on the layout
+     * dirty flag.
+     */
+    @Test
+    public void switchingOrientationInvalidatesRunCacheAndFlipsBias() {
+        RXFlowPane pane = flowPane(10.0, 10.0, cards(7, 100.0, 60.0));
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        assertSame(Orientation.HORIZONTAL, pane.getContentBias());
+        // Horizontal: 100-wide cards wrap to 4 rows at width 250 -> 4*60 + 3*10 = 270.
+        // This primes the run cache at key 250.
+        assertClose(270.0, pane.prefHeight(250.0), "horizontal pref height (4 rows)");
+
+        pane.setOrientation(Orientation.VERTICAL);
+
+        assertSame(Orientation.VERTICAL, pane.getContentBias());
+        // Vertical: 60-tall cards wrap to 3 columns at height 250 -> 3*100 + 2*10 = 320.
+        // A stale horizontal cache (not invalidated by the orientation change) would
+        // instead report 4*60 + 3*10 = 270 here.
+        assertClose(320.0, pane.prefWidth(250.0), "vertical pref width (3 columns)");
+    }
+
+    // ==================== Vertical: BASELINE degeneracy ====================
+
+    /**
+     * Verifies a column has no baseline: columnValignment=BASELINE behaves like TOP.
+     */
+    @Test
+    public void verticalColumnValignmentBaselineActsAsTop() {
+        Region[] cards = cards(7, 100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setColumnValignment(VPos.BASELINE);
+
+        layout(pane, 1000.0, 200.0);
+
+        // BASELINE acts as TOP: the lone last column stays at the block top.
+        assertClose(0.0, cards[6].getLayoutY(), "card7 y (BASELINE acts as TOP)");
+    }
+
+    /**
+     * Verifies the content block has no baseline in a vertical flow: a BASELINE vpos
+     * component of alignment behaves like TOP (BASELINE_LEFT == TOP_LEFT).
+     */
+    @Test
+    public void verticalAlignmentBaselineVPosActsAsTop() {
+        RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 60.0), card(100.0, 60.0));
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.BASELINE_LEFT);
+
+        layout(pane, 400.0, 300.0);
+
+        assertClose(0.0, child(pane, 0).getLayoutX(), "BASELINE_LEFT x");
+        assertClose(0.0, child(pane, 0).getLayoutY(), "BASELINE_LEFT y (acts as TOP)");
+    }
+
+    // ==================== Vertical: content-bias & constructors ====================
+
+    /**
+     * Verifies a vertically-biased child (width depends on height) has its cross extent
+     * (width) measured at its own main (height) — the width-for-height the plan adds on
+     * top of FlowPane. prefWidth(200): width-for-height = prefWidth(100) = 100, not 999.
+     */
+    @Test
+    public void verticalVerticalBiasChildMeasuresCrossByItsOwnHeight() {
+        // Area model w*h = 10000: prefHeight(-1)=100, so width-for-height prefWidth(100)=100,
+        // but the unconstrained prefWidth(-1)=999 would be used if the alt were dropped.
+        Region biased = new HeightBiasedRegion(100.0, 10000.0, 999.0);
+        RXFlowPane pane = new RXFlowPane(biased);
+        pane.setOrientation(Orientation.VERTICAL);
+
+        assertClose(100.0, pane.prefWidth(200.0),
+                "vertical pref width uses width-for-height (100, not 999)");
+    }
+
+    /**
+     * Verifies a horizontally-biased child (height depends on width) has its main extent
+     * (height) measured at its own width in a vertical flow: height-for-width
+     * prefHeight(100)=100, not the unconstrained prefHeight(-1)=999. minHeight is the
+     * tallest child and is not floored by prefWrapLength, so it exposes the measurement.
+     */
+    @Test
+    public void verticalHorizontalBiasChildMeasuresMainByItsOwnWidth() {
+        Region biased = new WidthBiasedRegion(100.0, 10000.0, 999.0);
+        RXFlowPane pane = new RXFlowPane(biased);
+        pane.setOrientation(Orientation.VERTICAL);
+
+        assertClose(100.0, pane.minHeight(-1.0),
+                "vertical min height uses height-for-width (100, not 999)");
+    }
+
+    /**
+     * Verifies the four orientation constructors set the orientation, gaps and children.
+     */
+    @Test
+    public void orientationConstructorsSetOrientationGapsAndChildren() {
+        RXFlowPane p1 = new RXFlowPane(Orientation.VERTICAL);
+        assertSame(Orientation.VERTICAL, p1.getOrientation());
+
+        RXFlowPane p2 = new RXFlowPane(Orientation.VERTICAL, card(100.0, 60.0), card(100.0, 60.0));
+        assertSame(Orientation.VERTICAL, p2.getOrientation());
+        assertEquals(2, p2.getChildren().size());
+
+        RXFlowPane p3 = new RXFlowPane(Orientation.VERTICAL, 5.0, 8.0);
+        assertSame(Orientation.VERTICAL, p3.getOrientation());
+        assertClose(5.0, p3.getHgap(), "p3 hgap");
+        assertClose(8.0, p3.getVgap(), "p3 vgap");
+
+        RXFlowPane p4 = new RXFlowPane(Orientation.VERTICAL, 5.0, 8.0, card(100.0, 60.0));
+        assertSame(Orientation.VERTICAL, p4.getOrientation());
+        assertClose(5.0, p4.getHgap(), "p4 hgap");
+        assertClose(8.0, p4.getVgap(), "p4 vgap");
+        assertEquals(1, p4.getChildren().size());
+    }
+
+    /**
+     * Verifies the new orientation/column properties pass null through and resolve to
+     * their defaults at the use site (null orientation -> horizontal).
+     */
+    @Test
+    public void verticalNullPropertiesResolveToDefaults() {
+        Region[] cards = cards(7, 100.0, 60.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setAlignment(Pos.TOP_LEFT);
+        pane.setOrientation(null);
+        pane.setColumnValignment(null);
+        pane.setColumnHalignment(null);
+
+        assertNull(pane.getOrientation(), "orientation passes null through");
+        assertNull(pane.getColumnValignment(), "columnValignment passes null through");
+        assertNull(pane.getColumnHalignment(), "columnHalignment passes null through");
+
+        layout(pane, 340.0, 1000.0);
+
+        // null orientation -> default HORIZONTAL: cards wrap into rows, card7 in row 3.
+        assertSame(Orientation.HORIZONTAL, pane.getContentBias());
+        assertClose(0.0, cards[6].getLayoutX(), "null orientation -> horizontal default x");
+        assertClose(140.0, cards[6].getLayoutY(), "null orientation -> horizontal default y");
     }
 
     // ==================== Assertions ====================
@@ -735,6 +1124,72 @@ public class RXFlowPaneTest {
         @Override
         public double getBaselineOffset() {
             return baseline;
+        }
+    }
+
+    /**
+     * A horizontally-biased region whose height depends on width (area model:
+     * {@code width * height == area}), used to exercise height-for-width alt handling.
+     * {@code prefHeight(-1)} returns a distinctive sentinel so a dropped alt is visible.
+     */
+    private static final class WidthBiasedRegion extends Region {
+
+        private final double prefWidth;
+        private final double area;
+        private final double unboundedHeight;
+
+        private WidthBiasedRegion(double prefWidth, double area, double unboundedHeight) {
+            this.prefWidth = prefWidth;
+            this.area = area;
+            this.unboundedHeight = unboundedHeight;
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return prefWidth;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return width == -1 ? unboundedHeight : area / width;
+        }
+    }
+
+    /**
+     * A vertically-biased region whose width depends on height (area model:
+     * {@code width * height == area}), used to exercise width-for-height alt handling.
+     * {@code prefWidth(-1)} returns a distinctive sentinel so a dropped alt is visible.
+     */
+    private static final class HeightBiasedRegion extends Region {
+
+        private final double prefHeight;
+        private final double area;
+        private final double unboundedWidth;
+
+        private HeightBiasedRegion(double prefHeight, double area, double unboundedWidth) {
+            this.prefHeight = prefHeight;
+            this.area = area;
+            this.unboundedWidth = unboundedWidth;
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.VERTICAL;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return prefHeight;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return height == -1 ? unboundedWidth : area / height;
         }
     }
 }

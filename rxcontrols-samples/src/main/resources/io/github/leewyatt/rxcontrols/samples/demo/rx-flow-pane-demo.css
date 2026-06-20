@@ -17,6 +17,17 @@
     -fx-text-fill: #64748b;
 }
 
+.section {
+    -fx-padding: 6 0 0 0;
+}
+
+.section-title {
+    -fx-padding: 6 24 0 24;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #334155;
+}
+
 .comparison {
     -fx-padding: 12 24 24 24;
 }
