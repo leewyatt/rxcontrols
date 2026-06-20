@@ -6,6 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -63,9 +64,9 @@ public class RXFlowPaneTest {
         assertSame(Orientation.HORIZONTAL, pane.getOrientation());
         assertClose(0.0, pane.getHgap(), "hgap");
         assertClose(0.0, pane.getVgap(), "vgap");
-        assertSame(Pos.TOP_CENTER, pane.getAlignment());
+        assertSame(Pos.TOP_LEFT, pane.getAlignment());
         assertSame(HPos.LEFT, pane.getRowHalignment());
-        assertSame(VPos.TOP, pane.getRowValignment());
+        assertSame(VPos.CENTER, pane.getRowValignment());
         assertSame(VPos.TOP, pane.getColumnValignment());
         assertSame(HPos.LEFT, pane.getColumnHalignment());
         assertClose(400.0, pane.getPrefWrapLength(), "prefWrapLength");
@@ -89,6 +90,30 @@ public class RXFlowPaneTest {
         assertThrows(NullPointerException.class, () -> RXFlowPane.clearConstraints(null));
     }
 
+    /**
+     * Verifies RXFlowPane is a drop-in superset: at its default settings (alignment
+     * TOP_LEFT, rowHalignment LEFT, rowValignment CENTER — all matching FlowPane) it lays
+     * the same children out at the same positions as a JavaFX {@link FlowPane}. The fix is
+     * opt-in, never a default behavior change.
+     */
+    @Test
+    public void defaultsMatchFlowPaneLayout() {
+        Region[] rxCards = cards(7, 100.0, 60.0);
+        RXFlowPane rx = flowPane(10.0, 10.0, rxCards);
+
+        Region[] fxCards = cards(7, 100.0, 60.0);
+        FlowPane fx = new FlowPane(10.0, 10.0);
+        fx.getChildren().addAll(fxCards);
+
+        layout(rx, 340.0, 1000.0);
+        layout(fx, 340.0, 1000.0);
+
+        for (int i = 0; i < rxCards.length; i++) {
+            assertClose(fxCards[i].getLayoutX(), rxCards[i].getLayoutX(), "card" + (i + 1) + " x == FlowPane");
+            assertClose(fxCards[i].getLayoutY(), rxCards[i].getLayoutY(), "card" + (i + 1) + " y == FlowPane");
+        }
+    }
+
     // ==================== Headline: last-row alignment ====================
 
     /**
@@ -100,6 +125,7 @@ public class RXFlowPaneTest {
     public void sevenCardLastRowStaysAtBlockLeft() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setAlignment(Pos.TOP_CENTER);
 
         layout(pane, 340.0, 1000.0);
 
@@ -122,6 +148,7 @@ public class RXFlowPaneTest {
     public void rowHalignmentCenterReproducesFlowPaneCenteredLastRow() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setAlignment(Pos.TOP_CENTER);
         pane.setRowHalignment(HPos.CENTER);
 
         layout(pane, 340.0, 1000.0);
@@ -140,6 +167,7 @@ public class RXFlowPaneTest {
     public void rowHalignmentRightPushesLastRowToBlockRight() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setAlignment(Pos.TOP_CENTER);
         pane.setRowHalignment(HPos.RIGHT);
 
         layout(pane, 340.0, 1000.0);
@@ -321,6 +349,7 @@ public class RXFlowPaneTest {
         Region wide = card(500.0, 60.0);
         Region b = card(100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, a, wide, b);
+        pane.setAlignment(Pos.TOP_CENTER);
 
         layout(pane, 340.0, 1000.0);
 
@@ -387,8 +416,8 @@ public class RXFlowPaneTest {
 
         layout(pane, 340.0, 1000.0);
 
-        // Defaults TOP_CENTER / LEFT / TOP -> last card stays at block left.
-        assertClose(10.0, cards[6].getLayoutX(), "null -> default last-row left");
+        // Defaults TOP_LEFT / LEFT / CENTER -> block pinned to the inside left edge.
+        assertClose(0.0, cards[6].getLayoutX(), "null -> default last-row at inside left");
         assertClose(140.0, cards[6].getLayoutY(), "null -> default row y");
     }
 
@@ -660,6 +689,7 @@ public class RXFlowPaneTest {
     public void changingHgapInvalidatesRunCache() {
         Region[] cards = cards(3, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 0.0, cards);
+        pane.setAlignment(Pos.TOP_CENTER);
 
         layout(pane, 1000.0, 300.0);
         // blockWidth = 3*100 + 2*10 = 320, blockX = (1000 - 320) / 2 = 340.
@@ -681,6 +711,7 @@ public class RXFlowPaneTest {
         Region a = card(100.0, 60.0);
         Region b = card(100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 0.0, a, b);
+        pane.setAlignment(Pos.TOP_CENTER);
 
         layout(pane, 1000.0, 300.0);
         // blockWidth = 210, blockX = (1000 - 210) / 2 = 395.
@@ -701,9 +732,10 @@ public class RXFlowPaneTest {
     public void changingRowHalignmentRelayouts() {
         Region[] cards = cards(7, 100.0, 60.0);
         RXFlowPane pane = flowPane(10.0, 10.0, cards);
+        pane.setAlignment(Pos.TOP_CENTER);
 
         layout(pane, 340.0, 1000.0);
-        assertClose(10.0, cards[6].getLayoutX(), "card7 left by default");
+        assertClose(10.0, cards[6].getLayoutX(), "card7 left (default rowHalignment)");
 
         pane.setRowHalignment(HPos.CENTER);
         pane.layout();

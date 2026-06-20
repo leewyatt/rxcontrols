@@ -34,8 +34,8 @@ import java.util.Objects;
  * {@linkplain Orientation#HORIZONTAL horizontal} flow (the default) wraps rows at the
  * width; a {@linkplain Orientation#VERTICAL vertical} flow wraps columns at the height.
  *
- * <p>This decoupling fixes FlowPane's "centered last run" behavior. With
- * {@code alignment = Pos.TOP_CENTER} and {@code rowHalignment = HPos.LEFT}, a horizontal
+ * <p>This decoupling fixes FlowPane's "centered last run" behavior. Setting
+ * {@code alignment = Pos.TOP_CENTER} with {@code rowHalignment = HPos.LEFT}, a horizontal
  * 7-card / 3-column flow renders
  * <pre>
  *   [1][2][3]
@@ -84,11 +84,13 @@ import java.util.Objects;
  * instead is the fix. A vertical flow reproduces FlowPane the same way through
  * {@code columnValignment}.</p>
  *
- * <p>The default {@code alignment} is {@link Pos#TOP_CENTER}, so the fix is visible out of
- * the box for a horizontal flow (the block is centered on its main axis with the last row
- * left). The axis {@code TOP_CENTER} centers depends on the orientation: a vertical flow
- * centers the columns on the cross axis and pins the flow to the top, so a vertical fix is
- * shown by centering the block on its main axis (e.g. {@code alignment = CENTER_LEFT}).</p>
+ * <p>The default {@code alignment} is {@link Pos#TOP_LEFT}, matching {@code FlowPane} and
+ * the wider JavaFX layout convention: at its defaults an RXFlowPane lays out exactly like a
+ * {@code FlowPane} (the last-run fix is a no-op until the block leaves the leading edge). To
+ * see the fix, center the block on the flow's main axis — {@code alignment = TOP_CENTER} for
+ * a horizontal flow, {@code alignment = CENTER_LEFT} for a vertical one — while keeping the
+ * run-within-block alignment at the leading edge ({@code rowHalignment = LEFT} /
+ * {@code columnValignment = TOP}, the defaults).</p>
  *
  * <h2>Other behavior</h2>
  *
@@ -115,9 +117,9 @@ public class RXFlowPane extends Pane {
     private static final Orientation DEFAULT_ORIENTATION = Orientation.HORIZONTAL;
     private static final double DEFAULT_HGAP = 0.0;
     private static final double DEFAULT_VGAP = 0.0;
-    private static final Pos DEFAULT_ALIGNMENT = Pos.TOP_CENTER;
+    private static final Pos DEFAULT_ALIGNMENT = Pos.TOP_LEFT;
     private static final HPos DEFAULT_ROW_HALIGNMENT = HPos.LEFT;
-    private static final VPos DEFAULT_ROW_VALIGNMENT = VPos.TOP;
+    private static final VPos DEFAULT_ROW_VALIGNMENT = VPos.CENTER;
     private static final VPos DEFAULT_COLUMN_VALIGNMENT = VPos.TOP;
     private static final HPos DEFAULT_COLUMN_HALIGNMENT = HPos.LEFT;
     private static final double DEFAULT_PREF_WRAP_LENGTH = 400.0;
@@ -483,15 +485,17 @@ public class RXFlowPane extends Pane {
 
     /**
      * Alignment of the whole content block (the bounding box of all runs) within
-     * the pane's inside area, applied once on both axes. With
-     * {@link Pos#TOP_CENTER} (the default) the block is horizontally centered
-     * while each run starts at the block's left edge (see
-     * {@link #rowHalignmentProperty()}). The content block has no baseline, so a
-     * vertical {@link VPos#BASELINE} component is treated as {@link VPos#TOP}
-     * (e.g. {@code BASELINE_CENTER} behaves like {@code TOP_CENTER}); per-item
-     * baseline alignment within a run is {@link #rowValignmentProperty()}. A
-     * {@code null} value is not rejected; it resolves to the default
-     * ({@link Pos#TOP_CENTER}) at the use site.
+     * the pane's inside area, applied once on both axes. The default is
+     * {@link Pos#TOP_LEFT}, matching {@link javafx.scene.layout.FlowPane}: at the
+     * defaults the block is pinned to the top-left and the last-run fix is a no-op.
+     * Centering the block on the flow's main axis is what makes the fix visible —
+     * each run then stays at the block's leading edge (see
+     * {@link #rowHalignmentProperty()} / {@link #columnValignmentProperty()}). The
+     * content block has no baseline, so a vertical {@link VPos#BASELINE} component is
+     * treated as {@link VPos#TOP} (e.g. {@code BASELINE_LEFT} behaves like
+     * {@code TOP_LEFT}); per-item baseline alignment within a run is
+     * {@link #rowValignmentProperty()}. A {@code null} value is not rejected; it
+     * resolves to the default ({@link Pos#TOP_LEFT}) at the use site.
      *
      * @return the alignment property
      */
@@ -609,14 +613,14 @@ public class RXFlowPane extends Pane {
             };
 
     /**
-     * Vertical alignment of each child within its run's height. {@link VPos#TOP}
-     * (the default) lines the items up along the top of each run.
+     * Vertical alignment of each child within its run's height. {@link VPos#CENTER}
+     * (the default, matching {@code FlowPane}) centers each item in its run.
      * {@link VPos#BASELINE} aligns items by their text baseline. A child without a
      * real baseline (its {@code getBaselineOffset()} reports
      * {@link Node#BASELINE_OFFSET_SAME_AS_HEIGHT}, e.g. a plain container) is
      * aligned by its bottom edge, matching {@code FlowPane}; such a child's bottom
      * margin is not reserved in a baseline run. A {@code null} value is not
-     * rejected; it resolves to the default ({@link VPos#TOP}) at the use site.
+     * rejected; it resolves to the default ({@link VPos#CENTER}) at the use site.
      *
      * @return the row-valignment property
      */
