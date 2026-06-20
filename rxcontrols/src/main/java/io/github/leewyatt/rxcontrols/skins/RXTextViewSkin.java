@@ -320,6 +320,13 @@ public class RXTextViewSkin extends RXSkinBase<RXTextView> {
         if (!control.isSelectable() || control.isDisabled()) {
             return;
         }
+        // Step aside for a developer-supplied menu, mirroring JavaFX TextInputControl: when
+        // Control.contextMenu is set, Control's own CONTEXT_MENU_REQUESTED handler pops it up;
+        // when onContextMenuRequested is set, the developer's own handler runs. Either way we
+        // must not also show the built-in menu, so show it only when neither is set.
+        if (control.getContextMenu() != null || control.getOnContextMenuRequested() != null) {
+            return;
+        }
         if (contextMenu == null) {
             createContextMenu();
         }
