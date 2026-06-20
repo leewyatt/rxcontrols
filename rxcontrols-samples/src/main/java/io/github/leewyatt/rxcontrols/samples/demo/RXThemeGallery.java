@@ -27,7 +27,7 @@ import java.util.List;
  * Theme gallery: a scrollable, alphabetised grid of every color-relevant RxControl
  * (each in a labelled card) with a theme switcher to compare the built-in light/dark
  * looks against the AtlantaFX themes (see {@link ShowcaseThemes}). Pure layout
- * containers (RXBox / RXRow / RXCol / RXMasonryPane) are omitted; every other control
+ * containers (RXBox / RXRow / RXCol / RXMasonryPane / RXFlowPane) are omitted; every other control
  * is built by {@link ThemeGalleryCards}.
  */
 public class RXThemeGallery extends Application {

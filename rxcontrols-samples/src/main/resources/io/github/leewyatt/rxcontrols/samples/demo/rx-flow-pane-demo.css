@@ -1,0 +1,59 @@
+.root {
+    -fx-background-color: #f1f5f9;
+}
+
+.demo-header {
+    -fx-padding: 18 24 6 24;
+}
+
+.demo-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.demo-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.comparison {
+    -fx-padding: 12 24 24 24;
+}
+
+.panel-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.panel-config {
+    -fx-font-family: "monospace";
+    -fx-font-size: 11px;
+    -fx-text-fill: #6366f1;
+}
+
+.panel-note {
+    -fx-font-size: 12px;
+    -fx-text-fill: #475569;
+}
+
+/* The pane background and border make the content block's centering visible. */
+.flow {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 10;
+    -fx-border-style: segments(6, 4);
+}
+
+.card {
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 6, 0.1, 0, 2);
+}
+
+.card-label {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}

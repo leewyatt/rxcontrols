@@ -1,0 +1,31 @@
+/* Background + border show the pane bounds, so whole-block contentAlignment
+   (the centering of the content within the pane) is visible. */
+.showcase-flow {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 8px;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 8px;
+    -fx-padding: 12px;
+}
+
+.chip {
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 6, 0.1, 0, 2);
+}
+
+.chip-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.resolved-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #334155;
+    -fx-padding: 4px 0 0 0;
+}
+
+.note-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
