@@ -173,6 +173,22 @@ public class RXFlowPaneTest {
         assertClose(300.0, child(pane, 1).getLayoutX(), "BOTTOM_RIGHT card2 x");
     }
 
+    /**
+     * Verifies the content block has no baseline: a vertical BASELINE component
+     * of contentAlignment behaves like TOP (BASELINE_CENTER == TOP_CENTER).
+     */
+    @Test
+    public void contentAlignmentBaselineVPosActsAsTop() {
+        RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 60.0), card(100.0, 60.0));
+
+        pane.setContentAlignment(Pos.BASELINE_CENTER);
+        layout(pane, 400.0, 300.0);
+
+        // Same block origin as TOP_CENTER: x = (400-210)/2 = 95, y = 0 (not centered).
+        assertClose(95.0, child(pane, 0).getLayoutX(), "BASELINE_CENTER x like TOP_CENTER");
+        assertClose(0.0, child(pane, 0).getLayoutY(), "BASELINE vpos pins the block to the top");
+    }
+
     // ==================== rowAlignment ====================
 
     /**
@@ -222,6 +238,54 @@ public class RXFlowPaneTest {
         assertClose(0.0, b.getLayoutY(), "b baseline y");
         assertClose(60.0, a.getHeight(), "a keeps pref height");
         assertClose(80.0, b.getHeight(), "b keeps pref height");
+    }
+
+    /**
+     * Verifies a BASELINE run grows to fit the deepest below-baseline part even
+     * when that exceeds the tallest child's height, so a deep-baseline child does
+     * not overflow into the next run and prefHeight is not under-reported.
+     */
+    @Test
+    public void baselineRowHeightAccountsForBaselineComplement() {
+        // A is short with its baseline at the bottom (0 below); B is tall with its
+        // baseline near the top (90 below). Common baseline = 20, so B spans 10..110
+        // while max child height is only 100.
+        Region a = baselineCard(100.0, 20.0, 20.0);
+        Region b = baselineCard(100.0, 100.0, 10.0);
+        Region c = card(100.0, 30.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, a, b, c);
+        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setRowAlignment(VPos.BASELINE);
+
+        // insideWidth 250 keeps a+b on the first run and wraps c to the second.
+        layout(pane, 250.0, 1000.0);
+
+        assertClose(10.0, b.getLayoutY(), "B positioned by the shared baseline");
+        assertClose(100.0, b.getHeight(), "B keeps its pref height");
+        // Run height = maxAbove(20) + maxBelow(90) = 110, not max(20,100) = 100.
+        assertClose(120.0, c.getLayoutY(), "next run starts after the expanded run height");
+        assertClose(150.0, pane.prefHeight(250.0), "prefHeight reflects the expanded run");
+    }
+
+    /**
+     * Verifies the BASELINE_OFFSET_SAME_AS_HEIGHT branch: a plain region (whose
+     * baseline equals its height) aligns its bottom to the run's shared baseline,
+     * which is set by a taller-baselined sibling.
+     */
+    @Test
+    public void baselineSameAsHeightChildAlignsToSharedBaseline() {
+        Region plain = card(100.0, 40.0);
+        Region baselined = baselineCard(100.0, 60.0, 50.0);
+        RXFlowPane pane = flowPane(10.0, 10.0, plain, baselined);
+        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setRowAlignment(VPos.BASELINE);
+
+        layout(pane, 400.0, 300.0);
+
+        // Shared baseline = max(plain height 40, baselined baseline 50) = 50.
+        assertClose(0.0, baselined.getLayoutY(), "baselined child sits at the run top");
+        assertClose(10.0, plain.getLayoutY(), "plain child's bottom drops to the shared baseline");
+        assertClose(60.0, pane.prefHeight(400.0), "run height covers both children");
     }
 
     // ==================== Wrapping / overflow ====================
@@ -478,6 +542,27 @@ public class RXFlowPaneTest {
 
         layout(pane, 400.0, 300.0);
         assertBox(card, 20.0, 5.0, 100.0, 60.0, "card inside its margin");
+    }
+
+    /**
+     * Verifies a child's vertical margin inflates its run height, pushing the
+     * next run down and growing prefHeight.
+     */
+    @Test
+    public void verticalMarginInflatesRunHeight() {
+        Region a = card(100.0, 60.0);
+        Region b = card(100.0, 40.0);
+        RXFlowPane pane = flowPane(0.0, 10.0, a, b);
+        pane.setContentAlignment(Pos.TOP_LEFT);
+        RXFlowPane.setMargin(a, new Insets(20.0, 0.0, 30.0, 0.0));
+
+        // insideWidth 100 puts a on the first run and wraps b to the second.
+        layout(pane, 100.0, 1000.0);
+
+        assertClose(20.0, a.getLayoutY(), "a sits below its top margin");
+        // Run-0 height = 20 + 60 + 30 = 110; run-1 starts at 110 + vgap 10.
+        assertClose(120.0, b.getLayoutY(), "b dropped by the margin-inflated run height");
+        assertClose(160.0, pane.prefHeight(100.0), "prefHeight includes the vertical margin");
     }
 
     // ==================== Run-cache invalidation ====================

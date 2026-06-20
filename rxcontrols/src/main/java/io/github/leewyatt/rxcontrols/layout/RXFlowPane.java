@@ -319,8 +319,12 @@ public class RXFlowPane extends Pane {
      * the pane's inside area, applied once on both axes. With
      * {@link Pos#TOP_CENTER} (the default) the block is horizontally centered
      * while each run starts at the block's left edge (see
-     * {@link #lineAlignmentProperty()}). A {@code null} value is not rejected;
-     * it resolves to the default ({@link Pos#TOP_CENTER}) at the use site.
+     * {@link #lineAlignmentProperty()}). The content block has no baseline, so a
+     * vertical {@link VPos#BASELINE} component is treated as {@link VPos#TOP}
+     * (e.g. {@code BASELINE_CENTER} behaves like {@code TOP_CENTER}); per-item
+     * baseline alignment within a run is {@link #rowAlignmentProperty()}. A
+     * {@code null} value is not rejected; it resolves to the default
+     * ({@link Pos#TOP_CENTER}) at the use site.
      *
      * @return the content-alignment property
      */
@@ -543,43 +547,77 @@ public class RXFlowPane extends Pane {
     private List<Run> getRuns(double maxRunLength) {
         if (runs == null || maxRunLength != lastMaxRunLength) {
             computingRuns = true;
-            lastMaxRunLength = maxRunLength;
-            runs = new ArrayList<>();
-            double hgap = snapSpaceX(hgapOrDefault());
-            double runLength = 0;
-            Run run = new Run();
-            for (Node child : getManagedChildren()) {
-                LayoutRect nodeRect = new LayoutRect();
-                nodeRect.node = child;
-                nodeRect.width = prefAreaWidth(child);
-                nodeRect.height = prefAreaHeight(child);
-                if (runLength + nodeRect.width > maxRunLength && runLength > 0) {
-                    // wrap to next run unless it is the only node in the run
-                    normalizeRun(run, hgap);
-                    runs.add(run);
-                    runLength = 0;
-                    run = new Run();
+            try {
+                double hgap = snapSpaceX(hgapOrDefault());
+                VPos rowAlignment = rowAlignmentOrDefault();
+                List<Run> built = new ArrayList<>();
+                double runLength = 0;
+                Run run = new Run();
+                for (Node child : getManagedChildren()) {
+                    LayoutRect nodeRect = new LayoutRect();
+                    nodeRect.node = child;
+                    nodeRect.width = prefAreaWidth(child);
+                    nodeRect.height = prefAreaHeight(child);
+                    if (runLength + nodeRect.width > maxRunLength && runLength > 0) {
+                        // wrap to next run unless it is the only node in the run
+                        normalizeRun(run, hgap, rowAlignment);
+                        built.add(run);
+                        runLength = 0;
+                        run = new Run();
+                    }
+                    runLength += nodeRect.width + hgap;
+                    run.rects.add(nodeRect);
                 }
-                runLength += nodeRect.width + hgap;
-                run.rects.add(nodeRect);
+                normalizeRun(run, hgap, rowAlignment);
+                built.add(run);
+                // Publish the runs and their key together, only after a clean
+                // build, so a child measurement that throws leaves no half-built
+                // cache (and no stale key) to be reused on the next pass.
+                runs = built;
+                lastMaxRunLength = maxRunLength;
+            } finally {
+                computingRuns = false;
             }
-            normalizeRun(run, hgap);
-            runs.add(run);
-            computingRuns = false;
         }
         return runs;
     }
 
-    private void normalizeRun(Run run, double hgap) {
+    private void normalizeRun(Run run, double hgap, VPos rowAlignment) {
         int count = run.rects.size();
         double width = count > 1 ? (count - 1) * hgap : 0;
-        double height = 0;
+        double plainHeight = 0;
         for (LayoutRect lrect : run.rects) {
             width += lrect.width;
-            height = Math.max(height, lrect.height);
+            plainHeight = Math.max(plainHeight, lrect.height);
         }
         run.width = width;
-        run.height = height;
+        if (rowAlignment != VPos.BASELINE) {
+            run.height = plainHeight;
+            run.baselineOffset = 0;
+            return;
+        }
+        // Baseline rows must grow to fit the deepest below-baseline part, which can
+        // exceed the tallest child's pref-area height (mirrors FlowPane via
+        // Region.getMaxAreaHeight's BASELINE path). run.baselineOffset is the shared
+        // baseline measured from the run top, later fed to layoutInArea.
+        double maxAbove = 0;
+        double maxBelow = 0;
+        for (LayoutRect lrect : run.rects) {
+            Node child = lrect.node;
+            Insets margin = getMargin(child);
+            double top = margin == null ? 0 : snapSpaceY(margin.getTop());
+            double bottom = margin == null ? 0 : snapSpaceY(margin.getBottom());
+            double childHeight = lrect.height - top - bottom;
+            double baseline = child.getBaselineOffset();
+            if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                maxAbove = Math.max(maxAbove, childHeight + top);
+            } else {
+                maxAbove = Math.max(maxAbove, baseline + top);
+                maxBelow = Math.max(maxBelow, childHeight - baseline + bottom);
+            }
+        }
+        run.height = Math.max(plainHeight, maxAbove + maxBelow);
+        run.baselineOffset = maxAbove;
     }
 
     private double computeContentWidth(List<Run> lines) {
@@ -591,8 +629,9 @@ public class RXFlowPane extends Pane {
     }
 
     private double computeContentHeight(List<Run> lines) {
+        // getRuns always returns at least one run, so (size - 1) is never negative.
         double vgap = snapSpaceY(vgapOrDefault());
-        double height = lines.isEmpty() ? 0 : (lines.size() - 1) * vgap;
+        double height = (lines.size() - 1) * vgap;
         for (Run run : lines) {
             height += run.height;
         }
@@ -609,6 +648,9 @@ public class RXFlowPane extends Pane {
         return Orientation.HORIZONTAL;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected double computeMinWidth(double height) {
         double maxPref = 0;
@@ -618,11 +660,17 @@ public class RXFlowPane extends Pane {
         return snappedLeftInset() + maxPref + snappedRightInset();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected double computeMinHeight(double width) {
         return computePrefHeight(width);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected double computePrefWidth(double height) {
         double wrap = getPrefWrapLength();
@@ -632,6 +680,9 @@ public class RXFlowPane extends Pane {
         return snappedLeftInset() + snapSizeX(width) + snappedRightInset();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected double computePrefHeight(double forWidth) {
         double wrap = forWidth == -1
@@ -671,7 +722,7 @@ public class RXFlowPane extends Pane {
         double y = blockY;
         for (Run run : lines) {
             double lineX = snapPositionX(blockX + blockHOffset(blockWidth, run.width, la));
-            double baselineOffset = ra == VPos.BASELINE ? lineBaselineOffset(run) : -1.0;
+            double baselineOffset = ra == VPos.BASELINE ? run.baselineOffset : -1.0;
             double x = lineX;
             for (LayoutRect lrect : run.rects) {
                 Node child = lrect.node;
@@ -734,52 +785,6 @@ public class RXFlowPane extends Pane {
             default:
                 throw new AssertionError("Unhandled VPos: " + vpos);
         }
-    }
-
-    private double lineBaselineOffset(Run run) {
-        double minComplement = minBaselineComplement(run);
-        double offset = 0.0;
-        for (LayoutRect lrect : run.rects) {
-            Node child = lrect.node;
-            Insets margin = getMargin(child);
-            double top = margin == null ? 0 : snapSpaceY(margin.getTop());
-            double bottom = margin == null ? 0 : snapSpaceY(margin.getBottom());
-            double baseline = child.getBaselineOffset();
-            if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
-                double alt = child.getContentBias() == Orientation.HORIZONTAL
-                        ? innerWidth(lrect, margin)
-                        : -1.0;
-                double available = run.height - minComplement - top - bottom;
-                double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt),
-                        Math.min(child.maxHeight(alt), available));
-                offset = Math.max(offset, top + childHeight);
-            } else {
-                offset = Math.max(offset, top + baseline);
-            }
-        }
-        return offset;
-    }
-
-    private double minBaselineComplement(Run run) {
-        double complement = 0.0;
-        for (LayoutRect lrect : run.rects) {
-            Node child = lrect.node;
-            double baseline = child.getBaselineOffset();
-            if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
-                continue;
-            }
-            double height = child.isResizable()
-                    ? child.minHeight(-1)
-                    : child.getLayoutBounds().getHeight();
-            complement = Math.max(complement, height - baseline);
-        }
-        return complement;
-    }
-
-    private double innerWidth(LayoutRect lrect, Insets margin) {
-        double left = margin == null ? 0 : snapSpaceX(margin.getLeft());
-        double right = margin == null ? 0 : snapSpaceX(margin.getRight());
-        return lrect.width - left - right;
     }
 
     // ==================== CSS ====================
@@ -898,5 +903,6 @@ public class RXFlowPane extends Pane {
         private final List<LayoutRect> rects = new ArrayList<>();
         private double width;
         private double height;
+        private double baselineOffset;
     }
 }
