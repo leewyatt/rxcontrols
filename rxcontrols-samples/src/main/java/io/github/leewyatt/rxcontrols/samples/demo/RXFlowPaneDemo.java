@@ -27,10 +27,10 @@ import javafx.stage.Stage;
  * whole block once and keeps the last card at the block's left edge — under the first
  * card.</p>
  *
- * <p>The vertical row transposes the same idea: at a fixed height three cards fit per
+ * <p>The vertical row transposes the same idea: at a fixed size three cards fit per
  * column and the seventh lands alone in the last column. {@code FlowPane}
- * ({@code VERTICAL}, alignment {@code CENTER}) centers that lone card vertically;
- * {@code RXFlowPane} ({@code VERTICAL}, alignment {@code CENTER} + columnValignment
+ * ({@code VERTICAL}, alignment {@code CENTER_LEFT}) centers that lone card vertically;
+ * {@code RXFlowPane} ({@code VERTICAL}, alignment {@code CENTER_LEFT} + columnValignment
  * {@code TOP}) keeps it at the block's top edge — beside the first card.</p>
  */
 public class RXFlowPaneDemo extends Application {
@@ -88,19 +88,19 @@ public class RXFlowPaneDemo extends Application {
         RXFlowPane rxFlow = new RXFlowPane(Orientation.VERTICAL, cards());
         rxFlow.setHgap(GAP);
         rxFlow.setVgap(GAP);
-        rxFlow.setAlignment(Pos.CENTER);
+        rxFlow.setAlignment(Pos.CENTER_LEFT);
         rxFlow.setColumnValignment(VPos.TOP);
-        fixHeight(rxFlow);
+        fixSize(rxFlow);
 
         FlowPane jfxFlow = new FlowPane(Orientation.VERTICAL, GAP, GAP, cards());
-        jfxFlow.setAlignment(Pos.CENTER);
-        fixHeight(jfxFlow);
+        jfxFlow.setAlignment(Pos.CENTER_LEFT);
+        fixSize(jfxFlow);
 
         return section("Vertical flow — the last column",
-                panel("RXFlowPane", "orientation = VERTICAL · alignment = CENTER · columnValignment = TOP",
+                panel("RXFlowPane", "orientation = VERTICAL · alignment = CENTER_LEFT · columnValignment = TOP",
                         "Block centered once — the lone last card stays at the block's top edge.",
                         rxFlow),
-                panel("JavaFX FlowPane", "orientation = VERTICAL · alignment = CENTER",
+                panel("JavaFX FlowPane", "orientation = VERTICAL · alignment = CENTER_LEFT",
                         "Each column is centered on its own — the lone last card is pushed to the middle.",
                         jfxFlow));
     }
@@ -152,10 +152,13 @@ public class RXFlowPaneDemo extends Application {
         pane.getStyleClass().add("flow");
     }
 
-    private void fixHeight(Region pane) {
-        pane.setMinHeight(PANE_HEIGHT);
-        pane.setPrefHeight(PANE_HEIGHT);
-        pane.setMaxHeight(PANE_HEIGHT);
+    // Vertical panes get a fixed width too (not just height) so both panes are the same
+    // size and their columns line up; the block (narrower than the pane) is then pinned
+    // left by alignment = CENTER_LEFT, with slack on the right.
+    private void fixSize(Region pane) {
+        pane.setMinSize(PANE_WIDTH, PANE_HEIGHT);
+        pane.setPrefSize(PANE_WIDTH, PANE_HEIGHT);
+        pane.setMaxSize(PANE_WIDTH, PANE_HEIGHT);
         pane.getStyleClass().add("flow");
     }
 
