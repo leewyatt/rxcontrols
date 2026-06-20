@@ -444,9 +444,12 @@ public class RXFlowPane extends Pane {
     /**
      * Vertical alignment of each child within its run's height. {@link VPos#TOP}
      * (the default) lines the items up along the top of each run.
-     * {@link VPos#BASELINE} aligns items by their text baseline. A {@code null}
-     * value is not rejected; it resolves to the default ({@link VPos#TOP}) at the
-     * use site.
+     * {@link VPos#BASELINE} aligns items by their text baseline. A child without a
+     * real baseline (its {@code getBaselineOffset()} reports
+     * {@link Node#BASELINE_OFFSET_SAME_AS_HEIGHT}, e.g. a plain container) is
+     * aligned by its bottom edge, matching {@code FlowPane}; such a child's bottom
+     * margin is not reserved in a baseline run. A {@code null} value is not
+     * rejected; it resolves to the default ({@link VPos#TOP}) at the use site.
      *
      * @return the row-alignment property
      */
@@ -596,10 +599,13 @@ public class RXFlowPane extends Pane {
             run.baselineOffset = 0;
             return;
         }
-        // Baseline rows must grow to fit the deepest below-baseline part, which can
-        // exceed the tallest child's pref-area height (mirrors FlowPane via
-        // Region.getMaxAreaHeight's BASELINE path). run.baselineOffset is the shared
-        // baseline measured from the run top, later fed to layoutInArea.
+        // Baseline rows size to maxAbove + maxBelow, exactly Region.getMaxAreaHeight's
+        // BASELINE path (and FlowPane): this can exceed the tallest child's pref-area
+        // height when a shallow-baseline child has a deep below-baseline part. No
+        // plainHeight floor on purpose — a SAME_AS_HEIGHT child's bottom margin stays
+        // below the implied baseline (as in FlowPane), and a floor would only wedge
+        // empty space below it without un-compressing it. run.baselineOffset is the
+        // shared baseline from the run top, later fed to layoutInArea.
         double maxAbove = 0;
         double maxBelow = 0;
         for (LayoutRect lrect : run.rects) {
@@ -616,7 +622,7 @@ public class RXFlowPane extends Pane {
                 maxBelow = Math.max(maxBelow, childHeight - baseline + bottom);
             }
         }
-        run.height = Math.max(plainHeight, maxAbove + maxBelow);
+        run.height = maxAbove + maxBelow;
         run.baselineOffset = maxAbove;
     }
 

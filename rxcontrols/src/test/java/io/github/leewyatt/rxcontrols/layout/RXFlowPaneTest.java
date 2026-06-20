@@ -288,6 +288,24 @@ public class RXFlowPaneTest {
         assertClose(60.0, pane.prefHeight(400.0), "run height covers both children");
     }
 
+    /**
+     * Verifies the BASELINE run height equals Region's maxAbove + maxBelow,
+     * matching FlowPane: a SAME_AS_HEIGHT child's bottom margin sits below the
+     * implied baseline and is not added to the run height (no plainHeight floor).
+     */
+    @Test
+    public void baselineRunHeightExcludesSameAsHeightBottomMargin() {
+        Region plain = card(100.0, 40.0);
+        RXFlowPane pane = new RXFlowPane(plain);
+        pane.setContentAlignment(Pos.TOP_LEFT);
+        pane.setRowAlignment(VPos.BASELINE);
+        RXFlowPane.setMargin(plain, new Insets(0.0, 0.0, 10.0, 0.0));
+
+        // maxAbove = childHeight 40 + top 0 = 40, maxBelow = 0 -> run height 40,
+        // not 50: the bottom margin is below the implied baseline (as in FlowPane).
+        assertClose(40.0, pane.prefHeight(400.0), "bottom margin not added to baseline run height");
+    }
+
     // ==================== Wrapping / overflow ====================
 
     /**
