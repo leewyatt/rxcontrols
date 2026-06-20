@@ -578,6 +578,34 @@ public class RXFlowPaneTest {
         assertClose(71.0, cards[2].getLayoutY(), "card3 y (run height 60 + snapped vgap 11)");
     }
 
+    /**
+     * The vertical-path mirror of {@link #fractionalSizesAndGapsAreSnapped}: a vertical
+     * flow measures its main extent along Y, so this guards the vertical branch's
+     * snapSizeY (card height -> column step) and snapSizeX (card width -> column width)
+     * independently of the horizontal test (the integer vertical cases never exercise
+     * snapping). At render scale 1.0 it cannot catch an X/Y snap-helper swap; it guards
+     * the vertical path's missing or extra size snaps.
+     */
+    @Test
+    public void verticalFractionalSizesAndGapsAreSnapped() {
+        // Card 60.3w x 100.3h -> snapSizeX = 61, snapSizeY = 101; gaps 10.7 -> snapSpace = 11.
+        Region[] cards = cards(3, 60.3, 100.3);
+        RXFlowPane pane = flowPane(10.7, 10.7, cards);
+        pane.setOrientation(Orientation.VERTICAL);
+        pane.setAlignment(Pos.TOP_LEFT);
+
+        // insideHeight 250 keeps two snapped cards (101 + 11 + 101 = 213) in the first
+        // column and wraps the third (213 + 11 + 101 = 325 > 250) to the second.
+        layout(pane, 1000.0, 250.0);
+
+        assertClose(61.0, cards[0].getWidth(), "card width snapped up (60.3 -> 61)");
+        assertClose(101.0, cards[0].getHeight(), "card height snapped up (100.3 -> 101)");
+        assertClose(0.0, cards[0].getLayoutY(), "card1 y");
+        assertClose(112.0, cards[1].getLayoutY(), "card2 y (101 + snapped vgap 11)");
+        assertClose(0.0, cards[1].getLayoutX(), "card2 stays in the first column");
+        assertClose(72.0, cards[2].getLayoutX(), "card3 x (column width 61 + snapped hgap 11)");
+    }
+
     // ==================== Margin ====================
 
     /**

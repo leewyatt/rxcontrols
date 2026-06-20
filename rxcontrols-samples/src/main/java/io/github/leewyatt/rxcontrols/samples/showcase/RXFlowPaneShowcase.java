@@ -132,6 +132,12 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         columnHBox.setMaxWidth(Double.MAX_VALUE);
         flow.columnHalignmentProperty().bind(columnHBox.valueProperty());
 
+        // Grey out the pair that has no effect in the current orientation.
+        rowHBox.disableProperty().bind(orientationBox.valueProperty().isEqualTo(Orientation.VERTICAL));
+        rowVBox.disableProperty().bind(orientationBox.valueProperty().isEqualTo(Orientation.VERTICAL));
+        columnVBox.disableProperty().bind(orientationBox.valueProperty().isEqualTo(Orientation.HORIZONTAL));
+        columnHBox.disableProperty().bind(orientationBox.valueProperty().isEqualTo(Orientation.HORIZONTAL));
+
         return createGrid(
                 row("Orientation", orientationBox),
                 row("Alignment (block)", alignmentBox),
@@ -207,7 +213,7 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
     // ==================== Helpers ====================
 
     private Region createChip(int index) {
-        // Deterministic variety so line/row alignment differences are visible.
+        // Deterministic variety so the per-run and per-item alignment differences show.
         double width = 64.0 + (index % 5) * 24.0;
         double height = 44.0 + (index % 3) * 22.0;
 

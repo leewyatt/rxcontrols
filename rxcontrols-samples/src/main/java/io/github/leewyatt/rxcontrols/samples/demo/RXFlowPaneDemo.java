@@ -23,14 +23,14 @@ import javafx.stage.Stage;
  * <p>The horizontal row keeps the same seven equal cards at the same gaps and width, so
  * three fit per row and the seventh lands alone on the last row. The JavaFX
  * {@code FlowPane} (alignment {@code CENTER}) centers that lone card by itself;
- * {@code RXFlowPane} (alignment {@code TOP_CENTER} + rowHalignment {@code LEFT}) centers
- * the whole block once and keeps the last card at the block's left edge — under the first
+ * {@code RXFlowPane} (alignment {@code CENTER} + rowHalignment {@code LEFT}) centers the
+ * whole block once and keeps the last card at the block's left edge — under the first
  * card.</p>
  *
  * <p>The vertical row transposes the same idea: at a fixed height three cards fit per
  * column and the seventh lands alone in the last column. {@code FlowPane}
  * ({@code VERTICAL}, alignment {@code CENTER}) centers that lone card vertically;
- * {@code RXFlowPane} ({@code VERTICAL}, alignment {@code CENTER_LEFT} + columnValignment
+ * {@code RXFlowPane} ({@code VERTICAL}, alignment {@code CENTER} + columnValignment
  * {@code TOP}) keeps it at the block's top edge — beside the first card.</p>
  */
 public class RXFlowPaneDemo extends Application {
@@ -76,7 +76,7 @@ public class RXFlowPaneDemo extends Application {
         fixWidth(jfxFlow);
 
         return section("Horizontal flow — the last row",
-                panel("RXFlowPane", "alignment = TOP_CENTER · rowHalignment = LEFT",
+                panel("RXFlowPane", "alignment = CENTER · rowHalignment = LEFT",
                         "Block centered once — the lone last card stays at the block's left edge.",
                         rxFlow),
                 panel("JavaFX FlowPane", "alignment = CENTER",
@@ -97,7 +97,7 @@ public class RXFlowPaneDemo extends Application {
         fixHeight(jfxFlow);
 
         return section("Vertical flow — the last column",
-                panel("RXFlowPane", "orientation = VERTICAL · alignment = CENTER_LEFT · columnValignment = TOP",
+                panel("RXFlowPane", "orientation = VERTICAL · alignment = CENTER · columnValignment = TOP",
                         "Block centered once — the lone last card stays at the block's top edge.",
                         rxFlow),
                 panel("JavaFX FlowPane", "orientation = VERTICAL · alignment = CENTER",

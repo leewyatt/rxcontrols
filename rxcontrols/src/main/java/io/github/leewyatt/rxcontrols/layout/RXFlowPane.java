@@ -791,11 +791,12 @@ public class RXFlowPane extends Pane {
     };
 
     /**
-     * Preferred length used to wrap runs when computing the pane's preferred
-     * size only. Like {@link javafx.scene.layout.FlowPane#prefWrapLengthProperty()},
-     * it does <em>not</em> control the actual wrapping at layout time — the real
-     * wrap boundary is the width the parent gives this pane. It exists so an
-     * unconstrained pane reports a sane preferred width instead of one giant row.
+     * Preferred wrap length along the flow's main axis — the width for a horizontal flow,
+     * the height for a vertical one — used when computing the pane's preferred size only.
+     * Like {@link javafx.scene.layout.FlowPane#prefWrapLengthProperty()}, it does
+     * <em>not</em> control the actual wrapping at layout time; the real wrap boundary is
+     * the main-axis size the parent gives this pane. It exists so an unconstrained pane
+     * reports a sane preferred main-axis size instead of one giant run.
      *
      * @return the preferred-wrap-length property
      */
