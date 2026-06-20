@@ -8,7 +8,7 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
-import io.github.leewyatt.rxcontrols.theme.RXAtlantaFX;
+import io.github.leewyatt.rxcontrols.theme.RXAtlantaFXThemeBridge;
 import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 
 /**
  * Shared theme choices for the samples — the built-in RxControls light/dark looks
- * ({@link RXTheme}) and the AtlantaFX themes ({@link RXAtlantaFX}). Used by the
+ * ({@link RXTheme}) and the AtlantaFX themes ({@link RXAtlantaFXThemeBridge}). Used by the
  * theme gallery and by every {@code RXShowcaseApplication} that enables theming.
  */
 public final class ShowcaseThemes {
@@ -58,7 +58,7 @@ public final class ShowcaseThemes {
     }
 
     // Samples-owned application-level chrome (window background, standard controls,
-    // showcase chrome). RXTheme / RXAtlantaFX only theme the RxControls components;
+    // showcase chrome). RXTheme / RXAtlantaFXThemeBridge only theme the RxControls components;
     // these supply the rest for the demos.
     private static final String DARK_CHROME =
             ShowcaseThemes.class.getResource("rx-showcase-dark.css").toExternalForm();
@@ -67,7 +67,7 @@ public final class ShowcaseThemes {
 
     private static void rxControls(Scene scene, RXTheme.Variant variant) {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
-        RXAtlantaFX.uninstall(scene);
+        RXAtlantaFXThemeBridge.uninstall(scene);
         RXTheme.install(scene, variant);
         setChrome(scene, variant == RXTheme.Variant.DARK ? DARK_CHROME : null);
     }
@@ -75,7 +75,7 @@ public final class ShowcaseThemes {
     private static void atlanta(Scene scene, Theme theme) {
         Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
         RXTheme.install(scene, RXTheme.Variant.LIGHT); // ensure the dark overlay is off
-        RXAtlantaFX.install(scene);
+        RXAtlantaFXThemeBridge.install(scene);
         setChrome(scene, ATLANTAFX_CHROME);
     }
 

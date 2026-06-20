@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * with {@code -DexcludedGroups=ui}.
  */
 @Tag("ui")
-public class RXAtlantaFXBridgePopupTest {
+public class RXAtlantaFXThemeBridgePopupTest {
 
     private static final Color ACCENT_EMPHASIS = Color.web("#0969da");
 
@@ -132,7 +132,7 @@ public class RXAtlantaFXBridgePopupTest {
             RXCascader<String> cascader = newCascader();
             StackPane root = new StackPane(cascader);
             stage = show(root);
-            RXAtlantaFX.install(stage.getScene());
+            RXAtlantaFXThemeBridge.install(stage.getScene());
             stage.getScene().getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();
@@ -141,7 +141,7 @@ public class RXAtlantaFXBridgePopupTest {
             PopupControl popup = findCascaderPopup();
             assertNotNull(popup, "popup should be present");
             popupSceneHasBridge.set(popup.getScene().getStylesheets()
-                    .contains(RXAtlantaFX.getStylesheet()));
+                    .contains(RXAtlantaFXThemeBridge.getStylesheet()));
             border.set(cascaderViewBorder(popup));
             background.set(cascaderViewBackground(popup));
         });
@@ -175,7 +175,7 @@ public class RXAtlantaFXBridgePopupTest {
             StackPane ancestor = new StackPane(cascader);
             StackPane root = new StackPane(ancestor);
             stage = show(root);
-            RXAtlantaFX.install(ancestor);
+            RXAtlantaFXThemeBridge.install(ancestor);
             ancestor.getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();
@@ -184,7 +184,7 @@ public class RXAtlantaFXBridgePopupTest {
             PopupControl popup = findCascaderPopup();
             assertNotNull(popup, "popup should be present");
             popupSceneHasBridge.set(popup.getScene().getStylesheets()
-                    .contains(RXAtlantaFX.getStylesheet()));
+                    .contains(RXAtlantaFXThemeBridge.getStylesheet()));
             border.set(cascaderViewBorder(popup));
         });
 
@@ -210,7 +210,7 @@ public class RXAtlantaFXBridgePopupTest {
             StackPane unrelated = new StackPane();
             StackPane root = new StackPane(cascaderHolder, unrelated);
             stage = show(root);
-            RXAtlantaFX.install(unrelated);
+            RXAtlantaFXThemeBridge.install(unrelated);
             unrelated.getStylesheets().add(probeUrl);
             cascader.applyCss();
             cascader.layout();

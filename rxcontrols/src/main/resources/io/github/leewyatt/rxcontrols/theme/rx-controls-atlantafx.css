@@ -3,7 +3,7 @@
  * RxControls x AtlantaFX bridge (author stylesheet)                           *
  *                                                                             *
  * Author-origin overrides that re-point the 19 -rx-* color role tokens at     *
- * AtlantaFX functional tokens (-color-*). Apply via RXAtlantaFX.install(...)   *
+ * AtlantaFX functional tokens (-color-*). Apply via RXAtlantaFXThemeBridge.install(...)   *
  * in an app whose Application UA is an AtlantaFX theme (e.g. PrimerLight). On  *
  * a given control root the author origin wins over the rx-controls.css UA      *
  * baseline, and -color-* resolves from the AtlantaFX Application-UA `.root`.   *
@@ -11,7 +11,7 @@
  * All 19 tokens are listed explicitly (no reliance on "omit = auto-follow      *
  * -rx-primary"): the same -rx-* <- -color-* fragment is reused by the Phase 3  *
  * UA entry. The selector list MUST stay identical to the baseline list in     *
- * rx-controls.css; RXAtlantaFXBridgeTest fails otherwise.                     *
+ * rx-controls.css; RXAtlantaFXThemeBridgeTest fails otherwise.                     *
  *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,

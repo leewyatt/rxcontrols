@@ -49,18 +49,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Headless acceptance + drift-proofing for the AtlantaFX author bridge
- * ({@code rx-controls-atlantafx.css} + {@link RXAtlantaFX}). Installs a real
+ * ({@code rx-controls-atlantafx.css} + {@link RXAtlantaFXThemeBridge}). Installs a real
  * {@link PrimerLight} Application UA so {@code -color-*} resolves, applies the
  * bridge, and asserts each {@code -rx-*} role token resolves to its mapped
  * AtlantaFX functional token (proposal §2). Popup propagation is covered by the
- * window-dependent {@code RXAtlantaFXBridgePopupTest}.
+ * window-dependent {@code RXAtlantaFXThemeBridgePopupTest}.
  *
  * <p>Assertions are value-based, not "zero unresolved lookups": AtlantaFX does
  * not define the Modena {@code -fx-*} palette, so RxControls rules still using raw
  * {@code -fx-*} colors are expected to be unresolved under AtlantaFX — that is the
  * untokenized-recolor backlog, not a bridge defect.
  */
-public class RXAtlantaFXBridgeTest {
+public class RXAtlantaFXThemeBridgeTest {
 
     private static final String BASELINE_CSS =
             "/io/github/leewyatt/rxcontrols/theme/rx-controls.css";
@@ -193,7 +193,7 @@ public class RXAtlantaFXBridgeTest {
             host.getChildren().addAll(probes.values());
             host.getChildren().addAll(refHover, refActive);
             Scene scene = new Scene(host, 200, 200);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -241,7 +241,7 @@ public class RXAtlantaFXBridgeTest {
 
             StackPane host = new StackPane(fillButton, plain, timeline);
             Scene scene = new Scene(host, 360, 220);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
 
@@ -278,7 +278,7 @@ public class RXAtlantaFXBridgeTest {
             RXTextView textView = new RXTextView("hello");
             StackPane host = new StackPane(textView);
             Scene scene = new Scene(host, 200, 80);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             textFill.set(textView.getTextFill());
@@ -308,7 +308,7 @@ public class RXAtlantaFXBridgeTest {
             StackPane subtree = new StackPane(insideButton);
             StackPane root = new StackPane(subtree, outsideButton);
             Scene scene = new Scene(root, 320, 200);
-            RXAtlantaFX.install(subtree);
+            RXAtlantaFXThemeBridge.install(subtree);
             root.applyCss();
             root.layout();
             inside.set(fillRegionColor(insideButton));
@@ -341,7 +341,7 @@ public class RXAtlantaFXBridgeTest {
             StackPane host = new StackPane();
             host.getChildren().addAll(probes.values());
             Scene scene = new Scene(host, 200, 200);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -366,7 +366,7 @@ public class RXAtlantaFXBridgeTest {
             cascader.getRootItems().add(new RXCascaderItem<>("a"));
             StackPane host = new StackPane(cascader);
             Scene scene = new Scene(host, 320, 120);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -398,7 +398,7 @@ public class RXAtlantaFXBridgeTest {
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("armed"), true);
             StackPane host = new StackPane(probe);
             Scene scene = new Scene(host, 120, 60);
-            RXAtlantaFX.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             textFill.set(probe.getTextFill());
@@ -522,7 +522,7 @@ public class RXAtlantaFXBridgeTest {
     }
 
     private static String readResource(String path) {
-        try (InputStream in = RXAtlantaFXBridgeTest.class.getResourceAsStream(path)) {
+        try (InputStream in = RXAtlantaFXThemeBridgeTest.class.getResourceAsStream(path)) {
             assertNotNull(in, path + " not found on classpath");
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException error) {

@@ -22,7 +22,7 @@ import javafx.scene.Scene;
  * <pre>{@code
  * Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
  * Scene scene = new Scene(root);
- * RXAtlantaFX.install(scene);
+ * RXAtlantaFXThemeBridge.install(scene);
  * stage.setScene(scene);
  * stage.show();
  * }</pre>
@@ -52,9 +52,9 @@ import javafx.scene.Scene;
  * <p>This class adds no compile-time dependency on AtlantaFX; installing the
  * AtlantaFX Application UA is the caller's responsibility.
  */
-public final class RXAtlantaFX {
+public final class RXAtlantaFXThemeBridge {
 
-    private RXAtlantaFX() {
+    private RXAtlantaFXThemeBridge() {
     }
 
     /**
