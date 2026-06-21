@@ -7,6 +7,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
 import javafx.scene.control.FocusModel;
+import javafx.scene.control.MultipleSelectionModel;
 
 /**
  * Internal index-based focus model for {@link RXTileView}, owned by the skin and
@@ -64,12 +65,20 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         focus((focusedItem != null && items != null) ? items.indexOf(focusedItem) : -1);
     }
 
+    void moveItemsListenerToEnd() {
+        if (observedItems != null) {
+            observedItems.removeListener(weakItemsContentListener);
+            observedItems.addListener(weakItemsContentListener);
+        }
+    }
+
     private void onItemsChanged(ListChangeListener.Change<? extends T> change) {
         int focusedIndex = getFocusedIndex();
         if (focusedIndex < 0) {
             return;
         }
         int removedFocusedFrom = -1;
+        int removedFocusedTo = -1;
         while (change.next()) {
             if (change.wasPermutated()) {
                 if (focusedIndex >= change.getFrom() && focusedIndex < change.getTo()) {
@@ -84,6 +93,7 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
                 } else if (focusedIndex >= from) {
                     if (removed > 0 && change.getAddedSize() == 0) {
                         removedFocusedFrom = from;
+                        removedFocusedTo = from + removed;
                     }
                     focusedIndex = -1;
                 }
@@ -91,10 +101,21 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         }
         int itemCount = getItemCount();
         if (focusedIndex < 0 && removedFocusedFrom >= 0 && itemCount > 0) {
-            focusedIndex = Math.max(0, Math.min(removedFocusedFrom - 1, itemCount - 1));
+            int selectionLead = selectionLead();
+            if (selectionLead >= 0 && selectionLead < itemCount
+                    && (selectionLead < removedFocusedFrom || selectionLead >= removedFocusedTo)) {
+                focusedIndex = selectionLead;
+            } else {
+                focusedIndex = Math.max(0, Math.min(removedFocusedFrom - 1, itemCount - 1));
+            }
         }
         if (focusedIndex != getFocusedIndex()) {
             focus(focusedIndex < 0 || focusedIndex >= itemCount ? -1 : focusedIndex);
         }
+    }
+
+    private int selectionLead() {
+        MultipleSelectionModel<T> selectionModel = control.getSelectionModel();
+        return selectionModel == null ? -1 : selectionModel.getSelectedIndex();
     }
 }

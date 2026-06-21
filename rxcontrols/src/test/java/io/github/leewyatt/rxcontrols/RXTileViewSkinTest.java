@@ -681,6 +681,31 @@ public class RXTileViewSkinTest {
         });
     }
 
+    @Test
+    public void temporaryZeroSizePreservesScrollPosition() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(400);
+            view.setColumnCount(2);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            view.scrollTo(150);
+            pump(root);
+            RXTileVisibleRange before = view.getVisibleRange();
+            assertTrue(before.firstIndex() <= 150 && 150 <= before.lastIndex());
+
+            view.resize(400, 0);
+            view.layout();
+            assertTrue(view.getVisibleRange().isEmpty(), "zero-height layout publishes an empty visible range");
+
+            view.resize(400, 300);
+            view.layout();
+            pump(root);
+            RXTileVisibleRange after = view.getVisibleRange();
+            assertTrue(after.firstIndex() <= 150 && 150 <= after.lastIndex(),
+                    "restoring a non-empty view after zero height keeps the previous scroll position");
+        });
+    }
+
     // ==================== Sections (PR3) ====================
 
     @Test
@@ -1365,6 +1390,38 @@ public class RXTileViewSkinTest {
             pump(root);
             assertEquals(8, view.getSelectionModel().getSelectedIndex(),
                     "the next arrow key continues from the reanchored focus");
+        });
+    }
+
+    @Test
+    public void removingFocusedMultipleSelectionLeadReanchorsFocusToSurvivorLead() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 1), false, false);
+            pump(root);
+            fireMousePressed(cellByIndex(view, 5), false, true);
+            pump(root);
+            assertEquals(List.of(1, 5), view.getSelectionModel().getSelectedIndices());
+            assertTrue(hasFocusRing(cellByIndex(view, 5)));
+
+            items.remove(5);
+            pump(root);
+
+            assertEquals(1, view.getSelectionModel().getSelectedIndex(),
+                    "multiple selection promotes the surviving selected index as lead");
+            assertTrue(hasFocusRing(cellByIndex(view, 1)),
+                    "focus follows the surviving selection lead instead of the prior row");
+
+            fireKey(view, KeyCode.RIGHT, false, false);
+            pump(root);
+            assertEquals(2, view.getSelectionModel().getSelectedIndex(),
+                    "the next arrow key continues from the survivor lead");
         });
     }
 

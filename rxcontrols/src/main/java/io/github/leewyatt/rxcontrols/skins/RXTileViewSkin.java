@@ -385,6 +385,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private void onSelectionModelSwapped() {
         resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
+        focusModel.moveItemsListenerToEnd();
         refreshSelectionAndFocus();
         getSkinnable().requestLayout();
     }

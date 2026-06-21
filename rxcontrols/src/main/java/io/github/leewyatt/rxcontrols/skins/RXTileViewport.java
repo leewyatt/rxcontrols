@@ -381,7 +381,20 @@ final class RXTileViewport<T> extends Region {
         clip.setHeight(h);
 
         RXTileRowPlan plan = rowPlan;
-        if (w <= 0.0 || h <= 0.0 || plan == null || plan.totalVisualRows() == 0) {
+        if (w <= 0.0 || h <= 0.0 || plan == null) {
+            cachedMaxScroll = 0.0;
+            explicitScrollPending = false;
+            adjustingScrollBar = true;
+            vbar.setMax(0.0);
+            vbar.setVisibleAmount(0.0);
+            adjustingScrollBar = false;
+            parkCellsFrom(0);
+            parkHeadersFrom(0);
+            vbar.setVisible(false);
+            clearVisibleMetrics();
+            return;
+        }
+        if (plan.totalVisualRows() == 0) {
             scrollY = 0.0;
             cachedMaxScroll = 0.0;
             explicitScrollPending = false;
