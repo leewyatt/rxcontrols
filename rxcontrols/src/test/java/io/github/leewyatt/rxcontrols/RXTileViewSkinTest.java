@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -323,6 +324,31 @@ public class RXTileViewSkinTest {
             fireWheel(viewport, 100_000);
             pump(root);
             assertEquals(0, view.getVisibleRange().firstIndex(), "clamped at the top");
+        });
+    }
+
+    @Test
+    public void emptyViewportReleasesWheelAfterPreviouslyScrollable() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(400);
+            view.setColumnCount(2);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            Node viewport = view.lookup(".viewport");
+            assertNotNull(viewport, "viewport node present");
+            AtomicInteger bubbledWheelEvents = new AtomicInteger();
+            root.addEventHandler(ScrollEvent.SCROLL, event -> bubbledWheelEvents.incrementAndGet());
+
+            fireWheel(viewport, -400);
+            pump(root);
+            assertEquals(0, bubbledWheelEvents.get(), "scrollable viewport consumes wheel events");
+            assertTrue(view.getVisibleRange().firstIndex() > 0, "wheel scrolled down");
+
+            view.getItems().clear();
+            pump(root);
+            assertTrue(view.getVisibleRange().isEmpty(), "empty view publishes an empty range");
+            fireWheel(viewport, -400);
+            assertEquals(1, bubbledWheelEvents.get(), "empty viewport leaves wheel events for an enclosing scroller");
         });
     }
 
@@ -785,6 +811,12 @@ public class RXTileViewSkinTest {
             pump(root);
             assertNotNull(view.getVisibleSection());
             assertEquals("s5", view.getVisibleSection().key(), "the requested section is at the top");
+            RXTileSectionCell header = headers(view).stream()
+                    .filter(cell -> "s5".equals(cell.getItem().key()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(header, "the requested section header is realized");
+            assertEquals(0.0, header.getLayoutY(), 0.0001, "the section header lands at the viewport top");
         });
     }
 
@@ -1246,6 +1278,52 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void anchorIsResetOnItemsContentChange() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 8), false, false); // anchor + focus at 8
+            pump(root);
+            items.remove(0);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 3), true, false);
+            pump(root);
+            assertEquals(List.of(3), view.getSelectionModel().getSelectedIndices(),
+                    "same-list mutations drop the stale anchor before the next shift gesture");
+        });
+    }
+
+    @Test
+    public void anchorIsResetOnSelectionModelSwap() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 8), false, false); // anchor + focus at 8
+            pump(root);
+
+            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            newModel.setSelectionMode(SelectionMode.MULTIPLE);
+            view.setSelectionModel(newModel);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 3), true, false);
+            pump(root);
+            assertEquals(List.of(3), view.getSelectionModel().getSelectedIndices(),
+                    "selection model swaps drop the stale range anchor");
+        });
+    }
+
+    @Test
     public void focusRingReResolvesByItemOnSwap() throws Exception {
         onFx(() -> {
             ObservableList<String> listA = FXCollections.observableArrayList("a", "b", "c", "d");
@@ -1261,6 +1339,32 @@ public class RXTileViewSkinTest {
             pump(root);
             assertTrue(hasFocusRing(cellByIndex(view, 3)), "the focus ring follows item 'b' to its new index");
             assertFalse(hasFocusRing(cellByIndex(view, 1)), "the stale numeric index no longer carries the ring");
+        });
+    }
+
+    @Test
+    public void removingFocusedItemReanchorsFocusToSelectionLead() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 8), false, false);
+            pump(root);
+            items.remove(8);
+            pump(root);
+
+            assertEquals(7, view.getSelectionModel().getSelectedIndex(),
+                    "selection falls back to the prior row after deleting the lead");
+            assertTrue(hasFocusRing(cellByIndex(view, 7)),
+                    "keyboard focus follows the selection lead instead of clearing");
+
+            fireKey(view, KeyCode.RIGHT, false, false);
+            pump(root);
+            assertEquals(8, view.getSelectionModel().getSelectedIndex(),
+                    "the next arrow key continues from the reanchored focus");
         });
     }
 

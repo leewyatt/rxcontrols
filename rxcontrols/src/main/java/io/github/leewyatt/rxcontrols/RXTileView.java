@@ -20,6 +20,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
@@ -130,7 +131,7 @@ public class RXTileView<T> extends Control {
         // property's invalidated(), so observe that initial list here.
         observedSectionItems = getItems();
         if (observedSectionItems != null) {
-            observedSectionItems.addListener(itemsSectionListener);
+            observedSectionItems.addListener(weakItemsSectionListener);
         }
     }
 
@@ -160,6 +161,8 @@ public class RXTileView<T> extends Control {
     // control, not the skin. The control observes its items list directly; the
     // listener is re-pointed on every list swap (detach old, attach new).
     private final ListChangeListener<T> itemsSectionListener = change -> recomputeSections();
+    private final WeakListChangeListener<T> weakItemsSectionListener =
+            new WeakListChangeListener<>(itemsSectionListener);
     private ObservableList<T> observedSectionItems;
 
     private final ObjectProperty<ObservableList<T>> items =
@@ -167,11 +170,11 @@ public class RXTileView<T> extends Control {
                 @Override
                 protected void invalidated() {
                     if (observedSectionItems != null) {
-                        observedSectionItems.removeListener(itemsSectionListener);
+                        observedSectionItems.removeListener(weakItemsSectionListener);
                     }
                     observedSectionItems = get();
                     if (observedSectionItems != null) {
-                        observedSectionItems.addListener(itemsSectionListener);
+                        observedSectionItems.addListener(weakItemsSectionListener);
                     }
                     recomputeSections();
                 }
@@ -1205,6 +1208,7 @@ public class RXTileView<T> extends Control {
 
     private boolean pendingScroll;
     private int pendingScrollIndex;
+    private int pendingScrollSectionIndex = -1;
     private RXGridScrollAlignment pendingScrollAlignment = RXGridScrollAlignment.START;
 
     /**
@@ -1230,6 +1234,7 @@ public class RXTileView<T> extends Control {
     public final void scrollTo(int index, RXGridScrollAlignment alignment) {
         pendingScroll = true;
         pendingScrollIndex = index;
+        pendingScrollSectionIndex = -1;
         pendingScrollAlignment = alignment == null ? RXGridScrollAlignment.START : alignment;
         requestLayout();
     }
@@ -1286,7 +1291,7 @@ public class RXTileView<T> extends Control {
     public final void scrollToSection(Object sectionKey, RXGridScrollAlignment alignment) {
         for (RXTileSection section : getSections()) {
             if (Objects.equals(section.key(), sectionKey)) {
-                scrollTo(section.firstItemIndex(), alignment);
+                requestSectionScroll(section, alignment);
                 return;
             }
         }
@@ -1314,8 +1319,16 @@ public class RXTileView<T> extends Control {
     public final void scrollToSectionIndex(int sectionIndex, RXGridScrollAlignment alignment) {
         List<RXTileSection> list = getSections();
         if (sectionIndex >= 0 && sectionIndex < list.size()) {
-            scrollTo(list.get(sectionIndex).firstItemIndex(), alignment);
+            requestSectionScroll(list.get(sectionIndex), alignment);
         }
+    }
+
+    private void requestSectionScroll(RXTileSection section, RXGridScrollAlignment alignment) {
+        pendingScroll = true;
+        pendingScrollIndex = section.firstItemIndex();
+        pendingScrollSectionIndex = section.sectionIndex();
+        pendingScrollAlignment = alignment == null ? RXGridScrollAlignment.START : alignment;
+        requestLayout();
     }
 
     /**
@@ -1339,6 +1352,16 @@ public class RXTileView<T> extends Control {
     }
 
     /**
+     * The section index of the pending scroll request, or {@code -1} when the
+     * request targets a data item. Intended for skins / behaviors.
+     *
+     * @return the pending section index, or {@code -1}
+     */
+    public final int getPendingScrollSectionIndex() {
+        return pendingScrollSectionIndex;
+    }
+
+    /**
      * The alignment of the pending scroll request. Intended for skins /
      * behaviors.
      *
@@ -1354,6 +1377,7 @@ public class RXTileView<T> extends Control {
      */
     public final void clearPendingScroll() {
         pendingScroll = false;
+        pendingScrollSectionIndex = -1;
     }
 
     // ==================== CSS Metadata ====================

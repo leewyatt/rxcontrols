@@ -69,6 +69,7 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         if (focusedIndex < 0) {
             return;
         }
+        int removedFocusedFrom = -1;
         while (change.next()) {
             if (change.wasPermutated()) {
                 if (focusedIndex >= change.getFrom() && focusedIndex < change.getTo()) {
@@ -81,12 +82,19 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
                 if (focusedIndex >= from + removed) {
                     focusedIndex += delta;
                 } else if (focusedIndex >= from) {
+                    if (removed > 0 && change.getAddedSize() == 0) {
+                        removedFocusedFrom = from;
+                    }
                     focusedIndex = -1;
                 }
             }
         }
+        int itemCount = getItemCount();
+        if (focusedIndex < 0 && removedFocusedFrom >= 0 && itemCount > 0) {
+            focusedIndex = Math.max(0, Math.min(removedFocusedFrom - 1, itemCount - 1));
+        }
         if (focusedIndex != getFocusedIndex()) {
-            focus(focusedIndex < 0 || focusedIndex >= getItemCount() ? -1 : focusedIndex);
+            focus(focusedIndex < 0 || focusedIndex >= itemCount ? -1 : focusedIndex);
         }
     }
 }

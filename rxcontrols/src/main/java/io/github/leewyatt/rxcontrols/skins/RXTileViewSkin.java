@@ -143,6 +143,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void onItemsContentChanged() {
+        resetAnchor();
         updatePlaceholder();
         viewport.requestLayout();
     }
@@ -292,6 +293,14 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             control.clearPendingScroll();
             return;
         }
+        int sectionIndex = control.getPendingScrollSectionIndex();
+        if (sectionIndex >= 0) {
+            if (sectionIndex >= control.getSections().size()
+                    || viewport.scrollToSectionIndex(sectionIndex, control.getPendingScrollAlignment())) {
+                control.clearPendingScroll();
+            }
+            return;
+        }
         int index = Math.max(0, Math.min(control.getPendingScrollIndex(), itemCount - 1));
         // Clear only when the request was actually applied. On a zero-height pass
         // scrollToIndex cannot compute geometry and returns false; keeping the
@@ -374,6 +383,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void onSelectionModelSwapped() {
+        resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
         refreshSelectionAndFocus();
         getSkinnable().requestLayout();

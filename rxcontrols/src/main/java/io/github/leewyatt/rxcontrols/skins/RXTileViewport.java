@@ -260,6 +260,51 @@ final class RXTileViewport<T> extends Region {
     }
 
     /**
+     * Scrolls so the section's first visual row lands per {@code alignment}. When
+     * headers are shown, that first row is the header; otherwise it is the first
+     * data row of the section.
+     *
+     * @param sectionIndex the section index
+     * @param alignment    where the target row should land
+     * @return {@code true} if the request was applied; {@code false} when the
+     *         viewport has no height yet, so the caller should keep it pending
+     */
+    boolean scrollToSectionIndex(int sectionIndex, RXGridScrollAlignment alignment) {
+        double viewportHeight = getHeight();
+        if (viewportHeight <= 0.0) {
+            return false;
+        }
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0) {
+            return true;
+        }
+        int visualRow = plan.visualRowOfSection(sectionIndex);
+        if (visualRow < 0) {
+            return true;
+        }
+        RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
+        double targetTop = info.top();
+        double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
+
+        double target;
+        if (alignment == RXGridScrollAlignment.NEAREST) {
+            if (targetTop < scrollY) {
+                target = targetTop;
+            } else if (targetTop + info.height() > scrollY + viewportHeight) {
+                target = targetTop + info.height() - viewportHeight;
+            } else {
+                target = scrollY;
+            }
+        } else {
+            target = targetTop;
+        }
+        scrollY = clamp(target, 0.0, maxScroll);
+        explicitScrollPending = true;
+        requestLayout();
+        return true;
+    }
+
+    /**
      * Discards the data cell pool (the only path that drops cell instances); used
      * when the cell factory changes. A normal layout repopulates it.
      */
@@ -337,6 +382,16 @@ final class RXTileViewport<T> extends Region {
 
         RXTileRowPlan plan = rowPlan;
         if (w <= 0.0 || h <= 0.0 || plan == null || plan.totalVisualRows() == 0) {
+            scrollY = 0.0;
+            cachedMaxScroll = 0.0;
+            explicitScrollPending = false;
+            adjustingScrollBar = true;
+            vbar.setMax(0.0);
+            vbar.setVisibleAmount(0.0);
+            if (Math.abs(vbar.getValue()) > SCROLL_BAR_SYNC_EPSILON) {
+                vbar.setValue(0.0);
+            }
+            adjustingScrollBar = false;
             parkCellsFrom(0);
             parkHeadersFrom(0);
             vbar.setVisible(false);

@@ -186,6 +186,19 @@ final class RXTileRowPlan {
     }
 
     /**
+     * The first visual row belonging to the section at {@code sectionIndex}.
+     *
+     * @param sectionIndex the section index
+     * @return the section's first visual row, or {@code -1} when unavailable
+     */
+    int visualRowOfSection(int sectionIndex) {
+        if (!grouped || sectionIndex < 0 || sectionIndex >= sectionFirstVisualRow.length) {
+            return -1;
+        }
+        return sectionFirstVisualRow[sectionIndex];
+    }
+
+    /**
      * The section containing the given visual row, or {@code null} when flat.
      *
      * @param visualRow a valid visual-row index
