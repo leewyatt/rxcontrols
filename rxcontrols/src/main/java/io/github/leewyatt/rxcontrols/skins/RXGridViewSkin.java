@@ -217,8 +217,8 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
         if (forced >= 1) {
             columns = forced;
         } else {
-            double track = snapSizeX(grid.getCellWidth());
-            double gap = snapSpaceX(Math.max(0.0, grid.getHgap()));
+            double track = snapSizeX(cellWidthOrDefault(grid));
+            double gap = snapSpaceX(gapOrZero(grid.getHgap()));
             if (contentWidth <= 0.0 || track <= 0.0) {
                 columns = 1;
             } else {
@@ -240,7 +240,7 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
 
     private void updateFixedCellSize() {
         RXGridView<T> grid = getSkinnable();
-        double slot = grid.getCellHeight() + Math.max(0.0, grid.getVgap());
+        double slot = cellHeightOrDefault(grid) + gapOrZero(grid.getVgap());
         if (flow.getFixedCellSize() != slot) {
             flow.setFixedCellSize(slot);
         }
@@ -336,8 +336,8 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         RXGridView<T> grid = getSkinnable();
-        double cellWidth = grid.getCellWidth();
-        double gap = Math.max(0.0, grid.getHgap());
+        double cellWidth = cellWidthOrDefault(grid);
+        double gap = gapOrZero(grid.getHgap());
         return leftInset + DEFAULT_PREF_COLUMNS * cellWidth
                 + (DEFAULT_PREF_COLUMNS - 1) * gap + rightInset;
     }
@@ -346,14 +346,30 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         RXGridView<T> grid = getSkinnable();
-        double slot = grid.getCellHeight() + Math.max(0.0, grid.getVgap());
+        double slot = cellHeightOrDefault(grid) + gapOrZero(grid.getVgap());
         return topInset + DEFAULT_VISIBLE_ROWS * slot + bottomInset;
     }
 
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + getSkinnable().getCellWidth() + rightInset;
+        return leftInset + cellWidthOrDefault(getSkinnable()) + rightInset;
+    }
+
+    static double cellWidthOrDefault(RXGridView<?> grid) {
+        return finitePositiveOrDefault(grid.getCellWidth(), RXGridView.DEFAULT_CELL_WIDTH);
+    }
+
+    static double cellHeightOrDefault(RXGridView<?> grid) {
+        return finitePositiveOrDefault(grid.getCellHeight(), RXGridView.DEFAULT_CELL_HEIGHT);
+    }
+
+    static double gapOrZero(double value) {
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
+    static double finitePositiveOrDefault(double value, double fallback) {
+        return Double.isFinite(value) && value > 0.0 ? value : fallback;
     }
 
     @Override

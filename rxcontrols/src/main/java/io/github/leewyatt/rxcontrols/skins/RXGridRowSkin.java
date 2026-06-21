@@ -102,9 +102,9 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         }
 
         int columns = Math.max(1, grid.getActualColumnCount());
-        double gap = Math.max(0.0, grid.getHgap());
-        double cellHeight = grid.getCellHeight();
-        double baseWidth = grid.getCellWidth();
+        double gap = RXGridViewSkin.gapOrZero(grid.getHgap());
+        double cellHeight = RXGridViewSkin.cellHeightOrDefault(grid);
+        double baseWidth = RXGridViewSkin.cellWidthOrDefault(grid);
         RXGridJustify mode = justifyOrDefault(grid.getItemsJustify());
 
         // All metrics are derived from the full column count, never the count of
@@ -117,7 +117,7 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
             double ideal = (w - (columns - 1) * gap) / columns;
             // A cap below cellWidth is a degenerate max < min; never shrink cells
             // below their configured width.
-            double cap = grid.getMaxCellWidth();
+            double cap = maxCellWidthOrUnbounded(grid);
             double effectiveCap = cap > 0.0 ? Math.max(cap, baseWidth) : 0.0;
             effectiveGap = gap;
             if (effectiveCap > 0.0 && ideal > effectiveCap) {
@@ -163,6 +163,11 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         return justify == null ? RXGridJustify.START : justify;
     }
 
+    private static double maxCellWidthOrUnbounded(RXGridView<?> grid) {
+        double value = grid.getMaxCellWidth();
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
     // The row always stretches to the viewport width and never reports a breadth
     // wider than it, so the grid never grows a horizontal scroll bar. Its height
     // is the fixed row slot (cell height plus the inter-row gap).
@@ -186,7 +191,7 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         if (grid == null) {
             return super.computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
         }
-        return grid.getCellHeight() + Math.max(0.0, grid.getVgap());
+        return RXGridViewSkin.cellHeightOrDefault(grid) + RXGridViewSkin.gapOrZero(grid.getVgap());
     }
 
     @Override

@@ -64,8 +64,12 @@ public class RXGridView<T> extends Control {
 
     // ==================== Constants ====================
 
-    private static final double DEFAULT_CELL_WIDTH = 100.0;
-    private static final double DEFAULT_CELL_HEIGHT = 100.0;
+    /** Default cell width used by the control, CSS metadata and skin fallback. */
+    public static final double DEFAULT_CELL_WIDTH = 100.0;
+
+    /** Default cell height used by the control, CSS metadata and skin fallback. */
+    public static final double DEFAULT_CELL_HEIGHT = 100.0;
+
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
@@ -183,17 +187,6 @@ public class RXGridView<T> extends Control {
 
     private final DoubleProperty cellWidth = new StyleableDoubleProperty(DEFAULT_CELL_WIDTH) {
         @Override
-        protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_CELL_WIDTH);
-                }
-                throw new IllegalArgumentException("cellWidth must be a finite positive number");
-            }
-        }
-
-        @Override
         public CssMetaData<RXGridView<?>, Number> getCssMetaData() {
             return StyleableProperties.CELL_WIDTH;
         }
@@ -210,8 +203,9 @@ public class RXGridView<T> extends Control {
     };
 
     /**
-     * Width of each cell, in pixels. Must be a finite positive number. Drives the
-     * automatic column count when {@code columnCount} is automatic.
+     * Width of each cell, in pixels. Drives the automatic column count when
+     * {@code columnCount} is automatic. Non-finite or non-positive values are
+     * accepted by the property; layout renders with {@link #DEFAULT_CELL_WIDTH}.
      *
      * @return the cell-width property
      */
@@ -232,7 +226,6 @@ public class RXGridView<T> extends Control {
      * Sets the cell width.
      *
      * @param value the cell width
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setCellWidth(double value) {
         cellWidth.set(value);
@@ -241,17 +234,6 @@ public class RXGridView<T> extends Control {
     // ==================== Cell Height ====================
 
     private final DoubleProperty cellHeight = new StyleableDoubleProperty(DEFAULT_CELL_HEIGHT) {
-        @Override
-        protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_CELL_HEIGHT);
-                }
-                throw new IllegalArgumentException("cellHeight must be a finite positive number");
-            }
-        }
-
         @Override
         public CssMetaData<RXGridView<?>, Number> getCssMetaData() {
             return StyleableProperties.CELL_HEIGHT;
@@ -269,7 +251,9 @@ public class RXGridView<T> extends Control {
     };
 
     /**
-     * Height of each cell, in pixels. Must be a finite positive number.
+     * Height of each cell, in pixels. Non-finite or non-positive values are
+     * accepted by the property; layout renders with
+     * {@link #DEFAULT_CELL_HEIGHT}.
      *
      * @return the cell-height property
      */
@@ -290,7 +274,6 @@ public class RXGridView<T> extends Control {
      * Sets the cell height.
      *
      * @param value the cell height
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setCellHeight(double value) {
         cellHeight.set(value);
@@ -373,8 +356,8 @@ public class RXGridView<T> extends Control {
     };
 
     /**
-     * Horizontal gap between cells in a row. Negative values are treated as zero
-     * during layout.
+     * Horizontal gap between cells in a row. Negative or non-finite values are
+     * treated as zero during layout.
      *
      * @return the hgap property
      */
@@ -420,8 +403,8 @@ public class RXGridView<T> extends Control {
     };
 
     /**
-     * Vertical gap between rows. Negative values are treated as zero during
-     * layout.
+     * Vertical gap between rows. Negative or non-finite values are treated as zero
+     * during layout.
      *
      * @return the vgap property
      */
@@ -488,8 +471,8 @@ public class RXGridView<T> extends Control {
 
     /**
      * Upper bound on the resolved column count. {@link #AUTO_COLUMNS} (or any
-     * value {@code <= 0}) means no upper bound. Has no effect when
-     * {@code columnCount} forces a count.
+     * value {@code <= 0}) means no upper bound. Applies to both automatic and
+     * forced column counts.
      *
      * @return the max-columns property
      */

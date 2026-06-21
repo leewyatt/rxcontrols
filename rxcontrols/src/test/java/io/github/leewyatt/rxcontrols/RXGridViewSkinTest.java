@@ -125,6 +125,32 @@ public class RXGridViewSkinTest {
     }
 
     @Test
+    public void invalidGeometryValuesResolveAtLayoutUseSites() throws Exception {
+        onFx(() -> {
+            RXGridView<String> grid = grid(6);
+            grid.setCellWidth(Double.NaN);
+            grid.setCellHeight(Double.NEGATIVE_INFINITY);
+            grid.setHgap(Double.NaN);
+            grid.setVgap(Double.POSITIVE_INFINITY);
+            pump(host(grid, 350, 300));
+
+            assertTrue(Double.isNaN(grid.getCellWidth()), "the property keeps the caller value");
+            assertEquals(Double.NEGATIVE_INFINITY, grid.getCellHeight(), 0.0,
+                    "the property keeps the caller value");
+            assertEquals(3, grid.getActualColumnCount(),
+                    "layout falls back to default cell width and zero hgap");
+            assertEquals(2, grid.getRowCount());
+
+            RXGridCell<?> cell = cellByIndex(grid, 0);
+            assertNotNull(cell);
+            assertEquals(100.0, cell.getWidth(), 1.0,
+                    "cell width falls back at the layout use site");
+            assertEquals(100.0, cell.getHeight(), 1.0,
+                    "cell height falls back at the layout use site");
+        });
+    }
+
+    @Test
     public void cellKnowsItsRowAndColumn() throws Exception {
         onFx(() -> {
             RXGridView<String> grid = grid(20);
@@ -325,6 +351,13 @@ public class RXGridViewSkinTest {
             assertTrue(rowCells(grid, 0).get(0).getWidth() > 100.0,
                     "uncapped STRETCH grows cells to fill the row");
             assertEquals(0.0, firstCellX(grid), 1.0, "uncapped STRETCH starts at the leading edge");
+
+            grid.setMaxCellWidth(Double.NaN);
+            pump(root);
+            assertTrue(rowCells(grid, 0).get(0).getWidth() > 100.0,
+                    "non-finite maxCellWidth behaves as unbounded");
+            assertEquals(0.0, firstCellX(grid), 1.0,
+                    "non-finite maxCellWidth does not create a centered cap");
 
             // Capped: cells stop at maxCellWidth and the block is centered.
             grid.setMaxCellWidth(80);

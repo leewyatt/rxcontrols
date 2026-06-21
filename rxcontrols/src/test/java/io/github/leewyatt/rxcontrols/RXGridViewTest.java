@@ -95,28 +95,22 @@ public class RXGridViewTest {
     // ==================== Illegal / tolerant values ====================
 
     @Test
-    public void cellSizeRejectsNonPositiveAndCoercesToDefault() {
+    public void cellSizePropertiesAreTolerant() {
         RXGridView<String> grid = new RXGridView<>();
 
-        grid.setCellWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellWidth(0.0));
-        assertEquals(100.0, grid.getCellWidth(), EPSILON);
-        grid.setCellWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellWidth(-5.0));
-        assertEquals(100.0, grid.getCellWidth(), EPSILON);
-        grid.setCellWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellWidth(Double.NaN));
-        assertEquals(100.0, grid.getCellWidth(), EPSILON);
-        grid.setCellWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellWidth(Double.POSITIVE_INFINITY));
-        assertEquals(100.0, grid.getCellWidth(), EPSILON);
+        grid.setCellWidth(0.0);
+        assertEquals(0.0, grid.getCellWidth(), EPSILON);
+        grid.setCellWidth(-5.0);
+        assertEquals(-5.0, grid.getCellWidth(), EPSILON);
+        grid.setCellWidth(Double.NaN);
+        assertTrue(Double.isNaN(grid.getCellWidth()));
+        grid.setCellWidth(Double.POSITIVE_INFINITY);
+        assertEquals(Double.POSITIVE_INFINITY, grid.getCellWidth(), EPSILON);
 
-        grid.setCellHeight(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellHeight(0.0));
-        assertEquals(100.0, grid.getCellHeight(), EPSILON);
-        grid.setCellHeight(120.0);
-        assertThrows(IllegalArgumentException.class, () -> grid.setCellHeight(Double.NEGATIVE_INFINITY));
-        assertEquals(100.0, grid.getCellHeight(), EPSILON);
+        grid.setCellHeight(0.0);
+        assertEquals(0.0, grid.getCellHeight(), EPSILON);
+        grid.setCellHeight(Double.NEGATIVE_INFINITY);
+        assertEquals(Double.NEGATIVE_INFINITY, grid.getCellHeight(), EPSILON);
     }
 
     @Test
@@ -145,6 +139,10 @@ public class RXGridViewTest {
 
         source.set(180.0);
         assertEquals(180.0, grid.getCellWidth(), EPSILON);
+
+        source.set(0.0);
+        assertEquals(0.0, grid.getCellWidth(), EPSILON);
+        assertTrue(grid.cellWidthProperty().isBound());
     }
 
     // ==================== Null handling ====================
