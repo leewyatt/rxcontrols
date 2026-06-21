@@ -75,7 +75,7 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
         disposer.registerListener(control.maxColumnsProperty(), this::onColumnsAffectingChange);
         disposer.registerListener(control.cellHeightProperty(), this::onCellSizeChange);
         disposer.registerListener(control.vgapProperty(), this::onCellSizeChange);
-        disposer.registerListener(control.stretchCellsProperty(), this::onCellLayoutChange);
+        disposer.registerListener(control.maxCellWidthProperty(), this::onCellLayoutChange);
         disposer.registerListener(control.itemsJustifyProperty(), this::onCellLayoutChange);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
 

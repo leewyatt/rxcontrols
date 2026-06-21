@@ -225,12 +225,12 @@ public class RXGridViewSkinTest {
     }
 
     @Test
-    public void stretchCellsFillTheRowEqually() throws Exception {
+    public void stretchModeFillsTheRowEqually() throws Exception {
         onFx(() -> {
             RXGridView<String> grid = grid(8);
             grid.setColumnCount(4);
             grid.setHgap(20);
-            grid.setStretchCells(true);
+            grid.setItemsJustify(RXGridJustify.STRETCH);
             pump(host(grid, 400, 400));
 
             List<RXGridCell<?>> cells = rowCells(grid, 0);
@@ -253,7 +253,6 @@ public class RXGridViewSkinTest {
             grid.setColumnCount(4);
             grid.setCellWidth(60);
             grid.setHgap(10);
-            grid.setStretchCells(false);
             StackPane root = host(grid, 400, 400);
 
             grid.setItemsJustify(RXGridJustify.START);
@@ -271,6 +270,77 @@ public class RXGridViewSkinTest {
             assertEquals(0.0, startX, 1.0, "START packs cells against the leading edge");
             assertTrue(endX > centerX && centerX > startX, "slack grows START < CENTER < END");
             assertEquals(endX / 2.0, centerX, 1.0, "CENTER splits the slack");
+        });
+    }
+
+    @Test
+    public void spaceModesDistributeRowSlack() throws Exception {
+        onFx(() -> {
+            RXGridView<String> grid = grid(8);
+            grid.setColumnCount(4);
+            grid.setCellWidth(60);
+            grid.setHgap(10);
+            StackPane root = host(grid, 400, 400);
+
+            // Fixture: N=4, cellWidth=60, hgap=10, row width 400 (no scroll bar),
+            // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
+            grid.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+            pump(root);
+            double betweenEdge = firstCellX(grid);
+            double betweenGap = firstGap(grid);
+            assertEquals(0.0, betweenEdge, 0.5, "SPACE_BETWEEN keeps the edges flush");
+            assertEquals(10.0 + 130.0 / 3.0, betweenGap, 0.5, "between gap = hgap + S/(N-1)");
+
+            grid.setItemsJustify(RXGridJustify.SPACE_AROUND);
+            pump(root);
+            double aroundEdge = firstCellX(grid);
+            double aroundGap = firstGap(grid);
+            assertEquals(130.0 / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
+            assertEquals(10.0 + 130.0 / 4.0, aroundGap, 0.5, "AROUND gap = hgap + S/N");
+
+            grid.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+            pump(root);
+            double evenlyEdge = firstCellX(grid);
+            double evenlyGap = firstGap(grid);
+            assertEquals(130.0 / 5.0, evenlyEdge, 0.5, "EVENLY edge = S/(N+1)");
+            assertEquals(10.0 + 130.0 / 5.0, evenlyGap, 0.5, "EVENLY gap = hgap + S/(N+1)");
+
+            assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
+                    "the edge gap grows BETWEEN < AROUND < EVENLY");
+        });
+    }
+
+    @Test
+    public void maxCellWidthCapsAndCentersStretch() throws Exception {
+        onFx(() -> {
+            RXGridView<String> grid = grid(4);
+            grid.setColumnCount(2);
+            grid.setCellWidth(60);
+            grid.setHgap(10);
+            grid.setItemsJustify(RXGridJustify.STRETCH);
+            StackPane root = host(grid, 400, 400);
+            pump(root);
+
+            // Uncapped: cells grow well past cellWidth and hug the leading edge.
+            assertTrue(rowCells(grid, 0).get(0).getWidth() > 100.0,
+                    "uncapped STRETCH grows cells to fill the row");
+            assertEquals(0.0, firstCellX(grid), 1.0, "uncapped STRETCH starts at the leading edge");
+
+            // Capped: cells stop at maxCellWidth and the block is centered.
+            grid.setMaxCellWidth(80);
+            pump(root);
+            List<RXGridCell<?>> capped = rowCells(grid, 0);
+            assertEquals(80.0, capped.get(0).getWidth(), 1.0, "STRETCH is capped at maxCellWidth");
+            // N=2, cw=80, hgap=10, W=400 -> startX = (400 - (2*80 + 10)) / 2 = 115.
+            assertEquals(115.0, firstCellX(grid), 1.0, "the capped block is centered");
+            double lastRight = capped.get(1).getLayoutX() + capped.get(1).getWidth();
+            assertEquals(400.0, firstCellX(grid) + lastRight, 1.0, "the centered block is symmetric in the row");
+
+            // A cap below cellWidth is degenerate and must not shrink cells below cellWidth.
+            grid.setMaxCellWidth(40);
+            pump(root);
+            assertEquals(60.0, rowCells(grid, 0).get(0).getWidth(), 1.0,
+                    "a cap below cellWidth leaves cells at cellWidth");
         });
     }
 
@@ -424,6 +494,17 @@ public class RXGridViewSkinTest {
         }
         cells.sort(Comparator.comparingInt((RXGridCell<?> cell) -> cell.getColumnIndex()));
         return cells;
+    }
+
+    private static double firstCellX(RXGridView<?> grid) {
+        return rowCells(grid, 0).get(0).getLayoutX();
+    }
+
+    private static double firstGap(RXGridView<?> grid) {
+        List<RXGridCell<?>> cells = rowCells(grid, 0);
+        RXGridCell<?> first = cells.get(0);
+        RXGridCell<?> second = cells.get(1);
+        return second.getLayoutX() - (first.getLayoutX() + first.getWidth());
     }
 
     private static void onFx(Runnable body) throws Exception {

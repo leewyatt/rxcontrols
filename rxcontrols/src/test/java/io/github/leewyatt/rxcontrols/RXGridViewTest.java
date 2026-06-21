@@ -67,7 +67,7 @@ public class RXGridViewTest {
         assertEquals(RXGridView.AUTO_COLUMNS, grid.getColumnCount());
         assertEquals(0, RXGridView.AUTO_COLUMNS);
         assertEquals(0, grid.getMaxColumns());
-        assertFalse(grid.isStretchCells());
+        assertEquals(0.0, grid.getMaxCellWidth(), EPSILON);
         assertSame(RXGridJustify.START, grid.getItemsJustify());
         assertNull(grid.getPlaceholder());
         assertNull(grid.getCellFactory());
@@ -131,6 +131,8 @@ public class RXGridViewTest {
         assertEquals(-2, grid.getColumnCount());
         grid.setMaxColumns(-4);
         assertEquals(-4, grid.getMaxColumns());
+        grid.setMaxCellWidth(-5.0);
+        assertEquals(-5.0, grid.getMaxCellWidth(), EPSILON);
     }
 
     @Test
@@ -323,7 +325,7 @@ public class RXGridViewTest {
         assertTrue(hasProperty(metadata, "-rx-cell-height"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
-        assertTrue(hasProperty(metadata, "-rx-stretch-cells"));
+        assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
 
         RXGridView<String> grid = new RXGridView<>();

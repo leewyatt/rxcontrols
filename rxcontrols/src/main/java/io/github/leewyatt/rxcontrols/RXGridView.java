@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXGridViewSkin;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -16,11 +15,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
-import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
-import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.AccessibleRole;
@@ -47,10 +44,10 @@ import java.util.List;
  * cells are decided by the index, not by the item being {@code null}.
  *
  * <p>Within a row, cells of width {@code cellWidth} are separated by
- * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}. Leftover
- * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}, or
- * the cells are stretched to fill the row when
- * {@link #stretchCellsProperty() stretchCells} is enabled.
+ * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}. How a
+ * row uses its spare width — position the block, grow the gaps, or grow the
+ * cells (up to {@link #maxCellWidthProperty() maxCellWidth}) — is controlled by
+ * {@link #itemsJustifyProperty() itemsJustify}.
  *
  * <p>The grid publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
@@ -69,11 +66,11 @@ public class RXGridView<T> extends Control {
 
     private static final double DEFAULT_CELL_WIDTH = 100.0;
     private static final double DEFAULT_CELL_HEIGHT = 100.0;
+    private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
-    private static final boolean DEFAULT_STRETCH_CELLS = false;
     private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-grid-view";
@@ -299,6 +296,63 @@ public class RXGridView<T> extends Control {
         cellHeight.set(value);
     }
 
+    // ==================== Max Cell Width ====================
+
+    private final DoubleProperty maxCellWidth = new StyleableDoubleProperty(DEFAULT_MAX_CELL_WIDTH) {
+        @Override
+        public CssMetaData<RXGridView<?>, Number> getCssMetaData() {
+            return StyleableProperties.MAX_CELL_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXGridView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxCellWidth";
+        }
+    };
+
+    /**
+     * Upper bound on how wide a cell may grow when
+     * {@link #itemsJustifyProperty() itemsJustify} is
+     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * value means unbounded. Has no effect in the other justification modes,
+     * where cells keep {@link #cellWidthProperty() cellWidth}.
+     *
+     * <p>Together with {@code cellWidth} (the minimum that drives the column
+     * count) this mirrors a CSS Grid {@code minmax(cellWidth, maxCellWidth)}
+     * auto-fill track. A cap smaller than {@code cellWidth} is degenerate
+     * ({@code max < min}) and is treated as {@code cellWidth}; cells are never
+     * shrunk below their configured width.
+     *
+     * @return the max-cell-width property
+     */
+    public final DoubleProperty maxCellWidthProperty() {
+        return maxCellWidth;
+    }
+
+    /**
+     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @return the maximum cell width, or {@code 0} for unbounded
+     */
+    public final double getMaxCellWidth() {
+        return maxCellWidth.get();
+    }
+
+    /**
+     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @param value a positive cap, or {@code 0} (or any non-positive value) for
+     *              unbounded
+     */
+    public final void setMaxCellWidth(double value) {
+        maxCellWidth.set(value);
+    }
+
     // ==================== Hgap ====================
 
     private final DoubleProperty hgap = new StyleableDoubleProperty(DEFAULT_HGAP) {
@@ -461,56 +515,6 @@ public class RXGridView<T> extends Control {
         maxColumns.set(value);
     }
 
-    // ==================== Stretch Cells ====================
-
-    private final BooleanProperty stretchCells = new StyleableBooleanProperty(DEFAULT_STRETCH_CELLS) {
-        @Override
-        public CssMetaData<RXGridView<?>, Boolean> getCssMetaData() {
-            return StyleableProperties.STRETCH_CELLS;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXGridView.this;
-        }
-
-        @Override
-        public String getName() {
-            return "stretchCells";
-        }
-    };
-
-    /**
-     * Whether cells grow to fill the row width. When {@code true} the row's cells
-     * are widened equally to consume the leftover width and
-     * {@code itemsJustify} has no effect; when {@code false} cells keep
-     * {@code cellWidth} and the leftover width is distributed per
-     * {@code itemsJustify}.
-     *
-     * @return the stretch-cells property
-     */
-    public final BooleanProperty stretchCellsProperty() {
-        return stretchCells;
-    }
-
-    /**
-     * Returns whether cells stretch to fill the row.
-     *
-     * @return {@code true} if cells stretch
-     */
-    public final boolean isStretchCells() {
-        return stretchCells.get();
-    }
-
-    /**
-     * Sets whether cells stretch to fill the row.
-     *
-     * @param value {@code true} to stretch cells
-     */
-    public final void setStretchCells(boolean value) {
-        stretchCells.set(value);
-    }
-
     // ==================== Items Justify ====================
 
     private final ObjectProperty<RXGridJustify> itemsJustify =
@@ -532,9 +536,12 @@ public class RXGridView<T> extends Control {
             };
 
     /**
-     * How leftover row width is distributed when {@code stretchCells} is
-     * {@code false}. A {@code null} value is treated as
-     * {@link RXGridJustify#START}.
+     * How a row uses its spare horizontal width: position the fixed-width block
+     * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
+     * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
+     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
+     * treated as {@link RXGridJustify#START}.
      *
      * @return the items-justify property
      */
@@ -839,17 +846,17 @@ public class RXGridView<T> extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXGridView<?>, Boolean> STRETCH_CELLS =
-                new CssMetaData<>("-rx-stretch-cells", BooleanConverter.getInstance(), DEFAULT_STRETCH_CELLS) {
+        private static final CssMetaData<RXGridView<?>, Number> MAX_CELL_WIDTH =
+                new CssMetaData<>("-rx-max-cell-width", SizeConverter.getInstance(), DEFAULT_MAX_CELL_WIDTH) {
                     @Override
                     public boolean isSettable(RXGridView<?> node) {
-                        return !node.stretchCells.isBound();
+                        return !node.maxCellWidth.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Boolean> getStyleableProperty(RXGridView<?> node) {
-                        return (StyleableProperty<Boolean>) node.stretchCellsProperty();
+                    public StyleableProperty<Number> getStyleableProperty(RXGridView<?> node) {
+                        return (StyleableProperty<Number>) node.maxCellWidthProperty();
                     }
                 };
 
@@ -873,7 +880,7 @@ public class RXGridView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, HGAP, VGAP, STRETCH_CELLS, ITEMS_JUSTIFY);
+            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, HGAP, VGAP, ITEMS_JUSTIFY);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

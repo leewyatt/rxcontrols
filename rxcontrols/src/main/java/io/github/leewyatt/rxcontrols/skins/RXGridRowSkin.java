@@ -104,28 +104,58 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         int columns = Math.max(1, grid.getActualColumnCount());
         double gap = Math.max(0.0, grid.getHgap());
         double cellHeight = grid.getCellHeight();
+        double baseWidth = grid.getCellWidth();
+        RXGridJustify mode = justifyOrDefault(grid.getItemsJustify());
+
+        // All metrics are derived from the full column count, never the count of
+        // cells in this row, so a short final row reuses the same cell width,
+        // gaps and offset and its cells stay column-aligned under the full rows.
         double cellWidth;
+        double effectiveGap;
         double startX;
-        if (grid.isStretchCells()) {
-            cellWidth = Math.max(0.0, (w - (columns - 1) * gap) / columns);
-            startX = 0.0;
+        if (mode == RXGridJustify.STRETCH) {
+            double ideal = (w - (columns - 1) * gap) / columns;
+            // A cap below cellWidth is a degenerate max < min; never shrink cells
+            // below their configured width.
+            double cap = grid.getMaxCellWidth();
+            double effectiveCap = cap > 0.0 ? Math.max(cap, baseWidth) : 0.0;
+            effectiveGap = gap;
+            if (effectiveCap > 0.0 && ideal > effectiveCap) {
+                // Cells hit the cap; center the resulting block in the leftover.
+                cellWidth = effectiveCap;
+                double used = columns * cellWidth + (columns - 1) * gap;
+                startX = Math.max(0.0, (w - used) / 2.0);
+            } else {
+                cellWidth = Math.max(0.0, ideal);
+                startX = 0.0;
+            }
         } else {
-            cellWidth = grid.getCellWidth();
-            double used = columns * cellWidth + (columns - 1) * gap;
-            double slack = Math.max(0.0, w - used);
-            startX = switch (justifyOrDefault(grid.getItemsJustify())) {
-                case CENTER -> slack / 2.0;
-                case END -> slack;
-                case START -> 0.0;
-            };
+            cellWidth = baseWidth;
+            double slack = Math.max(0.0, w - (columns * baseWidth + (columns - 1) * gap));
+            effectiveGap = gap;
+            startX = 0.0;
+            switch (mode) {
+                case CENTER -> startX = slack / 2.0;
+                case END -> startX = slack;
+                case SPACE_BETWEEN -> effectiveGap = gap + (columns > 1 ? slack / (columns - 1) : 0.0);
+                case SPACE_AROUND -> {
+                    effectiveGap = gap + slack / columns;
+                    startX = slack / (2.0 * columns);
+                }
+                case SPACE_EVENLY -> {
+                    effectiveGap = gap + slack / (columns + 1);
+                    startX = slack / (columns + 1);
+                }
+                default -> {
+                    // START: the block hugs the leading edge (defaults stand).
+                }
+            }
         }
 
-        // Place each cell at its fixed column position so columns line up across
-        // rows; a short final row simply leaves the trailing columns empty.
         double cellX = x + startX;
         for (int column = 0; column < cellsInRow; column++) {
             children.get(column).resizeRelocate(cellX, y, cellWidth, cellHeight);
-            cellX += cellWidth + gap;
+            cellX += cellWidth + effectiveGap;
         }
     }
 

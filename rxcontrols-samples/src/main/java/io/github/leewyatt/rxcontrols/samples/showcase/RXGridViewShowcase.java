@@ -113,20 +113,18 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        CheckBox stretch = new CheckBox("Stretch cells to fill the row");
-        stretch.setSelected(grid.isStretchCells());
-        stretch.selectedProperty().addListener((obs, old, value) -> grid.setStretchCells(value));
-
         ChoiceBox<RXGridJustify> justify = new ChoiceBox<>(
                 FXCollections.observableArrayList(RXGridJustify.values()));
         justify.setValue(grid.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> grid.setItemsJustify(value));
-        // Justification only applies when cells are not stretched.
-        justify.disableProperty().bind(stretch.selectedProperty());
+
+        Slider maxCell = createSlider(0, 400, grid.getMaxCellWidth());
+        maxCell.valueProperty().addListener((obs, old, value) -> grid.setMaxCellWidth(value.doubleValue()));
 
         return createGrid(
-                row(stretch),
-                row("Justify", justify));
+                row("Justify", justify),
+                // maxCellWidth caps growth in STRETCH mode; 0 = unbounded.
+                row("Max cell W", maxCell, sentinelLabel(maxCell, "none")));
     }
 
     private Node dataGrid() {
