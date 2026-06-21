@@ -364,13 +364,12 @@
  ******************************************************************************/
 .rx-material-text-field,
 .rx-material-password-field {
-    -rx-field-variant: underline;
     -rx-floating-label: true;
     -rx-animated: true;
     -rx-animation-duration: 180ms;
     -rx-label-float-scale: 0.85;
-    /* underline variant: no box, no native prompt — the floating label and the
-       activation line carry the affordance */
+    /* no box, no native prompt — the floating label and the activation line
+       carry the affordance */
     -fx-background-color: transparent;
     -fx-prompt-text-fill: transparent;
 }

@@ -68,7 +68,7 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Content", buildContentGrid()),
-                section("Variant & state", buildStateGrid()),
+                section("State", buildStateGrid()),
                 section("Animation", buildAnimationGrid()),
                 section("Password", buildPasswordGrid()));
     }
