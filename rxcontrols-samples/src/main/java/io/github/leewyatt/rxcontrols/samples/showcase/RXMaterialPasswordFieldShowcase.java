@@ -149,8 +149,6 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildPasswordGrid() {
-        CheckBox revealBox = new CheckBox();
-        field.revealPasswordProperty().bind(revealBox.selectedProperty());
 
         CheckBox revealButtonBox = new CheckBox();
         revealButtonBox.setSelected(field.isShowRevealButton());
@@ -163,7 +161,6 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
         field.echoCharProperty().bind(echoBox.valueProperty());
 
         return createGrid(
-                row("Reveal", revealBox),
                 row("Reveal button", revealButtonBox),
                 row("Echo char", echoBox));
     }
