@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -35,11 +34,8 @@ import java.util.List;
  * {@code RXMaterialPasswordField}. Builds on {@link RXFieldBaseSkin} (slot
  * layout, effective text-padding, hit-test correction, {@link SkinDisposer})
  * and adds the floating label, the bottom activation lines, the supporting
- * (helper / error) row, a built-in clear affordance composed into the trailing
- * slot, and — for the FILLED variant — a surface-variant container box behind
- * the editor (rounded top, full width, top edge down to the activation line,
- * with the supporting row outside) plus a {@code -rx-state-overlay-color}
- * hover / focus layer; CSS paints the box only under {@code :filled}.
+ * (helper / error) row, and a built-in clear affordance composed into the
+ * trailing slot.
  * <p>
  * Layout uses a sub-rect strategy: this skin reserves a top label band, a
  * bottom line band, and a bottom supporting band, then hands the trimmed
@@ -75,8 +71,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private static final String ACTIVATION_LINE_CLASS = "activation-line";
     private static final String ACCENT_LINE_CLASS = "accent-line";
-    private static final String CONTAINER_CLASS = "container";
-    private static final String STATE_OVERLAY_CLASS = "state-overlay";
     private static final String SUPPORTING_CLASS = "supporting";
     private static final String HELPER_CLASS = "helper";
     private static final String ERROR_CLASS = "error";
@@ -94,7 +88,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private final ObservableValue<Boolean> animated;
     private final ObservableValue<Duration> animationDuration;
     private final ObservableValue<Number> labelFloatScale;
-    private final ObservableValue<RXFieldVariant> variant;
     private final ObservableValue<Boolean> showClearButton;
 
     /**
@@ -106,11 +99,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     // ==================== Decoration nodes ====================
 
-    // FILLED-variant background box; transparent (no CSS fill) for other variants.
-    private final Region filledContainer = new Region();
-    // FILLED hover/focus state layer; tinted with -rx-state-overlay-color (flips
-    // black on light / white on dark), opacity driven by CSS :hover / :focused.
-    private final Region stateOverlay = new Region();
     private final Label labelNode = new Label();
     private final Scale labelScale = new Scale(1.0, 1.0, 0.0, 0.0);
     private final Region activationLine = new Region();
@@ -158,7 +146,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * @param animated          animation-enabled observable
      * @param animationDuration transition-duration observable
      * @param labelFloatScale   floated-label scale observable
-     * @param variant           visual-variant observable
      * @param showClearButton   built-in clear-button-enabled observable
      */
     public RXMaterialFieldBaseSkin(TextField control,
@@ -173,14 +160,13 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                    ObservableValue<Boolean> animated,
                                    ObservableValue<Duration> animationDuration,
                                    ObservableValue<Number> labelFloatScale,
-                                   ObservableValue<RXFieldVariant> variant,
                                    ObservableValue<Boolean> showClearButton) {
         // The effective-right relay must exist before super(...) and cannot
         // reference this; a private constructor receives it and wires the
         // trailing composition afterward.
         this(control, userLeading, userTrailing, userTextPadding, labelText, helperText,
                 errorText, invalid, floatingLabel, animated, animationDuration,
-                labelFloatScale, variant, showClearButton, new SimpleObjectProperty<>());
+                labelFloatScale, showClearButton, new SimpleObjectProperty<>());
     }
 
     private RXMaterialFieldBaseSkin(TextField control,
@@ -195,7 +181,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                     ObservableValue<Boolean> animated,
                                     ObservableValue<Duration> animationDuration,
                                     ObservableValue<Number> labelFloatScale,
-                                    ObservableValue<RXFieldVariant> variant,
                                     ObservableValue<Boolean> showClearButton,
                                     ObjectProperty<Node> effectiveRight) {
         super(control, userLeading, effectiveRight, userTextPadding);
@@ -210,15 +195,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         this.animated = animated;
         this.animationDuration = animationDuration;
         this.labelFloatScale = labelFloatScale;
-        this.variant = variant;
-
-        filledContainer.getStyleClass().add(CONTAINER_CLASS);
-        filledContainer.setManaged(false);
-        filledContainer.setMouseTransparent(true);
-
-        stateOverlay.getStyleClass().add(STATE_OVERLAY_CLASS);
-        stateOverlay.setManaged(false);
-        stateOverlay.setMouseTransparent(true);
 
         // A Label already carries the built-in ".label" style class; the CSS
         // targets it through the direct-child path (AGENTS §2.4.4).
@@ -255,11 +231,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         clearButton.setOpacity(0.0);
         builtinTrailing.setAlignment(Pos.CENTER);
 
-        // Filled box (z-index 0) sits behind the editor; the state overlay (z-index
-        // 1) tints the box on hover/focus, still behind the editor text. CSS paints
-        // both only for the :filled variant.
-        getChildren().add(0, filledContainer);
-        getChildren().add(1, stateOverlay);
         getChildren().addAll(activationLine, accentLine, labelNode, supporting);
 
         // Map normalized progress onto the decoration transforms. Registered on
@@ -280,7 +251,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerListener(control.focusedProperty(), this::onFocusChanged);
         disposer.registerListener(animated, this::onAnimatedChanged);
         disposer.registerListener(labelFloatScale, this::onLayoutChanged);
-        disposer.registerListener(variant, this::onLayoutChanged);
         disposer.registerListener(userTrailing, this::updateTrailing);
         disposer.registerListener(showClearButton, this::updateTrailing);
         disposer.registerListener(control.editableProperty(), this::updateTrailing);
@@ -299,8 +269,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerDisposeTask(() -> {
             labelNode.getTransforms().remove(labelScale);
             accentLine.getTransforms().remove(accentScale);
-            getChildren().removeAll(filledContainer, stateOverlay, activationLine,
-                    accentLine, labelNode, supporting);
+            getChildren().removeAll(activationLine, accentLine, labelNode, supporting);
         });
 
         labelNode.setText(effectiveLabelText());
@@ -655,24 +624,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // Hand the band-trimmed editor sub-rect to the base skin.
         super.layoutChildren(x, y + labelBand, w, editorH);
 
-        layoutFilledContainer(x, y, w, labelBand + editorH + lineBand);
         layoutFloatingLabel(x, y, labelBand, editorH);
         layoutActivationLines(x, y + labelBand + editorH, w);
         layoutSupporting(x, y + h - supportingBand, w, supportingBand);
-    }
-
-    private void layoutFilledContainer(double x, double y, double w, double bandHeight) {
-        // Span the full control width and from the control top edge down through
-        // the activation-line band (the supporting row sits outside the box).
-        double leftInset = snappedLeftInset();
-        double rightInset = snappedRightInset();
-        double topInset = snappedTopInset();
-        double boxX = x - leftInset;
-        double boxY = y - topInset;
-        double boxW = w + leftInset + rightInset;
-        double boxH = bandHeight + topInset;
-        filledContainer.resizeRelocate(boxX, boxY, boxW, boxH);
-        stateOverlay.resizeRelocate(boxX, boxY, boxW, boxH);
     }
 
     private void layoutFloatingLabel(double x, double y, double labelBand, double editorH) {

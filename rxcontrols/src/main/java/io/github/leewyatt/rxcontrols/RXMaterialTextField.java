@@ -1,7 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
-import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXMaterialTextFieldSkin;
 import javafx.beans.property.BooleanProperty;
@@ -41,12 +39,10 @@ import java.util.List;
  * inherited unchanged; the Material decoration is added by
  * {@link RXMaterialTextFieldSkin}.
  * <p>
- * The visual {@link #variantProperty() variant} is {@link RXFieldVariant#UNDERLINE}
- * by default; {@link RXFieldVariant#FILLED} is also supported. The floating
- * label text comes from {@link #labelTextProperty()}, falling back to the
- * inherited {@code promptText} when {@code labelText} is blank — the native
- * prompt node is suppressed (via {@code -fx-prompt-text-fill: transparent}) so
- * it does not compete with the floating label.
+ * The floating label text comes from {@link #labelTextProperty()}, falling back
+ * to the inherited {@code promptText} when {@code labelText} is blank — the
+ * native prompt node is suppressed (via {@code -fx-prompt-text-fill: transparent})
+ * so it does not compete with the floating label.
  * <p>
  * Validation is display-only: set {@link #invalidProperty() invalid} (driving
  * the {@code :invalid} pseudo-class) and optionally {@link #errorTextProperty()
@@ -62,8 +58,6 @@ public class RXMaterialTextField extends TextField {
 
     // ==================== Default-value constants (Control + Skin) ====================
 
-    /** Default visual variant. */
-    public static final RXFieldVariant DEFAULT_VARIANT = RXFieldVariant.UNDERLINE;
     /** Default of {@link #floatingLabelProperty()}. */
     public static final boolean DEFAULT_FLOATING_LABEL = true;
     /** Default of {@link #animatedProperty()}. */
@@ -78,9 +72,6 @@ public class RXMaterialTextField extends TextField {
     // ==================== Pseudo-classes ====================
 
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
-    private static final PseudoClass V_UNDERLINE = PseudoClass.getPseudoClass("underline");
-    private static final PseudoClass V_FILLED = PseudoClass.getPseudoClass("filled");
-    private static final PseudoClass V_OUTLINED = PseudoClass.getPseudoClass("outlined");
 
     // ==================== Constructors ====================
 
@@ -99,7 +90,6 @@ public class RXMaterialTextField extends TextField {
     public RXMaterialTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        pseudoClassStateChanged(V_UNDERLINE, DEFAULT_VARIANT == RXFieldVariant.UNDERLINE);
     }
 
     @Override
@@ -204,52 +194,6 @@ public class RXMaterialTextField extends TextField {
 
     public final void setInvalid(boolean value) {
         invalid.set(value);
-    }
-
-    // ==================== variant ====================
-
-    private final ObjectProperty<RXFieldVariant> variant =
-            new StyleableObjectProperty<>(DEFAULT_VARIANT) {
-                @Override
-                protected void invalidated() {
-                    RXFieldVariant v = get() == null ? DEFAULT_VARIANT : get();
-                    pseudoClassStateChanged(V_UNDERLINE, v == RXFieldVariant.UNDERLINE);
-                    pseudoClassStateChanged(V_FILLED, v == RXFieldVariant.FILLED);
-                    pseudoClassStateChanged(V_OUTLINED, v == RXFieldVariant.OUTLINED);
-                    requestLayout();
-                }
-
-                @Override
-                public CssMetaData<? extends Styleable, RXFieldVariant> getCssMetaData() {
-                    return StyleableProperties.VARIANT;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXMaterialTextField.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "variant";
-                }
-            };
-
-    /**
-     * Visual variant. {@code null} falls back to {@link #DEFAULT_VARIANT}.
-     *
-     * @return the variant property
-     */
-    public final ObjectProperty<RXFieldVariant> variantProperty() {
-        return variant;
-    }
-
-    public final RXFieldVariant getVariant() {
-        return variant.get();
-    }
-
-    public final void setVariant(RXFieldVariant value) {
-        variant.set(value);
     }
 
     // ==================== floatingLabel ====================
@@ -444,21 +388,6 @@ public class RXMaterialTextField extends TextField {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXMaterialTextField, RXFieldVariant> VARIANT =
-                new CssMetaData<>("-rx-field-variant",
-                        new KeywordConverter<>(RXFieldVariant::fromKeyword), DEFAULT_VARIANT) {
-                    @Override
-                    public boolean isSettable(RXMaterialTextField n) {
-                        return !n.variant.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXFieldVariant> getStyleableProperty(RXMaterialTextField n) {
-                        return (StyleableProperty<RXFieldVariant>) n.variantProperty();
-                    }
-                };
-
         private static final CssMetaData<RXMaterialTextField, Boolean> FLOATING_LABEL =
                 new CssMetaData<>("-rx-floating-label",
                         BooleanConverter.getInstance(), DEFAULT_FLOATING_LABEL) {
@@ -540,7 +469,7 @@ public class RXMaterialTextField extends TextField {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(TextField.getClassCssMetaData());
             Collections.addAll(styleables,
-                    VARIANT, FLOATING_LABEL, ANIMATED, ANIMATION_DURATION, LABEL_FLOAT_SCALE, TEXT_PADDING);
+                    FLOATING_LABEL, ANIMATED, ANIMATION_DURATION, LABEL_FLOAT_SCALE, TEXT_PADDING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

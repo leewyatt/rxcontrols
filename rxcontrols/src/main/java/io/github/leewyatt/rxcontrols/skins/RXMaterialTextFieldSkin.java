@@ -27,7 +27,6 @@ public class RXMaterialTextFieldSkin extends RXMaterialFieldBaseSkin {
                 control.animatedProperty(),
                 control.animationDurationProperty(),
                 control.labelFloatScaleProperty(),
-                control.variantProperty(),
                 control.showClearButtonProperty());
     }
 }

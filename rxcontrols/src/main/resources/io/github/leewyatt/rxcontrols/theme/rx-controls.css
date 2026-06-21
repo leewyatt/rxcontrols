@@ -395,32 +395,6 @@
     -rx-text-padding: 0 0.583em 0 0.583em;
 }
 
-/* FILLED variant: surface-variant box behind the editor, rounded top */
-.rx-material-text-field:filled > .container,
-.rx-material-password-field:filled > .container {
-    -fx-background-color: -rx-surface-variant;
-    -fx-background-radius: 4 4 0 0;
-}
-
-/* state layer tints with -rx-state-overlay-color (black on light / white on dark),
-   so hover / focus reads correctly in every theme */
-.rx-material-text-field:filled > .state-overlay,
-.rx-material-password-field:filled > .state-overlay {
-    -fx-background-color: -rx-state-overlay-color;
-    -fx-background-radius: 4 4 0 0;
-    -fx-opacity: 0;
-}
-
-.rx-material-text-field:filled:hover > .state-overlay,
-.rx-material-password-field:filled:hover > .state-overlay {
-    -fx-opacity: 0.08;
-}
-
-.rx-material-text-field:filled:focused > .state-overlay,
-.rx-material-password-field:filled:focused > .state-overlay {
-    -fx-opacity: 0.12;
-}
-
 .rx-material-text-field > .label,
 .rx-material-password-field > .label {
     -fx-text-fill: -rx-on-surface-secondary;

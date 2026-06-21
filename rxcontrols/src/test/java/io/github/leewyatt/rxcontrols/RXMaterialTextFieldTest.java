@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import io.github.leewyatt.rxcontrols.skins.RXMaterialTextFieldSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -38,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Headless unit tests for {@link RXMaterialTextField} and its skin: property
- * plumbing, variant / invalid / floated pseudo-classes, CSS metadata, the band
+ * plumbing, invalid / floated pseudo-classes, CSS metadata, the band
  * height contract (label + line + supporting, each counted once; max == pref),
  * prompt-text label fallback, accessible name, hit-test correctness, snapped
  * animation end-values, and the built-in clear button (presence by editable +
@@ -48,9 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class RXMaterialTextFieldTest {
 
-    private static final PseudoClass UNDERLINE = PseudoClass.getPseudoClass("underline");
-    private static final PseudoClass FILLED = PseudoClass.getPseudoClass("filled");
-    private static final PseudoClass OUTLINED = PseudoClass.getPseudoClass("outlined");
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
     private static final PseudoClass FLOATED = PseudoClass.getPseudoClass("floated");
 
@@ -74,24 +70,12 @@ public class RXMaterialTextFieldTest {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
     }
 
-    // ==================== Enum ====================
-
-    @Test
-    public void fromKeywordNormalizesAndReturnsNullForUnknown() {
-        assertEquals(RXFieldVariant.UNDERLINE, RXFieldVariant.fromKeyword("underline"));
-        assertEquals(RXFieldVariant.FILLED, RXFieldVariant.fromKeyword("  FILLED "));
-        assertEquals(RXFieldVariant.OUTLINED, RXFieldVariant.fromKeyword("OUTLINED"));
-        assertNull(RXFieldVariant.fromKeyword("bogus"));
-        assertNull(RXFieldVariant.fromKeyword(null));
-    }
-
     // ==================== Property plumbing ====================
 
     @Test
     public void defaultsAndPlumbing() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
-            assertEquals(RXFieldVariant.UNDERLINE, field.getVariant());
             assertTrue(field.isFloatingLabel());
             assertTrue(field.isAnimated());
             assertTrue(field.isShowClearButton());
@@ -104,7 +88,6 @@ public class RXMaterialTextFieldTest {
             field.setLabelText("Name");
             field.setHelperText("required");
             field.setErrorText("too short");
-            field.setVariant(RXFieldVariant.FILLED);
             field.setFloatingLabel(false);
             field.setAnimated(false);
             field.setAnimationDuration(Duration.millis(90));
@@ -120,7 +103,6 @@ public class RXMaterialTextFieldTest {
             assertEquals("Name", field.getLabelText());
             assertEquals("required", field.getHelperText());
             assertEquals("too short", field.getErrorText());
-            assertEquals(RXFieldVariant.FILLED, field.getVariant());
             assertFalse(field.isFloatingLabel());
             assertFalse(field.isAnimated());
             assertEquals(Duration.millis(90), field.getAnimationDuration());
@@ -133,29 +115,6 @@ public class RXMaterialTextFieldTest {
     }
 
     // ==================== Pseudo-classes ====================
-
-    @Test
-    public void variantDrivesPseudoClasses() {
-        runOnFx(() -> {
-            RXMaterialTextField field = new RXMaterialTextField();
-            assertTrue(field.getPseudoClassStates().contains(UNDERLINE));
-            assertFalse(field.getPseudoClassStates().contains(FILLED));
-
-            field.setVariant(RXFieldVariant.FILLED);
-            assertFalse(field.getPseudoClassStates().contains(UNDERLINE));
-            assertTrue(field.getPseudoClassStates().contains(FILLED));
-
-            field.setVariant(RXFieldVariant.OUTLINED);
-            assertTrue(field.getPseudoClassStates().contains(OUTLINED));
-            assertFalse(field.getPseudoClassStates().contains(FILLED));
-
-            // null is lenient: getter returns null, pseudo-class falls back to default.
-            field.setVariant(null);
-            assertNull(field.getVariant());
-            assertTrue(field.getPseudoClassStates().contains(UNDERLINE));
-            assertFalse(field.getPseudoClassStates().contains(OUTLINED));
-        });
-    }
 
     @Test
     public void invalidDrivesPseudoClass() {
