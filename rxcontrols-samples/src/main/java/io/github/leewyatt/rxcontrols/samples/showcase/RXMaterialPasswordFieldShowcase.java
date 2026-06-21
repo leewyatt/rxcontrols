@@ -1,13 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXMaterialTextField;
+import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
@@ -17,68 +16,52 @@ import javafx.util.Duration;
 import java.util.List;
 
 /**
- * Showcase for {@link RXMaterialTextField}.
+ * Showcase for {@link RXMaterialPasswordField}.
  *
- * <p>Exercises the text-field styleable + runtime properties: variant
- * (UNDERLINE / FILLED), floating label + scale, animation toggle + duration,
- * invalid / helper / error supporting text, a leading node, and the built-in
- * clear button. A variant-comparison strip and the theme bar (Modena / dark /
- * AtlantaFX) show the role-token theming. The password sibling has its own
- * {@link RXMaterialPasswordFieldShowcase}.</p>
+ * <p>Exercises the shared Material properties (variant, floating label + scale,
+ * animation, invalid / helper / error, leading node, clear button) plus the
+ * password-specific reveal toggle, reveal-button switch, and echo character.
+ * The theme bar (Modena / dark / AtlantaFX) shows the role-token theming; the
+ * text sibling has its own {@link RXMaterialTextFieldShowcase}.</p>
  */
-public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
+public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
 
-    private RXMaterialTextField field;
+    private RXMaterialPasswordField field;
 
     // ==================== Showcase wiring ====================
 
     @Override
     protected String title() {
-        return "RXMaterialTextField";
+        return "RXMaterialPasswordField";
     }
 
     @Override
     protected String subtitle() {
-        return "Floating label, activation line, supporting text, clear button";
+        return "Floating label, mask / reveal, supporting text, clear button";
     }
 
     @Override
     protected String windowTitle() {
-        return "RXMaterialTextField Showcase";
+        return "RXMaterialPasswordField Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-material-text-field-showcase.css").toExternalForm();
+        return getClass().getResource("rx-material-password-field-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXMaterialTextField();
-        field.setLabelText("Full name");
-        field.setHelperText("As it appears on your ID");
+        field = new RXMaterialPasswordField("s3cr3t-pw");
+        field.setLabelText("Password");
+        field.setHelperText("At least 8 characters");
+        field.setLeadingNode(icon("lock-icon"));
         field.setPrefColumnCount(18);
 
-        Label variantsHint = new Label("Variant comparison");
-        variantsHint.getStyleClass().add("hint-label");
-        RXMaterialTextField underline = compareField("Underline", RXFieldVariant.UNDERLINE);
-        RXMaterialTextField filled = compareField("Filled", RXFieldVariant.FILLED);
-        VBox comparison = new VBox(10.0, variantsHint, underline, filled);
-        comparison.getStyleClass().add("comparison");
-
-        VBox preview = new VBox(22.0, field, comparison);
+        VBox preview = new VBox(22.0, field);
         preview.getStyleClass().add("live-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
-    }
-
-    private static RXMaterialTextField compareField(String label, RXFieldVariant variant) {
-        RXMaterialTextField sample = new RXMaterialTextField();
-        sample.setLabelText(label);
-        sample.setText(label);
-        sample.setVariant(variant);
-        sample.setPrefColumnCount(14);
-        return sample;
     }
 
     @Override
@@ -86,7 +69,8 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Content", buildContentGrid()),
                 section("Variant & state", buildStateGrid()),
-                section("Animation", buildAnimationGrid()));
+                section("Animation", buildAnimationGrid()),
+                section("Password", buildPasswordGrid()));
     }
 
     // ==================== Sections ====================
@@ -129,10 +113,6 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         clearBox.setSelected(field.isShowClearButton());
         field.showClearButtonProperty().bind(clearBox.selectedProperty());
 
-        CheckBox leadingBox = new CheckBox();
-        leadingBox.selectedProperty().addListener((obs, oldV, newV) ->
-                field.setLeadingNode(newV ? icon("person-icon") : null));
-
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());
         field.editableProperty().bind(editableBox.selectedProperty());
@@ -145,7 +125,6 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 row("Floating label", floatingBox),
                 row("Invalid", invalidBox),
                 row("Clear button", clearBox),
-                row("Leading icon", leadingBox),
                 row("Editable", editableBox),
                 row("Disabled", disableBox));
     }
@@ -167,6 +146,26 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 row("Animated", animatedBox),
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
                 row("Label scale", scaleSlider, createValueLabel(scaleSlider, "%.2f")));
+    }
+
+    private Node buildPasswordGrid() {
+        CheckBox revealBox = new CheckBox();
+        field.revealPasswordProperty().bind(revealBox.selectedProperty());
+
+        CheckBox revealButtonBox = new CheckBox();
+        revealButtonBox.setSelected(field.isShowRevealButton());
+        field.showRevealButtonProperty().bind(revealButtonBox.selectedProperty());
+
+        ComboBox<Character> echoBox = new ComboBox<>();
+        echoBox.getItems().setAll('●', '•', '*', '✱');
+        echoBox.setValue(field.getEchoChar());
+        echoBox.setMaxWidth(Double.MAX_VALUE);
+        field.echoCharProperty().bind(echoBox.valueProperty());
+
+        return createGrid(
+                row("Reveal", revealBox),
+                row("Reveal button", revealButtonBox),
+                row("Echo char", echoBox));
     }
 
     // ==================== Helpers ====================

@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import javafx.application.Application;
@@ -13,17 +12,17 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Sample sign-up form demonstrating {@link RXMaterialTextField} and
- * {@link RXMaterialPasswordField}: floating labels, a leading icon, supporting
- * helper text, the built-in clear / reveal affordances, the FILLED variant, and
- * app-driven display-only validation (set {@code invalid} + {@code errorText} on
- * blur). Icons are shape-backed {@code Region}s, not text glyphs.
+ * Sample profile form demonstrating {@link RXMaterialTextField}: floating labels,
+ * leading icons, supporting helper text, the built-in clear button, the FILLED
+ * variant, and app-driven display-only validation (set {@code invalid} +
+ * {@code errorText} on blur). Icons are shape-backed {@code Region}s, not text
+ * glyphs. The password sibling has its own {@code RXMaterialPasswordFieldDemo}.
  */
 public class RXMaterialTextFieldDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Label heading = new Label("Create your account");
+        Label heading = new Label("Edit your profile");
         heading.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
         RXMaterialTextField name = new RXMaterialTextField();
@@ -45,24 +44,20 @@ public class RXMaterialTextFieldDemo extends Application {
             }
         });
 
-        RXMaterialPasswordField password = new RXMaterialPasswordField();
-        password.setLabelText("Password");
-        password.setHelperText("At least 8 characters");
+        RXMaterialTextField displayName = new RXMaterialTextField();
+        displayName.setLabelText("Display name (filled)");
+        displayName.setVariant(RXFieldVariant.FILLED);
 
-        RXMaterialTextField filled = new RXMaterialTextField();
-        filled.setLabelText("Display name (filled)");
-        filled.setVariant(RXFieldVariant.FILLED);
+        Button save = new Button("Save");
+        save.setDefaultButton(true);
+        save.setMaxWidth(Double.MAX_VALUE);
 
-        Button submit = new Button("Sign up");
-        submit.setDefaultButton(true);
-        submit.setMaxWidth(Double.MAX_VALUE);
-
-        VBox form = new VBox(20.0, heading, name, email, password, filled, submit);
+        VBox form = new VBox(20.0, heading, name, email, displayName, save);
         form.setAlignment(Pos.TOP_LEFT);
         form.setStyle("-fx-padding: 32; -fx-background-color: -fx-background;");
         form.setFillWidth(true);
 
-        primaryStage.setScene(new Scene(form, 380, 460));
+        primaryStage.setScene(new Scene(form, 380, 420));
         primaryStage.setTitle("RXMaterialTextField Demo");
         primaryStage.show();
     }
