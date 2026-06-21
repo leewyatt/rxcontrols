@@ -1,0 +1,8 @@
+.rx-tile-pane {
+    -fx-padding: 12px;
+}
+
+.hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}

@@ -109,7 +109,8 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
                 (obs, old, value) -> grid.setMaxColumns(value.intValue()));
         return createGrid(
                 row("Forced", columnCount, sentinelLabel(columnCount, "auto")),
-                row("Max", maxColumns, sentinelLabel(maxColumns, "none")));
+                row("Max", maxColumns, sentinelLabel(maxColumns, "none")),
+                row(hint("Forced count is still capped by Max — e.g. forced 5 + max 2 shows 2.")));
     }
 
     private Node layoutGrid() {
@@ -199,6 +200,13 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
             int v = (int) Math.round(slider.getValue());
             return v <= 0 ? zeroText : Integer.toString(v);
         }, slider.valueProperty()));
+        return label;
+    }
+
+    private Label hint(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("hint");
+        label.setWrapText(true);
         return label;
     }
 

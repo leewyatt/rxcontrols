@@ -1,8 +1,8 @@
-.rx-grid-view {
+.rx-tile-view {
     -fx-padding: 12px;
 }
 
-.grid-placeholder {
+.tile-placeholder {
     -fx-font-size: 16px;
     -fx-text-fill: -rx-on-surface-secondary;
 }

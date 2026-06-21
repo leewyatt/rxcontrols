@@ -1,0 +1,623 @@
+package io.github.leewyatt.rxcontrols.skins;
+
+import io.github.leewyatt.rxcontrols.RXGridJustify;
+import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.RXTileCell;
+import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
+import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
+import javafx.scene.Node;
+import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.SelectionMode;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.StackPane;
+
+/**
+ * Skin for {@link RXTileView}. It assembles the self-built virtualizing
+ * {@link RXTileViewport}, resolves the column count from {@code cellWidth}, the
+ * available content width and the measured vertical scroll-bar breadth (or a
+ * forced {@code columnCount}), drives the placeholder and the {@code :empty}
+ * state, consumes pending scroll requests and publishes the read-only layout
+ * metrics ({@code actualColumnCount}, {@code rowCount}, {@code visibleRange},
+ * {@code visibleSection}) after every pass.
+ *
+ * <p>Grouping is supplied by the control's width-independent
+ * {@link RXTileView#sectionsProperty() sections}; the skin builds a
+ * {@link RXTileRowPlan} (header rows interleaved with data rows) and shares it
+ * with the viewport. A flat view (no section-key factory) is the degenerate plan
+ * with no header rows.
+ *
+ * @param <T> the item type
+ */
+public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
+
+    private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
+    private static final int MAX_RESOLVED_COLUMNS = 4096;
+    private static final int DEFAULT_PREF_COLUMNS = 3;
+    private static final int DEFAULT_VISIBLE_ROWS = 4;
+
+    // Degenerate-case fallbacks for the geometry. cellWidth / cellHeight use a
+    // coerce+throw strategy, so their getters are valid on every normal path;
+    // these only guard a value left illegal by a bound source.
+    private static final double FALLBACK_CELL_WIDTH = 100.0;
+    private static final double FALLBACK_CELL_HEIGHT = 100.0;
+    private static final double FALLBACK_SECTION_HEADER_HEIGHT = 32.0;
+
+    // Key for the shift-range selection anchor, stashed in the control's property
+    // map (mirrors ListView's CellBehaviorBase anchor) so it needs no new API.
+    private static final String ANCHOR_KEY = "rx-tile-view-selection-anchor";
+
+    private final RXTileViewport<T> viewport;
+    private final StackPane placeholderRegion;
+
+    private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
+    private ObservableList<T> observedItems;
+
+    private final RXTileFocusModel<T> focusModel;
+    private MultipleSelectionModel<T> observedSelectionModel;
+    private final ListChangeListener<Integer> selectionListener = change -> refreshSelectionAndFocus();
+    private final ChangeListener<SelectionMode> selectionModeListener = (obs, oldMode, newMode) -> resetAnchor();
+
+    /**
+     * Creates the skin for the given tile view.
+     *
+     * @param control the tile view this skin is attached to
+     */
+    public RXTileViewSkin(RXTileView<T> control) {
+        super(control);
+
+        viewport = new RXTileViewport<>(control);
+        getChildren().add(viewport);
+
+        placeholderRegion = new StackPane();
+        placeholderRegion.getStyleClass().add("placeholder");
+        placeholderRegion.setVisible(false);
+        getChildren().add(placeholderRegion);
+
+        focusModel = new RXTileFocusModel<>(control);
+        viewport.setFocusModel(focusModel);
+
+        attachItems(control.getItems());
+        updatePlaceholder();
+        registerListeners(control);
+        attachSelectionModel(control.getSelectionModel());
+        disposer.registerDisposeTask(this::detachSelectionModel);
+    }
+
+    private void registerListeners(RXTileView<T> control) {
+        disposer.registerListener(control.itemsProperty(), this::onItemsListSwapped);
+        disposer.registerListener(control.cellFactoryProperty(), this::onCellFactoryChanged);
+        disposer.registerListener(control.cellWidthProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.hgapProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.columnCountProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.maxColumnsProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.cellHeightProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.stretchCellsProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
+        // Sections are derived on the control; the skin relayouts to rebuild the
+        // row plan whenever the derived list, the header toggle or the header
+        // height change. (sectionKeyFactory changes flow through sectionsProperty.)
+        disposer.registerListener(control.sectionsProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.showSectionHeadersProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
+        // Reorder animation: snap any in-flight glide when it is turned off mid-flight.
+        disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
+        disposer.registerListener(control.animationDurationProperty(), viewport::onAnimationSettingsChanged);
+        // Selection / focus: re-apply the per-cell state on change; re-wire on a
+        // selection-model swap; install the keyboard (control) and mouse (viewport)
+        // handlers. The control is the single Tab stop, so keys arrive on it.
+        disposer.registerListener(focusModel.focusedIndexProperty(), this::refreshSelectionAndFocus);
+        disposer.registerListener(control.selectionModelProperty(), this::onSelectionModelSwapped);
+        disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
+        disposer.registerDisposeTask(this::detachItems);
+    }
+
+    // Dirties the viewport (forcing a re-fill) and, by propagation, the control
+    // (so the skin re-runs updateColumns + publishes the visible range). Calling
+    // requestLayout on the control alone would not re-run the viewport's layout.
+    private void requestLayoutPass() {
+        viewport.requestLayout();
+    }
+
+    // ==================== Items ====================
+
+    private void onItemsListSwapped() {
+        attachItems(getSkinnable().getItems());
+        // The shift-range anchor referred to the previous list; drop it so a later
+        // Shift+arrow / Shift+click starts a fresh range instead of a stale origin.
+        resetAnchor();
+        updatePlaceholder();
+        viewport.requestLayout();
+    }
+
+    private void onItemsContentChanged() {
+        updatePlaceholder();
+        viewport.requestLayout();
+    }
+
+    private void attachItems(ObservableList<T> items) {
+        detachItems();
+        observedItems = items;
+        if (items != null) {
+            items.addListener(itemsContentListener);
+        }
+    }
+
+    private void detachItems() {
+        if (observedItems != null) {
+            observedItems.removeListener(itemsContentListener);
+            observedItems = null;
+        }
+    }
+
+    // ==================== Refresh paths ====================
+
+    private void onCellFactoryChanged() {
+        // recreateCells() discards the pool and requests a viewport layout.
+        viewport.recreateCells();
+    }
+
+    private void onSectionHeaderFactoryChanged() {
+        // recreateHeaders() discards the header pool and requests a viewport layout.
+        viewport.recreateHeaders();
+    }
+
+    private void onPlaceholderChanged() {
+        updatePlaceholder();
+        viewport.requestLayout();
+    }
+
+    // ==================== Column derivation ====================
+
+    private void updateColumns(double availableWidth, double availableHeight) {
+        RXTileView<T> control = getSkinnable();
+        // Resolve the column count and the scroll-bar presence together in one
+        // pass (VirtualFlow's 2-iteration approach): assume no bar, build the row
+        // plan, and if its content (header rows included) overflows, re-derive with
+        // the bar's breadth subtracted. Done here, not via a fragile cross-pass
+        // "bar appeared -> relayout" dependency (requestLayout from within a layout
+        // pass is suppressed). The plan is shared with the viewport so the two
+        // never disagree on geometry.
+        int columns = computeColumns(availableWidth);
+        RXTileRowPlan plan = buildPlan(columns);
+        if (plan.contentHeight() > availableHeight) {
+            columns = computeColumns(availableWidth - viewport.scrollBarBreadth());
+            plan = buildPlan(columns);
+        }
+        if (control.getActualColumnCount() != columns) {
+            control.setActualColumnCount(columns);
+        }
+        int visualRows = plan.totalVisualRows();
+        if (control.getRowCount() != visualRows) {
+            control.setRowCount(visualRows);
+        }
+        viewport.setRowPlan(plan);
+    }
+
+    private RXTileRowPlan buildPlan(int columns) {
+        RXTileView<T> control = getSkinnable();
+        return new RXTileRowPlan(control.getSections(), control.isShowSectionHeaders(), columns,
+                snapSizeY(sectionHeaderHeightOrDefault(control)), viewport.slotHeight(), itemCount());
+    }
+
+    private int computeColumns(double availableWidth) {
+        RXTileView<T> control = getSkinnable();
+        int columns;
+        int forced = control.getColumnCount();
+        if (forced >= 1) {
+            columns = forced;
+        } else {
+            double track = snapSizeX(cellWidthOrDefault(control));
+            double gap = snapSpaceX(gapOrZero(control.getHgap()));
+            if (availableWidth <= 0.0 || track <= 0.0) {
+                columns = 1;
+            } else {
+                columns = (int) Math.floor((availableWidth + gap) / (track + gap));
+            }
+        }
+        if (columns < 1) {
+            columns = 1;
+        }
+        int max = control.getMaxColumns();
+        if (max > 0 && columns > max) {
+            columns = max;
+        }
+        if (columns > MAX_RESOLVED_COLUMNS) {
+            columns = MAX_RESOLVED_COLUMNS;
+        }
+        return columns;
+    }
+
+    // ==================== Visible range ====================
+
+    private void updateVisibleRange() {
+        RXTileView<T> control = getSkinnable();
+        int firstIndex = viewport.getVisibleFirstIndex();
+        int lastIndex = viewport.getVisibleLastIndex();
+        if (firstIndex < 0 || lastIndex < 0) {
+            control.setVisibleRange(RXTileVisibleRange.EMPTY);
+            return;
+        }
+        // firstRow / lastRow are DATA-row indices (header rows excluded), distinct
+        // from the visual rowCount which counts header rows too.
+        control.setVisibleRange(new RXTileVisibleRange(firstIndex, lastIndex,
+                viewport.getVisibleFirstRow(), viewport.getVisibleLastRow(),
+                control.getActualColumnCount()));
+    }
+
+    private void updateVisibleSection() {
+        // The viewport reports the section at the top of the window (null when flat).
+        getSkinnable().setVisibleSection(viewport.getTopSection());
+    }
+
+    // ==================== Placeholder / :empty ====================
+
+    private void updatePlaceholder() {
+        RXTileView<T> control = getSkinnable();
+        boolean empty = itemCount() == 0;
+        control.pseudoClassStateChanged(EMPTY_PSEUDO_CLASS, empty);
+
+        Node placeholder = control.getPlaceholder();
+        boolean showPlaceholder = empty && placeholder != null;
+        if (showPlaceholder) {
+            placeholderRegion.getChildren().setAll(placeholder);
+        } else {
+            placeholderRegion.getChildren().clear();
+        }
+        placeholderRegion.setVisible(showPlaceholder);
+        viewport.setVisible(!showPlaceholder);
+    }
+
+    // ==================== Scrolling ====================
+
+    private void consumePendingScroll() {
+        RXTileView<T> control = getSkinnable();
+        if (!control.hasPendingScroll()) {
+            return;
+        }
+        int itemCount = itemCount();
+        if (itemCount == 0) {
+            control.clearPendingScroll();
+            return;
+        }
+        int index = Math.max(0, Math.min(control.getPendingScrollIndex(), itemCount - 1));
+        // Clear only when the request was actually applied. On a zero-height pass
+        // scrollToIndex cannot compute geometry and returns false; keeping the
+        // request armed lets the first sized pass honor it.
+        if (viewport.scrollToIndex(index, control.getPendingScrollAlignment())) {
+            control.clearPendingScroll();
+        }
+    }
+
+    // ==================== Layout ====================
+
+    @Override
+    protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
+        updateColumns(contentWidth, contentHeight);
+        viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
+        placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
+        consumePendingScroll();
+        // Force the viewport to realize cells now so the scroll request and the
+        // published visible range reflect this pass, not the previous one.
+        viewport.layout();
+        updateVisibleRange();
+        updateVisibleSection();
+    }
+
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        RXTileView<T> control = getSkinnable();
+        double cellWidth = cellWidthOrDefault(control);
+        double gap = gapOrZero(control.getHgap());
+        return leftInset + DEFAULT_PREF_COLUMNS * cellWidth
+                + (DEFAULT_PREF_COLUMNS - 1) * gap + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        RXTileView<T> control = getSkinnable();
+        double slot = cellHeightOrDefault(control) + gapOrZero(control.getVgap());
+        return topInset + DEFAULT_VISIBLE_ROWS * slot + bottomInset;
+    }
+
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return leftInset + cellWidthOrDefault(getSkinnable()) + rightInset;
+    }
+
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return topInset + bottomInset;
+    }
+
+    @Override
+    protected double computeMaxWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return Double.MAX_VALUE;
+    }
+
+    @Override
+    protected double computeMaxHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return Double.MAX_VALUE;
+    }
+
+    @Override
+    protected void disposeSkin() {
+        // detachItems / detachSelectionModel run via the disposer (registerDisposeTask).
+        viewport.dispose();
+        placeholderRegion.getChildren().clear();
+    }
+
+    // ==================== Selection model wiring ====================
+
+    // Routes through the viewport; defined as a method so field initializers and
+    // listeners can reference it before the viewport field is assigned.
+    private void refreshSelectionAndFocus() {
+        viewport.refreshSelectionAndFocus();
+    }
+
+    private void onSelectionModelSwapped() {
+        attachSelectionModel(getSkinnable().getSelectionModel());
+        refreshSelectionAndFocus();
+        getSkinnable().requestLayout();
+    }
+
+    private void attachSelectionModel(MultipleSelectionModel<T> model) {
+        detachSelectionModel();
+        observedSelectionModel = model;
+        if (model != null) {
+            model.getSelectedIndices().addListener(selectionListener);
+            model.selectionModeProperty().addListener(selectionModeListener);
+        }
+    }
+
+    private void detachSelectionModel() {
+        if (observedSelectionModel != null) {
+            observedSelectionModel.getSelectedIndices().removeListener(selectionListener);
+            observedSelectionModel.selectionModeProperty().removeListener(selectionModeListener);
+            observedSelectionModel = null;
+        }
+    }
+
+    // ==================== Anchor ====================
+
+    private void setAnchor(int index) {
+        getSkinnable().getProperties().put(ANCHOR_KEY, index);
+    }
+
+    private int getAnchor() {
+        Object anchor = getSkinnable().getProperties().get(ANCHOR_KEY);
+        return anchor instanceof Integer value ? value : focusModel.getFocusedIndex();
+    }
+
+    private void resetAnchor() {
+        getSkinnable().getProperties().remove(ANCHOR_KEY);
+    }
+
+    // ==================== Keyboard ====================
+
+    private void onKeyPressed(KeyEvent event) {
+        RXTileView<T> control = getSkinnable();
+        MultipleSelectionModel<T> sm = control.getSelectionModel();
+        int itemCount = itemCount();
+        if (sm == null || itemCount == 0) {
+            return;
+        }
+        int cols = Math.max(1, control.getActualColumnCount());
+        int focus = focusModel.getFocusedIndex();
+        boolean shift = event.isShiftDown();
+        boolean shortcut = event.isShortcutDown();
+        switch (event.getCode()) {
+            case LEFT, KP_LEFT -> consume(event, () -> arrow(focus, -1, shift, shortcut));
+            case RIGHT, KP_RIGHT -> consume(event, () -> arrow(focus, 1, shift, shortcut));
+            case UP, KP_UP -> consume(event, () -> arrow(focus, -cols, shift, shortcut));
+            case DOWN, KP_DOWN -> consume(event, () -> arrow(focus, cols, shift, shortcut));
+            case HOME -> consume(event, () -> moveTo(0, shift, shortcut));
+            case END -> consume(event, () -> moveTo(itemCount - 1, shift, shortcut));
+            case PAGE_UP -> consume(event, () -> page(-1, shift, shortcut));
+            case PAGE_DOWN -> consume(event, () -> page(1, shift, shortcut));
+            case SPACE -> {
+                if (focus >= 0) {
+                    toggleFocused(focus);
+                    event.consume();
+                }
+            }
+            case ENTER -> {
+                if (focus >= 0) {
+                    activate(focus);
+                    event.consume();
+                }
+            }
+            case A -> {
+                if (shortcut) {
+                    sm.selectAll();
+                    event.consume();
+                }
+            }
+            default -> { }
+        }
+    }
+
+    private static void consume(KeyEvent event, Runnable action) {
+        action.run();
+        event.consume();
+    }
+
+    private void arrow(int focus, int delta, boolean shift, boolean shortcut) {
+        int itemCount = itemCount();
+        int target;
+        if (focus < 0) {
+            // No focus yet: the first arrow lands on the leading / trailing item.
+            target = delta > 0 ? 0 : itemCount - 1;
+        } else {
+            target = clampIndex(focus + delta, itemCount);
+            if (target == focus) {
+                return;
+            }
+        }
+        moveTo(target, shift, shortcut);
+    }
+
+    private void page(int direction, boolean shift, boolean shortcut) {
+        int itemCount = itemCount();
+        int cols = Math.max(1, getSkinnable().getActualColumnCount());
+        RXTileVisibleRange range = getSkinnable().getVisibleRange();
+        int visibleRows = range.isEmpty() ? 1 : Math.max(1, range.lastRow() - range.firstRow() + 1);
+        int focus = focusModel.getFocusedIndex();
+        int from = focus < 0 ? (direction > 0 ? 0 : itemCount - 1) : focus;
+        int target = clampIndex(from + direction * visibleRows * cols, itemCount);
+        moveTo(target, shift, shortcut);
+    }
+
+    // Navigation works on item indices, never visual rows, so it naturally skips
+    // section-header rows (a header occupies a visual row but no item index).
+    private void moveTo(int target, boolean shift, boolean shortcut) {
+        MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
+        if (sm == null) {
+            return;
+        }
+        focusModel.focus(target);
+        if (shortcut) {
+            // Ctrl/Cmd + navigation moves focus only; selection is unchanged.
+            setAnchor(target);
+        } else if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+            int anchor = clampIndex(getAnchor(), itemCount());
+            sm.clearSelection();
+            sm.selectRange(anchor, target >= anchor ? target + 1 : target - 1);
+        } else {
+            setAnchor(target);
+            sm.clearAndSelect(target);
+        }
+        getSkinnable().scrollTo(target, RXGridScrollAlignment.NEAREST);
+    }
+
+    private void toggleFocused(int focus) {
+        if (focus < 0) {
+            return;
+        }
+        MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
+        if (sm == null) {
+            return;
+        }
+        if (sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+            if (sm.isSelected(focus)) {
+                sm.clearSelection(focus);
+            } else {
+                sm.select(focus);
+            }
+        } else {
+            sm.clearAndSelect(focus);
+        }
+        setAnchor(focus);
+    }
+
+    private void activate(int index) {
+        RXTileView<T> control = getSkinnable();
+        if (index < 0 || index >= itemCount()) {
+            return;
+        }
+        T item = control.getItems().get(index);
+        control.fireEvent(new RXTileViewActionEvent<>(control, item, index));
+    }
+
+    // ==================== Mouse ====================
+
+    private void onMousePressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+        RXTileView<T> control = getSkinnable();
+        if (control.isFocusTraversable()) {
+            control.requestFocus();
+        }
+        MultipleSelectionModel<T> sm = control.getSelectionModel();
+        RXTileCell<T> cell = viewport.cellAt(event.getTarget());
+        if (sm == null || cell == null) {
+            return;
+        }
+        int index = cell.getIndex();
+        focusModel.focus(index);
+        if (event.isShortcutDown()) {
+            if (sm.isSelected(index)) {
+                sm.clearSelection(index);
+            } else {
+                sm.select(index);
+            }
+            setAnchor(index);
+        } else if (event.isShiftDown() && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+            int anchor = clampIndex(getAnchor(), itemCount());
+            sm.clearSelection();
+            sm.selectRange(anchor, index >= anchor ? index + 1 : index - 1);
+        } else {
+            setAnchor(index);
+            sm.clearAndSelect(index);
+        }
+    }
+
+    private void onMouseClicked(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+            RXTileCell<T> cell = viewport.cellAt(event.getTarget());
+            if (cell != null) {
+                activate(cell.getIndex());
+            }
+        }
+    }
+
+    private static int clampIndex(int index, int itemCount) {
+        if (index < 0) {
+            return 0;
+        }
+        if (index >= itemCount) {
+            return itemCount - 1;
+        }
+        return index;
+    }
+
+    // ==================== Shared helpers ====================
+
+    private int itemCount() {
+        ObservableList<T> items = getSkinnable().getItems();
+        return items == null ? 0 : items.size();
+    }
+
+    static double cellWidthOrDefault(RXTileView<?> control) {
+        return finitePositiveOrDefault(control.getCellWidth(), FALLBACK_CELL_WIDTH);
+    }
+
+    static double cellHeightOrDefault(RXTileView<?> control) {
+        return finitePositiveOrDefault(control.getCellHeight(), FALLBACK_CELL_HEIGHT);
+    }
+
+    static double sectionHeaderHeightOrDefault(RXTileView<?> control) {
+        return finitePositiveOrDefault(control.getSectionHeaderHeight(), FALLBACK_SECTION_HEADER_HEIGHT);
+    }
+
+    static double gapOrZero(double value) {
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
+    static double finitePositiveOrDefault(double value, double fallback) {
+        return Double.isFinite(value) && value > 0.0 ? value : fallback;
+    }
+
+    static RXGridJustify justifyOrDefault(RXGridJustify justify) {
+        return justify == null ? RXGridJustify.START : justify;
+    }
+}
