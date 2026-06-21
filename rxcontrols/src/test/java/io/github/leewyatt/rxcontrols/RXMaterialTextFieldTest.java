@@ -801,6 +801,32 @@ public class RXMaterialTextFieldTest {
         });
     }
 
+    @Test
+    public void disposeRemovesDecorationNodesFromControl() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            field.setHelperText("required");
+            inScene(field);
+            assertEquals(1, field.lookupAll(".activation-line").size(), "decoration not installed");
+
+            // The decoration nodes are added to the control's (shared) children;
+            // SkinBase.dispose() does not clear them, so the skin must remove what
+            // it added — otherwise the nodes linger if the control later installs
+            // another skin. (Mirrors RXFieldBaseSkin's wrapper release.)
+            field.getSkin().dispose();
+
+            assertEquals(0, field.lookupAll(".activation-line").size(),
+                    "dispose must remove the activation line it added");
+            assertEquals(0, field.lookupAll(".accent-line").size(),
+                    "dispose must remove the accent line it added");
+            assertEquals(0, field.lookupAll(".container").size(),
+                    "dispose must remove the filled container it added");
+            assertEquals(0, field.lookupAll(".supporting").size(),
+                    "dispose must remove the supporting row it added");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static Label floatingLabel(RXMaterialTextField field) {

@@ -20,9 +20,10 @@ import java.util.List;
  *
  * <p>Exercises the shared Material properties (variant, floating label + scale,
  * animation, invalid / helper / error, leading node, clear button) plus the
- * password-specific reveal toggle, reveal-button switch, and echo character.
- * The theme bar (Modena / dark / AtlantaFX) shows the role-token theming; the
- * text sibling has its own {@link RXMaterialTextFieldShowcase}.</p>
+ * password-specific reveal-button switch and echo character; reveal itself is
+ * toggled via the in-pane eye button. The theme bar (Modena / dark / AtlantaFX)
+ * shows the role-token theming; the text sibling has its own
+ * {@link RXMaterialTextFieldShowcase}.</p>
  */
 public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
 

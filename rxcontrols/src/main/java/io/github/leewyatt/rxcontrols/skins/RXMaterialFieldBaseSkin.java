@@ -291,6 +291,17 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerDisposeTask(this::stopFloatTimeline);
         disposer.registerDisposeTask(this::stopAccentTimeline);
         disposer.registerDisposeTask(clearFade::stop);
+        // Decoration nodes are added to the control's (shared) children, and
+        // SkinBase.dispose() does not clear them. Remove them (and detach their
+        // transforms) on dispose so they don't linger — mirroring what
+        // RXFieldBaseSkin does for its wrappers. (builtinTrailing rides inside the
+        // base's right-wrapper, which the base releases.)
+        disposer.registerDisposeTask(() -> {
+            labelNode.getTransforms().remove(labelScale);
+            accentLine.getTransforms().remove(accentScale);
+            getChildren().removeAll(filledContainer, stateOverlay, activationLine,
+                    accentLine, labelNode, supporting);
+        });
 
         labelNode.setText(effectiveLabelText());
         updateAccessibleName();

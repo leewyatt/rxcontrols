@@ -133,12 +133,21 @@ public class RXMaterialTextFieldUITest {
             root.applyCss();
             root.layout();
 
-            // Start a float transition (showing + animated), then dispose mid-flight:
-            // dispose must stop the running Timeline without throwing.
+            // Start a float transition (showing + animated). The Timeline is now
+            // running; dispose mid-flight must stop it without throwing.
             field.setText("");
+            // Capture the label before dispose: dispose removes the decoration nodes
+            // it added, so the lookup would return null afterwards. The Label object
+            // itself stays alive (we hold the reference).
+            Label label = floatingLabel(field);
+            assertNotNull(label, "floating label missing before dispose");
+            // Detach the field before disposing its skin: a manually-disposed skin
+            // that is still in a shown scene would be laid out on the next pulse and
+            // NPE inside SkinBase (control == null) — a test-only hazard, not a
+            // production path (real dispose happens when the control drops the skin).
+            root.getChildren().clear();
             field.getSkin().dispose();
 
-            Label label = floatingLabel(field);
             double frozen = label.getTranslateY();
             // The float listener is detached, so a float-state change must not move
             // the orphaned label. (Text is not mutated post-dispose, which would
