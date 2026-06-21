@@ -108,6 +108,18 @@ public class RXGridViewSkinTest {
     }
 
     @Test
+    public void maxColumnsAlsoClampsForcedColumnCount() throws Exception {
+        onFx(() -> {
+            RXGridView<String> grid = grid(20);
+            grid.setColumnCount(5);
+            grid.setMaxColumns(2);
+            pump(host(grid, 800, 300));
+            assertEquals(2, grid.getActualColumnCount(),
+                    "a forced columnCount is still capped by maxColumns (matches RXMasonryPane)");
+        });
+    }
+
+    @Test
     public void hgapParticipatesInColumnCount() throws Exception {
         onFx(() -> {
             RXGridView<String> grid = grid(6);

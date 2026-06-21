@@ -49,9 +49,13 @@ public enum RXGridJustify {
     SPACE_EVENLY,
 
     /**
-     * Grow the cells to fill the row, keeping {@code hgap} between them, up to
-     * {@link RXGridView#maxCellWidthProperty() maxCellWidth}; once that cap is
-     * reached the resulting block is centered.
+     * Size the cells equally so they fill the row, keeping {@code hgap} between
+     * them. In adaptive mode cells only grow — the column count drops before a
+     * cell would shrink below {@code cellWidth} — up to
+     * {@link RXGridView#maxCellWidthProperty() maxCellWidth}, after which the
+     * resulting block is centered. Under a forced
+     * {@link RXGridView#columnCountProperty() columnCount} that does not fit,
+     * cells may shrink below {@code cellWidth} to keep that column count.
      */
     STRETCH
 }

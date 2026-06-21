@@ -436,9 +436,12 @@ public class RXGridView<T> extends Control {
             new SimpleIntegerProperty(this, "columnCount", DEFAULT_COLUMN_COUNT);
 
     /**
-     * Forced number of columns. A positive value overrides the automatic count;
-     * {@link #AUTO_COLUMNS} (or any value {@code <= 0}) derives the count from
-     * {@code cellWidth} and the available width.
+     * Forced number of columns. A positive value pins the count, switching the
+     * grid out of automatic derivation but still subject to
+     * {@link #maxColumnsProperty() maxColumns} (mirroring
+     * {@code RXMasonryPane.columnCount}); {@link #AUTO_COLUMNS} (or any value
+     * {@code <= 0}) derives the count from {@code cellWidth} and the available
+     * width.
      *
      * @return the column-count property
      */
