@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -13,10 +12,10 @@ import javafx.stage.Stage;
 
 /**
  * Sample profile form demonstrating {@link RXMaterialTextField}: floating labels,
- * leading icons, supporting helper text, the built-in clear button, the FILLED
- * variant, and app-driven display-only validation (set {@code invalid} +
- * {@code errorText} on blur). Icons are shape-backed {@code Region}s, not text
- * glyphs. The password sibling has its own {@code RXMaterialPasswordFieldDemo}.
+ * leading icons, supporting helper text, the built-in clear button, and
+ * app-driven display-only validation (set {@code invalid} + {@code errorText} on
+ * blur). Icons are shape-backed {@code Region}s, not text glyphs. The password
+ * sibling has its own {@code RXMaterialPasswordFieldDemo}.
  */
 public class RXMaterialTextFieldDemo extends Application {
 
@@ -45,8 +44,7 @@ public class RXMaterialTextFieldDemo extends Application {
         });
 
         RXMaterialTextField displayName = new RXMaterialTextField();
-        displayName.setLabelText("Display name (filled)");
-        displayName.setVariant(RXFieldVariant.FILLED);
+        displayName.setLabelText("Display name");
 
         Button save = new Button("Save");
         save.setDefaultButton(true);

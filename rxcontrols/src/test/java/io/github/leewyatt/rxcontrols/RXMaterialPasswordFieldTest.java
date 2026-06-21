@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -69,7 +68,6 @@ public class RXMaterialPasswordFieldTest {
         runOnFx(() -> {
             RXMaterialPasswordField field = new RXMaterialPasswordField();
             // shared Material defaults — must stay in parity with RXMaterialTextField
-            assertEquals(RXFieldVariant.UNDERLINE, field.getVariant());
             assertTrue(field.isFloatingLabel());
             assertTrue(field.isAnimated());
             assertTrue(field.isShowClearButton());
@@ -82,7 +80,6 @@ public class RXMaterialPasswordFieldTest {
             assertTrue(field.isShowRevealButton());
             assertEquals('●', field.getEchoChar());
 
-            field.setVariant(RXFieldVariant.FILLED);
             field.setFloatingLabel(false);
             field.setAnimated(false);
             field.setAnimationDuration(Duration.millis(90));
@@ -97,7 +94,6 @@ public class RXMaterialPasswordFieldTest {
             field.setShowRevealButton(false);
             field.setEchoChar('*');
 
-            assertEquals(RXFieldVariant.FILLED, field.getVariant());
             assertFalse(field.isFloatingLabel());
             assertFalse(field.isAnimated());
             assertEquals(Duration.millis(90), field.getAnimationDuration());

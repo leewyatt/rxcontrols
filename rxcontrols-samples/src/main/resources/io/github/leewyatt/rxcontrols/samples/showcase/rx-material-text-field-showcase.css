@@ -2,15 +2,6 @@
     -fx-padding: 28px;
 }
 
-.hint-label {
-    -fx-font-size: 11px;
-    -fx-text-fill: -fx-mid-text-color;
-}
-
-.comparison {
-    -fx-padding: 8px 0 0 0;
-}
-
 /* leading-icon toggle: a shape-backed Region (Material person glyph) */
 .person-icon {
     -fx-background-color: -rx-on-surface-secondary;

@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -18,7 +17,7 @@ import java.util.List;
 /**
  * Showcase for {@link RXMaterialPasswordField}.
  *
- * <p>Exercises the shared Material properties (variant, floating label + scale,
+ * <p>Exercises the shared Material properties (floating label + scale,
  * animation, invalid / helper / error, leading node, clear button) plus the
  * password-specific reveal-button switch and echo character; reveal itself is
  * toggled via the in-pane eye button. The theme bar (Modena / dark / AtlantaFX)
@@ -97,12 +96,6 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildStateGrid() {
-        ComboBox<RXFieldVariant> variantBox = new ComboBox<>();
-        variantBox.getItems().setAll(RXFieldVariant.UNDERLINE, RXFieldVariant.FILLED);
-        variantBox.setValue(field.getVariant());
-        variantBox.setMaxWidth(Double.MAX_VALUE);
-        field.variantProperty().bind(variantBox.valueProperty());
-
         CheckBox floatingBox = new CheckBox();
         floatingBox.setSelected(field.isFloatingLabel());
         field.floatingLabelProperty().bind(floatingBox.selectedProperty());
@@ -122,7 +115,6 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
         field.disableProperty().bind(disableBox.selectedProperty());
 
         return createGrid(
-                row("Variant", variantBox),
                 row("Floating label", floatingBox),
                 row("Invalid", invalidBox),
                 row("Clear button", clearBox),

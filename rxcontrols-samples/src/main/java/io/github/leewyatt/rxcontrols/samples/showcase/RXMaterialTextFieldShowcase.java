@@ -1,13 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
-import io.github.leewyatt.rxcontrols.enums.RXFieldVariant;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
@@ -19,11 +16,10 @@ import java.util.List;
 /**
  * Showcase for {@link RXMaterialTextField}.
  *
- * <p>Exercises the text-field styleable + runtime properties: variant
- * (UNDERLINE / FILLED), floating label + scale, animation toggle + duration,
- * invalid / helper / error supporting text, a leading node, and the built-in
- * clear button. A variant-comparison strip and the theme bar (Modena / dark /
- * AtlantaFX) show the role-token theming. The password sibling has its own
+ * <p>Exercises the text-field styleable + runtime properties: floating label +
+ * scale, animation toggle + duration, invalid / helper / error supporting text,
+ * a leading node, and the built-in clear button. The theme bar (Modena / dark /
+ * AtlantaFX) shows the role-token theming. The password sibling has its own
  * {@link RXMaterialPasswordFieldShowcase}.</p>
  */
 public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
@@ -59,33 +55,17 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         field.setHelperText("As it appears on your ID");
         field.setPrefColumnCount(18);
 
-        Label variantsHint = new Label("Variant comparison");
-        variantsHint.getStyleClass().add("hint-label");
-        RXMaterialTextField underline = compareField("Underline", RXFieldVariant.UNDERLINE);
-        RXMaterialTextField filled = compareField("Filled", RXFieldVariant.FILLED);
-        VBox comparison = new VBox(10.0, variantsHint, underline, filled);
-        comparison.getStyleClass().add("comparison");
-
-        VBox preview = new VBox(22.0, field, comparison);
+        VBox preview = new VBox(22.0, field);
         preview.getStyleClass().add("live-preview");
         preview.setAlignment(Pos.CENTER_LEFT);
         return preview;
-    }
-
-    private static RXMaterialTextField compareField(String label, RXFieldVariant variant) {
-        RXMaterialTextField sample = new RXMaterialTextField();
-        sample.setLabelText(label);
-        sample.setText(label);
-        sample.setVariant(variant);
-        sample.setPrefColumnCount(14);
-        return sample;
     }
 
     @Override
     protected List<Section> createSections() {
         return List.of(
                 section("Content", buildContentGrid()),
-                section("Variant & state", buildStateGrid()),
+                section("State", buildStateGrid()),
                 section("Animation", buildAnimationGrid()));
     }
 
@@ -112,12 +92,6 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildStateGrid() {
-        ComboBox<RXFieldVariant> variantBox = new ComboBox<>();
-        variantBox.getItems().setAll(RXFieldVariant.UNDERLINE, RXFieldVariant.FILLED);
-        variantBox.setValue(field.getVariant());
-        variantBox.setMaxWidth(Double.MAX_VALUE);
-        field.variantProperty().bind(variantBox.valueProperty());
-
         CheckBox floatingBox = new CheckBox();
         floatingBox.setSelected(field.isFloatingLabel());
         field.floatingLabelProperty().bind(floatingBox.selectedProperty());
@@ -141,7 +115,6 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         field.disableProperty().bind(disableBox.selectedProperty());
 
         return createGrid(
-                row("Variant", variantBox),
                 row("Floating label", floatingBox),
                 row("Invalid", invalidBox),
                 row("Clear button", clearBox),

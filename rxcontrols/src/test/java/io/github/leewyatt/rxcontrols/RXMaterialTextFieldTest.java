@@ -16,8 +16,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -160,7 +158,6 @@ public class RXMaterialTextFieldTest {
         Set<String> names = RXMaterialTextField.getClassCssMetaData().stream()
                 .map(CssMetaData::getProperty)
                 .collect(Collectors.toSet());
-        assertTrue(names.contains("-rx-field-variant"), names::toString);
         assertTrue(names.contains("-rx-floating-label"), names::toString);
         assertTrue(names.contains("-rx-animated"), names::toString);
         assertTrue(names.contains("-rx-animation-duration"), names::toString);
@@ -546,103 +543,7 @@ public class RXMaterialTextFieldTest {
         });
     }
 
-    // ==================== FILLED variant + supporting ====================
-
-    @Test
-    public void filledVariantFillsTheContainerWithSurfaceVariant() {
-        runOnFx(() -> {
-            RXMaterialTextField field = new RXMaterialTextField();
-            field.setLabelText("Name");
-            field.setVariant(RXFieldVariant.FILLED);
-            inScene(field);
-            Region container = (Region) field.lookup(".container");
-            assertNotNull(container, "filled container node must exist");
-            assertNotNull(container.getBackground(), "FILLED variant must fill the container");
-            assertFalse(container.getBackground().getFills().isEmpty(), "FILLED container must have a fill");
-            Paint fill = container.getBackground().getFills().get(0).getFill();
-            // pinned Modena baseline: -rx-surface-variant resolves to #f5f5f5 and must be opaque
-            // (a regression to `transparent` would still be a non-empty fill, hence this check)
-            assertEquals(Color.web("#f5f5f5"), fill,
-                    "FILLED container must resolve -rx-surface-variant (#f5f5f5 under the Modena baseline)");
-        });
-    }
-
-    @Test
-    public void underlineVariantLeavesContainerUnfilled() {
-        runOnFx(() -> {
-            RXMaterialTextField field = new RXMaterialTextField();
-            field.setLabelText("Name"); // default UNDERLINE
-            inScene(field);
-            Region container = (Region) field.lookup(".container");
-            assertNotNull(container, "container node exists in every variant");
-            assertTrue(container.getBackground() == null || container.getBackground().getFills().isEmpty(),
-                    "UNDERLINE variant must not fill the container");
-        });
-    }
-
-    @Test
-    public void filledContainerSitsBehindAndExcludesSupporting() {
-        runOnFx(() -> {
-            RXMaterialTextField field = new RXMaterialTextField();
-            field.setLabelText("Name");
-            field.setHelperText("required");
-            field.setVariant(RXFieldVariant.FILLED);
-            inScene(field, 320, 140);
-            Region container = (Region) field.lookup(".container");
-            Region supporting = (Region) field.lookup(".supporting");
-            assertNotNull(container);
-            assertNotNull(supporting);
-            assertEquals(0, field.getChildrenUnmodifiable().indexOf(container),
-                    "filled box must sit at z-index 0 (behind the editor + lines)");
-            assertTrue(container.isMouseTransparent(), "filled box must be mouse-transparent");
-            assertFalse(container.isManaged(), "filled box must be unmanaged (reserves no layout space)");
-            assertTrue(container.getBoundsInParent().getMaxY() <= supporting.getBoundsInParent().getMinY() + 0.5,
-                    "filled box must stop above the supporting row");
-            assertEquals(field.getWidth(), container.getWidth(), 1.0,
-                    "filled box must span the full control width");
-        });
-    }
-
-    @Test
-    public void filledVariantUsesSameHeightAsUnderline() {
-        runOnFx(() -> {
-            RXMaterialTextField underline = new RXMaterialTextField();
-            underline.setLabelText("Name");
-            underline.setHelperText("required");
-            inScene(underline);
-            RXMaterialTextField filled = new RXMaterialTextField();
-            filled.setLabelText("Name");
-            filled.setHelperText("required");
-            filled.setVariant(RXFieldVariant.FILLED);
-            inScene(filled);
-            assertEquals(underline.prefHeight(-1), filled.prefHeight(-1), 0.01,
-                    "the filled box is unmanaged; FILLED must use the same band math as UNDERLINE");
-        });
-    }
-
-    @Test
-    public void variantToggleRefillsAndClearsContainer() {
-        runOnFx(() -> {
-            RXMaterialTextField field = new RXMaterialTextField();
-            field.setLabelText("Name");
-            inScene(field); // UNDERLINE
-            Region container = (Region) field.lookup(".container");
-            assertNotNull(container);
-            assertTrue(container.getBackground() == null || container.getBackground().getFills().isEmpty(),
-                    "UNDERLINE: unfilled");
-
-            field.setVariant(RXFieldVariant.FILLED);
-            field.applyCss();
-            field.layout();
-            assertNotNull(container.getBackground(), "FILLED after toggle: filled");
-
-            field.setVariant(RXFieldVariant.UNDERLINE);
-            field.applyCss();
-            field.layout();
-            assertTrue(container.getBackground() == null || container.getBackground().getFills().isEmpty(),
-                    "back to UNDERLINE: unfilled again");
-        });
-    }
+    // ==================== Supporting ====================
 
     @Test
     public void supportingSwitchesBetweenHelperAndError() {
@@ -779,8 +680,6 @@ public class RXMaterialTextFieldTest {
                     "dispose must remove the activation line it added");
             assertEquals(0, field.lookupAll(".accent-line").size(),
                     "dispose must remove the accent line it added");
-            assertEquals(0, field.lookupAll(".container").size(),
-                    "dispose must remove the filled container it added");
             assertEquals(0, field.lookupAll(".supporting").size(),
                     "dispose must remove the supporting row it added");
         });
