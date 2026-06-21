@@ -246,6 +246,23 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         }
     }
 
+    /**
+     * Horizontal offset, within the content area, from its left edge to where
+     * the text editor begins — past any left wrapper and the left text padding.
+     * Reflects the most recent {@link #layoutChildren} pass (it reads the
+     * laid-out left-wrapper width), so call it after {@code super.layoutChildren}.
+     * Subclasses that position content which must line up with the editor text
+     * (for example a floating label) use this so they track the editor exactly
+     * in both the wrapper-present and wrapper-absent cases.
+     *
+     * @return the editor's left offset within the content area
+     */
+    protected final double editorLeftOffset() {
+        final double leftInset = snappedLeftInset();
+        final double leftWidth = leftWrapper == null ? 0.0 : leftWrapper.getWidth();
+        return resolveLeftAdjust(leftInset, leftWidth);
+    }
+
     @Override
     public HitInfo getIndex(double x, double y) {
         // Use the last-laid-out wrapper width rather than prefWidth: a CSS

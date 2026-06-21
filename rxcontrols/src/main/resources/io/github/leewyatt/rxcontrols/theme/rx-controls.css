@@ -18,7 +18,8 @@
 .rx-formatted-number-field, .rx-highlight-text-view, .rx-image-pane,
 .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
-.rx-masonry-pane, .rx-number-field, .rx-password-field, .rx-radio-toggle-button,
+.rx-masonry-pane, .rx-material-text-field, .rx-material-password-field,
+.rx-number-field, .rx-password-field, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
@@ -354,6 +355,164 @@
 .rx-text-field:has-left-node:has-right-node,
 .rx-password-field:has-left-node:has-right-node {
     -rx-text-padding: 0 0.583em 0 0.583em;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXMaterialTextField   RXMaterialPasswordField                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-material-text-field,
+.rx-material-password-field {
+    -rx-field-variant: underline;
+    -rx-floating-label: true;
+    -rx-animated: true;
+    -rx-animation-duration: 180ms;
+    -rx-label-float-scale: 0.85;
+    /* underline variant: no box, no native prompt — the floating label and the
+       activation line carry the affordance */
+    -fx-background-color: transparent;
+    -fx-prompt-text-fill: transparent;
+}
+
+.rx-material-text-field:focused,
+.rx-material-password-field:focused {
+    -fx-background-color: transparent;
+}
+
+.rx-material-text-field:has-left-node,
+.rx-material-password-field:has-left-node {
+    -rx-text-padding: 0 0 0 0.583em;
+}
+
+.rx-material-text-field:has-right-node,
+.rx-material-password-field:has-right-node {
+    -rx-text-padding: 0 0.583em 0 0;
+}
+
+.rx-material-text-field:has-left-node:has-right-node,
+.rx-material-password-field:has-left-node:has-right-node {
+    -rx-text-padding: 0 0.583em 0 0.583em;
+}
+
+/* FILLED variant: surface-variant box behind the editor, rounded top */
+.rx-material-text-field:filled > .container,
+.rx-material-password-field:filled > .container {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 4 4 0 0;
+}
+
+/* state layer tints with -rx-state-overlay-color (black on light / white on dark),
+   so hover / focus reads correctly in every theme */
+.rx-material-text-field:filled > .state-overlay,
+.rx-material-password-field:filled > .state-overlay {
+    -fx-background-color: -rx-state-overlay-color;
+    -fx-background-radius: 4 4 0 0;
+    -fx-opacity: 0;
+}
+
+.rx-material-text-field:filled:hover > .state-overlay,
+.rx-material-password-field:filled:hover > .state-overlay {
+    -fx-opacity: 0.08;
+}
+
+.rx-material-text-field:filled:focused > .state-overlay,
+.rx-material-password-field:filled:focused > .state-overlay {
+    -fx-opacity: 0.12;
+}
+
+.rx-material-text-field > .label,
+.rx-material-password-field > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-material-text-field:focused > .label,
+.rx-material-password-field:focused > .label {
+    -fx-text-fill: -rx-primary;
+}
+
+.rx-material-text-field:invalid > .label,
+.rx-material-password-field:invalid > .label {
+    -fx-text-fill: -rx-danger;
+}
+
+.rx-material-text-field > .activation-line,
+.rx-material-password-field > .activation-line {
+    -fx-background-color: -rx-outline;
+    -fx-pref-height: 1px;
+}
+
+.rx-material-text-field > .accent-line,
+.rx-material-password-field > .accent-line {
+    -fx-background-color: -rx-primary;
+    -fx-pref-height: 2px;
+}
+
+.rx-material-text-field:invalid > .accent-line,
+.rx-material-text-field:invalid > .activation-line,
+.rx-material-password-field:invalid > .accent-line,
+.rx-material-password-field:invalid > .activation-line {
+    -fx-background-color: -rx-danger;
+}
+
+.rx-material-text-field > .supporting > .helper,
+.rx-material-password-field > .supporting > .helper {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 0.75em;
+}
+
+.rx-material-text-field > .supporting > .error,
+.rx-material-password-field > .supporting > .error {
+    -fx-text-fill: -rx-danger;
+    -fx-font-size: 0.75em;
+}
+
+.rx-material-text-field:invalid > .supporting > .helper,
+.rx-material-password-field:invalid > .supporting > .helper {
+    -fx-text-fill: -rx-danger;
+}
+
+/* built-in clear / reveal buttons: nested under the base .right-wrapper (descendant selector) */
+.rx-material-text-field .right-wrapper .clear-button,
+.rx-material-password-field .right-wrapper .clear-button,
+.rx-material-password-field .right-wrapper .reveal-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4px;
+    -fx-cursor: hand;
+}
+
+.rx-material-text-field .right-wrapper .clear-button > .graphic,
+.rx-material-password-field .right-wrapper .clear-button > .graphic {
+    -fx-pref-width: 9px;
+    -fx-pref-height: 9px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+}
+
+.rx-material-text-field .right-wrapper .clear-button:hover > .graphic,
+.rx-material-password-field .right-wrapper .clear-button:hover > .graphic,
+.rx-material-password-field .right-wrapper .reveal-button:hover > .graphic {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-material-password-field .right-wrapper .reveal-button > .graphic {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
+}
+
+.rx-material-password-field:revealed .right-wrapper .reveal-button > .graphic {
+    -fx-shape: "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z";
+}
+
+.rx-material-text-field:disabled > .label,
+.rx-material-text-field:disabled > .supporting > .helper,
+.rx-material-text-field:disabled > .supporting > .error,
+.rx-material-password-field:disabled > .label,
+.rx-material-password-field:disabled > .supporting > .helper,
+.rx-material-password-field:disabled > .supporting > .error {
+    -fx-text-fill: -rx-on-surface-disabled;
 }
 
 /*******************************************************************************

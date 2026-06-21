@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -119,6 +120,33 @@ public class RXFieldSkinLifecycleTest {
             skin.dispose();
             // Toggling after dispose must not reach a dangling listener.
             field.setShowPassword(true);
+        });
+    }
+
+    /**
+     * Verifies the Material password skin tears down its extra disposer-owned
+     * resources cleanly: the shared {@code PasswordMaskSupport}, the reveal-button
+     * handler, and the {@code showRevealButton} listener. Toggling reveal /
+     * showRevealButton after dispose must not reach a dangling listener.
+     */
+    @Test
+    public void materialPasswordRevealLifecycleIsClean() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
+            field.setLabelText("Password");
+
+            RXMaterialPasswordFieldSkin skin = new RXMaterialPasswordFieldSkin(field);
+            field.setSkin(skin);
+
+            field.setRevealPassword(true);
+            field.setRevealPassword(false);
+            field.setShowRevealButton(false);
+            field.setShowRevealButton(true);
+
+            skin.dispose();
+            // Toggling after dispose must not reach a dangling listener.
+            field.setRevealPassword(true);
+            field.setShowRevealButton(false);
         });
     }
 
