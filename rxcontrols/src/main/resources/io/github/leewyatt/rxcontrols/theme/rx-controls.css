@@ -1257,6 +1257,11 @@
     -fx-padding: 1 0 1 0;
 }
 
+.rx-tile-view > .viewport > .scroll-bar:vertical > .increment-button,
+.rx-tile-view > .viewport > .scroll-bar:vertical > .decrement-button {
+    -fx-padding: 0.25em 0.25em 0.25em 0.166667em;
+}
+
 .rx-tile-view > .placeholder {
     -fx-alignment: center;
 }
