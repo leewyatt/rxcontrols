@@ -74,8 +74,8 @@ public class RXTileViewTest {
         assertEquals(RXTileView.AUTO_COLUMNS, view.getColumnCount());
         assertEquals(0, RXTileView.AUTO_COLUMNS);
         assertEquals(0, view.getMaxColumns());
+        assertEquals(0.0, view.getMaxCellWidth(), EPSILON);
         assertSame(RXGridJustify.START, view.getItemsJustify());
-        assertFalse(view.isStretchCells());
         assertTrue(view.isShowSectionHeaders());
         assertNull(view.getPlaceholder());
         assertNull(view.getCellFactory());
@@ -120,10 +120,10 @@ public class RXTileViewTest {
         RXTileView<String> view = new RXTileView<>();
         view.setShowSectionHeaders(false);
         assertFalse(view.isShowSectionHeaders());
-        view.setStretchCells(true);
-        assertTrue(view.isStretchCells());
         view.setItemsJustify(RXGridJustify.CENTER);
         assertSame(RXGridJustify.CENTER, view.getItemsJustify());
+        view.setMaxCellWidth(180.0);
+        assertEquals(180.0, view.getMaxCellWidth(), EPSILON);
         view.setColumnCount(5);
         assertEquals(5, view.getColumnCount());
         view.setMaxColumns(8);
@@ -241,6 +241,8 @@ public class RXTileViewTest {
         assertEquals(-1.0, view.getHgap(), EPSILON);
         view.setVgap(-3.0);
         assertEquals(-3.0, view.getVgap(), EPSILON);
+        view.setMaxCellWidth(Double.NaN);
+        assertTrue(Double.isNaN(view.getMaxCellWidth()));
         view.setColumnCount(-2);
         assertEquals(-2, view.getColumnCount());
         view.setMaxColumns(-4);
@@ -589,9 +591,9 @@ public class RXTileViewTest {
         assertTrue(hasProperty(metadata, "-rx-cell-height"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
+        assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
         assertTrue(hasProperty(metadata, "-rx-section-header-height"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
-        assertTrue(hasProperty(metadata, "-rx-stretch-cells"));
 
         RXTileView<String> view = new RXTileView<>();
         assertSame(metadata, view.getControlCssMetaData(), "getControlCssMetaData returns the shared static list");

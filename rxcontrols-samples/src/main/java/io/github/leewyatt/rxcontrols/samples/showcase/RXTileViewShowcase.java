@@ -130,13 +130,12 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         justify.setValue(tile.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tile.setItemsJustify(value));
 
-        CheckBox stretch = new CheckBox("Stretch cells to fill the row");
-        stretch.setSelected(tile.isStretchCells());
-        stretch.selectedProperty().addListener((obs, old, value) -> tile.setStretchCells(value));
+        Slider maxCell = createSlider(0, 400, tile.getMaxCellWidth());
+        maxCell.valueProperty().addListener((obs, old, value) -> tile.setMaxCellWidth(value.doubleValue()));
 
         return createGrid(
                 row("Justify", justify),
-                row(stretch));
+                row("Max cell W", maxCell, sentinelLabel(maxCell, "none")));
     }
 
     private Node sectionsGrid() {

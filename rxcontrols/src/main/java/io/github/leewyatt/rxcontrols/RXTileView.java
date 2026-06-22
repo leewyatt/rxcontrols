@@ -66,9 +66,8 @@ import java.util.Objects;
  *
  * <p>Within a row, cells of width {@code cellWidth} are separated by
  * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}; spare
- * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}, or
- * the cells grow to fill it when {@link #stretchCellsProperty() stretchCells} is
- * set. The view publishes read-only metrics after each layout —
+ * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}.
+ * The view publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
  * {@link #rowCountProperty() rowCount}, {@link #sectionsProperty() sections},
  * {@link #visibleRangeProperty() visibleRange} and
@@ -97,10 +96,10 @@ public class RXTileView<T> extends Control {
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
     private static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
+    private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
-    private static final boolean DEFAULT_STRETCH_CELLS = false;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
@@ -434,6 +433,61 @@ public class RXTileView<T> extends Control {
         cellHeight.set(value);
     }
 
+    // ==================== Max Cell Width ====================
+
+    private final DoubleProperty maxCellWidth = new StyleableDoubleProperty(DEFAULT_MAX_CELL_WIDTH) {
+        @Override
+        public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
+            return StyleableProperties.MAX_CELL_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTileView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxCellWidth";
+        }
+    };
+
+    /**
+     * Upper bound on how wide a cell may grow when
+     * {@link #itemsJustifyProperty() itemsJustify} is
+     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * value means unbounded. Has no effect in the other justification modes,
+     * where cells keep {@link #cellWidthProperty() cellWidth}.
+     *
+     * <p>A cap smaller than {@code cellWidth} is degenerate
+     * ({@code max < min}) and is treated as {@code cellWidth}; cells are never
+     * shrunk below their configured width by the cap.
+     *
+     * @return the max-cell-width property
+     */
+    public final DoubleProperty maxCellWidthProperty() {
+        return maxCellWidth;
+    }
+
+    /**
+     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @return the maximum cell width, or {@code 0} for unbounded
+     */
+    public final double getMaxCellWidth() {
+        return maxCellWidth.get();
+    }
+
+    /**
+     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @param value a positive cap, or {@code 0} (or any non-positive value) for
+     *              unbounded
+     */
+    public final void setMaxCellWidth(double value) {
+        maxCellWidth.set(value);
+    }
+
     // ==================== Hgap ====================
 
     private final DoubleProperty hgap = new StyleableDoubleProperty(DEFAULT_HGAP) {
@@ -680,12 +734,12 @@ public class RXTileView<T> extends Control {
             };
 
     /**
-     * How a row positions its fixed-width block of cells within the spare
-     * horizontal width. V1 honors {@link RXGridJustify#START},
-     * {@link RXGridJustify#CENTER} and {@link RXGridJustify#END}; the other values
-     * fall back to {@code START}. Ignored when {@link #stretchCellsProperty()
-     * stretchCells} is set. A {@code null} value is treated as
-     * {@link RXGridJustify#START}.
+     * How a row uses its spare horizontal width: position the fixed-width block
+     * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
+     * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
+     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
+     * treated as {@link RXGridJustify#START}.
      *
      * @return the items-justify property
      */
@@ -709,55 +763,6 @@ public class RXTileView<T> extends Control {
      */
     public final void setItemsJustify(RXGridJustify value) {
         itemsJustify.set(value);
-    }
-
-    // ==================== Stretch Cells ====================
-
-    private final BooleanProperty stretchCells = new StyleableBooleanProperty(DEFAULT_STRETCH_CELLS) {
-        @Override
-        public CssMetaData<RXTileView<?>, Boolean> getCssMetaData() {
-            return StyleableProperties.STRETCH_CELLS;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXTileView.this;
-        }
-
-        @Override
-        public String getName() {
-            return "stretchCells";
-        }
-    };
-
-    /**
-     * Whether cells grow equally to fill the spare row width (keeping
-     * {@link #hgapProperty() hgap} between them) instead of staying at
-     * {@code cellWidth} and being positioned by {@link #itemsJustifyProperty()
-     * itemsJustify}.
-     *
-     * @return the stretch-cells property
-     */
-    public final BooleanProperty stretchCellsProperty() {
-        return stretchCells;
-    }
-
-    /**
-     * Returns whether cells stretch to fill the row.
-     *
-     * @return whether cells stretch to fill the row
-     */
-    public final boolean isStretchCells() {
-        return stretchCells.get();
-    }
-
-    /**
-     * Sets whether cells stretch to fill the row.
-     *
-     * @param value whether cells stretch to fill the row
-     */
-    public final void setStretchCells(boolean value) {
-        stretchCells.set(value);
     }
 
     // ==================== Placeholder ====================
@@ -1412,6 +1417,20 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTileView<?>, Number> MAX_CELL_WIDTH =
+                new CssMetaData<>("-rx-max-cell-width", SizeConverter.getInstance(), DEFAULT_MAX_CELL_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXTileView<?> node) {
+                        return !node.maxCellWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<Number>) node.maxCellWidthProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTileView<?>, Number> HGAP =
                 new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
@@ -1470,20 +1489,6 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXTileView<?>, Boolean> STRETCH_CELLS =
-                new CssMetaData<>("-rx-stretch-cells", BooleanConverter.getInstance(), DEFAULT_STRETCH_CELLS) {
-                    @Override
-                    public boolean isSettable(RXTileView<?> node) {
-                        return !node.stretchCells.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Boolean> getStyleableProperty(RXTileView<?> node) {
-                        return (StyleableProperty<Boolean>) node.stretchCellsProperty();
-                    }
-                };
-
         private static final CssMetaData<RXTileView<?>, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -1518,8 +1523,8 @@ public class RXTileView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, HGAP, VGAP,
-                    SECTION_HEADER_HEIGHT, ITEMS_JUSTIFY, STRETCH_CELLS, ANIMATED, ANIMATION_DURATION);
+            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, HGAP, VGAP,
+                    SECTION_HEADER_HEIGHT, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

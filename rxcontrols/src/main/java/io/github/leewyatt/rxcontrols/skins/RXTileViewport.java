@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXGridJustify;
 import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSection;
@@ -673,27 +674,56 @@ final class RXTileViewport<T> extends Region {
     }
 
     private CellGeometry cellGeometry(double contentWidth) {
-        boolean stretch = control.isStretchCells();
         double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
         double cellHeight = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control));
-        int cols = rowPlan == null ? 1 : rowPlan.columns();
+        int cols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
+        double baseWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
+        RXGridJustify mode = RXTileViewSkin.justifyOrDefault(control.getItemsJustify());
 
         double cellWidth;
+        double effectiveGap;
         double startX;
-        if (stretch) {
-            cellWidth = snapSizeX(Math.max(0.0, (contentWidth - (cols - 1) * hgap) / cols));
-            startX = 0.0;
+        if (mode == RXGridJustify.STRETCH) {
+            double ideal = (contentWidth - (cols - 1) * hgap) / cols;
+            double cap = maxCellWidthOrUnbounded(control);
+            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
+            effectiveGap = hgap;
+            if (effectiveCap > 0.0 && ideal > effectiveCap) {
+                cellWidth = effectiveCap;
+                double used = cols * cellWidth + (cols - 1) * hgap;
+                startX = Math.max(0.0, (contentWidth - used) / 2.0);
+            } else {
+                cellWidth = snapSizeX(Math.max(0.0, ideal));
+                startX = 0.0;
+            }
         } else {
-            cellWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
+            cellWidth = baseWidth;
             double slack = Math.max(0.0, contentWidth - (cols * cellWidth + (cols - 1) * hgap));
-            // V1 positions the fixed-width block; SPACE_* / STRETCH fall back to START.
-            switch (RXTileViewSkin.justifyOrDefault(control.getItemsJustify())) {
+            effectiveGap = hgap;
+            startX = 0.0;
+            switch (mode) {
                 case CENTER -> startX = slack / 2.0;
                 case END -> startX = slack;
-                default -> startX = 0.0;
+                case SPACE_BETWEEN -> effectiveGap = hgap + (cols > 1 ? slack / (cols - 1) : 0.0);
+                case SPACE_AROUND -> {
+                    effectiveGap = hgap + slack / cols;
+                    startX = slack / (2.0 * cols);
+                }
+                case SPACE_EVENLY -> {
+                    effectiveGap = hgap + slack / (cols + 1);
+                    startX = slack / (cols + 1);
+                }
+                default -> {
+                    // START: the block hugs the leading edge (defaults stand).
+                }
             }
         }
-        return new CellGeometry(cellWidth, cellHeight, hgap, startX);
+        return new CellGeometry(cellWidth, cellHeight, effectiveGap, startX);
+    }
+
+    private static double maxCellWidthOrUnbounded(RXTileView<?> control) {
+        double value = control.getMaxCellWidth();
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
     private double currentContentWidth() {

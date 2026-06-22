@@ -1,12 +1,11 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * How a {@link RXGridView} row uses its spare horizontal width — the difference
- * between the content width and the space the cells plus the base
- * {@link RXGridView#hgapProperty() hgap} gaps consume.
+ * How a grid row uses its spare horizontal width — the difference between the
+ * content width and the space the cells plus the base {@code hgap} gaps consume.
  *
  * <p>The first three values keep cells at their fixed
- * {@link RXGridView#cellWidthProperty() cellWidth} and only position the block.
+ * {@code cellWidth} and only position the block.
  * The {@code SPACE_*} values keep the fixed width but grow the gaps (the
  * {@code hgap} acts as a minimum that the extra width is added on top of),
  * mirroring CSS flexbox {@code justify-content}. {@link #STRETCH} instead grows
@@ -52,10 +51,9 @@ public enum RXGridJustify {
      * Size the cells equally so they fill the row, keeping {@code hgap} between
      * them. In adaptive mode cells only grow — the column count drops before a
      * cell would shrink below {@code cellWidth} — up to
-     * {@link RXGridView#maxCellWidthProperty() maxCellWidth}, after which the
-     * resulting block is centered. Under a forced
-     * {@link RXGridView#columnCountProperty() columnCount} that does not fit,
-     * cells may shrink below {@code cellWidth} to keep that column count.
+     * max cell width, after which the resulting block is centered. Under a
+     * forced column count that does not fit, cells may shrink below
+     * {@code cellWidth} to keep that column count.
      */
     STRETCH
 }

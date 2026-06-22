@@ -139,12 +139,12 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.itemsProperty(), this::onItemsListSwapped);
         disposer.registerListener(control.cellFactoryProperty(), this::onCellFactoryChanged);
         disposer.registerListener(control.cellWidthProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.maxCellWidthProperty(), this::requestLayoutPass);
         disposer.registerListener(control.hgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.columnCountProperty(), this::requestLayoutPass);
         disposer.registerListener(control.maxColumnsProperty(), this::requestLayoutPass);
         disposer.registerListener(control.cellHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
-        disposer.registerListener(control.stretchCellsProperty(), this::requestLayoutPass);
         disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
         // Sections are derived on the control; the skin relayouts to rebuild the

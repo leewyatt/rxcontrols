@@ -467,7 +467,7 @@ public class RXTileViewSkinTest {
             RXTileView<String> view = tiles(3);
             view.setColumnCount(3);
             view.setHgap(10);
-            view.setStretchCells(true);
+            view.setItemsJustify(RXGridJustify.STRETCH);
             pump(host(view, 320, 300));
             List<RXTileCell<?>> cells = rowCells(view, 0);
             assertEquals(3, cells.size());
@@ -502,6 +502,78 @@ public class RXTileViewSkinTest {
 
             assertTrue(centerX > startX && endX > centerX, "CENTER and END shift the block right");
             assertEquals(endX / 2.0, centerX, 1.0, "CENTER offset is half of END");
+        });
+    }
+
+    @Test
+    public void spaceModesDistributeRowSlack() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(8);
+            view.setColumnCount(4);
+            view.setCellWidth(60);
+            view.setHgap(10);
+            StackPane root = host(view, 400, 400);
+
+            // Fixture: N=4, cellWidth=60, hgap=10, row width 400 (no scroll bar),
+            // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
+            view.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+            pump(root);
+            double betweenEdge = firstCellX(view);
+            double betweenGap = firstGap(view);
+            assertEquals(0.0, betweenEdge, 0.5, "SPACE_BETWEEN keeps the edges flush");
+            assertEquals(10.0 + 130.0 / 3.0, betweenGap, 0.5, "between gap = hgap + S/(N-1)");
+
+            view.setItemsJustify(RXGridJustify.SPACE_AROUND);
+            pump(root);
+            double aroundEdge = firstCellX(view);
+            double aroundGap = firstGap(view);
+            assertEquals(130.0 / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
+            assertEquals(10.0 + 130.0 / 4.0, aroundGap, 0.5, "AROUND gap = hgap + S/N");
+
+            view.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+            pump(root);
+            double evenlyEdge = firstCellX(view);
+            double evenlyGap = firstGap(view);
+            assertEquals(130.0 / 5.0, evenlyEdge, 0.5, "EVENLY edge = S/(N+1)");
+            assertEquals(10.0 + 130.0 / 5.0, evenlyGap, 0.5, "EVENLY gap = hgap + S/(N+1)");
+
+            assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
+                    "the edge gap grows BETWEEN < AROUND < EVENLY");
+        });
+    }
+
+    @Test
+    public void maxCellWidthCapsAndCentersStretch() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(4);
+            view.setColumnCount(2);
+            view.setCellWidth(60);
+            view.setHgap(10);
+            view.setItemsJustify(RXGridJustify.STRETCH);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            assertTrue(rowCells(view, 0).get(0).getWidth() > 100.0,
+                    "uncapped STRETCH grows cells to fill the row");
+            assertEquals(0.0, firstCellX(view), 1.0, "uncapped STRETCH starts at the leading edge");
+
+            view.setMaxCellWidth(Double.NaN);
+            pump(root);
+            assertTrue(rowCells(view, 0).get(0).getWidth() > 100.0,
+                    "non-finite maxCellWidth behaves as unbounded");
+            assertEquals(0.0, firstCellX(view), 1.0,
+                    "non-finite maxCellWidth does not create a centered cap");
+
+            view.setMaxCellWidth(80);
+            pump(root);
+            List<RXTileCell<?>> capped = rowCells(view, 0);
+            assertEquals(80.0, capped.get(0).getWidth(), 1.0, "STRETCH is capped at maxCellWidth");
+            assertEquals(115.0, firstCellX(view), 1.0, "the capped block is centered");
+
+            view.setMaxCellWidth(40);
+            pump(root);
+            assertEquals(60.0, rowCells(view, 0).get(0).getWidth(), 1.0,
+                    "a cap below cellWidth leaves cells at cellWidth");
         });
     }
 
@@ -2350,6 +2422,17 @@ public class RXTileViewSkinTest {
         }
         cells.sort(Comparator.comparingInt((RXTileCell<?> cell) -> cell.getColumnIndex()));
         return cells;
+    }
+
+    private static double firstCellX(RXTileView<?> view) {
+        return rowCells(view, 0).get(0).getLayoutX();
+    }
+
+    private static double firstGap(RXTileView<?> view) {
+        List<RXTileCell<?>> cells = rowCells(view, 0);
+        RXTileCell<?> first = cells.get(0);
+        RXTileCell<?> second = cells.get(1);
+        return second.getLayoutX() - (first.getLayoutX() + first.getWidth());
     }
 
     // shortcut maps to both control and meta so isShortcutDown() is true on any platform.
