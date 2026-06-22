@@ -94,6 +94,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         registerListeners(control);
         attachSelectionModel(control.getSelectionModel());
         focusModel.moveItemsObserversToEnd();
+        focusModel.syncSelectionLeadState();
         disposer.registerDisposeTask(this::detachSelectionModel);
     }
 
@@ -393,6 +394,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
         focusModel.moveItemsObserversToEnd();
+        focusModel.syncSelectionLeadState();
         refreshSelectionAndFocus();
         getSkinnable().requestLayout();
     }
@@ -528,6 +530,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             case A -> {
                 if (shortcut) {
                     sm.selectAll();
+                    focusModel.syncSelectionLeadState();
                     event.consume();
                 }
             }
@@ -607,6 +610,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             setAnchor(target);
             sm.clearAndSelect(target);
         }
+        focusModel.syncSelectionLeadState();
         getSkinnable().scrollTo(target, RXGridScrollAlignment.NEAREST);
     }
 
@@ -628,6 +632,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             sm.clearAndSelect(focus);
         }
         setAnchor(focus);
+        focusModel.syncSelectionLeadState();
     }
 
     private void activate(int index) {
@@ -672,6 +677,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             setAnchor(index);
             sm.clearAndSelect(index);
         }
+        focusModel.syncSelectionLeadState();
     }
 
     private void onMouseClicked(MouseEvent event) {

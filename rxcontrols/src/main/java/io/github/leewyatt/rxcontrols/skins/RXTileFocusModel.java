@@ -28,6 +28,9 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
     private final InvalidationListener itemsSwapListener;
     private final WeakInvalidationListener weakItemsSwapListener;
     private ObservableList<T> observedItems;
+    // The selection model observes item mutations before focus; keep the last
+    // explicit focus/selection relationship so removals do not infer it afterward.
+    private boolean focusedSelectionLead;
 
     RXTileFocusModel(RXTileView<T> control) {
         this.control = control;
@@ -65,6 +68,7 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         // focus ring follows the same item (or clears if absent), mirroring the
         // selection model's swap handling.
         focus((focusedItem != null && items != null) ? items.indexOf(focusedItem) : -1);
+        syncSelectionLeadState();
     }
 
     void moveItemsObserversToEnd() {
@@ -81,8 +85,10 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
     private void onItemsChanged(ListChangeListener.Change<? extends T> change) {
         int focusedIndex = getFocusedIndex();
         if (focusedIndex < 0) {
+            focusedSelectionLead = false;
             return;
         }
+        boolean removedFocusWasSelectionLead = focusedSelectionLead;
         int removedFocusedFrom = -1;
         while (change.next()) {
             if (change.wasPermutated()) {
@@ -106,7 +112,7 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         int itemCount = getItemCount();
         if (focusedIndex < 0 && removedFocusedFrom >= 0 && itemCount > 0) {
             int selectionLead = selectionLead();
-            if (selectionLead >= 0 && selectionLead < itemCount) {
+            if (removedFocusWasSelectionLead && selectionLead >= 0 && selectionLead < itemCount) {
                 focusedIndex = selectionLead;
             } else {
                 focusedIndex = Math.max(0, Math.min(removedFocusedFrom - 1, itemCount - 1));
@@ -115,6 +121,12 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         if (focusedIndex != getFocusedIndex()) {
             focus(focusedIndex < 0 || focusedIndex >= itemCount ? -1 : focusedIndex);
         }
+        syncSelectionLeadState();
+    }
+
+    void syncSelectionLeadState() {
+        int focusedIndex = getFocusedIndex();
+        focusedSelectionLead = focusedIndex >= 0 && focusedIndex == selectionLead();
     }
 
     private int selectionLead() {

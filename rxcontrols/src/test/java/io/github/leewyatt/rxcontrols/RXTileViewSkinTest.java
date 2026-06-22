@@ -1313,6 +1313,36 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void removingFocusOnlyItemDoesNotJumpBackToSelectionLead() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 0), false, false);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, true);
+            pump(root);
+            assertEquals(0, sm.getSelectedIndex(), "Shortcut+Down leaves selection at 0");
+            assertTrue(hasFocusRing(cellByIndex(view, 3)), "Shortcut+Down moves focus only to 3");
+
+            items.remove(3);
+            pump(root);
+            assertEquals(0, sm.getSelectedIndex(), "deleting a focus-only item keeps selection unchanged");
+            assertTrue(hasFocusRing(cellByIndex(view, 2)),
+                    "focus falls back near the deleted index instead of jumping to selection lead");
+            assertFalse(hasFocusRing(cellByIndex(view, 0)));
+
+            fireKey(view, KeyCode.RIGHT, false, false);
+            pump(root);
+            assertEquals(3, sm.getSelectedIndex(), "the next arrow continues from the reanchored focus");
+        });
+    }
+
+    @Test
     public void shortcutAClampedToSelectionMode() throws Exception {
         onFx(() -> {
             RXTileView<String> single = tiles(8);
