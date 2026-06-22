@@ -1002,6 +1002,52 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void verticalArrowStopsAtFirstRow() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 5), false, false);
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(2, sm.getSelectedIndex());
+
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(2, sm.getSelectedIndex(),
+                    "UP from the first row keeps the same item instead of clamping to index 0");
+            assertFalse(isSelected(cellByIndex(view, 0)));
+        });
+    }
+
+    @Test
+    public void verticalArrowStopsAtIncompleteLastRow() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(8);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 3), false, false);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(6, sm.getSelectedIndex());
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(6, sm.getSelectedIndex(),
+                    "DOWN from an incomplete last row keeps the same column instead of clamping to the last item");
+            assertFalse(isSelected(cellByIndex(view, 7)));
+        });
+    }
+
+    @Test
     public void arrowDownSkipsSectionHeaders() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(3, 4); // sections of 4, cols 2 -> 2 data rows each

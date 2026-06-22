@@ -437,10 +437,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         boolean shift = event.isShiftDown();
         boolean shortcut = event.isShortcutDown();
         switch (event.getCode()) {
-            case LEFT, KP_LEFT -> consume(event, () -> arrow(focus, -1, shift, shortcut));
-            case RIGHT, KP_RIGHT -> consume(event, () -> arrow(focus, 1, shift, shortcut));
-            case UP, KP_UP -> consume(event, () -> arrow(focus, -cols, shift, shortcut));
-            case DOWN, KP_DOWN -> consume(event, () -> arrow(focus, cols, shift, shortcut));
+            case LEFT, KP_LEFT -> consume(event, () -> horizontalArrow(focus, -1, shift, shortcut));
+            case RIGHT, KP_RIGHT -> consume(event, () -> horizontalArrow(focus, 1, shift, shortcut));
+            case UP, KP_UP -> consume(event, () -> verticalArrow(focus, -cols, shift, shortcut));
+            case DOWN, KP_DOWN -> consume(event, () -> verticalArrow(focus, cols, shift, shortcut));
             case HOME -> consume(event, () -> moveTo(0, shift, shortcut));
             case END -> consume(event, () -> moveTo(itemCount - 1, shift, shortcut));
             case PAGE_UP -> consume(event, () -> page(-1, shift, shortcut));
@@ -472,7 +472,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         event.consume();
     }
 
-    private void arrow(int focus, int delta, boolean shift, boolean shortcut) {
+    private void horizontalArrow(int focus, int delta, boolean shift, boolean shortcut) {
         int itemCount = itemCount();
         int target;
         if (focus < 0) {
@@ -481,6 +481,20 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         } else {
             target = clampIndex(focus + delta, itemCount);
             if (target == focus) {
+                return;
+            }
+        }
+        moveTo(target, shift, shortcut);
+    }
+
+    private void verticalArrow(int focus, int delta, boolean shift, boolean shortcut) {
+        int itemCount = itemCount();
+        int target;
+        if (focus < 0) {
+            target = delta > 0 ? 0 : itemCount - 1;
+        } else {
+            target = focus + delta;
+            if (target < 0 || target >= itemCount) {
                 return;
             }
         }
