@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -63,6 +64,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         tile.setCellFactory(view -> new TileCell());
         tile.setSectionHeaderFactory(view -> new SectionHeader());
         applyGrouping("By 500s");
+        logSelectionChanges();
 
         Label placeholder = new Label("No items");
         placeholder.getStyleClass().add("tile-placeholder");
@@ -259,6 +261,12 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
             return "—";
         }
         return "Group " + section.key() + "  (" + section.itemCount() + " items)";
+    }
+
+    private void logSelectionChanges() {
+        tile.getSelectionModel().getSelectedIndices().addListener((ListChangeListener<Integer>) change ->
+                System.out.println("RXTileView selected indices: "
+                        + List.copyOf(tile.getSelectionModel().getSelectedIndices())));
     }
 
     // ==================== Helpers ====================
