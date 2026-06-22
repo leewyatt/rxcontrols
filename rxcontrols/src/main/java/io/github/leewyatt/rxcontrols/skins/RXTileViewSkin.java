@@ -386,7 +386,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         double cellWidth = cellWidthOrDefault(control);
         double gap = gapOrZero(control.getHgap());
         return leftInset + DEFAULT_PREF_COLUMNS * cellWidth
-                + (DEFAULT_PREF_COLUMNS - 1) * gap + rightInset;
+                + (DEFAULT_PREF_COLUMNS - 1) * gap
+                + viewport.scrollBarBreadth() + rightInset;
     }
 
     @Override
@@ -400,7 +401,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + cellWidthOrDefault(getSkinnable()) + rightInset;
+        return leftInset + cellWidthOrDefault(getSkinnable())
+                + viewport.scrollBarBreadth() + rightInset;
     }
 
     @Override

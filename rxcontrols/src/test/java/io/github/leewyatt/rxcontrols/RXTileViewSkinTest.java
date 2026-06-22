@@ -261,9 +261,41 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void minWidthReservesSpaceForOneCellAndVerticalScrollBar() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setCellWidth(100);
+            view.setCellHeight(70);
+            view.setHgap(0);
+            view.setVgap(0);
+            StackPane root = host(view, 80, 220);
+            pump(root);
+
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            assertNotNull(vbar, "the vertical scroll bar is present");
+            assertTrue(vbar.isVisible(), "fixture must overflow vertically");
+
+            double expectedMinWidth = view.getInsets().getLeft()
+                    + view.getCellWidth()
+                    + vbar.prefWidth(-1)
+                    + view.getInsets().getRight();
+            assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
+                    "computed min width leaves room for one full cell beside the internal scroll bar");
+            assertTrue(view.getWidth() >= expectedMinWidth - 1.0,
+                    "a normal parent should not squeeze the view below its computed minimum");
+
+            Node contentLayer = view.lookup(".viewport > .content");
+            assertTrue(contentLayer instanceof Region, "cells are hosted in a content layer");
+            assertTrue(((Region) contentLayer).getWidth() >= view.getCellWidth() - 1.0,
+                    "the minimum width leaves one full fixed-width cell visible");
+        });
+    }
+
+    @Test
     public void fixedCellsAreClippedBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
+            view.setMinWidth(0);
             view.setCellWidth(180);
             view.setCellHeight(70);
             view.setHgap(0);
