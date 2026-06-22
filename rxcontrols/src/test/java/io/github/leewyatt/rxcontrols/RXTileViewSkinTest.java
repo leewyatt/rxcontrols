@@ -1479,7 +1479,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void removingFocusedLeadAfterSelectionModelAndItemsSwapDoesNotDependOnListenerOrder() throws Exception {
+    public void removingFocusedLeadAfterSelectionModelAndItemsSwapFollowsSelectionLead() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
             view.setColumnCount(3);
@@ -1506,7 +1506,7 @@ public class RXTileViewSkinTest {
             assertEquals(List.of(5), view.getSelectionModel().getSelectedIndices());
             assertEquals(5, view.getSelectionModel().getSelectedIndex());
             assertTrue(hasFocusRing(cellByIndex(view, 5)),
-                    "focus reconciles against the post-change selection lead even if it observes items first");
+                    "focus observes items after selection and follows the maintained lead");
         });
     }
 
