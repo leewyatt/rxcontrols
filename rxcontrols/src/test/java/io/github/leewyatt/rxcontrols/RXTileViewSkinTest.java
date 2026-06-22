@@ -21,6 +21,7 @@ import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -253,6 +254,41 @@ public class RXTileViewSkinTest {
                     "the measured scroll-bar breadth reduces the content width (no 18px hack)");
             pump(root);
             assertEquals(colsWithBar, withBar.getActualColumnCount(), "column count is stable, not oscillating");
+        });
+    }
+
+    @Test
+    public void fixedCellsAreClippedBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setCellWidth(180);
+            view.setCellHeight(70);
+            view.setHgap(0);
+            view.setVgap(0);
+            view.setItemsJustify(RXGridJustify.START);
+            StackPane root = host(view, 160, 220);
+            pump(root);
+
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            assertNotNull(vbar, "the vertical scroll bar is present");
+            assertTrue(vbar.isVisible(), "fixture must overflow vertically");
+
+            Node contentLayer = view.lookup(".viewport > .content");
+            assertNotNull(contentLayer, "cells are hosted in a clipped content layer");
+            RXTileCell<?> cell = cellByIndex(view, 0);
+            assertNotNull(cell);
+            assertTrue(cell.getWidth() > vbar.getLayoutX(),
+                    "fixture must use a fixed cell wider than the scrollbar-free content area");
+
+            assertTrue(contentLayer.getClip() instanceof Rectangle, "content layer has its own clip");
+            Rectangle clip = (Rectangle) contentLayer.getClip();
+            assertEquals(vbar.getLayoutX(), clip.getWidth(), 1.0,
+                    "content rendering stops before the vertical scroll bar");
+
+            Node viewport = view.lookup(".viewport");
+            List<Node> viewportChildren = ((Region) viewport).getChildrenUnmodifiable();
+            assertTrue(viewportChildren.indexOf(vbar) > viewportChildren.indexOf(contentLayer),
+                    "the scroll bar is rendered above the clipped content layer");
         });
     }
 

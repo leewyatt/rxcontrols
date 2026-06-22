@@ -14,6 +14,7 @@ import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
@@ -53,7 +54,9 @@ final class RXTileViewport<T> extends Region {
 
     private final RXTileView<T> control;
     private final ScrollBar vbar = new ScrollBar();
-    private final Rectangle clip = new Rectangle();
+    private final Pane contentLayer = new Pane();
+    private final Rectangle viewportClip = new Rectangle();
+    private final Rectangle contentClip = new Rectangle();
 
     private final List<RXTileCell<T>> cellPool = new ArrayList<>();
     private final List<RXTileSectionCell> headerPool = new ArrayList<>();
@@ -96,13 +99,18 @@ final class RXTileViewport<T> extends Region {
     RXTileViewport(RXTileView<T> control) {
         this.control = control;
         getStyleClass().add("viewport");
-        setClip(clip);
+        setClip(viewportClip);
+
+        contentLayer.getStyleClass().add("content");
+        contentLayer.setManaged(false);
+        contentLayer.setPickOnBounds(false);
+        contentLayer.setClip(contentClip);
 
         vbar.setOrientation(Orientation.VERTICAL);
         vbar.setManaged(false);
         vbar.setVisible(false);
         vbar.setMin(0.0);
-        getChildren().add(vbar);
+        getChildren().addAll(contentLayer, vbar);
 
         scrollBarValueListener = (obs, oldValue, newValue) -> onScrollBarValue();
         scrollHandler = this::onScroll;
@@ -422,7 +430,7 @@ final class RXTileViewport<T> extends Region {
      */
     void recreateCells() {
         snapAllGlides();
-        getChildren().removeAll(cellPool);
+        contentLayer.getChildren().removeAll(cellPool);
         cellPool.clear();
         requestLayout();
     }
@@ -433,7 +441,7 @@ final class RXTileViewport<T> extends Region {
      */
     void recreateHeaders() {
         snapAllGlides();
-        getChildren().removeAll(headerPool);
+        contentLayer.getChildren().removeAll(headerPool);
         headerPool.clear();
         requestLayout();
     }
@@ -442,10 +450,11 @@ final class RXTileViewport<T> extends Region {
         vbar.valueProperty().removeListener(scrollBarValueListener);
         removeEventHandler(ScrollEvent.SCROLL, scrollHandler);
         snapAllGlides();
-        getChildren().removeAll(cellPool);
-        getChildren().removeAll(headerPool);
+        contentLayer.getChildren().removeAll(cellPool);
+        contentLayer.getChildren().removeAll(headerPool);
         cellPool.clear();
         headerPool.clear();
+        contentLayer.setClip(null);
         setClip(null);
     }
 
@@ -502,13 +511,14 @@ final class RXTileViewport<T> extends Region {
     protected void layoutChildren() {
         double w = getWidth();
         double h = getHeight();
-        clip.setX(0.0);
-        clip.setY(0.0);
-        clip.setWidth(w);
-        clip.setHeight(h);
+        viewportClip.setX(0.0);
+        viewportClip.setY(0.0);
+        viewportClip.setWidth(w);
+        viewportClip.setHeight(h);
 
         RXTileRowPlan plan = rowPlan;
         if (w <= 0.0 || h <= 0.0 || plan == null) {
+            layoutContentLayer(0.0, 0.0);
             cachedMaxScroll = 0.0;
             explicitScrollPending = false;
             adjustingScrollBar = true;
@@ -522,6 +532,7 @@ final class RXTileViewport<T> extends Region {
             return;
         }
         if (plan.totalVisualRows() == 0) {
+            layoutContentLayer(w, h);
             scrollY = 0.0;
             cachedMaxScroll = 0.0;
             explicitScrollPending = false;
@@ -580,6 +591,7 @@ final class RXTileViewport<T> extends Region {
         }
 
         double contentWidth = Math.max(0.0, w - barBreadth);
+        layoutContentLayer(contentWidth, h);
 
         int first = plan.firstVisualRowAt(scrollY);
         int last = plan.firstVisualRowAt(scrollY + h - 1.0);
@@ -594,6 +606,14 @@ final class RXTileViewport<T> extends Region {
         topSection = plan.sectionOf(first);
         fillVisibleRows(plan, first, last, contentWidth);
         lastVisibleFirstIndex = visibleFirstIndex;
+    }
+
+    private void layoutContentLayer(double width, double height) {
+        contentLayer.resizeRelocate(0.0, 0.0, width, height);
+        contentClip.setX(0.0);
+        contentClip.setY(0.0);
+        contentClip.setWidth(width);
+        contentClip.setHeight(height);
     }
 
     private void fillVisibleRows(RXTileRowPlan plan, int first, int last, double contentWidth) {
@@ -783,7 +803,7 @@ final class RXTileViewport<T> extends Region {
         while (cellPool.size() <= slotIndex) {
             RXTileCell<T> cell = createCell();
             cellPool.add(cell);
-            getChildren().add(cell);
+            contentLayer.getChildren().add(cell);
         }
         return cellPool.get(slotIndex);
     }
@@ -805,7 +825,7 @@ final class RXTileViewport<T> extends Region {
         }
         RXTileCell<T> created = createCell();
         cellPool.add(created);
-        getChildren().add(created);
+        contentLayer.getChildren().add(created);
         used.add(created);
         return created;
     }
@@ -893,7 +913,7 @@ final class RXTileViewport<T> extends Region {
         while (headerPool.size() <= slotIndex) {
             RXTileSectionCell header = createHeader();
             headerPool.add(header);
-            getChildren().add(header);
+            contentLayer.getChildren().add(header);
         }
         return headerPool.get(slotIndex);
     }
