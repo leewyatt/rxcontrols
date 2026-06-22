@@ -24,8 +24,8 @@ import java.util.TreeSet;
  * <p>The selected indices are kept in a sorted, distinct observable list — the
  * read-only {@link #getSelectedIndices()} view — which fires precise list changes
  * for free (single-item add/remove for {@code select}/{@code clearSelection},
- * one coalesced replace for {@code clearAndSelect}/{@code selectIndices}/
- * {@code selectAll}). {@link #getSelectedItems()} is derived from the indices.
+ * one coalesced replace for {@code clearAndSelect}, {@link #clearAndSelectRange(int, int)},
+ * {@code selectIndices} and {@code selectAll}). {@link #getSelectedItems()} is derived from the indices.
  * The model maintains the selection as the items list mutates (add/remove shift,
  * permutation re-map, removal drop) and re-resolves the lead on a list swap, all
  * independently of any skin so a headless control selects correctly.
@@ -220,6 +220,49 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
         setSelectedItem(getModelItem(index));
         if (!(selectedIndicesBacking.size() == 1 && selectedIndicesBacking.get(0) == index)) {
             selectedIndicesBacking.setAll(List.of(index));
+        }
+    }
+
+    /**
+     * Clears the current selection and selects the range from {@code start}
+     * inclusive to {@code end} exclusive in one coalesced list change.
+     *
+     * <p>The range direction follows {@link #selectRange(int, int)}: when
+     * {@code start > end}, indices are selected descending from {@code start}
+     * down to the item after {@code end}. The final valid index in that traversal
+     * becomes the selection lead.
+     *
+     * @param start the first index to select
+     * @param end   the exclusive range end
+     */
+    public void clearAndSelectRange(int start, int end) {
+        int itemCount = getItemCount();
+        int initialCapacity = (int) Math.min(itemCount, Math.abs((long) end - start));
+        List<Integer> ordered = new ArrayList<>(initialCapacity);
+        if (start < end) {
+            for (int i = start; i < end; i++) {
+                addIfInBounds(ordered, i, itemCount);
+            }
+        } else {
+            for (int i = start; i > end; i--) {
+                addIfInBounds(ordered, i, itemCount);
+            }
+        }
+        if (ordered.isEmpty()) {
+            clearSelection();
+            return;
+        }
+        int lead = ordered.get(ordered.size() - 1);
+        if (getSelectionMode() == SelectionMode.SINGLE) {
+            clearAndSelect(lead);
+            return;
+        }
+        List<Integer> sorted = new ArrayList<>(ordered);
+        Collections.sort(sorted);
+        setSelectedIndex(lead);
+        setSelectedItem(getModelItem(lead));
+        if (!selectedIndicesBacking.equals(sorted)) {
+            selectedIndicesBacking.setAll(sorted);
         }
     }
 
@@ -423,6 +466,12 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
 
     private static void addValid(List<Integer> target, int index, int itemCount) {
         if (index >= 0 && index < itemCount && !target.contains(index)) {
+            target.add(index);
+        }
+    }
+
+    private static void addIfInBounds(List<Integer> target, int index, int itemCount) {
+        if (index >= 0 && index < itemCount) {
             target.add(index);
         }
     }

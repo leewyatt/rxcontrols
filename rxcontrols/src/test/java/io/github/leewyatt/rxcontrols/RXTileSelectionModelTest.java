@@ -9,6 +9,7 @@ import javafx.scene.control.SelectionMode;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -123,6 +124,35 @@ public class RXTileSelectionModelTest {
         sm.clearAndSelect(5);
         assertEquals(2, changes.get(), "replace is a single coalesced change, not clear-then-add");
         assertEquals(List.of(5), sm.getSelectedIndices());
+    }
+
+    @Test
+    public void clearAndSelectRangeEmitsOneChangeWithoutIntermediateClear() {
+        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+        sm.select(0);
+        List<List<Integer>> snapshots = new ArrayList<>();
+        sm.getSelectedIndices().addListener((ListChangeListener<Integer>) change -> {
+            while (change.next()) {
+                snapshots.add(List.copyOf(sm.getSelectedIndices()));
+            }
+        });
+
+        sm.clearAndSelectRange(0, 4);
+
+        assertEquals(List.of(List.of(0, 1, 2, 3)), snapshots);
+        assertEquals(3, sm.getSelectedIndex(), "the final range index becomes the lead");
+    }
+
+    @Test
+    public void clearAndSelectRangeDescendingKeepsTargetAsLead() {
+        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+
+        sm.clearAndSelectRange(3, -1);
+
+        assertEquals(List.of(0, 1, 2, 3), sm.getSelectedIndices());
+        assertEquals(0, sm.getSelectedIndex(), "descending ranges use the last traversed valid index as lead");
     }
 
     @Test

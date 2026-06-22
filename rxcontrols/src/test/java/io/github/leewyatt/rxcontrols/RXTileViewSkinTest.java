@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -1290,6 +1291,40 @@ public class RXTileViewSkinTest {
             pump(root);
             assertEquals(List.of(0, 1, 2, 3), sm.getSelectedIndices(),
                     "shift extends the range from the anchor to the target inclusive");
+        });
+    }
+
+    @Test
+    public void shiftArrowReplacesRangeWithoutIntermediateClear() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            List<List<Integer>> snapshots = new ArrayList<>();
+            sm.getSelectedIndices().addListener((ListChangeListener<Integer>) change -> {
+                while (change.next()) {
+                    snapshots.add(List.copyOf(sm.getSelectedIndices()));
+                }
+            });
+
+            fireMousePressed(cellByIndex(view, 0), false, false);
+            pump(root);
+            fireKey(view, KeyCode.RIGHT, true, false);
+            pump(root);
+            fireKey(view, KeyCode.RIGHT, true, false);
+            pump(root);
+            fireKey(view, KeyCode.RIGHT, true, false);
+            pump(root);
+
+            assertEquals(List.of(
+                    List.of(0),
+                    List.of(0, 1),
+                    List.of(0, 1, 2),
+                    List.of(0, 1, 2, 3)
+            ), snapshots);
         });
     }
 

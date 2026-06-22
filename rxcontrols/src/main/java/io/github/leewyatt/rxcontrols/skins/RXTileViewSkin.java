@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXGridJustify;
 import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXTileCell;
+import io.github.leewyatt.rxcontrols.RXTileSelectionModel;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
@@ -619,8 +620,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             setAnchor(target);
         } else if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
             int anchor = clampIndex(getAnchor(), itemCount());
-            sm.clearSelection();
-            sm.selectRange(anchor, target >= anchor ? target + 1 : target - 1);
+            clearAndSelectRange(sm, anchor, target);
         } else {
             setAnchor(target);
             sm.clearAndSelect(target);
@@ -686,8 +686,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             setAnchor(index);
         } else if (event.isShiftDown() && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
             int anchor = clampIndex(getAnchor(), itemCount());
-            sm.clearSelection();
-            sm.selectRange(anchor, index >= anchor ? index + 1 : index - 1);
+            clearAndSelectRange(sm, anchor, index);
         } else {
             setAnchor(index);
             sm.clearAndSelect(index);
@@ -701,6 +700,18 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             if (cell != null) {
                 activate(cell.getIndex());
             }
+        }
+    }
+
+    private void clearAndSelectRange(MultipleSelectionModel<T> selectionModel, int anchor, int target) {
+        int end = target >= anchor ? target + 1 : target - 1;
+        if (selectionModel instanceof RXTileSelectionModel<?> rxSelectionModel) {
+            @SuppressWarnings("unchecked")
+            RXTileSelectionModel<T> typedModel = (RXTileSelectionModel<T>) rxSelectionModel;
+            typedModel.clearAndSelectRange(anchor, end);
+        } else {
+            selectionModel.clearSelection();
+            selectionModel.selectRange(anchor, end);
         }
     }
 
