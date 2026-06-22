@@ -1343,6 +1343,70 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void programmaticSelectionChangeUpdatesFocusLeadStateBeforeFocusedRemoval() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 3), false, false);
+            pump(root);
+            assertEquals(3, sm.getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 3)));
+
+            sm.clearAndSelect(0);
+            pump(root);
+            assertEquals(0, sm.getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 3)),
+                    "programmatic selection changes do not move keyboard focus");
+
+            items.remove(3);
+            pump(root);
+            assertEquals(0, sm.getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 2)),
+                    "deleting focus-only item uses the local fallback after programmatic selection");
+            assertFalse(hasFocusRing(cellByIndex(view, 0)));
+        });
+    }
+
+    @Test
+    public void programmaticLeadChangeWithoutSelectedIndicesChangeUpdatesFocusLeadState() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 5), false, false);
+            pump(root);
+            sm.select(1);
+            sm.select(5);
+            assertEquals(List.of(1, 5), sm.getSelectedIndices());
+            assertEquals(5, sm.getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 5)));
+
+            sm.select(1);
+            assertEquals(List.of(1, 5), sm.getSelectedIndices(),
+                    "selecting an already-selected item only changes the lead");
+            assertEquals(1, sm.getSelectedIndex());
+
+            items.remove(5);
+            pump(root);
+            assertEquals(List.of(1), sm.getSelectedIndices());
+            assertEquals(1, sm.getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 4)),
+                    "focus does not follow a programmatically changed lead when its item is deleted");
+            assertFalse(hasFocusRing(cellByIndex(view, 1)));
+        });
+    }
+
+    @Test
     public void shortcutAClampedToSelectionMode() throws Exception {
         onFx(() -> {
             RXTileView<String> single = tiles(8);

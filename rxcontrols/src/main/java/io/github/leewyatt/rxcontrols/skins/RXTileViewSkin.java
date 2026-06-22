@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.internal.RXTileSelectionMutationGuard;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -62,7 +63,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private final RXTileFocusModel<T> focusModel;
     private MultipleSelectionModel<T> observedSelectionModel;
-    private final ListChangeListener<Integer> selectionListener = change -> refreshSelectionAndFocus();
+    private final ListChangeListener<Integer> selectionListener = change -> onSelectionChanged();
+    private final ChangeListener<Number> selectedIndexListener = (obs, oldIndex, newIndex) -> syncFocusSelectionLead();
     private final ChangeListener<SelectionMode> selectionModeListener = (obs, oldMode, newMode) -> resetAnchor();
 
     private int preferredVerticalColumn = -1;
@@ -390,6 +392,17 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         viewport.refreshSelectionAndFocus();
     }
 
+    private void onSelectionChanged() {
+        syncFocusSelectionLead();
+        refreshSelectionAndFocus();
+    }
+
+    private void syncFocusSelectionLead() {
+        if (!RXTileSelectionMutationGuard.isActive(observedSelectionModel)) {
+            focusModel.syncSelectionLeadState();
+        }
+    }
+
     private void onSelectionModelSwapped() {
         resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
@@ -404,6 +417,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         observedSelectionModel = model;
         if (model != null) {
             model.getSelectedIndices().addListener(selectionListener);
+            model.selectedIndexProperty().addListener(selectedIndexListener);
             model.selectionModeProperty().addListener(selectionModeListener);
         }
     }
@@ -411,6 +425,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private void detachSelectionModel() {
         if (observedSelectionModel != null) {
             observedSelectionModel.getSelectedIndices().removeListener(selectionListener);
+            observedSelectionModel.selectedIndexProperty().removeListener(selectedIndexListener);
             observedSelectionModel.selectionModeProperty().removeListener(selectionModeListener);
             observedSelectionModel = null;
         }

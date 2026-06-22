@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.RXTileSelectionMutationGuard;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.collections.FXCollections;
@@ -288,24 +289,29 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     }
 
     private void onItemsChanged(ListChangeListener.Change<? extends T> change) {
-        ObservableList<T> items = tileView.getItems();
-        int itemCount = items == null ? 0 : items.size();
-        if (itemCount == 0) {
-            clearSelection();
-            return;
-        }
-        pendingLeadRevertFrom = -1;
-        while (change.next()) {
-            if (change.wasPermutated()) {
-                applyPermutation(change);
-            } else if (change.wasUpdated()) {
-                syncSelectedItems();
-            } else {
-                applyAddOrRemove(change);
+        RXTileSelectionMutationGuard.enter(this);
+        try {
+            ObservableList<T> items = tileView.getItems();
+            int itemCount = items == null ? 0 : items.size();
+            if (itemCount == 0) {
+                clearSelection();
+                return;
             }
+            pendingLeadRevertFrom = -1;
+            while (change.next()) {
+                if (change.wasPermutated()) {
+                    applyPermutation(change);
+                } else if (change.wasUpdated()) {
+                    syncSelectedItems();
+                } else {
+                    applyAddOrRemove(change);
+                }
+            }
+            updateLeadAfterItemsChange();
+            syncSelectedItems();
+        } finally {
+            RXTileSelectionMutationGuard.exit(this);
         }
-        updateLeadAfterItemsChange();
-        syncSelectedItems();
     }
 
     private void applyPermutation(ListChangeListener.Change<? extends T> change) {
