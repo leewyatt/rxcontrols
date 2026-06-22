@@ -11,6 +11,7 @@ import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.ScrollEvent;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -326,10 +328,13 @@ final class RXTileViewport<T> extends Region {
         cell.updateTileFocus(focusModel != null && focusModel.getFocusedIndex() == index);
     }
 
-    private static void applyCssAfterCellUpdate(Node cell) {
+    private static void applyCssAfterCellUpdate(Control cell, String oldInlineStyle) {
         // Match VirtualFlow.setCellIndex: updateItem can mutate CSS while the
         // virtualizer is already in layout, so apply before this frame is painted.
-        cell.applyCss();
+        if (cell.getScene() != null
+                && (cell.isNeedsLayout() || !Objects.equals(oldInlineStyle, cell.getStyle()))) {
+            cell.applyCss();
+        }
     }
 
     int getVisibleFirstIndex() {
@@ -661,9 +666,10 @@ final class RXTileViewport<T> extends Region {
             double rowTop = snapPositionY(info.top() - scrollY);
             if (info.header()) {
                 RXTileSectionCell header = acquireHeader(headerCursor++);
+                String oldStyle = header.getStyle();
                 header.updateSection(info.section());
                 header.setVisible(true);
-                applyCssAfterCellUpdate(header);
+                applyCssAfterCellUpdate(header, oldStyle);
                 placeHeader(header, rowTop, contentWidth, snapSizeY(info.height()));
             } else {
                 int rowStart = info.firstItemIndex();
@@ -679,11 +685,12 @@ final class RXTileViewport<T> extends Region {
                     RXTileCell<T> cell = reorderPass
                             ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
                             : acquireCell(cellCursor++);
+                    String oldStyle = cell.getStyle();
                     cell.updateGridPosition(info.dataRowIndex(), column);
                     cell.updateIndex(itemIndex);
                     cell.setVisible(true);
                     applyCellState(cell, itemIndex);
-                    applyCssAfterCellUpdate(cell);
+                    applyCssAfterCellUpdate(cell, oldStyle);
                     // Only a carry-over cell (the one that rendered this item last pass)
                     // glides; a freshly repurposed or entering cell pops in at its slot.
                     placeCell(cell, x, rowTop, cellWidth, cellHeight, cell == prior);
