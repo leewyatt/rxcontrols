@@ -1067,6 +1067,39 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void verticalArrowPreservesColumnAcrossUnevenSections() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = FXCollections.observableArrayList(
+                    "a0", "a1", "a2", "a3", "a4", "b0", "b1", "b2");
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            view.setSectionKeyFactory(s -> s.substring(0, 1));
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 3), false, false);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(5, sm.getSelectedIndex(),
+                    "DOWN from a short section tail lands on the next section's same visual column");
+
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(3, sm.getSelectedIndex(),
+                    "UP returns to the previous section's same visual column");
+
+            fireMousePressed(cellByIndex(view, 7), false, false);
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(),
+                    "UP stays put when the previous section tail has no same-column cell");
+        });
+    }
+
+    @Test
     public void homeAndEndSelectFirstAndLast() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(50);

@@ -146,6 +146,14 @@ final class RXTileViewport<T> extends Region {
         this.rowPlan = plan;
     }
 
+    int verticalNeighborOf(int itemIndex, int direction) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null) {
+            return -1;
+        }
+        return plan.verticalNeighborOfItem(itemIndex, direction);
+    }
+
     void setFocusModel(RXTileFocusModel<T> focusModel) {
         this.focusModel = focusModel;
     }

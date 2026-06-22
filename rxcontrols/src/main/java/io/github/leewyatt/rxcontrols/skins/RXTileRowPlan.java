@@ -186,6 +186,37 @@ final class RXTileRowPlan {
     }
 
     /**
+     * The item in the next visual data row above or below {@code itemIndex} that
+     * occupies the same column.
+     *
+     * @param itemIndex a valid item index
+     * @param direction positive for the row below, negative for the row above
+     * @return the same-column neighbor item index, or {@code -1} when no such cell exists
+     */
+    int verticalNeighborOfItem(int itemIndex, int direction) {
+        if (itemIndex < 0 || itemIndex >= itemCount || direction == 0 || totalVisualRows == 0) {
+            return -1;
+        }
+        int step = direction > 0 ? 1 : -1;
+        int visualRow = visualRowOfItem(itemIndex);
+        RowInfo current = rowInfo(visualRow);
+        int column = itemIndex - current.firstItemIndex();
+        for (int targetRow = visualRow + step;
+             targetRow >= 0 && targetRow < totalVisualRows;
+             targetRow += step) {
+            RowInfo target = rowInfo(targetRow);
+            if (target.header()) {
+                continue;
+            }
+            if (column >= target.cellCount()) {
+                return -1;
+            }
+            return target.firstItemIndex() + column;
+        }
+        return -1;
+    }
+
+    /**
      * The first visual row belonging to the section at {@code sectionIndex}.
      *
      * @param sectionIndex the section index
