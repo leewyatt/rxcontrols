@@ -85,6 +85,10 @@ final class RXTileViewport<T> extends Region {
     private boolean explicitScrollPending;
 
     private double cachedMaxScroll;
+    private double chromeLeft;
+    private double chromeTop;
+    private double chromeRight;
+    private double chromeBottom;
 
     // Published to the skin after each pass (-1 / null when nothing is visible).
     private int visibleFirstIndex = -1;
@@ -153,6 +157,13 @@ final class RXTileViewport<T> extends Region {
      */
     void setRowPlan(RXTileRowPlan plan) {
         this.rowPlan = plan;
+    }
+
+    void setChromeInsets(double left, double top, double right, double bottom) {
+        chromeLeft = Math.max(0.0, left);
+        chromeTop = Math.max(0.0, top);
+        chromeRight = Math.max(0.0, right);
+        chromeBottom = Math.max(0.0, bottom);
     }
 
     RXTileRowPlan.ItemPosition itemPositionOf(int itemIndex) {
@@ -511,10 +522,10 @@ final class RXTileViewport<T> extends Region {
     protected void layoutChildren() {
         double w = getWidth();
         double h = getHeight();
-        viewportClip.setX(0.0);
-        viewportClip.setY(0.0);
-        viewportClip.setWidth(w);
-        viewportClip.setHeight(h);
+        viewportClip.setX(-chromeLeft);
+        viewportClip.setY(-chromeTop);
+        viewportClip.setWidth(w + chromeLeft + chromeRight);
+        viewportClip.setHeight(h + chromeTop + chromeBottom);
 
         RXTileRowPlan plan = rowPlan;
         if (w <= 0.0 || h <= 0.0 || plan == null) {
@@ -584,7 +595,8 @@ final class RXTileViewport<T> extends Region {
                 vbar.setValue(scrollY);
             }
             adjustingScrollBar = false;
-            vbar.resizeRelocate(w - barBreadth, 0.0, barBreadth, h);
+            double barX = w - barBreadth + (chromeRight < 1.0 ? 0.0 : chromeRight - 1.0);
+            vbar.resizeRelocate(barX, -chromeTop, barBreadth, h + chromeTop + chromeBottom);
             vbar.setVisible(true);
         } else {
             vbar.setVisible(false);

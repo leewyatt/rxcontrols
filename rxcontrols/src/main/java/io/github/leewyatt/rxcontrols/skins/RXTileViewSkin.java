@@ -363,6 +363,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     @Override
     protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
+        RXTileView<T> control = getSkinnable();
+        double rightInset = Math.max(0.0, control.getWidth() - contentX - contentWidth);
+        double bottomInset = Math.max(0.0, control.getHeight() - contentY - contentHeight);
+        viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
         updateColumns(contentWidth, contentHeight);
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);

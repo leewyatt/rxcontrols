@@ -1236,8 +1236,25 @@
  * RXTileView                                                                  *
  *                                                                             *
  ******************************************************************************/
+.rx-tile-view {
+    -fx-background-color: -fx-box-border, -fx-background;
+    -fx-background-insets: 0, 1;
+    -fx-padding: 1;
+}
+
+.rx-tile-view:focused {
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -fx-background;
+    -fx-background-insets: -1.4, -0.3, 1;
+    -fx-background-radius: 2, 0, 0;
+}
+
 .rx-tile-view > .viewport {
-    -fx-background-color: transparent;
+    -fx-background-color: -fx-background;
+}
+
+.rx-tile-view > .viewport > .scroll-bar:vertical {
+    -fx-background-insets: 1 1 1 0, 1;
+    -fx-padding: 1 0 1 0;
 }
 
 .rx-tile-view > .placeholder {

@@ -240,14 +240,16 @@ public class RXTileViewSkinTest {
             RXTileView<String> noBar = tiles(6);
             noBar.setCellWidth(40);
             noBar.setHgap(0);
-            pump(host(noBar, 320, 600)); // 6 items fit without a vertical scroll bar
+            // RXTileView's Modena-like chrome has 1px left/right padding, so an
+            // outer width of 322 leaves the 320px content width this fixture needs.
+            pump(host(noBar, 322, 600)); // 6 items fit without a vertical scroll bar
             int colsNoBar = noBar.getActualColumnCount();
             assertEquals(8, colsNoBar, "320 / 40 = 8 columns without a scroll bar");
 
             RXTileView<String> withBar = tiles(2000);
             withBar.setCellWidth(40);
             withBar.setHgap(0);
-            StackPane root = host(withBar, 320, 300); // overflow forces the scroll bar
+            StackPane root = host(withBar, 322, 300); // overflow forces the scroll bar
             pump(root);
             int colsWithBar = withBar.getActualColumnCount();
             assertTrue(colsWithBar < colsNoBar,
@@ -286,6 +288,10 @@ public class RXTileViewSkinTest {
                     "content rendering stops before the vertical scroll bar");
 
             Node viewport = view.lookup(".viewport");
+            assertEquals(-viewport.getLayoutY(), vbar.getLayoutY(), 0.5,
+                    "the scroll bar extends through the top chrome like ScrollPaneSkin");
+            assertEquals(view.getHeight(), vbar.getHeight(), 1.0,
+                    "the scroll bar spans the content height plus top/bottom chrome");
             List<Node> viewportChildren = ((Region) viewport).getChildrenUnmodifiable();
             assertTrue(viewportChildren.indexOf(vbar) > viewportChildren.indexOf(contentLayer),
                     "the scroll bar is rendered above the clipped content layer");
