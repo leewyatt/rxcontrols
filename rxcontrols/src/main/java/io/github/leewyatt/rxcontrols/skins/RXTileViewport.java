@@ -725,7 +725,13 @@ final class RXTileViewport<T> extends Region {
         double cellWidth;
         double effectiveGap;
         double startX;
-        if (mode == ItemsJustify.STRETCH) {
+        double preferredRowWidth = cols * baseWidth + (cols - 1) * hgap;
+        if (preferredRowWidth > contentWidth) {
+            double scale = preferredRowWidth <= 0.0 ? 0.0 : Math.max(0.0, contentWidth) / preferredRowWidth;
+            cellWidth = baseWidth * scale;
+            effectiveGap = hgap * scale;
+            startX = 0.0;
+        } else if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (cols - 1) * hgap) / cols;
             double cap = maxCellWidthOrUnbounded(control);
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;

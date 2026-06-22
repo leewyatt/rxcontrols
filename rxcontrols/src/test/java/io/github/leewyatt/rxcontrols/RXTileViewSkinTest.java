@@ -287,12 +287,85 @@ public class RXTileViewSkinTest {
             Node contentLayer = view.lookup(".viewport > .content");
             assertTrue(contentLayer instanceof Region, "cells are hosted in a content layer");
             assertTrue(((Region) contentLayer).getWidth() >= view.getCellWidth() - 1.0,
-                    "the minimum width leaves one full fixed-width cell visible");
+                    "the minimum width leaves one full target-width cell visible");
         });
     }
 
     @Test
-    public void fixedCellsAreClippedBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
+    public void forcedColumnsAffectPreferredWidthNotMinimumWidth() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setCellWidth(100);
+            view.setCellHeight(70);
+            view.setHgap(0);
+            view.setVgap(0);
+            view.setColumnCount(5);
+            view.setMaxColumns(4);
+            view.setItemsJustify(ItemsJustify.START);
+            StackPane root = host(view, 80, 220);
+            pump(root);
+
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            assertNotNull(vbar, "the vertical scroll bar is present");
+            assertTrue(vbar.isVisible(), "fixture must overflow vertically");
+
+            double expectedMinWidth = view.getInsets().getLeft()
+                    + view.getCellWidth()
+                    + vbar.prefWidth(-1)
+                    + view.getInsets().getRight();
+            assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
+                    "forced columns do not expand min width beyond one target cell plus scroll bar");
+
+            double expectedPrefWidth = view.getInsets().getLeft()
+                    + 4.0 * view.getCellWidth()
+                    + vbar.prefWidth(-1)
+                    + view.getInsets().getRight();
+            assertEquals(expectedPrefWidth, view.prefWidth(-1), 1.0,
+                    "forced columns still define the preferred row width plus scroll bar");
+            assertEquals(4, view.getActualColumnCount(), "forced columns are still capped by maxColumns");
+
+            RXTileCell<?> cell = cellByIndex(view, 0);
+            assertNotNull(cell);
+            assertEquals(25.0, cell.getWidth(), 1.5,
+                    "fixed justification shrinks target tracks inside the one-cell content width");
+        });
+    }
+
+    @Test
+    public void stretchForcedColumnsUseOneTargetCellMinimumWidth() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setCellWidth(100);
+            view.setCellHeight(70);
+            view.setHgap(0);
+            view.setVgap(0);
+            view.setColumnCount(5);
+            view.setMaxColumns(4);
+            view.setItemsJustify(ItemsJustify.STRETCH);
+            StackPane root = host(view, 80, 220);
+            pump(root);
+
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            assertNotNull(vbar, "the vertical scroll bar is present");
+            assertTrue(vbar.isVisible(), "fixture must overflow vertically");
+
+            double expectedMinWidth = view.getInsets().getLeft()
+                    + view.getCellWidth()
+                    + vbar.prefWidth(-1)
+                    + view.getInsets().getRight();
+            assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
+                    "min width remains one target cell plus scroll bar in STRETCH");
+            assertEquals(4, view.getActualColumnCount(), "forced columns are still capped by maxColumns");
+
+            RXTileCell<?> cell = cellByIndex(view, 0);
+            assertNotNull(cell);
+            assertEquals(25.0, cell.getWidth(), 1.5,
+                    "STRETCH divides the available one-cell content width among four forced columns");
+        });
+    }
+
+    @Test
+    public void fixedCellsShrinkBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setMinWidth(0);
@@ -312,13 +385,15 @@ public class RXTileViewSkinTest {
             assertNotNull(contentLayer, "cells are hosted in a clipped content layer");
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertTrue(cell.getWidth() > vbar.getLayoutX(),
-                    "fixture must use a fixed cell wider than the scrollbar-free content area");
+            assertTrue(cell.getWidth() < view.getCellWidth(),
+                    "forced allocation below target width shrinks the cell for this layout pass");
 
             assertTrue(contentLayer.getClip() instanceof Rectangle, "content layer has its own clip");
             Rectangle clip = (Rectangle) contentLayer.getClip();
             assertEquals(vbar.getLayoutX(), clip.getWidth(), 1.0,
                     "content rendering stops before the vertical scroll bar");
+            assertTrue(cell.getWidth() <= clip.getWidth() + 1.0,
+                    "the shrunken cell stays inside the scrollbar-free content area");
 
             Node viewport = view.lookup(".viewport");
             assertEquals(-viewport.getLayoutY(), vbar.getLayoutY(), 0.5,

@@ -47,10 +47,12 @@ import java.util.Set;
  * target size is {@code cellWidth} × {@link #cellHeightProperty() cellHeight},
  * separated by {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap};
  * spare row width is distributed per {@link #itemsJustifyProperty()
- * itemsJustify}. If the parent constrains the pane below the configured one-row
- * width, the horizontal cell size and gap shrink proportionally so the row stays
- * inside the available width. A resizable child fills its cell (bounded by its
- * own max size); a non-resizable child is centered in it. When
+ * itemsJustify}. Non-stretch rows keep their target cell width while space
+ * permits, while {@link ItemsJustify#STRETCH} grows cells to fill spare row
+ * width. If the available row width is narrower than the target row width, all
+ * modes shrink cells and gaps for that pass so the row remains horizontally
+ * bounded. A resizable child fills its cell (bounded by its own max size); a
+ * non-resizable child is centered in it. When
  * {@link #animatedProperty() animated} is on, children glide to their new
  * positions as the column count changes.
  */
@@ -175,8 +177,8 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Width of each cell, in pixels; drives the automatic column count. Must be a
-     * finite positive number — an illegal value is rejected with
+     * Target width of each cell, in pixels; drives the automatic column count.
+     * Must be a finite positive number — an illegal value is rejected with
      * {@link IllegalArgumentException} and coerced back to the default (unless bound).
      *
      * @return the cell-width property
@@ -291,12 +293,14 @@ public class RXTilePane extends Pane {
      * {@link #itemsJustifyProperty() itemsJustify} is
      * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
-     * where cells normally keep {@link #cellWidthProperty() cellWidth}.
+     * where cells normally keep the target {@link #cellWidthProperty() cellWidth}
+     * while space permits.
      *
      * <p>A cap smaller than {@code cellWidth} is degenerate
      * ({@code max < min}) and is treated as {@code cellWidth}; the cap itself
-     * never shrinks cells below their configured width. A narrower parent may
-     * still compress cells to avoid horizontal overflow.
+     * never shrinks cells below their target width. Any justification mode may
+     * still shrink cells when the available row width is narrower than the target
+     * row width.
      *
      * @return the max-cell-width property
      */
@@ -527,14 +531,15 @@ public class RXTilePane extends Pane {
             };
 
     /**
-     * How a row uses its spare horizontal width: position the normal-width block
+     * How a row uses its spare horizontal width: position the target-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
      * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link ItemsJustify#START}. When the available width is smaller
-     * than the configured row width, cells and gaps shrink before this spare-width
-     * distribution is applied.
+     * treated as {@link ItemsJustify#START}. {@code cellWidth} is the target
+     * track width used for deriving columns and preferred size. When the row is
+     * narrower than its target width, all modes shrink cells for that layout
+     * pass; when the row has spare width, only {@code STRETCH} grows cells.
      *
      * @return the items-justify property
      */
@@ -741,7 +746,8 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return snappedLeftInset() + snappedRightInset();
+        double cell = snapSizeX(cellWidthOrDefault());
+        return snappedLeftInset() + snapSizeX(cell) + snappedRightInset();
     }
 
     @Override
@@ -751,15 +757,10 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computePrefWidth(double height) {
-        int forced = getColumnCount();
-        int columns = forced >= 1 ? forced : DEFAULT_PREF_COLUMNS;
-        int max = getMaxColumns();
-        if (max > 0 && columns > max) {
-            columns = max;
-        }
+        int columns = prefWidthColumns();
         double cell = snapSizeX(cellWidthOrDefault());
         double gap = snapSpaceX(gapOrZero(getHgap()));
-        double content = columns * cell + (columns - 1) * gap;
+        double content = rowWidth(columns, cell, gap);
         return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
     }
 
@@ -886,6 +887,25 @@ public class RXTilePane extends Pane {
             columns = max;
         }
         return Math.min(columns, MAX_RESOLVED_COLUMNS);
+    }
+
+    private int prefWidthColumns() {
+        int forced = getColumnCount();
+        int columns = forced >= 1 ? forced : DEFAULT_PREF_COLUMNS;
+        return capColumns(columns);
+    }
+
+    private int capColumns(int columns) {
+        int capped = Math.max(1, columns);
+        int max = getMaxColumns();
+        if (max > 0 && capped > max) {
+            capped = max;
+        }
+        return Math.min(capped, MAX_RESOLVED_COLUMNS);
+    }
+
+    private static double rowWidth(int columns, double cellWidth, double hgap) {
+        return columns * cellWidth + (columns - 1) * hgap;
     }
 
     // Falls back to the default for a bound illegal value (coerce+throw cannot reset

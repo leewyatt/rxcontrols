@@ -64,9 +64,11 @@ import java.util.Objects;
  * reordered — pass a {@code SortedList} to aggregate), each introduced by a
  * {@link RXTileSectionCell} header. With no factory the view is flat.
  *
- * <p>Within a row, cells of width {@code cellWidth} are separated by
+ * <p>Within a row, cells target {@code cellWidth}, separated by
  * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}; spare
  * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}.
+ * If the viewport is narrower than the target row width, cells and gaps shrink
+ * for that layout pass so the row stays inside the content area.
  * The view publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
  * {@link #rowCountProperty() rowCount}, {@link #sectionsProperty() sections},
@@ -343,7 +345,7 @@ public class RXTileView<T> extends Control {
     };
 
     /**
-     * Width of each cell, in pixels. Drives the automatic column count when
+     * Target width of each cell, in pixels. Drives the automatic column count when
      * {@code columnCount} is automatic. Must be a finite positive number; an
      * illegal value is rejected with {@link IllegalArgumentException} and the
      * property is coerced back to its default (unless bound).
@@ -457,11 +459,14 @@ public class RXTileView<T> extends Control {
      * {@link #itemsJustifyProperty() itemsJustify} is
      * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
-     * where cells keep {@link #cellWidthProperty() cellWidth}.
+     * where cells normally keep the target {@link #cellWidthProperty() cellWidth}
+     * while space permits.
      *
      * <p>A cap smaller than {@code cellWidth} is degenerate
-     * ({@code max < min}) and is treated as {@code cellWidth}; cells are never
-     * shrunk below their configured width by the cap.
+     * ({@code max < min}) and is treated as {@code cellWidth}; the cap itself
+     * never shrinks cells below their target width. Any justification mode may
+     * still shrink cells when the available row width is narrower than the target
+     * row width.
      *
      * @return the max-cell-width property
      */
@@ -734,12 +739,15 @@ public class RXTileView<T> extends Control {
             };
 
     /**
-     * How a row uses its spare horizontal width: position the fixed-width block
+     * How a row uses its spare horizontal width: position the target-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
      * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link ItemsJustify#START}.
+     * treated as {@link ItemsJustify#START}. {@code cellWidth} is the target
+     * track width used for deriving columns and preferred size. When the row is
+     * narrower than its target width, all modes shrink cells for that layout
+     * pass; when the row has spare width, only {@code STRETCH} grows cells.
      *
      * @return the items-justify property
      */

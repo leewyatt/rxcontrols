@@ -350,7 +350,7 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void fitToWidthScrollPaneCanShrinkBelowCellWidthWithoutHorizontalBar() throws Exception {
+    public void fitToWidthScrollPaneHonorsOneCellMinimumWidth() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(8);
             pane.setCellWidth(100);
@@ -369,44 +369,91 @@ public class RXTilePaneTest {
 
             ScrollBar horizontal = scrollBar(scroll, Orientation.HORIZONTAL);
             Region firstCard = (Region) pane.getChildren().get(0);
-            assertTrue(pane.getWidth() < pane.getCellWidth(),
-                    "fitToWidth should be allowed to resize the pane below one cell");
-            assertTrue(firstCard.getLayoutBounds().getWidth() <= pane.getWidth() - 24.0,
-                    "the sole visible column shrinks to the available content width");
-            assertFalse(horizontal.isVisible(),
-                    "a width-fitting ScrollPane should not show a horizontal bar just because cellWidth is larger");
+            double expectedMinWidth = pane.getInsets().getLeft()
+                    + pane.getCellWidth()
+                    + pane.getInsets().getRight();
+            assertEquals(expectedMinWidth, pane.minWidth(-1), EPSILON,
+                    "minimum width reserves one target cell plus padding");
+            assertTrue(pane.getWidth() >= expectedMinWidth - EPSILON,
+                    "fitToWidth still respects the content node's minimum width");
+            assertEquals(pane.getCellWidth(), firstCard.getLayoutBounds().getWidth(), EPSILON,
+                    "the first cell keeps its target width");
+            assertTrue(horizontal.isVisible(),
+                    "ScrollPane uses horizontal scrolling when the viewport is narrower than the pane minimum");
         });
     }
 
     @Test
-    public void forcedColumnsShrinkCellsAndGapsWhenTooNarrow() {
+    public void forcedColumnsAffectPreferredWidthNotMinimumWidth() {
         RXTilePane pane = filledPane(3);
-        pane.setColumnCount(3);
         pane.setCellWidth(100);
-        pane.setHgap(20);
+        pane.setHgap(0);
+        pane.setColumnCount(5);
+        pane.setMaxColumns(4);
+        pane.setItemsJustify(ItemsJustify.START);
 
-        layout(pane, 30, 120);
-
-        assertRowFits(pane, 3, 30.0);
-        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 0.0,
-                "gaps must not consume all available width");
-        assertTrue(firstGap(pane) < 20.0, "the configured gap shrinks with the cells");
+        assertEquals(100.0, pane.minWidth(-1), EPSILON,
+                "cellWidth is a target width, so forced columns do not expand min width");
+        assertEquals(400.0, pane.prefWidth(-1), EPSILON,
+                "forced columns still define the preferred row width");
     }
 
     @Test
-    public void stretchForcedColumnsShrinkCellsAndGapsWhenTooNarrow() {
+    public void maxColumnsAloneDoesNotExpandMinimumWidth() {
         RXTilePane pane = filledPane(3);
-        pane.setColumnCount(3);
         pane.setCellWidth(100);
-        pane.setHgap(20);
+        pane.setHgap(0);
+        pane.setMaxColumns(4);
+
+        assertEquals(100.0, pane.minWidth(-1), EPSILON,
+                "maxColumns is only an upper bound in automatic column mode");
+    }
+
+    @Test
+    public void stretchForcedColumnsUseOneTargetCellMinimumWidth() {
+        RXTilePane pane = filledPane(4);
+        pane.setCellWidth(100);
+        pane.setHgap(0);
+        pane.setColumnCount(5);
+        pane.setMaxColumns(4);
         pane.setItemsJustify(ItemsJustify.STRETCH);
 
-        layout(pane, 30, 120);
+        assertEquals(100.0, pane.minWidth(-1), EPSILON,
+                "min width remains one target cell in STRETCH");
+    }
 
-        assertRowFits(pane, 3, 30.0);
-        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 0.0,
-                "STRETCH must not keep the full gap and collapse cells to zero");
-        assertTrue(firstGap(pane) < 20.0);
+    @Test
+    public void fixedForcedColumnsShrinkWhenRowIsNarrow() {
+        RXTilePane pane = filledPane(4);
+        pane.setColumnCount(5);
+        pane.setMaxColumns(4);
+        pane.setCellWidth(100);
+        pane.setHgap(0);
+        pane.setItemsJustify(ItemsJustify.START);
+
+        layout(pane, 100, 120);
+
+        assertEquals(4, pane.getActualColumnCount());
+        assertRowFits(pane, 4, 100.0);
+        assertEquals(25.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "fixed justification shrinks target tracks when the row is narrow");
+    }
+
+    @Test
+    public void stretchForcedColumnsUsesAvailableWidthWhenNarrow() {
+        RXTilePane pane = filledPane(4);
+        pane.setColumnCount(5);
+        pane.setMaxColumns(4);
+        pane.setCellWidth(100);
+        pane.setHgap(0);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
+
+        layout(pane, 100, 120);
+
+        assertEquals(4, pane.getActualColumnCount());
+        assertRowFits(pane, 4, 100.0);
+        assertEquals(25.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "STRETCH derives cell width from the available row width");
     }
 
     // ==================== Helpers ====================

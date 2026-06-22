@@ -385,8 +385,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         RXTileView<T> control = getSkinnable();
         double cellWidth = cellWidthOrDefault(control);
         double gap = gapOrZero(control.getHgap());
-        return leftInset + DEFAULT_PREF_COLUMNS * cellWidth
-                + (DEFAULT_PREF_COLUMNS - 1) * gap
+        double content = rowWidth(prefWidthColumns(control), cellWidth, gap);
+        return leftInset + content
                 + viewport.scrollBarBreadth() + rightInset;
     }
 
@@ -401,8 +401,28 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + cellWidthOrDefault(getSkinnable())
+        RXTileView<T> control = getSkinnable();
+        double content = cellWidthOrDefault(control);
+        return leftInset + content
                 + viewport.scrollBarBreadth() + rightInset;
+    }
+
+    private int prefWidthColumns(RXTileView<?> control) {
+        int forced = control.getColumnCount();
+        int columns = forced >= 1 ? forced : DEFAULT_PREF_COLUMNS;
+        return capColumns(columns, control.getMaxColumns());
+    }
+
+    private static int capColumns(int columns, int maxColumns) {
+        int capped = Math.max(1, columns);
+        if (maxColumns > 0 && capped > maxColumns) {
+            capped = maxColumns;
+        }
+        return Math.min(capped, MAX_RESOLVED_COLUMNS);
+    }
+
+    private static double rowWidth(int columns, double cellWidth, double hgap) {
+        return columns * cellWidth + (columns - 1) * hgap;
     }
 
     @Override
