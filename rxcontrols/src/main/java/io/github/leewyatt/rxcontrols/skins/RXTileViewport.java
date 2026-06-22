@@ -154,6 +154,11 @@ final class RXTileViewport<T> extends Region {
         return plan.itemPositionOf(itemIndex);
     }
 
+    int columnCount() {
+        RXTileRowPlan plan = rowPlan;
+        return plan == null ? -1 : plan.columns();
+    }
+
     int verticalNeighborOf(int itemIndex, int direction, int preferredColumn) {
         RXTileRowPlan plan = rowPlan;
         if (plan == null) {

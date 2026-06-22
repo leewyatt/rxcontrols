@@ -1208,6 +1208,32 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void reflowResetsPreferredColumnWhenColumnCountChangesOnly() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = shortThenWideSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            assertEquals(6, view.getActualColumnCount());
+
+            fireMousePressed(cellByIndex(view, 7), false, false); // b5, column 5
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(1, sm.getSelectedIndex(), "b5 UP clamps to a1");
+
+            root.resize(180, 600);
+            pump(root);
+            assertEquals(4, view.getActualColumnCount());
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(3, sm.getSelectedIndex(),
+                    "after column-count change, a1's real column is 1, so DOWN lands on b1");
+        });
+    }
+
+    @Test
     public void heightChangeKeepsPreferredColumnWhenFocusedCellPositionIsUnchanged() throws Exception {
         onFx(() -> {
             RXTileView<String> view = unevenSectionsForPreferredColumn();
@@ -1990,6 +2016,17 @@ public class RXTileViewSkinTest {
         ObservableList<String> items = FXCollections.observableArrayList(
                 "g0#492", "g0#493", "g0#494", "g0#495", "g0#496", "g0#497", "g0#498", "g0#499",
                 "g1#500", "g1#501", "g1#502", "g1#503", "g1#504", "g1#505");
+        RXTileView<String> view = new RXTileView<>(items);
+        view.setCellWidth(40);
+        view.setHgap(0);
+        view.setSectionKeyFactory(item -> item.substring(0, item.indexOf('#')));
+        return view;
+    }
+
+    private static RXTileView<String> shortThenWideSectionsForPreferredColumn() {
+        ObservableList<String> items = FXCollections.observableArrayList(
+                "g0#a0", "g0#a1",
+                "g1#b0", "g1#b1", "g1#b2", "g1#b3", "g1#b4", "g1#b5");
         RXTileView<String> view = new RXTileView<>(items);
         view.setCellWidth(40);
         view.setHgap(0);

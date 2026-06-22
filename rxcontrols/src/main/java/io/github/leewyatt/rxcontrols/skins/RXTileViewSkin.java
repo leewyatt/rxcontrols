@@ -68,6 +68,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private int preferredVerticalColumn = -1;
     private int preferredColumnDataRow = -1;
     private int preferredColumnActualColumn = -1;
+    private int preferredColumnPlanColumns = -1;
 
     /**
      * Creates the skin for the given tile view.
@@ -436,9 +437,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             clearPreferredColumn();
             return -1;
         }
+        int planColumns = viewport.columnCount();
         if (preferredVerticalColumn < 0
                 || preferredColumnDataRow != position.dataRow()
-                || preferredColumnActualColumn != position.column()) {
+                || preferredColumnActualColumn != position.column()
+                || preferredColumnPlanColumns != planColumns) {
             resetPreferredColumn(position.column(), position);
         }
         return preferredVerticalColumn;
@@ -479,12 +482,14 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         preferredVerticalColumn = preferredColumn;
         preferredColumnDataRow = position.dataRow();
         preferredColumnActualColumn = position.column();
+        preferredColumnPlanColumns = viewport.columnCount();
     }
 
     private void clearPreferredColumn() {
         preferredVerticalColumn = -1;
         preferredColumnDataRow = -1;
         preferredColumnActualColumn = -1;
+        preferredColumnPlanColumns = -1;
     }
 
     // ==================== Keyboard ====================
