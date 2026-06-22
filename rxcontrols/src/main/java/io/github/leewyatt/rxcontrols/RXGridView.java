@@ -75,7 +75,7 @@ public class RXGridView<T> extends Control {
     private static final double DEFAULT_VGAP = 10.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
-    private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
+    private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-grid-view";
 
@@ -301,7 +301,7 @@ public class RXGridView<T> extends Control {
     /**
      * Upper bound on how wide a cell may grow when
      * {@link #itemsJustifyProperty() itemsJustify} is
-     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
      * where cells keep {@link #cellWidthProperty() cellWidth}.
      *
@@ -318,7 +318,7 @@ public class RXGridView<T> extends Control {
     }
 
     /**
-     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Returns the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @return the maximum cell width, or {@code 0} for unbounded
      */
@@ -327,7 +327,7 @@ public class RXGridView<T> extends Control {
     }
 
     /**
-     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Sets the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @param value a positive cap, or {@code 0} (or any non-positive value) for
      *              unbounded
@@ -503,10 +503,10 @@ public class RXGridView<T> extends Control {
 
     // ==================== Items Justify ====================
 
-    private final ObjectProperty<RXGridJustify> itemsJustify =
+    private final ObjectProperty<ItemsJustify> itemsJustify =
             new StyleableObjectProperty<>(DEFAULT_ITEMS_JUSTIFY) {
                 @Override
-                public CssMetaData<RXGridView<?>, RXGridJustify> getCssMetaData() {
+                public CssMetaData<RXGridView<?>, ItemsJustify> getCssMetaData() {
                     return StyleableProperties.ITEMS_JUSTIFY;
                 }
 
@@ -525,13 +525,13 @@ public class RXGridView<T> extends Control {
      * How a row uses its spare horizontal width: position the fixed-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
-     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link RXGridJustify#START}.
+     * treated as {@link ItemsJustify#START}.
      *
      * @return the items-justify property
      */
-    public final ObjectProperty<RXGridJustify> itemsJustifyProperty() {
+    public final ObjectProperty<ItemsJustify> itemsJustifyProperty() {
         return itemsJustify;
     }
 
@@ -540,7 +540,7 @@ public class RXGridView<T> extends Control {
      *
      * @return the row justification, possibly {@code null}
      */
-    public final RXGridJustify getItemsJustify() {
+    public final ItemsJustify getItemsJustify() {
         return itemsJustify.get();
     }
 
@@ -549,7 +549,7 @@ public class RXGridView<T> extends Control {
      *
      * @param value the row justification, or {@code null} for the default
      */
-    public final void setItemsJustify(RXGridJustify value) {
+    public final void setItemsJustify(ItemsJustify value) {
         itemsJustify.set(value);
     }
 
@@ -686,7 +686,7 @@ public class RXGridView<T> extends Control {
 
     private boolean pendingScroll;
     private int pendingScrollIndex;
-    private RXGridScrollAlignment pendingScrollAlignment = RXGridScrollAlignment.START;
+    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.START;
 
     /**
      * Scrolls so the item at {@code index} is visible at the top of the
@@ -695,7 +695,7 @@ public class RXGridView<T> extends Control {
      * @param index the item index; out-of-range values are clamped during layout
      */
     public final void scrollTo(int index) {
-        scrollTo(index, RXGridScrollAlignment.START);
+        scrollTo(index, ScrollAlignment.START);
     }
 
     /**
@@ -721,12 +721,12 @@ public class RXGridView<T> extends Control {
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link RXGridScrollAlignment#START}
+     *                  as {@link ScrollAlignment#START}
      */
-    public final void scrollTo(int index, RXGridScrollAlignment alignment) {
+    public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
         pendingScrollIndex = index;
-        pendingScrollAlignment = alignment == null ? RXGridScrollAlignment.START : alignment;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
         requestLayout();
     }
 
@@ -757,7 +757,7 @@ public class RXGridView<T> extends Control {
      *
      * @return the pending scroll alignment, never {@code null}
      */
-    public final RXGridScrollAlignment getPendingScrollAlignment() {
+    public final ScrollAlignment getPendingScrollAlignment() {
         return pendingScrollAlignment;
     }
 
@@ -843,9 +843,9 @@ public class RXGridView<T> extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXGridView<?>, RXGridJustify> ITEMS_JUSTIFY =
+        private static final CssMetaData<RXGridView<?>, ItemsJustify> ITEMS_JUSTIFY =
                 new CssMetaData<>("-rx-items-justify",
-                        new EnumConverter<>(RXGridJustify.class), DEFAULT_ITEMS_JUSTIFY) {
+                        new EnumConverter<>(ItemsJustify.class), DEFAULT_ITEMS_JUSTIFY) {
                     @Override
                     public boolean isSettable(RXGridView<?> node) {
                         return !node.itemsJustify.isBound();
@@ -853,8 +853,8 @@ public class RXGridView<T> extends Control {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXGridJustify> getStyleableProperty(RXGridView<?> node) {
-                        return (StyleableProperty<RXGridJustify>) node.itemsJustifyProperty();
+                    public StyleableProperty<ItemsJustify> getStyleableProperty(RXGridView<?> node) {
+                        return (StyleableProperty<ItemsJustify>) node.itemsJustifyProperty();
                     }
                 };
 

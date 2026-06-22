@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
@@ -62,7 +62,7 @@ public class RXTilePane extends Pane {
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
-    private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
+    private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -286,7 +286,7 @@ public class RXTilePane extends Pane {
     /**
      * Upper bound on how wide a cell may grow when
      * {@link #itemsJustifyProperty() itemsJustify} is
-     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
      * where cells keep {@link #cellWidthProperty() cellWidth}.
      *
@@ -301,7 +301,7 @@ public class RXTilePane extends Pane {
     }
 
     /**
-     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Returns the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @return the maximum cell width, or {@code 0} for unbounded
      */
@@ -310,7 +310,7 @@ public class RXTilePane extends Pane {
     }
 
     /**
-     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Sets the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @param value a positive cap, or {@code 0} (or any non-positive value) for
      *              unbounded
@@ -499,7 +499,7 @@ public class RXTilePane extends Pane {
 
     // ==================== Items Justify ====================
 
-    private final ObjectProperty<RXGridJustify> itemsJustify =
+    private final ObjectProperty<ItemsJustify> itemsJustify =
             new StyleableObjectProperty<>(DEFAULT_ITEMS_JUSTIFY) {
                 @Override
                 protected void invalidated() {
@@ -507,7 +507,7 @@ public class RXTilePane extends Pane {
                 }
 
                 @Override
-                public CssMetaData<RXTilePane, RXGridJustify> getCssMetaData() {
+                public CssMetaData<RXTilePane, ItemsJustify> getCssMetaData() {
                     return StyleableProperties.ITEMS_JUSTIFY;
                 }
 
@@ -526,13 +526,13 @@ public class RXTilePane extends Pane {
      * How a row uses its spare horizontal width: position the fixed-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
-     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link RXGridJustify#START}.
+     * treated as {@link ItemsJustify#START}.
      *
      * @return the items-justify property
      */
-    public final ObjectProperty<RXGridJustify> itemsJustifyProperty() {
+    public final ObjectProperty<ItemsJustify> itemsJustifyProperty() {
         return itemsJustify;
     }
 
@@ -541,7 +541,7 @@ public class RXTilePane extends Pane {
      *
      * @return the items justification
      */
-    public final RXGridJustify getItemsJustify() {
+    public final ItemsJustify getItemsJustify() {
         return itemsJustify.get();
     }
 
@@ -550,7 +550,7 @@ public class RXTilePane extends Pane {
      *
      * @param value the justification, or {@code null} for the default
      */
-    public final void setItemsJustify(RXGridJustify value) {
+    public final void setItemsJustify(ItemsJustify value) {
         itemsJustify.set(value);
     }
 
@@ -793,9 +793,9 @@ public class RXTilePane extends Pane {
         double cellW;
         double effectiveHgap;
         double startX;
-        RXGridJustify mode = justifyOrDefault(getItemsJustify());
+        ItemsJustify mode = justifyOrDefault(getItemsJustify());
         double baseWidth = snapSizeX(cellWidthOrDefault());
-        if (mode == RXGridJustify.STRETCH) {
+        if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (columns - 1) * hgapValue) / columns;
             double cap = maxCellWidthOrUnbounded();
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
@@ -908,8 +908,8 @@ public class RXTilePane extends Pane {
         return Double.isFinite(gap) ? Math.max(0.0, gap) : 0.0;
     }
 
-    private static RXGridJustify justifyOrDefault(RXGridJustify value) {
-        return value == null ? RXGridJustify.START : value;
+    private static ItemsJustify justifyOrDefault(ItemsJustify value) {
+        return value == null ? ItemsJustify.START : value;
     }
 
     // ==================== CSS ====================
@@ -986,9 +986,9 @@ public class RXTilePane extends Pane {
                     }
                 };
 
-        private static final CssMetaData<RXTilePane, RXGridJustify> ITEMS_JUSTIFY =
+        private static final CssMetaData<RXTilePane, ItemsJustify> ITEMS_JUSTIFY =
                 new CssMetaData<>("-rx-items-justify",
-                        new EnumConverter<>(RXGridJustify.class), DEFAULT_ITEMS_JUSTIFY) {
+                        new EnumConverter<>(ItemsJustify.class), DEFAULT_ITEMS_JUSTIFY) {
                     @Override
                     public boolean isSettable(RXTilePane node) {
                         return !node.itemsJustify.isBound();
@@ -996,8 +996,8 @@ public class RXTilePane extends Pane {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXGridJustify> getStyleableProperty(RXTilePane node) {
-                        return (StyleableProperty<RXGridJustify>) node.itemsJustifyProperty();
+                    public StyleableProperty<ItemsJustify> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<ItemsJustify>) node.itemsJustifyProperty();
                     }
                 };
 

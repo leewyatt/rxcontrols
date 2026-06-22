@@ -99,7 +99,7 @@ public class RXTileView<T> extends Control {
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
-    private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
+    private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
@@ -455,7 +455,7 @@ public class RXTileView<T> extends Control {
     /**
      * Upper bound on how wide a cell may grow when
      * {@link #itemsJustifyProperty() itemsJustify} is
-     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
      * where cells keep {@link #cellWidthProperty() cellWidth}.
      *
@@ -470,7 +470,7 @@ public class RXTileView<T> extends Control {
     }
 
     /**
-     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Returns the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @return the maximum cell width, or {@code 0} for unbounded
      */
@@ -479,7 +479,7 @@ public class RXTileView<T> extends Control {
     }
 
     /**
-     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     * Sets the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @param value a positive cap, or {@code 0} (or any non-positive value) for
      *              unbounded
@@ -715,10 +715,10 @@ public class RXTileView<T> extends Control {
 
     // ==================== Items Justify ====================
 
-    private final ObjectProperty<RXGridJustify> itemsJustify =
+    private final ObjectProperty<ItemsJustify> itemsJustify =
             new StyleableObjectProperty<>(DEFAULT_ITEMS_JUSTIFY) {
                 @Override
-                public CssMetaData<RXTileView<?>, RXGridJustify> getCssMetaData() {
+                public CssMetaData<RXTileView<?>, ItemsJustify> getCssMetaData() {
                     return StyleableProperties.ITEMS_JUSTIFY;
                 }
 
@@ -737,13 +737,13 @@ public class RXTileView<T> extends Control {
      * How a row uses its spare horizontal width: position the fixed-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
-     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link RXGridJustify#START}.
+     * treated as {@link ItemsJustify#START}.
      *
      * @return the items-justify property
      */
-    public final ObjectProperty<RXGridJustify> itemsJustifyProperty() {
+    public final ObjectProperty<ItemsJustify> itemsJustifyProperty() {
         return itemsJustify;
     }
 
@@ -752,7 +752,7 @@ public class RXTileView<T> extends Control {
      *
      * @return the row justification, possibly {@code null}
      */
-    public final RXGridJustify getItemsJustify() {
+    public final ItemsJustify getItemsJustify() {
         return itemsJustify.get();
     }
 
@@ -761,7 +761,7 @@ public class RXTileView<T> extends Control {
      *
      * @param value the row justification, or {@code null} for the default
      */
-    public final void setItemsJustify(RXGridJustify value) {
+    public final void setItemsJustify(ItemsJustify value) {
         itemsJustify.set(value);
     }
 
@@ -1214,7 +1214,7 @@ public class RXTileView<T> extends Control {
     private boolean pendingScroll;
     private int pendingScrollIndex;
     private int pendingScrollSectionIndex = -1;
-    private RXGridScrollAlignment pendingScrollAlignment = RXGridScrollAlignment.START;
+    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.START;
 
     /**
      * Scrolls so the item at {@code index} is visible at the top of the viewport.
@@ -1222,7 +1222,7 @@ public class RXTileView<T> extends Control {
      * @param index the item index; out-of-range values are clamped during layout
      */
     public final void scrollTo(int index) {
-        scrollTo(index, RXGridScrollAlignment.START);
+        scrollTo(index, ScrollAlignment.START);
     }
 
     /**
@@ -1231,13 +1231,13 @@ public class RXTileView<T> extends Control {
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link RXGridScrollAlignment#START}
+     *                  as {@link ScrollAlignment#START}
      */
-    public final void scrollTo(int index, RXGridScrollAlignment alignment) {
+    public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
         pendingScrollIndex = index;
         pendingScrollSectionIndex = -1;
-        pendingScrollAlignment = alignment == null ? RXGridScrollAlignment.START : alignment;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
         requestLayout();
     }
 
@@ -1248,7 +1248,7 @@ public class RXTileView<T> extends Control {
      * @param item the item to scroll to
      */
     public final void scrollTo(T item) {
-        scrollTo(item, RXGridScrollAlignment.START);
+        scrollTo(item, ScrollAlignment.START);
     }
 
     /**
@@ -1257,9 +1257,9 @@ public class RXTileView<T> extends Control {
      *
      * @param item      the item to scroll to
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link RXGridScrollAlignment#START}
+     *                  as {@link ScrollAlignment#START}
      */
-    public final void scrollTo(T item, RXGridScrollAlignment alignment) {
+    public final void scrollTo(T item, ScrollAlignment alignment) {
         ObservableList<T> list = getItems();
         if (list == null) {
             return;
@@ -1278,7 +1278,7 @@ public class RXTileView<T> extends Control {
      *                   {@link Objects#equals(Object, Object)}
      */
     public final void scrollToSection(Object sectionKey) {
-        scrollToSection(sectionKey, RXGridScrollAlignment.START);
+        scrollToSection(sectionKey, ScrollAlignment.START);
     }
 
     /**
@@ -1288,9 +1288,9 @@ public class RXTileView<T> extends Control {
      * @param sectionKey the section key to scroll to, matched by
      *                   {@link Objects#equals(Object, Object)}
      * @param alignment  where the target should land; {@code null} is treated as
-     *                   {@link RXGridScrollAlignment#START}
+     *                   {@link ScrollAlignment#START}
      */
-    public final void scrollToSection(Object sectionKey, RXGridScrollAlignment alignment) {
+    public final void scrollToSection(Object sectionKey, ScrollAlignment alignment) {
         for (RXTileSection section : getSections()) {
             if (Objects.equals(section.key(), sectionKey)) {
                 requestSectionScroll(section, alignment);
@@ -1307,7 +1307,7 @@ public class RXTileView<T> extends Control {
      * @param sectionIndex the section index in {@link #getSections()}
      */
     public final void scrollToSectionIndex(int sectionIndex) {
-        scrollToSectionIndex(sectionIndex, RXGridScrollAlignment.START);
+        scrollToSectionIndex(sectionIndex, ScrollAlignment.START);
     }
 
     /**
@@ -1316,20 +1316,20 @@ public class RXTileView<T> extends Control {
      *
      * @param sectionIndex the section index in {@link #getSections()}
      * @param alignment    where the target should land; {@code null} is treated
-     *                     as {@link RXGridScrollAlignment#START}
+     *                     as {@link ScrollAlignment#START}
      */
-    public final void scrollToSectionIndex(int sectionIndex, RXGridScrollAlignment alignment) {
+    public final void scrollToSectionIndex(int sectionIndex, ScrollAlignment alignment) {
         List<RXTileSection> list = getSections();
         if (sectionIndex >= 0 && sectionIndex < list.size()) {
             requestSectionScroll(list.get(sectionIndex), alignment);
         }
     }
 
-    private void requestSectionScroll(RXTileSection section, RXGridScrollAlignment alignment) {
+    private void requestSectionScroll(RXTileSection section, ScrollAlignment alignment) {
         pendingScroll = true;
         pendingScrollIndex = section.firstItemIndex();
         pendingScrollSectionIndex = section.sectionIndex();
-        pendingScrollAlignment = alignment == null ? RXGridScrollAlignment.START : alignment;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
         requestLayout();
     }
 
@@ -1369,7 +1369,7 @@ public class RXTileView<T> extends Control {
      *
      * @return the pending scroll alignment, never {@code null}
      */
-    public final RXGridScrollAlignment getPendingScrollAlignment() {
+    public final ScrollAlignment getPendingScrollAlignment() {
         return pendingScrollAlignment;
     }
 
@@ -1471,9 +1471,9 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXTileView<?>, RXGridJustify> ITEMS_JUSTIFY =
+        private static final CssMetaData<RXTileView<?>, ItemsJustify> ITEMS_JUSTIFY =
                 new CssMetaData<>("-rx-items-justify",
-                        new EnumConverter<>(RXGridJustify.class), DEFAULT_ITEMS_JUSTIFY) {
+                        new EnumConverter<>(ItemsJustify.class), DEFAULT_ITEMS_JUSTIFY) {
                     @Override
                     public boolean isSettable(RXTileView<?> node) {
                         return !node.itemsJustify.isBound();
@@ -1481,8 +1481,8 @@ public class RXTileView<T> extends Control {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXGridJustify> getStyleableProperty(RXTileView<?> node) {
-                        return (StyleableProperty<RXGridJustify>) node.itemsJustifyProperty();
+                    public StyleableProperty<ItemsJustify> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<ItemsJustify>) node.itemsJustifyProperty();
                     }
                 };
 

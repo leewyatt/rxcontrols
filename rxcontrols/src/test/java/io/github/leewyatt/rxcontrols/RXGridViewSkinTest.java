@@ -215,12 +215,12 @@ public class RXGridViewSkinTest {
             StackPane root = host(grid, 120, 200);
             pump(root);
 
-            grid.scrollTo(50, RXGridScrollAlignment.CENTER);
+            grid.scrollTo(50, ScrollAlignment.CENTER);
             pump(root);
             assertEquals(90.0, rowYOfIndex(grid, 50), 1.0,
                     "CENTER puts the 20px row in the middle of the 200px viewport");
 
-            grid.scrollTo(50, RXGridScrollAlignment.END);
+            grid.scrollTo(50, ScrollAlignment.END);
             pump(root);
             assertEquals(180.0, rowYOfIndex(grid, 50), 1.0,
                     "END puts the 20px row at the bottom of the 200px viewport");
@@ -291,7 +291,7 @@ public class RXGridViewSkinTest {
             RXGridView<String> grid = grid(8);
             grid.setColumnCount(4);
             grid.setHgap(20);
-            grid.setItemsJustify(RXGridJustify.STRETCH);
+            grid.setItemsJustify(ItemsJustify.STRETCH);
             pump(host(grid, 400, 400));
 
             List<RXGridCell<?>> cells = rowCells(grid, 0);
@@ -316,15 +316,15 @@ public class RXGridViewSkinTest {
             grid.setHgap(10);
             StackPane root = host(grid, 400, 400);
 
-            grid.setItemsJustify(RXGridJustify.START);
+            grid.setItemsJustify(ItemsJustify.START);
             pump(root);
             double startX = rowCells(grid, 0).get(0).getLayoutX();
 
-            grid.setItemsJustify(RXGridJustify.END);
+            grid.setItemsJustify(ItemsJustify.END);
             pump(root);
             double endX = rowCells(grid, 0).get(0).getLayoutX();
 
-            grid.setItemsJustify(RXGridJustify.CENTER);
+            grid.setItemsJustify(ItemsJustify.CENTER);
             pump(root);
             double centerX = rowCells(grid, 0).get(0).getLayoutX();
 
@@ -345,21 +345,21 @@ public class RXGridViewSkinTest {
 
             // Fixture: N=4, cellWidth=60, hgap=10, row width 400 (no scroll bar),
             // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
-            grid.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+            grid.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
             pump(root);
             double betweenEdge = firstCellX(grid);
             double betweenGap = firstGap(grid);
             assertEquals(0.0, betweenEdge, 0.5, "SPACE_BETWEEN keeps the edges flush");
             assertEquals(10.0 + 130.0 / 3.0, betweenGap, 0.5, "between gap = hgap + S/(N-1)");
 
-            grid.setItemsJustify(RXGridJustify.SPACE_AROUND);
+            grid.setItemsJustify(ItemsJustify.SPACE_AROUND);
             pump(root);
             double aroundEdge = firstCellX(grid);
             double aroundGap = firstGap(grid);
             assertEquals(130.0 / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
             assertEquals(10.0 + 130.0 / 4.0, aroundGap, 0.5, "AROUND gap = hgap + S/N");
 
-            grid.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+            grid.setItemsJustify(ItemsJustify.SPACE_EVENLY);
             pump(root);
             double evenlyEdge = firstCellX(grid);
             double evenlyGap = firstGap(grid);
@@ -378,7 +378,7 @@ public class RXGridViewSkinTest {
             grid.setColumnCount(2);
             grid.setCellWidth(60);
             grid.setHgap(10);
-            grid.setItemsJustify(RXGridJustify.STRETCH);
+            grid.setItemsJustify(ItemsJustify.STRETCH);
             StackPane root = host(grid, 400, 400);
             pump(root);
 

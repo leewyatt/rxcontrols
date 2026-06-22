@@ -68,7 +68,7 @@ public class RXGridViewTest {
         assertEquals(0, RXGridView.AUTO_COLUMNS);
         assertEquals(0, grid.getMaxColumns());
         assertEquals(0.0, grid.getMaxCellWidth(), EPSILON);
-        assertSame(RXGridJustify.START, grid.getItemsJustify());
+        assertSame(ItemsJustify.START, grid.getItemsJustify());
         assertNull(grid.getPlaceholder());
         assertNull(grid.getCellFactory());
         assertNotNull(grid.getItems());
@@ -196,22 +196,22 @@ public class RXGridViewTest {
         grid.scrollTo(2);
         assertTrue(grid.hasPendingScroll());
         assertEquals(2, grid.getPendingScrollIndex());
-        assertSame(RXGridScrollAlignment.START, grid.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.START, grid.getPendingScrollAlignment());
 
         grid.clearPendingScroll();
         assertFalse(grid.hasPendingScroll());
 
-        grid.scrollTo(1, RXGridScrollAlignment.NEAREST);
+        grid.scrollTo(1, ScrollAlignment.NEAREST);
         assertTrue(grid.hasPendingScroll());
         assertEquals(1, grid.getPendingScrollIndex());
-        assertSame(RXGridScrollAlignment.NEAREST, grid.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.NEAREST, grid.getPendingScrollAlignment());
     }
 
     @Test
     public void scrollToNullAlignmentFallsBackToStart() {
         RXGridView<String> grid = new RXGridView<>(FXCollections.observableArrayList("a"));
         grid.scrollTo(0, null);
-        assertSame(RXGridScrollAlignment.START, grid.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.START, grid.getPendingScrollAlignment());
     }
 
     @Test

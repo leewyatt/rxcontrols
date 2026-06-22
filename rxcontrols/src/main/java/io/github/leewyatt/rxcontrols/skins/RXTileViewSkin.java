@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
-import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSelectionModel;
 import io.github.leewyatt.rxcontrols.RXTileView;
@@ -681,7 +681,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             sm.clearAndSelect(target);
         }
         focusModel.syncSelectionLeadState();
-        getSkinnable().scrollTo(target, RXGridScrollAlignment.NEAREST);
+        getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
     }
 
     private void toggleFocused(int focus) {
@@ -1028,7 +1028,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         return Double.isFinite(value) && value > 0.0 ? value : fallback;
     }
 
-    static RXGridJustify justifyOrDefault(RXGridJustify justify) {
-        return justify == null ? RXGridJustify.START : justify;
+    static ItemsJustify justifyOrDefault(ItemsJustify justify) {
+        return justify == null ? ItemsJustify.START : justify;
     }
 }

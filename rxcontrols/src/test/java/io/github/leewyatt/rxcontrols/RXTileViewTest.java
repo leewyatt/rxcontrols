@@ -75,7 +75,7 @@ public class RXTileViewTest {
         assertEquals(0, RXTileView.AUTO_COLUMNS);
         assertEquals(0, view.getMaxColumns());
         assertEquals(0.0, view.getMaxCellWidth(), EPSILON);
-        assertSame(RXGridJustify.START, view.getItemsJustify());
+        assertSame(ItemsJustify.START, view.getItemsJustify());
         assertTrue(view.isShowSectionHeaders());
         assertNull(view.getPlaceholder());
         assertNull(view.getCellFactory());
@@ -120,8 +120,8 @@ public class RXTileViewTest {
         RXTileView<String> view = new RXTileView<>();
         view.setShowSectionHeaders(false);
         assertFalse(view.isShowSectionHeaders());
-        view.setItemsJustify(RXGridJustify.CENTER);
-        assertSame(RXGridJustify.CENTER, view.getItemsJustify());
+        view.setItemsJustify(ItemsJustify.CENTER);
+        assertSame(ItemsJustify.CENTER, view.getItemsJustify());
         view.setMaxCellWidth(180.0);
         assertEquals(180.0, view.getMaxCellWidth(), EPSILON);
         view.setColumnCount(5);
@@ -320,22 +320,22 @@ public class RXTileViewTest {
         view.scrollTo(2);
         assertTrue(view.hasPendingScroll());
         assertEquals(2, view.getPendingScrollIndex());
-        assertSame(RXGridScrollAlignment.START, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.START, view.getPendingScrollAlignment());
 
         view.clearPendingScroll();
         assertFalse(view.hasPendingScroll());
 
-        view.scrollTo(1, RXGridScrollAlignment.NEAREST);
+        view.scrollTo(1, ScrollAlignment.NEAREST);
         assertTrue(view.hasPendingScroll());
         assertEquals(1, view.getPendingScrollIndex());
-        assertSame(RXGridScrollAlignment.NEAREST, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.NEAREST, view.getPendingScrollAlignment());
     }
 
     @Test
     public void scrollToNullAlignmentFallsBackToStart() {
         RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a"));
         view.scrollTo(0, null);
-        assertSame(RXGridScrollAlignment.START, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.START, view.getPendingScrollAlignment());
     }
 
     @Test

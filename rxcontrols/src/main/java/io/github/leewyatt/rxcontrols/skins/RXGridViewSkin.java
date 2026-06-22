@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXGridView;
 import io.github.leewyatt.rxcontrols.RXGridVisibleRange;
 import javafx.collections.ListChangeListener;
@@ -313,7 +313,7 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
         grid.clearPendingScroll();
     }
 
-    private void scrollToRow(int row, RXGridScrollAlignment alignment) {
+    private void scrollToRow(int row, ScrollAlignment alignment) {
         switch (alignment) {
             case NEAREST -> flow.scrollTo(row);
             case CENTER -> {

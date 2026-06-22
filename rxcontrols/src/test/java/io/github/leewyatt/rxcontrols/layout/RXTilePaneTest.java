@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -56,7 +56,7 @@ public class RXTilePaneTest {
         assertEquals(0, pane.getColumnCount());
         assertEquals(0, pane.getMaxColumns());
         assertEquals(0.0, pane.getMaxCellWidth(), EPSILON);
-        assertSame(RXGridJustify.START, pane.getItemsJustify());
+        assertSame(ItemsJustify.START, pane.getItemsJustify());
         assertFalse(pane.isAnimated(), "reorder animation is opt-in");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
@@ -121,7 +121,7 @@ public class RXTilePaneTest {
         pane.setCellWidth(100);
         pane.setHgap(0);
         pane.setColumnCount(2);
-        pane.setItemsJustify(RXGridJustify.END);
+        pane.setItemsJustify(ItemsJustify.END);
         layout(pane, 400, 200); // 2 cells of 100 -> slack 200, END pushes them right
         assertEquals(200.0, pane.getChildren().get(0).getLayoutX(), EPSILON);
     }
@@ -131,7 +131,7 @@ public class RXTilePaneTest {
         RXTilePane pane = filledPane(2);
         pane.setHgap(0);
         pane.setColumnCount(2);
-        pane.setItemsJustify(RXGridJustify.STRETCH);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
         layout(pane, 400, 200); // 2 columns share 400 -> each 200 wide
         assertEquals(200.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON);
     }
@@ -145,21 +145,21 @@ public class RXTilePaneTest {
 
         // Fixture: N=4, cellWidth=60, hgap=10, row width 400,
         // so slack S = 400 - (4*60 + 3*10) = 130.
-        pane.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+        pane.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
         layout(pane, 400, 200);
         double betweenEdge = firstChildX(pane);
         double betweenGap = firstGap(pane);
         assertEquals(0.0, betweenEdge, EPSILON, "SPACE_BETWEEN keeps the edges flush");
         assertEquals(10.0 + 130.0 / 3.0, betweenGap, EPSILON, "between gap = hgap + S/(N-1)");
 
-        pane.setItemsJustify(RXGridJustify.SPACE_AROUND);
+        pane.setItemsJustify(ItemsJustify.SPACE_AROUND);
         layout(pane, 400, 200);
         double aroundEdge = firstChildX(pane);
         double aroundGap = firstGap(pane);
         assertEquals(130.0 / 8.0, aroundEdge, EPSILON, "AROUND edge = S/(2N)");
         assertEquals(10.0 + 130.0 / 4.0, aroundGap, EPSILON, "AROUND gap = hgap + S/N");
 
-        pane.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+        pane.setItemsJustify(ItemsJustify.SPACE_EVENLY);
         layout(pane, 400, 200);
         double evenlyEdge = firstChildX(pane);
         double evenlyGap = firstGap(pane);
@@ -176,7 +176,7 @@ public class RXTilePaneTest {
         pane.setColumnCount(2);
         pane.setCellWidth(60);
         pane.setHgap(10);
-        pane.setItemsJustify(RXGridJustify.STRETCH);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
         layout(pane, 400, 200);
 
         assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 100.0,

@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -107,8 +107,8 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        ChoiceBox<RXGridJustify> justify = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridJustify.values()));
+        ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
+                FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(tiles.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tiles.setItemsJustify(value));
 

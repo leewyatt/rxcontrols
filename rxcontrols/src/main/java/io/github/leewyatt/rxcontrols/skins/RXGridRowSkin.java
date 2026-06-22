@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXGridCell;
-import io.github.leewyatt.rxcontrols.RXGridJustify;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXGridView;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
@@ -105,7 +105,7 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         double gap = RXGridViewSkin.gapOrZero(grid.getHgap());
         double cellHeight = RXGridViewSkin.cellHeightOrDefault(grid);
         double baseWidth = RXGridViewSkin.cellWidthOrDefault(grid);
-        RXGridJustify mode = justifyOrDefault(grid.getItemsJustify());
+        ItemsJustify mode = justifyOrDefault(grid.getItemsJustify());
 
         // All metrics are derived from the full column count, never the count of
         // cells in this row, so a short final row reuses the same cell width,
@@ -113,7 +113,7 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         double cellWidth;
         double effectiveGap;
         double startX;
-        if (mode == RXGridJustify.STRETCH) {
+        if (mode == ItemsJustify.STRETCH) {
             double ideal = (w - (columns - 1) * gap) / columns;
             // A cap below cellWidth is a degenerate max < min; never shrink cells
             // below their configured width.
@@ -159,8 +159,8 @@ class RXGridRowSkin<T> extends CellSkinBase<RXGridRow<T>> {
         }
     }
 
-    private static RXGridJustify justifyOrDefault(RXGridJustify justify) {
-        return justify == null ? RXGridJustify.START : justify;
+    private static ItemsJustify justifyOrDefault(ItemsJustify justify) {
+        return justify == null ? ItemsJustify.START : justify;
     }
 
     private static double maxCellWidthOrUnbounded(RXGridView<?> grid) {

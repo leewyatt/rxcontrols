@@ -267,7 +267,7 @@ public class RXTileViewSkinTest {
             view.setCellHeight(70);
             view.setHgap(0);
             view.setVgap(0);
-            view.setItemsJustify(RXGridJustify.START);
+            view.setItemsJustify(ItemsJustify.START);
             StackPane root = host(view, 160, 220);
             pump(root);
 
@@ -338,11 +338,11 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 400, 300);
             pump(root);
 
-            view.scrollTo(2, RXGridScrollAlignment.NEAREST);
+            view.scrollTo(2, ScrollAlignment.NEAREST);
             pump(root);
             assertEquals(0, view.getVisibleRange().firstIndex(), "an already-visible target does not move");
 
-            view.scrollTo(100, RXGridScrollAlignment.NEAREST);
+            view.scrollTo(100, ScrollAlignment.NEAREST);
             pump(root);
             RXTileVisibleRange range = view.getVisibleRange();
             assertTrue(range.firstIndex() <= 100 && 100 <= range.lastIndex(),
@@ -361,14 +361,14 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 122, 202); // 1px chrome leaves 200px viewport height.
             pump(root);
 
-            view.scrollTo(50, RXGridScrollAlignment.CENTER);
+            view.scrollTo(50, ScrollAlignment.CENTER);
             pump(root);
             RXTileCell<?> centered = cellByIndex(view, 50);
             assertNotNull(centered);
             assertEquals(90.0, centered.getLayoutY(), 1.0,
                     "CENTER puts the 20px row in the middle of the 200px viewport");
 
-            view.scrollTo(50, RXGridScrollAlignment.END);
+            view.scrollTo(50, ScrollAlignment.END);
             pump(root);
             RXTileCell<?> ended = cellByIndex(view, 50);
             assertNotNull(ended);
@@ -536,7 +536,7 @@ public class RXTileViewSkinTest {
             RXTileView<String> view = tiles(3);
             view.setColumnCount(3);
             view.setHgap(10);
-            view.setItemsJustify(RXGridJustify.STRETCH);
+            view.setItemsJustify(ItemsJustify.STRETCH);
             pump(host(view, 320, 300));
             List<RXTileCell<?>> cells = rowCells(view, 0);
             assertEquals(3, cells.size());
@@ -555,17 +555,17 @@ public class RXTileViewSkinTest {
             view.setCellWidth(100);
             view.setHgap(0);
 
-            view.setItemsJustify(RXGridJustify.START);
+            view.setItemsJustify(ItemsJustify.START);
             StackPane root = host(view, 400, 300);
             pump(root);
             double startX = rowCells(view, 0).get(0).getLayoutX();
             assertEquals(0.0, startX, 1.0, "START hugs the leading edge");
 
-            view.setItemsJustify(RXGridJustify.CENTER);
+            view.setItemsJustify(ItemsJustify.CENTER);
             pump(root);
             double centerX = rowCells(view, 0).get(0).getLayoutX();
 
-            view.setItemsJustify(RXGridJustify.END);
+            view.setItemsJustify(ItemsJustify.END);
             pump(root);
             double endX = rowCells(view, 0).get(0).getLayoutX();
 
@@ -585,21 +585,21 @@ public class RXTileViewSkinTest {
 
             // Fixture: N=4, cellWidth=60, hgap=10, row width 400 (no scroll bar),
             // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
-            view.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+            view.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
             pump(root);
             double betweenEdge = firstCellX(view);
             double betweenGap = firstGap(view);
             assertEquals(0.0, betweenEdge, 0.5, "SPACE_BETWEEN keeps the edges flush");
             assertEquals(10.0 + 130.0 / 3.0, betweenGap, 0.5, "between gap = hgap + S/(N-1)");
 
-            view.setItemsJustify(RXGridJustify.SPACE_AROUND);
+            view.setItemsJustify(ItemsJustify.SPACE_AROUND);
             pump(root);
             double aroundEdge = firstCellX(view);
             double aroundGap = firstGap(view);
             assertEquals(130.0 / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
             assertEquals(10.0 + 130.0 / 4.0, aroundGap, 0.5, "AROUND gap = hgap + S/N");
 
-            view.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+            view.setItemsJustify(ItemsJustify.SPACE_EVENLY);
             pump(root);
             double evenlyEdge = firstCellX(view);
             double evenlyGap = firstGap(view);
@@ -618,7 +618,7 @@ public class RXTileViewSkinTest {
             view.setColumnCount(2);
             view.setCellWidth(60);
             view.setHgap(10);
-            view.setItemsJustify(RXGridJustify.STRETCH);
+            view.setItemsJustify(ItemsJustify.STRETCH);
             StackPane root = host(view, 400, 400);
             pump(root);
 
@@ -710,7 +710,7 @@ public class RXTileViewSkinTest {
             assertTrue(view.getVisibleRange().firstIndex() > 20, "scrolled well down first");
 
             // Target a row above the window: NEAREST scrolls UP just enough.
-            view.scrollTo(10, RXGridScrollAlignment.NEAREST);
+            view.scrollTo(10, ScrollAlignment.NEAREST);
             pump(root);
             assertEquals(10, view.getVisibleRange().firstIndex(),
                     "NEAREST scrolls backwards to land the target at the top edge");
@@ -768,7 +768,7 @@ public class RXTileViewSkinTest {
             view.setColumnCount(3);
             view.setCellWidth(100);
             view.setHgap(0);
-            view.setItemsJustify(RXGridJustify.CENTER);
+            view.setItemsJustify(ItemsJustify.CENTER);
             pump(host(view, 400, 600));
             double fullRowX = rowCells(view, 0).get(0).getLayoutX();
             double shortRowX = rowCells(view, 2).get(0).getLayoutX();
@@ -1000,14 +1000,14 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 220, 202); // 1px chrome leaves 200px viewport height.
             pump(root);
 
-            view.scrollToSection("s10", RXGridScrollAlignment.CENTER);
+            view.scrollToSection("s10", ScrollAlignment.CENTER);
             pump(root);
             RXTileSectionCell centered = headerByKey(view, "s10");
             assertNotNull(centered);
             assertEquals(80.0, centered.getLayoutY(), 1.0,
                     "CENTER puts the 40px header in the middle of the 200px viewport");
 
-            view.scrollToSection("s10", RXGridScrollAlignment.END);
+            view.scrollToSection("s10", ScrollAlignment.END);
             pump(root);
             RXTileSectionCell ended = headerByKey(view, "s10");
             assertNotNull(ended);

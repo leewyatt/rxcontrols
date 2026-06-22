@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
-import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
@@ -356,7 +356,7 @@ final class RXTileViewport<T> extends Region {
      * @return {@code true} if the request was applied; {@code false} when the
      *         viewport has no height yet, so the caller should keep it pending
      */
-    boolean scrollToIndex(int index, RXGridScrollAlignment alignment) {
+    boolean scrollToIndex(int index, ScrollAlignment alignment) {
         double viewportHeight = getHeight();
         if (viewportHeight <= 0.0) {
             // Geometry is not known yet; leave the request armed for a sized pass.
@@ -387,7 +387,7 @@ final class RXTileViewport<T> extends Region {
      * @return {@code true} if the request was applied; {@code false} when the
      *         viewport has no height yet, so the caller should keep it pending
      */
-    boolean scrollToSectionIndex(int sectionIndex, RXGridScrollAlignment alignment) {
+    boolean scrollToSectionIndex(int sectionIndex, ScrollAlignment alignment) {
         double viewportHeight = getHeight();
         if (viewportHeight <= 0.0) {
             return false;
@@ -411,7 +411,7 @@ final class RXTileViewport<T> extends Region {
     }
 
     private double targetScrollFor(RXTileRowPlan.RowInfo info, double viewportHeight,
-                                   RXGridScrollAlignment alignment) {
+                                   ScrollAlignment alignment) {
         double targetTop = info.top();
         double targetBottom = targetTop + info.height();
         return switch (alignment) {
@@ -705,12 +705,12 @@ final class RXTileViewport<T> extends Region {
         double cellHeight = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control));
         int cols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
         double baseWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
-        RXGridJustify mode = RXTileViewSkin.justifyOrDefault(control.getItemsJustify());
+        ItemsJustify mode = RXTileViewSkin.justifyOrDefault(control.getItemsJustify());
 
         double cellWidth;
         double effectiveGap;
         double startX;
-        if (mode == RXGridJustify.STRETCH) {
+        if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (cols - 1) * hgap) / cols;
             double cap = maxCellWidthOrUnbounded(control);
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;

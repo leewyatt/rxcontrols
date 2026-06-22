@@ -1,8 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * How a grid row uses its spare horizontal width — the difference between the
- * content width and the space the cells plus the base {@code hgap} gaps consume.
+ * How an item row or track group uses its spare horizontal width - the
+ * difference between the content width and the space the cells plus the base
+ * {@code hgap} gaps consume.
  *
  * <p>The first three values keep cells at their fixed
  * {@code cellWidth} and only position the block.
@@ -13,10 +14,11 @@ package io.github.leewyatt.rxcontrols;
  * {@code flex-start / center / flex-end / space-between / space-around /
  * space-evenly} plus {@code stretch}.
  *
- * <p>A short final row is laid out with the same metrics as a full row, so a
- * given column stays vertically aligned across every row.
+ * <p>When a control uses row-based layout, a short final row is laid out with
+ * the same metrics as a full row, so a given column stays vertically aligned
+ * across every row.
  */
-public enum RXGridJustify {
+public enum ItemsJustify {
 
     /** Pack cells against the leading edge; trailing space stays empty. */
     START,
@@ -42,15 +44,15 @@ public enum RXGridJustify {
     SPACE_AROUND,
 
     /**
-     * Distribute the spare width so every gap — including the two edges — is
+     * Distribute the spare width so every gap, including the two edges, is
      * equal. With a single cell the cell is centered.
      */
     SPACE_EVENLY,
 
     /**
      * Size the cells equally so they fill the row, keeping {@code hgap} between
-     * them. In adaptive mode cells only grow — the column count drops before a
-     * cell would shrink below {@code cellWidth} — up to
+     * them. In adaptive mode cells only grow: the column count drops before a
+     * cell would shrink below {@code cellWidth}. The growth is capped by the
      * max cell width, after which the resulting block is centered. Under a
      * forced column count that does not fit, cells may shrink below
      * {@code cellWidth} to keep that column count.

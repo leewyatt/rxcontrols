@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXGridJustify;
-import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
@@ -125,8 +125,8 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        ChoiceBox<RXGridJustify> justify = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridJustify.values()));
+        ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
+                FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(tile.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tile.setItemsJustify(value));
 
@@ -193,9 +193,9 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     private Node scrollGrid() {
         TextField index = new TextField("5000");
         index.setPrefColumnCount(6);
-        ChoiceBox<RXGridScrollAlignment> alignment = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridScrollAlignment.values()));
-        alignment.setValue(RXGridScrollAlignment.START);
+        ChoiceBox<ScrollAlignment> alignment = new ChoiceBox<>(
+                FXCollections.observableArrayList(ScrollAlignment.values()));
+        alignment.setValue(ScrollAlignment.START);
         Button goItem = new Button("Scroll to item");
         goItem.setOnAction(e -> scrollToItem(index.getText(), alignment.getValue()));
         HBox itemBox = new HBox(8.0, index, alignment, goItem);
@@ -211,7 +211,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         return createGrid(row(itemBox), row(sectionBox));
     }
 
-    private void scrollToItem(String text, RXGridScrollAlignment alignment) {
+    private void scrollToItem(String text, ScrollAlignment alignment) {
         try {
             tile.scrollTo(Integer.parseInt(text.trim()), alignment);
         } catch (NumberFormatException ignored) {

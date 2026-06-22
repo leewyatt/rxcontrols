@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXGridCell;
-import io.github.leewyatt.rxcontrols.RXGridJustify;
-import io.github.leewyatt.rxcontrols.RXGridScrollAlignment;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXGridView;
 import io.github.leewyatt.rxcontrols.RXGridVisibleRange;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -114,8 +114,8 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        ChoiceBox<RXGridJustify> justify = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridJustify.values()));
+        ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
+                FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(grid.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> grid.setItemsJustify(value));
 
@@ -138,9 +138,9 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
     private Node scrollGrid() {
         TextField index = new TextField("5000");
         index.setPrefColumnCount(6);
-        ChoiceBox<RXGridScrollAlignment> alignment = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridScrollAlignment.values()));
-        alignment.setValue(RXGridScrollAlignment.START);
+        ChoiceBox<ScrollAlignment> alignment = new ChoiceBox<>(
+                FXCollections.observableArrayList(ScrollAlignment.values()));
+        alignment.setValue(ScrollAlignment.START);
         Button go = new Button("Scroll to");
         go.setOnAction(e -> scrollTo(index.getText(), alignment.getValue()));
 
@@ -149,7 +149,7 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
         return createGrid(row(box));
     }
 
-    private void scrollTo(String text, RXGridScrollAlignment alignment) {
+    private void scrollTo(String text, ScrollAlignment alignment) {
         try {
             grid.scrollTo(Integer.parseInt(text.trim()), alignment);
         } catch (NumberFormatException ignored) {
