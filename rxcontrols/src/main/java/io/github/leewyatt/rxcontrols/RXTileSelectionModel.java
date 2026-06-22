@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.WeakChangeListener;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -50,7 +50,7 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     // attached (removeListener(raw) would not match a fresh weak wrapper).
     private final WeakListChangeListener<T> weakItemsContentListener =
             new WeakListChangeListener<>(itemsContentListener);
-    private final ChangeListener<ObservableList<T>> itemsSwapListener;
+    private final InvalidationListener itemsSwapListener;
     private ObservableList<T> observedItems;
 
     // Set to the removal start that dropped the lead during one items change, so the
@@ -67,10 +67,10 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
         this.tileView = tileView;
         selectedIndicesBacking.addListener((ListChangeListener<Integer>) change -> syncSelectedItems());
 
-        itemsSwapListener = (obs, oldList, newList) -> attachItems(newList);
+        itemsSwapListener = obs -> attachItems(tileView.getItems());
         // Weak so a replaced model (setSelectionModel) is not pinned by the live
         // items property / list (AGENTS §3.1).
-        tileView.itemsProperty().addListener(new WeakChangeListener<>(itemsSwapListener));
+        tileView.itemsProperty().addListener(new WeakInvalidationListener(itemsSwapListener));
         attachItems(tileView.getItems());
     }
 

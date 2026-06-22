@@ -1426,6 +1426,91 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void removingFocusedMultipleSelectionLeadFollowsShiftedSuccessorLead() throws Exception {
+        onFx(() -> {
+            ObservableList<String> items = items(20);
+            RXTileView<String> view = new RXTileView<>(items);
+            view.setColumnCount(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 6), false, false);
+            pump(root);
+            fireMousePressed(cellByIndex(view, 5), false, true);
+            pump(root);
+            assertEquals(List.of(5, 6), view.getSelectionModel().getSelectedIndices());
+            assertEquals(5, view.getSelectionModel().getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 5)));
+
+            items.remove(5);
+            pump(root);
+
+            assertEquals(List.of(5), view.getSelectionModel().getSelectedIndices());
+            assertEquals(5, view.getSelectionModel().getSelectedIndex(),
+                    "the successor selected item shifts into the removed lead's index");
+            assertTrue(hasFocusRing(cellByIndex(view, 5)),
+                    "focus follows the shifted successor lead, not the prior row");
+            assertFalse(hasFocusRing(cellByIndex(view, 4)));
+        });
+    }
+
+    @Test
+    public void replacementSelectionModelTracksItemsSwapWithSkinInstalled() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            newModel.setSelectionMode(SelectionMode.MULTIPLE);
+            view.setSelectionModel(newModel);
+            ObservableList<String> newItems = items(20);
+            view.setItems(newItems);
+            pump(root);
+
+            newModel.selectIndices(6, 5);
+            newItems.remove(5);
+
+            assertEquals(List.of(5), newModel.getSelectedIndices());
+            assertEquals(5, newModel.getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void removingFocusedLeadAfterSelectionModelAndItemsSwapDoesNotDependOnListenerOrder() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+
+            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            newModel.setSelectionMode(SelectionMode.MULTIPLE);
+            view.setSelectionModel(newModel);
+            ObservableList<String> newItems = items(20);
+            view.setItems(newItems);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 6), false, false);
+            pump(root);
+            fireMousePressed(cellByIndex(view, 5), false, true);
+            pump(root);
+            assertEquals(List.of(5, 6), view.getSelectionModel().getSelectedIndices());
+            assertEquals(5, view.getSelectionModel().getSelectedIndex());
+
+            newItems.remove(5);
+            pump(root);
+
+            assertEquals(List.of(5), view.getSelectionModel().getSelectedIndices());
+            assertEquals(5, view.getSelectionModel().getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 5)),
+                    "focus reconciles against the post-change selection lead even if it observes items first");
+        });
+    }
+
+    @Test
     public void spaceTogglesSelectionWithoutActivating() throws Exception {
         AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {
