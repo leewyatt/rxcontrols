@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
@@ -54,8 +55,8 @@ public class RXTilePaneTest {
         assertEquals(10.0, pane.getVgap(), EPSILON);
         assertEquals(0, pane.getColumnCount());
         assertEquals(0, pane.getMaxColumns());
+        assertEquals(0.0, pane.getMaxCellWidth(), EPSILON);
         assertSame(RXGridJustify.START, pane.getItemsJustify());
-        assertFalse(pane.isStretchCells());
         assertFalse(pane.isAnimated(), "reorder animation is opt-in");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
@@ -126,13 +127,79 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void stretchCellsFillsRowWidth() {
+    public void stretchJustifyFillsRowWidth() {
         RXTilePane pane = filledPane(2);
         pane.setHgap(0);
         pane.setColumnCount(2);
-        pane.setStretchCells(true);
+        pane.setItemsJustify(RXGridJustify.STRETCH);
         layout(pane, 400, 200); // 2 columns share 400 -> each 200 wide
         assertEquals(200.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON);
+    }
+
+    @Test
+    public void spaceModesDistributeRowSlack() {
+        RXTilePane pane = filledPane(4);
+        pane.setColumnCount(4);
+        pane.setCellWidth(60);
+        pane.setHgap(10);
+
+        // Fixture: N=4, cellWidth=60, hgap=10, row width 400,
+        // so slack S = 400 - (4*60 + 3*10) = 130.
+        pane.setItemsJustify(RXGridJustify.SPACE_BETWEEN);
+        layout(pane, 400, 200);
+        double betweenEdge = firstChildX(pane);
+        double betweenGap = firstGap(pane);
+        assertEquals(0.0, betweenEdge, EPSILON, "SPACE_BETWEEN keeps the edges flush");
+        assertEquals(10.0 + 130.0 / 3.0, betweenGap, EPSILON, "between gap = hgap + S/(N-1)");
+
+        pane.setItemsJustify(RXGridJustify.SPACE_AROUND);
+        layout(pane, 400, 200);
+        double aroundEdge = firstChildX(pane);
+        double aroundGap = firstGap(pane);
+        assertEquals(130.0 / 8.0, aroundEdge, EPSILON, "AROUND edge = S/(2N)");
+        assertEquals(10.0 + 130.0 / 4.0, aroundGap, EPSILON, "AROUND gap = hgap + S/N");
+
+        pane.setItemsJustify(RXGridJustify.SPACE_EVENLY);
+        layout(pane, 400, 200);
+        double evenlyEdge = firstChildX(pane);
+        double evenlyGap = firstGap(pane);
+        assertEquals(130.0 / 5.0, evenlyEdge, EPSILON, "EVENLY edge = S/(N+1)");
+        assertEquals(10.0 + 130.0 / 5.0, evenlyGap, EPSILON, "EVENLY gap = hgap + S/(N+1)");
+
+        assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
+                "the edge gap grows BETWEEN < AROUND < EVENLY");
+    }
+
+    @Test
+    public void maxCellWidthCapsAndCentersStretch() {
+        RXTilePane pane = filledPane(2);
+        pane.setColumnCount(2);
+        pane.setCellWidth(60);
+        pane.setHgap(10);
+        pane.setItemsJustify(RXGridJustify.STRETCH);
+        layout(pane, 400, 200);
+
+        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 100.0,
+                "uncapped STRETCH grows cells to fill the row");
+        assertEquals(0.0, firstChildX(pane), EPSILON, "uncapped STRETCH starts at the leading edge");
+
+        pane.setMaxCellWidth(Double.NaN);
+        layout(pane, 400, 200);
+        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 100.0,
+                "non-finite maxCellWidth behaves as unbounded");
+        assertEquals(0.0, firstChildX(pane), EPSILON,
+                "non-finite maxCellWidth does not create a centered cap");
+
+        pane.setMaxCellWidth(80);
+        layout(pane, 400, 200);
+        assertEquals(80.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "STRETCH is capped at maxCellWidth");
+        assertEquals(115.0, firstChildX(pane), EPSILON, "the capped block is centered");
+
+        pane.setMaxCellWidth(40);
+        layout(pane, 400, 200);
+        assertEquals(60.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "a cap below cellWidth leaves cells at cellWidth");
     }
 
     @Test
@@ -197,6 +264,8 @@ public class RXTilePaneTest {
 
         pane.setHgap(-10); // lenient: accepted, treated as 0 at layout
         assertEquals(-10.0, pane.getHgap(), EPSILON);
+        pane.setMaxCellWidth(Double.NaN);
+        assertTrue(Double.isNaN(pane.getMaxCellWidth()));
         pane.getChildren().addAll(card(), card());
         pane.setCellWidth(100);
         pane.setColumnCount(2);
@@ -209,10 +278,10 @@ public class RXTilePaneTest {
         List<CssMetaData<? extends Styleable, ?>> metadata = new RXTilePane().getCssMetaData();
         assertTrue(hasProperty(metadata, "-rx-cell-width"));
         assertTrue(hasProperty(metadata, "-rx-cell-height"));
+        assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
-        assertTrue(hasProperty(metadata, "-rx-stretch-cells"));
         assertTrue(hasProperty(metadata, "-rx-animated"));
         assertTrue(hasProperty(metadata, "-rx-animation-duration"));
     }
@@ -286,6 +355,16 @@ public class RXTilePaneTest {
 
     private static boolean hasProperty(List<CssMetaData<? extends Styleable, ?>> metadata, String property) {
         return metadata.stream().anyMatch(meta -> meta.getProperty().equals(property));
+    }
+
+    private static double firstChildX(RXTilePane pane) {
+        return pane.getChildren().get(0).getLayoutX();
+    }
+
+    private static double firstGap(RXTilePane pane) {
+        Node first = pane.getChildren().get(0);
+        Node second = pane.getChildren().get(1);
+        return second.getLayoutX() - (first.getLayoutX() + first.getLayoutBounds().getWidth());
     }
 
     private static Region card() {

@@ -46,8 +46,7 @@ import java.util.Set;
  * <p>Children are placed left-to-right, top-to-bottom into cells of
  * {@code cellWidth} × {@link #cellHeightProperty() cellHeight}, separated by
  * {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap}; spare row width is
- * distributed per {@link #itemsJustifyProperty() itemsJustify}, or the cells grow
- * to fill it when {@link #stretchCellsProperty() stretchCells} is set. A resizable
+ * distributed per {@link #itemsJustifyProperty() itemsJustify}. A resizable
  * child fills its cell (bounded by its own max size); a non-resizable child is
  * centered in it. When {@link #animatedProperty() animated} is on, children glide
  * to their new positions as the column count changes.
@@ -60,10 +59,10 @@ public class RXTilePane extends Pane {
     private static final double DEFAULT_CELL_HEIGHT = 100.0;
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
+    private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final RXGridJustify DEFAULT_ITEMS_JUSTIFY = RXGridJustify.START;
-    private static final boolean DEFAULT_STRETCH_CELLS = false;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -258,6 +257,66 @@ public class RXTilePane extends Pane {
      */
     public final void setCellHeight(double value) {
         cellHeight.set(value);
+    }
+
+    // ==================== Max Cell Width ====================
+
+    private final DoubleProperty maxCellWidth = new StyleableDoubleProperty(DEFAULT_MAX_CELL_WIDTH) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<RXTilePane, Number> getCssMetaData() {
+            return StyleableProperties.MAX_CELL_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTilePane.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxCellWidth";
+        }
+    };
+
+    /**
+     * Upper bound on how wide a cell may grow when
+     * {@link #itemsJustifyProperty() itemsJustify} is
+     * {@link RXGridJustify#STRETCH}. {@code 0} (the default) or any non-positive
+     * value means unbounded. Has no effect in the other justification modes,
+     * where cells keep {@link #cellWidthProperty() cellWidth}.
+     *
+     * <p>A cap smaller than {@code cellWidth} is degenerate
+     * ({@code max < min}) and is treated as {@code cellWidth}; cells are never
+     * shrunk below their configured width by the cap.
+     *
+     * @return the max-cell-width property
+     */
+    public final DoubleProperty maxCellWidthProperty() {
+        return maxCellWidth;
+    }
+
+    /**
+     * Returns the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @return the maximum cell width, or {@code 0} for unbounded
+     */
+    public final double getMaxCellWidth() {
+        return maxCellWidth.get();
+    }
+
+    /**
+     * Sets the maximum cell width used in {@link RXGridJustify#STRETCH} mode.
+     *
+     * @param value a positive cap, or {@code 0} (or any non-positive value) for
+     *              unbounded
+     */
+    public final void setMaxCellWidth(double value) {
+        maxCellWidth.set(value);
     }
 
     // ==================== Hgap ====================
@@ -464,9 +523,12 @@ public class RXTilePane extends Pane {
             };
 
     /**
-     * How spare horizontal space in a fixed-cell row is distributed. {@code null}
-     * is treated as {@link RXGridJustify#START}. Ignored when {@code stretchCells}
-     * is set.
+     * How a row uses its spare horizontal width: position the fixed-width block
+     * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
+     * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
+     * grow the cells ({@link RXGridJustify#STRETCH}, capped by
+     * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
+     * treated as {@link RXGridJustify#START}.
      *
      * @return the items-justify property
      */
@@ -490,58 +552,6 @@ public class RXTilePane extends Pane {
      */
     public final void setItemsJustify(RXGridJustify value) {
         itemsJustify.set(value);
-    }
-
-    // ==================== Stretch Cells ====================
-
-    private final BooleanProperty stretchCells = new StyleableBooleanProperty(DEFAULT_STRETCH_CELLS) {
-        @Override
-        protected void invalidated() {
-            requestLayout();
-        }
-
-        @Override
-        public CssMetaData<RXTilePane, Boolean> getCssMetaData() {
-            return StyleableProperties.STRETCH_CELLS;
-        }
-
-        @Override
-        public Object getBean() {
-            return RXTilePane.this;
-        }
-
-        @Override
-        public String getName() {
-            return "stretchCells";
-        }
-    };
-
-    /**
-     * Whether cells grow to fill the row width instead of leaving spare space for
-     * {@code itemsJustify}.
-     *
-     * @return the stretch-cells property
-     */
-    public final BooleanProperty stretchCellsProperty() {
-        return stretchCells;
-    }
-
-    /**
-     * Returns whether cells stretch to fill the row.
-     *
-     * @return whether cells stretch
-     */
-    public final boolean isStretchCells() {
-        return stretchCells.get();
-    }
-
-    /**
-     * Sets whether cells stretch to fill the row.
-     *
-     * @param value whether cells stretch
-     */
-    public final void setStretchCells(boolean value) {
-        stretchCells.set(value);
     }
 
     // ==================== Animated ====================
@@ -781,18 +791,43 @@ public class RXTilePane extends Pane {
         double cellH = snapSizeY(cellHeightOrDefault());
 
         double cellW;
+        double effectiveHgap;
         double startX;
-        if (isStretchCells()) {
-            cellW = snapSizeX(Math.max(0.0, (contentWidth - (columns - 1) * hgapValue) / columns));
-            startX = 0.0;
+        RXGridJustify mode = justifyOrDefault(getItemsJustify());
+        double baseWidth = snapSizeX(cellWidthOrDefault());
+        if (mode == RXGridJustify.STRETCH) {
+            double ideal = (contentWidth - (columns - 1) * hgapValue) / columns;
+            double cap = maxCellWidthOrUnbounded();
+            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
+            effectiveHgap = hgapValue;
+            if (effectiveCap > 0.0 && ideal > effectiveCap) {
+                cellW = effectiveCap;
+                double used = columns * cellW + (columns - 1) * hgapValue;
+                startX = Math.max(0.0, (contentWidth - used) / 2.0);
+            } else {
+                cellW = snapSizeX(Math.max(0.0, ideal));
+                startX = 0.0;
+            }
         } else {
-            cellW = snapSizeX(cellWidthOrDefault());
+            cellW = baseWidth;
             double slack = Math.max(0.0, contentWidth - (columns * cellW + (columns - 1) * hgapValue));
-            // V1 positions the fixed-width block; SPACE_* / STRETCH fall back to START.
-            switch (justifyOrDefault(getItemsJustify())) {
+            effectiveHgap = hgapValue;
+            startX = 0.0;
+            switch (mode) {
                 case CENTER -> startX = slack / 2.0;
                 case END -> startX = slack;
-                default -> startX = 0.0;
+                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
+                case SPACE_AROUND -> {
+                    effectiveHgap = hgapValue + slack / columns;
+                    startX = slack / (2.0 * columns);
+                }
+                case SPACE_EVENLY -> {
+                    effectiveHgap = hgapValue + slack / (columns + 1);
+                    startX = slack / (columns + 1);
+                }
+                default -> {
+                    // START: the block hugs the leading edge (defaults stand).
+                }
             }
         }
 
@@ -802,7 +837,7 @@ public class RXTilePane extends Pane {
             Node child = managed.get(i);
             int column = i % columns;
             int row = i / columns;
-            double x = left + snapPositionX(startX + column * (cellW + hgapValue));
+            double x = left + snapPositionX(startX + column * (cellW + effectiveHgap));
             double y = top + snapPositionY(row * (cellH + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An
@@ -851,6 +886,11 @@ public class RXTilePane extends Pane {
     private double cellHeightOrDefault() {
         double value = getCellHeight();
         return Double.isFinite(value) && value > 0.0 ? value : DEFAULT_CELL_HEIGHT;
+    }
+
+    private double maxCellWidthOrUnbounded() {
+        double value = getMaxCellWidth();
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
     private boolean isAnimationDurationPositive() {
@@ -904,6 +944,20 @@ public class RXTilePane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXTilePane, Number> MAX_CELL_WIDTH =
+                new CssMetaData<>("-rx-max-cell-width", SizeConverter.getInstance(), DEFAULT_MAX_CELL_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXTilePane node) {
+                        return !node.maxCellWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<Number>) node.maxCellWidthProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTilePane, Number> HGAP =
                 new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
@@ -947,20 +1001,6 @@ public class RXTilePane extends Pane {
                     }
                 };
 
-        private static final CssMetaData<RXTilePane, Boolean> STRETCH_CELLS =
-                new CssMetaData<>("-rx-stretch-cells", BooleanConverter.getInstance(), DEFAULT_STRETCH_CELLS) {
-                    @Override
-                    public boolean isSettable(RXTilePane node) {
-                        return !node.stretchCells.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Boolean> getStyleableProperty(RXTilePane node) {
-                        return (StyleableProperty<Boolean>) node.stretchCellsProperty();
-                    }
-                };
-
         private static final CssMetaData<RXTilePane, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -995,8 +1035,8 @@ public class RXTilePane extends Pane {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, HGAP, VGAP,
-                    ITEMS_JUSTIFY, STRETCH_CELLS, ANIMATED, ANIMATION_DURATION);
+            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, HGAP, VGAP,
+                    ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
