@@ -326,6 +326,12 @@ final class RXTileViewport<T> extends Region {
         cell.updateTileFocus(focusModel != null && focusModel.getFocusedIndex() == index);
     }
 
+    private static void applyCssAfterCellUpdate(Node cell) {
+        // Match VirtualFlow.setCellIndex: updateItem can mutate CSS while the
+        // virtualizer is already in layout, so apply before this frame is painted.
+        cell.applyCss();
+    }
+
     int getVisibleFirstIndex() {
         return visibleFirstIndex;
     }
@@ -657,6 +663,7 @@ final class RXTileViewport<T> extends Region {
                 RXTileSectionCell header = acquireHeader(headerCursor++);
                 header.updateSection(info.section());
                 header.setVisible(true);
+                applyCssAfterCellUpdate(header);
                 placeHeader(header, rowTop, contentWidth, snapSizeY(info.height()));
             } else {
                 int rowStart = info.firstItemIndex();
@@ -676,6 +683,7 @@ final class RXTileViewport<T> extends Region {
                     cell.updateIndex(itemIndex);
                     cell.setVisible(true);
                     applyCellState(cell, itemIndex);
+                    applyCssAfterCellUpdate(cell);
                     // Only a carry-over cell (the one that rendered this item last pass)
                     // glides; a freshly repurposed or entering cell pops in at its slot.
                     placeCell(cell, x, rowTop, cellWidth, cellHeight, cell == prior);

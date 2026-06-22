@@ -21,6 +21,7 @@ import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -327,6 +328,49 @@ public class RXTileViewSkinTest {
             RXTileVisibleRange range = view.getVisibleRange();
             assertTrue(range.firstIndex() <= 300 && 300 <= range.lastIndex(),
                     "the requested item is in the visible range");
+        });
+    }
+
+    @Test
+    public void cellCssChangedByUpdateItemAppliesDuringScrollLayout() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> items = FXCollections.observableArrayList();
+            for (int i = 0; i < 100; i++) {
+                items.add(i);
+            }
+            RXTileView<Integer> view = new RXTileView<>(items);
+            view.setColumnCount(1);
+            view.setCellWidth(100);
+            view.setCellHeight(20);
+            view.setVgap(0);
+            view.setCellFactory(tile -> new RXTileCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("");
+                    } else {
+                        setText(Integer.toString(item));
+                        setStyle("-fx-background-color: hsb(" + item + ", 55%, 80%);");
+                    }
+                }
+            });
+
+            StackPane root = host(view, 120, 100);
+            pump(root);
+            RXTileCell<?> firstCell = cellByIndex(view, 0);
+            assertNotNull(firstCell);
+            assertEquals(Color.hsb(0, 0.55, 0.80), cellFill(firstCell));
+
+            view.scrollTo(30);
+            root.applyCss();
+            root.layout();
+
+            RXTileCell<?> reusedCell = cellByIndex(view, 30);
+            assertNotNull(reusedCell);
+            assertEquals(Color.hsb(30, 0.55, 0.80), cellFill(reusedCell),
+                    "cell CSS changed from updateItem must be applied in the same layout pass");
         });
     }
 
@@ -2514,6 +2558,10 @@ public class RXTileViewSkinTest {
             }
         }
         return null;
+    }
+
+    private static Color cellFill(RXTileCell<?> cell) {
+        return (Color) cell.getBackground().getFills().get(0).getFill();
     }
 
     private static List<RXTileCell<?>> rowCells(RXTileView<?> view, int row) {
