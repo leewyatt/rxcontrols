@@ -88,6 +88,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         updatePlaceholder();
         registerListeners(control);
         attachSelectionModel(control.getSelectionModel());
+        focusModel.moveItemsObserversToEnd();
         disposer.registerDisposeTask(this::detachSelectionModel);
     }
 
@@ -385,7 +386,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private void onSelectionModelSwapped() {
         resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
-        focusModel.moveItemsListenerToEnd();
+        focusModel.moveItemsObserversToEnd();
         refreshSelectionAndFocus();
         getSkinnable().requestLayout();
     }

@@ -1511,6 +1511,38 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void removingFocusedNullLeadAfterSelectionModelAndItemsSwapReanchorsToPriorRow() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(3);
+            view.setColumnCount(4);
+            StackPane root = host(view, 500, 240);
+            pump(root);
+
+            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            view.setSelectionModel(newModel);
+            ObservableList<String> items = FXCollections.observableArrayList(
+                    "0", "1", "2", "3", "4", null, null, "7");
+            view.setItems(items);
+            pump(root);
+
+            fireMousePressed(cellByIndex(view, 5), false, false);
+            pump(root);
+            assertEquals(5, view.getSelectionModel().getSelectedIndex());
+            assertTrue(hasFocusRing(cellByIndex(view, 5)));
+
+            items.remove(5);
+            pump(root);
+
+            assertEquals(List.of(4), view.getSelectionModel().getSelectedIndices());
+            assertEquals(4, view.getSelectionModel().getSelectedIndex(),
+                    "deleting the sole selected null lead falls back to the previous row");
+            assertTrue(hasFocusRing(cellByIndex(view, 4)),
+                    "focus follows the fallback selection lead, not the next null item");
+            assertFalse(hasFocusRing(cellByIndex(view, 5)));
+        });
+    }
+
+    @Test
     public void spaceTogglesSelectionWithoutActivating() throws Exception {
         AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {

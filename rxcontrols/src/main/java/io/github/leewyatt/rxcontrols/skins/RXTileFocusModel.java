@@ -9,10 +9,6 @@ import javafx.collections.WeakListChangeListener;
 import javafx.scene.control.FocusModel;
 import javafx.scene.control.MultipleSelectionModel;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Internal index-based focus model for {@link RXTileView}, owned by the skin and
  * never exposed on the control (the tile view is a single Tab stop; cells are
@@ -30,12 +26,14 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
     private final WeakListChangeListener<T> weakItemsContentListener =
             new WeakListChangeListener<>(itemsContentListener);
     private final InvalidationListener itemsSwapListener;
+    private final WeakInvalidationListener weakItemsSwapListener;
     private ObservableList<T> observedItems;
 
     RXTileFocusModel(RXTileView<T> control) {
         this.control = control;
         itemsSwapListener = obs -> attachItems(control.getItems());
-        control.itemsProperty().addListener(new WeakInvalidationListener(itemsSwapListener));
+        weakItemsSwapListener = new WeakInvalidationListener(itemsSwapListener);
+        control.itemsProperty().addListener(weakItemsSwapListener);
         attachItems(control.getItems());
     }
 
@@ -69,7 +67,11 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         focus((focusedItem != null && items != null) ? items.indexOf(focusedItem) : -1);
     }
 
-    void moveItemsListenerToEnd() {
+    void moveItemsObserversToEnd() {
+        // Selection owns the lead semantics. Keep focus after it both for the current
+        // items list and for future list swaps.
+        control.itemsProperty().removeListener(weakItemsSwapListener);
+        control.itemsProperty().addListener(weakItemsSwapListener);
         if (observedItems != null) {
             observedItems.removeListener(weakItemsContentListener);
             observedItems.addListener(weakItemsContentListener);
@@ -81,16 +83,12 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         if (focusedIndex < 0) {
             return;
         }
-        // Selection may observe this list change after focus; replay a snapshot so
-        // deleting the focused item can still land on the post-change selection lead.
-        SelectionSnapshot selectionSnapshot = selectionSnapshot();
         int removedFocusedFrom = -1;
         while (change.next()) {
             if (change.wasPermutated()) {
                 if (focusedIndex >= change.getFrom() && focusedIndex < change.getTo()) {
                     focusedIndex = change.getPermutation(focusedIndex);
                 }
-                selectionSnapshot.applyPermutation(change);
             } else if (!change.wasUpdated()) {
                 int from = change.getFrom();
                 int removed = change.getRemovedSize();
@@ -103,12 +101,11 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
                     }
                     focusedIndex = -1;
                 }
-                selectionSnapshot.applyAddOrRemove(change);
             }
         }
         int itemCount = getItemCount();
         if (focusedIndex < 0 && removedFocusedFrom >= 0 && itemCount > 0) {
-            int selectionLead = selectionSnapshot.leadAfterChange(itemCount);
+            int selectionLead = selectionLead();
             if (selectionLead >= 0 && selectionLead < itemCount) {
                 focusedIndex = selectionLead;
             } else {
@@ -120,108 +117,8 @@ final class RXTileFocusModel<T> extends FocusModel<T> {
         }
     }
 
-    private SelectionSnapshot selectionSnapshot() {
+    private int selectionLead() {
         MultipleSelectionModel<T> selectionModel = control.getSelectionModel();
-        if (selectionModel == null) {
-            return SelectionSnapshot.empty();
-        }
-        return new SelectionSnapshot(new ArrayList<>(selectionModel.getSelectedIndices()),
-                selectionModel.getSelectedIndex(), selectionMatchesCurrentItems(selectionModel));
-    }
-
-    private boolean selectionMatchesCurrentItems(MultipleSelectionModel<T> selectionModel) {
-        ObservableList<Integer> selectedIndices = selectionModel.getSelectedIndices();
-        ObservableList<T> selectedItems = selectionModel.getSelectedItems();
-        if (selectedIndices.size() != selectedItems.size()) {
-            return false;
-        }
-        int itemCount = getItemCount();
-        for (int i = 0; i < selectedIndices.size(); i++) {
-            int index = selectedIndices.get(i);
-            if (index < 0 || index >= itemCount || selectedItems.get(i) != getModelItem(index)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static final class SelectionSnapshot {
-
-        private final List<Integer> indices;
-        private int lead;
-        private final boolean current;
-        private int pendingLeadRevertFrom = -1;
-
-        private SelectionSnapshot(List<Integer> indices, int lead, boolean current) {
-            this.indices = indices;
-            this.lead = lead;
-            this.current = current;
-        }
-
-        private static SelectionSnapshot empty() {
-            return new SelectionSnapshot(List.of(), -1, true);
-        }
-
-        private void applyPermutation(ListChangeListener.Change<?> change) {
-            if (current) {
-                return;
-            }
-            int from = change.getFrom();
-            int to = change.getTo();
-            for (int i = 0; i < indices.size(); i++) {
-                int index = indices.get(i);
-                if (index >= from && index < to) {
-                    indices.set(i, change.getPermutation(index));
-                }
-            }
-            Collections.sort(indices);
-            if (lead >= from && lead < to) {
-                lead = change.getPermutation(lead);
-            }
-        }
-
-        private void applyAddOrRemove(ListChangeListener.Change<?> change) {
-            if (current) {
-                return;
-            }
-            int from = change.getFrom();
-            int removed = change.getRemovedSize();
-            int delta = change.getAddedSize() - removed;
-            if (delta == 0 && removed == 0) {
-                return;
-            }
-            List<Integer> shifted = new ArrayList<>(indices.size());
-            for (Integer index : indices) {
-                if (index < from) {
-                    shifted.add(index);
-                } else if (index >= from + removed) {
-                    shifted.add(index + delta);
-                }
-            }
-            indices.clear();
-            indices.addAll(shifted);
-
-            if (lead >= from + removed) {
-                lead += delta;
-            } else if (lead >= from) {
-                if (removed > 0 && change.getAddedSize() == 0) {
-                    pendingLeadRevertFrom = from;
-                }
-                lead = -1;
-            }
-        }
-
-        private int leadAfterChange(int itemCount) {
-            if (current) {
-                return lead >= 0 && lead < itemCount ? lead : -1;
-            }
-            if (!indices.isEmpty()) {
-                return indices.get(indices.size() - 1);
-            }
-            if (pendingLeadRevertFrom >= 0 && itemCount > 0) {
-                return Math.max(0, Math.min(pendingLeadRevertFrom - 1, itemCount - 1));
-            }
-            return lead >= 0 && lead < itemCount ? lead : -1;
-        }
+        return selectionModel == null ? -1 : selectionModel.getSelectedIndex();
     }
 }
