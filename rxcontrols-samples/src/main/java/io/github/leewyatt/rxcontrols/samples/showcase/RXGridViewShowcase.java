@@ -139,7 +139,7 @@ public class RXGridViewShowcase extends RXShowcaseApplication {
         TextField index = new TextField("5000");
         index.setPrefColumnCount(6);
         ChoiceBox<RXGridScrollAlignment> alignment = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridScrollAlignment.START, RXGridScrollAlignment.NEAREST));
+                FXCollections.observableArrayList(RXGridScrollAlignment.values()));
         alignment.setValue(RXGridScrollAlignment.START);
         Button go = new Button("Scroll to");
         go.setOnAction(e -> scrollTo(index.getText(), alignment.getValue()));

@@ -309,13 +309,25 @@ public class RXGridViewSkin<T> extends RXSkinBase<RXGridView<T>> {
         int columns = Math.max(1, grid.getActualColumnCount());
         int index = Math.max(0, Math.min(grid.getPendingScrollIndex(), itemCount - 1));
         int row = index / columns;
-        if (grid.getPendingScrollAlignment() == RXGridScrollAlignment.NEAREST) {
-            flow.scrollTo(row);
-        } else {
-            // START, and the interim CENTER / END which currently behave as START.
-            flow.scrollToTop(row);
-        }
+        scrollToRow(row, grid.getPendingScrollAlignment());
         grid.clearPendingScroll();
+    }
+
+    private void scrollToRow(int row, RXGridScrollAlignment alignment) {
+        switch (alignment) {
+            case NEAREST -> flow.scrollTo(row);
+            case CENTER -> {
+                flow.scrollToTop(row);
+                flow.layout();
+                flow.scrollPixels(-(flow.getHeight() - flow.getFixedCellSize()) / 2.0);
+            }
+            case END -> {
+                flow.scrollToTop(row);
+                flow.layout();
+                flow.scrollPixels(-(flow.getHeight() - flow.getFixedCellSize()));
+            }
+            default -> flow.scrollToTop(row);
+        }
     }
 
     // ==================== Layout ====================

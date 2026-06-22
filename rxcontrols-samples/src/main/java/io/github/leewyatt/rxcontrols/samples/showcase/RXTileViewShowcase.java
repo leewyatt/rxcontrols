@@ -194,7 +194,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         TextField index = new TextField("5000");
         index.setPrefColumnCount(6);
         ChoiceBox<RXGridScrollAlignment> alignment = new ChoiceBox<>(
-                FXCollections.observableArrayList(RXGridScrollAlignment.START, RXGridScrollAlignment.NEAREST));
+                FXCollections.observableArrayList(RXGridScrollAlignment.values()));
         alignment.setValue(RXGridScrollAlignment.START);
         Button goItem = new Button("Scroll to item");
         goItem.setOnAction(e -> scrollToItem(index.getText(), alignment.getValue()));

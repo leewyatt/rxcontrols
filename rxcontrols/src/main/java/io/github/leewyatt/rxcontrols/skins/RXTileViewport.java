@@ -368,22 +368,9 @@ final class RXTileViewport<T> extends Region {
         }
         int visualRow = plan.visualRowOfItem(index);
         RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
-        double targetTop = info.top();
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
-        double target;
-        if (alignment == RXGridScrollAlignment.NEAREST) {
-            if (targetTop < scrollY) {
-                target = targetTop;
-            } else if (targetTop + info.height() > scrollY + viewportHeight) {
-                target = targetTop + info.height() - viewportHeight;
-            } else {
-                target = scrollY;
-            }
-        } else {
-            // START, and the interim CENTER / END which currently behave as START.
-            target = targetTop;
-        }
+        double target = targetScrollFor(info, viewportHeight, alignment);
         scrollY = clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
@@ -414,25 +401,33 @@ final class RXTileViewport<T> extends Region {
             return true;
         }
         RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
-        double targetTop = info.top();
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
-        double target;
-        if (alignment == RXGridScrollAlignment.NEAREST) {
-            if (targetTop < scrollY) {
-                target = targetTop;
-            } else if (targetTop + info.height() > scrollY + viewportHeight) {
-                target = targetTop + info.height() - viewportHeight;
-            } else {
-                target = scrollY;
-            }
-        } else {
-            target = targetTop;
-        }
+        double target = targetScrollFor(info, viewportHeight, alignment);
         scrollY = clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
         return true;
+    }
+
+    private double targetScrollFor(RXTileRowPlan.RowInfo info, double viewportHeight,
+                                   RXGridScrollAlignment alignment) {
+        double targetTop = info.top();
+        double targetBottom = targetTop + info.height();
+        return switch (alignment) {
+            case CENTER -> targetTop - (viewportHeight - info.height()) / 2.0;
+            case END -> targetBottom - viewportHeight;
+            case NEAREST -> {
+                if (targetTop < scrollY) {
+                    yield targetTop;
+                }
+                if (targetBottom > scrollY + viewportHeight) {
+                    yield targetBottom - viewportHeight;
+                }
+                yield scrollY;
+            }
+            default -> targetTop;
+        };
     }
 
     /**

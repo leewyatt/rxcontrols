@@ -205,6 +205,29 @@ public class RXGridViewSkinTest {
     }
 
     @Test
+    public void centerAndEndAlignmentPositionTargetRow() throws Exception {
+        onFx(() -> {
+            RXGridView<String> grid = grid(120);
+            grid.setColumnCount(1);
+            grid.setCellWidth(80);
+            grid.setCellHeight(20);
+            grid.setVgap(0);
+            StackPane root = host(grid, 120, 200);
+            pump(root);
+
+            grid.scrollTo(50, RXGridScrollAlignment.CENTER);
+            pump(root);
+            assertEquals(90.0, rowYOfIndex(grid, 50), 1.0,
+                    "CENTER puts the 20px row in the middle of the 200px viewport");
+
+            grid.scrollTo(50, RXGridScrollAlignment.END);
+            pump(root);
+            assertEquals(180.0, rowYOfIndex(grid, 50), 1.0,
+                    "END puts the 20px row at the bottom of the 200px viewport");
+        });
+    }
+
+    @Test
     public void changingCellWidthReusesCellsWhileFactoryChangeRecreates() throws Exception {
         onFx(() -> {
             RXGridView<String> grid = grid(30);
@@ -528,6 +551,13 @@ public class RXGridViewSkinTest {
             }
         }
         return null;
+    }
+
+    private static double rowYOfIndex(RXGridView<?> grid, int index) {
+        RXGridCell<?> cell = cellByIndex(grid, index);
+        assertNotNull(cell, "target cell should be realized");
+        assertNotNull(cell.getParent(), "target cell should be attached to a row");
+        return cell.getParent().getLayoutY();
     }
 
     private static List<RXGridCell<?>> rowCells(RXGridView<?> grid, int row) {

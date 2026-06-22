@@ -351,6 +351,33 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void centerAndEndAlignmentPositionTargetItemRow() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(120);
+            view.setColumnCount(1);
+            view.setCellWidth(80);
+            view.setCellHeight(20);
+            view.setVgap(0);
+            StackPane root = host(view, 122, 202); // 1px chrome leaves 200px viewport height.
+            pump(root);
+
+            view.scrollTo(50, RXGridScrollAlignment.CENTER);
+            pump(root);
+            RXTileCell<?> centered = cellByIndex(view, 50);
+            assertNotNull(centered);
+            assertEquals(90.0, centered.getLayoutY(), 1.0,
+                    "CENTER puts the 20px row in the middle of the 200px viewport");
+
+            view.scrollTo(50, RXGridScrollAlignment.END);
+            pump(root);
+            RXTileCell<?> ended = cellByIndex(view, 50);
+            assertNotNull(ended);
+            assertEquals(180.0, ended.getLayoutY(), 1.0,
+                    "END puts the 20px row at the bottom of the 200px viewport");
+        });
+    }
+
+    @Test
     public void wheelScrollMovesViewportAndClamps() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
@@ -959,6 +986,33 @@ public class RXTileViewSkinTest {
                     .orElse(null);
             assertNotNull(header, "the requested section header is realized");
             assertEquals(0.0, header.getLayoutY(), 0.0001, "the section header lands at the viewport top");
+        });
+    }
+
+    @Test
+    public void centerAndEndAlignmentPositionTargetSectionHeader() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(20, 4);
+            view.setColumnCount(2);
+            view.setCellHeight(20);
+            view.setVgap(0);
+            view.setSectionHeaderHeight(40);
+            StackPane root = host(view, 220, 202); // 1px chrome leaves 200px viewport height.
+            pump(root);
+
+            view.scrollToSection("s10", RXGridScrollAlignment.CENTER);
+            pump(root);
+            RXTileSectionCell centered = headerByKey(view, "s10");
+            assertNotNull(centered);
+            assertEquals(80.0, centered.getLayoutY(), 1.0,
+                    "CENTER puts the 40px header in the middle of the 200px viewport");
+
+            view.scrollToSection("s10", RXGridScrollAlignment.END);
+            pump(root);
+            RXTileSectionCell ended = headerByKey(view, "s10");
+            assertNotNull(ended);
+            assertEquals(160.0, ended.getLayoutY(), 1.0,
+                    "END puts the 40px header at the bottom of the 200px viewport");
         });
     }
 
@@ -2413,6 +2467,13 @@ public class RXTileViewSkinTest {
             }
         }
         return result;
+    }
+
+    private static RXTileSectionCell headerByKey(RXTileView<?> view, Object key) {
+        return headers(view).stream()
+                .filter(header -> header.getItem() != null && key.equals(header.getItem().key()))
+                .findFirst()
+                .orElse(null);
     }
 
     private static StackPane host(RXTileView<?> view, double w, double h) {
