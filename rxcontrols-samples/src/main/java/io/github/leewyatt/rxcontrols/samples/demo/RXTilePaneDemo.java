@@ -40,6 +40,7 @@ public class RXTilePaneDemo extends Application {
 
         ScrollPane scroll = new ScrollPane(tiles);
         scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
         BorderPane root = new BorderPane(scroll);
         root.setTop(createHeader());

@@ -6,7 +6,10 @@ import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollBar;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
@@ -346,6 +349,35 @@ public class RXTilePaneTest {
         assertEquals(650.0, pane.prefWidth(-1), EPSILON, "6 forced columns: 6*100 + 5*10");
     }
 
+    @Test
+    public void fitToWidthScrollPaneCanShrinkBelowCellWidthWithoutHorizontalBar() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(8);
+            pane.setCellWidth(100);
+            pane.setCellHeight(100);
+            pane.setHgap(10);
+            pane.setVgap(10);
+            pane.setStyle("-fx-padding: 12px;");
+
+            ScrollPane scroll = new ScrollPane(pane);
+            scroll.setFitToWidth(true);
+            new Scene(scroll, 80, 260);
+            scroll.applyCss();
+            scroll.resize(80, 260);
+            scroll.layout();
+            scroll.layout();
+
+            ScrollBar horizontal = scrollBar(scroll, Orientation.HORIZONTAL);
+            Region firstCard = (Region) pane.getChildren().get(0);
+            assertTrue(pane.getWidth() < pane.getCellWidth(),
+                    "fitToWidth should be allowed to resize the pane below one cell");
+            assertTrue(firstCard.getLayoutBounds().getWidth() <= pane.getWidth() - 24.0,
+                    "the sole visible column shrinks to the available content width");
+            assertFalse(horizontal.isVisible(),
+                    "a width-fitting ScrollPane should not show a horizontal bar just because cellWidth is larger");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static boolean anyTranslated(RXTilePane pane) {
@@ -365,6 +397,15 @@ public class RXTilePaneTest {
         Node first = pane.getChildren().get(0);
         Node second = pane.getChildren().get(1);
         return second.getLayoutX() - (first.getLayoutX() + first.getLayoutBounds().getWidth());
+    }
+
+    private static ScrollBar scrollBar(Parent root, Orientation orientation) {
+        return root.lookupAll(".scroll-bar").stream()
+                .filter(ScrollBar.class::isInstance)
+                .map(ScrollBar.class::cast)
+                .filter(scrollBar -> scrollBar.getOrientation() == orientation)
+                .findFirst()
+                .orElseThrow();
     }
 
     private static Region card() {

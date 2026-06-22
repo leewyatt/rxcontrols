@@ -735,7 +735,7 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return snappedLeftInset() + snapSizeX(cellWidthOrDefault()) + snappedRightInset();
+        return snappedLeftInset() + snappedRightInset();
     }
 
     @Override
@@ -809,24 +809,33 @@ public class RXTilePane extends Pane {
                 startX = 0.0;
             }
         } else {
-            cellW = baseWidth;
-            double slack = Math.max(0.0, contentWidth - (columns * cellW + (columns - 1) * hgapValue));
             effectiveHgap = hgapValue;
             startX = 0.0;
-            switch (mode) {
-                case CENTER -> startX = slack / 2.0;
-                case END -> startX = slack;
-                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
-                case SPACE_AROUND -> {
-                    effectiveHgap = hgapValue + slack / columns;
-                    startX = slack / (2.0 * columns);
-                }
-                case SPACE_EVENLY -> {
-                    effectiveHgap = hgapValue + slack / (columns + 1);
-                    startX = slack / (columns + 1);
-                }
-                default -> {
-                    // START: the block hugs the leading edge (defaults stand).
+            double preferredRowWidth = columns * baseWidth + (columns - 1) * hgapValue;
+            if (preferredRowWidth > contentWidth) {
+                effectiveHgap = columns > 1
+                        ? Math.min(hgapValue, Math.max(0.0, contentWidth) / (columns - 1))
+                        : 0.0;
+                double availableForCells = Math.max(0.0, contentWidth - (columns - 1) * effectiveHgap);
+                cellW = columns == 0 ? 0.0 : availableForCells / columns;
+            } else {
+                cellW = baseWidth;
+                double slack = Math.max(0.0, contentWidth - preferredRowWidth);
+                switch (mode) {
+                    case CENTER -> startX = slack / 2.0;
+                    case END -> startX = slack;
+                    case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
+                    case SPACE_AROUND -> {
+                        effectiveHgap = hgapValue + slack / columns;
+                        startX = slack / (2.0 * columns);
+                    }
+                    case SPACE_EVENLY -> {
+                        effectiveHgap = hgapValue + slack / (columns + 1);
+                        startX = slack / (columns + 1);
+                    }
+                    default -> {
+                        // START: the block hugs the leading edge (defaults stand).
+                    }
                 }
             }
         }

@@ -53,6 +53,7 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         }
         ScrollPane scroll = new ScrollPane(tiles);
         scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         return scroll;
     }
 
