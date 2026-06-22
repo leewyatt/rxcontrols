@@ -65,6 +65,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private final ListChangeListener<Integer> selectionListener = change -> refreshSelectionAndFocus();
     private final ChangeListener<SelectionMode> selectionModeListener = (obs, oldMode, newMode) -> resetAnchor();
 
+    private int preferredVerticalColumn = -1;
+    private int preferredColumnDataRow = -1;
+    private int preferredColumnActualColumn = -1;
+
     /**
      * Creates the skin for the given tile view.
      *
@@ -206,6 +210,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             control.setRowCount(visualRows);
         }
         viewport.setRowPlan(plan);
+        syncPreferredColumnWithFocusedCell();
     }
 
     private RXTileRowPlan buildPlan(int columns) {
@@ -423,6 +428,65 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         getSkinnable().getProperties().remove(ANCHOR_KEY);
     }
 
+    // ==================== Preferred vertical column ====================
+
+    private int preferredColumnForVerticalNavigation(int focus) {
+        RXTileRowPlan.ItemPosition position = viewport.itemPositionOf(focus);
+        if (!position.valid()) {
+            clearPreferredColumn();
+            return -1;
+        }
+        if (preferredVerticalColumn < 0
+                || preferredColumnDataRow != position.dataRow()
+                || preferredColumnActualColumn != position.column()) {
+            resetPreferredColumn(position.column(), position);
+        }
+        return preferredVerticalColumn;
+    }
+
+    private void resetPreferredColumnToItem(int index) {
+        RXTileRowPlan.ItemPosition position = viewport.itemPositionOf(index);
+        if (position.valid()) {
+            resetPreferredColumn(position.column(), position);
+        } else {
+            clearPreferredColumn();
+        }
+    }
+
+    private void preservePreferredColumnForItem(int index, int column) {
+        RXTileRowPlan.ItemPosition position = viewport.itemPositionOf(index);
+        if (position.valid()) {
+            rememberPreferredColumn(column, position);
+        } else {
+            clearPreferredColumn();
+        }
+    }
+
+    private void syncPreferredColumnWithFocusedCell() {
+        int focus = focusModel.getFocusedIndex();
+        if (focus < 0 || focus >= itemCount()) {
+            clearPreferredColumn();
+            return;
+        }
+        preferredColumnForVerticalNavigation(focus);
+    }
+
+    private void resetPreferredColumn(int preferredColumn, RXTileRowPlan.ItemPosition position) {
+        rememberPreferredColumn(preferredColumn, position);
+    }
+
+    private void rememberPreferredColumn(int preferredColumn, RXTileRowPlan.ItemPosition position) {
+        preferredVerticalColumn = preferredColumn;
+        preferredColumnDataRow = position.dataRow();
+        preferredColumnActualColumn = position.column();
+    }
+
+    private void clearPreferredColumn() {
+        preferredVerticalColumn = -1;
+        preferredColumnDataRow = -1;
+        preferredColumnActualColumn = -1;
+    }
+
     // ==================== Keyboard ====================
 
     private void onKeyPressed(KeyEvent event) {
@@ -440,8 +504,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             case RIGHT, KP_RIGHT -> consume(event, () -> horizontalArrow(focus, 1, shift, shortcut));
             case UP, KP_UP -> consume(event, () -> verticalArrow(focus, -1, shift, shortcut));
             case DOWN, KP_DOWN -> consume(event, () -> verticalArrow(focus, 1, shift, shortcut));
-            case HOME -> consume(event, () -> moveTo(0, shift, shortcut));
-            case END -> consume(event, () -> moveTo(itemCount - 1, shift, shortcut));
+            case HOME -> consume(event, () -> moveToAndResetPreferredColumn(0, shift, shortcut));
+            case END -> consume(event, () -> moveToAndResetPreferredColumn(itemCount - 1, shift, shortcut));
             case PAGE_UP -> consume(event, () -> page(-1, shift, shortcut));
             case PAGE_DOWN -> consume(event, () -> page(1, shift, shortcut));
             case SPACE -> {
@@ -483,7 +547,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
                 return;
             }
         }
-        moveTo(target, shift, shortcut);
+        moveToAndResetPreferredColumn(target, shift, shortcut);
     }
 
     private void verticalArrow(int focus, int direction, boolean shift, boolean shortcut) {
@@ -491,13 +555,16 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         int target;
         if (focus < 0) {
             target = direction > 0 ? 0 : itemCount - 1;
+            moveToAndResetPreferredColumn(target, shift, shortcut);
         } else {
-            target = viewport.verticalNeighborOf(focus, direction);
+            int preferredColumn = preferredColumnForVerticalNavigation(focus);
+            target = viewport.verticalNeighborOf(focus, direction, preferredColumn);
             if (target < 0) {
                 return;
             }
+            moveTo(target, shift, shortcut);
+            preservePreferredColumnForItem(target, preferredColumn);
         }
-        moveTo(target, shift, shortcut);
     }
 
     private void page(int direction, boolean shift, boolean shortcut) {
@@ -508,7 +575,12 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         int focus = focusModel.getFocusedIndex();
         int from = focus < 0 ? (direction > 0 ? 0 : itemCount - 1) : focus;
         int target = clampIndex(from + direction * visibleRows * cols, itemCount);
+        moveToAndResetPreferredColumn(target, shift, shortcut);
+    }
+
+    private void moveToAndResetPreferredColumn(int target, boolean shift, boolean shortcut) {
         moveTo(target, shift, shortcut);
+        resetPreferredColumnToItem(target);
     }
 
     // Navigation works on item indices, never visual rows, so it naturally skips
@@ -579,6 +651,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
         int index = cell.getIndex();
         focusModel.focus(index);
+        resetPreferredColumnToItem(index);
         if (event.isShortcutDown()) {
             if (sm.isSelected(index)) {
                 sm.clearSelection(index);

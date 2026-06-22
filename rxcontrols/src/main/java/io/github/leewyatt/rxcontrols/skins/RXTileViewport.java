@@ -146,12 +146,20 @@ final class RXTileViewport<T> extends Region {
         this.rowPlan = plan;
     }
 
-    int verticalNeighborOf(int itemIndex, int direction) {
+    RXTileRowPlan.ItemPosition itemPositionOf(int itemIndex) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null) {
+            return new RXTileRowPlan.ItemPosition(-1, -1);
+        }
+        return plan.itemPositionOf(itemIndex);
+    }
+
+    int verticalNeighborOf(int itemIndex, int direction, int preferredColumn) {
         RXTileRowPlan plan = rowPlan;
         if (plan == null) {
             return -1;
         }
-        return plan.verticalNeighborOfItem(itemIndex, direction);
+        return plan.verticalNeighborOfItem(itemIndex, direction, preferredColumn);
     }
 
     void setFocusModel(RXTileFocusModel<T> focusModel) {

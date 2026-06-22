@@ -40,6 +40,13 @@ final class RXTileRowPlan {
                    double top, double height, int dataRowIndex) {
     }
 
+    record ItemPosition(int dataRow, int column) {
+
+        boolean valid() {
+            return dataRow >= 0 && column >= 0;
+        }
+    }
+
     private final List<RXTileSection> sections;
     private final boolean grouped;
     private final boolean headersShown;
@@ -186,21 +193,36 @@ final class RXTileRowPlan {
     }
 
     /**
-     * The item in the next visual data row above or below {@code itemIndex} that
-     * occupies the same column.
+     * The data-row / column slot currently occupied by {@code itemIndex}.
+     *
+     * @param itemIndex a valid item index
+     * @return the item's current data-row and column, or an invalid position
+     */
+    ItemPosition itemPositionOf(int itemIndex) {
+        if (itemIndex < 0 || itemIndex >= itemCount || totalVisualRows == 0) {
+            return new ItemPosition(-1, -1);
+        }
+        RowInfo info = rowInfo(visualRowOfItem(itemIndex));
+        return new ItemPosition(info.dataRowIndex(), itemIndex - info.firstItemIndex());
+    }
+
+    /**
+     * The item in the next visual data row above or below {@code itemIndex}, using
+     * {@code preferredColumn} as the user's intended horizontal slot.
      *
      * @param itemIndex a valid item index
      * @param direction positive for the row below, negative for the row above
-     * @return the same-column neighbor item index, or {@code -1} when no such cell exists
+     * @param preferredColumn the intended column; a negative value uses the item's current column
+     * @return the neighbor item index, or {@code -1} when no suitable cell exists
      */
-    int verticalNeighborOfItem(int itemIndex, int direction) {
+    int verticalNeighborOfItem(int itemIndex, int direction, int preferredColumn) {
         if (itemIndex < 0 || itemIndex >= itemCount || direction == 0 || totalVisualRows == 0) {
             return -1;
         }
         int step = direction > 0 ? 1 : -1;
         int visualRow = visualRowOfItem(itemIndex);
         RowInfo current = rowInfo(visualRow);
-        int column = itemIndex - current.firstItemIndex();
+        int column = preferredColumn >= 0 ? preferredColumn : itemIndex - current.firstItemIndex();
         for (int targetRow = visualRow + step;
              targetRow >= 0 && targetRow < totalVisualRows;
              targetRow += step) {
@@ -208,7 +230,13 @@ final class RXTileRowPlan {
             if (target.header()) {
                 continue;
             }
+            if (target.cellCount() <= 0) {
+                return -1;
+            }
             if (column >= target.cellCount()) {
+                if (target.section() != null) {
+                    return target.firstItemIndex() + target.cellCount() - 1;
+                }
                 return -1;
             }
             return target.firstItemIndex() + column;

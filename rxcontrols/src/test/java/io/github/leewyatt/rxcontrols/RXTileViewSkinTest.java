@@ -1044,6 +1044,13 @@ public class RXTileViewSkinTest {
             assertEquals(6, sm.getSelectedIndex(),
                     "DOWN from an incomplete last row keeps the same column instead of clamping to the last item");
             assertFalse(isSelected(cellByIndex(view, 7)));
+
+            fireMousePressed(cellByIndex(view, 5), false, false);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(5, sm.getSelectedIndex(),
+                    "flat grids still do not clamp to a short final row's last item");
         });
     }
 
@@ -1094,8 +1101,134 @@ public class RXTileViewSkinTest {
             pump(root);
             fireKey(view, KeyCode.UP, false, false);
             pump(root);
+            assertEquals(4, sm.getSelectedIndex(),
+                    "UP across a section boundary clamps to the previous section tail when the column is absent");
+        });
+    }
+
+    @Test
+    public void verticalArrowKeepsPreferredColumnAcrossSectionTailClamp() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = unevenSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            assertEquals(6, view.getActualColumnCount());
+
+            fireMousePressed(cellByIndex(view, 10), false, false); // logical item 502, column 2
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(), "502 UP clamps to 499");
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(10, sm.getSelectedIndex(), "499 DOWN restores the preferred column at 502");
+
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(2, sm.getSelectedIndex(),
+                    "499 UP still uses 502's preferred column, so it lands on 494");
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
             assertEquals(7, sm.getSelectedIndex(),
-                    "UP stays put when the previous section tail has no same-column cell");
+                    "494 DOWN returns to the short row's clamped landing point");
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(10, sm.getSelectedIndex(), "499 DOWN restores the preferred column at 502 again");
+        });
+    }
+
+    @Test
+    public void groupedVerticalArrowClampsToSectionTailWithoutPriorClampContext() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = unevenSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 2), false, false); // logical item 494, column 2
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(),
+                    "grouped DOWN from 494 clamps to the same section tail when that row has no column 2");
+        });
+    }
+
+    @Test
+    public void mousePressResetsPreferredColumnAfterSectionTailClamp() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = unevenSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 10), false, false); // logical item 502, column 2
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(), "502 UP clamps to 499");
+
+            fireMousePressed(cellByIndex(view, 7), false, false); // explicit selection makes column 1 the new intent
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(1, sm.getSelectedIndex(), "a fresh click on 499 makes UP land on 493");
+        });
+    }
+
+    @Test
+    public void reflowResetsPreferredColumnWhenFocusedCellPositionChanges() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = unevenSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 10), false, false); // logical item 502, column 2
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(), "502 UP clamps to 499");
+
+            root.resize(180, 600);
+            pump(root);
+            assertEquals(4, view.getActualColumnCount());
+
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(3, sm.getSelectedIndex(),
+                    "after reflow, 499's real column is 3, so UP follows the new layout");
+        });
+    }
+
+    @Test
+    public void heightChangeKeepsPreferredColumnWhenFocusedCellPositionIsUnchanged() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = unevenSectionsForPreferredColumn();
+            StackPane root = host(view, 260, 600);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+            fireMousePressed(cellByIndex(view, 10), false, false); // logical item 502, column 2
+            pump(root);
+            fireKey(view, KeyCode.UP, false, false);
+            pump(root);
+            assertEquals(7, sm.getSelectedIndex(), "502 UP clamps to 499");
+
+            root.resize(260, 500);
+            pump(root);
+            assertEquals(6, view.getActualColumnCount());
+
+            fireKey(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(10, sm.getSelectedIndex(),
+                    "height-only relayout keeps the preferred column when the focused cell slot is unchanged");
         });
     }
 
@@ -1849,6 +1982,17 @@ public class RXTileViewSkinTest {
             }
         }
         RXTileView<String> view = new RXTileView<>(items);
+        view.setSectionKeyFactory(item -> item.substring(0, item.indexOf('#')));
+        return view;
+    }
+
+    private static RXTileView<String> unevenSectionsForPreferredColumn() {
+        ObservableList<String> items = FXCollections.observableArrayList(
+                "g0#492", "g0#493", "g0#494", "g0#495", "g0#496", "g0#497", "g0#498", "g0#499",
+                "g1#500", "g1#501", "g1#502", "g1#503", "g1#504", "g1#505");
+        RXTileView<String> view = new RXTileView<>(items);
+        view.setCellWidth(40);
+        view.setHgap(0);
         view.setSectionKeyFactory(item -> item.substring(0, item.indexOf('#')));
         return view;
     }
