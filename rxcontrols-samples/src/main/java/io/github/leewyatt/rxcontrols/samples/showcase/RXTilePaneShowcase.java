@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Showcase for {@link RXTilePane}. Renders a responsive wall of node cards and
- * exposes every knob — cell size, spacing, forced / max columns, layout and
+ * exposes every knob — cell size, spacing, max columns, layout and
  * reorder animation — plus add / remove controls and a live readout of the
  * resolved column count, so the responsive grid and the glide can be exercised
  * directly on real children.
@@ -97,14 +97,10 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     }
 
     private Node columnsGrid() {
-        Slider columnCount = intSlider(0, 12, tiles.getColumnCount());
-        columnCount.valueProperty().addListener((obs, old, value) -> tiles.setColumnCount(value.intValue()));
         Slider maxColumns = intSlider(0, 12, tiles.getMaxColumns());
         maxColumns.valueProperty().addListener((obs, old, value) -> tiles.setMaxColumns(value.intValue()));
         return createGrid(
-                row("Forced", columnCount, sentinelLabel(columnCount, "auto")),
-                row("Max", maxColumns, sentinelLabel(maxColumns, "none")),
-                row(hint("Drag Forced (with Animation on) to watch the cards glide.")));
+                row("Max", maxColumns, sentinelLabel(maxColumns, "none")));
     }
 
     private Node layoutGrid() {

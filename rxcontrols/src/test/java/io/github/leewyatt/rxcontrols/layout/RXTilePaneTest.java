@@ -56,7 +56,6 @@ public class RXTilePaneTest {
         assertEquals(100.0, pane.getCellHeight(), EPSILON);
         assertEquals(10.0, pane.getHgap(), EPSILON);
         assertEquals(10.0, pane.getVgap(), EPSILON);
-        assertEquals(0, pane.getColumnCount());
         assertEquals(0, pane.getMaxColumns());
         assertEquals(0.0, pane.getMaxCellWidth(), EPSILON);
         assertSame(ItemsJustify.START, pane.getItemsJustify());
@@ -75,14 +74,6 @@ public class RXTilePaneTest {
         assertEquals(3, pane.getActualColumnCount());
         layout(pane, 520, 600); // floor(520 / 100) = 5
         assertEquals(5, pane.getActualColumnCount());
-    }
-
-    @Test
-    public void forcedColumnCountOverridesWidth() {
-        RXTilePane pane = filledPane(20);
-        pane.setColumnCount(4);
-        layout(pane, 2000, 600);
-        assertEquals(4, pane.getActualColumnCount());
     }
 
     @Test
@@ -123,7 +114,7 @@ public class RXTilePaneTest {
         RXTilePane pane = filledPane(2);
         pane.setCellWidth(100);
         pane.setHgap(0);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         pane.setItemsJustify(ItemsJustify.END);
         layout(pane, 400, 200); // 2 cells of 100 -> slack 200, END pushes them right
         assertEquals(200.0, pane.getChildren().get(0).getLayoutX(), EPSILON);
@@ -133,7 +124,7 @@ public class RXTilePaneTest {
     public void stretchJustifyFillsRowWidth() {
         RXTilePane pane = filledPane(2);
         pane.setHgap(0);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         pane.setItemsJustify(ItemsJustify.STRETCH);
         layout(pane, 400, 200); // 2 columns share 400 -> each 200 wide
         assertEquals(200.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON);
@@ -142,7 +133,7 @@ public class RXTilePaneTest {
     @Test
     public void spaceModesDistributeRowSlack() {
         RXTilePane pane = filledPane(4);
-        pane.setColumnCount(4);
+        pane.setMaxColumns(4);
         pane.setCellWidth(60);
         pane.setHgap(10);
 
@@ -176,7 +167,7 @@ public class RXTilePaneTest {
     @Test
     public void maxCellWidthCapsAndCentersStretch() {
         RXTilePane pane = filledPane(2);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         pane.setCellWidth(60);
         pane.setHgap(10);
         pane.setItemsJustify(ItemsJustify.STRETCH);
@@ -212,7 +203,7 @@ public class RXTilePaneTest {
         pane.setCellHeight(100);
         pane.setHgap(20);
         pane.setVgap(30);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         layout(pane, 400, 400);
         Region c0 = (Region) pane.getChildren().get(0);
         Region c1 = (Region) pane.getChildren().get(1);
@@ -235,7 +226,7 @@ public class RXTilePaneTest {
         pane.setCellHeight(100);
         pane.setHgap(0);
         pane.setVgap(0);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         layout(pane, 400, 400);
         assertEquals(100.0, pane.prefHeight(400), EPSILON); // 1 row
 
@@ -251,7 +242,7 @@ public class RXTilePaneTest {
         pane.getChildren().add(rect);
         pane.setCellWidth(100);
         pane.setCellHeight(100);
-        pane.setColumnCount(1);
+        pane.setMaxColumns(1);
         layout(pane, 200, 200);
         assertEquals(30.0, rect.getWidth(), EPSILON, "a non-resizable child keeps its size");
         assertEquals(35.0, rect.getLayoutX(), EPSILON, "and is centered in the cell: (100 - 30) / 2");
@@ -271,7 +262,7 @@ public class RXTilePaneTest {
         assertTrue(Double.isNaN(pane.getMaxCellWidth()));
         pane.getChildren().addAll(card(), card());
         pane.setCellWidth(100);
-        pane.setColumnCount(2);
+        pane.setMaxColumns(2);
         layout(pane, 400, 200);
         assertEquals(100.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "negative hgap acts as 0");
     }
@@ -300,20 +291,18 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void columnChangeEngagesAndDisableSnaps() throws Exception {
+    public void widthReflowEngagesAndDisableSnaps() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(12);
             pane.setCellWidth(100);
-            pane.setColumnCount(4);
             pane.setAnimated(true);
-            new Scene(pane, 700, 400);
+            new Scene(pane, 400, 400);
             pane.applyCss();
-            pane.layout(); // first layout: no glide (firstLayoutDone becomes true)
+            layout(pane, 400, 400); // first layout: no glide (firstLayoutDone becomes true)
 
-            pane.setColumnCount(6);
             pane.applyCss();
-            pane.layout(); // reorder: moved children get a transient translate
-            assertTrue(anyTranslated(pane), "a column-count change with animated=true engages a glide");
+            layout(pane, 600, 400); // reorder: moved children get a transient translate
+            assertTrue(anyTranslated(pane), "a width-driven column-count change with animated=true engages a glide");
 
             pane.setAnimated(false); // snaps in-flight glides to final
             assertFalse(anyTranslated(pane), "disabling animation mid-glide snaps every child");
@@ -325,7 +314,7 @@ public class RXTilePaneTest {
         onFx(() -> {
             RXTilePane pane = filledPane(5);
             pane.setCellWidth(100);
-            pane.setColumnCount(3);
+            pane.setMaxColumns(3);
             pane.setAnimated(true);
             new Scene(pane, 700, 400);
             pane.applyCss();
@@ -341,12 +330,14 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void prefWidthHonorsForcedColumnCount() {
+    public void prefWidthUsesDefaultColumnsAndMaxColumnsCap() {
         RXTilePane pane = filledPane(2);
         pane.setCellWidth(100);
         pane.setHgap(10);
-        pane.setColumnCount(6);
-        assertEquals(650.0, pane.prefWidth(-1), EPSILON, "6 forced columns: 6*100 + 5*10");
+        assertEquals(320.0, pane.prefWidth(-1), EPSILON, "default preferred columns: 3*100 + 2*10");
+
+        pane.setMaxColumns(2);
+        assertEquals(210.0, pane.prefWidth(-1), EPSILON, "maxColumns caps the preferred column count");
     }
 
     @Test
@@ -384,21 +375,6 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void forcedColumnsAffectPreferredWidthNotMinimumWidth() {
-        RXTilePane pane = filledPane(3);
-        pane.setCellWidth(100);
-        pane.setHgap(0);
-        pane.setColumnCount(5);
-        pane.setMaxColumns(4);
-        pane.setItemsJustify(ItemsJustify.START);
-
-        assertEquals(100.0, pane.minWidth(-1), EPSILON,
-                "cellWidth is a target width, so forced columns do not expand min width");
-        assertEquals(400.0, pane.prefWidth(-1), EPSILON,
-                "forced columns still define the preferred row width");
-    }
-
-    @Test
     public void maxColumnsAloneDoesNotExpandMinimumWidth() {
         RXTilePane pane = filledPane(3);
         pane.setCellWidth(100);
@@ -410,22 +386,8 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void stretchForcedColumnsUseOneTargetCellMinimumWidth() {
+    public void narrowWidthDropsToOneColumn() {
         RXTilePane pane = filledPane(4);
-        pane.setCellWidth(100);
-        pane.setHgap(0);
-        pane.setColumnCount(5);
-        pane.setMaxColumns(4);
-        pane.setItemsJustify(ItemsJustify.STRETCH);
-
-        assertEquals(100.0, pane.minWidth(-1), EPSILON,
-                "min width remains one target cell in STRETCH");
-    }
-
-    @Test
-    public void fixedForcedColumnsShrinkWhenRowIsNarrow() {
-        RXTilePane pane = filledPane(4);
-        pane.setColumnCount(5);
         pane.setMaxColumns(4);
         pane.setCellWidth(100);
         pane.setHgap(0);
@@ -433,27 +395,26 @@ public class RXTilePaneTest {
 
         layout(pane, 100, 120);
 
-        assertEquals(4, pane.getActualColumnCount());
-        assertRowFits(pane, 4, 100.0);
-        assertEquals(25.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "fixed justification shrinks target tracks when the row is narrow");
+        assertEquals(1, pane.getActualColumnCount());
+        assertRowFits(pane, 1, 100.0);
+        assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "automatic columns choose one target-width cell when only one fits");
     }
 
     @Test
-    public void stretchForcedColumnsUsesAvailableWidthWhenNarrow() {
+    public void stretchUsesAvailableWidthWhenSingleColumnIsNarrowerThanTarget() {
         RXTilePane pane = filledPane(4);
-        pane.setColumnCount(5);
         pane.setMaxColumns(4);
         pane.setCellWidth(100);
         pane.setHgap(0);
         pane.setItemsJustify(ItemsJustify.STRETCH);
 
-        layout(pane, 100, 120);
+        layout(pane, 50, 120);
 
-        assertEquals(4, pane.getActualColumnCount());
-        assertRowFits(pane, 4, 100.0);
-        assertEquals(25.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "STRETCH derives cell width from the available row width");
+        assertEquals(1, pane.getActualColumnCount());
+        assertRowFits(pane, 1, 50.0);
+        assertEquals(50.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "STRETCH shrinks the target cell when even one column is too wide");
     }
 
     // ==================== Helpers ====================

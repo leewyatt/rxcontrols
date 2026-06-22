@@ -71,8 +71,6 @@ public class RXTileViewTest {
         assertEquals(10.0, view.getHgap(), EPSILON);
         assertEquals(10.0, view.getVgap(), EPSILON);
         assertEquals(32.0, view.getSectionHeaderHeight(), EPSILON);
-        assertEquals(RXTileView.AUTO_COLUMNS, view.getColumnCount());
-        assertEquals(0, RXTileView.AUTO_COLUMNS);
         assertEquals(0, view.getMaxColumns());
         assertEquals(0.0, view.getMaxCellWidth(), EPSILON);
         assertSame(ItemsJustify.START, view.getItemsJustify());
@@ -124,8 +122,6 @@ public class RXTileViewTest {
         assertSame(ItemsJustify.CENTER, view.getItemsJustify());
         view.setMaxCellWidth(180.0);
         assertEquals(180.0, view.getMaxCellWidth(), EPSILON);
-        view.setColumnCount(5);
-        assertEquals(5, view.getColumnCount());
         view.setMaxColumns(8);
         assertEquals(8, view.getMaxColumns());
     }
@@ -231,10 +227,10 @@ public class RXTileViewTest {
                 () -> view.cellWidthProperty().bind(new SimpleDoubleProperty(0.0)));
     }
 
-    // ==================== Lenient gaps / counts ====================
+    // ==================== Lenient gaps / caps ====================
 
     @Test
-    public void gapsAndColumnCountsAreTolerant() {
+    public void gapsAndColumnCapsAreTolerant() {
         RXTileView<String> view = new RXTileView<>();
 
         view.setHgap(-1.0);
@@ -243,8 +239,6 @@ public class RXTileViewTest {
         assertEquals(-3.0, view.getVgap(), EPSILON);
         view.setMaxCellWidth(Double.NaN);
         assertTrue(Double.isNaN(view.getMaxCellWidth()));
-        view.setColumnCount(-2);
-        assertEquals(-2, view.getColumnCount());
         view.setMaxColumns(-4);
         assertEquals(-4, view.getMaxColumns());
     }

@@ -96,10 +96,10 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void forcedColumnCountOverridesWidth() throws Exception {
+    public void maxColumnsCapsDerivedCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(5);
+            view.setMaxColumns(5);
             pump(host(view, 800, 300));
             assertEquals(5, view.getActualColumnCount());
             assertEquals(4, view.getRowCount());
@@ -107,7 +107,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void maxColumnsClampsDerivedAndForcedCount() throws Exception {
+    public void maxColumnsClampsDerivedCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
             view.setCellWidth(50);
@@ -119,10 +119,6 @@ public class RXTileViewSkinTest {
             view.setMaxColumns(2);
             pump(root);
             assertEquals(2, view.getActualColumnCount(), "maxColumns clamps the derived count");
-
-            view.setColumnCount(5);
-            pump(root);
-            assertEquals(2, view.getActualColumnCount(), "maxColumns also caps a forced columnCount");
         });
     }
 
@@ -168,7 +164,7 @@ public class RXTileViewSkinTest {
     public void cellKnowsItsRowAndColumn() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             pump(host(view, 400, 400));
             RXTileCell<?> cell = cellByIndex(view, 7);
             assertNotNull(cell, "cell for index 7 should be realized");
@@ -181,7 +177,7 @@ public class RXTileViewSkinTest {
     public void largeListRealizesOnlyVisibleCells() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(10_000);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setCellHeight(100);
             view.setVgap(10);
             pump(host(view, 500, 400));
@@ -196,7 +192,7 @@ public class RXTileViewSkinTest {
     public void doublePrecisionGeometryAtMillionRows() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(1_000_000);
-            view.setColumnCount(1);
+            view.setMaxColumns(1);
             view.setCellHeight(100);
             view.setVgap(10);
             StackPane root = host(view, 300, 400);
@@ -214,7 +210,7 @@ public class RXTileViewSkinTest {
     public void shortFinalRowHasNoStaleCells() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(7);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             pump(host(view, 400, 600));
             // 7 items, 3 columns: rows 0-1 full (6 cells), row 2 holds only index 6.
             assertEquals(1, rowCells(view, 2).size(), "the short final row holds exactly one cell");
@@ -226,7 +222,7 @@ public class RXTileViewSkinTest {
     public void visibleRangeTailIsClampedToItemCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(7);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             pump(host(view, 400, 600));
             RXTileVisibleRange range = view.getVisibleRange();
             assertEquals(0, range.firstIndex());
@@ -292,14 +288,13 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void forcedColumnsAffectPreferredWidthNotMinimumWidth() throws Exception {
+    public void maxColumnsDoesNotExpandMinimumWidth() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setCellWidth(100);
             view.setCellHeight(70);
             view.setHgap(0);
             view.setVgap(0);
-            view.setColumnCount(5);
             view.setMaxColumns(4);
             view.setItemsJustify(ItemsJustify.START);
             StackPane root = host(view, 80, 220);
@@ -314,32 +309,31 @@ public class RXTileViewSkinTest {
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "forced columns do not expand min width beyond one target cell plus scroll bar");
+                    "maxColumns does not expand min width beyond one target cell plus scroll bar");
 
             double expectedPrefWidth = view.getInsets().getLeft()
-                    + 4.0 * view.getCellWidth()
+                    + 3.0 * view.getCellWidth()
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedPrefWidth, view.prefWidth(-1), 1.0,
-                    "forced columns still define the preferred row width plus scroll bar");
-            assertEquals(4, view.getActualColumnCount(), "forced columns are still capped by maxColumns");
+                    "pref width uses the default preferred columns when maxColumns is higher");
+            assertEquals(1, view.getActualColumnCount(), "the narrow viewport derives one column");
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertEquals(25.0, cell.getWidth(), 1.5,
-                    "fixed justification shrinks target tracks inside the one-cell content width");
+            assertEquals(view.getCellWidth(), cell.getWidth(), 1.5,
+                    "one derived column keeps the target cell width");
         });
     }
 
     @Test
-    public void stretchForcedColumnsUseOneTargetCellMinimumWidth() throws Exception {
+    public void stretchUsesOneDerivedColumnWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setCellWidth(100);
             view.setCellHeight(70);
             view.setHgap(0);
             view.setVgap(0);
-            view.setColumnCount(5);
             view.setMaxColumns(4);
             view.setItemsJustify(ItemsJustify.STRETCH);
             StackPane root = host(view, 80, 220);
@@ -355,12 +349,12 @@ public class RXTileViewSkinTest {
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
                     "min width remains one target cell plus scroll bar in STRETCH");
-            assertEquals(4, view.getActualColumnCount(), "forced columns are still capped by maxColumns");
+            assertEquals(1, view.getActualColumnCount(), "the narrow viewport derives one column");
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertEquals(25.0, cell.getWidth(), 1.5,
-                    "STRETCH divides the available one-cell content width among four forced columns");
+            assertEquals(view.getCellWidth(), cell.getWidth(), 1.5,
+                    "STRETCH keeps the single target-width column when the parent honors min width");
         });
     }
 
@@ -412,7 +406,7 @@ public class RXTileViewSkinTest {
     public void scrollToConsumesPendingRequestOnce() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo(150);
@@ -426,7 +420,7 @@ public class RXTileViewSkinTest {
     public void scrollToItemScrollsThroughTheSkin() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo("Item 300");
@@ -446,7 +440,7 @@ public class RXTileViewSkinTest {
                 items.add(i);
             }
             RXTileView<Integer> view = new RXTileView<>(items);
-            view.setColumnCount(1);
+            view.setMaxColumns(1);
             view.setCellWidth(100);
             view.setCellHeight(20);
             view.setVgap(0);
@@ -485,7 +479,7 @@ public class RXTileViewSkinTest {
     public void nearestAlignmentLeavesVisibleItemPut() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
 
@@ -505,7 +499,7 @@ public class RXTileViewSkinTest {
     public void centerAndEndAlignmentPositionTargetItemRow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(120);
-            view.setColumnCount(1);
+            view.setMaxColumns(1);
             view.setCellWidth(80);
             view.setCellHeight(20);
             view.setVgap(0);
@@ -532,7 +526,7 @@ public class RXTileViewSkinTest {
     public void wheelScrollMovesViewportAndClamps() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             Node viewport = view.lookup(".viewport");
@@ -554,7 +548,7 @@ public class RXTileViewSkinTest {
     public void emptyViewportReleasesWheelAfterPreviouslyScrollable() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             Node viewport = view.lookup(".viewport");
@@ -576,10 +570,12 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void columnCountChangeKeepsTopItemStable() throws Exception {
+    public void actualColumnCountChangeKeepsTopItemStable() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(100);
-            view.setColumnCount(4);
+            view.setCellWidth(50);
+            view.setHgap(0);
+            view.setMaxColumns(4);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo(40);
@@ -587,7 +583,7 @@ public class RXTileViewSkinTest {
             assertEquals(40, view.getVisibleRange().firstIndex());
 
             // Reflow to 6 columns: the previously-top item must stay visible.
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             RXTileVisibleRange range = view.getVisibleRange();
             assertTrue(range.firstIndex() <= 40 && 40 <= range.lastIndex(),
@@ -600,7 +596,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(400);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo(399);
@@ -621,7 +617,7 @@ public class RXTileViewSkinTest {
     public void changingCellWidthReusesCellsWhileFactoryChangeRecreates() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 600);
             pump(root);
             List<Node> before = new ArrayList<>(view.lookupAll(".rx-tile-cell"));
@@ -645,7 +641,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(6);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 600);
             pump(root);
             assertEquals(2, view.getRowCount());
@@ -667,7 +663,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(6);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 600);
             pump(root);
             int rowsBefore = view.getRowCount();
@@ -685,7 +681,8 @@ public class RXTileViewSkinTest {
     public void stretchModeFillsTheRowEqually() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(3);
-            view.setColumnCount(3);
+            view.setCellWidth(90);
+            view.setMaxColumns(3);
             view.setHgap(10);
             view.setItemsJustify(ItemsJustify.STRETCH);
             pump(host(view, 320, 300));
@@ -702,7 +699,7 @@ public class RXTileViewSkinTest {
     public void itemsJustifyPositionsTheBlock() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(2);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellWidth(100);
             view.setHgap(0);
 
@@ -729,7 +726,7 @@ public class RXTileViewSkinTest {
     public void spaceModesDistributeRowSlack() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(8);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setCellWidth(60);
             view.setHgap(10);
             StackPane root = host(view, 400, 400);
@@ -766,7 +763,7 @@ public class RXTileViewSkinTest {
     public void maxCellWidthCapsAndCentersStretch() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellWidth(60);
             view.setHgap(10);
             view.setItemsJustify(ItemsJustify.STRETCH);
@@ -802,7 +799,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = FXCollections.observableArrayList("a", null, "c");
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             pump(host(view, 400, 300));
             RXTileCell<?> cell = cellByIndex(view, 1);
             assertNotNull(cell, "the null-item cell is realized");
@@ -837,10 +834,10 @@ public class RXTileViewSkinTest {
     public void noTranslationLeftOnCellsWithoutAnimation() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(40);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             StackPane root = host(view, 400, 300);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
@@ -853,7 +850,7 @@ public class RXTileViewSkinTest {
     public void nearestAlignmentScrollsUpToRevealItemAboveTheWindow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo(200);
@@ -873,7 +870,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> listA = items(6);
             RXTileView<String> view = new RXTileView<>(listA);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 600);
             pump(root);
             assertEquals(3, view.getRowCount());
@@ -894,7 +891,7 @@ public class RXTileViewSkinTest {
     public void scrollBarDragMovesViewportWithoutOscillating() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
@@ -916,7 +913,7 @@ public class RXTileViewSkinTest {
     public void shortFinalRowStaysColumnAligned() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(7);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setCellWidth(100);
             view.setHgap(0);
             view.setItemsJustify(ItemsJustify.CENTER);
@@ -949,7 +946,7 @@ public class RXTileViewSkinTest {
     public void singleSectionKeyGroupsAllItemsUnderOneHeader() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(10);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setSectionKeyFactory(item -> "group");
             pump(host(view, 400, 600));
             assertEquals(1, view.getSections().size(), "all items share one key -> one section");
@@ -965,7 +962,7 @@ public class RXTileViewSkinTest {
     public void pendingScrollSurvivesZeroHeightPass() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.scrollTo(100);
             // A layout pass at zero height cannot apply the scroll; the request must
             // survive (not be consumed-and-lost) so a later sized pass can honor it.
@@ -980,7 +977,7 @@ public class RXTileViewSkinTest {
     public void temporaryZeroSizePreservesScrollPosition() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollTo(150);
@@ -1034,7 +1031,7 @@ public class RXTileViewSkinTest {
     public void threeStateShowSectionHeaders() throws Exception {
         onFx(() -> {
             RXTileView<String> flat = tiles(4);
-            flat.setColumnCount(2);
+            flat.setMaxColumns(2);
             pump(host(flat, 400, 600));
             assertEquals(0, headers(flat).size(), "A: no factory -> no headers");
             assertEquals(2, flat.getRowCount());
@@ -1061,7 +1058,7 @@ public class RXTileViewSkinTest {
             ObservableList<String> items = FXCollections.observableArrayList(
                     "a0", "a1", "a2", "a3", "a4", "b0", "b1", "b2");
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setSectionKeyFactory(s -> s.substring(0, 1));
             view.setShowSectionHeaders(false);
             pump(host(view, 400, 600));
@@ -1105,7 +1102,7 @@ public class RXTileViewSkinTest {
     public void headersRecycledOnScroll() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(200, 4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             assertEquals(200, view.getSections().size());
@@ -1124,7 +1121,7 @@ public class RXTileViewSkinTest {
     public void scrollToSectionLandsTheSection() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(10, 4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             view.scrollToSection("s5");
@@ -1144,7 +1141,7 @@ public class RXTileViewSkinTest {
     public void centerAndEndAlignmentPositionTargetSectionHeader() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(20, 4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellHeight(20);
             view.setVgap(0);
             view.setSectionHeaderHeight(40);
@@ -1179,7 +1176,7 @@ public class RXTileViewSkinTest {
                 items.add("z" + i);
             }
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setSectionKeyFactory(s -> s.substring(0, 1));
             StackPane root = host(view, 400, 250);
             pump(root);
@@ -1195,7 +1192,7 @@ public class RXTileViewSkinTest {
     public void visibleSectionTracksScrolling() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(10, 4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 250);
             pump(root);
             assertEquals("s0", view.getVisibleSection().key(), "starts at the first section");
@@ -1209,7 +1206,7 @@ public class RXTileViewSkinTest {
     public void scrollToItemAccountsForHeaderOffset() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(20, 6);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellHeight(60);
             view.setVgap(0);
             view.setSectionHeaderHeight(40);
@@ -1249,7 +1246,7 @@ public class RXTileViewSkinTest {
             // Two single-item sections, cols 3: flat would pack both in one row (ceil(2/3)=1),
             // but grouped (headers hidden) each section forces its own data row.
             RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setSectionKeyFactory(s -> s);
             view.setShowSectionHeaders(false);
             pump(host(view, 400, 600));
@@ -1263,7 +1260,7 @@ public class RXTileViewSkinTest {
     public void visibleSectionAtExactSectionTopBoundary() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(5, 4);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellHeight(100);
             view.setVgap(0);
             view.setSectionHeaderHeight(30);
@@ -1283,7 +1280,7 @@ public class RXTileViewSkinTest {
     public void defaultHeaderRendersEmptyForNullKey() throws Exception {
         onFx(() -> {
             RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setSectionKeyFactory(s -> null); // one section, null key
             pump(host(view, 400, 600));
             assertEquals(1, view.getSections().size());
@@ -1300,7 +1297,7 @@ public class RXTileViewSkinTest {
     public void arrowKeysMoveFocusAndSelection() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1311,7 +1308,7 @@ public class RXTileViewSkinTest {
             assertTrue(isSelected(cellByIndex(view, 0)));
             assertTrue(hasFocusRing(cellByIndex(view, 0)));
 
-            fireKey(view, KeyCode.DOWN, false, false); // + columnCount
+            fireKey(view, KeyCode.DOWN, false, false); // + actual column count
             pump(root);
             assertEquals(3, sm.getSelectedIndex());
             assertTrue(isSelected(cellByIndex(view, 3)));
@@ -1327,7 +1324,7 @@ public class RXTileViewSkinTest {
     public void verticalArrowStopsAtFirstRow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1350,7 +1347,7 @@ public class RXTileViewSkinTest {
     public void verticalArrowStopsAtIncompleteLastRow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(8);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1380,7 +1377,7 @@ public class RXTileViewSkinTest {
     public void arrowDownSkipsSectionHeaders() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(3, 4); // sections of 4, cols 2 -> 2 data rows each
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 600);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1401,7 +1398,7 @@ public class RXTileViewSkinTest {
             ObservableList<String> items = FXCollections.observableArrayList(
                     "a0", "a1", "a2", "a3", "a4", "b0", "b1", "b2");
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setSectionKeyFactory(s -> s.substring(0, 1));
             StackPane root = host(view, 400, 600);
             pump(root);
@@ -1530,7 +1527,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void reflowResetsPreferredColumnWhenColumnCountChangesOnly() throws Exception {
+    public void reflowResetsPreferredColumnWhenActualColumnCountChangesOnly() throws Exception {
         onFx(() -> {
             RXTileView<String> view = shortThenWideSectionsForPreferredColumn();
             StackPane root = host(view, 260, 600);
@@ -1584,7 +1581,7 @@ public class RXTileViewSkinTest {
     public void homeAndEndSelectFirstAndLast() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(50);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 300);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1601,7 +1598,7 @@ public class RXTileViewSkinTest {
     public void shiftArrowExtendsRangeFromAnchor() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -1619,7 +1616,7 @@ public class RXTileViewSkinTest {
     public void shiftArrowReplacesRangeWithoutIntermediateClear() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -1653,7 +1650,7 @@ public class RXTileViewSkinTest {
     public void marqueeDragFromBlankGapSelectsIntersectingCellsWithoutIntermediateClear() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setCellWidth(40);
             view.setCellHeight(30);
             view.setHgap(10);
@@ -1689,7 +1686,7 @@ public class RXTileViewSkinTest {
             RXTileView<String> view = new RXTileView<>(
                     FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
             view.setSectionKeyFactory(item -> item.substring(0, 1));
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellWidth(40);
             view.setCellHeight(20);
             view.setHgap(10);
@@ -1716,7 +1713,7 @@ public class RXTileViewSkinTest {
             RXTileView<String> view = new RXTileView<>(
                     FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
             view.setSectionKeyFactory(item -> item.substring(0, 1));
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setCellWidth(40);
             view.setCellHeight(20);
             view.setHgap(10);
@@ -1742,7 +1739,7 @@ public class RXTileViewSkinTest {
         AtomicReference<StackPane> rootRef = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setCellWidth(40);
             view.setCellHeight(30);
             view.setHgap(10);
@@ -1779,7 +1776,7 @@ public class RXTileViewSkinTest {
     public void shortcutArrowMovesFocusOnly() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1799,7 +1796,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1829,7 +1826,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -1859,7 +1856,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -1892,13 +1889,13 @@ public class RXTileViewSkinTest {
     public void shortcutAClampedToSelectionMode() throws Exception {
         onFx(() -> {
             RXTileView<String> single = tiles(8);
-            single.setColumnCount(4);
+            single.setMaxColumns(4);
             pump(host(single, 400, 400));
             fireKey(single, KeyCode.A, false, true);
             assertTrue(single.getSelectionModel().isEmpty(), "Ctrl/Cmd+A is a no-op in SINGLE mode");
 
             RXTileView<String> multi = tiles(8);
-            multi.setColumnCount(4);
+            multi.setMaxColumns(4);
             multi.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             pump(host(multi, 400, 400));
             fireKey(multi, KeyCode.A, false, true);
@@ -1910,7 +1907,7 @@ public class RXTileViewSkinTest {
     public void focusOffscreenScrollsIntoView() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             fireMousePressed(cellByIndex(view, 0), false, false);
@@ -1928,7 +1925,7 @@ public class RXTileViewSkinTest {
     public void selectionReAppliesToRecycledCells() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             fireMousePressed(cellByIndex(view, 0), false, false);
@@ -1953,7 +1950,7 @@ public class RXTileViewSkinTest {
         AtomicReference<RXTileViewActionEvent<String>> received = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setOnAction(received::set);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -1975,7 +1972,7 @@ public class RXTileViewSkinTest {
     public void clickSelectsAndCtrlClickToggles() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -1999,7 +1996,7 @@ public class RXTileViewSkinTest {
     public void eventFilterCanDisableAKey() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
                 if (e.getCode() == KeyCode.DOWN) {
                     e.consume();
@@ -2020,7 +2017,7 @@ public class RXTileViewSkinTest {
     public void selectionModelSwapReWiresState() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             view.getSelectionModel().select(0);
@@ -2042,7 +2039,7 @@ public class RXTileViewSkinTest {
     public void shiftClickSelectsRangeFromAnchor() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2065,7 +2062,7 @@ public class RXTileViewSkinTest {
     public void pageDownAndPageUpMoveByVisibleRows() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
             MultipleSelectionModel<String> sm = view.getSelectionModel();
@@ -2092,7 +2089,7 @@ public class RXTileViewSkinTest {
                 listA.add("A" + i);
             }
             RXTileView<String> view = new RXTileView<>(listA);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2121,7 +2118,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2142,7 +2139,7 @@ public class RXTileViewSkinTest {
     public void anchorIsResetOnSelectionModelSwap() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2167,7 +2164,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> listA = FXCollections.observableArrayList("a", "b", "c", "d");
             RXTileView<String> view = new RXTileView<>(listA);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             StackPane root = host(view, 400, 200);
             pump(root);
             fireMousePressed(cellByIndex(view, 1), false, false); // focus "b" at index 1
@@ -2186,7 +2183,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
 
@@ -2212,7 +2209,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2244,7 +2241,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             ObservableList<String> items = items(20);
             RXTileView<String> view = new RXTileView<>(items);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2273,7 +2270,7 @@ public class RXTileViewSkinTest {
     public void replacementSelectionModelTracksItemsSwapWithSkinInstalled() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
 
@@ -2296,7 +2293,7 @@ public class RXTileViewSkinTest {
     public void removingFocusedLeadAfterSelectionModelAndItemsSwapFollowsSelectionLead() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
 
@@ -2328,7 +2325,7 @@ public class RXTileViewSkinTest {
     public void removingFocusedNullLeadAfterSelectionModelAndItemsSwapReanchorsToPriorRow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(3);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             StackPane root = host(view, 500, 240);
             pump(root);
 
@@ -2361,7 +2358,7 @@ public class RXTileViewSkinTest {
         AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
             view.setOnAction(activated::set);
             StackPane root = host(view, 400, 400);
@@ -2385,7 +2382,7 @@ public class RXTileViewSkinTest {
         AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(3); // few items: lots of empty viewport below
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             view.setOnAction(activated::set);
             StackPane root = host(view, 400, 400);
             pump(root);
@@ -2400,7 +2397,7 @@ public class RXTileViewSkinTest {
     public void tabIsNotConsumedByTheKeyHandler() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setColumnCount(3);
+            view.setMaxColumns(3);
             StackPane root = host(view, 400, 400);
             pump(root);
             KeyEvent tab = new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.TAB, false, false, false, false);
@@ -2412,16 +2409,16 @@ public class RXTileViewSkinTest {
     // ==================== Reorder animation (PR5) ====================
 
     @Test
-    public void columnCountChangeWithAnimationEngagesGlide() throws Exception {
+    public void actualColumnCountChangeWithAnimationEngagesGlide() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12); // 12 cells fit without scrolling
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             StackPane root = host(view, 700, 400);
             pump(root);
             assertFalse(anyCellTranslated(view, 12), "no glide before a column change");
 
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root); // sets the start translate synchronously; no pulse clears it
             assertTrue(anyCellTranslated(view, 12),
                     "a 4->6 reflow with animated=true sets a transient translate on moved cells");
@@ -2432,11 +2429,11 @@ public class RXTileViewSkinTest {
     public void glidingCellsAreNotParkedMidFlight() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             StackPane root = host(view, 700, 400);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             RXTileCell<?> moved = cellByIndex(view, 5);
             assertNotNull(moved, "the cell for item 5 stays realized");
@@ -2448,10 +2445,10 @@ public class RXTileViewSkinTest {
     public void noGlideWhenAnimationDisabled() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12); // animated defaults to false
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             StackPane root = host(view, 700, 400);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             assertFalse(anyCellTranslated(view, 12), "cells snap to new slots when animation is off");
         });
@@ -2461,11 +2458,11 @@ public class RXTileViewSkinTest {
     public void disablingAnimationMidGlideSnaps() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             StackPane root = host(view, 700, 400);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             assertTrue(anyCellTranslated(view, 12), "glide engaged");
 
@@ -2478,12 +2475,12 @@ public class RXTileViewSkinTest {
     public void nonPositiveDurationDisablesGlide() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             view.setAnimationDuration(Duration.ZERO);
             StackPane root = host(view, 700, 400);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             assertFalse(anyCellTranslated(view, 12), "a non-positive duration disables the glide");
         });
@@ -2493,11 +2490,11 @@ public class RXTileViewSkinTest {
     public void sectionHeadersGlideVerticallyOnReorder() throws Exception {
         onFx(() -> {
             RXTileView<String> view = manySections(3, 6); // 6 items/section: 2 cols -> 3 rows, 3 cols -> 2 rows
-            view.setColumnCount(2);
+            view.setMaxColumns(2);
             view.setAnimated(true);
             StackPane root = host(view, 400, 700);
             pump(root);
-            view.setColumnCount(3); // shrinks section 0's rows, shifting later headers up
+            view.setMaxColumns(3); // shrinks section 0's rows, shifting later headers up
             pump(root);
 
             boolean headerGliding = false;
@@ -2515,7 +2512,7 @@ public class RXTileViewSkinTest {
     public void nonColumnChangeRelayoutDoesNotGlide() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             StackPane root = host(view, 700, 400);
             pump(root);
@@ -2529,11 +2526,11 @@ public class RXTileViewSkinTest {
     public void disposeSnapsInFlightGlides() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
-            view.setColumnCount(4);
+            view.setMaxColumns(4);
             view.setAnimated(true);
             StackPane root = host(view, 700, 400);
             pump(root);
-            view.setColumnCount(6);
+            view.setMaxColumns(6);
             pump(root);
             RXTileCell<?> moved = cellByIndex(view, 5);
             assertNotNull(moved);
@@ -2571,7 +2568,7 @@ public class RXTileViewSkinTest {
     private static RXTileView<String> grouped4() {
         RXTileView<String> view = new RXTileView<>(
                 FXCollections.observableArrayList("a1", "a2", "b1", "b2"));
-        view.setColumnCount(2);
+        view.setMaxColumns(2);
         view.setSectionKeyFactory(s -> s.substring(0, 1));
         return view;
     }

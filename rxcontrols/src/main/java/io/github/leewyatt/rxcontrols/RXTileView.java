@@ -52,9 +52,8 @@ import java.util.Objects;
  *
  * <p>{@code RXTileView} lays a flat {@link #itemsProperty() items} list out in a
  * uniform grid: it derives the column count from {@link #cellWidthProperty()
- * cellWidth} and the available width (or honors a forced
- * {@link #columnCountProperty() columnCount}), wraps items into rows, and
- * virtualizes by row so only the visible rows hold live cells. Each item is
+ * cellWidth} and the available width, wraps items into rows, and virtualizes by
+ * row so only the visible rows hold live cells. Each item is
  * rendered by a {@link RXTileCell} produced by the
  * {@link #cellFactoryProperty() cellFactory}; a {@code null} item is a legal
  * value — empty cells are decided by the index, not by a {@code null} item.
@@ -99,7 +98,6 @@ public class RXTileView<T> extends Control {
     private static final double DEFAULT_VGAP = 10.0;
     private static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
-    private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
@@ -107,15 +105,6 @@ public class RXTileView<T> extends Control {
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     private static final String DEFAULT_STYLE_CLASS = "rx-tile-view";
-
-    /**
-     * Sentinel for {@link #columnCountProperty() columnCount} and
-     * {@link #maxColumnsProperty() maxColumns} meaning "derive automatically": an
-     * automatic column count for {@code columnCount}, and no upper bound for
-     * {@code maxColumns}. Aligns with {@code RXMasonryPane.AUTO_COLUMNS} and
-     * {@code RXGridView.AUTO_COLUMNS}.
-     */
-    public static final int AUTO_COLUMNS = 0;
 
     // ==================== Constructors ====================
 
@@ -345,10 +334,10 @@ public class RXTileView<T> extends Control {
     };
 
     /**
-     * Target width of each cell, in pixels. Drives the automatic column count when
-     * {@code columnCount} is automatic. Must be a finite positive number; an
-     * illegal value is rejected with {@link IllegalArgumentException} and the
-     * property is coerced back to its default (unless bound).
+     * Target width of each cell, in pixels. Drives the derived column count. Must
+     * be a finite positive number; an illegal value is rejected with
+     * {@link IllegalArgumentException} and the property is coerced back to its
+     * default (unless bound).
      *
      * @return the cell-width property
      */
@@ -648,51 +637,14 @@ public class RXTileView<T> extends Control {
         sectionHeaderHeight.set(value);
     }
 
-    // ==================== Column Count ====================
-
-    private final IntegerProperty columnCount =
-            new SimpleIntegerProperty(this, "columnCount", DEFAULT_COLUMN_COUNT);
-
-    /**
-     * Forced number of columns. A positive value pins the count, switching the
-     * view out of automatic derivation but still subject to
-     * {@link #maxColumnsProperty() maxColumns}; {@link #AUTO_COLUMNS} (or any
-     * value {@code <= 0}) derives the count from {@code cellWidth} and the
-     * available width.
-     *
-     * @return the column-count property
-     */
-    public final IntegerProperty columnCountProperty() {
-        return columnCount;
-    }
-
-    /**
-     * Returns the forced column count.
-     *
-     * @return the forced column count, or {@link #AUTO_COLUMNS} for automatic
-     */
-    public final int getColumnCount() {
-        return columnCount.get();
-    }
-
-    /**
-     * Sets the forced column count.
-     *
-     * @param value a positive count, or {@link #AUTO_COLUMNS} for automatic
-     */
-    public final void setColumnCount(int value) {
-        columnCount.set(value);
-    }
-
     // ==================== Max Columns ====================
 
     private final IntegerProperty maxColumns =
             new SimpleIntegerProperty(this, "maxColumns", DEFAULT_MAX_COLUMNS);
 
     /**
-     * Upper bound on the resolved column count. {@link #AUTO_COLUMNS} (or any
-     * value {@code <= 0}) means no upper bound. Applies to both automatic and
-     * forced column counts.
+     * Upper bound on the resolved column count. Any value {@code <= 0} means no
+     * upper bound.
      *
      * @return the max-columns property
      */
@@ -703,7 +655,7 @@ public class RXTileView<T> extends Control {
     /**
      * Returns the maximum column count.
      *
-     * @return the maximum column count, or {@link #AUTO_COLUMNS} for unbounded
+     * @return the maximum column count, or {@code <= 0} for unbounded
      */
     public final int getMaxColumns() {
         return maxColumns.get();
@@ -712,7 +664,7 @@ public class RXTileView<T> extends Control {
     /**
      * Sets the maximum column count.
      *
-     * @param value a positive bound, or {@link #AUTO_COLUMNS} for unbounded
+     * @param value a positive bound, or {@code <= 0} for unbounded
      */
     public final void setMaxColumns(int value) {
         maxColumns.set(value);

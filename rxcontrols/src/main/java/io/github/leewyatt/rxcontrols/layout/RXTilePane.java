@@ -65,7 +65,6 @@ public class RXTilePane extends Pane {
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
-    private static final int DEFAULT_COLUMN_COUNT = 0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_ANIMATED = false;
@@ -76,12 +75,6 @@ public class RXTilePane extends Pane {
     private static final int DEFAULT_PREF_COLUMNS = 3;
     // Defensive ceiling so a tiny cellWidth cannot explode the column count.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
-
-    /**
-     * Forced column count value that restores automatic column derivation from
-     * {@link #cellWidthProperty() cellWidth}.
-     */
-    public static final int AUTO_COLUMNS = 0;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-tile-pane";
 
@@ -429,43 +422,6 @@ public class RXTilePane extends Pane {
      */
     public final void setVgap(double value) {
         vgap.set(value);
-    }
-
-    // ==================== Column Count ====================
-
-    private final IntegerProperty columnCount = new SimpleIntegerProperty(this, "columnCount", DEFAULT_COLUMN_COUNT) {
-        @Override
-        protected void invalidated() {
-            requestLayout();
-        }
-    };
-
-    /**
-     * Forced column count. {@link #AUTO_COLUMNS} (or any non-positive value) derives
-     * the count from {@code cellWidth} and the available width.
-     *
-     * @return the column-count property
-     */
-    public final IntegerProperty columnCountProperty() {
-        return columnCount;
-    }
-
-    /**
-     * Returns the forced column count.
-     *
-     * @return the forced column count, or {@link #AUTO_COLUMNS}
-     */
-    public final int getColumnCount() {
-        return columnCount.get();
-    }
-
-    /**
-     * Sets the forced column count.
-     *
-     * @param value a positive count, or {@link #AUTO_COLUMNS} for automatic
-     */
-    public final void setColumnCount(int value) {
-        columnCount.set(value);
     }
 
     // ==================== Max Columns ====================
@@ -870,17 +826,11 @@ public class RXTilePane extends Pane {
     // ==================== Helpers ====================
 
     private int computeColumns(double availableWidth) {
-        int forced = getColumnCount();
-        int columns;
-        if (forced >= 1) {
-            columns = forced;
-        } else {
-            double track = snapSizeX(cellWidthOrDefault());
-            double gap = snapSpaceX(gapOrZero(getHgap()));
-            columns = (availableWidth <= 0.0 || track <= 0.0)
-                    ? 1
-                    : (int) Math.floor((availableWidth + gap) / (track + gap));
-        }
+        double track = snapSizeX(cellWidthOrDefault());
+        double gap = snapSpaceX(gapOrZero(getHgap()));
+        int columns = (availableWidth <= 0.0 || track <= 0.0)
+                ? 1
+                : (int) Math.floor((availableWidth + gap) / (track + gap));
         columns = Math.max(1, columns);
         int max = getMaxColumns();
         if (max > 0 && columns > max) {
@@ -890,9 +840,7 @@ public class RXTilePane extends Pane {
     }
 
     private int prefWidthColumns() {
-        int forced = getColumnCount();
-        int columns = forced >= 1 ? forced : DEFAULT_PREF_COLUMNS;
-        return capColumns(columns);
+        return capColumns(DEFAULT_PREF_COLUMNS);
     }
 
     private int capColumns(int columns) {

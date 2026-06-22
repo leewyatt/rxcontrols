@@ -32,9 +32,9 @@ import java.util.List;
 /**
  * Skin for {@link RXTileView}. It assembles the self-built virtualizing
  * {@link RXTileViewport}, resolves the column count from {@code cellWidth}, the
- * available content width and the measured vertical scroll-bar breadth (or a
- * forced {@code columnCount}), drives the placeholder and the {@code :empty}
- * state, consumes pending scroll requests and publishes the read-only layout
+ * available content width and the measured vertical scroll-bar breadth, drives
+ * the placeholder and the {@code :empty} state, consumes pending scroll requests
+ * and publishes the read-only layout
  * metrics ({@code actualColumnCount}, {@code rowCount}, {@code visibleRange},
  * {@code visibleSection}) after every pass.
  *
@@ -141,7 +141,6 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.cellWidthProperty(), this::requestLayoutPass);
         disposer.registerListener(control.maxCellWidthProperty(), this::requestLayoutPass);
         disposer.registerListener(control.hgapProperty(), this::requestLayoutPass);
-        disposer.registerListener(control.columnCountProperty(), this::requestLayoutPass);
         disposer.registerListener(control.maxColumnsProperty(), this::requestLayoutPass);
         disposer.registerListener(control.cellHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
@@ -264,18 +263,13 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private int computeColumns(double availableWidth) {
         RXTileView<T> control = getSkinnable();
+        double track = snapSizeX(cellWidthOrDefault(control));
+        double gap = snapSpaceX(gapOrZero(control.getHgap()));
         int columns;
-        int forced = control.getColumnCount();
-        if (forced >= 1) {
-            columns = forced;
+        if (availableWidth <= 0.0 || track <= 0.0) {
+            columns = 1;
         } else {
-            double track = snapSizeX(cellWidthOrDefault(control));
-            double gap = snapSpaceX(gapOrZero(control.getHgap()));
-            if (availableWidth <= 0.0 || track <= 0.0) {
-                columns = 1;
-            } else {
-                columns = (int) Math.floor((availableWidth + gap) / (track + gap));
-            }
+            columns = (int) Math.floor((availableWidth + gap) / (track + gap));
         }
         if (columns < 1) {
             columns = 1;
@@ -408,9 +402,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private int prefWidthColumns(RXTileView<?> control) {
-        int forced = control.getColumnCount();
-        int columns = forced >= 1 ? forced : DEFAULT_PREF_COLUMNS;
-        return capColumns(columns, control.getMaxColumns());
+        return capColumns(DEFAULT_PREF_COLUMNS, control.getMaxColumns());
     }
 
     private static int capColumns(int columns, int maxColumns) {

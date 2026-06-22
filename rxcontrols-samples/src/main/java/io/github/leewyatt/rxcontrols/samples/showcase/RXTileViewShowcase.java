@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Showcase for {@link RXTileView}. Renders a virtualized wall of {@value
  * #ITEM_COUNT} colored tiles, grouped into sections, and exposes every V1 knob —
- * cell size, spacing, forced / max columns, layout, section grouping and header
+ * cell size, spacing, max columns, layout, section grouping and header
  * height, selection mode and reorder animation — plus scroll-to-item and
  * scroll-to-section controls and a live readout of the resolved column count,
  * row count, visible item range and top section, so virtualization, grouping and
@@ -114,14 +114,10 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     }
 
     private Node columnsGrid() {
-        Slider columnCount = intSlider(0, 12, tile.getColumnCount());
-        columnCount.valueProperty().addListener((obs, old, value) -> tile.setColumnCount(value.intValue()));
         Slider maxColumns = intSlider(0, 12, tile.getMaxColumns());
         maxColumns.valueProperty().addListener((obs, old, value) -> tile.setMaxColumns(value.intValue()));
         return createGrid(
-                row("Forced", columnCount, sentinelLabel(columnCount, "auto")),
-                row("Max", maxColumns, sentinelLabel(maxColumns, "none")),
-                row(hint("Drag Forced (with Animation on) to watch the tiles glide to new slots.")));
+                row("Max", maxColumns, sentinelLabel(maxColumns, "none")));
     }
 
     private Node layoutGrid() {
