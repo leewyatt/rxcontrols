@@ -43,13 +43,16 @@ import java.util.Set;
  * {@link Pane}: not data-driven, not virtualized, with no sections or selection.
  * It is to a tile grid what {@code RXFlowPane} is to a wrapping flow.
  *
- * <p>Children are placed left-to-right, top-to-bottom into cells of
- * {@code cellWidth} × {@link #cellHeightProperty() cellHeight}, separated by
- * {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap}; spare row width is
- * distributed per {@link #itemsJustifyProperty() itemsJustify}. A resizable
- * child fills its cell (bounded by its own max size); a non-resizable child is
- * centered in it. When {@link #animatedProperty() animated} is on, children glide
- * to their new positions as the column count changes.
+ * <p>Children are placed left-to-right, top-to-bottom into cells whose normal
+ * target size is {@code cellWidth} × {@link #cellHeightProperty() cellHeight},
+ * separated by {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap};
+ * spare row width is distributed per {@link #itemsJustifyProperty()
+ * itemsJustify}. If the parent constrains the pane below the configured one-row
+ * width, the horizontal cell size and gap shrink proportionally so the row stays
+ * inside the available width. A resizable child fills its cell (bounded by its
+ * own max size); a non-resizable child is centered in it. When
+ * {@link #animatedProperty() animated} is on, children glide to their new
+ * positions as the column count changes.
  */
 public class RXTilePane extends Pane {
 
@@ -288,11 +291,12 @@ public class RXTilePane extends Pane {
      * {@link #itemsJustifyProperty() itemsJustify} is
      * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
-     * where cells keep {@link #cellWidthProperty() cellWidth}.
+     * where cells normally keep {@link #cellWidthProperty() cellWidth}.
      *
      * <p>A cap smaller than {@code cellWidth} is degenerate
-     * ({@code max < min}) and is treated as {@code cellWidth}; cells are never
-     * shrunk below their configured width by the cap.
+     * ({@code max < min}) and is treated as {@code cellWidth}; the cap itself
+     * never shrinks cells below their configured width. A narrower parent may
+     * still compress cells to avoid horizontal overflow.
      *
      * @return the max-cell-width property
      */
@@ -523,12 +527,14 @@ public class RXTilePane extends Pane {
             };
 
     /**
-     * How a row uses its spare horizontal width: position the fixed-width block
+     * How a row uses its spare horizontal width: position the normal-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
      * grow the cells ({@link ItemsJustify#STRETCH}, capped by
      * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link ItemsJustify#START}.
+     * treated as {@link ItemsJustify#START}. When the available width is smaller
+     * than the configured row width, cells and gaps shrink before this spare-width
+     * distribution is applied.
      *
      * @return the items-justify property
      */
@@ -795,7 +801,13 @@ public class RXTilePane extends Pane {
         double startX;
         ItemsJustify mode = justifyOrDefault(getItemsJustify());
         double baseWidth = snapSizeX(cellWidthOrDefault());
-        if (mode == ItemsJustify.STRETCH) {
+        double preferredRowWidth = columns * baseWidth + (columns - 1) * hgapValue;
+        if (preferredRowWidth > contentWidth) {
+            double scale = preferredRowWidth <= 0.0 ? 0.0 : Math.max(0.0, contentWidth) / preferredRowWidth;
+            cellW = baseWidth * scale;
+            effectiveHgap = hgapValue * scale;
+            startX = 0.0;
+        } else if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (columns - 1) * hgapValue) / columns;
             double cap = maxCellWidthOrUnbounded();
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
@@ -811,31 +823,22 @@ public class RXTilePane extends Pane {
         } else {
             effectiveHgap = hgapValue;
             startX = 0.0;
-            double preferredRowWidth = columns * baseWidth + (columns - 1) * hgapValue;
-            if (preferredRowWidth > contentWidth) {
-                effectiveHgap = columns > 1
-                        ? Math.min(hgapValue, Math.max(0.0, contentWidth) / (columns - 1))
-                        : 0.0;
-                double availableForCells = Math.max(0.0, contentWidth - (columns - 1) * effectiveHgap);
-                cellW = columns == 0 ? 0.0 : availableForCells / columns;
-            } else {
-                cellW = baseWidth;
-                double slack = Math.max(0.0, contentWidth - preferredRowWidth);
-                switch (mode) {
-                    case CENTER -> startX = slack / 2.0;
-                    case END -> startX = slack;
-                    case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
-                    case SPACE_AROUND -> {
-                        effectiveHgap = hgapValue + slack / columns;
-                        startX = slack / (2.0 * columns);
-                    }
-                    case SPACE_EVENLY -> {
-                        effectiveHgap = hgapValue + slack / (columns + 1);
-                        startX = slack / (columns + 1);
-                    }
-                    default -> {
-                        // START: the block hugs the leading edge (defaults stand).
-                    }
+            cellW = baseWidth;
+            double slack = Math.max(0.0, contentWidth - preferredRowWidth);
+            switch (mode) {
+                case CENTER -> startX = slack / 2.0;
+                case END -> startX = slack;
+                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
+                case SPACE_AROUND -> {
+                    effectiveHgap = hgapValue + slack / columns;
+                    startX = slack / (2.0 * columns);
+                }
+                case SPACE_EVENLY -> {
+                    effectiveHgap = hgapValue + slack / (columns + 1);
+                    startX = slack / (columns + 1);
+                }
+                default -> {
+                    // START: the block hugs the leading edge (defaults stand).
                 }
             }
         }

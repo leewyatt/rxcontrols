@@ -378,6 +378,37 @@ public class RXTilePaneTest {
         });
     }
 
+    @Test
+    public void forcedColumnsShrinkCellsAndGapsWhenTooNarrow() {
+        RXTilePane pane = filledPane(3);
+        pane.setColumnCount(3);
+        pane.setCellWidth(100);
+        pane.setHgap(20);
+
+        layout(pane, 30, 120);
+
+        assertRowFits(pane, 3, 30.0);
+        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 0.0,
+                "gaps must not consume all available width");
+        assertTrue(firstGap(pane) < 20.0, "the configured gap shrinks with the cells");
+    }
+
+    @Test
+    public void stretchForcedColumnsShrinkCellsAndGapsWhenTooNarrow() {
+        RXTilePane pane = filledPane(3);
+        pane.setColumnCount(3);
+        pane.setCellWidth(100);
+        pane.setHgap(20);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
+
+        layout(pane, 30, 120);
+
+        assertRowFits(pane, 3, 30.0);
+        assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 0.0,
+                "STRETCH must not keep the full gap and collapse cells to zero");
+        assertTrue(firstGap(pane) < 20.0);
+    }
+
     // ==================== Helpers ====================
 
     private static boolean anyTranslated(RXTilePane pane) {
@@ -397,6 +428,14 @@ public class RXTilePaneTest {
         Node first = pane.getChildren().get(0);
         Node second = pane.getChildren().get(1);
         return second.getLayoutX() - (first.getLayoutX() + first.getLayoutBounds().getWidth());
+    }
+
+    private static void assertRowFits(RXTilePane pane, int count, double width) {
+        for (int i = 0; i < count; i++) {
+            Node child = pane.getChildren().get(i);
+            double right = child.getLayoutX() + child.getLayoutBounds().getWidth();
+            assertTrue(right <= width + EPSILON, "child " + i + " extends beyond the available width");
+        }
     }
 
     private static ScrollBar scrollBar(Parent root, Orientation orientation) {
