@@ -8,10 +8,14 @@ import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXTileSelectionMutationGuard;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
@@ -20,6 +24,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
+
+import java.util.List;
 
 /**
  * Skin for {@link RXTileView}. It assembles the self-built virtualizing
@@ -51,6 +59,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private static final double FALLBACK_CELL_WIDTH = 100.0;
     private static final double FALLBACK_CELL_HEIGHT = 100.0;
     private static final double FALLBACK_SECTION_HEADER_HEIGHT = 32.0;
+    private static final double MARQUEE_START_THRESHOLD = 4.0;
+    private static final double MARQUEE_AUTO_SCROLL_EDGE = 32.0;
+    private static final double MARQUEE_AUTO_SCROLL_MAX_STEP = 24.0;
+    private static final Duration MARQUEE_AUTO_SCROLL_INTERVAL = Duration.millis(16.0);
 
     // Key for the shift-range selection anchor, stashed in the control's property
     // map (mirrors ListView's CellBehaviorBase anchor) so it needs no new API.
@@ -58,6 +70,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private final RXTileViewport<T> viewport;
     private final StackPane placeholderRegion;
+    private final Rectangle selectionRectangle;
+    private final Timeline marqueeAutoScroll;
 
     private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
     private ObservableList<T> observedItems;
@@ -66,12 +80,21 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private MultipleSelectionModel<T> observedSelectionModel;
     private final ListChangeListener<Integer> selectionListener = change -> onSelectionChanged();
     private final ChangeListener<Number> selectedIndexListener = (obs, oldIndex, newIndex) -> syncFocusSelectionLead();
-    private final ChangeListener<SelectionMode> selectionModeListener = (obs, oldMode, newMode) -> resetAnchor();
+    private final ChangeListener<SelectionMode> selectionModeListener = (obs, oldMode, newMode) -> onSelectionModeChanged();
 
     private int preferredVerticalColumn = -1;
     private int preferredColumnDataRow = -1;
     private int preferredColumnActualColumn = -1;
     private int preferredColumnPlanColumns = -1;
+
+    private boolean marqueeArmed;
+    private boolean marqueeActive;
+    private double marqueePressX;
+    private double marqueePressY;
+    private double marqueeAnchorX;
+    private double marqueeAnchorContentY;
+    private double marqueeLastX;
+    private double marqueeLastY;
 
     /**
      * Creates the skin for the given tile view.
@@ -88,6 +111,17 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         placeholderRegion.getStyleClass().add("placeholder");
         placeholderRegion.setVisible(false);
         getChildren().add(placeholderRegion);
+
+        selectionRectangle = new Rectangle();
+        selectionRectangle.getStyleClass().add("selection-rectangle");
+        selectionRectangle.setManaged(false);
+        selectionRectangle.setMouseTransparent(true);
+        selectionRectangle.setVisible(false);
+        getChildren().add(selectionRectangle);
+
+        marqueeAutoScroll = new Timeline(new KeyFrame(MARQUEE_AUTO_SCROLL_INTERVAL,
+                event -> onMarqueeAutoScroll()));
+        marqueeAutoScroll.setCycleCount(Animation.INDEFINITE);
 
         focusModel = new RXTileFocusModel<>(control);
         viewport.setFocusModel(focusModel);
@@ -130,6 +164,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.selectionModelProperty(), this::onSelectionModelSwapped);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerEventHandler(viewport, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
+        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
         disposer.registerEventHandler(viewport, MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
         disposer.registerDisposeTask(this::detachItems);
     }
@@ -144,6 +180,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     // ==================== Items ====================
 
     private void onItemsListSwapped() {
+        finishMarquee();
         attachItems(getSkinnable().getItems());
         // The shift-range anchor referred to the previous list; drop it so a later
         // Shift+arrow / Shift+click starts a fresh range instead of a stale origin.
@@ -153,6 +190,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void onItemsContentChanged() {
+        finishMarquee();
         resetAnchor();
         updatePlaceholder();
         viewport.requestLayout();
@@ -334,6 +372,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         viewport.layout();
         updateVisibleRange();
         updateVisibleSection();
+        layoutMarqueeRectangle();
     }
 
     @Override
@@ -381,6 +420,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     @Override
     protected void disposeSkin() {
         // detachItems / detachSelectionModel run via the disposer (registerDisposeTask).
+        finishMarquee();
         viewport.dispose();
         placeholderRegion.getChildren().clear();
     }
@@ -405,6 +445,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void onSelectionModelSwapped() {
+        finishMarquee();
         resetAnchor();
         attachSelectionModel(getSkinnable().getSelectionModel());
         focusModel.moveItemsObserversToEnd();
@@ -421,6 +462,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             model.selectedIndexProperty().addListener(selectedIndexListener);
             model.selectionModeProperty().addListener(selectionModeListener);
         }
+    }
+
+    private void onSelectionModeChanged() {
+        finishMarquee();
+        resetAnchor();
     }
 
     private void detachSelectionModel() {
@@ -513,6 +559,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     // ==================== Keyboard ====================
 
     private void onKeyPressed(KeyEvent event) {
+        if (event.getCode() == KeyCode.ESCAPE && (marqueeArmed || marqueeActive)) {
+            finishMarquee();
+            event.consume();
+            return;
+        }
         RXTileView<T> control = getSkinnable();
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         int itemCount = itemCount();
@@ -671,9 +722,18 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         RXTileCell<T> cell = viewport.cellAt(event.getTarget());
-        if (sm == null || cell == null) {
+        if (sm == null) {
             return;
         }
+        if (cell == null) {
+            Point2D point = viewportPoint(event);
+            if (canStartMarquee(event, sm, point)) {
+                armMarquee(point);
+                event.consume();
+            }
+            return;
+        }
+        finishMarquee();
         int index = cell.getIndex();
         focusModel.focus(index);
         resetPreferredColumnToItem(index);
@@ -703,6 +763,45 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
     }
 
+    private void onMouseDragged(MouseEvent event) {
+        if (!marqueeArmed && !marqueeActive) {
+            return;
+        }
+        if (!event.isPrimaryButtonDown()) {
+            finishMarquee();
+            return;
+        }
+        Point2D point = viewportPoint(event);
+        marqueeLastX = point.getX();
+        marqueeLastY = point.getY();
+        if (!marqueeActive) {
+            double dx = marqueeLastX - marqueePressX;
+            double dy = marqueeLastY - marqueePressY;
+            if (Math.hypot(dx, dy) < MARQUEE_START_THRESHOLD) {
+                return;
+            }
+            marqueeActive = true;
+            selectionRectangle.setVisible(true);
+        }
+        updateMarqueeSelection();
+        updateMarqueeAutoScroll();
+        event.consume();
+    }
+
+    private void onMouseReleased(MouseEvent event) {
+        if (!marqueeArmed && !marqueeActive) {
+            return;
+        }
+        if (marqueeActive) {
+            Point2D point = viewportPoint(event);
+            marqueeLastX = point.getX();
+            marqueeLastY = point.getY();
+            updateMarqueeSelection();
+        }
+        finishMarquee();
+        event.consume();
+    }
+
     private void clearAndSelectRange(MultipleSelectionModel<T> selectionModel, int anchor, int target) {
         int end = target >= anchor ? target + 1 : target - 1;
         if (selectionModel instanceof RXTileSelectionModel<?> rxSelectionModel) {
@@ -715,6 +814,169 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
     }
 
+    private void clearAndSelectIndices(MultipleSelectionModel<T> selectionModel, List<Integer> indices, int lead) {
+        if (selectionModel instanceof RXTileSelectionModel<?> rxSelectionModel) {
+            @SuppressWarnings("unchecked")
+            RXTileSelectionModel<T> typedModel = (RXTileSelectionModel<T>) rxSelectionModel;
+            typedModel.clearAndSelectIndices(indices, lead);
+            return;
+        }
+        selectionModel.clearSelection();
+        if (indices.isEmpty()) {
+            return;
+        }
+        int[] rest = new int[indices.size() - 1];
+        for (int i = 1; i < indices.size(); i++) {
+            rest[i - 1] = indices.get(i);
+        }
+        selectionModel.selectIndices(indices.get(0), rest);
+        if (lead >= 0) {
+            selectionModel.select(lead);
+        }
+    }
+
+    private boolean canStartMarquee(MouseEvent event, MultipleSelectionModel<T> selectionModel, Point2D point) {
+        return selectionModel.getSelectionMode() == SelectionMode.MULTIPLE
+                && itemCount() > 0
+                && !hasModifier(event)
+                && viewport.isSelectableBlankPoint(point.getX(), point.getY());
+    }
+
+    private void armMarquee(Point2D point) {
+        finishMarquee();
+        marqueeArmed = true;
+        marqueePressX = point.getX();
+        marqueePressY = point.getY();
+        marqueeAnchorX = point.getX();
+        marqueeAnchorContentY = point.getY() + viewport.scrollOffset();
+        marqueeLastX = point.getX();
+        marqueeLastY = point.getY();
+    }
+
+    private void updateMarqueeSelection() {
+        MultipleSelectionModel<T> selectionModel = getSkinnable().getSelectionModel();
+        if (selectionModel == null) {
+            return;
+        }
+        double currentContentY = marqueeLastY + viewport.scrollOffset();
+        List<Integer> indices = viewport.itemIndicesIntersectingContentRect(
+                marqueeAnchorX, marqueeAnchorContentY, marqueeLastX, currentContentY);
+        int lead = marqueeLead(indices, currentContentY);
+        clearAndSelectIndices(selectionModel, indices, lead);
+        if (lead >= 0) {
+            focusModel.focus(lead);
+            resetPreferredColumnToItem(lead);
+            setAnchor(lead);
+        }
+        focusModel.syncSelectionLeadState();
+        layoutMarqueeRectangle();
+    }
+
+    private int marqueeLead(List<Integer> indices, double currentContentY) {
+        if (indices.isEmpty()) {
+            return -1;
+        }
+        int direct = viewport.itemIndexAtContentPoint(marqueeLastX, currentContentY);
+        if (indices.contains(direct)) {
+            return direct;
+        }
+        if (currentContentY > marqueeAnchorContentY
+                || (currentContentY == marqueeAnchorContentY && marqueeLastX >= marqueeAnchorX)) {
+            return indices.get(indices.size() - 1);
+        }
+        return indices.get(0);
+    }
+
+    private void updateMarqueeAutoScroll() {
+        double delta = marqueeAutoScrollDelta();
+        if (delta == 0.0) {
+            marqueeAutoScroll.stop();
+        } else if (marqueeAutoScroll.getStatus() != Animation.Status.RUNNING) {
+            marqueeAutoScroll.play();
+        }
+    }
+
+    private void onMarqueeAutoScroll() {
+        if (!marqueeActive) {
+            marqueeAutoScroll.stop();
+            return;
+        }
+        double delta = marqueeAutoScrollDelta();
+        if (delta == 0.0) {
+            marqueeAutoScroll.stop();
+            return;
+        }
+        if (!viewport.scrollByPixels(delta)) {
+            marqueeAutoScroll.stop();
+            return;
+        }
+        viewport.layout();
+        updateVisibleRange();
+        updateVisibleSection();
+        updateMarqueeSelection();
+    }
+
+    private double marqueeAutoScrollDelta() {
+        double height = viewport.getHeight();
+        if (height <= 0.0) {
+            return 0.0;
+        }
+        double distance;
+        if (marqueeLastY < MARQUEE_AUTO_SCROLL_EDGE) {
+            distance = MARQUEE_AUTO_SCROLL_EDGE - marqueeLastY;
+            return -marqueeAutoScrollStep(distance);
+        }
+        if (marqueeLastY > height - MARQUEE_AUTO_SCROLL_EDGE) {
+            distance = marqueeLastY - (height - MARQUEE_AUTO_SCROLL_EDGE);
+            return marqueeAutoScrollStep(distance);
+        }
+        return 0.0;
+    }
+
+    private static double marqueeAutoScrollStep(double distance) {
+        if (distance <= 0.0) {
+            return 0.0;
+        }
+        double ratio = Math.min(1.0, distance / MARQUEE_AUTO_SCROLL_EDGE);
+        return Math.max(1.0, ratio * MARQUEE_AUTO_SCROLL_MAX_STEP);
+    }
+
+    private void layoutMarqueeRectangle() {
+        if (!marqueeActive) {
+            selectionRectangle.setVisible(false);
+            return;
+        }
+        double anchorY = marqueeAnchorContentY - viewport.scrollOffset();
+        double minX = clamp(Math.min(marqueeAnchorX, marqueeLastX), 0.0, viewport.contentWidth());
+        double maxX = clamp(Math.max(marqueeAnchorX, marqueeLastX), 0.0, viewport.contentWidth());
+        double minY = clamp(Math.min(anchorY, marqueeLastY), 0.0, viewport.getHeight());
+        double maxY = clamp(Math.max(anchorY, marqueeLastY), 0.0, viewport.getHeight());
+        selectionRectangle.setX(viewport.getLayoutX() + minX);
+        selectionRectangle.setY(viewport.getLayoutY() + minY);
+        selectionRectangle.setWidth(maxX - minX);
+        selectionRectangle.setHeight(maxY - minY);
+        selectionRectangle.setVisible((maxX - minX) > 0.0 && (maxY - minY) > 0.0);
+    }
+
+    private void finishMarquee() {
+        marqueeAutoScroll.stop();
+        marqueeArmed = false;
+        marqueeActive = false;
+        selectionRectangle.setVisible(false);
+    }
+
+    private Point2D viewportPoint(MouseEvent event) {
+        return viewport.sceneToLocal(event.getSceneX(), event.getSceneY());
+    }
+
+    private static boolean hasModifier(MouseEvent event) {
+        return event.isShiftDown()
+                || event.isShortcutDown()
+                || event.isControlDown()
+                || event.isAltDown()
+                || event.isMetaDown();
+    }
+
     private static int clampIndex(int index, int itemCount) {
         if (index < 0) {
             return 0;
@@ -723,6 +985,16 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             return itemCount - 1;
         }
         return index;
+    }
+
+    private static double clamp(double value, double min, double max) {
+        if (value < min) {
+            return min;
+        }
+        if (value > max) {
+            return max;
+        }
+        return value;
     }
 
     // ==================== Shared helpers ====================

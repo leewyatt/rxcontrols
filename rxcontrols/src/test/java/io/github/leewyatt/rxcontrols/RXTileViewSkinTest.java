@@ -1,11 +1,13 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
@@ -1329,6 +1331,132 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void marqueeDragFromBlankGapSelectsIntersectingCellsWithoutIntermediateClear() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setColumnCount(3);
+            view.setCellWidth(40);
+            view.setCellHeight(30);
+            view.setHgap(10);
+            view.setVgap(10);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 160, 180);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            sm.select(0);
+            List<List<Integer>> snapshots = new ArrayList<>();
+            sm.getSelectedIndices().addListener((ListChangeListener<Integer>) change -> {
+                while (change.next()) {
+                    snapshots.add(List.copyOf(sm.getSelectedIndices()));
+                }
+            });
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 45, 5, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 88, 110, true);
+            fireMouse(viewport, MouseEvent.MOUSE_RELEASED, 88, 110, false);
+            pump(root);
+
+            assertEquals(List.of(1, 4, 7), sm.getSelectedIndices());
+            assertEquals(7, sm.getSelectedIndex());
+            assertEquals(List.of(List.of(1, 4, 7)), snapshots);
+            assertFalse(selectionRectangle(view).isVisible(), "marquee overlay is hidden after release");
+        });
+    }
+
+    @Test
+    public void marqueeDragSkipsSectionHeaders() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = new RXTileView<>(
+                    FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
+            view.setSectionKeyFactory(item -> item.substring(0, 1));
+            view.setColumnCount(2);
+            view.setCellWidth(40);
+            view.setCellHeight(20);
+            view.setHgap(10);
+            view.setVgap(0);
+            view.setSectionHeaderHeight(20);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 140, 120);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 45, 30, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 88, 75, true);
+            fireMouse(viewport, MouseEvent.MOUSE_RELEASED, 88, 75, false);
+            pump(root);
+
+            assertEquals(List.of(1, 3), view.getSelectionModel().getSelectedIndices(),
+                    "the header row between sections is not selectable");
+        });
+    }
+
+    @Test
+    public void marqueeDoesNotStartFromSectionHeader() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = new RXTileView<>(
+                    FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
+            view.setSectionKeyFactory(item -> item.substring(0, 1));
+            view.setColumnCount(2);
+            view.setCellWidth(40);
+            view.setCellHeight(20);
+            view.setHgap(10);
+            view.setSectionHeaderHeight(20);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            view.getSelectionModel().select(1);
+            StackPane root = host(view, 140, 120);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 10, 10, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 88, 75, true);
+            fireMouse(viewport, MouseEvent.MOUSE_RELEASED, 88, 75, false);
+            pump(root);
+
+            assertEquals(List.of(1), view.getSelectionModel().getSelectedIndices());
+        });
+    }
+
+    @Test
+    public void marqueeAutoScrollExtendsSelectionBeyondInitialViewport() throws Exception {
+        AtomicReference<RXTileView<String>> viewRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setColumnCount(3);
+            view.setCellWidth(40);
+            view.setCellHeight(30);
+            view.setHgap(10);
+            view.setVgap(0);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 160, 120);
+            pump(root);
+            viewRef.set(view);
+            rootRef.set(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 45, 5, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 88, 180, true);
+        });
+
+        waitForFx(220);
+
+        onFx(() -> {
+            RXTileView<String> view = viewRef.get();
+            StackPane root = rootRef.get();
+            pump(root);
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_RELEASED, 88, 180, false);
+            pump(root);
+
+            List<Integer> selected = view.getSelectionModel().getSelectedIndices();
+            assertTrue(view.getVisibleRange().firstIndex() > 0, "dragging beyond the viewport auto-scrolls");
+            assertTrue(selected.get(selected.size() - 1) > 10,
+                    "selection expands into rows that were not initially visible");
+        });
+    }
+
+    @Test
     public void shortcutArrowMovesFocusOnly() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
@@ -2196,6 +2324,14 @@ public class RXTileViewSkinTest {
         target.fireEvent(event);
     }
 
+    private static void fireMouse(Node target, EventType<MouseEvent> type, double x, double y,
+                                  boolean primaryDown) {
+        target.fireEvent(new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1,
+                false, false, false, false,
+                primaryDown, false, false, false, false, false,
+                new PickResult(target, x, y)));
+    }
+
     private static RXTileCell<?> cellByIndex(RXTileView<?> view, int index) {
         for (Node node : view.lookupAll(".rx-tile-cell")) {
             if (node instanceof RXTileCell<?> cell && cell.getIndex() == index && !cell.isEmpty()) {
@@ -2233,6 +2369,12 @@ public class RXTileViewSkinTest {
                 new PickResult(target, 0, 0)));
     }
 
+    private static Node selectionRectangle(RXTileView<?> view) {
+        Node rectangle = view.lookup(".selection-rectangle");
+        assertNotNull(rectangle);
+        return rectangle;
+    }
+
     private static boolean isSelected(RXTileCell<?> cell) {
         return cell != null && cell.getPseudoClassStates().stream()
                 .anyMatch(pc -> pc.getPseudoClassName().equals("selected"));
@@ -2264,6 +2406,18 @@ public class RXTileViewSkinTest {
         }
         if (error != null) {
             throw new AssertionError(error);
+        }
+    }
+
+    private static void waitForFx(double millis) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("JavaFX delay did not complete");
         }
     }
 }

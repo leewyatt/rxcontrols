@@ -1244,6 +1244,13 @@
     -fx-alignment: center;
 }
 
+.rx-tile-view > .selection-rectangle {
+    -fx-fill: -fx-selection-bar;
+    -fx-opacity: 0.22;
+    -fx-stroke: -fx-accent;
+    -fx-stroke-width: 1;
+}
+
 .rx-tile-section-header {
     -fx-padding: 0.333em 0.583em;
     -fx-font-weight: bold;

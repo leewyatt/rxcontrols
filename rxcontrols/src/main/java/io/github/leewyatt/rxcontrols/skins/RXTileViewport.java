@@ -159,12 +159,102 @@ final class RXTileViewport<T> extends Region {
         return plan == null ? -1 : plan.columns();
     }
 
+    double scrollOffset() {
+        return scrollY;
+    }
+
+    double contentWidth() {
+        return currentContentWidth();
+    }
+
     int verticalNeighborOf(int itemIndex, int direction, int preferredColumn) {
         RXTileRowPlan plan = rowPlan;
         if (plan == null) {
             return -1;
         }
         return plan.verticalNeighborOfItem(itemIndex, direction, preferredColumn);
+    }
+
+    boolean isSelectableBlankPoint(double viewportX, double viewportY) {
+        if (viewportX < 0.0 || viewportY < 0.0 || viewportY > getHeight()) {
+            return false;
+        }
+        double contentWidth = currentContentWidth();
+        if (viewportX > contentWidth || contentWidth <= 0.0) {
+            return false;
+        }
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0) {
+            return false;
+        }
+        double contentY = viewportY + scrollY;
+        if (itemIndexAtContentPoint(viewportX, contentY) >= 0) {
+            return false;
+        }
+        return !isHeaderAtContentY(contentY);
+    }
+
+    int itemIndexAtContentPoint(double x, double contentY) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0
+                || contentY < 0.0 || contentY >= plan.contentHeight()) {
+            return -1;
+        }
+        CellGeometry geometry = cellGeometry(currentContentWidth());
+        RXTileRowPlan.RowInfo info = plan.rowInfo(plan.firstVisualRowAt(contentY));
+        if (info.header() || contentY >= info.top() + geometry.cellHeight()) {
+            return -1;
+        }
+        int column = columnAtX(x, geometry, info.cellCount());
+        return column < 0 ? -1 : info.firstItemIndex() + column;
+    }
+
+    List<Integer> itemIndicesIntersectingContentRect(double x1, double y1, double x2, double y2) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0) {
+            return List.of();
+        }
+        double minX = Math.min(x1, x2);
+        double maxX = Math.max(x1, x2);
+        double minY = Math.min(y1, y2);
+        double maxY = Math.max(y1, y2);
+        if (maxX < 0.0 || maxY < 0.0 || minY >= plan.contentHeight()) {
+            return List.of();
+        }
+
+        CellGeometry geometry = cellGeometry(currentContentWidth());
+        if (geometry.cellWidth() <= 0.0 || geometry.cellHeight() <= 0.0) {
+            return List.of();
+        }
+
+        double clampedMinY = Math.max(0.0, minY);
+        double clampedMaxY = Math.min(maxY, Math.nextDown(plan.contentHeight()));
+        int firstRow = plan.firstVisualRowAt(clampedMinY);
+        int lastRow = plan.firstVisualRowAt(clampedMaxY);
+        if (firstRow < 0 || lastRow < firstRow) {
+            return List.of();
+        }
+
+        List<Integer> indices = new ArrayList<>();
+        double step = geometry.cellWidth() + geometry.hgap();
+        for (int visualRow = firstRow; visualRow <= lastRow; visualRow++) {
+            RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
+            if (info.header() || info.cellCount() <= 0) {
+                continue;
+            }
+            double cellTop = info.top();
+            double cellBottom = cellTop + geometry.cellHeight();
+            if (!rangesIntersect(minY, maxY, cellTop, cellBottom)) {
+                continue;
+            }
+            for (int column = 0; column < info.cellCount(); column++) {
+                double cellX = geometry.startX() + column * step;
+                if (rangesIntersect(minX, maxX, cellX, cellX + geometry.cellWidth())) {
+                    indices.add(info.firstItemIndex() + column);
+                }
+            }
+        }
+        return indices;
     }
 
     void setFocusModel(RXTileFocusModel<T> focusModel) {
@@ -390,6 +480,21 @@ final class RXTileViewport<T> extends Region {
         event.consume();
     }
 
+    boolean scrollByPixels(double deltaY) {
+        double maxScroll = cachedMaxScroll;
+        if (maxScroll <= 0.0 || deltaY == 0.0) {
+            return false;
+        }
+        double target = clamp(scrollY + deltaY, 0.0, maxScroll);
+        if (target == scrollY) {
+            return false;
+        }
+        scrollY = target;
+        explicitScrollPending = true;
+        requestLayout();
+        return true;
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -491,26 +596,11 @@ final class RXTileViewport<T> extends Region {
     }
 
     private void fillVisibleRows(RXTileRowPlan plan, int first, int last, double contentWidth) {
-        boolean stretch = control.isStretchCells();
-        double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
-        double cellHeight = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control));
-        int cols = plan.columns();
-
-        double cellWidth;
-        double startX;
-        if (stretch) {
-            cellWidth = snapSizeX(Math.max(0.0, (contentWidth - (cols - 1) * hgap) / cols));
-            startX = 0.0;
-        } else {
-            cellWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
-            double slack = Math.max(0.0, contentWidth - (cols * cellWidth + (cols - 1) * hgap));
-            // V1 positions the fixed-width block; SPACE_* / STRETCH fall back to START.
-            switch (RXTileViewSkin.justifyOrDefault(control.getItemsJustify())) {
-                case CENTER -> startX = slack / 2.0;
-                case END -> startX = slack;
-                default -> startX = 0.0;
-            }
-        }
+        CellGeometry geometry = cellGeometry(contentWidth);
+        double hgap = geometry.hgap();
+        double cellWidth = geometry.cellWidth();
+        double cellHeight = geometry.cellHeight();
+        double startX = geometry.startX();
 
         // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding,
         // so the same node can be re-found for its item and glide to the new slot.
@@ -580,6 +670,64 @@ final class RXTileViewport<T> extends Region {
         visibleLastIndex = lastItem;
         visibleFirstRow = firstDataRow;
         visibleLastRow = lastDataRow;
+    }
+
+    private CellGeometry cellGeometry(double contentWidth) {
+        boolean stretch = control.isStretchCells();
+        double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
+        double cellHeight = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control));
+        int cols = rowPlan == null ? 1 : rowPlan.columns();
+
+        double cellWidth;
+        double startX;
+        if (stretch) {
+            cellWidth = snapSizeX(Math.max(0.0, (contentWidth - (cols - 1) * hgap) / cols));
+            startX = 0.0;
+        } else {
+            cellWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
+            double slack = Math.max(0.0, contentWidth - (cols * cellWidth + (cols - 1) * hgap));
+            // V1 positions the fixed-width block; SPACE_* / STRETCH fall back to START.
+            switch (RXTileViewSkin.justifyOrDefault(control.getItemsJustify())) {
+                case CENTER -> startX = slack / 2.0;
+                case END -> startX = slack;
+                default -> startX = 0.0;
+            }
+        }
+        return new CellGeometry(cellWidth, cellHeight, hgap, startX);
+    }
+
+    private double currentContentWidth() {
+        double barBreadth = cachedMaxScroll > 0.0 ? scrollBarBreadth() : 0.0;
+        return Math.max(0.0, getWidth() - barBreadth);
+    }
+
+    private boolean isHeaderAtContentY(double contentY) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0
+                || contentY < 0.0 || contentY >= plan.contentHeight()) {
+            return false;
+        }
+        return plan.rowInfo(plan.firstVisualRowAt(contentY)).header();
+    }
+
+    private static int columnAtX(double x, CellGeometry geometry, int cellCount) {
+        double step = geometry.cellWidth() + geometry.hgap();
+        if (x < geometry.startX() || step <= 0.0) {
+            return -1;
+        }
+        int column = (int) Math.floor((x - geometry.startX()) / step);
+        if (column < 0 || column >= cellCount) {
+            return -1;
+        }
+        double cellX = geometry.startX() + column * step;
+        return x <= cellX + geometry.cellWidth() ? column : -1;
+    }
+
+    private static boolean rangesIntersect(double aMin, double aMax, double bMin, double bMax) {
+        return aMax >= bMin && aMin <= bMax;
+    }
+
+    private record CellGeometry(double cellWidth, double cellHeight, double hgap, double startX) {
     }
 
     private void clearVisibleMetrics() {

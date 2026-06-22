@@ -156,6 +156,25 @@ public class RXTileSelectionModelTest {
     }
 
     @Test
+    public void clearAndSelectIndicesEmitsOneChangeWithoutIntermediateClear() {
+        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+        sm.select(0);
+        List<List<Integer>> snapshots = new ArrayList<>();
+        sm.getSelectedIndices().addListener((ListChangeListener<Integer>) change -> {
+            while (change.next()) {
+                snapshots.add(List.copyOf(sm.getSelectedIndices()));
+            }
+        });
+
+        sm.clearAndSelectIndices(List.of(7, 1, 4), 4);
+
+        assertEquals(List.of(List.of(1, 4, 7)), snapshots);
+        assertEquals(List.of(1, 4, 7), sm.getSelectedIndices());
+        assertEquals(4, sm.getSelectedIndex(), "the explicit selected lead is preserved");
+    }
+
+    @Test
     public void clearSelectionByIndexAndAll() {
         MultipleSelectionModel<String> sm = view(10).getSelectionModel();
         sm.setSelectionMode(SelectionMode.MULTIPLE);

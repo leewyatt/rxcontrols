@@ -11,6 +11,7 @@ import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
@@ -25,7 +26,8 @@ import java.util.TreeSet;
  * read-only {@link #getSelectedIndices()} view — which fires precise list changes
  * for free (single-item add/remove for {@code select}/{@code clearSelection},
  * one coalesced replace for {@code clearAndSelect}, {@link #clearAndSelectRange(int, int)},
- * {@code selectIndices} and {@code selectAll}). {@link #getSelectedItems()} is derived from the indices.
+ * {@link #clearAndSelectIndices(Collection, int)}, {@code selectIndices} and
+ * {@code selectAll}). {@link #getSelectedItems()} is derived from the indices.
  * The model maintains the selection as the items list mutates (add/remove shift,
  * permutation re-map, removal drop) and re-resolves the lead on a list swap, all
  * independently of any skin so a headless control selects correctly.
@@ -253,16 +255,44 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
             return;
         }
         int lead = ordered.get(ordered.size() - 1);
-        if (getSelectionMode() == SelectionMode.SINGLE) {
-            clearAndSelect(lead);
+        clearAndSelectIndices(ordered, lead);
+    }
+
+    /**
+     * Clears the current selection and selects the supplied indices in one
+     * coalesced list change.
+     *
+     * <p>The selected indices are stored sorted and distinct. If {@code lead} is
+     * included in the valid indices, it becomes the selected index / item;
+     * otherwise the highest valid supplied index is used as the lead.
+     *
+     * @param indices the indices to select
+     * @param lead    the preferred selection lead
+     */
+    public void clearAndSelectIndices(Collection<Integer> indices, int lead) {
+        int itemCount = getItemCount();
+        TreeSet<Integer> sorted = new TreeSet<>();
+        if (indices != null) {
+            for (Integer index : indices) {
+                if (index != null && index >= 0 && index < itemCount) {
+                    sorted.add(index);
+                }
+            }
+        }
+        if (sorted.isEmpty()) {
+            clearSelection();
             return;
         }
-        List<Integer> sorted = new ArrayList<>(ordered);
-        Collections.sort(sorted);
-        setSelectedIndex(lead);
-        setSelectedItem(getModelItem(lead));
-        if (!selectedIndicesBacking.equals(sorted)) {
-            selectedIndicesBacking.setAll(sorted);
+        int resolvedLead = sorted.contains(lead) ? lead : sorted.last();
+        if (getSelectionMode() == SelectionMode.SINGLE) {
+            clearAndSelect(resolvedLead);
+            return;
+        }
+        List<Integer> selected = new ArrayList<>(sorted);
+        setSelectedIndex(resolvedLead);
+        setSelectedItem(getModelItem(resolvedLead));
+        if (!selectedIndicesBacking.equals(selected)) {
+            selectedIndicesBacking.setAll(selected);
         }
     }
 
