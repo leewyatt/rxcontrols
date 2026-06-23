@@ -22,6 +22,7 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
@@ -62,8 +63,11 @@ import java.util.Set;
  * height, mirroring JavaFX {@code TilePane}'s defensive fallback. A resizable
  * child fills its tile (bounded by its own max size); when a child cannot fill
  * its tile, {@link #tileAlignmentProperty() tileAlignment} positions it inside
- * the slot. When {@link #animatedProperty() animated} is on, existing children
- * glide to their new positions after relayout.
+ * the slot. Per-child {@link #setAlignment(Node, Pos) alignment} and
+ * {@link #setMargin(Node, Insets) margin} constraints override the pane default
+ * in the same style as JavaFX {@code TilePane}. When
+ * {@link #animatedProperty() animated} is on, existing children glide to their
+ * new positions after relayout.
  */
 public class RXTilePane extends Pane {
 
@@ -88,6 +92,85 @@ public class RXTilePane extends Pane {
     private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-tile-pane";
+    private static final String MARGIN_CONSTRAINT = "rx-tile-pane-margin";
+    private static final String ALIGNMENT_CONSTRAINT = "rx-tile-pane-alignment";
+
+    // ==================== Child Constraints ====================
+
+    /**
+     * Sets the tile alignment constraint for a child. A non-null value overrides
+     * this pane's {@link #tileAlignmentProperty() tileAlignment} for that child.
+     * Passing {@code null} removes the constraint.
+     *
+     * @param node  the child node
+     * @param value the child tile alignment, or {@code null} to remove it
+     */
+    public static void setAlignment(Node node, Pos value) {
+        setConstraint(node, ALIGNMENT_CONSTRAINT, value);
+    }
+
+    /**
+     * Returns the tile alignment constraint for a child.
+     *
+     * @param node the child node
+     * @return the child tile alignment, or {@code null} if none is set
+     */
+    public static Pos getAlignment(Node node) {
+        return (Pos) getConstraint(node, ALIGNMENT_CONSTRAINT);
+    }
+
+    /**
+     * Sets the margin constraint for a child. Passing {@code null} removes the
+     * constraint. Margins participate in computed tile size and are subtracted
+     * from the child layout area, matching JavaFX {@code TilePane}.
+     *
+     * @param node  the child node
+     * @param value the margin around the child, or {@code null} to remove it
+     */
+    public static void setMargin(Node node, Insets value) {
+        setConstraint(node, MARGIN_CONSTRAINT, value);
+    }
+
+    /**
+     * Returns the margin constraint for a child.
+     *
+     * @param node the child node
+     * @return the child margin, or {@code null} if none is set
+     */
+    public static Insets getMargin(Node node) {
+        return (Insets) getConstraint(node, MARGIN_CONSTRAINT);
+    }
+
+    /**
+     * Removes all RXTilePane constraints from the child node.
+     *
+     * @param child the child node
+     */
+    public static void clearConstraints(Node child) {
+        setAlignment(child, null);
+        setMargin(child, null);
+    }
+
+    private static void setConstraint(Node node, String key, Object value) {
+        if (value == null) {
+            node.getProperties().remove(key);
+        } else {
+            node.getProperties().put(key, value);
+        }
+        if (node.getParent() != null) {
+            node.getParent().requestLayout();
+        }
+    }
+
+    private static Object getConstraint(Node node, String key) {
+        if (node.hasProperties()) {
+            Object value = node.getProperties().get(key);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
 
     // ==================== Animation state ====================
 
@@ -952,8 +1035,9 @@ public class RXTilePane extends Pane {
             // entering child has no meaningful previous position, so it snaps in.
             double oldVisualX = child.getLayoutX() + child.getTranslateX();
             double oldVisualY = child.getLayoutY() + child.getTranslateY();
-            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0,
-                    tileAlignmentValue.getHpos(), tileAlignmentValue.getVpos());
+            Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
+            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0, getMargin(child),
+                    childAlignment.getHpos(), childAlignment.getVpos());
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
             if (Math.abs(fromDx) >= RelayoutAnimator.MOVE_EPSILON
@@ -1059,27 +1143,43 @@ public class RXTilePane extends Pane {
     }
 
     private double computeChildPrefAreaWidth(Node child, double height, boolean fillHeight) {
+        Insets margin = marginOrEmpty(child);
+        double marginWidth = snapSpaceX(margin.getLeft()) + snapSpaceX(margin.getRight());
+        double marginHeight = snapSpaceY(margin.getTop()) + snapSpaceY(margin.getBottom());
         double alt = -1.0;
         if (height != -1.0 && child.isResizable() && child.getContentBias() == Orientation.VERTICAL) {
+            double childHeight = Math.max(0.0, height - marginHeight);
             if (fillHeight) {
-                alt = snapSizeY(boundedSize(child.minHeight(-1.0), height, child.maxHeight(-1.0)));
+                alt = snapSizeY(boundedSize(child.minHeight(-1.0), childHeight, child.maxHeight(-1.0)));
             } else {
                 alt = snapSizeY(boundedSize(
                         child.minHeight(-1.0),
                         child.prefHeight(-1.0),
-                        Math.min(child.maxHeight(-1.0), height)));
+                        Math.min(child.maxHeight(-1.0), childHeight)));
             }
         }
-        return snapSizeX(boundedSize(child.minWidth(alt), child.prefWidth(alt), child.maxWidth(alt)));
+        double childWidth = boundedSize(child.minWidth(alt), child.prefWidth(alt), child.maxWidth(alt));
+        return snapSizeX(childWidth) + marginWidth;
     }
 
     private double computeChildPrefAreaHeight(Node child, double width) {
+        Insets margin = marginOrEmpty(child);
+        double marginWidth = snapSpaceX(margin.getLeft()) + snapSpaceX(margin.getRight());
+        double marginHeight = snapSpaceY(margin.getTop()) + snapSpaceY(margin.getBottom());
         double alt = -1.0;
         if (child.isResizable() && child.getContentBias() == Orientation.HORIZONTAL) {
-            double targetWidth = width == -1.0 ? child.prefWidth(-1.0) : width;
+            double targetWidth = width == -1.0
+                    ? child.prefWidth(-1.0)
+                    : Math.max(0.0, width - marginWidth);
             alt = snapSizeX(boundedSize(child.minWidth(-1.0), targetWidth, child.maxWidth(-1.0)));
         }
-        return snapSizeY(boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt)));
+        double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt));
+        return snapSizeY(childHeight) + marginHeight;
+    }
+
+    private static Insets marginOrEmpty(Node child) {
+        Insets margin = getMargin(child);
+        return margin == null ? Insets.EMPTY : margin;
     }
 
     private static double boundedSize(double min, double value, double max) {
@@ -1133,6 +1233,11 @@ public class RXTilePane extends Pane {
             case BASELINE_RIGHT -> Pos.CENTER_RIGHT;
             default -> value;
         };
+    }
+
+    private static Pos childTileAlignment(Node child, Pos defaultAlignment) {
+        Pos childAlignment = getAlignment(child);
+        return childAlignment == null ? defaultAlignment : tileAlignmentOrDefault(childAlignment);
     }
 
     // ==================== CSS ====================

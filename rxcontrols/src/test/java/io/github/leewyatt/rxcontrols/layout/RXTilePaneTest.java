@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -385,6 +387,94 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void childAlignmentConstraintOverridesPaneTileAlignment() {
+        RXTilePane pane = new RXTilePane();
+        Rectangle rect = new Rectangle(30, 20);
+        pane.getChildren().add(rect);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        RXTilePane.setAlignment(rect, Pos.BOTTOM_RIGHT);
+
+        layout(pane, 120, 100);
+
+        assertEquals(70.0, rect.getLayoutX(), EPSILON,
+                "child alignment overrides the pane default horizontally");
+        assertEquals(60.0, rect.getLayoutY(), EPSILON,
+                "child alignment overrides the pane default vertically");
+    }
+
+    @Test
+    public void childMarginConstraintShrinksChildLayoutArea() {
+        RXTilePane pane = new RXTilePane();
+        Region child = card(20, 20);
+        pane.getChildren().add(child);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+        RXTilePane.setMargin(child, new Insets(5, 20, 15, 30));
+
+        layout(pane, 120, 100);
+
+        assertEquals(30.0, child.getLayoutX(), EPSILON,
+                "left margin shifts the child layout area");
+        assertEquals(5.0, child.getLayoutY(), EPSILON,
+                "top margin shifts the child layout area");
+        assertEquals(50.0, child.getLayoutBounds().getWidth(), EPSILON,
+                "left and right margins reduce the filled child width");
+        assertEquals(60.0, child.getLayoutBounds().getHeight(), EPSILON,
+                "top and bottom margins reduce the filled child height");
+    }
+
+    @Test
+    public void computedTileSizeIncludesChildMarginConstraint() {
+        RXTilePane pane = new RXTilePane();
+        Region child = card(80, 40);
+        pane.getChildren().add(child);
+        pane.setHgap(0);
+        pane.setVgap(0);
+        RXTilePane.setMargin(child, new Insets(5, 10, 15, 20));
+
+        assertEquals(110.0, pane.minWidth(-1), EPSILON,
+                "computed prefTileWidth includes left and right child margins");
+        assertEquals(60.0, pane.prefHeight(200), EPSILON,
+                "computed prefTileHeight includes top and bottom child margins");
+    }
+
+    @Test
+    public void clearConstraintsRemovesChildAlignmentAndMargin() {
+        RXTilePane pane = new RXTilePane();
+        Rectangle rect = new Rectangle(30, 20);
+        pane.getChildren().add(rect);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        RXTilePane.setAlignment(rect, Pos.BOTTOM_RIGHT);
+        RXTilePane.setMargin(rect, new Insets(5));
+
+        RXTilePane.clearConstraints(rect);
+        layout(pane, 120, 100);
+
+        assertNull(RXTilePane.getAlignment(rect));
+        assertNull(RXTilePane.getMargin(rect));
+        assertEquals(0.0, rect.getLayoutX(), EPSILON,
+                "after clearing constraints, pane tileAlignment is used again");
+        assertEquals(0.0, rect.getLayoutY(), EPSILON);
+    }
+
+    @Test
+    public void settingChildConstraintRequestsParentLayout() {
+        LayoutRequestProbe pane = new LayoutRequestProbe();
+        Region child = card();
+        pane.getChildren().add(child);
+        pane.layoutRequests = 0;
+
+        RXTilePane.setMargin(child, new Insets(4));
+
+        assertTrue(pane.layoutRequests > 0,
+                "setting a child constraint requests layout on the parent");
+    }
+
+    @Test
     public void prefTileSizeRejectsInvalidAndGapIsLenient() {
         RXTilePane pane = new RXTilePane();
         assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(0));
@@ -628,6 +718,17 @@ public class RXTilePaneTest {
             pane.getChildren().add(card());
         }
         return pane;
+    }
+
+    private static final class LayoutRequestProbe extends RXTilePane {
+
+        private int layoutRequests;
+
+        @Override
+        public void requestLayout() {
+            layoutRequests++;
+            super.requestLayout();
+        }
     }
 
     private static void layout(Region region, double width, double height) {
