@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
-import io.github.leewyatt.rxcontrols.RXDialogLayout;
+import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 public class RXDialogShowcase extends RXShowcaseApplication {
 
     private RXDialog<ButtonType> dialog;
-    private RXDialogLayout layout;
+    private RXDialogContent layout;
     private final StringProperty lastEvent = new SimpleStringProperty("—");
     private final StringProperty lastResult = new SimpleStringProperty("—");
 
@@ -56,7 +56,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         dialog = new RXDialog<>();
-        layout = new RXDialogLayout("Save changes?",
+        layout = new RXDialogContent("Save changes?",
                 "Your changes will be lost if you don't save them.");
         dialog.setContent(layout);
         dialog.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);

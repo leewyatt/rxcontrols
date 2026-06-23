@@ -294,13 +294,13 @@ public class RXDialogTest {
     public void awareContentReceivesDialogInjection() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
-            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
             assertNull(layout.getDialog(), "unhosted content has no dialog");
 
             dialog.setContent(layout);
             assertSame(dialog, layout.getDialog(), "content is injected with its hosting dialog");
 
-            RXDialogLayout other = new RXDialogLayout("Other", "Body");
+            RXDialogContent other = new RXDialogContent("Other", "Body");
             dialog.setContent(other);
             assertNull(layout.getDialog(), "the replaced content's dialog ref is cleared");
             assertSame(dialog, other.getDialog(), "the new content is injected");
@@ -320,10 +320,10 @@ public class RXDialogTest {
             dialog.setContent(plain);
             assertSame(plain, dialog.getContent(), "a plain node is accepted as content");
 
-            // A bare RXDialogContent (not an RXDialogLayout) gets the general injection.
-            RXDialogContent aware = new RXDialogContent();
+            // A bare RXDialogContentBase (not an RXDialogContent) gets the general injection.
+            RXDialogContentBase aware = new RXDialogContentBase();
             dialog.setContent(aware);
-            assertSame(dialog, aware.getDialog(), "the general RXDialogContent channel is injected");
+            assertSame(dialog, aware.getDialog(), "the general RXDialogContentBase channel is injected");
 
             dialog.setContent(null);
             assertNull(aware.getDialog(), "clearing the content clears the general injection");
@@ -335,7 +335,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> first = new RXDialog<>();
             RXDialog<ButtonType> second = new RXDialog<>();
-            RXDialogContent content = new RXDialogContent();
+            RXDialogContentBase content = new RXDialogContentBase();
 
             first.setContent(content);
             second.setContent(content); // move the same node to a second dialog
@@ -354,7 +354,7 @@ public class RXDialogTest {
     public void dialogPropertyFiresOnAttachAndDetach() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
-            RXDialogContent content = new RXDialogContent();
+            RXDialogContentBase content = new RXDialogContentBase();
             AtomicInteger fires = new AtomicInteger();
             AtomicReference<RXDialog<?>> last = new AtomicReference<>();
             content.dialogProperty().addListener((obs, old, now) -> {
@@ -377,7 +377,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             List<RXDialogEvent> events = recordEvents(dialog);
-            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
             layout.setShowClose(true);
             dialog.setContent(layout);
 

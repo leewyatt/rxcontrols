@@ -13,9 +13,9 @@
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-layout, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
-.rx-formatted-number-field, .rx-grid-view, .rx-highlight-text-view,
+.rx-formatted-number-field, .rx-highlight-text-view,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
 .rx-masonry-pane, .rx-material-text-field, .rx-material-password-field,
@@ -1018,51 +1018,51 @@
 
 /*******************************************************************************
  *                                                                             *
- * RXDialogLayout                                                              *
+ * RXDialogContent                                                              *
  *                                                                             *
  ******************************************************************************/
 
-.rx-dialog-layout > .container > .heading {
+.rx-dialog-content > .container > .heading {
     -fx-padding: 20 24 0 24;
 }
 
-.rx-dialog-layout > .container > .heading > .close-button {
+.rx-dialog-content > .container > .heading > .close-button {
     -fx-background-color: transparent;
     -fx-background-radius: 999;
     -fx-padding: 6;
     -fx-cursor: hand;
 }
 
-.rx-dialog-layout > .container > .heading > .close-button:hover {
+.rx-dialog-content > .container > .heading > .close-button:hover {
     -fx-background-color: -rx-surface-variant;
 }
 
-.rx-dialog-layout > .container > .heading > .close-button > .icon {
+.rx-dialog-content > .container > .heading > .close-button > .icon {
     -fx-pref-width: 12;
     -fx-pref-height: 12;
     -fx-background-color: -rx-on-surface-secondary;
     -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
 }
 
-.rx-dialog-layout > .container > .heading > .title {
+.rx-dialog-content > .container > .heading > .title {
     -fx-font-size: 1.15em;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
 }
 
-.rx-dialog-layout > .container > .body {
+.rx-dialog-content > .container > .body {
     -fx-padding: 16 24 20 24;
 }
 
-.rx-dialog-layout > .container > .body > .content-text {
+.rx-dialog-content > .container > .body > .content-text {
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
-.rx-dialog-layout > .container > .details-toggle {
+.rx-dialog-content > .container > .details-toggle {
     -fx-padding: 0 24 8 24;
 }
 
-.rx-dialog-layout > .container > .expandable-content {
+.rx-dialog-content > .container > .expandable-content {
     -fx-padding: 0 24 16 24;
 }
 
@@ -1298,19 +1298,6 @@
 
 .rx-segmented-control > .segment:disabled .label {
     -fx-text-fill: -rx-on-surface-disabled;
-}
-
-/*******************************************************************************
- *                                                                             *
- * RXGridView                                                                  *
- *                                                                             *
- ******************************************************************************/
-.rx-grid-view > .virtual-flow {
-    -fx-background-color: transparent;
-}
-
-.rx-grid-view > .placeholder {
-    -fx-alignment: center;
 }
 
 /*******************************************************************************

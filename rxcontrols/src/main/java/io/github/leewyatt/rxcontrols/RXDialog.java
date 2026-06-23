@@ -51,10 +51,10 @@ import java.util.function.Consumer;
  * {@link #showingProperty() showing}, driven by {@code show*} / {@code close*}.
  *
  * <p>The card hosts the {@link #contentProperty() content} node (often an
- * {@link RXDialogLayout}, or any bare {@code Node}) above an action bar the skin
+ * {@link RXDialogContent}, or any bare {@code Node}) above an action bar the skin
  * builds from {@link #getButtonTypes() buttonTypes}. Clicking an action button,
  * pressing ESC, clicking the scrim, or clicking a content-provided close (X) button
- * (e.g. {@link RXDialogLayout#showCloseProperty() RXDialogLayout's}) all flow
+ * (e.g. {@link RXDialogContent#showCloseProperty() RXDialogContent's}) all flow
  * through one vetoable gate: a {@code CLOSE_REQUEST}
  * {@link RXDialogEvent} fires first (consume it to keep the dialog open); if not
  * vetoed, the {@link #resultProperty() result} is computed from the candidate
@@ -64,7 +64,7 @@ import java.util.function.Consumer;
  *
  * <pre>{@code
  * RXDialog<ButtonType> dialog = new RXDialog<>();
- * dialog.setContent(new RXDialogLayout("Delete file?", "This cannot be undone."));
+ * dialog.setContent(new RXDialogContent("Delete file?", "This cannot be undone."));
  * dialog.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
  * dialog.setOnResult(result -> { if (result == ButtonType.OK) delete(); });
  * dialog.show(anyNodeInTheScene);
@@ -162,7 +162,7 @@ public class RXDialog<R> extends Control {
         @Override
         protected void invalidated() {
             // Inject this dialog into RXDialogAware content (clearing the previous one) so the
-            // content — e.g. an RXDialogLayout header close button — can drive the dialog.
+            // content — e.g. an RXDialogContent header close button — can drive the dialog.
             // The tracked field is updated before each setDialog notification so a re-entrant
             // setContent (from a dialogProperty listener) always observes a consistent state.
             RXDialogAware previous = awareContent;
@@ -192,11 +192,11 @@ public class RXDialog<R> extends Control {
     }
 
     /**
-     * The card's main content node — an {@link RXDialogLayout} or any bare
+     * The card's main content node — an {@link RXDialogContent} or any bare
      * {@code Node}. The skin renders it above the action bar built from
      * {@link #getButtonTypes() buttonTypes}. May be {@code null} for an empty card.
      *
-     * <p>If the content implements {@link RXDialogAware} (as {@link RXDialogLayout}
+     * <p>If the content implements {@link RXDialogAware} (as {@link RXDialogContent}
      * does), this dialog injects itself into it while it is the content, so the
      * content can drive the dialog.</p>
      *

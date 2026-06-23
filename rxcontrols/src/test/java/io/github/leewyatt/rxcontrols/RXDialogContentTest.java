@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless tests for {@link RXDialogLayout}: defaults, the node-vs-text slot
+ * Headless tests for {@link RXDialogContent}: defaults, the node-vs-text slot
  * selection for header / content, and the expandable toggle. Verified through the
  * placed nodes' parents (a node mounted into a slot has a non-null parent), which
  * needs no scene or CSS pass.
  */
-public class RXDialogLayoutTest {
+public class RXDialogContentTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -50,7 +50,7 @@ public class RXDialogLayoutTest {
     @Test
     public void defaultsAreEmpty() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout();
+            RXDialogContent layout = new RXDialogContent();
             assertFalse(layout.isExpanded());
             assertNull(layout.getHeaderText());
             assertNull(layout.getContentText());
@@ -63,7 +63,7 @@ public class RXDialogLayoutTest {
     @Test
     public void convenienceConstructorSetsText() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
             assertEquals("Title", layout.getHeaderText());
             assertEquals("Body", layout.getContentText());
         });
@@ -72,7 +72,7 @@ public class RXDialogLayoutTest {
     @Test
     public void contentNodeIsMountedInBody() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout();
+            RXDialogContent layout = new RXDialogContent();
             Region content = new Region();
             layout.setContent(content);
             assertNotNull(content.getParent(), "content node should be mounted in the body");
@@ -82,7 +82,7 @@ public class RXDialogLayoutTest {
     @Test
     public void headerNodeOverridesHeaderText() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout();
+            RXDialogContent layout = new RXDialogContent();
             layout.setHeaderText("ignored when a header node is set");
             Label header = new Label("custom");
             layout.setHeader(header);
@@ -93,7 +93,7 @@ public class RXDialogLayoutTest {
     @Test
     public void expandableContentMountsOnlyWhenExpanded() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout();
+            RXDialogContent layout = new RXDialogContent();
             Region details = new Region();
             layout.setExpandableContent(details);
             assertNull(details.getParent(), "collapsed details are not mounted");
@@ -108,11 +108,11 @@ public class RXDialogLayoutTest {
 
     @Test
     public void headingAndBodyPaddingResolveThroughContainer() throws Exception {
-        // Guards selector liveness: the structural rules target .rx-dialog-layout >
+        // Guards selector liveness: the structural rules target .rx-dialog-content >
         // .container > .heading / .body, so an unclassed intermediate container (or a
         // wrong combinator) would silently leave every sub-structure unstyled.
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
             StackPane root = new StackPane(layout);
             new Scene(root, 320, 240);
             root.applyCss();
@@ -135,7 +135,7 @@ public class RXDialogLayoutTest {
         // an unconstrained width and the body is clipped. The override propagates the inner
         // column's bias, so the parent threads the laid-out width into computePrefHeight.
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout("Title",
+            RXDialogContent layout = new RXDialogContent("Title",
                     "A fairly long body paragraph that wraps across several lines once its width is constrained.");
             assertEquals(Orientation.HORIZONTAL, layout.getContentBias(),
                     "wrapped contentText should make the layout HORIZONTAL-biased");
@@ -145,7 +145,7 @@ public class RXDialogLayoutTest {
     @Test
     public void showCloseAddsPinnedCloseButtonToHeading() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout();
+            RXDialogContent layout = new RXDialogContent();
             assertNull(layout.lookup(".close-button"), "no close button by default");
 
             layout.setShowClose(true);
@@ -163,7 +163,7 @@ public class RXDialogLayoutTest {
     @Test
     public void closeButtonStyleResolvesAndStandaloneClickIsNoOp() throws Exception {
         runOnFx(() -> {
-            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
             layout.setShowClose(true);
             StackPane root = new StackPane(layout);
             new Scene(root, 320, 240);

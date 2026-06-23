@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
-import io.github.leewyatt.rxcontrols.RXDialogLayout;
+import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 
 import javafx.application.Application;
@@ -23,7 +23,7 @@ import javafx.stage.Stage;
 /**
  * Compact demo for {@link RXDialog}: two realistic, in-scene modal dialogs shown
  * over the page. "Delete file…" opens a centered confirmation built from an
- * {@link RXDialogLayout} with {@code Cancel} / {@code Delete} actions and reports
+ * {@link RXDialogContent} with {@code Cancel} / {@code Delete} actions and reports
  * the choice through {@code onResult}; "Show report…" opens a sliding dialog with
  * a close (X) button and an expandable "details" region.
  *
@@ -61,7 +61,7 @@ public class RXDialogDemo extends Application {
 
     private void showConfirmation(Node owner) {
         RXDialog<ButtonType> dialog = new RXDialog<>();
-        dialog.setContent(new RXDialogLayout("Delete file?",
+        dialog.setContent(new RXDialogContent("Delete file?",
                 "“report.pdf” will be permanently removed. This cannot be undone."));
         ButtonType delete = new ButtonType("Delete", ButtonData.OK_DONE);
         dialog.getButtonTypes().setAll(ButtonType.CANCEL, delete);
@@ -79,7 +79,7 @@ public class RXDialogDemo extends Application {
         details.setEditable(false);
         details.setPrefRowCount(4);
 
-        RXDialogLayout layout = new RXDialogLayout("Build succeeded", "All 1254 tests passed.");
+        RXDialogContent layout = new RXDialogContent("Build succeeded", "All 1254 tests passed.");
         layout.setExpandableContent(details);
         layout.setShowClose(true);
 
