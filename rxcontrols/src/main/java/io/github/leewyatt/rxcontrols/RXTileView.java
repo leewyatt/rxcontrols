@@ -67,11 +67,12 @@ import java.util.Objects;
  * <p>Within a row, cells target {@code cellWidth}, separated by
  * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}; spare
  * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}.
- * If the viewport is narrower than the target row width, cells and gaps shrink
- * for that layout pass so the row stays inside the content area. The default
- * minimum width only keeps a tiny non-zero content viewport beside the internal
- * scroll bar; applications that require one full target-width column to remain
- * visible can set an explicit minimum width on the control.
+ * As the viewport narrows the column count drops before any cell shrinks; only
+ * when even a single column is wider than the content area does that lone cell
+ * shrink to fit for that layout pass, with the configured gap preserved. The
+ * default minimum width only keeps a tiny non-zero content viewport beside the
+ * internal scroll bar; applications that require one full target-width column to
+ * remain visible can set an explicit minimum width on the control.
  * The view publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
  * {@link #rowCountProperty() rowCount}, {@link #sectionsProperty() sections},

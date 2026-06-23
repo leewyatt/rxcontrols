@@ -416,6 +416,34 @@ public class RXTileViewSkinTest {
         });
     }
 
+    @Test
+    public void narrowSingleColumnFillsContentWidthWithConfiguredGap() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setCellWidth(180);
+            view.setCellHeight(70);
+            // A configured gap must not be scaled or subtracted out of the lone
+            // emergency-shrunk column: the single cell fills the full content width.
+            view.setHgap(24);
+            view.setVgap(0);
+            view.setItemsJustify(ItemsJustify.START);
+            StackPane root = host(view, 140, 220);
+            pump(root);
+
+            assertEquals(1, view.getActualColumnCount(),
+                    "a viewport narrower than one target-width column derives a single column");
+            Region contentLayer = (Region) view.lookup(".viewport > .content");
+            assertNotNull(contentLayer);
+            RXTileCell<?> cell = cellByIndex(view, 0);
+            assertNotNull(cell);
+            assertTrue(cell.getWidth() < view.getCellWidth(),
+                    "the lone over-wide column shrinks below its target width");
+            assertEquals(contentLayer.getWidth(), cell.getWidth(), 1.0,
+                    "the shrunken cell fills the full content width; the configured gap is preserved, not "
+                            + "scaled or subtracted out of the one-column row");
+        });
+    }
+
     // ==================== Scrolling & resize ====================
 
     @Test
