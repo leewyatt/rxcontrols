@@ -7,7 +7,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -15,10 +14,10 @@ import javafx.stage.Stage;
 
 /**
  * Compact demo for {@link RXTilePane}: a wall of colored node cards laid out in a
- * responsive tile grid — the minimum code to use the pane. Reorder animation is
- * on, so resizing the window reflows the columns and the cards glide to their new
- * positions. The pane reports its height for the given width, so it scrolls
- * vertically inside a width-fitting {@link ScrollPane}.
+ * responsive tile grid. Reorder animation is on, so resizing the window reflows
+ * the columns and the cards glide to their new positions. The pane is installed
+ * directly as the scene root so its vertical alignment can be inspected without
+ * an outer scroll container.
  *
  * <p>There is no control panel by design.</p>
  */
