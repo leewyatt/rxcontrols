@@ -52,15 +52,17 @@ import java.util.Set;
  * {@link javafx.scene.layout.TilePane} semantics. Tiles are
  * separated by {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap};
  * spare row width is distributed per {@link #itemsJustifyProperty()
- * itemsJustify}. Non-stretch rows keep their nominal tile width while space
- * permits, while {@link ItemsJustify#STRETCH} grows tiles to fill spare row
- * width. If a single nominal-width tile is wider than the available row width,
- * all modes shrink the tile width for that pass so the row remains horizontally
- * bounded. During actual layout the tile height is likewise limited to the
- * available content height, mirroring JavaFX {@code TilePane}'s defensive
- * fallback. A resizable child fills its tile (bounded by its own max size); a
- * non-resizable child is centered in it. When {@link #animatedProperty() animated}
- * is on, children glide to their new positions as the column count changes.
+ * itemsJustify}; the row block is positioned vertically by
+ * {@link #contentVAlignmentProperty() contentVAlignment}. Non-stretch rows keep
+ * their nominal tile width while space permits, while
+ * {@link ItemsJustify#STRETCH} grows tiles to fill spare row width. If a single
+ * nominal-width tile is wider than the available row width, all modes shrink the
+ * tile width for that pass so the row remains horizontally bounded. During
+ * actual layout the tile height is likewise limited to the available content
+ * height, mirroring JavaFX {@code TilePane}'s defensive fallback. A resizable
+ * child fills its tile (bounded by its own max size); a non-resizable child is
+ * centered in it. When {@link #animatedProperty() animated} is on, children
+ * glide to their new positions as the column count changes.
  */
 public class RXTilePane extends Pane {
 
@@ -73,6 +75,7 @@ public class RXTilePane extends Pane {
     private static final double DEFAULT_MAX_TILE_WIDTH = 0.0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
+    private static final VPos DEFAULT_CONTENT_V_ALIGNMENT = VPos.TOP;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -534,6 +537,61 @@ public class RXTilePane extends Pane {
         itemsJustify.set(value);
     }
 
+    // ==================== Content Vertical Alignment ====================
+
+    private final ObjectProperty<VPos> contentVAlignment =
+            new StyleableObjectProperty<>(DEFAULT_CONTENT_V_ALIGNMENT) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<RXTilePane, VPos> getCssMetaData() {
+                    return StyleableProperties.CONTENT_V_ALIGNMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "contentVAlignment";
+                }
+            };
+
+    /**
+     * Vertical alignment of the whole row block inside this pane's available
+     * content height. {@link VPos#TOP}, {@link VPos#CENTER} and
+     * {@link VPos#BOTTOM} are supported. {@code null} and {@link VPos#BASELINE}
+     * are treated as {@link VPos#TOP}.
+     *
+     * @return the content-vertical-alignment property
+     */
+    public final ObjectProperty<VPos> contentVAlignmentProperty() {
+        return contentVAlignment;
+    }
+
+    /**
+     * Returns the content vertical alignment.
+     *
+     * @return the content vertical alignment
+     */
+    public final VPos getContentVAlignment() {
+        return contentVAlignment.get();
+    }
+
+    /**
+     * Sets the content vertical alignment.
+     *
+     * @param value the vertical alignment, or {@code null} for the default
+     */
+    public final void setContentVAlignment(VPos value) {
+        contentVAlignment.set(value);
+    }
+
     // ==================== Animated ====================
 
     private final BooleanProperty animated = new StyleableBooleanProperty(DEFAULT_ANIMATED) {
@@ -769,6 +827,10 @@ public class RXTilePane extends Pane {
         double hgapValue = snapSpaceX(gapOrZero(getHgap()));
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
         double tileHeight = nominalTileHeight > contentHeight ? contentHeight : nominalTileHeight;
+        int rows = managed.isEmpty() ? 0 : (managed.size() + columns - 1) / columns;
+        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
+        double startY = verticalContentOffset(
+                contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
 
         double tileWidth;
         double effectiveHgap;
@@ -822,7 +884,7 @@ public class RXTilePane extends Pane {
             int column = i % columns;
             int row = i / columns;
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
-            double y = top + snapPositionY(row * (tileHeight + vgapValue));
+            double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An
             // entering child has no meaningful previous position, so it snaps in.
@@ -979,6 +1041,19 @@ public class RXTilePane extends Pane {
         return value == null ? ItemsJustify.START : value;
     }
 
+    private static VPos contentVAlignmentOrDefault(VPos value) {
+        return value == null || value == VPos.BASELINE ? DEFAULT_CONTENT_V_ALIGNMENT : value;
+    }
+
+    private static double verticalContentOffset(double availableHeight, double contentHeight, VPos alignment) {
+        double slack = Math.max(0.0, availableHeight - contentHeight);
+        return switch (alignment) {
+            case CENTER -> slack / 2.0;
+            case BOTTOM -> slack;
+            case BASELINE, TOP -> 0.0;
+        };
+    }
+
     // ==================== CSS ====================
 
     private static final class StyleableProperties {
@@ -1068,6 +1143,21 @@ public class RXTilePane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXTilePane, VPos> CONTENT_V_ALIGNMENT =
+                new CssMetaData<>("-rx-content-v-alignment",
+                        new EnumConverter<>(VPos.class), DEFAULT_CONTENT_V_ALIGNMENT) {
+                    @Override
+                    public boolean isSettable(RXTilePane node) {
+                        return !node.contentVAlignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<VPos> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<VPos>) node.contentVAlignmentProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTilePane, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -1103,7 +1193,7 @@ public class RXTilePane extends Pane {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
             Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, HGAP, VGAP,
-                    ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
+                    ITEMS_JUSTIFY, CONTENT_V_ALIGNMENT, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

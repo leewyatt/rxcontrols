@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -111,11 +112,17 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         justify.setValue(tiles.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tiles.setItemsJustify(value));
 
+        ChoiceBox<VPos> vAlign = new ChoiceBox<>(
+                FXCollections.observableArrayList(VPos.TOP, VPos.CENTER, VPos.BOTTOM));
+        vAlign.setValue(tiles.getContentVAlignment());
+        vAlign.valueProperty().addListener((obs, old, value) -> tiles.setContentVAlignment(value));
+
         Slider maxTile = createSlider(0, 400, tiles.getMaxTileWidth());
         maxTile.valueProperty().addListener((obs, old, value) -> tiles.setMaxTileWidth(value.doubleValue()));
 
         return createGrid(
                 row("Justify", justify),
+                row("V align", vAlign),
                 row("Max tile W", maxTile, sentinelLabel(maxTile, "none")));
     }
 

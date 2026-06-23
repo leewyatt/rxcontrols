@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Orientation;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -59,6 +60,7 @@ public class RXTilePaneTest {
         assertEquals(0, pane.getMaxColumns());
         assertEquals(0.0, pane.getMaxTileWidth(), EPSILON);
         assertSame(ItemsJustify.START, pane.getItemsJustify());
+        assertSame(VPos.TOP, pane.getContentVAlignment());
         assertFalse(pane.isAnimated(), "reorder animation is opt-in");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
@@ -245,6 +247,47 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void contentVAlignmentPositionsRowsWithinExtraHeight() {
+        RXTilePane pane = filledPane(3);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
+        pane.setHgap(0);
+        pane.setVgap(10);
+        pane.setMaxColumns(2);
+
+        layout(pane, 220, 400);
+        assertEquals(0.0, pane.getChildren().get(0).getLayoutY(), EPSILON,
+                "TOP is the default row-block alignment");
+
+        pane.setContentVAlignment(VPos.CENTER);
+        layout(pane, 220, 400);
+        assertEquals(95.0, pane.getChildren().get(0).getLayoutY(), EPSILON,
+                "CENTER uses half of the spare vertical space");
+
+        pane.setContentVAlignment(VPos.BOTTOM);
+        layout(pane, 220, 400);
+        assertEquals(190.0, pane.getChildren().get(0).getLayoutY(), EPSILON,
+                "BOTTOM uses all spare vertical space before the first row");
+    }
+
+    @Test
+    public void contentVAlignmentTreatsNullAndBaselineAsTop() {
+        RXTilePane pane = filledPane(1);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
+
+        pane.setContentVAlignment(null);
+        layout(pane, 120, 300);
+        assertEquals(0.0, pane.getChildren().get(0).getLayoutY(), EPSILON,
+                "null contentVAlignment falls back to TOP");
+
+        pane.setContentVAlignment(VPos.BASELINE);
+        layout(pane, 120, 300);
+        assertEquals(0.0, pane.getChildren().get(0).getLayoutY(), EPSILON,
+                "BASELINE has no row-block meaning and falls back to TOP");
+    }
+
+    @Test
     public void emptyPaneHasInsetOnlyPrefHeight() {
         RXTilePane pane = new RXTilePane();
         layout(pane, 300, 200);
@@ -311,6 +354,7 @@ public class RXTilePaneTest {
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
+        assertTrue(hasProperty(metadata, "-rx-content-v-alignment"));
         assertTrue(hasProperty(metadata, "-rx-animated"));
         assertTrue(hasProperty(metadata, "-rx-animation-duration"));
     }
