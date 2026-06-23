@@ -52,6 +52,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private static final int MAX_RESOLVED_COLUMNS = 4096;
     private static final int DEFAULT_PREF_COLUMNS = 3;
     private static final int DEFAULT_VISIBLE_ROWS = 4;
+    private static final double MIN_VIEWPORT_CONTENT_WIDTH = 2.0;
 
     // Degenerate-case fallbacks for the geometry. cellWidth / cellHeight use a
     // coerce+throw strategy, so their getters are valid on every normal path;
@@ -395,7 +396,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + viewport.scrollBarBreadth() + rightInset;
+        return leftInset + MIN_VIEWPORT_CONTENT_WIDTH + viewport.scrollBarBreadth() + rightInset;
     }
 
     private int prefWidthColumns(RXTileView<?> control) {

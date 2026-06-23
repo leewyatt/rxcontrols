@@ -257,7 +257,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void minWidthReservesOnlyChromeAndVerticalScrollBar() throws Exception {
+    public void minWidthReservesTinyContentViewportAndVerticalScrollBar() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setCellWidth(100);
@@ -272,15 +272,18 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
+                    + 2.0
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "computed min width reserves chrome and the internal scroll bar only");
+                    "computed min width reserves a tiny content viewport beside the internal scroll bar");
             assertTrue(view.getWidth() < view.getCellWidth() + vbar.prefWidth(-1),
                     "a normal parent may allocate less than one target-width cell");
 
             Node contentLayer = view.lookup(".viewport > .content");
             assertTrue(contentLayer instanceof Region, "cells are hosted in a content layer");
+            assertTrue(((Region) contentLayer).getWidth() > 0.0,
+                    "the content area does not collapse to zero width");
             assertTrue(((Region) contentLayer).getWidth() < view.getCellWidth(),
                     "the content area shrinks below the target cell width");
         });
@@ -304,10 +307,11 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
+                    + 2.0
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "maxColumns does not expand min width beyond chrome and scroll bar");
+                    "maxColumns does not expand min width beyond tiny content viewport and scroll bar");
 
             double expectedPrefWidth = view.getInsets().getLeft()
                     + 3.0 * view.getCellWidth()
@@ -342,10 +346,11 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
+                    + 2.0
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "min width remains chrome plus scroll bar in STRETCH");
+                    "min width remains tiny content viewport plus scroll bar in STRETCH");
             assertEquals(1, view.getActualColumnCount(), "the narrow viewport derives one column");
 
             RXTileCell<?> cell = cellByIndex(view, 0);
