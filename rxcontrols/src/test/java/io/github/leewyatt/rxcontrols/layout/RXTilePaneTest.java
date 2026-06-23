@@ -464,6 +464,57 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void baselineAlignmentIncludesChildMarginsInHeightAndOffset() {
+        RXTilePane pane = new RXTilePane();
+        Region above = baselineCard(100, 40, 30);
+        Region below = baselineCard(100, 60, 20);
+        pane.getChildren().addAll(above, below);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
+        pane.setHgap(0);
+        pane.setTileAlignment(Pos.BASELINE_LEFT);
+        RXTilePane.setMargin(above, new Insets(10, 0, 5, 0));
+        RXTilePane.setMargin(below, new Insets(0, 0, 30, 0));
+
+        layout(pane, 220, 140);
+
+        assertEquals(110.0, pane.prefHeight(220), EPSILON,
+                "baseline computed height includes top and bottom child margins");
+        assertEquals(10.0, above.getLayoutY(), EPSILON,
+                "top margin raises the shared baseline offset");
+        assertEquals(20.0, below.getLayoutY(), EPSILON,
+                "below-baseline margin contributes to height without shifting the baseline");
+        assertEquals(above.getLayoutY() + above.getBaselineOffset(),
+                below.getLayoutY() + below.getBaselineOffset(), EPSILON,
+                "margined children still share one baseline");
+    }
+
+    @Test
+    public void baselineOffsetUsesMarginReducedWidthForHorizontalContentBias() {
+        RXTilePane pane = new RXTilePane();
+        Region sameAsHeight = new WidthBiasedSameAsHeightRegion();
+        Region baseline = baselineCard(100, 80, 60);
+        pane.getChildren().addAll(sameAsHeight, baseline);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
+        pane.setHgap(0);
+        pane.setTileAlignment(Pos.BASELINE_LEFT);
+        RXTilePane.setMargin(sameAsHeight, new Insets(0, 20, 0, 30));
+
+        layout(pane, 220, 120);
+
+        assertEquals(50.0, sameAsHeight.getLayoutBounds().getWidth(), EPSILON,
+                "left and right margins reduce the width used to lay out the biased child");
+        assertEquals(25.0, sameAsHeight.getLayoutBounds().getHeight(), EPSILON,
+                "horizontal content bias computes height from the margin-reduced width");
+        assertEquals(35.0, sameAsHeight.getLayoutY(), EPSILON,
+                "baseline offset uses the same margin-reduced width hint");
+        assertEquals(baseline.getLayoutY() + baseline.getBaselineOffset(),
+                sameAsHeight.getLayoutY() + sameAsHeight.getLayoutBounds().getHeight(), EPSILON,
+                "SAME_AS_HEIGHT child aligns its bottom to the shared baseline");
+    }
+
+    @Test
     public void childAlignmentConstraintOverridesPaneTileAlignment() {
         RXTilePane pane = new RXTilePane();
         Rectangle rect = new Rectangle(30, 20);
@@ -826,6 +877,53 @@ public class RXTilePaneTest {
         @Override
         public double getBaselineOffset() {
             return baselineOffset;
+        }
+    }
+
+    private static final class WidthBiasedSameAsHeightRegion extends Region {
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        public double getBaselineOffset() {
+            return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return 0.0;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return 100.0;
+        }
+
+        @Override
+        protected double computeMaxWidth(double height) {
+            return Double.MAX_VALUE;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return biasedHeight(width);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return biasedHeight(width);
+        }
+
+        @Override
+        protected double computeMaxHeight(double width) {
+            return biasedHeight(width);
+        }
+
+        private static double biasedHeight(double width) {
+            return width == -1.0 ? 90.0 : width / 2.0;
         }
     }
 
