@@ -142,7 +142,8 @@ final class RXTileViewport<T> extends Region {
      * The pixel height of one data-row slot (cell height + vgap), snapped, and the
      * single source of truth shared with the skin's plan + overflow check. Never
      * returns a non-positive value — that would break the row math; cellHeight's
-     * coerce+throw normally guarantees it, the guard covers a bound-illegal source.
+     * layout-time fallback normally guarantees it, and the guard covers any
+     * unexpected arithmetic edge.
      *
      * @return the data-row slot height, always {@code > 0}
      */
