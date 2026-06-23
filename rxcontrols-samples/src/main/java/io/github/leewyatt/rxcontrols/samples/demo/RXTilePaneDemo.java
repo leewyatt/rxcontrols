@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -32,9 +33,10 @@ public class RXTilePaneDemo extends Application {
         tiles.setPrefTileHeight(100);
         tiles.setHgap(14);
         tiles.setVgap(14);
-        tiles.setPadding(new Insets(14));
+        tiles.setStyle("-fx-padding: 10px; -fx-background-color: #c2cce0ab;");
         tiles.setAnimated(true);
         tiles.setItemsJustify(ItemsJustify.CENTER);
+        tiles.setContentVAlignment(VPos.CENTER);
         for (int i = 0; i < CARD_COUNT; i++) {
             tiles.getChildren().add(card(i));
         }
