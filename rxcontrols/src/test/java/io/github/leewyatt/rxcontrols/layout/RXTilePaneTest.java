@@ -364,7 +364,7 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void tileAlignmentTreatsNullAsCenterAndBaselineAsCenterVertical() {
+    public void tileAlignmentTreatsNullAsCenter() {
         RXTilePane pane = new RXTilePane();
         Rectangle rect = new Rectangle(30, 20);
         pane.getChildren().add(rect);
@@ -377,13 +377,90 @@ public class RXTilePaneTest {
                 "null tileAlignment falls back to CENTER");
         assertEquals(30.0, rect.getLayoutY(), EPSILON,
                 "null tileAlignment falls back to CENTER");
+    }
 
+    @Test
+    public void tileAlignmentBaselineAlignsChildrenBySharedBaseline() {
+        RXTilePane pane = new RXTilePane();
+        Region first = baselineCard(100, 60, 45);
+        Region second = baselineCard(100, 80, 60);
+        pane.getChildren().addAll(first, second);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
+        pane.setHgap(0);
+        pane.setVgap(0);
         pane.setTileAlignment(Pos.BASELINE_RIGHT);
-        layout(pane, 120, 100);
-        assertEquals(70.0, rect.getLayoutX(), EPSILON,
-                "BASELINE_RIGHT keeps the right horizontal alignment");
-        assertEquals(30.0, rect.getLayoutY(), EPSILON,
-                "baseline tile alignment falls back to center vertically");
+
+        layout(pane, 220, 120);
+
+        assertEquals(80.0, pane.prefHeight(220), EPSILON,
+                "baseline computed height uses maxAbove + maxBelow");
+        assertEquals(15.0, first.getLayoutY(), EPSILON,
+                "first child drops until its baseline matches the shared baseline");
+        assertEquals(0.0, second.getLayoutY(), EPSILON,
+                "second child owns the largest baseline offset");
+        assertEquals(first.getLayoutY() + first.getBaselineOffset(),
+                second.getLayoutY() + second.getBaselineOffset(), EPSILON,
+                "children share one tile baseline");
+    }
+
+    @Test
+    public void childBaselineAlignmentConstraintCanTriggerBaselineLayout() {
+        RXTilePane pane = new RXTilePane();
+        Region first = baselineCard(100, 50, 20);
+        Region second = baselineCard(100, 50, 40);
+        pane.getChildren().addAll(first, second);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+        pane.setHgap(0);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        RXTilePane.setAlignment(first, Pos.BASELINE_LEFT);
+        RXTilePane.setAlignment(second, Pos.BASELINE_LEFT);
+
+        layout(pane, 220, 80);
+
+        assertEquals(20.0, first.getLayoutY(), EPSILON,
+                "child baseline constraint participates even when pane default is TOP");
+        assertEquals(0.0, second.getLayoutY(), EPSILON);
+        assertEquals(first.getLayoutY() + first.getBaselineOffset(),
+                second.getLayoutY() + second.getBaselineOffset(), EPSILON);
+    }
+
+    @Test
+    public void nonBaselineChildConstraintDoesNotShiftSharedBaseline() {
+        RXTilePane pane = new RXTilePane();
+        Region baseline = baselineCard(100, 60, 40);
+        Region topAligned = baselineCard(100, 100, 80);
+        pane.getChildren().addAll(baseline, topAligned);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
+        pane.setHgap(0);
+        pane.setTileAlignment(Pos.BASELINE_LEFT);
+        RXTilePane.setAlignment(topAligned, Pos.TOP_LEFT);
+
+        layout(pane, 220, 140);
+
+        assertEquals(100.0, pane.prefHeight(220), EPSILON,
+                "non-baseline child still contributes its plain preferred area");
+        assertEquals(0.0, baseline.getLayoutY(), EPSILON,
+                "non-baseline child alignment does not raise the shared baseline");
+        assertEquals(0.0, topAligned.getLayoutY(), EPSILON,
+                "non-baseline override is laid out by its own vertical alignment");
+    }
+
+    @Test
+    public void baselineComputedTileHeightAccountsForDeepBelowBaselineChild() {
+        RXTilePane pane = new RXTilePane();
+        Region shallow = baselineCard(100, 20, 20);
+        Region deep = baselineCard(100, 100, 10);
+        pane.getChildren().addAll(shallow, deep);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
+        pane.setHgap(0);
+        pane.setTileAlignment(Pos.BASELINE_LEFT);
+
+        assertEquals(110.0, pane.prefHeight(220), EPSILON,
+                "computed baseline tile height is maxAbove + maxBelow");
     }
 
     @Test
@@ -712,6 +789,13 @@ public class RXTilePaneTest {
         return region;
     }
 
+    private static Region baselineCard(double prefWidth, double prefHeight, double baselineOffset) {
+        BaselineRegion region = new BaselineRegion(baselineOffset);
+        region.setPrefSize(prefWidth, prefHeight);
+        region.setMaxSize(prefWidth, prefHeight);
+        return region;
+    }
+
     private static RXTilePane filledPane(int count) {
         RXTilePane pane = new RXTilePane();
         for (int i = 0; i < count; i++) {
@@ -728,6 +812,20 @@ public class RXTilePaneTest {
         public void requestLayout() {
             layoutRequests++;
             super.requestLayout();
+        }
+    }
+
+    private static final class BaselineRegion extends Region {
+
+        private final double baselineOffset;
+
+        private BaselineRegion(double baselineOffset) {
+            this.baselineOffset = baselineOffset;
+        }
+
+        @Override
+        public double getBaselineOffset() {
+            return baselineOffset;
         }
     }
 

@@ -65,7 +65,8 @@ import java.util.Set;
  * its tile, {@link #tileAlignmentProperty() tileAlignment} positions it inside
  * the slot. Per-child {@link #setAlignment(Node, Pos) alignment} and
  * {@link #setMargin(Node, Insets) margin} constraints override the pane default
- * in the same style as JavaFX {@code TilePane}. When
+ * in the same style as JavaFX {@code TilePane}. Baseline tile alignments share
+ * one baseline offset across the aligned children. When
  * {@link #animatedProperty() animated} is on, existing children glide to their
  * new positions after relayout.
  */
@@ -708,9 +709,8 @@ public class RXTilePane extends Pane {
      * the whole tile because it is not resizable or is bounded by its max size.
      * Resizable children still fill their tile area subject to their own min /
      * max constraints, matching JavaFX {@code TilePane}. {@code null} is treated
-     * as {@link Pos#CENTER}. Baseline positions are treated as their
-     * center-vertical counterparts because this pane does not expose baseline row
-     * layout.
+     * as {@link Pos#CENTER}. Baseline positions share a baseline offset across
+     * children whose effective tile alignment is baseline.
      *
      * @return the tile-alignment property
      */
@@ -1023,6 +1023,7 @@ public class RXTilePane extends Pane {
         }
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null && isAnimationDurationPositive();
+        double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
         List<RelayoutAnimator.Move> moves = null;
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
@@ -1036,7 +1037,7 @@ public class RXTilePane extends Pane {
             double oldVisualX = child.getLayoutX() + child.getTranslateX();
             double oldVisualY = child.getLayoutY() + child.getTranslateY();
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
-            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0, getMargin(child),
+            layoutInArea(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
@@ -1128,10 +1129,33 @@ public class RXTilePane extends Pane {
             }
         }
         double max = 0.0;
+        double baselineMaxAbove = 0.0;
+        double baselineMaxBelow = 0.0;
+        boolean hasBaseline = false;
+        Pos defaultAlignment = tileAlignmentOrDefault(getTileAlignment());
         for (Node child : managed) {
-            max = Math.max(max, computeChildPrefAreaHeight(child, width));
+            Pos childAlignment = childTileAlignment(child, defaultAlignment);
+            if (childAlignment.getVpos() == VPos.BASELINE) {
+                hasBaseline = true;
+                Insets margin = marginOrEmpty(child);
+                double childWidth = width == -1.0
+                        ? -1.0
+                        : Math.max(0.0, width - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight()));
+                double childHeight = snapSizeY(child.prefHeight(childWidth));
+                double baseline = child.getBaselineOffset();
+                if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                    baselineMaxAbove = Math.max(baselineMaxAbove, childHeight + snapSpaceY(margin.getTop()));
+                } else {
+                    baselineMaxAbove = Math.max(baselineMaxAbove, baseline + snapSpaceY(margin.getTop()));
+                    baselineMaxBelow = Math.max(baselineMaxBelow,
+                            childHeight - baseline + snapSpaceY(margin.getBottom()));
+                }
+            } else {
+                max = Math.max(max, computeChildPrefAreaHeight(child, width));
+            }
         }
-        return max;
+        double baselineMax = hasBaseline ? baselineMaxAbove + baselineMaxBelow : 0.0;
+        return Math.max(max, baselineMax);
     }
 
     private double computeMaxChildPrefAreaWidth() {
@@ -1175,6 +1199,52 @@ public class RXTilePane extends Pane {
         }
         double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt));
         return snapSizeY(childHeight) + marginHeight;
+    }
+
+    private double computeBaselineOffset(List<Node> managed, Pos defaultAlignment, double tileWidth, double tileHeight) {
+        boolean hasBaseline = false;
+        double minComplement = computeMinBaselineComplement(managed, defaultAlignment);
+        double offset = 0.0;
+        for (Node child : managed) {
+            if (childTileAlignment(child, defaultAlignment).getVpos() != VPos.BASELINE) {
+                continue;
+            }
+            hasBaseline = true;
+            Insets margin = marginOrEmpty(child);
+            double top = snapSpaceY(margin.getTop());
+            double bottom = snapSpaceY(margin.getBottom());
+            double baseline = child.getBaselineOffset();
+            if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                double alt = child.getContentBias() == Orientation.HORIZONTAL
+                        ? Math.max(0.0, tileWidth - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight()))
+                        : -1.0;
+                double availableHeight = Math.max(0.0, tileHeight - minComplement - top - bottom);
+                double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt),
+                        Math.min(child.maxHeight(alt), availableHeight));
+                offset = Math.max(offset, top + childHeight);
+            } else {
+                offset = Math.max(offset, top + baseline);
+            }
+        }
+        return hasBaseline ? offset : -1.0;
+    }
+
+    private double computeMinBaselineComplement(List<Node> managed, Pos defaultAlignment) {
+        double complement = 0.0;
+        for (Node child : managed) {
+            if (childTileAlignment(child, defaultAlignment).getVpos() != VPos.BASELINE) {
+                continue;
+            }
+            double baseline = child.getBaselineOffset();
+            if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                continue;
+            }
+            double height = child.isResizable()
+                    ? child.minHeight(-1.0)
+                    : child.getLayoutBounds().getHeight();
+            complement = Math.max(complement, height - baseline);
+        }
+        return complement;
     }
 
     private static Insets marginOrEmpty(Node child) {
@@ -1227,12 +1297,7 @@ public class RXTilePane extends Pane {
         if (value == null) {
             return DEFAULT_TILE_ALIGNMENT;
         }
-        return switch (value) {
-            case BASELINE_LEFT -> Pos.CENTER_LEFT;
-            case BASELINE_CENTER -> Pos.CENTER;
-            case BASELINE_RIGHT -> Pos.CENTER_RIGHT;
-            default -> value;
-        };
+        return value;
     }
 
     private static Pos childTileAlignment(Node child, Pos defaultAlignment) {
