@@ -304,16 +304,17 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Upper bound on how wide a tile may grow when
+     * Upper bound for the tile slot width used only when
      * {@link #itemsJustifyProperty() itemsJustify} is
-     * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
-     * value means unbounded. Has no effect in the other justification modes,
-     * where tiles normally keep the nominal tile width
-     * while space permits.
+     * {@link ItemsJustify#STRETCH}. It is useful for wide containers where stretch
+     * should fill spare width up to a readable track size, then center the capped
+     * row block instead of making every tile extremely wide.
      *
-     * <p>A cap smaller than the nominal tile width is degenerate
-     * ({@code max < min}) and is treated as the nominal tile width; the cap itself
-     * never shrinks tiles below their nominal width.
+     * <p>This property does not constrain child nodes directly and has no effect
+     * in non-stretch justification modes. A value of {@code 0} (the default), any
+     * non-positive value, or a non-finite value means unbounded. A cap less than
+     * or equal to the resolved preferred tile width is treated as the preferred
+     * tile width, so this property never shrinks tiles below their nominal width.</p>
      *
      * @return the max-tile-width property
      */

@@ -129,14 +129,10 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         tileAlign.setValue(tiles.getTileAlignment());
         tileAlign.valueProperty().addListener((obs, old, value) -> tiles.setTileAlignment(value));
 
-        Slider maxTile = createSlider(0, 400, tiles.getMaxTileWidth());
-        maxTile.valueProperty().addListener((obs, old, value) -> tiles.setMaxTileWidth(value.doubleValue()));
-
         return createGrid(
                 row("Justify", justify),
                 row("V align", vAlign),
-                row("Tile align", tileAlign),
-                row("Max tile W", maxTile, sentinelLabel(maxTile, "none")));
+                row("Tile align", tileAlign));
     }
 
     private Node animationGrid() {
