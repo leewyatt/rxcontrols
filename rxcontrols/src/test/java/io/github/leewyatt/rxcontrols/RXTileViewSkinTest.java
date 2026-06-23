@@ -257,7 +257,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void minWidthReservesSpaceForOneCellAndVerticalScrollBar() throws Exception {
+    public void minWidthReservesOnlyChromeAndVerticalScrollBar() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setCellWidth(100);
@@ -272,18 +272,17 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
-                    + view.getCellWidth()
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "computed min width leaves room for one full cell beside the internal scroll bar");
-            assertTrue(view.getWidth() >= expectedMinWidth - 1.0,
-                    "a normal parent should not squeeze the view below its computed minimum");
+                    "computed min width reserves chrome and the internal scroll bar only");
+            assertTrue(view.getWidth() < view.getCellWidth() + vbar.prefWidth(-1),
+                    "a normal parent may allocate less than one target-width cell");
 
             Node contentLayer = view.lookup(".viewport > .content");
             assertTrue(contentLayer instanceof Region, "cells are hosted in a content layer");
-            assertTrue(((Region) contentLayer).getWidth() >= view.getCellWidth() - 1.0,
-                    "the minimum width leaves one full target-width cell visible");
+            assertTrue(((Region) contentLayer).getWidth() < view.getCellWidth(),
+                    "the content area shrinks below the target cell width");
         });
     }
 
@@ -305,11 +304,10 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
-                    + view.getCellWidth()
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "maxColumns does not expand min width beyond one target cell plus scroll bar");
+                    "maxColumns does not expand min width beyond chrome and scroll bar");
 
             double expectedPrefWidth = view.getInsets().getLeft()
                     + 3.0 * view.getCellWidth()
@@ -321,13 +319,13 @@ public class RXTileViewSkinTest {
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertEquals(view.getCellWidth(), cell.getWidth(), 1.5,
-                    "one derived column keeps the target cell width");
+            assertTrue(cell.getWidth() < view.getCellWidth(),
+                    "one derived column shrinks below the target width when the view is narrow");
         });
     }
 
     @Test
-    public void stretchUsesOneDerivedColumnWhenViewportIsNarrow() throws Exception {
+    public void stretchShrinksOneDerivedColumnWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setCellWidth(100);
@@ -344,17 +342,16 @@ public class RXTileViewSkinTest {
             assertTrue(vbar.isVisible(), "fixture must overflow vertically");
 
             double expectedMinWidth = view.getInsets().getLeft()
-                    + view.getCellWidth()
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
-                    "min width remains one target cell plus scroll bar in STRETCH");
+                    "min width remains chrome plus scroll bar in STRETCH");
             assertEquals(1, view.getActualColumnCount(), "the narrow viewport derives one column");
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertEquals(view.getCellWidth(), cell.getWidth(), 1.5,
-                    "STRETCH keeps the single target-width column when the parent honors min width");
+            assertTrue(cell.getWidth() < view.getCellWidth(),
+                    "STRETCH also shrinks the single column when the view is narrower than the target width");
         });
     }
 
@@ -362,7 +359,6 @@ public class RXTileViewSkinTest {
     public void fixedCellsShrinkBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setMinWidth(0);
             view.setCellWidth(180);
             view.setCellHeight(70);
             view.setHgap(0);

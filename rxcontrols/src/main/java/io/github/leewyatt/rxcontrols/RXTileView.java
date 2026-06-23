@@ -67,7 +67,9 @@ import java.util.Objects;
  * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}; spare
  * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}.
  * If the viewport is narrower than the target row width, cells and gaps shrink
- * for that layout pass so the row stays inside the content area.
+ * for that layout pass so the row stays inside the content area. Applications
+ * that require one full target-width column to remain visible can set an
+ * explicit minimum width on the control.
  * The view publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
  * {@link #rowCountProperty() rowCount}, {@link #sectionsProperty() sections},
@@ -334,8 +336,9 @@ public class RXTileView<T> extends Control {
     };
 
     /**
-     * Target width of each cell, in pixels. Drives the derived column count. Must
-     * be a finite positive number; an illegal value is rejected with
+     * Target width of each cell, in pixels. Drives the derived column count and
+     * preferred width, but is not the control's default minimum width. Must be a
+     * finite positive number; an illegal value is rejected with
      * {@link IllegalArgumentException} and the property is coerced back to its
      * default (unless bound).
      *

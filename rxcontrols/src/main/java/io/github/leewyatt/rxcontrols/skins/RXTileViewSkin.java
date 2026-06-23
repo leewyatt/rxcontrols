@@ -395,10 +395,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        RXTileView<T> control = getSkinnable();
-        double content = cellWidthOrDefault(control);
-        return leftInset + content
-                + viewport.scrollBarBreadth() + rightInset;
+        return leftInset + viewport.scrollBarBreadth() + rightInset;
     }
 
     private int prefWidthColumns(RXTileView<?> control) {

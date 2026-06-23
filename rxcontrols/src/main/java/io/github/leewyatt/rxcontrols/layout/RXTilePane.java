@@ -51,9 +51,10 @@ import java.util.Set;
  * permits, while {@link ItemsJustify#STRETCH} grows cells to fill spare row
  * width. If the available row width is narrower than the target row width, all
  * modes shrink cells and gaps for that pass so the row remains horizontally
- * bounded. A resizable child fills its cell (bounded by its own max size); a
- * non-resizable child is centered in it. When
- * {@link #animatedProperty() animated} is on, children glide to their new
+ * bounded. Applications that require one full target-width column to remain
+ * visible can set an explicit minimum width on the pane. A resizable child fills
+ * its cell (bounded by its own max size); a non-resizable child is centered in it.
+ * When {@link #animatedProperty() animated} is on, children glide to their new
  * positions as the column count changes.
  */
 public class RXTilePane extends Pane {
@@ -170,8 +171,9 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Target width of each cell, in pixels; drives the automatic column count.
-     * Must be a finite positive number — an illegal value is rejected with
+     * Target width of each cell, in pixels; drives the automatic column count and
+     * preferred width, but is not the pane's default minimum width. Must be a
+     * finite positive number — an illegal value is rejected with
      * {@link IllegalArgumentException} and coerced back to the default (unless bound).
      *
      * @return the cell-width property
@@ -702,8 +704,7 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        double cell = snapSizeX(cellWidthOrDefault());
-        return snappedLeftInset() + snapSizeX(cell) + snappedRightInset();
+        return snappedLeftInset() + snappedRightInset();
     }
 
     @Override

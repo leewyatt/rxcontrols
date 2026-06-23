@@ -341,7 +341,7 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void fitToWidthScrollPaneHonorsOneCellMinimumWidth() throws Exception {
+    public void fitToWidthScrollPaneShrinksCellsBelowTargetWidth() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(8);
             pane.setCellWidth(100);
@@ -360,17 +360,18 @@ public class RXTilePaneTest {
 
             ScrollBar horizontal = scrollBar(scroll, Orientation.HORIZONTAL);
             Region firstCard = (Region) pane.getChildren().get(0);
-            double expectedMinWidth = pane.getInsets().getLeft()
-                    + pane.getCellWidth()
-                    + pane.getInsets().getRight();
+            double expectedMinWidth = pane.getInsets().getLeft() + pane.getInsets().getRight();
             assertEquals(expectedMinWidth, pane.minWidth(-1), EPSILON,
-                    "minimum width reserves one target cell plus padding");
-            assertTrue(pane.getWidth() >= expectedMinWidth - EPSILON,
-                    "fitToWidth still respects the content node's minimum width");
-            assertEquals(pane.getCellWidth(), firstCard.getLayoutBounds().getWidth(), EPSILON,
-                    "the first cell keeps its target width");
-            assertTrue(horizontal.isVisible(),
-                    "ScrollPane uses horizontal scrolling when the viewport is narrower than the pane minimum");
+                    "minimum width only reserves padding; cellWidth is a target width");
+            double targetWidthWithInsets = pane.getCellWidth()
+                    + pane.getInsets().getLeft()
+                    + pane.getInsets().getRight();
+            assertTrue(pane.getWidth() < targetWidthWithInsets,
+                    "fitToWidth may allocate less than one target-width cell");
+            assertTrue(firstCard.getLayoutBounds().getWidth() < pane.getCellWidth(),
+                    "the first cell shrinks below its target width");
+            assertFalse(horizontal.isVisible(),
+                    "fitToWidth does not need horizontal scrolling when cells can shrink");
         });
     }
 
@@ -381,24 +382,24 @@ public class RXTilePaneTest {
         pane.setHgap(0);
         pane.setMaxColumns(4);
 
-        assertEquals(100.0, pane.minWidth(-1), EPSILON,
+        assertEquals(0.0, pane.minWidth(-1), EPSILON,
                 "maxColumns is only an upper bound in automatic column mode");
     }
 
     @Test
-    public void narrowWidthDropsToOneColumn() {
+    public void narrowWidthShrinksOneColumnBelowTargetWidth() {
         RXTilePane pane = filledPane(4);
         pane.setMaxColumns(4);
         pane.setCellWidth(100);
         pane.setHgap(0);
         pane.setItemsJustify(ItemsJustify.START);
 
-        layout(pane, 100, 120);
+        layout(pane, 50, 120);
 
         assertEquals(1, pane.getActualColumnCount());
-        assertRowFits(pane, 1, 100.0);
-        assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "automatic columns choose one target-width cell when only one fits");
+        assertRowFits(pane, 1, 50.0);
+        assertEquals(50.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "automatic columns shrink one target-width cell when the pane is narrower");
     }
 
     @Test
