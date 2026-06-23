@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -23,29 +23,22 @@ import javafx.stage.Stage;
  */
 public class RXTilePaneDemo extends Application {
 
-    private static final int CARD_COUNT = 60;
+    private static final int CARD_COUNT = 17;
 
     @Override
     public void start(Stage primaryStage) {
         RXTilePane tiles = new RXTilePane();
-        tiles.setCellWidth(140);
-        tiles.setCellHeight(100);
+        tiles.setPrefTileWidth(140);
+        tiles.setPrefTileHeight(100);
         tiles.setHgap(14);
         tiles.setVgap(14);
         tiles.setPadding(new Insets(14));
         tiles.setAnimated(true);
+        tiles.setItemsJustify(ItemsJustify.CENTER);
         for (int i = 0; i < CARD_COUNT; i++) {
             tiles.getChildren().add(card(i));
         }
-
-        ScrollPane scroll = new ScrollPane(tiles);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
-        BorderPane root = new BorderPane(scroll);
-        root.setTop(createHeader());
-
-        Scene scene = new Scene(root, 900.0, 640.0);
+        Scene scene = new Scene(tiles, 900.0, 640.0);
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXTilePane Demo");
         primaryStage.show();

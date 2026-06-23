@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Showcase for {@link RXTilePane}. Renders a responsive wall of node cards and
- * exposes every knob — cell size, spacing, max columns, layout and
+ * exposes every knob — tile size, spacing, max columns, layout and
  * reorder animation — plus add / remove controls and a live readout of the
  * resolved column count, so the responsive grid and the glide can be exercised
  * directly on real children.
@@ -47,6 +47,8 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         tiles = new RXTilePane();
+        tiles.setPrefTileWidth(100.0);
+        tiles.setPrefTileHeight(100.0);
         tiles.setAnimated(true);
         for (int i = 0; i < INITIAL_CARDS; i++) {
             tiles.getChildren().add(card(nextCard++));
@@ -60,7 +62,7 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
-                section("Cell size", cellSizeGrid()),
+                section("Tile size", tileSizeGrid()),
                 section("Spacing", spacingGrid()),
                 section("Columns", columnsGrid()),
                 section("Layout", layoutGrid()),
@@ -76,11 +78,11 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
 
     // ==================== Sections ====================
 
-    private Node cellSizeGrid() {
-        Slider width = createSlider(60, 280, tiles.getCellWidth());
-        width.valueProperty().addListener((obs, old, value) -> tiles.setCellWidth(value.doubleValue()));
-        Slider height = createSlider(60, 280, tiles.getCellHeight());
-        height.valueProperty().addListener((obs, old, value) -> tiles.setCellHeight(value.doubleValue()));
+    private Node tileSizeGrid() {
+        Slider width = createSlider(60, 280, tiles.getPrefTileWidth());
+        width.valueProperty().addListener((obs, old, value) -> tiles.setPrefTileWidth(value.doubleValue()));
+        Slider height = createSlider(60, 280, tiles.getPrefTileHeight());
+        height.valueProperty().addListener((obs, old, value) -> tiles.setPrefTileHeight(value.doubleValue()));
         return createGrid(
                 row("Width", width, createValueLabel(width, "%.0f px")),
                 row("Height", height, createValueLabel(height, "%.0f px")));
@@ -109,12 +111,12 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         justify.setValue(tiles.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tiles.setItemsJustify(value));
 
-        Slider maxCell = createSlider(0, 400, tiles.getMaxCellWidth());
-        maxCell.valueProperty().addListener((obs, old, value) -> tiles.setMaxCellWidth(value.doubleValue()));
+        Slider maxTile = createSlider(0, 400, tiles.getMaxTileWidth());
+        maxTile.valueProperty().addListener((obs, old, value) -> tiles.setMaxTileWidth(value.doubleValue()));
 
         return createGrid(
                 row("Justify", justify),
-                row("Max cell W", maxCell, sentinelLabel(maxCell, "none")));
+                row("Max tile W", maxTile, sentinelLabel(maxTile, "none")));
     }
 
     private Node animationGrid() {

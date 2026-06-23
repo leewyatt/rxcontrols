@@ -52,12 +52,12 @@ public class RXTilePaneTest {
     public void defaultStateAndStyleClass() {
         RXTilePane pane = new RXTilePane();
         assertTrue(pane.getStyleClass().contains("rx-tile-pane"));
-        assertEquals(100.0, pane.getCellWidth(), EPSILON);
-        assertEquals(100.0, pane.getCellHeight(), EPSILON);
+        assertEquals(Region.USE_COMPUTED_SIZE, pane.getPrefTileWidth(), EPSILON);
+        assertEquals(Region.USE_COMPUTED_SIZE, pane.getPrefTileHeight(), EPSILON);
         assertEquals(10.0, pane.getHgap(), EPSILON);
         assertEquals(10.0, pane.getVgap(), EPSILON);
         assertEquals(0, pane.getMaxColumns());
-        assertEquals(0.0, pane.getMaxCellWidth(), EPSILON);
+        assertEquals(0.0, pane.getMaxTileWidth(), EPSILON);
         assertSame(ItemsJustify.START, pane.getItemsJustify());
         assertFalse(pane.isAnimated(), "reorder animation is opt-in");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
@@ -68,7 +68,7 @@ public class RXTilePaneTest {
     @Test
     public void columnCountDerivedFromWidth() {
         RXTilePane pane = filledPane(20);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         layout(pane, 350, 600); // floor(350 / 100) = 3
         assertEquals(3, pane.getActualColumnCount());
@@ -79,7 +79,7 @@ public class RXTilePaneTest {
     @Test
     public void maxColumnsCapsResolvedCount() {
         RXTilePane pane = filledPane(20);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         pane.setMaxColumns(3);
         layout(pane, 2000, 600); // would be ~20 auto, capped to 3
@@ -89,8 +89,8 @@ public class RXTilePaneTest {
     @Test
     public void prefHeightFromChildrenAndColumns() {
         RXTilePane pane = filledPane(10);
-        pane.setCellWidth(100);
-        pane.setCellHeight(100);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
         pane.setHgap(0);
         pane.setVgap(10);
         // width 300 -> 3 columns -> ceil(10/3) = 4 rows -> 4*100 + 3*10 = 430
@@ -100,8 +100,8 @@ public class RXTilePaneTest {
     @Test
     public void contentBiasIsHorizontalAndHeightShrinksWithWidth() {
         RXTilePane pane = filledPane(12);
-        pane.setCellWidth(100);
-        pane.setCellHeight(100);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
         pane.setHgap(0);
         pane.setVgap(0);
         double narrow = pane.prefHeight(300); // 3 cols -> 4 rows -> 400
@@ -110,13 +110,45 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void computedTileSizeUsesLargestManagedChildPreferredArea() {
+        RXTilePane pane = new RXTilePane();
+        pane.setHgap(0);
+        Region small = card(80, 40);
+        Region large = card(120, 70);
+        pane.getChildren().addAll(small, large);
+
+        assertEquals(120.0, pane.minWidth(-1), EPSILON,
+                "computed prefTileWidth uses the widest child preferred area");
+        assertEquals(360.0, pane.prefWidth(-1), EPSILON,
+                "preferred width uses the computed tile width");
+        assertEquals(70.0, pane.prefHeight(300), EPSILON,
+                "computed prefTileHeight uses the tallest child preferred area");
+    }
+
+    @Test
+    public void explicitTileSizeIsNotExpandedByChildMinimumSize() {
+        RXTilePane pane = new RXTilePane();
+        Region child = card(180, 80);
+        child.setMinWidth(180.0);
+        pane.getChildren().add(child);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+
+        assertEquals(100.0, pane.minWidth(-1), EPSILON,
+                "explicit prefTileWidth defines the nominal tile width");
+        layout(pane, 100, 80);
+        assertTrue(child.getLayoutBounds().getWidth() > pane.getPrefTileWidth(),
+                "layoutInArea honors a larger child minWidth inside the fixed tile slot");
+    }
+
+    @Test
     public void justifyPositionsTheFixedRow() {
         RXTilePane pane = filledPane(2);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         pane.setMaxColumns(2);
         pane.setItemsJustify(ItemsJustify.END);
-        layout(pane, 400, 200); // 2 cells of 100 -> slack 200, END pushes them right
+        layout(pane, 400, 200); // 2 tiles of 100 -> slack 200, END pushes them right
         assertEquals(200.0, pane.getChildren().get(0).getLayoutX(), EPSILON);
     }
 
@@ -134,10 +166,10 @@ public class RXTilePaneTest {
     public void spaceModesDistributeRowSlack() {
         RXTilePane pane = filledPane(4);
         pane.setMaxColumns(4);
-        pane.setCellWidth(60);
+        pane.setPrefTileWidth(60);
         pane.setHgap(10);
 
-        // Fixture: N=4, cellWidth=60, hgap=10, row width 400,
+        // Fixture: N=4, prefTileWidth=60, hgap=10, row width 400,
         // so slack S = 400 - (4*60 + 3*10) = 130.
         pane.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
         layout(pane, 400, 200);
@@ -165,42 +197,42 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void maxCellWidthCapsAndCentersStretch() {
+    public void maxTileWidthCapsAndCentersStretch() {
         RXTilePane pane = filledPane(2);
         pane.setMaxColumns(2);
-        pane.setCellWidth(60);
+        pane.setPrefTileWidth(60);
         pane.setHgap(10);
         pane.setItemsJustify(ItemsJustify.STRETCH);
         layout(pane, 400, 200);
 
         assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 100.0,
-                "uncapped STRETCH grows cells to fill the row");
+                "uncapped STRETCH grows tiles to fill the row");
         assertEquals(0.0, firstChildX(pane), EPSILON, "uncapped STRETCH starts at the leading edge");
 
-        pane.setMaxCellWidth(Double.NaN);
+        pane.setMaxTileWidth(Double.NaN);
         layout(pane, 400, 200);
         assertTrue(pane.getChildren().get(0).getLayoutBounds().getWidth() > 100.0,
-                "non-finite maxCellWidth behaves as unbounded");
+                "non-finite maxTileWidth behaves as unbounded");
         assertEquals(0.0, firstChildX(pane), EPSILON,
-                "non-finite maxCellWidth does not create a centered cap");
+                "non-finite maxTileWidth does not create a centered cap");
 
-        pane.setMaxCellWidth(80);
+        pane.setMaxTileWidth(80);
         layout(pane, 400, 200);
         assertEquals(80.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "STRETCH is capped at maxCellWidth");
+                "STRETCH is capped at maxTileWidth");
         assertEquals(115.0, firstChildX(pane), EPSILON, "the capped block is centered");
 
-        pane.setMaxCellWidth(40);
+        pane.setMaxTileWidth(40);
         layout(pane, 400, 200);
         assertEquals(60.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "a cap below cellWidth leaves cells at cellWidth");
+                "a cap below prefTileWidth leaves tiles at prefTileWidth");
     }
 
     @Test
-    public void gapsSpaceCellsAndRows() {
+    public void gapsSpaceTilesAndRows() {
         RXTilePane pane = filledPane(4);
-        pane.setCellWidth(100);
-        pane.setCellHeight(100);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
         pane.setHgap(20);
         pane.setVgap(30);
         pane.setMaxColumns(2);
@@ -208,8 +240,8 @@ public class RXTilePaneTest {
         Region c0 = (Region) pane.getChildren().get(0);
         Region c1 = (Region) pane.getChildren().get(1);
         Region c2 = (Region) pane.getChildren().get(2);
-        assertEquals(120.0, c1.getLayoutX() - c0.getLayoutX(), EPSILON, "cellWidth + hgap");
-        assertEquals(130.0, c2.getLayoutY() - c0.getLayoutY(), EPSILON, "cellHeight + vgap");
+        assertEquals(120.0, c1.getLayoutX() - c0.getLayoutX(), EPSILON, "prefTileWidth + hgap");
+        assertEquals(130.0, c2.getLayoutY() - c0.getLayoutY(), EPSILON, "prefTileHeight + vgap");
     }
 
     @Test
@@ -222,8 +254,8 @@ public class RXTilePaneTest {
     @Test
     public void addingAndRemovingChildrenReflows() {
         RXTilePane pane = filledPane(2);
-        pane.setCellWidth(100);
-        pane.setCellHeight(100);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
         pane.setHgap(0);
         pane.setVgap(0);
         pane.setMaxColumns(2);
@@ -240,28 +272,31 @@ public class RXTilePaneTest {
         RXTilePane pane = new RXTilePane();
         Rectangle rect = new Rectangle(30, 30);
         pane.getChildren().add(rect);
-        pane.setCellWidth(100);
-        pane.setCellHeight(100);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
         pane.setMaxColumns(1);
         layout(pane, 200, 200);
         assertEquals(30.0, rect.getWidth(), EPSILON, "a non-resizable child keeps its size");
-        assertEquals(35.0, rect.getLayoutX(), EPSILON, "and is centered in the cell: (100 - 30) / 2");
+        assertEquals(35.0, rect.getLayoutX(), EPSILON, "and is centered in the tile: (100 - 30) / 2");
     }
 
     @Test
-    public void cellSizeRejectsNonPositiveAndGapIsLenient() {
+    public void prefTileSizeRejectsInvalidAndGapIsLenient() {
         RXTilePane pane = new RXTilePane();
-        assertThrows(IllegalArgumentException.class, () -> pane.setCellWidth(0));
-        assertEquals(100.0, pane.getCellWidth(), EPSILON, "rejected value is coerced back to default");
-        assertThrows(IllegalArgumentException.class, () -> pane.setCellHeight(-5));
-        assertThrows(IllegalArgumentException.class, () -> pane.setCellWidth(Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(0));
+        assertEquals(Region.USE_COMPUTED_SIZE, pane.getPrefTileWidth(), EPSILON,
+                "rejected value is coerced back to computed size");
+        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileHeight(-5));
+        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(Double.NaN));
+        pane.setPrefTileWidth(Region.USE_COMPUTED_SIZE);
+        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
 
         pane.setHgap(-10); // lenient: accepted, treated as 0 at layout
         assertEquals(-10.0, pane.getHgap(), EPSILON);
-        pane.setMaxCellWidth(Double.NaN);
-        assertTrue(Double.isNaN(pane.getMaxCellWidth()));
+        pane.setMaxTileWidth(Double.NaN);
+        assertTrue(Double.isNaN(pane.getMaxTileWidth()));
         pane.getChildren().addAll(card(), card());
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setMaxColumns(2);
         layout(pane, 400, 200);
         assertEquals(100.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "negative hgap acts as 0");
@@ -270,9 +305,9 @@ public class RXTilePaneTest {
     @Test
     public void cssMetadataContainsTileProperties() {
         List<CssMetaData<? extends Styleable, ?>> metadata = new RXTilePane().getCssMetaData();
-        assertTrue(hasProperty(metadata, "-rx-cell-width"));
-        assertTrue(hasProperty(metadata, "-rx-cell-height"));
-        assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
+        assertTrue(hasProperty(metadata, "-rx-pref-tile-width"));
+        assertTrue(hasProperty(metadata, "-rx-pref-tile-height"));
+        assertTrue(hasProperty(metadata, "-rx-max-tile-width"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
@@ -294,7 +329,7 @@ public class RXTilePaneTest {
     public void widthReflowEngagesAndDisableSnaps() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(12);
-            pane.setCellWidth(100);
+            pane.setPrefTileWidth(100);
             pane.setAnimated(true);
             new Scene(pane, 400, 400);
             pane.applyCss();
@@ -313,7 +348,7 @@ public class RXTilePaneTest {
     public void addedChildPopsInWithoutGliding() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(5);
-            pane.setCellWidth(100);
+            pane.setPrefTileWidth(100);
             pane.setMaxColumns(3);
             pane.setAnimated(true);
             new Scene(pane, 700, 400);
@@ -332,7 +367,7 @@ public class RXTilePaneTest {
     @Test
     public void prefWidthUsesDefaultColumnsAndMaxColumnsCap() {
         RXTilePane pane = filledPane(2);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(10);
         assertEquals(320.0, pane.prefWidth(-1), EPSILON, "default preferred columns: 3*100 + 2*10");
 
@@ -341,11 +376,11 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void fitToWidthScrollPaneShrinksCellsBelowTargetWidth() throws Exception {
+    public void fitToWidthScrollPaneHonorsOneNominalTileMinimumWidth() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(8);
-            pane.setCellWidth(100);
-            pane.setCellHeight(100);
+            pane.setPrefTileWidth(100);
+            pane.setPrefTileHeight(100);
             pane.setHgap(10);
             pane.setVgap(10);
             pane.setStyle("-fx-padding: 12px;");
@@ -360,29 +395,31 @@ public class RXTilePaneTest {
 
             ScrollBar horizontal = scrollBar(scroll, Orientation.HORIZONTAL);
             Region firstCard = (Region) pane.getChildren().get(0);
-            double expectedMinWidth = pane.getInsets().getLeft() + pane.getInsets().getRight();
+            double expectedMinWidth = pane.getInsets().getLeft()
+                    + pane.getPrefTileWidth()
+                    + pane.getInsets().getRight();
             assertEquals(expectedMinWidth, pane.minWidth(-1), EPSILON,
-                    "minimum width only reserves padding; cellWidth is a target width");
-            double targetWidthWithInsets = pane.getCellWidth()
+                    "minimum width reserves one nominal tile plus padding");
+            double targetWidthWithInsets = pane.getPrefTileWidth()
                     + pane.getInsets().getLeft()
                     + pane.getInsets().getRight();
-            assertTrue(pane.getWidth() < targetWidthWithInsets,
-                    "fitToWidth may allocate less than one target-width cell");
-            assertTrue(firstCard.getLayoutBounds().getWidth() < pane.getCellWidth(),
-                    "the first cell shrinks below its target width");
-            assertFalse(horizontal.isVisible(),
-                    "fitToWidth does not need horizontal scrolling when cells can shrink");
+            assertTrue(pane.getWidth() >= targetWidthWithInsets - EPSILON,
+                    "fitToWidth respects the content node's minimum width");
+            assertEquals(pane.getPrefTileWidth(), firstCard.getLayoutBounds().getWidth(), EPSILON,
+                    "the first tile keeps its nominal width");
+            assertTrue(horizontal.isVisible(),
+                    "ScrollPane uses horizontal scrolling when the viewport is narrower than the pane minimum");
         });
     }
 
     @Test
     public void maxColumnsAloneDoesNotExpandMinimumWidth() {
         RXTilePane pane = filledPane(3);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         pane.setMaxColumns(4);
 
-        assertEquals(0.0, pane.minWidth(-1), EPSILON,
+        assertEquals(100.0, pane.minWidth(-1), EPSILON,
                 "maxColumns is only an upper bound in automatic column mode");
     }
 
@@ -390,7 +427,7 @@ public class RXTilePaneTest {
     public void narrowWidthShrinksOneColumnBelowTargetWidth() {
         RXTilePane pane = filledPane(4);
         pane.setMaxColumns(4);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         pane.setItemsJustify(ItemsJustify.START);
 
@@ -399,14 +436,14 @@ public class RXTilePaneTest {
         assertEquals(1, pane.getActualColumnCount());
         assertRowFits(pane, 1, 50.0);
         assertEquals(50.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "automatic columns shrink one target-width cell when the pane is narrower");
+                "automatic columns shrink one nominal-width tile when the pane is narrower");
     }
 
     @Test
     public void stretchUsesAvailableWidthWhenSingleColumnIsNarrowerThanTarget() {
         RXTilePane pane = filledPane(4);
         pane.setMaxColumns(4);
-        pane.setCellWidth(100);
+        pane.setPrefTileWidth(100);
         pane.setHgap(0);
         pane.setItemsJustify(ItemsJustify.STRETCH);
 
@@ -415,7 +452,19 @@ public class RXTilePaneTest {
         assertEquals(1, pane.getActualColumnCount());
         assertRowFits(pane, 1, 50.0);
         assertEquals(50.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
-                "STRETCH shrinks the target cell when even one column is too wide");
+                "STRETCH shrinks the nominal tile when even one column is too wide");
+    }
+
+    @Test
+    public void narrowHeightShrinksTileHeightBelowTarget() {
+        RXTilePane pane = filledPane(1);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(100);
+
+        layout(pane, 120, 40);
+
+        assertEquals(40.0, pane.getChildren().get(0).getLayoutBounds().getHeight(), EPSILON,
+                "actual layout limits tile height to the available content height");
     }
 
     // ==================== Helpers ====================
@@ -457,7 +506,12 @@ public class RXTilePaneTest {
     }
 
     private static Region card() {
+        return card(100.0, 100.0);
+    }
+
+    private static Region card(double prefWidth, double prefHeight) {
         Region region = new Region();
+        region.setPrefSize(prefWidth, prefHeight);
         region.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         return region;
     }

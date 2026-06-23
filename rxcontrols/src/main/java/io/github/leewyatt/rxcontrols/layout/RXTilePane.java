@@ -27,6 +27,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -37,35 +38,39 @@ import java.util.Set;
 
 /**
  * A responsive, animated tile layout pane — the node-based sibling of
- * {@code RXTileView}. It lays out its (managed) children in a uniform grid whose
- * column count is derived from {@link #cellWidthProperty() cellWidth} and the
- * available width, exactly like {@code RXTileView}, but it is a plain layout
- * {@link Pane}: not data-driven, not virtualized, with no sections or selection.
+ * {@code RXTileView}. It lays out its managed children in a uniform grid whose
+ * column count is derived from the resolved nominal tile width and the available
+ * width. Unlike {@code RXTileView}, it is a plain layout {@link Pane}: not
+ * data-driven, not virtualized, with no sections or selection.
  * It is to a tile grid what {@code RXFlowPane} is to a wrapping flow.
  *
- * <p>Children are placed left-to-right, top-to-bottom into cells whose normal
- * target size is {@code cellWidth} × {@link #cellHeightProperty() cellHeight},
+ * <p>Children are placed left-to-right, top-to-bottom into tiles whose nominal
+ * size is {@link #prefTileWidthProperty() prefTileWidth} ×
+ * {@link #prefTileHeightProperty() prefTileHeight}. When either preferred tile
+ * dimension is {@link Region#USE_COMPUTED_SIZE}, that dimension is resolved
+ * from the largest preferred area of the managed children, matching JavaFX
+ * {@link javafx.scene.layout.TilePane} semantics. Tiles are
  * separated by {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap};
  * spare row width is distributed per {@link #itemsJustifyProperty()
- * itemsJustify}. Non-stretch rows keep their target cell width while space
- * permits, while {@link ItemsJustify#STRETCH} grows cells to fill spare row
- * width. If the available row width is narrower than the target row width, all
- * modes shrink cells and gaps for that pass so the row remains horizontally
- * bounded. Applications that require one full target-width column to remain
- * visible can set an explicit minimum width on the pane. A resizable child fills
- * its cell (bounded by its own max size); a non-resizable child is centered in it.
- * When {@link #animatedProperty() animated} is on, children glide to their new
- * positions as the column count changes.
+ * itemsJustify}. Non-stretch rows keep their nominal tile width while space
+ * permits, while {@link ItemsJustify#STRETCH} grows tiles to fill spare row
+ * width. If a single nominal-width tile is wider than the available row width,
+ * all modes shrink the tile width for that pass so the row remains horizontally
+ * bounded. During actual layout the tile height is likewise limited to the
+ * available content height, mirroring JavaFX {@code TilePane}'s defensive
+ * fallback. A resizable child fills its tile (bounded by its own max size); a
+ * non-resizable child is centered in it. When {@link #animatedProperty() animated}
+ * is on, children glide to their new positions as the column count changes.
  */
 public class RXTilePane extends Pane {
 
     // ==================== Constants ====================
 
-    private static final double DEFAULT_CELL_WIDTH = 100.0;
-    private static final double DEFAULT_CELL_HEIGHT = 100.0;
+    private static final double DEFAULT_PREF_TILE_WIDTH = USE_COMPUTED_SIZE;
+    private static final double DEFAULT_PREF_TILE_HEIGHT = USE_COMPUTED_SIZE;
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
-    private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
+    private static final double DEFAULT_MAX_TILE_WIDTH = 0.0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_ANIMATED = false;
@@ -74,7 +79,7 @@ public class RXTilePane extends Pane {
 
     // Columns used by computePrefWidth when laid out without a width constraint.
     private static final int DEFAULT_PREF_COLUMNS = 3;
-    // Defensive ceiling so a tiny cellWidth cannot explode the column count.
+    // Defensive ceiling so a tiny prefTileWidth cannot explode the column count.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-tile-pane";
@@ -139,24 +144,25 @@ public class RXTilePane extends Pane {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
-    // ==================== Cell Width ====================
+    // ==================== Preferred Tile Width ====================
 
-    private final DoubleProperty cellWidth = new StyleableDoubleProperty(DEFAULT_CELL_WIDTH) {
+    private final DoubleProperty prefTileWidth = new StyleableDoubleProperty(DEFAULT_PREF_TILE_WIDTH) {
         @Override
         protected void invalidated() {
             double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
+            if (value != USE_COMPUTED_SIZE && (!Double.isFinite(value) || value <= 0.0)) {
                 if (!isBound()) {
-                    set(DEFAULT_CELL_WIDTH);
+                    set(DEFAULT_PREF_TILE_WIDTH);
                 }
-                throw new IllegalArgumentException("cellWidth must be a finite positive number");
+                throw new IllegalArgumentException(
+                        "prefTileWidth must be USE_COMPUTED_SIZE or a finite positive number");
             }
             requestLayout();
         }
 
         @Override
         public CssMetaData<RXTilePane, Number> getCssMetaData() {
-            return StyleableProperties.CELL_WIDTH;
+            return StyleableProperties.PREF_TILE_WIDTH;
         }
 
         @Override
@@ -166,58 +172,62 @@ public class RXTilePane extends Pane {
 
         @Override
         public String getName() {
-            return "cellWidth";
+            return "prefTileWidth";
         }
     };
 
     /**
-     * Target width of each cell, in pixels; drives the automatic column count and
-     * preferred width, but is not the pane's default minimum width. Must be a
-     * finite positive number — an illegal value is rejected with
-     * {@link IllegalArgumentException} and coerced back to the default (unless bound).
+     * Preferred width of each tile. The default
+     * {@link Region#USE_COMPUTED_SIZE} resolves the width from the largest
+     * preferred area of the managed children. A positive value fixes the nominal
+     * tile width and does not let child min / pref widths expand the tile.
      *
-     * @return the cell-width property
+     * @return the preferred-tile-width property
      */
-    public final DoubleProperty cellWidthProperty() {
-        return cellWidth;
+    public final DoubleProperty prefTileWidthProperty() {
+        return prefTileWidth;
     }
 
     /**
-     * Returns the cell width.
+     * Returns the preferred tile width.
      *
-     * @return the cell width
+     * @return the preferred tile width, or {@link Region#USE_COMPUTED_SIZE}
      */
-    public final double getCellWidth() {
-        return cellWidth.get();
+    public final double getPrefTileWidth() {
+        return prefTileWidth.get();
     }
 
     /**
-     * Sets the cell width.
+     * Sets the preferred tile width.
      *
-     * @param value a finite positive width
+     * @param value {@link Region#USE_COMPUTED_SIZE}, or a finite positive width
+     * @throws IllegalArgumentException if {@code value} is neither
+     *                                  {@code USE_COMPUTED_SIZE} nor a finite
+     *                                  positive number
      */
-    public final void setCellWidth(double value) {
-        cellWidth.set(value);
+    public final void setPrefTileWidth(double value) {
+        prefTileWidth.set(value);
     }
 
-    // ==================== Cell Height ====================
+    // ==================== Preferred Tile Height ====================
 
-    private final DoubleProperty cellHeight = new StyleableDoubleProperty(DEFAULT_CELL_HEIGHT) {
+    private final DoubleProperty prefTileHeight = new StyleableDoubleProperty(DEFAULT_PREF_TILE_HEIGHT) {
         @Override
         protected void invalidated() {
             double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
+            if (value != USE_COMPUTED_SIZE && (!Double.isFinite(value) || value <= 0.0)) {
                 if (!isBound()) {
-                    set(DEFAULT_CELL_HEIGHT);
+                    set(DEFAULT_PREF_TILE_HEIGHT);
                 }
-                throw new IllegalArgumentException("cellHeight must be a finite positive number");
+                throw new IllegalArgumentException(
+                        "prefTileHeight must be USE_COMPUTED_SIZE or a finite positive number");
             }
             requestLayout();
         }
 
         @Override
         public CssMetaData<RXTilePane, Number> getCssMetaData() {
-            return StyleableProperties.CELL_HEIGHT;
+            return StyleableProperties.PREF_TILE_HEIGHT;
         }
 
         @Override
@@ -227,41 +237,46 @@ public class RXTilePane extends Pane {
 
         @Override
         public String getName() {
-            return "cellHeight";
+            return "prefTileHeight";
         }
     };
 
     /**
-     * Height of each cell, in pixels. Must be a finite positive number — an illegal
-     * value is rejected and coerced back to the default (unless bound).
+     * Preferred height of each tile. The default
+     * {@link Region#USE_COMPUTED_SIZE} resolves the height from the largest
+     * preferred area of the managed children. A positive value fixes the nominal
+     * tile height and does not let child min / pref heights expand the tile.
      *
-     * @return the cell-height property
+     * @return the preferred-tile-height property
      */
-    public final DoubleProperty cellHeightProperty() {
-        return cellHeight;
+    public final DoubleProperty prefTileHeightProperty() {
+        return prefTileHeight;
     }
 
     /**
-     * Returns the cell height.
+     * Returns the preferred tile height.
      *
-     * @return the cell height
+     * @return the preferred tile height, or {@link Region#USE_COMPUTED_SIZE}
      */
-    public final double getCellHeight() {
-        return cellHeight.get();
+    public final double getPrefTileHeight() {
+        return prefTileHeight.get();
     }
 
     /**
-     * Sets the cell height.
+     * Sets the preferred tile height.
      *
-     * @param value a finite positive height
+     * @param value {@link Region#USE_COMPUTED_SIZE}, or a finite positive height
+     * @throws IllegalArgumentException if {@code value} is neither
+     *                                  {@code USE_COMPUTED_SIZE} nor a finite
+     *                                  positive number
      */
-    public final void setCellHeight(double value) {
-        cellHeight.set(value);
+    public final void setPrefTileHeight(double value) {
+        prefTileHeight.set(value);
     }
 
-    // ==================== Max Cell Width ====================
+    // ==================== Max Tile Width ====================
 
-    private final DoubleProperty maxCellWidth = new StyleableDoubleProperty(DEFAULT_MAX_CELL_WIDTH) {
+    private final DoubleProperty maxTileWidth = new StyleableDoubleProperty(DEFAULT_MAX_TILE_WIDTH) {
         @Override
         protected void invalidated() {
             requestLayout();
@@ -269,7 +284,7 @@ public class RXTilePane extends Pane {
 
         @Override
         public CssMetaData<RXTilePane, Number> getCssMetaData() {
-            return StyleableProperties.MAX_CELL_WIDTH;
+            return StyleableProperties.MAX_TILE_WIDTH;
         }
 
         @Override
@@ -279,47 +294,45 @@ public class RXTilePane extends Pane {
 
         @Override
         public String getName() {
-            return "maxCellWidth";
+            return "maxTileWidth";
         }
     };
 
     /**
-     * Upper bound on how wide a cell may grow when
+     * Upper bound on how wide a tile may grow when
      * {@link #itemsJustifyProperty() itemsJustify} is
      * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
-     * where cells normally keep the target {@link #cellWidthProperty() cellWidth}
+     * where tiles normally keep the nominal tile width
      * while space permits.
      *
-     * <p>A cap smaller than {@code cellWidth} is degenerate
-     * ({@code max < min}) and is treated as {@code cellWidth}; the cap itself
-     * never shrinks cells below their target width. Any justification mode may
-     * still shrink cells when the available row width is narrower than the target
-     * row width.
+     * <p>A cap smaller than the nominal tile width is degenerate
+     * ({@code max < min}) and is treated as the nominal tile width; the cap itself
+     * never shrinks tiles below their nominal width.
      *
-     * @return the max-cell-width property
+     * @return the max-tile-width property
      */
-    public final DoubleProperty maxCellWidthProperty() {
-        return maxCellWidth;
+    public final DoubleProperty maxTileWidthProperty() {
+        return maxTileWidth;
     }
 
     /**
-     * Returns the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
+     * Returns the maximum tile width used in {@link ItemsJustify#STRETCH} mode.
      *
-     * @return the maximum cell width, or {@code 0} for unbounded
+     * @return the maximum tile width, or {@code 0} for unbounded
      */
-    public final double getMaxCellWidth() {
-        return maxCellWidth.get();
+    public final double getMaxTileWidth() {
+        return maxTileWidth.get();
     }
 
     /**
-     * Sets the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
+     * Sets the maximum tile width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @param value a positive cap, or {@code 0} (or any non-positive value) for
      *              unbounded
      */
-    public final void setMaxCellWidth(double value) {
-        maxCellWidth.set(value);
+    public final void setMaxTileWidth(double value) {
+        maxTileWidth.set(value);
     }
 
     // ==================== Hgap ====================
@@ -347,7 +360,7 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Horizontal gap between cells. A negative or non-finite value is treated as
+     * Horizontal gap between tiles. A negative or non-finite value is treated as
      * zero at layout time rather than rejected.
      *
      * @return the hgap property
@@ -489,15 +502,13 @@ public class RXTilePane extends Pane {
             };
 
     /**
-     * How a row uses its spare horizontal width: position the target-width block
+     * How a row uses its spare horizontal width: position the nominal-width block
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
-     * grow the cells ({@link ItemsJustify#STRETCH}, capped by
-     * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link ItemsJustify#START}. {@code cellWidth} is the target
-     * track width used for deriving columns and preferred size. When the row is
-     * narrower than its target width, all modes shrink cells for that layout
-     * pass; when the row has spare width, only {@code STRETCH} grows cells.
+     * grow the tiles ({@link ItemsJustify#STRETCH}, capped by
+     * {@link #maxTileWidthProperty() maxTileWidth}). A {@code null} value is
+     * treated as {@link ItemsJustify#START}. When the row has spare width, only
+     * {@code STRETCH} grows tiles.
      *
      * @return the items-justify property
      */
@@ -704,7 +715,7 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return snappedLeftInset() + snappedRightInset();
+        return snappedLeftInset() + nominalTileWidth() + snappedRightInset();
     }
 
     @Override
@@ -715,9 +726,9 @@ public class RXTilePane extends Pane {
     @Override
     protected double computePrefWidth(double height) {
         int columns = prefWidthColumns();
-        double cell = snapSizeX(cellWidthOrDefault());
+        double tileWidth = nominalTileWidth();
         double gap = snapSpaceX(gapOrZero(getHgap()));
-        double content = rowWidth(columns, cell, gap);
+        double content = rowWidth(columns, tileWidth, gap);
         return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
     }
 
@@ -729,12 +740,13 @@ public class RXTilePane extends Pane {
         } else {
             contentWidth = Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
         }
-        int columns = computeColumns(contentWidth);
+        double tileWidth = nominalTileWidth();
+        int columns = computeColumns(contentWidth, tileWidth);
         int count = getManagedChildren().size();
         int rows = count == 0 ? 0 : (count + columns - 1) / columns;
-        double cellH = snapSizeY(cellHeightOrDefault());
+        double tileHeight = nominalTileHeight();
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
-        double content = rows == 0 ? 0.0 : rows * cellH + (rows - 1) * vgapValue;
+        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
         return snappedTopInset() + snapSizeY(content) + snappedBottomInset();
     }
 
@@ -742,9 +754,13 @@ public class RXTilePane extends Pane {
     protected void layoutChildren() {
         double left = snappedLeftInset();
         double top = snappedTopInset();
+        double bottom = snappedBottomInset();
         double contentWidth = Math.max(0.0, getWidth() - left - snappedRightInset());
+        double contentHeight = Math.max(0.0, getHeight() - top - bottom);
+        double nominalTileWidth = nominalTileWidth();
+        double nominalTileHeight = nominalTileHeight();
 
-        int columns = computeColumns(contentWidth);
+        int columns = computeColumns(contentWidth, nominalTileWidth);
         if (actualColumnCount.get() != columns) {
             actualColumnCount.set(columns);
         }
@@ -752,36 +768,34 @@ public class RXTilePane extends Pane {
         List<Node> managed = getManagedChildren();
         double hgapValue = snapSpaceX(gapOrZero(getHgap()));
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
-        double cellH = snapSizeY(cellHeightOrDefault());
+        double tileHeight = nominalTileHeight > contentHeight ? contentHeight : nominalTileHeight;
 
-        double cellW;
+        double tileWidth;
         double effectiveHgap;
         double startX;
         ItemsJustify mode = justifyOrDefault(getItemsJustify());
-        double baseWidth = snapSizeX(cellWidthOrDefault());
-        double preferredRowWidth = columns * baseWidth + (columns - 1) * hgapValue;
-        if (preferredRowWidth > contentWidth) {
-            double scale = preferredRowWidth <= 0.0 ? 0.0 : Math.max(0.0, contentWidth) / preferredRowWidth;
-            cellW = baseWidth * scale;
-            effectiveHgap = hgapValue * scale;
+        double preferredRowWidth = columns * nominalTileWidth + (columns - 1) * hgapValue;
+        if (columns == 1 && preferredRowWidth > contentWidth) {
+            tileWidth = Math.max(0.0, contentWidth);
+            effectiveHgap = hgapValue;
             startX = 0.0;
         } else if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (columns - 1) * hgapValue) / columns;
-            double cap = maxCellWidthOrUnbounded();
-            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
+            double cap = maxTileWidthOrUnbounded();
+            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), nominalTileWidth) : 0.0;
             effectiveHgap = hgapValue;
             if (effectiveCap > 0.0 && ideal > effectiveCap) {
-                cellW = effectiveCap;
-                double used = columns * cellW + (columns - 1) * hgapValue;
+                tileWidth = effectiveCap;
+                double used = columns * tileWidth + (columns - 1) * hgapValue;
                 startX = Math.max(0.0, (contentWidth - used) / 2.0);
             } else {
-                cellW = snapSizeX(Math.max(0.0, ideal));
+                tileWidth = snapSizeX(Math.max(0.0, ideal));
                 startX = 0.0;
             }
         } else {
             effectiveHgap = hgapValue;
             startX = 0.0;
-            cellW = baseWidth;
+            tileWidth = nominalTileWidth;
             double slack = Math.max(0.0, contentWidth - preferredRowWidth);
             switch (mode) {
                 case CENTER -> startX = slack / 2.0;
@@ -807,14 +821,14 @@ public class RXTilePane extends Pane {
             Node child = managed.get(i);
             int column = i % columns;
             int row = i / columns;
-            double x = left + snapPositionX(startX + column * (cellW + effectiveHgap));
-            double y = top + snapPositionY(row * (cellH + vgapValue));
+            double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
+            double y = top + snapPositionY(row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An
             // entering child has no meaningful previous position, so it snaps in.
             double oldVisualX = child.getLayoutX() + child.getTranslateX();
             double oldVisualY = child.getLayoutY() + child.getTranslateY();
-            layoutInArea(child, x, y, cellW, cellH, -1.0, HPos.CENTER, VPos.CENTER);
+            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0, HPos.CENTER, VPos.CENTER);
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
             moves.add(new MasonryAnimator.Move(child, fromDx, fromDy, false));
@@ -826,8 +840,8 @@ public class RXTilePane extends Pane {
 
     // ==================== Helpers ====================
 
-    private int computeColumns(double availableWidth) {
-        double track = snapSizeX(cellWidthOrDefault());
+    private int computeColumns(double availableWidth, double tileWidth) {
+        double track = snapSizeX(tileWidth);
         double gap = snapSpaceX(gapOrZero(getHgap()));
         int columns = (availableWidth <= 0.0 || track <= 0.0)
                 ? 1
@@ -853,24 +867,96 @@ public class RXTilePane extends Pane {
         return Math.min(capped, MAX_RESOLVED_COLUMNS);
     }
 
-    private static double rowWidth(int columns, double cellWidth, double hgap) {
-        return columns * cellWidth + (columns - 1) * hgap;
+    private static double rowWidth(int columns, double tileWidth, double hgap) {
+        return columns * tileWidth + (columns - 1) * hgap;
     }
 
-    // Falls back to the default for a bound illegal value (coerce+throw cannot reset
-    // a bound property), so layout math always sees a finite positive cell size.
-    private double cellWidthOrDefault() {
-        double value = getCellWidth();
-        return Double.isFinite(value) && value > 0.0 ? value : DEFAULT_CELL_WIDTH;
+    private double nominalTileWidth() {
+        double value = getPrefTileWidth();
+        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
+            return snapSizeX(computeTileWidthFromChildren());
+        }
+        return snapSizeX(value);
     }
 
-    private double cellHeightOrDefault() {
-        double value = getCellHeight();
-        return Double.isFinite(value) && value > 0.0 ? value : DEFAULT_CELL_HEIGHT;
+    private double nominalTileHeight() {
+        double value = getPrefTileHeight();
+        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
+            return snapSizeY(computeTileHeightFromChildren());
+        }
+        return snapSizeY(value);
     }
 
-    private double maxCellWidthOrUnbounded() {
-        double value = getMaxCellWidth();
+    private double computeTileWidthFromChildren() {
+        List<Node> managed = getManagedChildren();
+        double height = -1.0;
+        for (Node child : managed) {
+            if (child.getContentBias() == Orientation.VERTICAL) {
+                height = computeTileHeightFromChildren();
+                break;
+            }
+        }
+        double max = 0.0;
+        for (Node child : managed) {
+            max = Math.max(max, computeChildPrefAreaWidth(child, height, true));
+        }
+        return max;
+    }
+
+    private double computeTileHeightFromChildren() {
+        List<Node> managed = getManagedChildren();
+        double width = -1.0;
+        for (Node child : managed) {
+            if (child.getContentBias() == Orientation.HORIZONTAL) {
+                width = computeMaxChildPrefAreaWidth();
+                break;
+            }
+        }
+        double max = 0.0;
+        for (Node child : managed) {
+            max = Math.max(max, computeChildPrefAreaHeight(child, width));
+        }
+        return max;
+    }
+
+    private double computeMaxChildPrefAreaWidth() {
+        double max = 0.0;
+        for (Node child : getManagedChildren()) {
+            max = Math.max(max, computeChildPrefAreaWidth(child, -1.0, false));
+        }
+        return max;
+    }
+
+    private double computeChildPrefAreaWidth(Node child, double height, boolean fillHeight) {
+        double alt = -1.0;
+        if (height != -1.0 && child.isResizable() && child.getContentBias() == Orientation.VERTICAL) {
+            if (fillHeight) {
+                alt = snapSizeY(boundedSize(child.minHeight(-1.0), height, child.maxHeight(-1.0)));
+            } else {
+                alt = snapSizeY(boundedSize(
+                        child.minHeight(-1.0),
+                        child.prefHeight(-1.0),
+                        Math.min(child.maxHeight(-1.0), height)));
+            }
+        }
+        return snapSizeX(boundedSize(child.minWidth(alt), child.prefWidth(alt), child.maxWidth(alt)));
+    }
+
+    private double computeChildPrefAreaHeight(Node child, double width) {
+        double alt = -1.0;
+        if (child.isResizable() && child.getContentBias() == Orientation.HORIZONTAL) {
+            double targetWidth = width == -1.0 ? child.prefWidth(-1.0) : width;
+            alt = snapSizeX(boundedSize(child.minWidth(-1.0), targetWidth, child.maxWidth(-1.0)));
+        }
+        return snapSizeY(boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt)));
+    }
+
+    private static double boundedSize(double min, double value, double max) {
+        return Math.min(Math.max(value, min), Math.max(min, max));
+    }
+
+    private double maxTileWidthOrUnbounded() {
+        double value = getMaxTileWidth();
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
@@ -897,45 +983,45 @@ public class RXTilePane extends Pane {
 
     private static final class StyleableProperties {
 
-        private static final CssMetaData<RXTilePane, Number> CELL_WIDTH =
-                new CssMetaData<>("-rx-cell-width", SizeConverter.getInstance(), DEFAULT_CELL_WIDTH) {
+        private static final CssMetaData<RXTilePane, Number> PREF_TILE_WIDTH =
+                new CssMetaData<>("-rx-pref-tile-width", SizeConverter.getInstance(), DEFAULT_PREF_TILE_WIDTH) {
                     @Override
                     public boolean isSettable(RXTilePane node) {
-                        return !node.cellWidth.isBound();
+                        return !node.prefTileWidth.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
-                        return (StyleableProperty<Number>) node.cellWidthProperty();
+                        return (StyleableProperty<Number>) node.prefTileWidthProperty();
                     }
                 };
 
-        private static final CssMetaData<RXTilePane, Number> CELL_HEIGHT =
-                new CssMetaData<>("-rx-cell-height", SizeConverter.getInstance(), DEFAULT_CELL_HEIGHT) {
+        private static final CssMetaData<RXTilePane, Number> PREF_TILE_HEIGHT =
+                new CssMetaData<>("-rx-pref-tile-height", SizeConverter.getInstance(), DEFAULT_PREF_TILE_HEIGHT) {
                     @Override
                     public boolean isSettable(RXTilePane node) {
-                        return !node.cellHeight.isBound();
+                        return !node.prefTileHeight.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
-                        return (StyleableProperty<Number>) node.cellHeightProperty();
+                        return (StyleableProperty<Number>) node.prefTileHeightProperty();
                     }
                 };
 
-        private static final CssMetaData<RXTilePane, Number> MAX_CELL_WIDTH =
-                new CssMetaData<>("-rx-max-cell-width", SizeConverter.getInstance(), DEFAULT_MAX_CELL_WIDTH) {
+        private static final CssMetaData<RXTilePane, Number> MAX_TILE_WIDTH =
+                new CssMetaData<>("-rx-max-tile-width", SizeConverter.getInstance(), DEFAULT_MAX_TILE_WIDTH) {
                     @Override
                     public boolean isSettable(RXTilePane node) {
-                        return !node.maxCellWidth.isBound();
+                        return !node.maxTileWidth.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
-                        return (StyleableProperty<Number>) node.maxCellWidthProperty();
+                        return (StyleableProperty<Number>) node.maxTileWidthProperty();
                     }
                 };
 
@@ -1016,7 +1102,7 @@ public class RXTilePane extends Pane {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, HGAP, VGAP,
+            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, HGAP, VGAP,
                     ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
