@@ -3,13 +3,11 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import javafx.application.Application;
-import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
@@ -43,16 +41,6 @@ public class RXTilePaneDemo extends Application {
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXTilePane Demo");
         primaryStage.show();
-    }
-
-    private Region createHeader() {
-        Label title = new Label("Card wall");
-        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Resize the window — the cards reflow and glide to their new slots");
-        subtitle.setStyle("-fx-text-fill: #6b7280;");
-        VBox header = new VBox(2.0, title, subtitle);
-        header.setPadding(new Insets(16, 16, 8, 16));
-        return header;
     }
 
     private Region card(int index) {

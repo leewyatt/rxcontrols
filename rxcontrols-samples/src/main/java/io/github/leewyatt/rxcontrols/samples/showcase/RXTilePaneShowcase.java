@@ -55,7 +55,7 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         tiles.setStyle("-fx-background-color: #caefff;");
         tiles.setAnimated(true);
 
-        // Aad unresizable nodes
+        // Add unresizable nodes
         tiles.getChildren().addAll(circleProbe(), rectangleProbe());
 
         // Add resizable nodes
@@ -193,13 +193,6 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
             int v = (int) Math.round(slider.getValue());
             return v <= 0 ? zeroText : Integer.toString(v);
         }, slider.valueProperty()));
-        return label;
-    }
-
-    private Label hint(String text) {
-        Label label = new Label(text);
-        label.getStyleClass().add("hint");
-        label.setWrapText(true);
         return label;
     }
 
