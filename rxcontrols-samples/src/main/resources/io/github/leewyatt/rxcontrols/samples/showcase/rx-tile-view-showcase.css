@@ -2,6 +2,13 @@
     -fx-padding: 12px;
 }
 
+.rx-tile-section-header {
+    -fx-background-color: -rx-primary-bg;
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-width: 0 0 1 0;
+    -fx-text-fill: -rx-on-surface;
+}
+
 .tile-placeholder {
     -fx-font-size: 16px;
     -fx-text-fill: -rx-on-surface-secondary;
