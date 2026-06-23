@@ -62,8 +62,8 @@ import java.util.Set;
  * height, mirroring JavaFX {@code TilePane}'s defensive fallback. A resizable
  * child fills its tile (bounded by its own max size); when a child cannot fill
  * its tile, {@link #tileAlignmentProperty() tileAlignment} positions it inside
- * the slot. When {@link #animatedProperty() animated} is on, children glide to
- * their new positions as the column count changes.
+ * the slot. When {@link #animatedProperty() animated} is on, existing children
+ * glide to their new positions after relayout.
  */
 public class RXTilePane extends Pane {
 
@@ -679,9 +679,9 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether children glide to their new positions when a change in the column
-     * count reflows the grid. Off by default; turning it off mid-flight snaps every
-     * child to its final position.
+     * Whether existing children glide to their new positions after relayout. Off
+     * by default; turning it off mid-flight snaps every child to its final
+     * position.
      *
      * @return the animated property
      */
@@ -690,18 +690,18 @@ public class RXTilePane extends Pane {
     }
 
     /**
-     * Returns whether reorder animation is enabled.
+     * Returns whether relayout animation is enabled.
      *
-     * @return whether reorder animation is enabled
+     * @return whether relayout animation is enabled
      */
     public final boolean isAnimated() {
         return animated.get();
     }
 
     /**
-     * Sets whether reorder animation is enabled.
+     * Sets whether relayout animation is enabled.
      *
-     * @param value whether reorder animation is enabled
+     * @param value whether relayout animation is enabled
      */
     public final void setAnimated(boolean value) {
         animated.set(value);
@@ -735,7 +735,7 @@ public class RXTilePane extends Pane {
             };
 
     /**
-     * Duration of a single reorder glide. A {@code null}, non-positive, unknown or
+     * Duration of a single relayout glide. A {@code null}, non-positive, unknown or
      * indefinite value is accepted and disables animation, like {@code animated=false}.
      *
      * @return the animation-duration property
@@ -745,7 +745,7 @@ public class RXTilePane extends Pane {
     }
 
     /**
-     * Returns the reorder-animation duration.
+     * Returns the relayout-animation duration.
      *
      * @return the animation duration
      */
@@ -754,7 +754,7 @@ public class RXTilePane extends Pane {
     }
 
     /**
-     * Sets the reorder-animation duration.
+     * Sets the relayout-animation duration.
      *
      * @param value the duration; {@code null} or any non-positive value disables animation
      */
@@ -768,7 +768,7 @@ public class RXTilePane extends Pane {
             new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
 
     /**
-     * Interpolator for the reorder glide. {@code null} falls back to
+     * Interpolator for the relayout glide. {@code null} falls back to
      * {@link Interpolator#EASE_BOTH}. Not styleable (no stable CSS converter).
      *
      * @return the animation-interpolator property

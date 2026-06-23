@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * Showcase for {@link RXTilePane}. Renders a responsive wall of node cards and
  * exposes every knob — tile size, spacing, max columns, layout and
- * reorder animation — plus add / remove controls and a live readout of the
+ * relayout animation — plus add / remove controls and a live readout of the
  * resolved column count, so the responsive grid and the glide can be exercised
  * directly on real children.
  */
@@ -140,7 +140,7 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     }
 
     private Node animationGrid() {
-        CheckBox animated = new CheckBox("Animate reorder");
+        CheckBox animated = new CheckBox("Animate relayout");
         animated.setSelected(tiles.isAnimated());
         animated.selectedProperty().addListener((obs, old, value) -> tiles.setAnimated(value));
 
