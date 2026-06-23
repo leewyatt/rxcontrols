@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
@@ -74,6 +75,7 @@ public class RXDialogLayout extends Region {
                           @NamedArg("contentText") String contentText) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
+        container.getStyleClass().add("container");
         titleLabel.getStyleClass().add("title");
         contentLabel.getStyleClass().add("content-text");
         contentLabel.setWrapText(true);
@@ -417,6 +419,19 @@ public class RXDialogLayout extends Region {
     }
 
     // ==================== Layout ====================
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Delegates to the inner column so a wrapped {@code contentText} (a
+     * HORIZONTAL-biased label) gets its height computed at the laid-out width
+     * instead of at an unconstrained width (which would reserve too little
+     * vertical space and clip the body).</p>
+     */
+    @Override
+    public Orientation getContentBias() {
+        return container.getContentBias();
+    }
 
     /**
      * {@inheritDoc}

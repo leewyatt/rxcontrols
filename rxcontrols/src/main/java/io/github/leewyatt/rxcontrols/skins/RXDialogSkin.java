@@ -13,6 +13,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventType;
 import javafx.geometry.HPos;
@@ -76,6 +77,13 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private boolean closeInFlight;
     // Focus owner captured when a modal dialog opened, restored when it hides.
     private Node prevFocusOwner;
+
+    // True while no other dialog is stacked above this one in the shared layer. Only the
+    // top-most dialog paints its scrim, so N stacked modal dialogs show one merged scrim
+    // rather than N composited ones.
+    private boolean topMost = true;
+    private Parent observedParent;
+    private final ListChangeListener<Node> stackListener = change -> refreshTopMost();
 
     // Single scalar [0,1]: 0 = fully closed pose, 1 = fully open pose. Its change
     // re-applies the pose, so the Timeline only has to tween this one value.
@@ -147,16 +155,16 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         disposer.registerListener(control.getButtonTypes(), this::rebuildActions);
         disposer.registerListener(control.showCloseButtonProperty(), this::updateCloseButton);
         disposer.registerListener(control.modalProperty(), this::onModalChanged);
+        // Track stacking position so only the top-most dialog shows its scrim. The dialog's
+        // parent is the shared RXDialogLayer (a StackPane) whose last child is the top-most
+        // dialog; observe the parent and its child list to follow that position.
+        disposer.registerListener(control.parentProperty(),
+                (obs, oldParent, newParent) -> onParentChanged(newParent));
+        disposer.registerDisposeTask(this::detachStackListener);
+        onParentChanged(control.getParent());
         // transition / animated / animationDuration / animationInterpolator are read
         // at play time, so a change applies to the next transition.
-        disposer.registerListener(control.sceneProperty(), (obs, oldScene, newScene) -> {
-            if (newScene == null) {
-                stopAnimation();
-                // Drop the captured focus owner if the dialog left the scene without
-                // going through the close gate (no finalizeClose -> restoreFocus).
-                prevFocusOwner = null;
-            }
-        });
+        disposer.registerListener(control.sceneProperty(), (obs, oldScene, newScene) -> onSceneChanged(newScene));
     }
 
     // ==================== Slots ====================
@@ -400,12 +408,33 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
     }
 
+    // The dialog left its scene by some path other than the normal close gate (the app
+    // swapped the scene root, removed an ancestor, or a re-show pulled it off a still-running
+    // close). Settle the in-flight transition so a close still fires HIDDEN / delivers the
+    // result / restores focus instead of stranding; finalize* is idempotent via the inFlight
+    // guards, so the normal detach (which also nulls the scene) is a harmless no-op here.
+    private void onSceneChanged(Scene newScene) {
+        if (newScene != null) {
+            return;
+        }
+        stopAnimation();
+        if (getSkinnable().isShowing()) {
+            finalizeOpen();
+        } else {
+            finalizeClose();
+        }
+    }
+
     // ==================== Pose ====================
 
     private void applyPose(double rawProgress) {
         double p = clamp01(rawProgress);
         dialogCard.setOpacity(p);
-        overlay.setOpacity(scrimActive() ? p : 0.0);
+        boolean scrim = scrimActive();
+        overlay.setOpacity(scrim ? p : 0.0);
+        // An inactive scrim (non-modal, or a lower stacked dialog) must not swallow clicks
+        // even while a transition still has it visible: opacity alone does not block picking.
+        overlay.setMouseTransparent(!scrim);
 
         RXDialogTransition transition = transitionOrDefault();
         if (transition == RXDialogTransition.CENTER) {
@@ -481,7 +510,47 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     }
 
     private boolean scrimActive() {
-        return getSkinnable().isModal();
+        return getSkinnable().isModal() && topMost;
+    }
+
+    // ==================== Stacking (top-most) ====================
+
+    private void onParentChanged(Parent newParent) {
+        detachStackListener();
+        if (newParent != null) {
+            observedParent = newParent;
+            newParent.getChildrenUnmodifiable().addListener(stackListener);
+        }
+        refreshTopMost();
+    }
+
+    private void detachStackListener() {
+        if (observedParent != null) {
+            observedParent.getChildrenUnmodifiable().removeListener(stackListener);
+            observedParent = null;
+        }
+    }
+
+    private void refreshTopMost() {
+        boolean nowTop = computeTopMost();
+        if (nowTop == topMost) {
+            return;
+        }
+        topMost = nowTop;
+        // Re-settle the scrim for the new stacking position. While an animation owns the
+        // scrim, applyPose already re-reads scrimActive() each frame.
+        if (!isAnimationRunning()) {
+            applyScrimRest(getSkinnable().isShowing());
+        }
+    }
+
+    private boolean computeTopMost() {
+        Parent parent = getSkinnable().getParent();
+        if (parent == null) {
+            return true;
+        }
+        List<Node> siblings = parent.getChildrenUnmodifiable();
+        return siblings.isEmpty() || siblings.get(siblings.size() - 1) == getSkinnable();
     }
 
     // ==================== Focus (a11y) ====================

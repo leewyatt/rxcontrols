@@ -1040,29 +1040,29 @@
  *                                                                             *
  ******************************************************************************/
 
-.rx-dialog-layout > .heading {
+.rx-dialog-layout > .container > .heading {
     -fx-padding: 20 24 0 24;
 }
 
-.rx-dialog-layout > .heading > .title {
+.rx-dialog-layout > .container > .heading > .title {
     -fx-font-size: 1.15em;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
 }
 
-.rx-dialog-layout > .body {
+.rx-dialog-layout > .container > .body {
     -fx-padding: 16 24 20 24;
 }
 
-.rx-dialog-layout > .body > .content-text {
+.rx-dialog-layout > .container > .body > .content-text {
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
-.rx-dialog-layout > .details-toggle {
+.rx-dialog-layout > .container > .details-toggle {
     -fx-padding: 0 24 8 24;
 }
 
-.rx-dialog-layout > .expandable-content {
+.rx-dialog-layout > .container > .expandable-content {
     -fx-padding: 0 24 16 24;
 }
 

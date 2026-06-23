@@ -7,7 +7,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonType;
 import javafx.scene.layout.Region;
@@ -231,6 +233,59 @@ public class RXDialogTest {
             dialog.close();
             assertFalse(dialog.isShowing());
             assertSame(root, scene.getRoot(), "the original root is restored after the last dialog hides");
+        });
+    }
+
+    @Test
+    public void reentrantCloseFromHandlerDoesNotDoubleClose() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
+            List<RXDialogEvent> events = recordEvents(dialog);
+            // A handler that itself requests a close must not recurse or emit a second
+            // HIDING after HIDDEN: the re-entrant close is swallowed by the close gate.
+            dialog.addEventHandler(RXDialogEvent.CLOSE_REQUEST, e -> dialog.close());
+
+            Region owner = new Region();
+            new Scene(new StackPane(owner), 400, 300);
+            dialog.show(owner);
+            dialog.requestClose(ButtonType.OK, CloseReason.ACTION_BUTTON);
+
+            assertFalse(dialog.isShowing(), "dialog closes exactly once");
+            List<EventType<? extends Event>> types =
+                    events.stream().map(RXDialogEvent::getEventType).toList();
+            assertEquals(1, types.stream().filter(t -> t == RXDialogEvent.HIDING).count(),
+                    "exactly one HIDING despite the re-entrant close");
+            assertEquals(1, types.stream().filter(t -> t == RXDialogEvent.HIDDEN).count(),
+                    "exactly one HIDDEN");
+            assertSame(RXDialogEvent.HIDDEN, types.get(types.size() - 1),
+                    "HIDDEN is terminal (no spurious HIDING fires after it)");
+        });
+    }
+
+    @Test
+    public void stackedModalSuppressesTheLowerScrim() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            new Scene(new StackPane(owner), 400, 300);
+
+            RXDialog<ButtonType> lower = newDialog(ButtonType.OK);
+            RXDialog<ButtonType> upper = newDialog(ButtonType.OK);
+            lower.show(owner);
+            upper.show(owner);
+
+            Node lowerScrim = lower.lookup(".overlay");
+            Node upperScrim = upper.lookup(".overlay");
+            assertNotNull(lowerScrim, "the lower dialog has a scrim node");
+            assertNotNull(upperScrim, "the upper dialog has a scrim node");
+            assertFalse(lowerScrim.isVisible(),
+                    "a dialog covered by another suppresses its own scrim (one merged scrim)");
+            assertTrue(upperScrim.isVisible(), "the top-most dialog shows its scrim");
+
+            upper.close();
+            assertTrue(lowerScrim.isVisible(),
+                    "closing the top dialog restores the now-top-most dialog's scrim");
+
+            lower.close();
         });
     }
 
