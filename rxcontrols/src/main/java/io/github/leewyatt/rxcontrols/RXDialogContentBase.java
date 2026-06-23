@@ -22,7 +22,7 @@ public class RXDialogContentBase extends Region implements RXDialogAware {
      * {@inheritDoc}
      */
     @Override
-    public final void setDialog(RXDialog<?> value) {
+    public final void updateDialog(RXDialog<?> value) {
         dialog.set(value);
     }
 
