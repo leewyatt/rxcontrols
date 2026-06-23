@@ -18,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link MasonryAnimator}, covering the synchronous transform ownership
+ * Tests for {@link RelayoutAnimator}, covering the synchronous transform ownership
  * that the relayout and exit paths must guarantee.
  */
-public class MasonryAnimatorTest {
+public class RelayoutAnimatorTest {
 
     private static final double EPSILON = 1.0e-9;
     private static final Duration DURATION = Duration.millis(100.0);
@@ -52,7 +52,7 @@ public class MasonryAnimatorTest {
     @Test
     public void exitResetsTranslateX() throws Exception {
         runOnFx(() -> {
-            MasonryAnimator animator = new MasonryAnimator();
+            RelayoutAnimator animator = new RelayoutAnimator();
             Region node = new Region();
             node.setTranslateX(50.0);
             node.setTranslateY(8.0);
@@ -70,7 +70,7 @@ public class MasonryAnimatorTest {
     @Test
     public void exitWithoutAnimationRemovesImmediately() throws Exception {
         runOnFx(() -> {
-            MasonryAnimator animator = new MasonryAnimator();
+            RelayoutAnimator animator = new RelayoutAnimator();
             AtomicBoolean removed = new AtomicBoolean(false);
 
             animator.runExit(new Region(), false, DURATION, Interpolator.EASE_BOTH,
@@ -86,7 +86,7 @@ public class MasonryAnimatorTest {
     @Test
     public void forgetResetsTransforms() throws Exception {
         runOnFx(() -> {
-            MasonryAnimator animator = new MasonryAnimator();
+            RelayoutAnimator animator = new RelayoutAnimator();
             Region node = new Region();
             node.setTranslateX(20.0);
             node.setTranslateY(30.0);
@@ -106,12 +106,12 @@ public class MasonryAnimatorTest {
     @Test
     public void relayoutSnapsWhenNotAnimated() throws Exception {
         runOnFx(() -> {
-            MasonryAnimator animator = new MasonryAnimator();
+            RelayoutAnimator animator = new RelayoutAnimator();
             Region node = new Region();
             node.setTranslateX(15.0);
             node.setOpacity(0.0);
 
-            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 15.0, 0.0, true)),
+            animator.runRelayout(List.of(new RelayoutAnimator.Move(node, 15.0, 0.0, true)),
                     false, DURATION, Interpolator.EASE_BOTH);
 
             assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX snapped");
@@ -125,13 +125,13 @@ public class MasonryAnimatorTest {
      */
     @Test
     public void relayoutFinishResetsTransforms() throws Exception {
-        MasonryAnimator animator = new MasonryAnimator();
+        RelayoutAnimator animator = new RelayoutAnimator();
         Region node = new Region();
 
         runOnFx(() -> {
             node.setTranslateX(20.0);
             node.setOpacity(0.0);
-            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 20.0, 0.0, true)),
+            animator.runRelayout(List.of(new RelayoutAnimator.Move(node, 20.0, 0.0, true)),
                     true, SHORT, Interpolator.EASE_BOTH);
         });
         waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON && node.getOpacity() > 1.0 - EPSILON);
@@ -148,7 +148,7 @@ public class MasonryAnimatorTest {
      */
     @Test
     public void exitFinishRemovesAndResets() throws Exception {
-        MasonryAnimator animator = new MasonryAnimator();
+        RelayoutAnimator animator = new RelayoutAnimator();
         Region node = new Region();
         AtomicBoolean removed = new AtomicBoolean(false);
 
@@ -170,15 +170,15 @@ public class MasonryAnimatorTest {
      */
     @Test
     public void supersededRelayoutSettlesAtFinal() throws Exception {
-        MasonryAnimator animator = new MasonryAnimator();
+        RelayoutAnimator animator = new RelayoutAnimator();
         Region node = new Region();
 
         runOnFx(() -> {
             node.setTranslateX(30.0);
-            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 30.0, 0.0, false)),
+            animator.runRelayout(List.of(new RelayoutAnimator.Move(node, 30.0, 0.0, false)),
                     true, Duration.millis(120.0), Interpolator.EASE_BOTH);
             node.setTranslateX(15.0);
-            animator.runRelayout(List.of(new MasonryAnimator.Move(node, 15.0, 0.0, false)),
+            animator.runRelayout(List.of(new RelayoutAnimator.Move(node, 15.0, 0.0, false)),
                     true, SHORT, Interpolator.EASE_BOTH);
         });
         waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON);
@@ -192,7 +192,7 @@ public class MasonryAnimatorTest {
      */
     @Test
     public void exitDuringRelayoutKeepsSurvivorClean() throws Exception {
-        MasonryAnimator animator = new MasonryAnimator();
+        RelayoutAnimator animator = new RelayoutAnimator();
         Region survivor = new Region();
         Region leaving = new Region();
         AtomicBoolean removed = new AtomicBoolean(false);
@@ -201,8 +201,8 @@ public class MasonryAnimatorTest {
             survivor.setTranslateX(20.0);
             leaving.setTranslateX(25.0);
             animator.runRelayout(List.of(
-                    new MasonryAnimator.Move(survivor, 20.0, 0.0, false),
-                    new MasonryAnimator.Move(leaving, 25.0, 0.0, false)),
+                    new RelayoutAnimator.Move(survivor, 20.0, 0.0, false),
+                    new RelayoutAnimator.Move(leaving, 25.0, 0.0, false)),
                     true, Duration.millis(120.0), Interpolator.EASE_BOTH);
             animator.runExit(leaving, true, SHORT, Interpolator.EASE_BOTH, -8.0, () -> removed.set(true));
         });

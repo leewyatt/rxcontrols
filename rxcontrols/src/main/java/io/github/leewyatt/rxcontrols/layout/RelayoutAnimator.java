@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Drives FLIP relayout and exit animations for {@link RXMasonryPane}.
+ * Drives FLIP relayout and exit animations for layout panes.
  *
  * <p>Layout writes the final {@code layoutX} / {@code layoutY}; this animator only
  * tweens {@code translateX} / {@code translateY} and {@code opacity}, leaving the
@@ -31,7 +31,7 @@ import java.util.Set;
  * converge on the same cleanup: {@code translateX} / {@code translateY} return to
  * {@code 0} and {@code opacity} to {@code 1} (or the node is removed for exits).</p>
  */
-final class MasonryAnimator {
+final class RelayoutAnimator {
 
     /**
      * One node move within a relayout pass.
