@@ -6,6 +6,8 @@ import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -137,6 +139,48 @@ public class RXDialogLayoutTest {
                     "A fairly long body paragraph that wraps across several lines once its width is constrained.");
             assertEquals(Orientation.HORIZONTAL, layout.getContentBias(),
                     "wrapped contentText should make the layout HORIZONTAL-biased");
+        });
+    }
+
+    @Test
+    public void showCloseAddsPinnedCloseButtonToHeading() throws Exception {
+        runOnFx(() -> {
+            RXDialogLayout layout = new RXDialogLayout();
+            assertNull(layout.lookup(".close-button"), "no close button by default");
+
+            layout.setShowClose(true);
+            Region closeButton = (Region) layout.lookup(".close-button");
+            assertNotNull(closeButton, "showClose adds a close button");
+            assertNotNull(closeButton.getParent(), "the close button is mounted in the heading (in flow)");
+            // Pinned to its preferred size, so the BorderPane right slot does not stretch it.
+            assertEquals(closeButton.prefWidth(-1), closeButton.maxWidth(-1), 0.01,
+                    "the close button is pinned to its preferred size");
+            assertNull(layout.getDialog(),
+                    "a standalone layout has no hosting dialog, so clicking the X is a no-op");
+        });
+    }
+
+    @Test
+    public void closeButtonStyleResolvesAndStandaloneClickIsNoOp() throws Exception {
+        runOnFx(() -> {
+            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            layout.setShowClose(true);
+            StackPane root = new StackPane(layout);
+            new Scene(root, 320, 240);
+            root.applyCss();
+            root.layout();
+
+            Region closeButton = (Region) layout.lookup(".close-button");
+            assertNotNull(closeButton, "the close button exists");
+            // The heading > .close-button selector is live (padding applies after a CSS pass).
+            assertTrue(closeButton.getInsets().getTop() > 0.0,
+                    "close-button padding resolves (the in-header selector is live)");
+
+            // Standalone (no hosting dialog): firing the X must be a graceful no-op, not a throw.
+            assertNull(layout.getDialog());
+            closeButton.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, true, false, false,
+                    false, false, false, null));
         });
     }
 

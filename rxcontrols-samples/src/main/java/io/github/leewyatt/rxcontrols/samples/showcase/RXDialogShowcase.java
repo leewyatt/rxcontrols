@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.RXDialogLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
-
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -35,6 +34,7 @@ import java.util.function.Consumer;
 public class RXDialogShowcase extends RXShowcaseApplication {
 
     private RXDialog<ButtonType> dialog;
+    private RXDialogLayout layout;
     private final StringProperty lastEvent = new SimpleStringProperty("—");
     private final StringProperty lastResult = new SimpleStringProperty("—");
 
@@ -56,8 +56,9 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         dialog = new RXDialog<>();
-        dialog.setContent(new RXDialogLayout("Save changes?",
-                "Your changes will be lost if you don't save them."));
+        layout = new RXDialogLayout("Save changes?",
+                "Your changes will be lost if you don't save them.");
+        dialog.setContent(layout);
         dialog.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
         dialog.setResultConverter(buttonType -> buttonType);
         dialog.setOnResult(result -> lastResult.set(result == null ? "—" : result.getText()));
@@ -114,7 +115,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 checkBox("Modal (scrim + focus trap)", dialog.isModal(), dialog::setModal),
                 checkBox("Close on ESC", dialog.isCloseOnEsc(), dialog::setCloseOnEsc),
                 checkBox("Close on scrim click", dialog.isCloseOnScrimClick(), dialog::setCloseOnScrimClick),
-                checkBox("Show close (X) button", dialog.isShowCloseButton(), dialog::setShowCloseButton));
+                checkBox("Show close (X) button", layout.isShowClose(), layout::setShowClose));
     }
 
     private Node stateBox() {

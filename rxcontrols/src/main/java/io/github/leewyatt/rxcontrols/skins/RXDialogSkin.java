@@ -17,8 +17,6 @@ import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventType;
 import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -68,7 +66,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private final StackPane contentHolder = new StackPane();
     private final VBox cardColumn = new VBox();
     private final ButtonBar actionsBar = new ButtonBar();
-    private StackPane closeButton;
 
     private Timeline animation;
     // Guard lifecycle firing: SHOWN fires only when a show transition is in flight,
@@ -123,7 +120,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
         updateContent();
         rebuildActions();
-        updateCloseButton();
         snapToShowing();
 
         // Scrim click -> close (only while modal + open; the scrim is pickable only then).
@@ -153,7 +149,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
                 (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.getButtonTypes(), this::rebuildActions);
-        disposer.registerListener(control.showCloseButtonProperty(), this::updateCloseButton);
         disposer.registerListener(control.modalProperty(), this::onModalChanged);
         // Track stacking position so only the top-most dialog shows its scrim. The dialog's
         // parent is the shared RXDialogLayer (a StackPane) whose last child is the top-most
@@ -203,40 +198,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
         button.setOnAction((ActionEvent event) ->
                 getSkinnable().requestClose(buttonType, CloseReason.ACTION_BUTTON));
-        return button;
-    }
-
-    private void updateCloseButton() {
-        if (getSkinnable().isShowCloseButton()) {
-            if (closeButton == null) {
-                closeButton = createCloseButton();
-            }
-            if (!dialogCard.getChildren().contains(closeButton)) {
-                dialogCard.getChildren().add(closeButton);
-            }
-        } else if (closeButton != null) {
-            dialogCard.getChildren().remove(closeButton);
-        }
-    }
-
-    private StackPane createCloseButton() {
-        Region icon = new Region();
-        icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.setMouseTransparent(true);
-        StackPane button = new StackPane(icon);
-        button.getStyleClass().add("close-button");
-        // Pin the wrapper to its preferred size: dialogCard is a StackPane that would
-        // otherwise stretch this child to fill the whole card (max defaults to MAX_VALUE),
-        // covering the content and turning the entire card into one giant close button.
-        button.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        StackPane.setAlignment(button, Pos.TOP_RIGHT);
-        StackPane.setMargin(button, new Insets(8));
-        // Created at most once (lazy), so registering with the disposer is safe.
-        disposer.registerEventHandler(button, MouseEvent.MOUSE_CLICKED, event -> {
-            getSkinnable().requestClose(null, CloseReason.CLOSE_BUTTON);
-            event.consume();
-        });
         return button;
     }
 

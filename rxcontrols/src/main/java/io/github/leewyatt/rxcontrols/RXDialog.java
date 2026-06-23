@@ -53,8 +53,9 @@ import java.util.function.Consumer;
  * <p>The card hosts the {@link #contentProperty() content} node (often an
  * {@link RXDialogLayout}, or any bare {@code Node}) above an action bar the skin
  * builds from {@link #getButtonTypes() buttonTypes}. Clicking an action button,
- * pressing ESC, clicking the scrim, or clicking the optional close (X) button all
- * flow through one vetoable gate: a {@code CLOSE_REQUEST}
+ * pressing ESC, clicking the scrim, or clicking a content-provided close (X) button
+ * (e.g. {@link RXDialogLayout#showCloseProperty() RXDialogLayout's}) all flow
+ * through one vetoable gate: a {@code CLOSE_REQUEST}
  * {@link RXDialogEvent} fires first (consume it to keep the dialog open); if not
  * vetoed, the {@link #resultProperty() result} is computed from the candidate
  * {@link ButtonType} via {@link #resultConverterProperty() resultConverter}, a
@@ -103,7 +104,6 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_MODAL = true;
     private static final boolean DEFAULT_CLOSE_ON_ESC = true;
     private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
-    private static final boolean DEFAULT_SHOW_CLOSE_BUTTON = false;
     private static final boolean DEFAULT_SHOWING = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog";
@@ -154,12 +154,51 @@ public class RXDialog<R> extends Control {
 
     // ==================== Content ====================
 
-    private final ObjectProperty<Node> content = new SimpleObjectProperty<>(this, "content");
+    // The RXDialogAware content currently holding our back-reference, so it can be
+    // cleared when the content changes.
+    private RXDialogAware awareContent;
+
+    private final ObjectProperty<Node> content = new SimpleObjectProperty<>(this, "content") {
+        @Override
+        protected void invalidated() {
+            // Inject this dialog into RXDialogAware content (clearing the previous one) so the
+            // content — e.g. an RXDialogLayout header close button — can drive the dialog.
+            // The tracked field is updated before each setDialog notification so a re-entrant
+            // setContent (from a dialogProperty listener) always observes a consistent state.
+            RXDialogAware previous = awareContent;
+            awareContent = null;
+            if (previous != null) {
+                previous.setDialog(null);
+            }
+            if (get() instanceof RXDialogAware aware) {
+                // A node lives in one place: if it is another dialog's tracked content, release
+                // it from that dialog so the prior owner never later nulls this injection.
+                RXDialog<?> prior = aware.getDialog();
+                if (prior != null && prior != RXDialog.this) {
+                    prior.releaseAwareContent(aware);
+                }
+                awareContent = aware;
+                aware.setDialog(RXDialog.this);
+            }
+        }
+    };
+
+    // Invoked by another dialog that is taking over this aware node as its content, so this
+    // dialog stops tracking it and never later clears the new owner's injection.
+    private void releaseAwareContent(RXDialogAware aware) {
+        if (awareContent == aware) {
+            awareContent = null;
+        }
+    }
 
     /**
      * The card's main content node — an {@link RXDialogLayout} or any bare
      * {@code Node}. The skin renders it above the action bar built from
      * {@link #getButtonTypes() buttonTypes}. May be {@code null} for an empty card.
+     *
+     * <p>If the content implements {@link RXDialogAware} (as {@link RXDialogLayout}
+     * does), this dialog injects itself into it while it is the content, so the
+     * content can drive the dialog.</p>
      *
      * @return the content property
      */
@@ -464,41 +503,6 @@ public class RXDialog<R> extends Control {
      */
     public final void setCloseOnScrimClick(boolean value) {
         closeOnScrimClick.set(value);
-    }
-
-    // ==================== Show Close Button ====================
-
-    private final BooleanProperty showCloseButton =
-            new SimpleBooleanProperty(this, "showCloseButton", DEFAULT_SHOW_CLOSE_BUTTON);
-
-    /**
-     * Whether the skin renders a close (X) button in the card's top-right corner.
-     * Default {@code false} (Material modal convention favours explicit action
-     * buttons). Clicking it requests a close with reason
-     * {@link CloseReason#CLOSE_BUTTON}.
-     *
-     * @return the show-close-button property
-     */
-    public final BooleanProperty showCloseButtonProperty() {
-        return showCloseButton;
-    }
-
-    /**
-     * Returns whether the close button is shown.
-     *
-     * @return whether the close button is shown
-     */
-    public final boolean isShowCloseButton() {
-        return showCloseButton.get();
-    }
-
-    /**
-     * Sets whether the close button is shown.
-     *
-     * @param value whether the close button is shown
-     */
-    public final void setShowCloseButton(boolean value) {
-        showCloseButton.set(value);
     }
 
     // ==================== Transition ====================

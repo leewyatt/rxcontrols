@@ -12,6 +12,8 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonType;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -71,7 +72,6 @@ public class RXDialogTest {
             assertTrue(dialog.isModal());
             assertTrue(dialog.isCloseOnEsc());
             assertTrue(dialog.isCloseOnScrimClick());
-            assertFalse(dialog.isShowCloseButton());
             assertNull(dialog.getResult());
             assertNull(dialog.getContent());
             assertTrue(dialog.getButtonTypes().isEmpty());
@@ -291,24 +291,111 @@ public class RXDialogTest {
     }
 
     @Test
-    public void closeButtonIsPinnedAndDoesNotFillTheCard() throws Exception {
+    public void awareContentReceivesDialogInjection() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            assertNull(layout.getDialog(), "unhosted content has no dialog");
+
+            dialog.setContent(layout);
+            assertSame(dialog, layout.getDialog(), "content is injected with its hosting dialog");
+
+            RXDialogLayout other = new RXDialogLayout("Other", "Body");
+            dialog.setContent(other);
+            assertNull(layout.getDialog(), "the replaced content's dialog ref is cleared");
+            assertSame(dialog, other.getDialog(), "the new content is injected");
+
+            dialog.setContent(null);
+            assertNull(other.getDialog(), "clearing the content clears the injection");
+        });
+    }
+
+    @Test
+    public void plainAndGeneralContentInjectionContract() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+
+            // A plain (non-aware) Node is accepted and receives no injection (no exception).
+            Region plain = new Region();
+            dialog.setContent(plain);
+            assertSame(plain, dialog.getContent(), "a plain node is accepted as content");
+
+            // A bare RXDialogContent (not an RXDialogLayout) gets the general injection.
+            RXDialogContent aware = new RXDialogContent();
+            dialog.setContent(aware);
+            assertSame(dialog, aware.getDialog(), "the general RXDialogContent channel is injected");
+
+            dialog.setContent(null);
+            assertNull(aware.getDialog(), "clearing the content clears the general injection");
+        });
+    }
+
+    @Test
+    public void movingAwareContentToAnotherDialogReleasesTheFirst() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> first = new RXDialog<>();
+            RXDialog<ButtonType> second = new RXDialog<>();
+            RXDialogContent content = new RXDialogContent();
+
+            first.setContent(content);
+            second.setContent(content); // move the same node to a second dialog
+            assertSame(second, content.getDialog(), "the new dialog owns the moved content");
+
+            // The first dialog, no longer tracking the node, must not clobber the second's injection.
+            first.setContent(null);
+            assertSame(second, content.getDialog(), "the prior dialog does not null the new owner's injection");
+
+            second.setContent(null);
+            assertNull(content.getDialog());
+        });
+    }
+
+    @Test
+    public void dialogPropertyFiresOnAttachAndDetach() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            RXDialogContent content = new RXDialogContent();
+            AtomicInteger fires = new AtomicInteger();
+            AtomicReference<RXDialog<?>> last = new AtomicReference<>();
+            content.dialogProperty().addListener((obs, old, now) -> {
+                fires.incrementAndGet();
+                last.set(now);
+            });
+
+            dialog.setContent(content);
+            assertEquals(1, fires.get(), "attach fires dialogProperty once");
+            assertSame(dialog, last.get(), "attach reports the hosting dialog");
+
+            dialog.setContent(null);
+            assertEquals(2, fires.get(), "detach fires dialogProperty");
+            assertNull(last.get(), "detach reports null");
+        });
+    }
+
+    @Test
+    public void headerCloseButtonClosesHostingDialog() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
-            dialog.setShowCloseButton(true);
+            List<RXDialogEvent> events = recordEvents(dialog);
+            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            layout.setShowClose(true);
+            dialog.setContent(layout);
+
             Region owner = new Region();
             new Scene(new StackPane(owner), 400, 300);
             dialog.show(owner);
 
-            Region closeButton = (Region) dialog.lookup(".close-button");
-            assertNotNull(closeButton, "the close (X) button exists when showCloseButton is true");
-            // Pinned to its preferred size, so the dialogCard StackPane cannot stretch it to
-            // fill (and cover) the whole card. Without the pin its max is Double.MAX_VALUE.
-            assertNotEquals(Double.MAX_VALUE, closeButton.maxWidth(-1),
-                    "close button must not be free to fill the card width");
-            assertEquals(closeButton.prefWidth(-1), closeButton.maxWidth(-1), 0.01,
-                    "close button max size is pinned to its preferred size");
+            Node closeButton = layout.lookup(".close-button");
+            assertNotNull(closeButton, "showClose adds an in-header close button");
+            closeButton.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, true, false, false,
+                    false, false, false, null));
 
-            dialog.close();
+            assertFalse(dialog.isShowing(), "clicking the header X closes the hosting dialog");
+            RXDialogEvent hidden = events.stream()
+                    .filter(e -> e.getEventType() == RXDialogEvent.HIDDEN).findFirst().orElseThrow();
+            assertEquals(CloseReason.CLOSE_BUTTON, hidden.getCloseReason(),
+                    "the header X closes with reason CLOSE_BUTTON");
         });
     }
 
