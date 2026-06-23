@@ -658,15 +658,54 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
     }
 
+    // PageUp/Down follow ListView's "sink then page": the first press moves the focus
+    // to the item at the viewport's bottom (PageDown) / top (PageUp) visible data row,
+    // keeping the current column and without scrolling; only once the focus already
+    // sits on that edge does a press page by a viewport-height of rows. Walking
+    // verticalNeighborOf keeps the column and honors section boundaries / short rows,
+    // so the focus advances along visible rows instead of leaping a page off-screen.
     private void page(int direction, boolean shift, boolean shortcut) {
         int itemCount = itemCount();
-        int cols = Math.max(1, getSkinnable().getActualColumnCount());
+        int focus = focusModel.getFocusedIndex();
+        if (focus < 0) {
+            moveToAndResetPreferredColumn(direction > 0 ? 0 : itemCount - 1, shift, shortcut);
+            return;
+        }
+        int preferredColumn = preferredColumnForVerticalNavigation(focus);
+        int rows = pageRowsToTravel(focus, direction);
+        int target = focus;
+        for (int i = 0; i < rows; i++) {
+            int next = viewport.verticalNeighborOf(target, direction, preferredColumn);
+            if (next < 0) {
+                break;
+            }
+            target = next;
+        }
+        if (target == focus) {
+            return;
+        }
+        moveTo(target, shift, shortcut);
+        preservePreferredColumnForItem(target, preferredColumn);
+    }
+
+    // The number of data rows a single PageUp/Down travels: enough to reach the current
+    // viewport edge ("sink"), or a viewport-height of rows when the focus already sits
+    // on that edge ("page", overlapping one row like ListView).
+    private int pageRowsToTravel(int focus, int direction) {
         RXTileVisibleRange range = getSkinnable().getVisibleRange();
         int visibleRows = range.isEmpty() ? 1 : Math.max(1, range.lastRow() - range.firstRow() + 1);
-        int focus = focusModel.getFocusedIndex();
-        int from = focus < 0 ? (direction > 0 ? 0 : itemCount - 1) : focus;
-        int target = clampIndex(from + direction * visibleRows * cols, itemCount);
-        moveToAndResetPreferredColumn(target, shift, shortcut);
+        int pageStep = Math.max(1, visibleRows - 1);
+        RXTileRowPlan.ItemPosition position = viewport.itemPositionOf(focus);
+        if (!position.valid() || range.isEmpty()) {
+            return pageStep;
+        }
+        int focusRow = position.dataRow();
+        if (direction > 0) {
+            int bottom = range.lastRow();
+            return focusRow < bottom ? bottom - focusRow : pageStep;
+        }
+        int top = range.firstRow();
+        return focusRow > top ? focusRow - top : pageStep;
     }
 
     private void moveToAndResetPreferredColumn(int target, boolean shift, boolean shortcut) {

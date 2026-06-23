@@ -2103,7 +2103,7 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void pageDownAndPageUpMoveByVisibleRows() throws Exception {
+    public void pageDownSinksToVisibleBottomThenPages() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
             view.setMaxColumns(2);
@@ -2113,15 +2113,35 @@ public class RXTileViewSkinTest {
 
             fireMousePressed(cellByIndex(view, 0), false, false); // focus + select 0
             pump(root);
+            RXTileVisibleRange before = view.getVisibleRange();
+
+            // First PageDown: ListView-style "sink" — the selection drops to the bottom
+            // visible row in the current column; it does not leap a whole page off-screen.
             fireKey(view, KeyCode.PAGE_DOWN, false, false);
             pump(root);
-            int afterPageDown = sm.getSelectedIndex();
-            assertTrue(afterPageDown >= 2, "PageDown advances by about one viewport of rows");
-            assertTrue(view.getVisibleRange().firstIndex() > 0, "PageDown scrolled the viewport");
+            int afterSink = sm.getSelectedIndex();
+            assertTrue(afterSink > before.firstIndex(), "PageDown moves the selection down");
+            assertTrue(afterSink <= before.lastIndex(),
+                    "the first PageDown sinks within the visible region, not a full page off-screen");
+            // Exact landing: the bottom visible data row, same (leftmost) column as the
+            // focus — pins the sink distance against any off-by-one regression. (Flat
+            // view, so item index = dataRow * columns + column, with column 0 here.)
+            assertEquals(before.lastRow() * view.getActualColumnCount(), afterSink,
+                    "the sink lands on the first column of the bottom visible row");
+
+            // Continued PageDowns page the viewport and keep advancing the selection.
+            fireKey(view, KeyCode.PAGE_DOWN, false, false);
+            pump(root);
+            fireKey(view, KeyCode.PAGE_DOWN, false, false);
+            pump(root);
+            int afterPaging = sm.getSelectedIndex();
+            assertTrue(afterPaging > afterSink, "subsequent PageDowns keep advancing");
+            assertTrue(view.getVisibleRange().firstIndex() > before.firstIndex(),
+                    "continued paging scrolls the viewport");
 
             fireKey(view, KeyCode.PAGE_UP, false, false);
             pump(root);
-            assertTrue(sm.getSelectedIndex() < afterPageDown, "PageUp moves back toward the top");
+            assertTrue(sm.getSelectedIndex() < afterPaging, "PageUp moves back toward the top");
         });
     }
 
