@@ -1,8 +1,13 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Headless tests for {@link RXDialogLayout}: defaults, the node-vs-text slot
@@ -34,6 +40,9 @@ public class RXDialogLayoutTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Pin Modena so the layout's -rx-* role tokens resolve deterministically when a
+        // CSS pass runs (independent of a prior test class's user-agent stylesheet).
+        Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
     }
 
     @Test
@@ -92,6 +101,42 @@ public class RXDialogLayoutTest {
 
             layout.setExpanded(false);
             assertNull(details.getParent(), "re-collapsing unmounts the details");
+        });
+    }
+
+    @Test
+    public void headingAndBodyPaddingResolveThroughContainer() throws Exception {
+        // Guards selector liveness: the structural rules target .rx-dialog-layout >
+        // .container > .heading / .body, so an unclassed intermediate container (or a
+        // wrong combinator) would silently leave every sub-structure unstyled.
+        runOnFx(() -> {
+            RXDialogLayout layout = new RXDialogLayout("Title", "Body");
+            StackPane root = new StackPane(layout);
+            new Scene(root, 320, 240);
+            root.applyCss();
+            root.layout();
+
+            Node heading = layout.lookup(".heading");
+            Node body = layout.lookup(".body");
+            assertNotNull(heading, "heading sub-structure should exist");
+            assertNotNull(body, "body sub-structure should exist");
+            assertTrue(((Region) heading).getInsets().getTop() > 0.0,
+                    "heading padding must apply (dead-selector regression guard)");
+            assertTrue(((Region) body).getInsets().getLeft() > 0.0,
+                    "body padding must apply (dead-selector regression guard)");
+        });
+    }
+
+    @Test
+    public void wrappedContentMakesLayoutHorizontallyBiased() throws Exception {
+        // Without a HORIZONTAL content bias the parent computes the wrapped body height at
+        // an unconstrained width and the body is clipped. The override propagates the inner
+        // column's bias, so the parent threads the laid-out width into computePrefHeight.
+        runOnFx(() -> {
+            RXDialogLayout layout = new RXDialogLayout("Title",
+                    "A fairly long body paragraph that wraps across several lines once its width is constrained.");
+            assertEquals(Orientation.HORIZONTAL, layout.getContentBias(),
+                    "wrapped contentText should make the layout HORIZONTAL-biased");
         });
     }
 

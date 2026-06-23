@@ -121,6 +121,10 @@ public class RXDialog<R> extends Control {
     // True between a non-vetoed requestClose and the matching hideCompleted, so a
     // stray external hideCompleted() cannot deliver a result / detach out of band.
     private boolean hideInProgress;
+    // True while a requestClose pass is on the stack, so a re-entrant close()/requestClose()
+    // from a CLOSE_REQUEST / HIDING handler or a result listener is a no-op (no recursion,
+    // no second close sequence).
+    private boolean closeGateActive;
 
     // ==================== Constructors ====================
 
@@ -803,30 +807,38 @@ public class RXDialog<R> extends Control {
      *                  {@link CloseReason#PROGRAMMATIC}
      */
     public final void requestClose(ButtonType candidate, CloseReason reason) {
-        if (!isShowing()) {
+        // closeGateActive blocks a re-entrant close()/requestClose() from a CLOSE_REQUEST /
+        // HIDING handler or a result listener, so a single dismissal yields exactly one
+        // CLOSE_REQUEST -> HIDING -> HIDDEN sequence and can never recurse.
+        if (!isShowing() || hideInProgress || closeGateActive) {
             return;
         }
-        CloseReason effectiveReason = reason == null ? CloseReason.PROGRAMMATIC : reason;
-        ButtonType effective = candidate;
-        if (effective == null && isDismissReason(effectiveReason)) {
-            effective = findCancelButtonType();
+        closeGateActive = true;
+        try {
+            CloseReason effectiveReason = reason == null ? CloseReason.PROGRAMMATIC : reason;
+            ButtonType effective = candidate;
+            if (effective == null && isDismissReason(effectiveReason)) {
+                effective = findCancelButtonType();
+            }
+
+            RXDialogEvent request = new RXDialogEvent(RXDialogEvent.CLOSE_REQUEST, this, effective, effectiveReason);
+            fireEvent(request);
+            if (request.isConsumed()) {
+                return;
+            }
+
+            hideInProgress = true;
+            R computed = convertResult(effective);
+            pendingButtonType = effective;
+            pendingCloseReason = effectiveReason;
+            pendingResult = computed;
+            setResult(computed);
+
+            fireEvent(new RXDialogEvent(RXDialogEvent.HIDING, this, effective, effectiveReason));
+            showing.set(false);
+        } finally {
+            closeGateActive = false;
         }
-
-        RXDialogEvent request = new RXDialogEvent(RXDialogEvent.CLOSE_REQUEST, this, effective, effectiveReason);
-        fireEvent(request);
-        if (request.isConsumed()) {
-            return;
-        }
-
-        R computed = convertResult(effective);
-        setResult(computed);
-        pendingButtonType = effective;
-        pendingCloseReason = effectiveReason;
-        pendingResult = computed;
-        hideInProgress = true;
-
-        fireEvent(new RXDialogEvent(RXDialogEvent.HIDING, this, effective, effectiveReason));
-        showing.set(false);
     }
 
     /**
