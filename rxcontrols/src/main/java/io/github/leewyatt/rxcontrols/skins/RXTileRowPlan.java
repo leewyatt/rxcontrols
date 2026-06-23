@@ -20,6 +20,11 @@ import java.util.List;
  * to <em>its own section's</em> last item, so a section whose item count is not a
  * multiple of the column count leaves a partial final row and the next section
  * starts a fresh row.
+ *
+ * <p>{@code sectionSpacing} is extra blank content-space inserted before every
+ * group after the first (it is not a visual row, just added to the section's top
+ * Y). It only has a visible effect with two or more sections; a flat view or a
+ * single group never shows it.
  */
 final class RXTileRowPlan {
 
@@ -65,7 +70,7 @@ final class RXTileRowPlan {
     private final double contentHeight;
 
     RXTileRowPlan(List<RXTileSection> sections, boolean showHeaders, int columns,
-                  double headerHeight, double dataSlotHeight, int itemCount) {
+                  double headerHeight, double dataSlotHeight, int itemCount, double sectionSpacing) {
         this.sections = sections;
         this.grouped = !sections.isEmpty();
         this.headersShown = grouped && showHeaders;
@@ -89,6 +94,11 @@ final class RXTileRowPlan {
             double y = 0.0;
             int dataRowStart = 0;
             for (int s = 0; s < count; s++) {
+                // Blank separator before every group after the first — not a visual
+                // row, just extra content-space Y folded into the section's top.
+                if (s > 0) {
+                    y += sectionSpacing;
+                }
                 sectionFirstVisualRow[s] = visualRow;
                 sectionTopY[s] = y;
                 sectionDataRowStart[s] = dataRowStart;

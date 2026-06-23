@@ -1285,6 +1285,55 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void sectionSpacingPushesLaterHeadersDownButNotTheFirst() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4(); // 2 sections x 2 items, cols 2
+            view.setCellHeight(60);
+            view.setVgap(0);
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            double firstY0 = headerByKey(view, "a").getLayoutY();
+            double secondY0 = headerByKey(view, "b").getLayoutY();
+
+            view.setSectionSpacing(40);
+            pump(root);
+            assertEquals(firstY0, headerByKey(view, "a").getLayoutY(), 1.0,
+                    "the first group's header gets no extra spacing above it");
+            assertEquals(secondY0 + 40.0, headerByKey(view, "b").getLayoutY(), 1.0,
+                    "later group headers are pushed down by sectionSpacing");
+        });
+    }
+
+    @Test
+    public void sectionSpacingHasNoEffectWithSingleGroup() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = new RXTileView<>(
+                    FXCollections.observableArrayList("a", "b", "c", "d"));
+            view.setSectionKeyFactory(s -> "G"); // exactly one group
+            view.setMaxColumns(2);
+            view.setVgap(0);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            double y0 = headerByKey(view, "G").getLayoutY();
+            view.setSectionSpacing(60);
+            pump(root);
+            assertEquals(y0, headerByKey(view, "G").getLayoutY(), 1.0,
+                    "a single group gets no spacing — it only separates groups after the first");
+        });
+    }
+
+    @Test
+    public void sectionSpacingCanBeSetFromCss() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStyle("-rx-section-spacing: 18;");
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            assertEquals(18.0, view.getSectionSpacing(), 0.5, "section spacing is settable from CSS");
+        });
+    }
+
+    @Test
     public void stateCRowCountIsPerSectionNotFlat() throws Exception {
         onFx(() -> {
             // Two single-item sections, cols 3: flat would pack both in one row (ceil(2/3)=1),

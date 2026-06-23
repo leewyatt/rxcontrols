@@ -153,6 +153,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.sectionsProperty(), this::requestLayoutPass);
         disposer.registerListener(control.showSectionHeadersProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
         // Reorder animation: snap any in-flight glide when it is turned off mid-flight.
         disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
@@ -259,7 +260,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private RXTileRowPlan buildPlan(int columns) {
         RXTileView<T> control = getSkinnable();
         return new RXTileRowPlan(control.getSections(), control.isShowSectionHeaders(), columns,
-                snapSizeY(sectionHeaderHeightOrDefault(control)), viewport.slotHeight(), itemCount());
+                snapSizeY(sectionHeaderHeightOrDefault(control)), viewport.slotHeight(), itemCount(),
+                snapSizeY(gapOrZero(control.getSectionSpacing())));
     }
 
     private int computeColumns(double availableWidth) {

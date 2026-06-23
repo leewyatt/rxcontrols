@@ -125,6 +125,9 @@ public class RXTileViewTest {
         assertEquals(180.0, view.getMaxCellWidth(), EPSILON);
         view.setMaxColumns(8);
         assertEquals(8, view.getMaxColumns());
+        assertEquals(0.0, view.getSectionSpacing(), EPSILON, "section spacing defaults to 0");
+        view.setSectionSpacing(24.0);
+        assertEquals(24.0, view.getSectionSpacing(), EPSILON);
     }
 
     @Test
@@ -249,6 +252,8 @@ public class RXTileViewTest {
         assertTrue(Double.isNaN(view.getMaxCellWidth()));
         view.setMaxColumns(-4);
         assertEquals(-4, view.getMaxColumns());
+        view.setSectionSpacing(-8.0); // lenient: accepted, treated as 0 at layout
+        assertEquals(-8.0, view.getSectionSpacing(), EPSILON);
     }
 
     // ==================== Null handling ====================
@@ -596,6 +601,7 @@ public class RXTileViewTest {
         assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
         assertTrue(hasProperty(metadata, "-rx-max-columns"));
         assertTrue(hasProperty(metadata, "-rx-section-header-height"));
+        assertTrue(hasProperty(metadata, "-rx-section-spacing"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
 
         RXTileView<String> view = new RXTileView<>();

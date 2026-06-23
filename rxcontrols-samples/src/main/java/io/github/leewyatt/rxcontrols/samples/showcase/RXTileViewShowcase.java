@@ -64,6 +64,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         tile.setCellFactory(view -> new TileCell());
         tile.setSectionHeaderFactory(view -> new SectionHeader());
         applyGrouping("By 500s");
+        tile.setSectionSpacing(16.0); // extra room between groups, on top of vgap
         logSelectionChanges();
 
         Label placeholder = new Label("No items");
@@ -142,6 +143,10 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         headerHeight.valueProperty().addListener(
                 (obs, old, value) -> tile.setSectionHeaderHeight(value.doubleValue()));
 
+        Slider spacing = createSlider(0, 48, tile.getSectionSpacing());
+        spacing.valueProperty().addListener(
+                (obs, old, value) -> tile.setSectionSpacing(value.doubleValue()));
+
         CheckBox show = new CheckBox("Show section headers");
         show.setSelected(tile.isShowSectionHeaders());
         show.selectedProperty().addListener((obs, old, value) -> tile.setShowSectionHeaders(value));
@@ -149,6 +154,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Grouping", grouping),
                 row("Header H", headerHeight, createValueLabel(headerHeight, "%.0f px")),
+                row("Section gap", spacing, createValueLabel(spacing, "%.0f px")),
                 row(show));
     }
 

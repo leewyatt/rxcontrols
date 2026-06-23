@@ -102,6 +102,7 @@ public class RXTileView<T> extends Control {
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
     private static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
+    private static final double DEFAULT_SECTION_SPACING = 0.0;
     private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
@@ -603,6 +604,60 @@ public class RXTileView<T> extends Control {
      */
     public final void setSectionHeaderHeight(double value) {
         sectionHeaderHeight.set(value);
+    }
+
+    // ==================== Section Spacing ====================
+
+    private final DoubleProperty sectionSpacing = new StyleableDoubleProperty(DEFAULT_SECTION_SPACING) {
+        @Override
+        public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
+            return StyleableProperties.SECTION_SPACING;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTileView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "sectionSpacing";
+        }
+    };
+
+    /**
+     * Extra blank space inserted before each section after the first, on top of the
+     * normal {@link #vgapProperty() vgap}, to strengthen the visual separation
+     * between groups. It is added above a section's header (or, when headers are
+     * hidden, above the section's first row), never below — so a header always hugs
+     * its own content. {@code 0} (the default) means no extra spacing. A negative or
+     * non-finite value is treated as zero at layout time. This only has a visible
+     * effect when there are two or more sections; a flat view (no
+     * {@link #sectionKeyFactoryProperty() sectionKeyFactory}) or a single group never
+     * shows it.
+     *
+     * @return the section-spacing property
+     */
+    public final DoubleProperty sectionSpacingProperty() {
+        return sectionSpacing;
+    }
+
+    /**
+     * Returns the extra spacing inserted before each section after the first.
+     *
+     * @return the section spacing
+     */
+    public final double getSectionSpacing() {
+        return sectionSpacing.get();
+    }
+
+    /**
+     * Sets the extra spacing inserted before each section after the first.
+     *
+     * @param value the section spacing
+     */
+    public final void setSectionSpacing(double value) {
+        sectionSpacing.set(value);
     }
 
     // ==================== Max Columns ====================
@@ -1460,6 +1515,20 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTileView<?>, Number> SECTION_SPACING =
+                new CssMetaData<>("-rx-section-spacing", SizeConverter.getInstance(), DEFAULT_SECTION_SPACING) {
+                    @Override
+                    public boolean isSettable(RXTileView<?> node) {
+                        return !node.sectionSpacing.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<Number>) node.sectionSpacingProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTileView<?>, ItemsJustify> ITEMS_JUSTIFY =
                 new CssMetaData<>("-rx-items-justify",
                         new EnumConverter<>(ItemsJustify.class), DEFAULT_ITEMS_JUSTIFY) {
@@ -1510,7 +1579,7 @@ public class RXTileView<T> extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, MAX_COLUMNS, HGAP, VGAP,
-                    SECTION_HEADER_HEIGHT, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
+                    SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
