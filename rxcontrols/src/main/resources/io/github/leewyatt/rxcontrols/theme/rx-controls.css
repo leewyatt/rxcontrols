@@ -13,7 +13,7 @@
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-layout, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-formatted-number-field, .rx-grid-view, .rx-highlight-text-view,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -48,6 +48,17 @@
     -rx-selection: rgba(0, 120, 215, 0.3);
     /* interaction state overlay (ripple / hover tint); dark theme flips to white */
     -rx-state-overlay-color: black;
+    /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
+       resolves only the COLOR of -fx-effect: dropshadow(...) through looked-up
+       tokens, never radius / spread / offset, so each consumer writes those as
+       literals. Reference scale (radius / spread / offsetY), Material-style:
+         level 1: 4  / 0.0 / 2     level 4: 16 / 0.0 / 8
+         level 2: 8  / 0.0 / 2     level 5: 16 / 0.0 / 12
+         level 3: 12 / 0.0 / 8
+       The RXDialog card consumes this token at level 4. Pre-existing structural
+       shadows (drawer / avatar / cascader / segmented) are not yet retrofitted onto
+       the token — that is a separate visual pass. */
+    -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
 }
 
 /*******************************************************************************
@@ -982,6 +993,77 @@
 
 .rx-drawer-pane:push > .drawer-wrapper {
     -fx-effect: null;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXDialog                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-dialog > .overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.32);
+}
+
+.rx-dialog > .dialog-card {
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 12;
+    -fx-min-width: 280;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 8);
+}
+
+.rx-dialog > .dialog-card > .card-body > .actions {
+    -fx-padding: 8 16 16 16;
+}
+
+.rx-dialog > .dialog-card > .close-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+}
+
+.rx-dialog > .dialog-card > .close-button:hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-dialog > .dialog-card > .close-button > .icon {
+    -fx-pref-width: 12;
+    -fx-pref-height: 12;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXDialogLayout                                                              *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-dialog-layout > .heading {
+    -fx-padding: 20 24 0 24;
+}
+
+.rx-dialog-layout > .heading > .title {
+    -fx-font-size: 1.15em;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-dialog-layout > .body {
+    -fx-padding: 16 24 20 24;
+}
+
+.rx-dialog-layout > .body > .content-text {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-dialog-layout > .details-toggle {
+    -fx-padding: 0 24 8 24;
+}
+
+.rx-dialog-layout > .expandable-content {
+    -fx-padding: 0 24 16 24;
 }
 
 /*******************************************************************************

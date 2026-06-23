@@ -16,7 +16,7 @@
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-layout, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-formatted-number-field, .rx-grid-view, .rx-highlight-text-view,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -51,6 +51,9 @@
     -rx-selection: -color-accent-muted;
     /* interaction state overlay (ripple / hover tint); flips with the theme */
     -rx-state-overlay-color: -color-fg-default;
+    /* elevation: follow AtlantaFX's own shadow color token, so the card shadow
+       tracks the active AtlantaFX theme (light / dark). */
+    -rx-elevation-umbra-color: -color-shadow-default;
 
     /* Modena base palette that AtlantaFX does not define. RxControls component
        rules that still reference raw -fx-* colors directly (the not-yet

@@ -17,7 +17,7 @@
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-layout, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-formatted-number-field, .rx-grid-view, .rx-highlight-text-view,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -52,6 +52,10 @@
     -rx-selection: rgba(124, 134, 255, 0.4);
     /* interaction state overlay (ripple / hover tint) flips to white on dark */
     -rx-state-overlay-color: white;
+    /* elevation: keep the umbra a black shadow on dark (a white one would glow);
+       a touch deeper than light so the card still reads against the dark surface.
+       Full Material surface-tint elevation is a V2 evaluation. */
+    -rx-elevation-umbra-color: rgba(0, 0, 0, 0.4);
 
     /* Modena base palette, overridden to the dark role tokens so RxControls
        rules still referencing raw -fx-* (not yet role-tokenized) render dark
