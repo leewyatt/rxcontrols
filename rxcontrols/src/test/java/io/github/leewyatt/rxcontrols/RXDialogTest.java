@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -286,6 +287,28 @@ public class RXDialogTest {
                     "closing the top dialog restores the now-top-most dialog's scrim");
 
             lower.close();
+        });
+    }
+
+    @Test
+    public void closeButtonIsPinnedAndDoesNotFillTheCard() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
+            dialog.setShowCloseButton(true);
+            Region owner = new Region();
+            new Scene(new StackPane(owner), 400, 300);
+            dialog.show(owner);
+
+            Region closeButton = (Region) dialog.lookup(".close-button");
+            assertNotNull(closeButton, "the close (X) button exists when showCloseButton is true");
+            // Pinned to its preferred size, so the dialogCard StackPane cannot stretch it to
+            // fill (and cover) the whole card. Without the pin its max is Double.MAX_VALUE.
+            assertNotEquals(Double.MAX_VALUE, closeButton.maxWidth(-1),
+                    "close button must not be free to fill the card width");
+            assertEquals(closeButton.prefWidth(-1), closeButton.maxWidth(-1), 0.01,
+                    "close button max size is pinned to its preferred size");
+
+            dialog.close();
         });
     }
 

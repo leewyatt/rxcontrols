@@ -226,6 +226,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         icon.setMouseTransparent(true);
         StackPane button = new StackPane(icon);
         button.getStyleClass().add("close-button");
+        // Pin the wrapper to its preferred size: dialogCard is a StackPane that would
+        // otherwise stretch this child to fill the whole card (max defaults to MAX_VALUE),
+        // covering the content and turning the entire card into one giant close button.
+        button.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane.setAlignment(button, Pos.TOP_RIGHT);
         StackPane.setMargin(button, new Insets(8));
         // Created at most once (lazy), so registering with the disposer is safe.
