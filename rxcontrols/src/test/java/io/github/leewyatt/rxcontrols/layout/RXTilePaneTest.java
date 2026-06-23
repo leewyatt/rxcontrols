@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -603,24 +602,28 @@ public class RXTilePaneTest {
     }
 
     @Test
-    public void prefTileSizeRejectsInvalidAndGapIsLenient() {
+    public void prefTileSizeAndGapAreLenient() {
         RXTilePane pane = new RXTilePane();
-        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(0));
-        assertEquals(Region.USE_COMPUTED_SIZE, pane.getPrefTileWidth(), EPSILON,
-                "rejected value is coerced back to computed size");
-        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileHeight(-5));
-        assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(Double.NaN));
-        pane.setPrefTileWidth(Region.USE_COMPUTED_SIZE);
-        pane.setPrefTileHeight(Region.USE_COMPUTED_SIZE);
+        pane.getChildren().addAll(card(), card());
+        pane.setPrefTileWidth(0);
+        assertEquals(0.0, pane.getPrefTileWidth(), EPSILON);
+        pane.setPrefTileHeight(-5);
+        assertEquals(-5.0, pane.getPrefTileHeight(), EPSILON);
+        pane.setPrefTileWidth(Double.NaN);
+        assertTrue(Double.isNaN(pane.getPrefTileWidth()));
 
-        pane.setHgap(-10); // lenient: accepted, treated as 0 at layout
+        pane.setPrefTileWidth(0);
+        pane.setPrefTileHeight(Double.NaN);
+        pane.setHgap(-10);
         assertEquals(-10.0, pane.getHgap(), EPSILON);
         pane.setMaxTileWidth(Double.NaN);
         assertTrue(Double.isNaN(pane.getMaxTileWidth()));
-        pane.getChildren().addAll(card(), card());
-        pane.setPrefTileWidth(100);
         pane.setMaxColumns(2);
         layout(pane, 400, 200);
+        assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getWidth(), EPSILON,
+                "invalid prefTileWidth resolves from managed children at layout time");
+        assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getHeight(), EPSILON,
+                "invalid prefTileHeight resolves from managed children at layout time");
         assertEquals(100.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "negative hgap acts as 0");
     }
 
@@ -630,6 +633,7 @@ public class RXTilePaneTest {
         assertTrue(hasProperty(metadata, "-rx-pref-tile-width"));
         assertTrue(hasProperty(metadata, "-rx-pref-tile-height"));
         assertTrue(hasProperty(metadata, "-rx-max-tile-width"));
+        assertTrue(hasProperty(metadata, "-rx-max-columns"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
@@ -637,6 +641,32 @@ public class RXTilePaneTest {
         assertTrue(hasProperty(metadata, "-rx-tile-alignment"));
         assertTrue(hasProperty(metadata, "-rx-animated"));
         assertTrue(hasProperty(metadata, "-rx-animation-duration"));
+    }
+
+    @Test
+    public void maxColumnsCanBeSetFromCss() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setStyle("-rx-max-columns: 2;");
+            new Scene(pane, 200, 200);
+            pane.applyCss();
+            assertEquals(2, pane.getMaxColumns());
+        });
+    }
+
+    @Test
+    public void computedTileSizeCacheInvalidatesWhenChildrenChangePreferredSize() {
+        RXTilePane pane = new RXTilePane();
+        Region child = card(80, 40);
+        pane.getChildren().add(child);
+        pane.setHgap(0);
+
+        assertEquals(240.0, pane.prefWidth(-1), EPSILON);
+
+        child.setPrefWidth(120);
+
+        assertEquals(360.0, pane.prefWidth(-1), EPSILON,
+                "computed tile width cache is invalidated through child requestLayout");
     }
 
     @Test

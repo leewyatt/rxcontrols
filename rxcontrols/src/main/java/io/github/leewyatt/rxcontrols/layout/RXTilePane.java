@@ -9,13 +9,13 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableIntegerProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
@@ -48,10 +48,10 @@ import java.util.Set;
  * <p>Children are placed left-to-right, top-to-bottom into tiles whose nominal
  * size is {@link #prefTileWidthProperty() prefTileWidth} ×
  * {@link #prefTileHeightProperty() prefTileHeight}. When either preferred tile
- * dimension is {@link Region#USE_COMPUTED_SIZE}, that dimension is resolved
- * from the largest preferred area of the managed children, matching JavaFX
- * {@link javafx.scene.layout.TilePane} semantics. Tiles are
- * separated by {@link #hgapProperty() hgap} / {@link #vgapProperty() vgap};
+ * dimension is {@link Region#USE_COMPUTED_SIZE} or not a finite positive
+ * value, that dimension is resolved from the largest preferred area of the
+ * managed children. Tiles are separated by {@link #hgapProperty() hgap} /
+ * {@link #vgapProperty() vgap};
  * spare row width is distributed per {@link #itemsJustifyProperty()
  * itemsJustify}; the row block is positioned vertically by
  * {@link #contentVAlignmentProperty() contentVAlignment}. Non-stretch rows keep
@@ -238,14 +238,6 @@ public class RXTilePane extends Pane {
     private final DoubleProperty prefTileWidth = new StyleableDoubleProperty(DEFAULT_PREF_TILE_WIDTH) {
         @Override
         protected void invalidated() {
-            double value = get();
-            if (value != USE_COMPUTED_SIZE && (!Double.isFinite(value) || value <= 0.0)) {
-                if (!isBound()) {
-                    set(DEFAULT_PREF_TILE_WIDTH);
-                }
-                throw new IllegalArgumentException(
-                        "prefTileWidth must be USE_COMPUTED_SIZE or a finite positive number");
-            }
             requestLayout();
         }
 
@@ -269,7 +261,9 @@ public class RXTilePane extends Pane {
      * Preferred width of each tile. The default
      * {@link Region#USE_COMPUTED_SIZE} resolves the width from the largest
      * preferred area of the managed children. A positive value fixes the nominal
-     * tile width and does not let child min / pref widths expand the tile.
+     * tile width and does not let child min / pref widths expand the tile. A
+     * non-positive or non-finite value is accepted and resolved from children at
+     * layout time.
      *
      * @return the preferred-tile-width property
      */
@@ -289,10 +283,7 @@ public class RXTilePane extends Pane {
     /**
      * Sets the preferred tile width.
      *
-     * @param value {@link Region#USE_COMPUTED_SIZE}, or a finite positive width
-     * @throws IllegalArgumentException if {@code value} is neither
-     *                                  {@code USE_COMPUTED_SIZE} nor a finite
-     *                                  positive number
+     * @param value the preferred tile width
      */
     public final void setPrefTileWidth(double value) {
         prefTileWidth.set(value);
@@ -303,14 +294,6 @@ public class RXTilePane extends Pane {
     private final DoubleProperty prefTileHeight = new StyleableDoubleProperty(DEFAULT_PREF_TILE_HEIGHT) {
         @Override
         protected void invalidated() {
-            double value = get();
-            if (value != USE_COMPUTED_SIZE && (!Double.isFinite(value) || value <= 0.0)) {
-                if (!isBound()) {
-                    set(DEFAULT_PREF_TILE_HEIGHT);
-                }
-                throw new IllegalArgumentException(
-                        "prefTileHeight must be USE_COMPUTED_SIZE or a finite positive number");
-            }
             requestLayout();
         }
 
@@ -334,7 +317,9 @@ public class RXTilePane extends Pane {
      * Preferred height of each tile. The default
      * {@link Region#USE_COMPUTED_SIZE} resolves the height from the largest
      * preferred area of the managed children. A positive value fixes the nominal
-     * tile height and does not let child min / pref heights expand the tile.
+     * tile height and does not let child min / pref heights expand the tile. A
+     * non-positive or non-finite value is accepted and resolved from children at
+     * layout time.
      *
      * @return the preferred-tile-height property
      */
@@ -354,10 +339,7 @@ public class RXTilePane extends Pane {
     /**
      * Sets the preferred tile height.
      *
-     * @param value {@link Region#USE_COMPUTED_SIZE}, or a finite positive height
-     * @throws IllegalArgumentException if {@code value} is neither
-     *                                  {@code USE_COMPUTED_SIZE} nor a finite
-     *                                  positive number
+     * @param value the preferred tile height
      */
     public final void setPrefTileHeight(double value) {
         prefTileHeight.set(value);
@@ -531,10 +513,25 @@ public class RXTilePane extends Pane {
 
     // ==================== Max Columns ====================
 
-    private final IntegerProperty maxColumns = new SimpleIntegerProperty(this, "maxColumns", DEFAULT_MAX_COLUMNS) {
+    private final IntegerProperty maxColumns = new StyleableIntegerProperty(DEFAULT_MAX_COLUMNS) {
         @Override
         protected void invalidated() {
             requestLayout();
+        }
+
+        @Override
+        public CssMetaData<RXTilePane, Number> getCssMetaData() {
+            return StyleableProperties.MAX_COLUMNS;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTilePane.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxColumns";
         }
     };
 
@@ -902,7 +899,28 @@ public class RXTilePane extends Pane {
         return actualColumnCount.get();
     }
 
+    // ==================== Tile Size Cache ====================
+
+    private boolean nominalTileWidthValid;
+    private double cachedNominalTileWidth;
+    private boolean nominalTileHeightValid;
+    private double cachedNominalTileHeight;
+
+    private void invalidateTileSizeCache() {
+        nominalTileWidthValid = false;
+        nominalTileHeightValid = false;
+    }
+
     // ==================== Layout ====================
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void requestLayout() {
+        invalidateTileSizeCache();
+        super.requestLayout();
+    }
 
     /**
      * {@inheritDoc}
@@ -1088,19 +1106,35 @@ public class RXTilePane extends Pane {
     }
 
     private double nominalTileWidth() {
-        double value = getPrefTileWidth();
-        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return snapSizeX(computeTileWidthFromChildren());
+        if (!nominalTileWidthValid) {
+            cachedNominalTileWidth = snapSizeX(resolveNominalTileWidth());
+            nominalTileWidthValid = true;
         }
-        return snapSizeX(value);
+        return cachedNominalTileWidth;
     }
 
     private double nominalTileHeight() {
+        if (!nominalTileHeightValid) {
+            cachedNominalTileHeight = snapSizeY(resolveNominalTileHeight());
+            nominalTileHeightValid = true;
+        }
+        return cachedNominalTileHeight;
+    }
+
+    private double resolveNominalTileWidth() {
+        double value = getPrefTileWidth();
+        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
+            return computeTileWidthFromChildren();
+        }
+        return value;
+    }
+
+    private double resolveNominalTileHeight() {
         double value = getPrefTileHeight();
         if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return snapSizeY(computeTileHeightFromChildren());
+            return computeTileHeightFromChildren();
         }
-        return snapSizeY(value);
+        return value;
     }
 
     private double computeTileWidthFromChildren() {
@@ -1351,6 +1385,20 @@ public class RXTilePane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXTilePane, Number> MAX_COLUMNS =
+                new CssMetaData<>("-rx-max-columns", SizeConverter.getInstance(), DEFAULT_MAX_COLUMNS) {
+                    @Override
+                    public boolean isSettable(RXTilePane node) {
+                        return !node.maxColumns.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<Number>) node.maxColumnsProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTilePane, Number> HGAP =
                 new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
@@ -1458,7 +1506,7 @@ public class RXTilePane extends Pane {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, HGAP, VGAP,
+            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_COLUMNS, HGAP, VGAP,
                     ITEMS_JUSTIFY, CONTENT_V_ALIGNMENT, TILE_ALIGNMENT, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
