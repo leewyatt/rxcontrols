@@ -53,7 +53,9 @@ public final class RXDialogLayer extends StackPane {
      * layer on first use) and pushes it to the top of the stack.
      *
      * @param dialog the dialog to show
-     * @throws IllegalStateException if neither the dialog's host nor its owner is in a scene
+     * @throws IllegalStateException if neither the dialog's host nor its owner is in a scene,
+     *                               or the dialog requests an explicit host but the scene
+     *                               already has an overlay layer mounted elsewhere
      */
     public static void attach(RXDialog<?> dialog) {
         // If a previous show left the dialog parented in a layer (e.g. re-show during
@@ -78,6 +80,17 @@ public final class RXDialogLayer extends StackPane {
             layer = new RXDialogLayer();
             layer.install(targetScene, host);
             targetScene.getProperties().put(LAYER_KEY, layer);
+        } else if (host != null && host != layer.fillParent) {
+            // One overlay layer per scene carries all that scene's dialogs (so they stack,
+            // share a single scrim, and trap focus together), so an explicit host is honored
+            // only by the dialog that first installs the layer. Rather than silently mounting a
+            // later, differently-hosted dialog into the existing layer, fail loudly. (A WRAP-mode
+            // layer has a null fillParent, so any explicit host conflicts with it.)
+            throw new IllegalStateException(
+                    "RXDialog: this scene already has a dialog overlay mounted elsewhere; an "
+                            + "explicit host is honored only by the first dialog shown over a "
+                            + "scene (stacked dialogs share one overlay). Show this dialog after "
+                            + "the others close, or give it the same host / no host.");
         }
         layer.getChildren().add(dialog);
     }

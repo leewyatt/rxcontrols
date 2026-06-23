@@ -313,6 +313,30 @@ public class RXDialogTest {
     }
 
     @Test
+    public void conflictingHostOnAnOverlappingDialogThrows() throws Exception {
+        runOnFx(() -> {
+            StackPane paneA = new StackPane();
+            StackPane paneB = new StackPane();
+            new Scene(new StackPane(paneA, paneB), 400, 300);
+
+            RXDialog<ButtonType> first = newDialog(ButtonType.OK);
+            first.showIn(paneA); // installs the scene's single overlay layer in paneA
+
+            RXDialog<ButtonType> second = newDialog(ButtonType.OK);
+            // A still-overlapping second dialog asking for a different host cannot be honored
+            // (one overlay per scene) -> fail loudly instead of silently mounting into paneA.
+            assertThrows(IllegalStateException.class, () -> second.showIn(paneB));
+            assertFalse(second.isShowing(), "the rejected dialog did not open");
+
+            first.close();
+            // Once the first closes the layer uninstalls, so a fresh host is honored again.
+            second.showIn(paneB);
+            assertTrue(second.isShowing(), "after the layer frees up, the host is honored");
+            second.close();
+        });
+    }
+
+    @Test
     public void showWithoutOwnerOrHostThrows() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();

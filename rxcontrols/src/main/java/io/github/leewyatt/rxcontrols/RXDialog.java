@@ -386,9 +386,12 @@ public class RXDialog<R> extends Control {
      * Sets an explicit host pane to mount the dialog into, bypassing owner-based
      * scene-root resolution and wrapping. Takes precedence over the owner.
      *
-     * <p>All dialogs shown over the same scene share one overlay layer, so the host
-     * is honored only for the dialog that first installs that layer; later dialogs
-     * in the same scene mount into the existing layer regardless of their host.</p>
+     * <p>All dialogs shown over the same scene share one overlay layer (so they
+     * stack, share a single scrim, and trap focus together), so the host is honored
+     * only by the dialog that first installs that layer. Showing a later, still
+     * overlapping dialog with a <em>different</em> host over the same scene throws an
+     * {@link IllegalStateException} rather than silently ignoring the host; once the
+     * earlier dialogs close and the layer uninstalls, a fresh host is honored again.</p>
      *
      * @param value the host pane, or {@code null} to fall back to owner resolution
      */
@@ -748,7 +751,9 @@ public class RXDialog<R> extends Control {
      * shared-layer caveat.
      *
      * @param host the pane to mount the dialog overlay into
-     * @throws IllegalStateException if {@code host} is {@code null} and no owner resolves
+     * @throws IllegalStateException if {@code host} is {@code null} and no owner resolves,
+     *                               or the scene already has an overlay layer mounted
+     *                               elsewhere (see {@link #setHost(Pane)})
      */
     public final void showIn(Pane host) {
         if (isShowing()) {
