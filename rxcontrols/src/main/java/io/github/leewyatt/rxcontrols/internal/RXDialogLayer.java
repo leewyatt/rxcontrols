@@ -15,8 +15,8 @@ import javafx.scene.layout.StackPane;
  * card), and stacking, focus, and ESC are scoped to the top-most dialog by the
  * dialogs' own skins.
  *
- * <p>Installation adapts to the root: if the scene root (or an explicit host) is a
- * {@link Pane}, the layer is added as a {@code managed = false} child sized to fill
+ * <p>Installation adapts to the root: if the scene root (or an explicit container) is
+ * a {@link Pane}, the layer is added as a {@code managed = false} child sized to fill
  * it (so layout panes such as {@code BorderPane} do not reserve space for it); if
  * the root is not an addable {@code Pane}, the original root is wrapped in a
  * {@link StackPane} as a fallback. The layer uninstalls itself when its last dialog
@@ -28,7 +28,7 @@ import javafx.scene.layout.StackPane;
 public final class RXDialogLayer extends StackPane {
 
     private enum InstallMode {
-        /** Added as a managed=false overlay child of a host / root pane. */
+        /** Added as a managed=false overlay child of a container / root pane. */
         PANE_CHILD,
         /** The original root was wrapped in a StackPane holding it and this layer. */
         WRAP
@@ -52,12 +52,14 @@ public final class RXDialogLayer extends StackPane {
      * Attaches the dialog to its scene's overlay layer (creating and installing the
      * layer on first use) and pushes it to the top of the stack.
      *
-     * @param dialog the dialog to show
-     * @throws IllegalStateException if neither the dialog's host nor its owner is in a scene,
-     *                               or the dialog requests an explicit host but the scene
+     * @param dialog    the dialog to show
+     * @param container the explicit container to mount the layer into, or {@code null} to
+     *                  resolve the scene from the dialog's owner and mount at the scene root
+     * @throws IllegalStateException if neither the container nor the dialog's owner is in a
+     *                               scene, or an explicit container is given but the scene
      *                               already has an overlay layer mounted elsewhere
      */
-    public static void attach(RXDialog<?> dialog) {
+    public static void attach(RXDialog<?> dialog, Pane container) {
         // If a previous show left the dialog parented in a layer (e.g. re-show during
         // a still-running close transition, possibly onto a different scene), remove it
         // from there first — so it is never added twice and the old layer never leaks.
@@ -67,30 +69,29 @@ public final class RXDialogLayer extends StackPane {
                 current.uninstall();
             }
         }
-        Pane host = dialog.getHost();
-        Scene targetScene = host != null
-                ? host.getScene()
+        Scene targetScene = container != null
+                ? container.getScene()
                 : (dialog.getOwner() != null ? dialog.getOwner().getScene() : null);
         if (targetScene == null) {
             throw new IllegalStateException(
-                    "RXDialog.show requires an owner or host already attached to a Scene");
+                    "RXDialog.show requires an owner or container already attached to a Scene");
         }
         RXDialogLayer layer = (RXDialogLayer) targetScene.getProperties().get(LAYER_KEY);
         if (layer == null) {
             layer = new RXDialogLayer();
-            layer.install(targetScene, host);
+            layer.install(targetScene, container);
             targetScene.getProperties().put(LAYER_KEY, layer);
-        } else if (host != null && host != layer.fillParent) {
+        } else if (container != null && container != layer.fillParent) {
             // One overlay layer per scene carries all that scene's dialogs (so they stack,
-            // share a single scrim, and trap focus together), so an explicit host is honored
+            // share a single scrim, and trap focus together), so an explicit container is honored
             // only by the dialog that first installs the layer. Rather than silently mounting a
-            // later, differently-hosted dialog into the existing layer, fail loudly. (A WRAP-mode
-            // layer has a null fillParent, so any explicit host conflicts with it.)
+            // later, differently-mounted dialog into the existing layer, fail loudly. (A WRAP-mode
+            // layer has a null fillParent, so any explicit container conflicts with it.)
             throw new IllegalStateException(
                     "RXDialog: this scene already has a dialog overlay mounted elsewhere; an "
-                            + "explicit host is honored only by the first dialog shown over a "
+                            + "explicit container is honored only by the first dialog shown over a "
                             + "scene (stacked dialogs share one overlay). Show this dialog after "
-                            + "the others close, or give it the same host / no host.");
+                            + "the others close, or give it the same container / no container.");
         }
         layer.getChildren().add(dialog);
     }
@@ -110,10 +111,10 @@ public final class RXDialogLayer extends StackPane {
         }
     }
 
-    private void install(Scene targetScene, Pane host) {
+    private void install(Scene targetScene, Pane container) {
         this.scene = targetScene;
-        if (host != null) {
-            installAsChildOf(host);
+        if (container != null) {
+            installAsChildOf(container);
             return;
         }
         Parent root = targetScene.getRoot();

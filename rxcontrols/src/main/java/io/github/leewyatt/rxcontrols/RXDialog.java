@@ -341,8 +341,8 @@ public class RXDialog<R> extends Control {
 
     /**
      * The node whose scene the dialog attaches to when shown. Set automatically by
-     * {@link #show(Node)}; may also be set ahead of a no-arg {@link #show()}. Ignored
-     * when an explicit {@link #setHost(Pane) host} is set.
+     * {@link #show(Node)}; may also be set ahead of a no-arg {@link #show()}. Not used
+     * when the dialog is shown with an explicit container via {@link #showIn(Pane)}.
      *
      * @return the owner property
      */
@@ -366,37 +366,6 @@ public class RXDialog<R> extends Control {
      */
     public final void setOwner(Node value) {
         owner.set(value);
-    }
-
-    // ==================== Host ====================
-
-    private Pane host;
-
-    /**
-     * Returns the explicit host pane the dialog mounts into, bypassing owner-based
-     * scene-root resolution.
-     *
-     * @return the host pane, or {@code null}
-     */
-    public final Pane getHost() {
-        return host;
-    }
-
-    /**
-     * Sets an explicit host pane to mount the dialog into, bypassing owner-based
-     * scene-root resolution and wrapping. Takes precedence over the owner.
-     *
-     * <p>All dialogs shown over the same scene share one overlay layer (so they
-     * stack, share a single scrim, and trap focus together), so the host is honored
-     * only by the dialog that first installs that layer. Showing a later, still
-     * overlapping dialog with a <em>different</em> host over the same scene throws an
-     * {@link IllegalStateException} rather than silently ignoring the host; once the
-     * earlier dialogs close and the layer uninstalls, a fresh host is honored again.</p>
-     *
-     * @param value the host pane, or {@code null} to fall back to owner resolution
-     */
-    public final void setHost(Pane value) {
-        this.host = value;
     }
 
     // ==================== Modal ====================
@@ -714,26 +683,26 @@ public class RXDialog<R> extends Control {
     // ==================== Show ====================
 
     /**
-     * Shows the dialog using the previously set {@link #ownerProperty() owner} or
-     * {@link #getHost() host}. A no-op when already shown.
+     * Shows the dialog over the previously set {@link #ownerProperty() owner}'s scene
+     * (as a full-scene overlay). A no-op when already shown.
      *
-     * @throws IllegalStateException if neither owner nor host is set, or the
-     *                               resolved owner is not in a scene
+     * @throws IllegalStateException if no owner is set, or the resolved owner is not in
+     *                               a scene
      */
     public final void show() {
         if (isShowing()) {
             return;
         }
-        doShow();
+        doShow(null);
     }
 
     /**
-     * Sets the owner and shows the dialog over the owner's scene. A no-op when
-     * already shown.
+     * Sets the owner and shows the dialog over the owner's scene (as a full-scene
+     * overlay). A no-op when already shown.
      *
      * @param owner a node already in the target scene; if {@code null}, the current
-     *              owner / host is used instead
-     * @throws IllegalStateException if no owner / host resolves to a scene
+     *              owner is used instead
+     * @throws IllegalStateException if no owner resolves to a scene
      */
     public final void show(Node owner) {
         if (isShowing()) {
@@ -742,31 +711,36 @@ public class RXDialog<R> extends Control {
         if (owner != null) {
             setOwner(owner);
         }
-        doShow();
+        doShow(null);
     }
 
     /**
-     * Sets an explicit {@link #setHost(Pane) host} and shows the dialog inside it. A
-     * no-op when already shown. See {@link #setHost(Pane)} for the per-scene
-     * shared-layer caveat.
+     * Shows the dialog mounted into an explicit container pane, instead of as a
+     * full-scene overlay over an owner's scene root. A no-op when already shown.
      *
-     * @param host the pane to mount the dialog overlay into
-     * @throws IllegalStateException if {@code host} is {@code null} and no owner resolves,
-     *                               or the scene already has an overlay layer mounted
-     *                               elsewhere (see {@link #setHost(Pane)})
+     * <p>All dialogs shown over one scene share a single overlay layer (so they stack,
+     * share a single scrim, and trap focus together), so the container is honored only
+     * by the dialog that first installs that layer. Showing a later, still overlapping
+     * dialog with a <em>different</em> container over the same scene throws rather than
+     * silently ignoring it; once the earlier dialogs close and the layer uninstalls, a
+     * fresh container is honored again.</p>
+     *
+     * @param container the pane to mount the dialog overlay into
+     * @throws IllegalStateException if {@code container} is {@code null} and not in a
+     *                               scene, or the scene already has an overlay layer
+     *                               mounted elsewhere
      */
-    public final void showIn(Pane host) {
+    public final void showIn(Pane container) {
         if (isShowing()) {
             return;
         }
-        setHost(host);
-        doShow();
+        doShow(container);
     }
 
-    private void doShow() {
+    private void doShow(Pane container) {
         // Attach to the per-scene overlay layer first, then force a CSS pass so the
         // skin exists and observes the showing flip below (which plays the transition).
-        RXDialogLayer.attach(this);
+        RXDialogLayer.attach(this, container);
         applyCss();
         // A fresh show supersedes any close still being bookkept (e.g. re-show during a
         // close transition), so the hideInProgress guard stays honest.
