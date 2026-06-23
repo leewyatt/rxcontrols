@@ -2,10 +2,14 @@
     -fx-padding: 12px;
 }
 
+/* A floating rounded "chip" header: the background is inset from the cell edges
+   (more at the bottom) to leave a margin between the header and its content, and
+   rounded on all four corners. Layout is unchanged — this is purely the painted
+   background, so the header band still hugs its group. */
 .rx-tile-section-header {
     -fx-background-color: -rx-primary-bg;
-    -fx-border-color: -rx-outline-variant;
-    -fx-border-width: 0 0 1 0;
+    -fx-background-insets: 4 2;
+    -fx-background-radius: 4;
     -fx-text-fill: -rx-on-surface;
 }
 
