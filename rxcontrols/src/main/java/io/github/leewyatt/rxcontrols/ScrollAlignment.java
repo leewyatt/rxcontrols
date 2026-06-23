@@ -2,8 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 /**
  * Where a target item range should land in the viewport when scrolling to an
- * item via {@link RXGridView#scrollTo(int, ScrollAlignment)} or
- * {@link RXTileView#scrollTo(int, ScrollAlignment)}.
+ * item via {@link RXTileView#scrollTo(int, ScrollAlignment)}.
  */
 public enum ScrollAlignment {
 
