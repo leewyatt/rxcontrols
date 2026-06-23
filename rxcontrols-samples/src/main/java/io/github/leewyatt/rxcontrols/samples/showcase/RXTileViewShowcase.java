@@ -311,8 +311,10 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
             } else {
                 setText(Integer.toString(item));
                 double hue = (item * 23) % 360;
+                // Round the border radius too so the CSS focus / selection ring follows
+                // the tile's rounded edge instead of drawing a sharp rectangle.
                 setStyle(CELL_STYLE + " -fx-background-color: hsb(" + hue + ", 55%, 80%);"
-                        + " -fx-background-radius: 8;");
+                        + " -fx-background-radius: 8; -fx-border-radius: 8;");
             }
         }
     }

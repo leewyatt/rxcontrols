@@ -1366,6 +1366,21 @@
     -fx-border-insets: 1;
 }
 
+/* Selection is a ring + background: the ring (a border) stays visible when a cell
+   paints its own -fx-background-color — the norm for a tile grid, and an inline
+   background cannot override a border — while default cells still get the solid
+   background. */
 .rx-tile-cell:selected {
     -fx-background-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar;
+    -fx-border-width: 2;
+    -fx-border-insets: 1;
+}
+
+/* Selected + focused: keep both rings (selection outer, focus inner) so the
+   keyboard cursor is not lost on a selected tile. */
+.rx-tile-cell:selected:focused {
+    -fx-border-color: -fx-selection-bar, -fx-focus-color;
+    -fx-border-width: 2, 1;
+    -fx-border-insets: 0, 2;
 }

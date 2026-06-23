@@ -2146,6 +2146,43 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void selectedCellShowsSelectionRingOverCustomBackground() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(40);
+            view.setMaxColumns(4);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            // A cell that paints its own inline background, like a real tile/card. An
+            // inline -fx-background-color masks the :selected background, so selection
+            // must show as a border ring (which an inline background cannot override).
+            view.setCellFactory(v -> new RXTileCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty ? null : item);
+                    setStyle(empty ? "" : "-fx-background-color: teal;");
+                }
+            });
+            StackPane root = host(view, 500, 400);
+            pump(root);
+
+            view.getSelectionModel().selectIndices(0, 1, 2); // lead (focus) becomes 2
+            pump(root);
+
+            // Cells 0 and 1 are selected but not the focused lead, so any border they
+            // carry comes from :selected, not :focused — the selection ring is visible
+            // despite each cell's own opaque background.
+            for (int i = 0; i <= 1; i++) {
+                RXTileCell<?> cell = cellByIndex(view, i);
+                assertNotNull(cell);
+                assertTrue(cell.isSelected(), "cell " + i + " is selected");
+                assertNotNull(cell.getBorder(), "selected cell " + i + " has a ring");
+                assertFalse(cell.getBorder().getStrokes().isEmpty(),
+                        "selected cell " + i + " shows the selection ring over its custom background");
+            }
+        });
+    }
+
+    @Test
     public void anchorIsResetOnItemsSwap() throws Exception {
         onFx(() -> {
             ObservableList<String> listA = FXCollections.observableArrayList();
