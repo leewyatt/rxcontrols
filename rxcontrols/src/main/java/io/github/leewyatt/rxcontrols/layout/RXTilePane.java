@@ -939,7 +939,7 @@ public class RXTilePane extends Pane {
         }
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null && isAnimationDurationPositive();
-        List<RelayoutAnimator.Move> moves = new ArrayList<>(managed.size());
+        List<RelayoutAnimator.Move> moves = null;
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
@@ -955,9 +955,15 @@ public class RXTilePane extends Pane {
                     tileAlignmentValue.getHpos(), tileAlignmentValue.getVpos());
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
-            moves.add(new RelayoutAnimator.Move(child, fromDx, fromDy, false));
+            if (Math.abs(fromDx) >= RelayoutAnimator.MOVE_EPSILON
+                    || Math.abs(fromDy) >= RelayoutAnimator.MOVE_EPSILON) {
+                if (moves == null) {
+                    moves = new ArrayList<>();
+                }
+                moves.add(new RelayoutAnimator.Move(child, fromDx, fromDy, false));
+            }
         }
-        animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        animator.runRelayout(moves == null ? List.of() : moves, animate, getAnimationDuration(), interpolatorOrDefault());
         enteringNodes.clear();
         firstLayoutDone = true;
     }

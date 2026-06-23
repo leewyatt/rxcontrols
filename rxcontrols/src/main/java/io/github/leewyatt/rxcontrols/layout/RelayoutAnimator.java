@@ -44,7 +44,7 @@ final class RelayoutAnimator {
     record Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade) {
     }
 
-    private static final double MOVE_EPSILON = 0.5;
+    static final double MOVE_EPSILON = 0.5;
 
     // node -> whether its relayout animation also fades opacity in
     private final Map<Node, Boolean> activeMoves = new HashMap<>();
