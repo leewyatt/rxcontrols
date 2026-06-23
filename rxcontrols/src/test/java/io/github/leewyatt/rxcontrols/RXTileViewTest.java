@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
@@ -140,46 +141,50 @@ public class RXTileViewTest {
         assertSame(headerFactory, view.getSectionHeaderFactory());
     }
 
-    // ==================== Coerce + throw sizes ====================
+    // ==================== Lenient sizes ====================
+
+    // Illegal cell / header sizes are accepted as-is (no coerce, no throw); the
+    // skin resolves them to the default at layout time (see RXTileViewSkinTest),
+    // mirroring RXTilePane's lenient prefTile size strategy.
 
     @Test
-    public void cellWidthRejectsIllegalAndCoercesToDefault() {
+    public void cellWidthIsLenient() {
         RXTileView<String> view = new RXTileView<>();
         view.setCellWidth(150.0);
         assertEquals(150.0, view.getCellWidth(), EPSILON);
 
-        assertThrows(IllegalArgumentException.class, () -> view.setCellWidth(0.0));
-        assertEquals(100.0, view.getCellWidth(), EPSILON);
-        assertThrows(IllegalArgumentException.class, () -> view.setCellWidth(-5.0));
-        assertEquals(100.0, view.getCellWidth(), EPSILON);
-        assertThrows(IllegalArgumentException.class, () -> view.setCellWidth(Double.NaN));
-        assertEquals(100.0, view.getCellWidth(), EPSILON);
-        assertThrows(IllegalArgumentException.class, () -> view.setCellWidth(Double.POSITIVE_INFINITY));
-        assertEquals(100.0, view.getCellWidth(), EPSILON);
+        view.setCellWidth(0.0);
+        assertEquals(0.0, view.getCellWidth(), EPSILON);
+        view.setCellWidth(-5.0);
+        assertEquals(-5.0, view.getCellWidth(), EPSILON);
+        view.setCellWidth(Double.NaN);
+        assertTrue(Double.isNaN(view.getCellWidth()));
+        view.setCellWidth(Double.POSITIVE_INFINITY);
+        assertEquals(Double.POSITIVE_INFINITY, view.getCellWidth());
     }
 
     @Test
-    public void cellHeightRejectsIllegalAndCoercesToDefault() {
+    public void cellHeightIsLenient() {
         RXTileView<String> view = new RXTileView<>();
         view.setCellHeight(120.0);
         assertEquals(120.0, view.getCellHeight(), EPSILON);
 
-        assertThrows(IllegalArgumentException.class, () -> view.setCellHeight(0.0));
-        assertEquals(100.0, view.getCellHeight(), EPSILON);
-        assertThrows(IllegalArgumentException.class, () -> view.setCellHeight(Double.NEGATIVE_INFINITY));
-        assertEquals(100.0, view.getCellHeight(), EPSILON);
+        view.setCellHeight(0.0);
+        assertEquals(0.0, view.getCellHeight(), EPSILON);
+        view.setCellHeight(Double.NEGATIVE_INFINITY);
+        assertEquals(Double.NEGATIVE_INFINITY, view.getCellHeight());
     }
 
     @Test
-    public void sectionHeaderHeightRejectsIllegalAndCoercesToDefault() {
+    public void sectionHeaderHeightIsLenient() {
         RXTileView<String> view = new RXTileView<>();
         view.setSectionHeaderHeight(48.0);
         assertEquals(48.0, view.getSectionHeaderHeight(), EPSILON);
 
-        assertThrows(IllegalArgumentException.class, () -> view.setSectionHeaderHeight(0.0));
-        assertEquals(32.0, view.getSectionHeaderHeight(), EPSILON);
-        assertThrows(IllegalArgumentException.class, () -> view.setSectionHeaderHeight(-1.0));
-        assertEquals(32.0, view.getSectionHeaderHeight(), EPSILON);
+        view.setSectionHeaderHeight(0.0);
+        assertEquals(0.0, view.getSectionHeaderHeight(), EPSILON);
+        view.setSectionHeaderHeight(-1.0);
+        assertEquals(-1.0, view.getSectionHeaderHeight(), EPSILON);
     }
 
     @Test
@@ -218,13 +223,16 @@ public class RXTileViewTest {
     }
 
     @Test
-    public void bindingToIllegalSourceThrowsIaeNotBoundSetError() {
+    public void bindingToIllegalSourceIsLenient() {
         RXTileView<String> view = new RXTileView<>();
-        // The `if (!isBound())` guard must skip the coerce-to-default (which would
-        // throw "A bound value cannot be set", a RuntimeException) and let only the
-        // IllegalArgumentException surface for an illegal bound value.
-        assertThrows(IllegalArgumentException.class,
-                () -> view.cellWidthProperty().bind(new SimpleDoubleProperty(0.0)));
+        // Lenient: an illegal bound value is accepted (no coerce, no throw); the
+        // skin resolves it to the default at layout time.
+        SimpleDoubleProperty source = new SimpleDoubleProperty(0.0);
+        view.cellWidthProperty().bind(source);
+        assertEquals(0.0, view.getCellWidth(), EPSILON);
+        assertTrue(view.cellWidthProperty().isBound());
+        source.set(-10.0);
+        assertEquals(-10.0, view.getCellWidth(), EPSILON);
     }
 
     // ==================== Lenient gaps / caps ====================
@@ -586,6 +594,7 @@ public class RXTileViewTest {
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
+        assertTrue(hasProperty(metadata, "-rx-max-columns"));
         assertTrue(hasProperty(metadata, "-rx-section-header-height"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
 
@@ -633,6 +642,18 @@ public class RXTileViewTest {
         List<CssMetaData<? extends Styleable, ?>> metadata = new RXTileView<>().getCssMetaData();
         assertTrue(hasProperty(metadata, "-rx-animated"));
         assertTrue(hasProperty(metadata, "-rx-animation-duration"));
+    }
+
+    @Test
+    public void animationInterpolatorDefaultsAndAcceptsNull() {
+        RXTileView<String> view = new RXTileView<>();
+        assertSame(Interpolator.EASE_BOTH, view.getAnimationInterpolator(),
+                "default reorder interpolator is EASE_BOTH");
+        view.setAnimationInterpolator(Interpolator.LINEAR);
+        assertSame(Interpolator.LINEAR, view.getAnimationInterpolator());
+        // Lenient: null is accepted and falls back to EASE_BOTH at the glide use-site.
+        view.setAnimationInterpolator(null);
+        assertNull(view.getAnimationInterpolator());
     }
 
     private static boolean hasProperty(List<CssMetaData<? extends Styleable, ?>> metadata, String property) {

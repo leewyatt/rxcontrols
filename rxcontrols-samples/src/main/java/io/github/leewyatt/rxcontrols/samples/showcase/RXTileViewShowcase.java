@@ -121,17 +121,15 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
+        // maxCellWidth is a low-frequency, STRETCH-only cap (kept in the API / docs);
+        // it is intentionally not shown here so it does not read as a core layout knob.
         ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
                 FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(tile.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tile.setItemsJustify(value));
 
-        Slider maxCell = createSlider(0, 400, tile.getMaxCellWidth());
-        maxCell.valueProperty().addListener((obs, old, value) -> tile.setMaxCellWidth(value.doubleValue()));
-
         return createGrid(
-                row("Justify", justify),
-                row("Max cell W", maxCell, sentinelLabel(maxCell, "none")));
+                row("Justify", justify));
     }
 
     private Node sectionsGrid() {

@@ -28,18 +28,19 @@ final class RXTileReorderAnimator {
 
     // Sub-pixel moves are snapped rather than animated (no 0-frame Timeline churn).
     private static final double MOVE_EPSILON = 0.5;
-    private static final Interpolator INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private final Map<Node, Timeline> running = new HashMap<>();
 
     /**
      * Glides {@code node} from the given translate delta back to zero over
-     * {@code duration}. If a tween is already running for the node it is stopped
-     * and replaced (re-aim, not restart-from-scratch). Sub-pixel deltas snap
-     * immediately. {@code onFinished} runs after the transforms are reset, on every
-     * terminal path (natural finish or snap), so the caller can un-pin / recycle.
+     * {@code duration} using {@code interpolator}. If a tween is already running
+     * for the node it is stopped and replaced (re-aim, not restart-from-scratch).
+     * Sub-pixel deltas snap immediately. {@code onFinished} runs after the
+     * transforms are reset, on every terminal path (natural finish or snap), so the
+     * caller can un-pin / recycle.
      */
-    void animate(Node node, double fromDx, double fromDy, Duration duration, Consumer<Node> onFinished) {
+    void animate(Node node, double fromDx, double fromDy, Duration duration, Interpolator interpolator,
+                 Consumer<Node> onFinished) {
         Timeline prior = running.remove(node);
         if (prior != null) {
             prior.stop();
@@ -53,8 +54,8 @@ final class RXTileReorderAnimator {
         node.setTranslateX(fromDx);
         node.setTranslateY(fromDy);
         Timeline timeline = new Timeline(new KeyFrame(duration,
-                new KeyValue(node.translateXProperty(), 0.0, INTERPOLATOR),
-                new KeyValue(node.translateYProperty(), 0.0, INTERPOLATOR)));
+                new KeyValue(node.translateXProperty(), 0.0, interpolator),
+                new KeyValue(node.translateYProperty(), 0.0, interpolator)));
         timeline.setOnFinished(e -> {
             node.setTranslateX(0);
             node.setTranslateY(0);

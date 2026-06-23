@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import javafx.animation.Interpolator;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
@@ -726,10 +727,14 @@ final class RXTileViewport<T> extends Region {
         double effectiveGap;
         double startX;
         double preferredRowWidth = cols * baseWidth + (cols - 1) * hgap;
-        if (preferredRowWidth > contentWidth) {
-            double scale = preferredRowWidth <= 0.0 ? 0.0 : Math.max(0.0, contentWidth) / preferredRowWidth;
-            cellWidth = baseWidth * scale;
-            effectiveGap = hgap * scale;
+        if (cols == 1 && preferredRowWidth > contentWidth) {
+            // Emergency shrink: a single column wider than the content area shrinks
+            // to fit; the configured gap is preserved (mirrors RXTilePane). A
+            // one-column row has no inter-cell gaps, so the gap is moot in practice.
+            // Multi-column overflow never reaches here — computeColumns drops a
+            // column before a cell would shrink.
+            cellWidth = Math.max(0.0, contentWidth);
+            effectiveGap = hgap;
             startX = 0.0;
         } else if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (cols - 1) * hgap) / cols;
@@ -869,7 +874,7 @@ final class RXTileViewport<T> extends Region {
             cell.resizeRelocate(x, y, width, height);
             animating.add(cell);
             reorderAnimator.animate(cell, oldVisualX - cell.getLayoutX(), oldVisualY - cell.getLayoutY(),
-                    control.getAnimationDuration(), this::onGlideFinished);
+                    control.getAnimationDuration(), interpolatorOrDefault(), this::onGlideFinished);
             return;
         }
         if (reorderPass) {
@@ -956,7 +961,7 @@ final class RXTileViewport<T> extends Region {
         header.resizeRelocate(snapPositionX(0.0), y, width, height);
         animatingHeaders.add(header);
         reorderAnimator.animate(header, 0.0, oldVisualY - header.getLayoutY(),
-                control.getAnimationDuration(), this::onHeaderGlideFinished);
+                control.getAnimationDuration(), interpolatorOrDefault(), this::onHeaderGlideFinished);
     }
 
     private void onHeaderGlideFinished(Node node) {
@@ -1008,6 +1013,11 @@ final class RXTileViewport<T> extends Region {
         Duration duration = control.getAnimationDuration();
         return duration != null && !duration.isUnknown() && !duration.isIndefinite()
                 && duration.greaterThan(Duration.ZERO);
+    }
+
+    private Interpolator interpolatorOrDefault() {
+        Interpolator value = control.getAnimationInterpolator();
+        return value == null ? Interpolator.EASE_BOTH : value;
     }
 
     private void requestLayoutIfGlidesDone() {

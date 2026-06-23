@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTileViewSkin;
+import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
@@ -15,7 +16,6 @@ import javafx.beans.property.ReadOnlyListWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -25,6 +25,7 @@ import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableIntegerProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
@@ -106,6 +107,7 @@ public class RXTileView<T> extends Control {
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-tile-view";
 
@@ -310,17 +312,6 @@ public class RXTileView<T> extends Control {
 
     private final DoubleProperty cellWidth = new StyleableDoubleProperty(DEFAULT_CELL_WIDTH) {
         @Override
-        protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_CELL_WIDTH);
-                }
-                throw new IllegalArgumentException("cellWidth must be a finite positive number");
-            }
-        }
-
-        @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
             return StyleableProperties.CELL_WIDTH;
         }
@@ -338,10 +329,9 @@ public class RXTileView<T> extends Control {
 
     /**
      * Target width of each cell, in pixels. Drives the derived column count and
-     * preferred width, but is not the control's default minimum width. Must be a
-     * finite positive number; an illegal value is rejected with
-     * {@link IllegalArgumentException} and the property is coerced back to its
-     * default (unless bound).
+     * preferred width, but is not the control's default minimum width. A
+     * non-positive or non-finite value is accepted and resolved to the default
+     * cell width at layout time.
      *
      * @return the cell-width property
      */
@@ -362,7 +352,6 @@ public class RXTileView<T> extends Control {
      * Sets the cell width.
      *
      * @param value the cell width
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setCellWidth(double value) {
         cellWidth.set(value);
@@ -371,17 +360,6 @@ public class RXTileView<T> extends Control {
     // ==================== Cell Height ====================
 
     private final DoubleProperty cellHeight = new StyleableDoubleProperty(DEFAULT_CELL_HEIGHT) {
-        @Override
-        protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_CELL_HEIGHT);
-                }
-                throw new IllegalArgumentException("cellHeight must be a finite positive number");
-            }
-        }
-
         @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
             return StyleableProperties.CELL_HEIGHT;
@@ -399,9 +377,8 @@ public class RXTileView<T> extends Control {
     };
 
     /**
-     * Height of each cell, in pixels. Must be a finite positive number; an
-     * illegal value is rejected with {@link IllegalArgumentException} and the
-     * property is coerced back to its default (unless bound).
+     * Height of each cell, in pixels. A non-positive or non-finite value is
+     * accepted and resolved to the default cell height at layout time.
      *
      * @return the cell-height property
      */
@@ -422,7 +399,6 @@ public class RXTileView<T> extends Control {
      * Sets the cell height.
      *
      * @param value the cell height
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setCellHeight(double value) {
         cellHeight.set(value);
@@ -584,17 +560,6 @@ public class RXTileView<T> extends Control {
 
     private final DoubleProperty sectionHeaderHeight = new StyleableDoubleProperty(DEFAULT_SECTION_HEADER_HEIGHT) {
         @Override
-        protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_SECTION_HEADER_HEIGHT);
-                }
-                throw new IllegalArgumentException("sectionHeaderHeight must be a finite positive number");
-            }
-        }
-
-        @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
             return StyleableProperties.SECTION_HEADER_HEIGHT;
         }
@@ -612,9 +577,8 @@ public class RXTileView<T> extends Control {
 
     /**
      * Fixed height of every section-header row, in pixels (declarative, mirroring
-     * {@code -fx-fixed-cell-size}). Must be a finite positive number; an illegal
-     * value is rejected with {@link IllegalArgumentException} and the property is
-     * coerced back to its default (unless bound).
+     * {@code -fx-fixed-cell-size}). A non-positive or non-finite value is accepted
+     * and resolved to the default section-header height at layout time.
      *
      * @return the section-header-height property
      */
@@ -635,7 +599,6 @@ public class RXTileView<T> extends Control {
      * Sets the section-header height.
      *
      * @param value the section-header height
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setSectionHeaderHeight(double value) {
         sectionHeaderHeight.set(value);
@@ -643,8 +606,22 @@ public class RXTileView<T> extends Control {
 
     // ==================== Max Columns ====================
 
-    private final IntegerProperty maxColumns =
-            new SimpleIntegerProperty(this, "maxColumns", DEFAULT_MAX_COLUMNS);
+    private final IntegerProperty maxColumns = new StyleableIntegerProperty(DEFAULT_MAX_COLUMNS) {
+        @Override
+        public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
+            return StyleableProperties.MAX_COLUMNS;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTileView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxColumns";
+        }
+    };
 
     /**
      * Upper bound on the resolved column count. Any value {@code <= 0} means no
@@ -892,6 +869,39 @@ public class RXTileView<T> extends Control {
      */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);
+    }
+
+    // ==================== Animation Interpolator ====================
+
+    private final ObjectProperty<Interpolator> animationInterpolator =
+            new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
+
+    /**
+     * Interpolator for the reorder glide. {@code null} falls back to
+     * {@link Interpolator#EASE_BOTH}. Not styleable (no stable CSS converter).
+     *
+     * @return the animation-interpolator property
+     */
+    public final ObjectProperty<Interpolator> animationInterpolatorProperty() {
+        return animationInterpolator;
+    }
+
+    /**
+     * Returns the animation interpolator.
+     *
+     * @return the animation interpolator
+     */
+    public final Interpolator getAnimationInterpolator() {
+        return animationInterpolator.get();
+    }
+
+    /**
+     * Sets the animation interpolator.
+     *
+     * @param value the interpolator, or {@code null} for the default
+     */
+    public final void setAnimationInterpolator(Interpolator value) {
+        animationInterpolator.set(value);
     }
 
     // ==================== On Action ====================
@@ -1392,6 +1402,20 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTileView<?>, Number> MAX_COLUMNS =
+                new CssMetaData<>("-rx-max-columns", SizeConverter.getInstance(), DEFAULT_MAX_COLUMNS) {
+                    @Override
+                    public boolean isSettable(RXTileView<?> node) {
+                        return !node.maxColumns.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<Number>) node.maxColumnsProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTileView<?>, Number> HGAP =
                 new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
@@ -1484,7 +1508,7 @@ public class RXTileView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, HGAP, VGAP,
+            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, MAX_COLUMNS, HGAP, VGAP,
                     SECTION_HEADER_HEIGHT, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

@@ -123,6 +123,20 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void maxColumnsCanBeSetFromCss() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setCellWidth(50);
+            view.setHgap(0);
+            view.setStyle("-rx-max-columns: 3;");
+            StackPane root = host(view, 800, 300);
+            pump(root);
+            assertEquals(3, view.getMaxColumns(), "max columns is settable from CSS");
+            assertEquals(3, view.getActualColumnCount(), "the CSS cap drives the derived column count");
+        });
+    }
+
+    @Test
     public void hgapParticipatesInColumnCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(6);
@@ -140,16 +154,17 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void lenientGapsResolveAtLayoutUseSites() throws Exception {
+    public void lenientSizesAndGapsResolveAtLayoutUseSites() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(6);
-            view.setCellWidth(100);
-            view.setCellHeight(100);
-            // cellWidth / cellHeight coerce+throw, so only the lenient gaps can be illegal.
+            // cellWidth / cellHeight are lenient too now: an illegal value resolves
+            // to the default (100) at the layout use-site, exactly like the gaps.
+            view.setCellWidth(0.0);
+            view.setCellHeight(-50.0);
             view.setHgap(Double.NaN);
             view.setVgap(Double.POSITIVE_INFINITY);
             pump(host(view, 350, 300));
-            // floor((350 + 0) / (100 + 0)) = 3 — illegal hgap falls back to zero.
+            // floor((350 + 0) / (100 + 0)) = 3 — illegal cellWidth / hgap fall back to defaults.
             assertEquals(3, view.getActualColumnCount());
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
