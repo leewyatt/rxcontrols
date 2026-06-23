@@ -22,8 +22,8 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
-import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
@@ -60,9 +60,10 @@ import java.util.Set;
  * tile width for that pass so the row remains horizontally bounded. During
  * actual layout the tile height is likewise limited to the available content
  * height, mirroring JavaFX {@code TilePane}'s defensive fallback. A resizable
- * child fills its tile (bounded by its own max size); a non-resizable child is
- * centered in it. When {@link #animatedProperty() animated} is on, children
- * glide to their new positions as the column count changes.
+ * child fills its tile (bounded by its own max size); when a child cannot fill
+ * its tile, {@link #tileAlignmentProperty() tileAlignment} positions it inside
+ * the slot. When {@link #animatedProperty() animated} is on, children glide to
+ * their new positions as the column count changes.
  */
 public class RXTilePane extends Pane {
 
@@ -76,6 +77,7 @@ public class RXTilePane extends Pane {
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final VPos DEFAULT_CONTENT_V_ALIGNMENT = VPos.TOP;
+    private static final Pos DEFAULT_TILE_ALIGNMENT = Pos.CENTER;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -592,6 +594,64 @@ public class RXTilePane extends Pane {
         contentVAlignment.set(value);
     }
 
+    // ==================== Tile Alignment ====================
+
+    private final ObjectProperty<Pos> tileAlignment =
+            new StyleableObjectProperty<>(DEFAULT_TILE_ALIGNMENT) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<RXTilePane, Pos> getCssMetaData() {
+                    return StyleableProperties.TILE_ALIGNMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "tileAlignment";
+                }
+            };
+
+    /**
+     * Default alignment for a child inside its tile when the child cannot fill
+     * the whole tile because it is not resizable or is bounded by its max size.
+     * Resizable children still fill their tile area subject to their own min /
+     * max constraints, matching JavaFX {@code TilePane}. {@code null} is treated
+     * as {@link Pos#CENTER}. Baseline positions are treated as their
+     * center-vertical counterparts because this pane does not expose baseline row
+     * layout.
+     *
+     * @return the tile-alignment property
+     */
+    public final ObjectProperty<Pos> tileAlignmentProperty() {
+        return tileAlignment;
+    }
+
+    /**
+     * Returns the tile alignment.
+     *
+     * @return the tile alignment
+     */
+    public final Pos getTileAlignment() {
+        return tileAlignment.get();
+    }
+
+    /**
+     * Sets the tile alignment.
+     *
+     * @param value the tile alignment, or {@code null} for the default
+     */
+    public final void setTileAlignment(Pos value) {
+        tileAlignment.set(value);
+    }
+
     // ==================== Animated ====================
 
     private final BooleanProperty animated = new StyleableBooleanProperty(DEFAULT_ANIMATED) {
@@ -831,6 +891,7 @@ public class RXTilePane extends Pane {
         double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
         double startY = verticalContentOffset(
                 contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
+        Pos tileAlignmentValue = tileAlignmentOrDefault(getTileAlignment());
 
         double tileWidth;
         double effectiveHgap;
@@ -890,7 +951,8 @@ public class RXTilePane extends Pane {
             // entering child has no meaningful previous position, so it snaps in.
             double oldVisualX = child.getLayoutX() + child.getTranslateX();
             double oldVisualY = child.getLayoutY() + child.getTranslateY();
-            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0, HPos.CENTER, VPos.CENTER);
+            layoutInArea(child, x, y, tileWidth, tileHeight, -1.0,
+                    tileAlignmentValue.getHpos(), tileAlignmentValue.getVpos());
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
             moves.add(new MasonryAnimator.Move(child, fromDx, fromDy, false));
@@ -1054,6 +1116,18 @@ public class RXTilePane extends Pane {
         };
     }
 
+    private static Pos tileAlignmentOrDefault(Pos value) {
+        if (value == null) {
+            return DEFAULT_TILE_ALIGNMENT;
+        }
+        return switch (value) {
+            case BASELINE_LEFT -> Pos.CENTER_LEFT;
+            case BASELINE_CENTER -> Pos.CENTER;
+            case BASELINE_RIGHT -> Pos.CENTER_RIGHT;
+            default -> value;
+        };
+    }
+
     // ==================== CSS ====================
 
     private static final class StyleableProperties {
@@ -1158,6 +1232,21 @@ public class RXTilePane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXTilePane, Pos> TILE_ALIGNMENT =
+                new CssMetaData<>("-rx-tile-alignment",
+                        new EnumConverter<>(Pos.class), DEFAULT_TILE_ALIGNMENT) {
+                    @Override
+                    public boolean isSettable(RXTilePane node) {
+                        return !node.tileAlignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Pos> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<Pos>) node.tileAlignmentProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTilePane, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -1193,7 +1282,7 @@ public class RXTilePane extends Pane {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
             Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, HGAP, VGAP,
-                    ITEMS_JUSTIFY, CONTENT_V_ALIGNMENT, ANIMATED, ANIMATION_DURATION);
+                    ITEMS_JUSTIFY, CONTENT_V_ALIGNMENT, TILE_ALIGNMENT, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

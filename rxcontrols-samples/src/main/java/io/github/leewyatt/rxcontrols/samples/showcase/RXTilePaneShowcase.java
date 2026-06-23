@@ -12,11 +12,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -30,7 +32,7 @@ import java.util.List;
  */
 public class RXTilePaneShowcase extends RXShowcaseApplication {
 
-    private static final int INITIAL_CARDS = 48;
+    private static final int INITIAL_CARDS = 16;
 
     private RXTilePane tiles;
     private int nextCard;
@@ -50,14 +52,17 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         tiles = new RXTilePane();
         tiles.setPrefTileWidth(100.0);
         tiles.setPrefTileHeight(100.0);
+        tiles.setStyle("-fx-background-color: #caefff;");
         tiles.setAnimated(true);
+
+        // Aad unresizable nodes
+        tiles.getChildren().addAll(circleProbe(), rectangleProbe());
+
+        // Add resizable nodes
         for (int i = 0; i < INITIAL_CARDS; i++) {
             tiles.getChildren().add(card(nextCard++));
         }
-        ScrollPane scroll = new ScrollPane(tiles);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        return scroll;
+        return tiles;
     }
 
     @Override
@@ -117,12 +122,20 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         vAlign.setValue(tiles.getContentVAlignment());
         vAlign.valueProperty().addListener((obs, old, value) -> tiles.setContentVAlignment(value));
 
+        ChoiceBox<Pos> tileAlign = new ChoiceBox<>(FXCollections.observableArrayList(
+                Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT,
+                Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT,
+                Pos.BOTTOM_LEFT, Pos.BOTTOM_CENTER, Pos.BOTTOM_RIGHT));
+        tileAlign.setValue(tiles.getTileAlignment());
+        tileAlign.valueProperty().addListener((obs, old, value) -> tiles.setTileAlignment(value));
+
         Slider maxTile = createSlider(0, 400, tiles.getMaxTileWidth());
         maxTile.valueProperty().addListener((obs, old, value) -> tiles.setMaxTileWidth(value.doubleValue()));
 
         return createGrid(
                 row("Justify", justify),
                 row("V align", vAlign),
+                row("Tile align", tileAlign),
                 row("Max tile W", maxTile, sentinelLabel(maxTile, "none")));
     }
 
@@ -161,7 +174,7 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         count.textProperty().bind(Bindings.size(tiles.getChildren()).asString());
         return createGrid(
                 row("Columns", columns),
-                row("Cards", count));
+                row("Children", count));
     }
 
     // ==================== Helpers ====================
@@ -202,6 +215,22 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         double hue = (index * 29) % 360;
         card.setStyle("-fx-background-color: hsb(" + hue + ", 55%, 80%); -fx-background-radius: 10;");
         return card;
+    }
+
+    private Circle circleProbe() {
+        Circle circle = new Circle(24.0, Color.web("#1F8A70"));
+        circle.setStroke(Color.WHITE);
+        circle.setStrokeWidth(3.0);
+        return circle;
+    }
+
+    private Rectangle rectangleProbe() {
+        Rectangle rectangle = new Rectangle(58.0, 36.0, Color.web("#8E44AD"));
+        rectangle.setArcWidth(14.0);
+        rectangle.setArcHeight(14.0);
+        rectangle.setStroke(Color.WHITE);
+        rectangle.setStrokeWidth(3.0);
+        return rectangle;
     }
 
     /**

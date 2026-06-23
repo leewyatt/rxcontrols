@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -61,6 +62,7 @@ public class RXTilePaneTest {
         assertEquals(0.0, pane.getMaxTileWidth(), EPSILON);
         assertSame(ItemsJustify.START, pane.getItemsJustify());
         assertSame(VPos.TOP, pane.getContentVAlignment());
+        assertSame(Pos.CENTER, pane.getTileAlignment());
         assertFalse(pane.isAnimated(), "reorder animation is opt-in");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
@@ -324,6 +326,65 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void tileAlignmentPositionsNonResizableChildWithinTile() {
+        RXTilePane pane = new RXTilePane();
+        Rectangle rect = new Rectangle(30, 20);
+        pane.getChildren().add(rect);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+        pane.setTileAlignment(Pos.BOTTOM_RIGHT);
+
+        layout(pane, 120, 100);
+
+        assertEquals(70.0, rect.getLayoutX(), EPSILON,
+                "BOTTOM_RIGHT aligns the smaller child to the tile's right edge");
+        assertEquals(60.0, rect.getLayoutY(), EPSILON,
+                "BOTTOM_RIGHT aligns the smaller child to the tile's bottom edge");
+    }
+
+    @Test
+    public void tileAlignmentDoesNotPreventResizableChildFromFillingTile() {
+        RXTilePane pane = new RXTilePane();
+        Region child = card(20, 20);
+        pane.getChildren().add(child);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+
+        layout(pane, 120, 100);
+
+        assertEquals(100.0, child.getLayoutBounds().getWidth(), EPSILON,
+                "resizable children still fill the tile width");
+        assertEquals(80.0, child.getLayoutBounds().getHeight(), EPSILON,
+                "resizable children still fill the tile height");
+        assertEquals(0.0, child.getLayoutX(), EPSILON);
+        assertEquals(0.0, child.getLayoutY(), EPSILON);
+    }
+
+    @Test
+    public void tileAlignmentTreatsNullAsCenterAndBaselineAsCenterVertical() {
+        RXTilePane pane = new RXTilePane();
+        Rectangle rect = new Rectangle(30, 20);
+        pane.getChildren().add(rect);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(80);
+
+        pane.setTileAlignment(null);
+        layout(pane, 120, 100);
+        assertEquals(35.0, rect.getLayoutX(), EPSILON,
+                "null tileAlignment falls back to CENTER");
+        assertEquals(30.0, rect.getLayoutY(), EPSILON,
+                "null tileAlignment falls back to CENTER");
+
+        pane.setTileAlignment(Pos.BASELINE_RIGHT);
+        layout(pane, 120, 100);
+        assertEquals(70.0, rect.getLayoutX(), EPSILON,
+                "BASELINE_RIGHT keeps the right horizontal alignment");
+        assertEquals(30.0, rect.getLayoutY(), EPSILON,
+                "baseline tile alignment falls back to center vertically");
+    }
+
+    @Test
     public void prefTileSizeRejectsInvalidAndGapIsLenient() {
         RXTilePane pane = new RXTilePane();
         assertThrows(IllegalArgumentException.class, () -> pane.setPrefTileWidth(0));
@@ -355,6 +416,7 @@ public class RXTilePaneTest {
         assertTrue(hasProperty(metadata, "-rx-vgap"));
         assertTrue(hasProperty(metadata, "-rx-items-justify"));
         assertTrue(hasProperty(metadata, "-rx-content-v-alignment"));
+        assertTrue(hasProperty(metadata, "-rx-tile-alignment"));
         assertTrue(hasProperty(metadata, "-rx-animated"));
         assertTrue(hasProperty(metadata, "-rx-animation-duration"));
     }
