@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
+import io.github.leewyatt.rxcontrols.RXDialogs;
 import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
@@ -129,7 +130,39 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 section("Animation", animationGrid()),
                 section("Behaviour", behaviourBox()),
                 section("Card bounds (px)", cardBoundsGrid()),
+                section("Quick dialogs (RXDialogs)", quickDialogsBox()),
                 section("State", stateBox()));
+    }
+
+    // One-click triggers for the RXDialogs convenience facade: message / confirm / input / busy,
+    // each owned by its own button and wiring its async result into the State read-out.
+    private Node quickDialogsBox() {
+        Button info = facadeButton("information(…)",
+                b -> RXDialogs.information(b, "Saved", "Your changes have been saved."));
+        Button warn = facadeButton("warning(…)",
+                b -> RXDialogs.warning(b, "Low disk space", "Less than 1 GB remaining."));
+        Button error = facadeButton("error(…)",
+                b -> RXDialogs.error(b, "Upload failed", "The server could not be reached."));
+        Button confirm = facadeButton("confirm(…)",
+                b -> RXDialogs.confirm(b, "Delete file?", "This cannot be undone.")
+                        .thenAccept(result -> lastResult.set(
+                                "confirm → " + (result == null ? "—" : result.getText()))));
+        Button input = facadeButton("input(…)",
+                b -> RXDialogs.input(b, "Rename", "New name:", "untitled")
+                        .thenAccept(text -> lastResult.set(
+                                "input → " + (text == null ? "(cancelled)" : text))));
+        Button busy = facadeButton("busy(…) — auto-closes in 1.5s", b -> {
+            RXDialogs.Busy handle = RXDialogs.busy(b, "Working…");
+            new Timeline(new KeyFrame(Duration.seconds(1.5), event -> handle.close())).play();
+        });
+        return new VBox(8.0, info, warn, error, confirm, input, busy);
+    }
+
+    private Button facadeButton(String text, Consumer<Button> action) {
+        Button button = new Button(text);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setOnAction(event -> action.accept(button));
+        return button;
     }
 
     private Node cardBoundsGrid() {

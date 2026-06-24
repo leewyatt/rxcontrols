@@ -1078,6 +1078,20 @@
     -fx-padding: 0 24 16 24;
 }
 
+/* RXDialogs message-type heading accents (added by the RXDialogs facade as a
+   rx-dialog-<type> style class on the dialog; CONFIRMATION / NONE stay neutral). */
+.rx-dialog-information .rx-dialog-content > .container > .heading > .title {
+    /*-fx-text-fill: -rx-primary;*/
+}
+
+.rx-dialog-warning .rx-dialog-content > .container > .heading > .title {
+    -fx-text-fill: -rx-warning;
+}
+
+.rx-dialog-error .rx-dialog-content > .container > .heading > .title {
+    -fx-text-fill: -rx-danger;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXRipplePane                                                                *
