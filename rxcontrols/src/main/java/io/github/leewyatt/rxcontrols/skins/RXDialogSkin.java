@@ -3,8 +3,10 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -65,7 +67,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private final StackPane dialogCard = new StackPane();
     private final StackPane contentHolder = new StackPane();
     private final VBox cardColumn = new VBox();
-    private final ButtonBar actionsBar = new ButtonBar();
+    // The action bar (a ButtonBar for PLATFORM, else an HBox), rebuilt when buttonTypes
+    // or actionsLayout change; null when there are no buttons.
+    private Region actionsNode;
 
     private Timeline animation;
     // Guard lifecycle firing: SHOWN fires only when a show transition is in flight,
@@ -104,7 +108,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         dialogCard.getStyleClass().add("dialog-card");
         cardColumn.getStyleClass().add("card-body");
         contentHolder.getStyleClass().add("content");
-        actionsBar.getStyleClass().add("actions");
 
         // The card catches clicks across its whole bounds so a click on it never
         // falls through to the scrim (which would request a close).
@@ -113,7 +116,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         dialogCard.setFocusTraversable(true);
 
         VBox.setVgrow(contentHolder, Priority.ALWAYS);
-        cardColumn.getChildren().setAll(contentHolder, actionsBar);
+        cardColumn.getChildren().setAll(contentHolder);
         dialogCard.getChildren().setAll(cardColumn);
 
         getChildren().setAll(overlay, dialogCard);
@@ -149,6 +152,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
                 (obs, wasShowing, isShowing) -> handleShowingChanged(isShowing));
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.getButtonTypes(), this::rebuildActions);
+        disposer.registerListener(control.actionsLayoutProperty(), this::rebuildActions);
         disposer.registerListener(control.modalProperty(), this::onModalChanged);
         // Track stacking position so only the top-most dialog shows its scrim. The dialog's
         // parent is the shared RXDialogLayer (a StackPane) whose last child is the top-most
@@ -174,16 +178,41 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     }
 
     private void rebuildActions() {
-        actionsBar.getButtons().clear();
-        for (ButtonType buttonType : getSkinnable().getButtonTypes()) {
-            if (buttonType == null) {
-                continue;
-            }
-            actionsBar.getButtons().add(createActionButton(buttonType));
+        if (actionsNode != null) {
+            cardColumn.getChildren().remove(actionsNode);
+            actionsNode = null;
         }
-        boolean hasActions = !actionsBar.getButtons().isEmpty();
-        actionsBar.setVisible(hasActions);
-        actionsBar.setManaged(hasActions);
+        List<RXButton> buttons = new ArrayList<>();
+        for (ButtonType buttonType : getSkinnable().getButtonTypes()) {
+            if (buttonType != null) {
+                buttons.add(createActionButton(buttonType));
+            }
+        }
+        if (buttons.isEmpty()) {
+            return;
+        }
+        actionsNode = buildActionsContainer(buttons);
+        actionsNode.getStyleClass().add("actions");
+        cardColumn.getChildren().add(actionsNode);
+    }
+
+    // PLATFORM keeps the native ButtonBar (OS order, trailing-aligned). BOX (default) is a
+    // plain RXBox row in buttonTypes order, fully styled by CSS on .actions (alignment /
+    // spacing / orientation); there is no per-layout geometry code on purpose.
+    private Region buildActionsContainer(List<RXButton> buttons) {
+        if (actionsLayoutOrDefault() == RXDialogActionsLayout.PLATFORM) {
+            ButtonBar bar = new ButtonBar();
+            bar.getButtons().setAll(buttons);
+            return bar;
+        }
+        RXBox row = new RXBox();
+        row.getChildren().setAll(buttons);
+        return row;
+    }
+
+    private RXDialogActionsLayout actionsLayoutOrDefault() {
+        RXDialogActionsLayout value = getSkinnable().getActionsLayout();
+        return value == null ? RXDialog.DEFAULT_ACTIONS_LAYOUT : value;
     }
 
     private RXButton createActionButton(ButtonType buttonType) {
@@ -544,11 +573,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private Node firstFocusTarget() {
         // Discovery order: first action button -> first focusable in content -> the card.
-        for (Node button : actionsBar.getButtons()) {
-            Node found = firstFocusableIn(button);
-            if (found != null) {
-                return found;
-            }
+        Node inActions = firstFocusableIn(actionsNode);
+        if (inActions != null) {
+            return inActions;
         }
         Node inContent = firstFocusableIn(getSkinnable().getContent());
         if (inContent != null) {

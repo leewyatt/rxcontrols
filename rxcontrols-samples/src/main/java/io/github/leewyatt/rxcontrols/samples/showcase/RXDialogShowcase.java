@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -84,6 +85,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Transition", transitionGrid()),
+                section("Actions", actionsGrid()),
                 section("Animation", animationGrid()),
                 section("Behaviour", behaviourBox()),
                 section("State", stateBox()));
@@ -96,6 +98,15 @@ public class RXDialogShowcase extends RXShowcaseApplication {
         transition.valueProperty().addListener((obs, old, value) -> dialog.setTransition(value));
         transition.setMaxWidth(Double.MAX_VALUE);
         return createGrid(row("Style", transition));
+    }
+
+    private Node actionsGrid() {
+        ComboBox<RXDialogActionsLayout> layout = new ComboBox<>(
+                FXCollections.observableArrayList(RXDialogActionsLayout.values()));
+        layout.setValue(dialog.getActionsLayout());
+        layout.valueProperty().addListener((obs, old, value) -> dialog.setActionsLayout(value));
+        layout.setMaxWidth(Double.MAX_VALUE);
+        return createGrid(row("Layout", layout));
     }
 
     private Node animationGrid() {

@@ -1,8 +1,10 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.Event;
@@ -11,6 +13,7 @@ import javafx.event.EventType;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -72,6 +75,7 @@ public class RXDialogTest {
             assertTrue(dialog.isModal());
             assertTrue(dialog.isCloseOnEsc());
             assertTrue(dialog.isCloseOnScrimClick());
+            assertEquals(RXDialogActionsLayout.BOX, dialog.getActionsLayout());
             assertNull(dialog.getResult());
             assertNull(dialog.getContent());
             assertTrue(dialog.getButtonTypes().isEmpty());
@@ -420,6 +424,30 @@ public class RXDialogTest {
             second.showIn(paneB);
             assertTrue(second.isShowing(), "after the layer frees up, the container is honored");
             second.close();
+        });
+    }
+
+    @Test
+    public void actionsLayoutSelectsTheContainer() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = newDialog(ButtonType.CANCEL, ButtonType.OK);
+            Region owner = new Region();
+            new Scene(new StackPane(owner), 400, 300);
+            dialog.show(owner);
+
+            // BOX (default) renders a plain RXBox row in buttonTypes order (styled by CSS).
+            Node defaultActions = dialog.lookup(".actions");
+            assertTrue(defaultActions instanceof RXBox, "BOX (default) uses an RXBox");
+            RXBox row = (RXBox) defaultActions;
+            assertEquals(2, row.getChildren().size());
+            assertEquals("Cancel", ((RXButton) row.getChildren().get(0)).getText(),
+                    "BOX keeps buttonTypes insertion order");
+
+            // PLATFORM switches to the native ButtonBar.
+            dialog.setActionsLayout(RXDialogActionsLayout.PLATFORM);
+            assertTrue(dialog.lookup(".actions") instanceof ButtonBar, "PLATFORM uses a ButtonBar");
+
+            dialog.close();
         });
     }
 

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.internal.RXDialogLayer;
@@ -85,6 +86,11 @@ public class RXDialog<R> extends Control {
      * Default transition style (centered scale + fade).
      */
     public static final RXDialogTransition DEFAULT_TRANSITION = RXDialogTransition.CENTER;
+
+    /**
+     * Default action-button layout (a CSS-styled {@code RXBox} row).
+     */
+    public static final RXDialogActionsLayout DEFAULT_ACTIONS_LAYOUT = RXDialogActionsLayout.BOX;
 
     /**
      * Default show/hide animation enabled state.
@@ -333,14 +339,66 @@ public class RXDialog<R> extends Control {
     private final ObservableList<ButtonType> buttonTypes = FXCollections.observableArrayList();
 
     /**
-     * The button types the skin renders as a platform-ordered action bar (via
-     * {@code ButtonBar}) at the bottom of the card. Empty means no action bar; put
-     * a custom action row inside {@link #contentProperty() content} instead.
+     * The button types the skin renders as an action bar at the bottom of the card,
+     * laid out per {@link #actionsLayoutProperty() actionsLayout}. Empty means no
+     * action bar; put a custom action row inside {@link #contentProperty() content}
+     * instead.
      *
      * @return the live, modifiable list of button types
      */
     public final ObservableList<ButtonType> getButtonTypes() {
         return buttonTypes;
+    }
+
+    // ==================== Actions Layout ====================
+
+    private final ObjectProperty<RXDialogActionsLayout> actionsLayout =
+            new StyleableObjectProperty<>(DEFAULT_ACTIONS_LAYOUT) {
+                @Override
+                public CssMetaData<? extends Styleable, RXDialogActionsLayout> getCssMetaData() {
+                    return StyleableProperties.ACTIONS_LAYOUT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXDialog.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "actionsLayout";
+                }
+            };
+
+    /**
+     * How the action buttons built from {@link #getButtonTypes() buttonTypes} are laid
+     * out. {@link RXDialogActionsLayout#BOX} (default) is a CSS-styled {@code RXBox} row
+     * in {@code buttonTypes} order; {@link RXDialogActionsLayout#PLATFORM} uses the native
+     * {@code ButtonBar} (OS order, trailing-aligned). A {@code null} value resolves to
+     * {@link #DEFAULT_ACTIONS_LAYOUT} at the use site.
+     *
+     * @return the actions-layout property
+     */
+    public final ObjectProperty<RXDialogActionsLayout> actionsLayoutProperty() {
+        return actionsLayout;
+    }
+
+    /**
+     * Returns the action-button layout.
+     *
+     * @return the action-button layout
+     */
+    public final RXDialogActionsLayout getActionsLayout() {
+        return actionsLayout.get();
+    }
+
+    /**
+     * Sets the action-button layout.
+     *
+     * @param value the action-button layout, or {@code null} to fall back to the default
+     */
+    public final void setActionsLayout(RXDialogActionsLayout value) {
+        actionsLayout.set(value);
     }
 
     // ==================== Showing ====================
@@ -1086,6 +1144,21 @@ public class RXDialog<R> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXDialog<?>, RXDialogActionsLayout> ACTIONS_LAYOUT =
+                new CssMetaData<>("-rx-actions-layout",
+                        new EnumConverter<>(RXDialogActionsLayout.class), DEFAULT_ACTIONS_LAYOUT) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.actionsLayout.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<RXDialogActionsLayout> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<RXDialogActionsLayout>) node.actionsLayoutProperty();
+                    }
+                };
+
         private static final CssMetaData<RXDialog<?>, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -1121,6 +1194,7 @@ public class RXDialog<R> extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(TRANSITION);
+            styleables.add(ACTIONS_LAYOUT);
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);

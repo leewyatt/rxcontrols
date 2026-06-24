@@ -1014,6 +1014,12 @@
 
 .rx-dialog > .dialog-card > .card-body > .actions {
     -fx-padding: 8 16 16 16;
+    /* the default BOX layout is an RXBox styled here (centered + spaced); change
+       -rx-alignment / -rx-spacing / -rx-orientation to taste, and give the buttons an
+       explicit -fx-pref-width for equal widths. The native ButtonBar of PLATFORM ignores
+       these and manages its own layout. */
+    -rx-spacing: 8;
+    -rx-alignment: center;
 }
 
 /*******************************************************************************
