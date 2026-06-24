@@ -559,102 +559,134 @@ public class RXDialogTest {
     }
 
     @Test
-    public void resizeEastGrowsWidthKeepingTheLeftEdgeFixed() throws Exception {
+    public void resizeEastGrowsWidthAroundTheCenter() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
-            double x0 = card.getLayoutX();
+            double centerX0 = card.getLayoutX() + card.getWidth() / 2.0;
             double w0 = card.getWidth();
 
+            // Drag the east edge 100px out: it tracks the pointer and the west edge mirrors it,
+            // so the card grows by 200 about a fixed centre.
             pressDragRelease(card, w0 - 3, card.getHeight() / 2, 100, 0);
 
-            assertEquals(x0, card.getLayoutX(), 2.0, "east resize keeps the left edge fixed");
-            assertEquals(w0 + 100, card.getWidth(), 2.0, "east resize grows the width by the delta");
+            assertEquals(w0 + 200, card.getWidth(), 2.0, "east resize grows the width by twice the drag");
+            assertEquals(centerX0, card.getLayoutX() + card.getWidth() / 2.0, 2.0,
+                    "the card's centre stays fixed");
             dialog.close();
         });
     }
 
     @Test
-    public void resizeWestGrowsWidthKeepingTheRightEdgeFixed() throws Exception {
+    public void resizeWestGrowsWidthAroundTheCenter() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
-            double right0 = card.getLayoutX() + card.getWidth();
+            double centerX0 = card.getLayoutX() + card.getWidth() / 2.0;
             double w0 = card.getWidth();
 
-            // Drag the west edge left: the opposite (right) edge must not move (spec §3.4 #2).
             pressDragRelease(card, 3, card.getHeight() / 2, -100, 0);
 
-            assertEquals(w0 + 100, card.getWidth(), 2.0, "west resize grows the width by the delta");
-            assertEquals(right0, card.getLayoutX() + card.getWidth(), 2.0,
-                    "west resize keeps the right edge fixed");
+            assertEquals(w0 + 200, card.getWidth(), 2.0, "west resize grows the width by twice the drag");
+            assertEquals(centerX0, card.getLayoutX() + card.getWidth() / 2.0, 2.0,
+                    "the card's centre stays fixed");
             dialog.close();
         });
     }
 
     @Test
-    public void resizeNorthGrowsHeightKeepingTheBottomEdgeFixed() throws Exception {
+    public void resizeNorthGrowsHeightAroundTheCenter() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
-            double bottom0 = card.getLayoutY() + card.getHeight();
+            double centerY0 = card.getLayoutY() + card.getHeight() / 2.0;
             double h0 = card.getHeight();
 
-            // Drag the north edge up: the opposite (bottom) edge must not move (spec §3.4 #2).
             // y=3 is in both the north resize band and the drag band, so this also covers the
-            // resize-wins-over-drag priority (§3.4 #3).
+            // resize-wins-over-drag priority (spec §3.4 #3).
             pressDragRelease(card, card.getWidth() / 2, 3, 0, -100);
 
-            assertEquals(h0 + 100, card.getHeight(), 2.0, "north resize grows the height");
-            assertEquals(bottom0, card.getLayoutY() + card.getHeight(), 2.0,
-                    "north resize keeps the bottom edge fixed");
+            assertEquals(h0 + 200, card.getHeight(), 2.0, "north resize grows the height by twice the drag");
+            assertEquals(centerY0, card.getLayoutY() + card.getHeight() / 2.0, 2.0,
+                    "the card's centre stays fixed");
             dialog.close();
         });
     }
 
     @Test
-    public void resizeSouthGrowsHeightKeepingTheTopEdgeFixed() throws Exception {
+    public void resizeSouthGrowsHeightAroundTheCenter() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
-            double y0 = card.getLayoutY();
+            double centerY0 = card.getLayoutY() + card.getHeight() / 2.0;
             double h0 = card.getHeight();
 
             pressDragRelease(card, card.getWidth() / 2, card.getHeight() - 3, 0, 100);
 
-            assertEquals(h0 + 100, card.getHeight(), 2.0, "south resize grows the height");
-            assertEquals(y0, card.getLayoutY(), 2.0, "south resize keeps the top edge fixed");
+            assertEquals(h0 + 200, card.getHeight(), 2.0, "south resize grows the height by twice the drag");
+            assertEquals(centerY0, card.getLayoutY() + card.getHeight() / 2.0, 2.0,
+                    "the card's centre stays fixed");
             dialog.close();
         });
     }
 
     @Test
-    public void resizeSouthEastCornerGrowsBothKeepingTopLeftFixed() throws Exception {
+    public void resizeSouthEastCornerGrowsBothAroundTheCenter() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
-            double x0 = card.getLayoutX();
-            double y0 = card.getLayoutY();
+            double centerX0 = card.getLayoutX() + card.getWidth() / 2.0;
+            double centerY0 = card.getLayoutY() + card.getHeight() / 2.0;
             double w0 = card.getWidth();
             double h0 = card.getHeight();
 
-            // A corner grows both axes; the opposite (top-left) corner must stay fixed.
+            // A corner grows both axes; the card's centre (both axes) must stay fixed.
             pressDragRelease(card, card.getWidth() - 3, card.getHeight() - 3, 100, 100);
 
-            assertEquals(x0, card.getLayoutX(), 2.0, "SE-corner resize keeps the left edge fixed");
-            assertEquals(y0, card.getLayoutY(), 2.0, "SE-corner resize keeps the top edge fixed");
-            assertEquals(w0 + 100, card.getWidth(), 2.0, "SE-corner resize grows the width");
-            assertEquals(h0 + 100, card.getHeight(), 2.0, "SE-corner resize grows the height");
+            assertEquals(w0 + 200, card.getWidth(), 2.0, "SE-corner resize grows the width by twice the drag");
+            assertEquals(h0 + 200, card.getHeight(), 2.0, "SE-corner resize grows the height by twice the drag");
+            assertEquals(centerX0, card.getLayoutX() + card.getWidth() / 2.0, 2.0, "centre X stays fixed");
+            assertEquals(centerY0, card.getLayoutY() + card.getHeight() / 2.0, 2.0, "centre Y stays fixed");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void resizeKeepsTheCardsCurrentCenterEvenWhenDraggedOffCenter() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            dialog.setEnableDraggable(true);
+            // A roomy scene so the off-centre + grown card stays clear of the edges (otherwise the
+            // per-frame scene clamp would correctly pull it in and shift the centre).
+            showAndLayout(dialog, 1200, 800);
+            Region card = card(dialog);
+
+            // Drag the card off the dialog centre via the title band.
+            pressDragRelease(card, card.getWidth() / 2, 24, 150, 80);
+            double centerX1 = card.getLayoutX() + card.getWidth() / 2.0;
+            double centerY1 = card.getLayoutY() + card.getHeight() / 2.0;
+            double w1 = card.getWidth();
+
+            // Now resize: the card must scale about its current (off-centre) centre, not snap to
+            // the dialog centre.
+            pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, 60, 0);
+
+            assertEquals(w1 + 120, card.getWidth(), 2.0, "resize grows the width by twice the drag");
+            assertEquals(centerX1, card.getLayoutX() + card.getWidth() / 2.0, 2.0,
+                    "resize keeps the card's current off-centre centre");
+            assertEquals(centerY1, card.getLayoutY() + card.getHeight() / 2.0, 2.0,
+                    "resize does not move the card vertically");
             dialog.close();
         });
     }
@@ -676,7 +708,7 @@ public class RXDialogTest {
             pressDragRelease(card, w0 - 3, card.getHeight() / 2, 100, 0);
             double w1 = card.getWidth();
             double x1 = card.getLayoutX();
-            assertEquals(w0 + 100, w1, 2.0, "the east resize grew the width");
+            assertEquals(w0 + 200, w1, 2.0, "the east resize grew the width by twice the drag");
 
             pressDragRelease(card, card.getWidth() / 2, 24, 80, 0);
 
@@ -801,13 +833,13 @@ public class RXDialogTest {
             fire(card, MouseEvent.MOUSE_PRESSED, press.getX(), press.getY(), MouseButton.PRIMARY, true);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 100, press.getY(), MouseButton.NONE, true);
             layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
-            assertEquals(w0 + 100, card.getWidth(), 2.0, "card grows during the resize");
+            assertEquals(w0 + 200, card.getWidth(), 2.0, "card grows during the resize (twice the drag)");
 
             // Disabling mid-resize cancels the gesture but keeps the current size (§3.4 #10).
             dialog.setEnableResizable(false);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 200, press.getY(), MouseButton.NONE, true);
             layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
-            assertEquals(w0 + 100, card.getWidth(), 2.0,
+            assertEquals(w0 + 200, card.getWidth(), 2.0,
                     "disabling cancels further resizing and keeps the size (no reset to auto)");
 
             fire(card, MouseEvent.MOUSE_RELEASED, press.getX() + 200, press.getY(), MouseButton.PRIMARY, false);

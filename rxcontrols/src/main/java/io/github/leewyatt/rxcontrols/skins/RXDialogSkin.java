@@ -964,34 +964,28 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
     }
 
-    // Resize keeps the edge OPPOSITE the dragged one fixed. The card is centered + offset, so
-    // holding one edge still means the offset shifts by half the *clamped* size change — using
-    // the raw mouse delta would let the offset drift on after the size hits a min/max/scene
-    // bound, dragging the opposite edge with it (spec §3.4 #2).
+    // Center-anchored resize: the grabbed edge follows the pointer while the opposite edge
+    // mirrors it, so the card grows / shrinks symmetrically about its current centre, which
+    // stays fixed (the centred card's centre = scene centre + dragOffset, independent of the
+    // card size, and dragOffset is left untouched — so a centred dialog stays centred and a
+    // dragged-off-centre card scales about wherever it is). The grabbed edge moves by the
+    // pointer delta, so the size changes by twice it. The per-frame scene clamp in
+    // layoutChildren still pins the card on-screen, so growing near an edge can't push it out
+    // (no clip needed).
     private void updateResize(MouseEvent event) {
         double dx = event.getSceneX() - gestureStartSceneX;
         double dy = event.getSceneY() - gestureStartSceneY;
         if (resizeEast || resizeWest) {
-            double desiredW = resizeEast ? gestureStartW + dx : gestureStartW - dx;
-            double clampedW = clampCardWidth(desiredW, availContentWidth);
-            userWidth = clampedW;
-            double actualDelta = clampedW - gestureStartW;
-            dragOffsetX = resizeEast
-                    ? gestureStartOffsetX + actualDelta / 2.0
-                    : gestureStartOffsetX - actualDelta / 2.0;
+            double edgeDelta = resizeEast ? dx : -dx;
+            userWidth = clampCardWidth(gestureStartW + 2.0 * edgeDelta, availContentWidth);
         }
         if (resizeNorth || resizeSouth) {
-            double desiredH = resizeSouth ? gestureStartH + dy : gestureStartH - dy;
+            double edgeDelta = resizeSouth ? dy : -dy;
             // Height is for-width: use the (possibly just-updated) card width so the clamp
             // matches what layoutChildren will compute for this frame.
             double widthForHeight = userWidth != null
                     ? clampCardWidth(userWidth, availContentWidth) : dialogCard.getWidth();
-            double clampedH = clampCardHeight(desiredH, widthForHeight, availContentHeight);
-            userHeight = clampedH;
-            double actualDelta = clampedH - gestureStartH;
-            dragOffsetY = resizeSouth
-                    ? gestureStartOffsetY + actualDelta / 2.0
-                    : gestureStartOffsetY - actualDelta / 2.0;
+            userHeight = clampCardHeight(gestureStartH + 2.0 * edgeDelta, widthForHeight, availContentHeight);
         }
         getSkinnable().requestLayout();
     }
