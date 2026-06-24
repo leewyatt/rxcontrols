@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -181,6 +182,27 @@ public class RXDialogContentTest {
             closeButton.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
                     MouseButton.PRIMARY, 1, false, false, false, false, true, false, false,
                     false, false, false, null));
+        });
+    }
+
+    @Test
+    public void graphicSitsInACssPaddedWrapper() throws Exception {
+        // The graphic-to-title gap is the wrapper's CSS padding (author-tunable), not a
+        // hardcoded BorderPane margin.
+        runOnFx(() -> {
+            RXDialogContent layout = new RXDialogContent("Title", "Body");
+            Region graphic = new Region();
+            layout.setGraphic(graphic);
+            StackPane root = new StackPane(layout);
+            new Scene(root, 320, 240);
+            root.applyCss();
+            root.layout();
+
+            Region wrapper = (Region) layout.lookup(".graphic-wrapper");
+            assertNotNull(wrapper, "the graphic wrapper exists");
+            assertSame(wrapper, graphic.getParent(), "the graphic is mounted in the wrapper");
+            assertTrue(wrapper.getInsets().getRight() > 0.0,
+                    "the graphic-to-title gap comes from CSS padding (.heading > .graphic-wrapper)");
         });
     }
 

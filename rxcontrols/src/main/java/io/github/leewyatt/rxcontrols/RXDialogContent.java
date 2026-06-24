@@ -62,7 +62,8 @@ public class RXDialogContent extends RXDialogContentBase {
     private final StackPane body = new StackPane();
     private final Label contentLabel = new Label();
     private final Hyperlink detailsToggle = new Hyperlink();
-    private final StackPane expandableHolder = new StackPane();
+    private final StackPane expandableWrapper = new StackPane();
+    private final StackPane graphicWrapper = new StackPane();
     private final StackPane closeButton = createCloseButton();
 
     // ==================== Constructors ====================
@@ -89,12 +90,13 @@ public class RXDialogContent extends RXDialogContentBase {
         contentLabel.getStyleClass().add("content-text");
         contentLabel.setWrapText(true);
         heading.getStyleClass().add("heading");
+        graphicWrapper.getStyleClass().add("graphic-wrapper");
         body.getStyleClass().add("body");
         detailsToggle.getStyleClass().add("details-toggle");
-        expandableHolder.getStyleClass().add("expandable-content");
+        expandableWrapper.getStyleClass().add("expandable-wrapper");
 
         VBox.setVgrow(body, Priority.ALWAYS);
-        container.getChildren().setAll(heading, body, detailsToggle, expandableHolder);
+        container.getChildren().setAll(heading, body, detailsToggle, expandableWrapper);
         getChildren().setAll(container);
 
         detailsToggle.setOnAction(event -> setExpanded(!isExpanded()));
@@ -422,10 +424,14 @@ public class RXDialogContent extends RXDialogContentBase {
         titleLabel.setText(text == null ? "" : text);
 
         Node center = headerNode != null ? headerNode : (hasText ? titleLabel : null);
+        // The graphic sits in a wrapper whose CSS padding (.heading > .graphic-wrapper) is
+        // the graphic-to-title gap — author-tunable, unlike a hardcoded BorderPane margin.
         if (graphicNode != null) {
-            BorderPane.setMargin(graphicNode, new Insets(0, 12, 0, 0));
+            graphicWrapper.getChildren().setAll(graphicNode);
+        } else {
+            graphicWrapper.getChildren().clear();
         }
-        heading.setLeft(graphicNode);
+        heading.setLeft(graphicNode != null ? graphicWrapper : null);
         heading.setCenter(center);
         heading.setRight(isShowClose() ? closeButton : null);
 
@@ -484,12 +490,12 @@ public class RXDialogContent extends RXDialogContentBase {
 
         boolean reveal = hasExpandable && isExpanded();
         if (reveal) {
-            expandableHolder.getChildren().setAll(expandable);
+            expandableWrapper.getChildren().setAll(expandable);
         } else {
-            expandableHolder.getChildren().clear();
+            expandableWrapper.getChildren().clear();
         }
-        expandableHolder.setVisible(reveal);
-        expandableHolder.setManaged(reveal);
+        expandableWrapper.setVisible(reveal);
+        expandableWrapper.setManaged(reveal);
     }
 
     // ==================== Layout ====================

@@ -1026,6 +1026,10 @@
     -fx-padding: 20 24 0 24;
 }
 
+.rx-dialog-content > .container > .heading > .graphic-wrapper {
+    -fx-padding: 0 12 0 0;
+}
+
 .rx-dialog-content > .container > .heading > .close-button {
     -fx-background-color: transparent;
     -fx-background-radius: 999;
@@ -1062,7 +1066,7 @@
     -fx-padding: 0 24 8 24;
 }
 
-.rx-dialog-content > .container > .expandable-content {
+.rx-dialog-content > .container > .expandable-wrapper {
     -fx-padding: 0 24 16 24;
 }
 
