@@ -66,7 +66,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private final Region overlay = new Region();
     private final StackPane dialogCard = new StackPane();
     private final StackPane contentWrapper = new StackPane();
-    private final VBox cardColumn = new VBox();
+    private final VBox cardBody = new VBox();
     // The action bar (a ButtonBar for PLATFORM, else an RXBox), rebuilt when buttonTypes
     // or actionsLayout change; null when there are no buttons.
     private Region actionsNode;
@@ -106,7 +106,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
         overlay.getStyleClass().add("overlay");
         dialogCard.getStyleClass().add("dialog-card");
-        cardColumn.getStyleClass().add("card-body");
+        cardBody.getStyleClass().add("card-body");
         contentWrapper.getStyleClass().add("content-wrapper");
 
         // The card catches clicks across its whole bounds so a click on it never
@@ -116,8 +116,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         dialogCard.setFocusTraversable(true);
 
         VBox.setVgrow(contentWrapper, Priority.ALWAYS);
-        cardColumn.getChildren().setAll(contentWrapper);
-        dialogCard.getChildren().setAll(cardColumn);
+        cardBody.getChildren().setAll(contentWrapper);
+        dialogCard.getChildren().setAll(cardBody);
 
         getChildren().setAll(overlay, dialogCard);
 
@@ -179,7 +179,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void rebuildActions() {
         if (actionsNode != null) {
-            cardColumn.getChildren().remove(actionsNode);
+            cardBody.getChildren().remove(actionsNode);
             actionsNode = null;
         }
         List<RXButton> buttons = new ArrayList<>();
@@ -193,7 +193,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
         actionsNode = buildActionsContainer(buttons);
         actionsNode.getStyleClass().add("actions");
-        cardColumn.getChildren().add(actionsNode);
+        cardBody.getChildren().add(actionsNode);
     }
 
     // PLATFORM keeps the native ButtonBar (OS order, trailing-aligned). BOX (default) is a
