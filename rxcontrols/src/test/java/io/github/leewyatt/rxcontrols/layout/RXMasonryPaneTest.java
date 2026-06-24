@@ -57,7 +57,7 @@ public class RXMasonryPaneTest {
         RXMasonryPane pane = new RXMasonryPane(card);
 
         assertTrue(pane.getStyleClass().contains("rx-masonry-pane"));
-        assertClose(250.0, pane.getColumnWidth(), "columnWidth");
+        assertClose(260.0, pane.getColumnWidth(), "columnWidth");
         assertClose(8.0, pane.getHgap(), "hgap");
         assertClose(8.0, pane.getVgap(), "vgap");
         assertEquals(0, pane.getColumnCount());
@@ -485,13 +485,13 @@ public class RXMasonryPaneTest {
 
         pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(0.0));
-        assertClose(250.0, pane.getColumnWidth(), "columnWidth coerced to default");
+        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
         pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(-1.0));
-        assertClose(250.0, pane.getColumnWidth(), "columnWidth coerced to default");
+        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
         pane.setColumnWidth(120.0);
         assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(Double.NaN));
-        assertClose(250.0, pane.getColumnWidth(), "columnWidth coerced to default");
+        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
 
         pane.setHgap(-1.0);
         assertClose(-1.0, pane.getHgap(), "hgap accepted");

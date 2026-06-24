@@ -2,14 +2,21 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 
+import javafx.animation.Interpolator;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
+import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.HPos;
@@ -20,11 +27,14 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.Pane;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * An enhanced {@link javafx.scene.layout.FlowPane} that lays managed children out in runs
@@ -123,6 +133,9 @@ public class RXFlowPane extends Pane {
     private static final VPos DEFAULT_COLUMN_VALIGNMENT = VPos.TOP;
     private static final HPos DEFAULT_COLUMN_HALIGNMENT = HPos.LEFT;
     private static final double DEFAULT_PREF_WRAP_LENGTH = 400.0;
+    private static final boolean DEFAULT_ANIMATED = false;
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-flow-pane";
     private static final String MARGIN_CONSTRAINT = "rxflowpane-margin";
@@ -183,6 +196,30 @@ public class RXFlowPane extends Pane {
         return child.getProperties().get(key);
     }
 
+    // ==================== Animation state ====================
+
+    // The same FLIP relayout animator RXTilePane / RXMasonryPane use (same package).
+    // All children are real and persistent, so no recycler pin-set is needed.
+    private final RelayoutAnimator animator = new RelayoutAnimator();
+    private boolean firstLayoutDone;
+    // Children added after the first layout snap into their slot rather than gliding
+    // in from the pane origin (no enter animation, matching RXTilePane).
+    private final Set<Node> enteringNodes = new HashSet<>();
+
+    private final ListChangeListener<Node> childrenListener = change -> {
+        while (change.next()) {
+            if (change.wasAdded() && firstLayoutDone) {
+                enteringNodes.addAll(change.getAddedSubList());
+            }
+            if (change.wasRemoved()) {
+                for (Node removed : change.getRemoved()) {
+                    enteringNodes.remove(removed);
+                    animator.forget(removed);
+                }
+            }
+        }
+    };
+
     // ==================== Constructors ====================
 
     /**
@@ -190,6 +227,12 @@ public class RXFlowPane extends Pane {
      */
     public RXFlowPane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        getChildren().addListener(childrenListener);
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                animator.stopAll();
+            }
+        });
     }
 
     /**
@@ -617,10 +660,12 @@ public class RXFlowPane extends Pane {
      * (the default, matching {@code FlowPane}) centers each item in its run.
      * {@link VPos#BASELINE} aligns items by their text baseline. A child without a
      * real baseline (its {@code getBaselineOffset()} reports
-     * {@link Node#BASELINE_OFFSET_SAME_AS_HEIGHT}, e.g. a plain container) is
-     * aligned by its bottom edge, matching {@code FlowPane}; such a child's bottom
-     * margin is not reserved in a baseline run. A {@code null} value is not
-     * rejected; it resolves to the default ({@link VPos#CENTER}) at the use site.
+     * {@link Node#BASELINE_OFFSET_SAME_AS_HEIGHT}, e.g. a plain container) is placed
+     * with its bottom edge on the shared baseline, and its bottom margin is not
+     * reserved in a baseline run; unlike {@code FlowPane} such a child is not
+     * stretched to fill the run height (it is capped at the run's above-baseline
+     * extent). A {@code null} value is not rejected; it resolves to the default
+     * ({@link VPos#CENTER}) at the use site.
      *
      * @return the row-valignment property
      */
@@ -824,6 +869,161 @@ public class RXFlowPane extends Pane {
      */
     public final void setPrefWrapLength(double value) {
         prefWrapLength.set(value);
+    }
+
+    // ==================== Animated ====================
+
+    private final BooleanProperty animated = new StyleableBooleanProperty(DEFAULT_ANIMATED) {
+        @Override
+        protected void invalidated() {
+            if (!get()) {
+                animator.stopAll();
+            }
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.ANIMATED;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXFlowPane.this;
+        }
+
+        @Override
+        public String getName() {
+            return "animated";
+        }
+    };
+
+    /**
+     * Whether existing children glide to their new positions when a relayout (a resize
+     * that reflows the runs, a gap or alignment change) moves them. Off by default;
+     * turning it off mid-flight snaps every child to its final position. Children added
+     * after the first layout snap into place rather than gliding in.
+     *
+     * @return the animated property
+     */
+    public final BooleanProperty animatedProperty() {
+        return animated;
+    }
+
+    /**
+     * Returns whether relayout animation is enabled.
+     *
+     * @return whether relayout animation is enabled
+     */
+    public final boolean isAnimated() {
+        return animated.get();
+    }
+
+    /**
+     * Sets whether relayout animation is enabled.
+     *
+     * @param value whether relayout animation is enabled
+     */
+    public final void setAnimated(boolean value) {
+        animated.set(value);
+    }
+
+    // ==================== Animation Duration ====================
+
+    private final ObjectProperty<Duration> animationDuration =
+            new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
+                @Override
+                protected void invalidated() {
+                    if (!isAnimationDurationPositive()) {
+                        animator.stopAll();
+                    }
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
+                    return StyleableProperties.ANIMATION_DURATION;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXFlowPane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "animationDuration";
+                }
+            };
+
+    /**
+     * Duration of a single relayout glide. A {@code null}, non-positive, unknown or
+     * indefinite value is accepted and disables animation, like {@code animated=false}.
+     *
+     * @return the animation-duration property
+     */
+    public final ObjectProperty<Duration> animationDurationProperty() {
+        return animationDuration;
+    }
+
+    /**
+     * Returns the relayout-animation duration.
+     *
+     * @return the animation duration
+     */
+    public final Duration getAnimationDuration() {
+        return animationDuration.get();
+    }
+
+    /**
+     * Sets the relayout-animation duration.
+     *
+     * @param value the duration; {@code null} or any non-positive value disables animation
+     */
+    public final void setAnimationDuration(Duration value) {
+        animationDuration.set(value);
+    }
+
+    // ==================== Animation Interpolator ====================
+
+    private final ObjectProperty<Interpolator> animationInterpolator =
+            new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
+
+    /**
+     * Interpolator for the relayout glide. {@code null} falls back to
+     * {@link Interpolator#EASE_BOTH}. Not styleable (no stable CSS converter).
+     *
+     * @return the animation-interpolator property
+     */
+    public final ObjectProperty<Interpolator> animationInterpolatorProperty() {
+        return animationInterpolator;
+    }
+
+    /**
+     * Returns the animation interpolator.
+     *
+     * @return the animation interpolator
+     */
+    public final Interpolator getAnimationInterpolator() {
+        return animationInterpolator.get();
+    }
+
+    /**
+     * Sets the animation interpolator.
+     *
+     * @param value the interpolator, or {@code null} for the default
+     */
+    public final void setAnimationInterpolator(Interpolator value) {
+        animationInterpolator.set(value);
+    }
+
+    private boolean isAnimationDurationPositive() {
+        Duration value = getAnimationDuration();
+        return value != null && !value.isUnknown() && !value.isIndefinite()
+                && value.greaterThan(Duration.ZERO);
+    }
+
+    private Interpolator interpolatorOrDefault() {
+        Interpolator value = getAnimationInterpolator();
+        return value == null ? DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
     // ==================== Axis abstraction ====================
@@ -1093,6 +1293,10 @@ public class RXFlowPane extends Pane {
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
 
+        boolean animate = isAnimated() && firstLayoutDone && getScene() != null
+                && isAnimationDurationPositive();
+        List<RelayoutAnimator.Move> moves = new ArrayList<>();
+
         if (horizontal) {
             // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
             // axis inside the block by rowHalignment; each item sits within the run's
@@ -1105,8 +1309,8 @@ public class RXFlowPane extends Pane {
                 double baselineOffset = rowV == VPos.BASELINE ? run.baselineOffset : -1.0;
                 double x = lineX;
                 for (LayoutRect lrect : run.rects) {
-                    layoutInArea(lrect.node, x, y, lrect.main, run.cross,
-                            baselineOffset, getMargin(lrect.node), false, false, HPos.LEFT, rowV);
+                    layoutItem(lrect.node, x, y, lrect.main, run.cross, baselineOffset,
+                            HPos.LEFT, rowV, moves);
                     x += lrect.main + hgap;
                 }
                 y += run.cross + vgap;
@@ -1123,12 +1327,34 @@ public class RXFlowPane extends Pane {
                 double lineY = snapPositionY(blockY + blockVOffset(blockHeight, run.main, colV));
                 double y = lineY;
                 for (LayoutRect lrect : run.rects) {
-                    layoutInArea(lrect.node, x, y, run.cross, lrect.main,
-                            -1.0, getMargin(lrect.node), false, false, colH, VPos.TOP);
+                    layoutItem(lrect.node, x, y, run.cross, lrect.main, -1.0,
+                            colH, VPos.TOP, moves);
                     y += lrect.main + vgap;
                 }
                 x += run.cross + hgap;
             }
+        }
+
+        animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        enteringNodes.clear();
+        firstLayoutDone = true;
+    }
+
+    // Lays the node out (no fill, matching the static path) and records its FLIP delta
+    // from the old on-screen position for the relayout animator. An entering child has
+    // no meaningful previous position, so it snaps to its slot (fromD* = 0).
+    private void layoutItem(Node node, double x, double y, double width, double height,
+                            double baselineOffset, HPos hpos, VPos vpos,
+                            List<RelayoutAnimator.Move> moves) {
+        double oldVisualX = node.getLayoutX() + node.getTranslateX();
+        double oldVisualY = node.getLayoutY() + node.getTranslateY();
+        layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
+                false, false, hpos, vpos);
+        double fromDx = enteringNodes.contains(node) ? 0.0 : oldVisualX - node.getLayoutX();
+        double fromDy = enteringNodes.contains(node) ? 0.0 : oldVisualY - node.getLayoutY();
+        if (Math.abs(fromDx) >= RelayoutAnimator.MOVE_EPSILON
+                || Math.abs(fromDy) >= RelayoutAnimator.MOVE_EPSILON) {
+            moves.add(new RelayoutAnimator.Move(node, fromDx, fromDy, false));
         }
     }
 
@@ -1359,13 +1585,43 @@ public class RXFlowPane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXFlowPane, Boolean> ANIMATED =
+                new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
+                    @Override
+                    public boolean isSettable(RXFlowPane node) {
+                        return !node.animated.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXFlowPane node) {
+                        return (StyleableProperty<Boolean>) node.animatedProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXFlowPane, Duration> ANIMATION_DURATION =
+                new CssMetaData<>("-rx-animation-duration", DurationConverter.getInstance(),
+                        DEFAULT_ANIMATION_DURATION) {
+                    @Override
+                    public boolean isSettable(RXFlowPane node) {
+                        return !node.animationDuration.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Duration> getStyleableProperty(RXFlowPane node) {
+                        return (StyleableProperty<Duration>) node.animationDurationProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
             Collections.addAll(styleables, ORIENTATION, HGAP, VGAP, ALIGNMENT,
-                    ROW_HALIGNMENT, ROW_VALIGNMENT, COLUMN_VALIGNMENT, COLUMN_HALIGNMENT);
+                    ROW_HALIGNMENT, ROW_VALIGNMENT, COLUMN_VALIGNMENT, COLUMN_HALIGNMENT,
+                    ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

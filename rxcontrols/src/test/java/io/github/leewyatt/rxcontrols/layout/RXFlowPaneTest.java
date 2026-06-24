@@ -1,18 +1,22 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Scene;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -71,6 +75,9 @@ public class RXFlowPaneTest {
         assertSame(HPos.LEFT, pane.getColumnHalignment());
         assertClose(400.0, pane.getPrefWrapLength(), "prefWrapLength");
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
+        assertFalse(pane.isAnimated(), "relayout animation is opt-in");
+        assertEquals(Duration.millis(200.0), pane.getAnimationDuration());
+        assertSame(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
 
         assertNull(RXFlowPane.getMargin(card));
         RXFlowPane.setMargin(card, new Insets(4.0));
@@ -757,7 +764,10 @@ public class RXFlowPaneTest {
         assertTrue(hasCssProperty("-rx-row-valignment"), "-rx-row-valignment");
         assertTrue(hasCssProperty("-rx-column-valignment"), "-rx-column-valignment");
         assertTrue(hasCssProperty("-rx-column-halignment"), "-rx-column-halignment");
+        assertTrue(hasCssProperty("-rx-animated"), "-rx-animated");
+        assertTrue(hasCssProperty("-rx-animation-duration"), "-rx-animation-duration");
         assertFalse(hasCssProperty("-rx-pref-wrap-length"), "prefWrapLength is not styleable");
+        assertFalse(hasCssProperty("-rx-animation-interpolator"), "interpolator is not styleable");
     }
 
     // ==================== Vertical: headline & column alignment ====================
@@ -1110,6 +1120,67 @@ public class RXFlowPaneTest {
         assertClose(140.0, cards[6].getLayoutY(), "null orientation -> horizontal default y");
     }
 
+    // ==================== Animation ====================
+
+    @Test
+    public void animationDurationAcceptsNullAndNonPositive() {
+        RXFlowPane pane = new RXFlowPane();
+        pane.setAnimationDuration(null);
+        assertNull(pane.getAnimationDuration());
+        pane.setAnimationDuration(Duration.ZERO);
+        pane.setAnimationDuration(Duration.millis(-20.0));
+        // No exception: a null / non-positive duration simply disables animation.
+        assertEquals(Duration.millis(-20.0), pane.getAnimationDuration());
+    }
+
+    @Test
+    public void animationInterpolatorDefaultsAndAcceptsNull() {
+        RXFlowPane pane = new RXFlowPane();
+        assertSame(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
+        pane.setAnimationInterpolator(Interpolator.LINEAR);
+        assertSame(Interpolator.LINEAR, pane.getAnimationInterpolator());
+        // Lenient: null is accepted and falls back to EASE_BOTH at the glide use-site.
+        pane.setAnimationInterpolator(null);
+        assertNull(pane.getAnimationInterpolator());
+    }
+
+    @Test
+    public void reflowGlideEngagesAndDisableSnaps() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            pane.setAnimated(true);
+            new Scene(pane, 340.0, 400.0);
+            pane.applyCss();
+            layout(pane, 340.0, 400.0); // first layout: firstLayoutDone becomes true, no glide
+            assertFalse(anyTranslated(pane), "the first layout does not glide");
+
+            layout(pane, 560.0, 400.0); // reflow widens the rows -> items move and glide
+            assertTrue(anyTranslated(pane),
+                    "a width-driven reflow with animated=true engages a glide");
+
+            pane.setAnimated(false); // snaps in-flight glides to final
+            assertFalse(anyTranslated(pane), "disabling animation mid-glide snaps every child");
+        });
+    }
+
+    @Test
+    public void addedChildSnapsWithoutGliding() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
+            pane.setAnimated(true);
+            new Scene(pane, 400.0, 400.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0); // first layout done
+
+            Region added = card(100.0, 40.0);
+            pane.getChildren().add(added); // wraps to a new row, enters
+            layout(pane, 400.0, 400.0);
+            assertEquals(0.0, added.getTranslateX(), EPSILON,
+                    "an added child snaps in, not gliding from the origin");
+            assertEquals(0.0, added.getTranslateY(), EPSILON);
+        });
+    }
+
     // ==================== Assertions ====================
 
     private static void assertBox(Region region, double x, double y, double width, double height,
@@ -1125,6 +1196,35 @@ public class RXFlowPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static boolean anyTranslated(RXFlowPane pane) {
+        return pane.getChildren().stream()
+                .anyMatch(n -> Math.abs(n.getTranslateX()) > 0.5 || Math.abs(n.getTranslateY()) > 0.5);
+    }
+
+    private static void onFx(Runnable action) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable throwable) {
+                error.set(throwable);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX action timed out");
+        }
+        Throwable thrown = error.get();
+        if (thrown instanceof Exception exception) {
+            throw exception;
+        }
+        if (thrown != null) {
+            throw new AssertionError(thrown);
+        }
+    }
 
     private static RXFlowPane flowPane(double hgap, double vgap, Region... cards) {
         RXFlowPane pane = new RXFlowPane(cards);

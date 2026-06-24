@@ -19,12 +19,6 @@
     -fx-font-size: 14px;
 }
 
-.resolved-label {
-    -fx-font-weight: bold;
-    -fx-text-fill: #334155;
-    -fx-padding: 4px 0 0 0;
-}
-
 .note-label {
     -fx-font-size: 12px;
     -fx-text-fill: #64748b;

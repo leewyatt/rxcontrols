@@ -11,11 +11,13 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 
 import java.util.List;
 
@@ -94,7 +96,7 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Alignment", buildAlignmentGrid()),
                 section("Spacing", buildSpacingGrid()),
-                section("Preferred size", buildSizingGrid()),
+                section("Animation", buildAnimationGrid()),
                 section("Content", buildContentGrid()));
     }
 
@@ -159,29 +161,25 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
                 row("Vgap", vgapSlider, createValueLabel(vgapSlider, "%.0f px")));
     }
 
-    private Node buildSizingGrid() {
-        Slider wrapSlider = createSlider(100.0, 800.0, flow.getPrefWrapLength());
-        flow.prefWrapLengthProperty().bind(wrapSlider.valueProperty());
+    private Node buildAnimationGrid() {
+        CheckBox animate = new CheckBox("Animate relayout");
+        animate.setSelected(flow.isAnimated());
+        flow.animatedProperty().bind(animate.selectedProperty());
 
-        Label prefLabel = new Label();
-        prefLabel.getStyleClass().add("resolved-label");
-        prefLabel.textProperty().bind(Bindings.createStringBinding(
-                () -> flow.getOrientation() == Orientation.VERTICAL
-                        ? String.format("prefHeight(-1) = %.0f px", flow.prefHeight(-1))
-                        : String.format("prefWidth(-1) = %.0f px", flow.prefWidth(-1)),
-                flow.orientationProperty(), flow.prefWrapLengthProperty(),
-                flow.hgapProperty(), flow.vgapProperty(), flow.getChildren()));
+        Slider durationSlider = createSlider(0.0, 600.0, flow.getAnimationDuration().toMillis());
+        flow.animationDurationProperty().bind(Bindings.createObjectBinding(
+                () -> Duration.millis(durationSlider.getValue()), durationSlider.valueProperty()));
 
         Label note = new Label(
-                "prefWrapLength drives the preferred size along the flow (main) axis only "
-                        + "— width when horizontal, height when vertical. The live wrap "
-                        + "follows the pane's actual size, not this value.");
+                "Turn on, then change the alignment / gaps / wrap length or add a chip — the "
+                        + "existing chips glide to their new positions while a newly added chip "
+                        + "snaps in. Off by default.");
         note.getStyleClass().add("note-label");
         note.setWrapText(true);
 
         return createGrid(
-                row("Pref wrap length", wrapSlider, createValueLabel(wrapSlider, "%.0f px")),
-                row(prefLabel),
+                row(animate),
+                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
                 row(note));
     }
 
@@ -196,18 +194,8 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
             }
         });
 
-        Button resetButton = new Button("Reset");
-        resetButton.setOnAction(e -> {
-            flow.getChildren().clear();
-            nextChipIndex = 0;
-            for (int i = 0; i < INITIAL_CHIP_COUNT; i++) {
-                flow.getChildren().add(createChip(nextChipIndex++));
-            }
-        });
-
         return createGrid(
-                row("Chips", addButton, removeButton),
-                row(resetButton));
+                row("Chips", addButton, removeButton));
     }
 
     // ==================== Helpers ====================
