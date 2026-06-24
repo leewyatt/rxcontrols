@@ -141,14 +141,14 @@ final class RXTileViewport<T> extends Region {
     /**
      * The pixel height of one data-row slot (cell height + vgap), snapped, and the
      * single source of truth shared with the skin's plan + overflow check. Never
-     * returns a non-positive value — that would break the row math; cellHeight's
+     * returns a non-positive value — that would break the row math; prefTileHeight's
      * layout-time fallback normally guarantees it, and the guard covers any
      * unexpected arithmetic edge.
      *
      * @return the data-row slot height, always {@code > 0}
      */
     double slotHeight() {
-        double slot = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control)
+        double slot = snapSizeY(RXTileViewSkin.prefTileHeightOrDefault(control)
                 + RXTileViewSkin.gapOrZero(control.getVgap()));
         return slot > 0.0 ? slot : 1.0;
     }
@@ -719,9 +719,9 @@ final class RXTileViewport<T> extends Region {
 
     private CellGeometry cellGeometry(double contentWidth) {
         double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
-        double cellHeight = snapSizeY(RXTileViewSkin.cellHeightOrDefault(control));
+        double cellHeight = snapSizeY(RXTileViewSkin.prefTileHeightOrDefault(control));
         int cols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
-        double baseWidth = snapSizeX(RXTileViewSkin.cellWidthOrDefault(control));
+        double baseWidth = snapSizeX(RXTileViewSkin.prefTileWidthOrDefault(control));
         ItemsJustify mode = RXTileViewSkin.justifyOrDefault(control.getItemsJustify());
 
         double cellWidth;
@@ -739,7 +739,7 @@ final class RXTileViewport<T> extends Region {
             startX = 0.0;
         } else if (mode == ItemsJustify.STRETCH) {
             double ideal = (contentWidth - (cols - 1) * hgap) / cols;
-            double cap = maxCellWidthOrUnbounded(control);
+            double cap = maxTileWidthOrUnbounded(control);
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), baseWidth) : 0.0;
             effectiveGap = hgap;
             if (effectiveCap > 0.0 && ideal > effectiveCap) {
@@ -775,8 +775,8 @@ final class RXTileViewport<T> extends Region {
         return new CellGeometry(cellWidth, cellHeight, effectiveGap, startX);
     }
 
-    private static double maxCellWidthOrUnbounded(RXTileView<?> control) {
-        double value = control.getMaxCellWidth();
+    private static double maxTileWidthOrUnbounded(RXTileView<?> control) {
+        double value = control.getMaxTileWidth();
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 

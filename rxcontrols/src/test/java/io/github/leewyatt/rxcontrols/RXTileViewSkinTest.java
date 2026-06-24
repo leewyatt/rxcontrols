@@ -84,8 +84,8 @@ public class RXTileViewSkinTest {
     public void columnCountDerivedFromWidthWithoutScrollBar() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(6);
-            view.setCellWidth(100);
-            view.setCellHeight(100);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(100);
             view.setHgap(10);
             view.setVgap(10);
             pump(host(view, 350, 300));
@@ -110,7 +110,7 @@ public class RXTileViewSkinTest {
     public void maxColumnsClampsDerivedCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setCellWidth(50);
+            view.setPrefTileWidth(50);
             view.setHgap(0);
             StackPane root = host(view, 800, 300);
             pump(root);
@@ -126,7 +126,7 @@ public class RXTileViewSkinTest {
     public void maxColumnsCanBeSetFromCss() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
-            view.setCellWidth(50);
+            view.setPrefTileWidth(50);
             view.setHgap(0);
             view.setStyle("-rx-max-columns: 3;");
             StackPane root = host(view, 800, 300);
@@ -140,7 +140,7 @@ public class RXTileViewSkinTest {
     public void hgapParticipatesInColumnCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(6);
-            view.setCellWidth(100);
+            view.setPrefTileWidth(100);
             view.setHgap(0);
             StackPane root = host(view, 350, 300);
             pump(root);
@@ -157,14 +157,14 @@ public class RXTileViewSkinTest {
     public void lenientSizesAndGapsResolveAtLayoutUseSites() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(6);
-            // cellWidth / cellHeight are lenient too now: an illegal value resolves
+            // prefTileWidth / prefTileHeight are lenient too now: an illegal value resolves
             // to the default (100) at the layout use-site, exactly like the gaps.
-            view.setCellWidth(0.0);
-            view.setCellHeight(-50.0);
+            view.setPrefTileWidth(0.0);
+            view.setPrefTileHeight(-50.0);
             view.setHgap(Double.NaN);
             view.setVgap(Double.POSITIVE_INFINITY);
             pump(host(view, 350, 300));
-            // floor((350 + 0) / (100 + 0)) = 3 — illegal cellWidth / hgap fall back to defaults.
+            // floor((350 + 0) / (100 + 0)) = 3 — illegal prefTileWidth / hgap fall back to defaults.
             assertEquals(3, view.getActualColumnCount());
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
@@ -193,7 +193,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(10_000);
             view.setMaxColumns(4);
-            view.setCellHeight(100);
+            view.setPrefTileHeight(100);
             view.setVgap(10);
             pump(host(view, 500, 400));
             int realized = view.lookupAll(".rx-tile-cell").size();
@@ -208,7 +208,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(1_000_000);
             view.setMaxColumns(1);
-            view.setCellHeight(100);
+            view.setPrefTileHeight(100);
             view.setVgap(10);
             StackPane root = host(view, 300, 400);
             pump(root);
@@ -250,7 +250,7 @@ public class RXTileViewSkinTest {
     public void scrollBarWidthIsAccountedForInColumnCount() throws Exception {
         onFx(() -> {
             RXTileView<String> noBar = tiles(6);
-            noBar.setCellWidth(40);
+            noBar.setPrefTileWidth(40);
             noBar.setHgap(0);
             // RXTileView's Modena-like chrome has 1px left/right padding, so an
             // outer width of 322 leaves the 320px content width this fixture needs.
@@ -259,7 +259,7 @@ public class RXTileViewSkinTest {
             assertEquals(8, colsNoBar, "320 / 40 = 8 columns without a scroll bar");
 
             RXTileView<String> withBar = tiles(2000);
-            withBar.setCellWidth(40);
+            withBar.setPrefTileWidth(40);
             withBar.setHgap(0);
             StackPane root = host(withBar, 322, 300); // overflow forces the scroll bar
             pump(root);
@@ -275,8 +275,8 @@ public class RXTileViewSkinTest {
     public void minWidthReservesTinyContentViewportAndVerticalScrollBar() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setCellWidth(100);
-            view.setCellHeight(70);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(70);
             view.setHgap(0);
             view.setVgap(0);
             StackPane root = host(view, 80, 220);
@@ -292,14 +292,14 @@ public class RXTileViewSkinTest {
                     + view.getInsets().getRight();
             assertEquals(expectedMinWidth, view.minWidth(-1), 1.0,
                     "computed min width reserves a tiny content viewport beside the internal scroll bar");
-            assertTrue(view.getWidth() < view.getCellWidth() + vbar.prefWidth(-1),
+            assertTrue(view.getWidth() < view.getPrefTileWidth() + vbar.prefWidth(-1),
                     "a normal parent may allocate less than one target-width cell");
 
             Node contentLayer = view.lookup(".viewport > .content");
             assertTrue(contentLayer instanceof Region, "cells are hosted in a content layer");
             assertTrue(((Region) contentLayer).getWidth() > 0.0,
                     "the content area does not collapse to zero width");
-            assertTrue(((Region) contentLayer).getWidth() < view.getCellWidth(),
+            assertTrue(((Region) contentLayer).getWidth() < view.getPrefTileWidth(),
                     "the content area shrinks below the target cell width");
         });
     }
@@ -308,8 +308,8 @@ public class RXTileViewSkinTest {
     public void maxColumnsDoesNotExpandMinimumWidth() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setCellWidth(100);
-            view.setCellHeight(70);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(70);
             view.setHgap(0);
             view.setVgap(0);
             view.setMaxColumns(4);
@@ -329,7 +329,7 @@ public class RXTileViewSkinTest {
                     "maxColumns does not expand min width beyond tiny content viewport and scroll bar");
 
             double expectedPrefWidth = view.getInsets().getLeft()
-                    + 3.0 * view.getCellWidth()
+                    + 3.0 * view.getPrefTileWidth()
                     + vbar.prefWidth(-1)
                     + view.getInsets().getRight();
             assertEquals(expectedPrefWidth, view.prefWidth(-1), 1.0,
@@ -338,7 +338,7 @@ public class RXTileViewSkinTest {
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertTrue(cell.getWidth() < view.getCellWidth(),
+            assertTrue(cell.getWidth() < view.getPrefTileWidth(),
                     "one derived column shrinks below the target width when the view is narrow");
         });
     }
@@ -347,8 +347,8 @@ public class RXTileViewSkinTest {
     public void stretchShrinksOneDerivedColumnWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setCellWidth(100);
-            view.setCellHeight(70);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(70);
             view.setHgap(0);
             view.setVgap(0);
             view.setMaxColumns(4);
@@ -370,7 +370,7 @@ public class RXTileViewSkinTest {
 
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertTrue(cell.getWidth() < view.getCellWidth(),
+            assertTrue(cell.getWidth() < view.getPrefTileWidth(),
                     "STRETCH also shrinks the single column when the view is narrower than the target width");
         });
     }
@@ -379,8 +379,8 @@ public class RXTileViewSkinTest {
     public void fixedCellsShrinkBeforeVerticalScrollBarWhenViewportIsNarrow() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setCellWidth(180);
-            view.setCellHeight(70);
+            view.setPrefTileWidth(180);
+            view.setPrefTileHeight(70);
             view.setHgap(0);
             view.setVgap(0);
             view.setItemsJustify(ItemsJustify.START);
@@ -395,7 +395,7 @@ public class RXTileViewSkinTest {
             assertNotNull(contentLayer, "cells are hosted in a clipped content layer");
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertTrue(cell.getWidth() < view.getCellWidth(),
+            assertTrue(cell.getWidth() < view.getPrefTileWidth(),
                     "forced allocation below target width shrinks the cell for this layout pass");
 
             assertTrue(contentLayer.getClip() instanceof Rectangle, "content layer has its own clip");
@@ -420,8 +420,8 @@ public class RXTileViewSkinTest {
     public void narrowSingleColumnFillsContentWidthWithConfiguredGap() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
-            view.setCellWidth(180);
-            view.setCellHeight(70);
+            view.setPrefTileWidth(180);
+            view.setPrefTileHeight(70);
             // A configured gap must not be scaled or subtracted out of the lone
             // emergency-shrunk column: the single cell fills the full content width.
             view.setHgap(24);
@@ -436,7 +436,7 @@ public class RXTileViewSkinTest {
             assertNotNull(contentLayer);
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertTrue(cell.getWidth() < view.getCellWidth(),
+            assertTrue(cell.getWidth() < view.getPrefTileWidth(),
                     "the lone over-wide column shrinks below its target width");
             assertEquals(contentLayer.getWidth(), cell.getWidth(), 1.0,
                     "the shrunken cell fills the full content width; the configured gap is preserved, not "
@@ -485,8 +485,8 @@ public class RXTileViewSkinTest {
             }
             RXTileView<Integer> view = new RXTileView<>(items);
             view.setMaxColumns(1);
-            view.setCellWidth(100);
-            view.setCellHeight(20);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(20);
             view.setVgap(0);
             view.setCellFactory(tile -> new RXTileCell<>() {
                 @Override
@@ -544,8 +544,8 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(120);
             view.setMaxColumns(1);
-            view.setCellWidth(80);
-            view.setCellHeight(20);
+            view.setPrefTileWidth(80);
+            view.setPrefTileHeight(20);
             view.setVgap(0);
             StackPane root = host(view, 122, 202); // 1px chrome leaves 200px viewport height.
             pump(root);
@@ -617,7 +617,7 @@ public class RXTileViewSkinTest {
     public void actualColumnCountChangeKeepsTopItemStable() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(100);
-            view.setCellWidth(50);
+            view.setPrefTileWidth(50);
             view.setHgap(0);
             view.setMaxColumns(4);
             StackPane root = host(view, 400, 300);
@@ -658,7 +658,7 @@ public class RXTileViewSkinTest {
     // ==================== Churn discipline ====================
 
     @Test
-    public void changingCellWidthReusesCellsWhileFactoryChangeRecreates() throws Exception {
+    public void changingPrefTileWidthReusesCellsWhileFactoryChangeRecreates() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(12);
             view.setMaxColumns(3);
@@ -667,7 +667,7 @@ public class RXTileViewSkinTest {
             List<Node> before = new ArrayList<>(view.lookupAll(".rx-tile-cell"));
             assertFalse(before.isEmpty());
 
-            view.setCellHeight(80);
+            view.setPrefTileHeight(80);
             pump(root);
             List<Node> afterResize = new ArrayList<>(view.lookupAll(".rx-tile-cell"));
             assertTrue(afterResize.containsAll(before), "a size change reuses the same cell instances");
@@ -725,7 +725,7 @@ public class RXTileViewSkinTest {
     public void stretchModeFillsTheRowEqually() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(3);
-            view.setCellWidth(90);
+            view.setPrefTileWidth(90);
             view.setMaxColumns(3);
             view.setHgap(10);
             view.setItemsJustify(ItemsJustify.STRETCH);
@@ -744,7 +744,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(2);
             view.setMaxColumns(2);
-            view.setCellWidth(100);
+            view.setPrefTileWidth(100);
             view.setHgap(0);
 
             view.setItemsJustify(ItemsJustify.START);
@@ -771,11 +771,11 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(8);
             view.setMaxColumns(4);
-            view.setCellWidth(60);
+            view.setPrefTileWidth(60);
             view.setHgap(10);
             StackPane root = host(view, 400, 400);
 
-            // Fixture: N=4, cellWidth=60, hgap=10, row width 400 (no scroll bar),
+            // Fixture: N=4, prefTileWidth=60, hgap=10, row width 400 (no scroll bar),
             // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
             view.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
             pump(root);
@@ -804,11 +804,11 @@ public class RXTileViewSkinTest {
     }
 
     @Test
-    public void maxCellWidthCapsAndCentersStretch() throws Exception {
+    public void maxTileWidthCapsAndCentersStretch() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(4);
             view.setMaxColumns(2);
-            view.setCellWidth(60);
+            view.setPrefTileWidth(60);
             view.setHgap(10);
             view.setItemsJustify(ItemsJustify.STRETCH);
             StackPane root = host(view, 400, 400);
@@ -818,23 +818,23 @@ public class RXTileViewSkinTest {
                     "uncapped STRETCH grows cells to fill the row");
             assertEquals(0.0, firstCellX(view), 1.0, "uncapped STRETCH starts at the leading edge");
 
-            view.setMaxCellWidth(Double.NaN);
+            view.setMaxTileWidth(Double.NaN);
             pump(root);
             assertTrue(rowCells(view, 0).get(0).getWidth() > 100.0,
-                    "non-finite maxCellWidth behaves as unbounded");
+                    "non-finite maxTileWidth behaves as unbounded");
             assertEquals(0.0, firstCellX(view), 1.0,
-                    "non-finite maxCellWidth does not create a centered cap");
+                    "non-finite maxTileWidth does not create a centered cap");
 
-            view.setMaxCellWidth(80);
+            view.setMaxTileWidth(80);
             pump(root);
             List<RXTileCell<?>> capped = rowCells(view, 0);
-            assertEquals(80.0, capped.get(0).getWidth(), 1.0, "STRETCH is capped at maxCellWidth");
+            assertEquals(80.0, capped.get(0).getWidth(), 1.0, "STRETCH is capped at maxTileWidth");
             assertEquals(115.0, firstCellX(view), 1.0, "the capped block is centered");
 
-            view.setMaxCellWidth(40);
+            view.setMaxTileWidth(40);
             pump(root);
             assertEquals(60.0, rowCells(view, 0).get(0).getWidth(), 1.0,
-                    "a cap below cellWidth leaves cells at cellWidth");
+                    "a cap below prefTileWidth leaves cells at prefTileWidth");
         });
     }
 
@@ -958,7 +958,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(7);
             view.setMaxColumns(3);
-            view.setCellWidth(100);
+            view.setPrefTileWidth(100);
             view.setHgap(0);
             view.setItemsJustify(ItemsJustify.CENTER);
             pump(host(view, 400, 600));
@@ -973,8 +973,8 @@ public class RXTileViewSkinTest {
     public void sizingContractIsVirtualizedNotProportional() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(1000);
-            view.setCellWidth(100);
-            view.setCellHeight(80);
+            view.setPrefTileWidth(100);
+            view.setPrefTileHeight(80);
             view.setHgap(10);
             view.setVgap(10);
             pump(host(view, 400, 300));
@@ -1186,7 +1186,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = manySections(20, 4);
             view.setMaxColumns(2);
-            view.setCellHeight(20);
+            view.setPrefTileHeight(20);
             view.setVgap(0);
             view.setSectionHeaderHeight(40);
             StackPane root = host(view, 220, 202); // 1px chrome leaves 200px viewport height.
@@ -1251,7 +1251,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = manySections(20, 6);
             view.setMaxColumns(2);
-            view.setCellHeight(60);
+            view.setPrefTileHeight(60);
             view.setVgap(0);
             view.setSectionHeaderHeight(40);
             StackPane root = host(view, 400, 300);
@@ -1268,7 +1268,7 @@ public class RXTileViewSkinTest {
     public void sectionHeaderHeightShiftsCellGeometry() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4(); // 2 sections x 2 items, cols 2
-            view.setCellHeight(100);
+            view.setPrefTileHeight(100);
             view.setVgap(0);
             view.setSectionHeaderHeight(20);
             StackPane root = host(view, 400, 600);
@@ -1288,7 +1288,7 @@ public class RXTileViewSkinTest {
     public void sectionSpacingPushesLaterHeadersDownButNotTheFirst() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4(); // 2 sections x 2 items, cols 2
-            view.setCellHeight(60);
+            view.setPrefTileHeight(60);
             view.setVgap(0);
             StackPane root = host(view, 400, 600);
             pump(root);
@@ -1354,7 +1354,7 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = manySections(5, 4);
             view.setMaxColumns(2);
-            view.setCellHeight(100);
+            view.setPrefTileHeight(100);
             view.setVgap(0);
             view.setSectionHeaderHeight(30);
             StackPane root = host(view, 400, 200);
@@ -1744,8 +1744,8 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
             view.setMaxColumns(3);
-            view.setCellWidth(40);
-            view.setCellHeight(30);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(30);
             view.setHgap(10);
             view.setVgap(10);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -1780,8 +1780,8 @@ public class RXTileViewSkinTest {
                     FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
             view.setSectionKeyFactory(item -> item.substring(0, 1));
             view.setMaxColumns(2);
-            view.setCellWidth(40);
-            view.setCellHeight(20);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(20);
             view.setHgap(10);
             view.setVgap(0);
             view.setSectionHeaderHeight(20);
@@ -1807,8 +1807,8 @@ public class RXTileViewSkinTest {
                     FXCollections.observableArrayList("a0", "a1", "b0", "b1"));
             view.setSectionKeyFactory(item -> item.substring(0, 1));
             view.setMaxColumns(2);
-            view.setCellWidth(40);
-            view.setCellHeight(20);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(20);
             view.setHgap(10);
             view.setSectionHeaderHeight(20);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -1833,8 +1833,8 @@ public class RXTileViewSkinTest {
         onFx(() -> {
             RXTileView<String> view = tiles(200);
             view.setMaxColumns(3);
-            view.setCellWidth(40);
-            view.setCellHeight(30);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(30);
             view.setHgap(10);
             view.setVgap(0);
             view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -2740,7 +2740,7 @@ public class RXTileViewSkinTest {
                 "g0#492", "g0#493", "g0#494", "g0#495", "g0#496", "g0#497", "g0#498", "g0#499",
                 "g1#500", "g1#501", "g1#502", "g1#503", "g1#504", "g1#505");
         RXTileView<String> view = new RXTileView<>(items);
-        view.setCellWidth(40);
+        view.setPrefTileWidth(40);
         view.setHgap(0);
         view.setSectionKeyFactory(item -> item.substring(0, item.indexOf('#')));
         return view;
@@ -2751,7 +2751,7 @@ public class RXTileViewSkinTest {
                 "g0#a0", "g0#a1",
                 "g1#b0", "g1#b1", "g1#b2", "g1#b3", "g1#b4", "g1#b5");
         RXTileView<String> view = new RXTileView<>(items);
-        view.setCellWidth(40);
+        view.setPrefTileWidth(40);
         view.setHgap(0);
         view.setSectionKeyFactory(item -> item.substring(0, item.indexOf('#')));
         return view;

@@ -52,8 +52,8 @@ import java.util.Objects;
  * (not {@code VirtualFlow}).
  *
  * <p>{@code RXTileView} lays a flat {@link #itemsProperty() items} list out in a
- * uniform grid: it derives the column count from {@link #cellWidthProperty()
- * cellWidth} and the available width, wraps items into rows, and virtualizes by
+ * uniform grid: it derives the column count from {@link #prefTileWidthProperty()
+ * prefTileWidth} and the available width, wraps items into rows, and virtualizes by
  * row so only the visible rows hold live cells. Each item is
  * rendered by a {@link RXTileCell} produced by the
  * {@link #cellFactoryProperty() cellFactory}; a {@code null} item is a legal
@@ -64,7 +64,7 @@ import java.util.Objects;
  * reordered — pass a {@code SortedList} to aggregate), each introduced by a
  * {@link RXTileSectionCell} header. With no factory the view is flat.
  *
- * <p>Within a row, cells target {@code cellWidth}, separated by
+ * <p>Within a row, cells target {@code prefTileWidth}, separated by
  * {@link #hgapProperty() hgap} and rows by {@link #vgapProperty() vgap}; spare
  * row width is distributed per {@link #itemsJustifyProperty() itemsJustify}.
  * As the viewport narrows the column count drops before any cell shrinks; only
@@ -97,13 +97,13 @@ public class RXTileView<T> extends Control {
 
     // ==================== Constants ====================
 
-    private static final double DEFAULT_CELL_WIDTH = 100.0;
-    private static final double DEFAULT_CELL_HEIGHT = 100.0;
+    private static final double DEFAULT_PREF_TILE_WIDTH = 100.0;
+    private static final double DEFAULT_PREF_TILE_HEIGHT = 100.0;
     private static final double DEFAULT_HGAP = 10.0;
     private static final double DEFAULT_VGAP = 10.0;
     private static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
     private static final double DEFAULT_SECTION_SPACING = 0.0;
-    private static final double DEFAULT_MAX_CELL_WIDTH = 0.0;
+    private static final double DEFAULT_MAX_TILE_WIDTH = 0.0;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
@@ -310,12 +310,12 @@ public class RXTileView<T> extends Control {
         sectionHeaderFactory.set(value);
     }
 
-    // ==================== Cell Width ====================
+    // ==================== Pref Tile Width ====================
 
-    private final DoubleProperty cellWidth = new StyleableDoubleProperty(DEFAULT_CELL_WIDTH) {
+    private final DoubleProperty prefTileWidth = new StyleableDoubleProperty(DEFAULT_PREF_TILE_WIDTH) {
         @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
-            return StyleableProperties.CELL_WIDTH;
+            return StyleableProperties.PREF_TILE_WIDTH;
         }
 
         @Override
@@ -325,46 +325,50 @@ public class RXTileView<T> extends Control {
 
         @Override
         public String getName() {
-            return "cellWidth";
+            return "prefTileWidth";
         }
     };
 
     /**
-     * Target width of each cell, in pixels. Drives the derived column count and
-     * preferred width, but is not the control's default minimum width. A
-     * non-positive or non-finite value is accepted and resolved to the default
-     * cell width at layout time.
+     * Target width of each tile slot, in pixels — the cell from the
+     * {@link #cellFactoryProperty() cellFactory} fills it. Drives the derived
+     * column count and preferred width, but is not the control's default minimum
+     * width. Must be a concrete positive value: unlike {@code TilePane}'s
+     * {@code prefTileWidth}, the {@code USE_COMPUTED_SIZE} auto-size sentinel is
+     * not supported (a virtualized view cannot measure every cell). A non-positive
+     * or non-finite value (including {@code USE_COMPUTED_SIZE}) is accepted but
+     * resolved to the default at layout time.
      *
-     * @return the cell-width property
+     * @return the pref-tile-width property
      */
-    public final DoubleProperty cellWidthProperty() {
-        return cellWidth;
+    public final DoubleProperty prefTileWidthProperty() {
+        return prefTileWidth;
     }
 
     /**
-     * Returns the cell width.
+     * Returns the preferred tile width.
      *
-     * @return the cell width
+     * @return the preferred tile width
      */
-    public final double getCellWidth() {
-        return cellWidth.get();
+    public final double getPrefTileWidth() {
+        return prefTileWidth.get();
     }
 
     /**
-     * Sets the cell width.
+     * Sets the preferred tile width.
      *
-     * @param value the cell width
+     * @param value the preferred tile width
      */
-    public final void setCellWidth(double value) {
-        cellWidth.set(value);
+    public final void setPrefTileWidth(double value) {
+        prefTileWidth.set(value);
     }
 
-    // ==================== Cell Height ====================
+    // ==================== Pref Tile Height ====================
 
-    private final DoubleProperty cellHeight = new StyleableDoubleProperty(DEFAULT_CELL_HEIGHT) {
+    private final DoubleProperty prefTileHeight = new StyleableDoubleProperty(DEFAULT_PREF_TILE_HEIGHT) {
         @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
-            return StyleableProperties.CELL_HEIGHT;
+            return StyleableProperties.PREF_TILE_HEIGHT;
         }
 
         @Override
@@ -374,44 +378,46 @@ public class RXTileView<T> extends Control {
 
         @Override
         public String getName() {
-            return "cellHeight";
+            return "prefTileHeight";
         }
     };
 
     /**
-     * Height of each cell, in pixels. A non-positive or non-finite value is
-     * accepted and resolved to the default cell height at layout time.
+     * Height of each tile slot, in pixels (the cell fills it). Must be a concrete
+     * positive value: like {@link #prefTileWidthProperty() prefTileWidth}, the
+     * {@code USE_COMPUTED_SIZE} auto-size sentinel is not supported. A non-positive
+     * or non-finite value is accepted but resolved to the default at layout time.
      *
-     * @return the cell-height property
+     * @return the pref-tile-height property
      */
-    public final DoubleProperty cellHeightProperty() {
-        return cellHeight;
+    public final DoubleProperty prefTileHeightProperty() {
+        return prefTileHeight;
     }
 
     /**
-     * Returns the cell height.
+     * Returns the preferred tile height.
      *
-     * @return the cell height
+     * @return the preferred tile height
      */
-    public final double getCellHeight() {
-        return cellHeight.get();
+    public final double getPrefTileHeight() {
+        return prefTileHeight.get();
     }
 
     /**
-     * Sets the cell height.
+     * Sets the preferred tile height.
      *
-     * @param value the cell height
+     * @param value the preferred tile height
      */
-    public final void setCellHeight(double value) {
-        cellHeight.set(value);
+    public final void setPrefTileHeight(double value) {
+        prefTileHeight.set(value);
     }
 
-    // ==================== Max Cell Width ====================
+    // ==================== Max Tile Width ====================
 
-    private final DoubleProperty maxCellWidth = new StyleableDoubleProperty(DEFAULT_MAX_CELL_WIDTH) {
+    private final DoubleProperty maxTileWidth = new StyleableDoubleProperty(DEFAULT_MAX_TILE_WIDTH) {
         @Override
         public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
-            return StyleableProperties.MAX_CELL_WIDTH;
+            return StyleableProperties.MAX_TILE_WIDTH;
         }
 
         @Override
@@ -421,47 +427,47 @@ public class RXTileView<T> extends Control {
 
         @Override
         public String getName() {
-            return "maxCellWidth";
+            return "maxTileWidth";
         }
     };
 
     /**
-     * Upper bound on how wide a cell may grow when
+     * Upper bound on how wide a tile may grow when
      * {@link #itemsJustifyProperty() itemsJustify} is
      * {@link ItemsJustify#STRETCH}. {@code 0} (the default) or any non-positive
      * value means unbounded. Has no effect in the other justification modes,
-     * where cells normally keep the target {@link #cellWidthProperty() cellWidth}
+     * where cells normally keep the target {@link #prefTileWidthProperty() prefTileWidth}
      * while space permits.
      *
-     * <p>A cap smaller than {@code cellWidth} is degenerate
-     * ({@code max < min}) and is treated as {@code cellWidth}; the cap itself
+     * <p>A cap smaller than {@code prefTileWidth} is degenerate
+     * ({@code max < min}) and is treated as {@code prefTileWidth}; the cap itself
      * never shrinks cells below their target width. Any justification mode may
      * still shrink cells when the available row width is narrower than the target
      * row width.
      *
-     * @return the max-cell-width property
+     * @return the max-tile-width property
      */
-    public final DoubleProperty maxCellWidthProperty() {
-        return maxCellWidth;
+    public final DoubleProperty maxTileWidthProperty() {
+        return maxTileWidth;
     }
 
     /**
-     * Returns the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
+     * Returns the maximum tile width used in {@link ItemsJustify#STRETCH} mode.
      *
-     * @return the maximum cell width, or {@code 0} for unbounded
+     * @return the maximum tile width, or {@code 0} for unbounded
      */
-    public final double getMaxCellWidth() {
-        return maxCellWidth.get();
+    public final double getMaxTileWidth() {
+        return maxTileWidth.get();
     }
 
     /**
-     * Sets the maximum cell width used in {@link ItemsJustify#STRETCH} mode.
+     * Sets the maximum tile width used in {@link ItemsJustify#STRETCH} mode.
      *
      * @param value a positive cap, or {@code 0} (or any non-positive value) for
      *              unbounded
      */
-    public final void setMaxCellWidth(double value) {
-        maxCellWidth.set(value);
+    public final void setMaxTileWidth(double value) {
+        maxTileWidth.set(value);
     }
 
     // ==================== Hgap ====================
@@ -732,8 +738,8 @@ public class RXTileView<T> extends Control {
      * ({@code START} / {@code CENTER} / {@code END}), grow the gaps
      * ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} / {@code SPACE_EVENLY}) or
      * grow the cells ({@link ItemsJustify#STRETCH}, capped by
-     * {@link #maxCellWidthProperty() maxCellWidth}). A {@code null} value is
-     * treated as {@link ItemsJustify#START}. {@code cellWidth} is the target
+     * {@link #maxTileWidthProperty() maxTileWidth}). A {@code null} value is
+     * treated as {@link ItemsJustify#START}. {@code prefTileWidth} is the target
      * track width used for deriving columns and preferred size. When the row is
      * narrower than its target width, all modes shrink cells for that layout
      * pass; when the row has spare width, only {@code STRETCH} grows cells.
@@ -1416,45 +1422,45 @@ public class RXTileView<T> extends Control {
 
     private static final class StyleableProperties {
 
-        private static final CssMetaData<RXTileView<?>, Number> CELL_WIDTH =
-                new CssMetaData<>("-rx-cell-width", SizeConverter.getInstance(), DEFAULT_CELL_WIDTH) {
+        private static final CssMetaData<RXTileView<?>, Number> PREF_TILE_WIDTH =
+                new CssMetaData<>("-rx-pref-tile-width", SizeConverter.getInstance(), DEFAULT_PREF_TILE_WIDTH) {
                     @Override
                     public boolean isSettable(RXTileView<?> node) {
-                        return !node.cellWidth.isBound();
+                        return !node.prefTileWidth.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
-                        return (StyleableProperty<Number>) node.cellWidthProperty();
+                        return (StyleableProperty<Number>) node.prefTileWidthProperty();
                     }
                 };
 
-        private static final CssMetaData<RXTileView<?>, Number> CELL_HEIGHT =
-                new CssMetaData<>("-rx-cell-height", SizeConverter.getInstance(), DEFAULT_CELL_HEIGHT) {
+        private static final CssMetaData<RXTileView<?>, Number> PREF_TILE_HEIGHT =
+                new CssMetaData<>("-rx-pref-tile-height", SizeConverter.getInstance(), DEFAULT_PREF_TILE_HEIGHT) {
                     @Override
                     public boolean isSettable(RXTileView<?> node) {
-                        return !node.cellHeight.isBound();
+                        return !node.prefTileHeight.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
-                        return (StyleableProperty<Number>) node.cellHeightProperty();
+                        return (StyleableProperty<Number>) node.prefTileHeightProperty();
                     }
                 };
 
-        private static final CssMetaData<RXTileView<?>, Number> MAX_CELL_WIDTH =
-                new CssMetaData<>("-rx-max-cell-width", SizeConverter.getInstance(), DEFAULT_MAX_CELL_WIDTH) {
+        private static final CssMetaData<RXTileView<?>, Number> MAX_TILE_WIDTH =
+                new CssMetaData<>("-rx-max-tile-width", SizeConverter.getInstance(), DEFAULT_MAX_TILE_WIDTH) {
                     @Override
                     public boolean isSettable(RXTileView<?> node) {
-                        return !node.maxCellWidth.isBound();
+                        return !node.maxTileWidth.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
-                        return (StyleableProperty<Number>) node.maxCellWidthProperty();
+                        return (StyleableProperty<Number>) node.maxTileWidthProperty();
                     }
                 };
 
@@ -1578,7 +1584,7 @@ public class RXTileView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, CELL_WIDTH, CELL_HEIGHT, MAX_CELL_WIDTH, MAX_COLUMNS, HGAP, VGAP,
+            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_COLUMNS, HGAP, VGAP,
                     SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

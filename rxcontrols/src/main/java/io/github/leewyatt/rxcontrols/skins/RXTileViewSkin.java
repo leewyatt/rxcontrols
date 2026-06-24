@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Skin for {@link RXTileView}. It assembles the self-built virtualizing
- * {@link RXTileViewport}, resolves the column count from {@code cellWidth}, the
+ * {@link RXTileViewport}, resolves the column count from {@code prefTileWidth}, the
  * available content width and the measured vertical scroll-bar breadth, drives
  * the placeholder and the {@code :empty} state, consumes pending scroll requests
  * and publishes the read-only layout
@@ -54,11 +54,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private static final int DEFAULT_VISIBLE_ROWS = 4;
     private static final double MIN_VIEWPORT_CONTENT_WIDTH = 2.0;
 
-    // Degenerate-case fallbacks for the geometry. cellWidth / cellHeight use a
-    // coerce+throw strategy, so their getters are valid on every normal path;
-    // these only guard a value left illegal by a bound source.
-    private static final double FALLBACK_CELL_WIDTH = 100.0;
-    private static final double FALLBACK_CELL_HEIGHT = 100.0;
+    // Degenerate-case fallbacks for the geometry. prefTileWidth / prefTileHeight are
+    // lenient (illegal values are accepted, not rejected), so these resolve a
+    // non-positive / non-finite value to the default at the layout use-site.
+    private static final double FALLBACK_PREF_TILE_WIDTH = 100.0;
+    private static final double FALLBACK_PREF_TILE_HEIGHT = 100.0;
     private static final double FALLBACK_SECTION_HEADER_HEIGHT = 32.0;
     private static final double MARQUEE_START_THRESHOLD = 4.0;
     private static final double MARQUEE_AUTO_SCROLL_EDGE = 32.0;
@@ -139,11 +139,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private void registerListeners(RXTileView<T> control) {
         disposer.registerListener(control.itemsProperty(), this::onItemsListSwapped);
         disposer.registerListener(control.cellFactoryProperty(), this::onCellFactoryChanged);
-        disposer.registerListener(control.cellWidthProperty(), this::requestLayoutPass);
-        disposer.registerListener(control.maxCellWidthProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.prefTileWidthProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.maxTileWidthProperty(), this::requestLayoutPass);
         disposer.registerListener(control.hgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.maxColumnsProperty(), this::requestLayoutPass);
-        disposer.registerListener(control.cellHeightProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.prefTileHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
@@ -266,7 +266,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private int computeColumns(double availableWidth) {
         RXTileView<T> control = getSkinnable();
-        double track = snapSizeX(cellWidthOrDefault(control));
+        double track = snapSizeX(prefTileWidthOrDefault(control));
         double gap = snapSpaceX(gapOrZero(control.getHgap()));
         int columns;
         if (availableWidth <= 0.0 || track <= 0.0) {
@@ -380,9 +380,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         RXTileView<T> control = getSkinnable();
-        double cellWidth = cellWidthOrDefault(control);
+        double prefTileWidth = prefTileWidthOrDefault(control);
         double gap = gapOrZero(control.getHgap());
-        double content = rowWidth(prefWidthColumns(control), cellWidth, gap);
+        double content = rowWidth(prefWidthColumns(control), prefTileWidth, gap);
         return leftInset + content
                 + viewport.scrollBarBreadth() + rightInset;
     }
@@ -391,7 +391,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         RXTileView<T> control = getSkinnable();
-        double slot = cellHeightOrDefault(control) + gapOrZero(control.getVgap());
+        double slot = prefTileHeightOrDefault(control) + gapOrZero(control.getVgap());
         return topInset + DEFAULT_VISIBLE_ROWS * slot + bottomInset;
     }
 
@@ -413,8 +413,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         return Math.min(capped, MAX_RESOLVED_COLUMNS);
     }
 
-    private static double rowWidth(int columns, double cellWidth, double hgap) {
-        return columns * cellWidth + (columns - 1) * hgap;
+    private static double rowWidth(int columns, double prefTileWidth, double hgap) {
+        return columns * prefTileWidth + (columns - 1) * hgap;
     }
 
     @Override
@@ -1061,12 +1061,12 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         return items == null ? 0 : items.size();
     }
 
-    static double cellWidthOrDefault(RXTileView<?> control) {
-        return finitePositiveOrDefault(control.getCellWidth(), FALLBACK_CELL_WIDTH);
+    static double prefTileWidthOrDefault(RXTileView<?> control) {
+        return finitePositiveOrDefault(control.getPrefTileWidth(), FALLBACK_PREF_TILE_WIDTH);
     }
 
-    static double cellHeightOrDefault(RXTileView<?> control) {
-        return finitePositiveOrDefault(control.getCellHeight(), FALLBACK_CELL_HEIGHT);
+    static double prefTileHeightOrDefault(RXTileView<?> control) {
+        return finitePositiveOrDefault(control.getPrefTileHeight(), FALLBACK_PREF_TILE_HEIGHT);
     }
 
     static double sectionHeaderHeightOrDefault(RXTileView<?> control) {

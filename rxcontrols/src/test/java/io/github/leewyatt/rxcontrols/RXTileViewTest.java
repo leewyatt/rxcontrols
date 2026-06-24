@@ -32,8 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Control-level tests for {@link RXTileView}, its cells and value objects:
- * defaults, the illegal-value strategies (coerce+throw on sizes, lenient on
- * gaps), null handling, scroll-request plumbing, read-only metrics, the action
+ * defaults, the lenient illegal-value handling (sizes and gaps), null handling,
+ * scroll-request plumbing, read-only metrics, the action
  * event and CSS metadata. Virtualization, sections, selection and the skin are
  * covered separately.
  */
@@ -67,13 +67,13 @@ public class RXTileViewTest {
         RXTileView<String> view = new RXTileView<>();
 
         assertTrue(view.getStyleClass().contains("rx-tile-view"));
-        assertEquals(100.0, view.getCellWidth(), EPSILON);
-        assertEquals(100.0, view.getCellHeight(), EPSILON);
+        assertEquals(100.0, view.getPrefTileWidth(), EPSILON);
+        assertEquals(100.0, view.getPrefTileHeight(), EPSILON);
         assertEquals(10.0, view.getHgap(), EPSILON);
         assertEquals(10.0, view.getVgap(), EPSILON);
         assertEquals(32.0, view.getSectionHeaderHeight(), EPSILON);
         assertEquals(0, view.getMaxColumns());
-        assertEquals(0.0, view.getMaxCellWidth(), EPSILON);
+        assertEquals(0.0, view.getMaxTileWidth(), EPSILON);
         assertSame(ItemsJustify.START, view.getItemsJustify());
         assertTrue(view.isShowSectionHeaders());
         assertNull(view.getPlaceholder());
@@ -121,8 +121,8 @@ public class RXTileViewTest {
         assertFalse(view.isShowSectionHeaders());
         view.setItemsJustify(ItemsJustify.CENTER);
         assertSame(ItemsJustify.CENTER, view.getItemsJustify());
-        view.setMaxCellWidth(180.0);
-        assertEquals(180.0, view.getMaxCellWidth(), EPSILON);
+        view.setMaxTileWidth(180.0);
+        assertEquals(180.0, view.getMaxTileWidth(), EPSILON);
         view.setMaxColumns(8);
         assertEquals(8, view.getMaxColumns());
         assertEquals(0.0, view.getSectionSpacing(), EPSILON, "section spacing defaults to 0");
@@ -151,31 +151,31 @@ public class RXTileViewTest {
     // mirroring RXTilePane's lenient prefTile size strategy.
 
     @Test
-    public void cellWidthIsLenient() {
+    public void prefTileWidthIsLenient() {
         RXTileView<String> view = new RXTileView<>();
-        view.setCellWidth(150.0);
-        assertEquals(150.0, view.getCellWidth(), EPSILON);
+        view.setPrefTileWidth(150.0);
+        assertEquals(150.0, view.getPrefTileWidth(), EPSILON);
 
-        view.setCellWidth(0.0);
-        assertEquals(0.0, view.getCellWidth(), EPSILON);
-        view.setCellWidth(-5.0);
-        assertEquals(-5.0, view.getCellWidth(), EPSILON);
-        view.setCellWidth(Double.NaN);
-        assertTrue(Double.isNaN(view.getCellWidth()));
-        view.setCellWidth(Double.POSITIVE_INFINITY);
-        assertEquals(Double.POSITIVE_INFINITY, view.getCellWidth());
+        view.setPrefTileWidth(0.0);
+        assertEquals(0.0, view.getPrefTileWidth(), EPSILON);
+        view.setPrefTileWidth(-5.0);
+        assertEquals(-5.0, view.getPrefTileWidth(), EPSILON);
+        view.setPrefTileWidth(Double.NaN);
+        assertTrue(Double.isNaN(view.getPrefTileWidth()));
+        view.setPrefTileWidth(Double.POSITIVE_INFINITY);
+        assertEquals(Double.POSITIVE_INFINITY, view.getPrefTileWidth());
     }
 
     @Test
-    public void cellHeightIsLenient() {
+    public void prefTileHeightIsLenient() {
         RXTileView<String> view = new RXTileView<>();
-        view.setCellHeight(120.0);
-        assertEquals(120.0, view.getCellHeight(), EPSILON);
+        view.setPrefTileHeight(120.0);
+        assertEquals(120.0, view.getPrefTileHeight(), EPSILON);
 
-        view.setCellHeight(0.0);
-        assertEquals(0.0, view.getCellHeight(), EPSILON);
-        view.setCellHeight(Double.NEGATIVE_INFINITY);
-        assertEquals(Double.NEGATIVE_INFINITY, view.getCellHeight());
+        view.setPrefTileHeight(0.0);
+        assertEquals(0.0, view.getPrefTileHeight(), EPSILON);
+        view.setPrefTileHeight(Double.NEGATIVE_INFINITY);
+        assertEquals(Double.NEGATIVE_INFINITY, view.getPrefTileHeight());
     }
 
     @Test
@@ -191,27 +191,27 @@ public class RXTileViewTest {
     }
 
     @Test
-    public void boundCellWidthTracksValidSource() {
+    public void boundPrefTileWidthTracksValidSource() {
         RXTileView<String> view = new RXTileView<>();
         SimpleDoubleProperty source = new SimpleDoubleProperty(140.0);
-        view.cellWidthProperty().bind(source);
-        assertEquals(140.0, view.getCellWidth(), EPSILON);
-        assertTrue(view.cellWidthProperty().isBound());
+        view.prefTileWidthProperty().bind(source);
+        assertEquals(140.0, view.getPrefTileWidth(), EPSILON);
+        assertTrue(view.prefTileWidthProperty().isBound());
 
         source.set(180.0);
-        assertEquals(180.0, view.getCellWidth(), EPSILON);
-        assertTrue(view.cellWidthProperty().isBound());
+        assertEquals(180.0, view.getPrefTileWidth(), EPSILON);
+        assertTrue(view.prefTileWidthProperty().isBound());
     }
 
     @Test
-    public void boundCellHeightTracksValidSource() {
+    public void boundPrefTileHeightTracksValidSource() {
         RXTileView<String> view = new RXTileView<>();
         SimpleDoubleProperty source = new SimpleDoubleProperty(140.0);
-        view.cellHeightProperty().bind(source);
-        assertEquals(140.0, view.getCellHeight(), EPSILON);
+        view.prefTileHeightProperty().bind(source);
+        assertEquals(140.0, view.getPrefTileHeight(), EPSILON);
         source.set(200.0);
-        assertEquals(200.0, view.getCellHeight(), EPSILON);
-        assertTrue(view.cellHeightProperty().isBound());
+        assertEquals(200.0, view.getPrefTileHeight(), EPSILON);
+        assertTrue(view.prefTileHeightProperty().isBound());
     }
 
     @Test
@@ -231,11 +231,11 @@ public class RXTileViewTest {
         // Lenient: an illegal bound value is accepted (no coerce, no throw); the
         // skin resolves it to the default at layout time.
         SimpleDoubleProperty source = new SimpleDoubleProperty(0.0);
-        view.cellWidthProperty().bind(source);
-        assertEquals(0.0, view.getCellWidth(), EPSILON);
-        assertTrue(view.cellWidthProperty().isBound());
+        view.prefTileWidthProperty().bind(source);
+        assertEquals(0.0, view.getPrefTileWidth(), EPSILON);
+        assertTrue(view.prefTileWidthProperty().isBound());
         source.set(-10.0);
-        assertEquals(-10.0, view.getCellWidth(), EPSILON);
+        assertEquals(-10.0, view.getPrefTileWidth(), EPSILON);
     }
 
     // ==================== Lenient gaps / caps ====================
@@ -248,8 +248,8 @@ public class RXTileViewTest {
         assertEquals(-1.0, view.getHgap(), EPSILON);
         view.setVgap(-3.0);
         assertEquals(-3.0, view.getVgap(), EPSILON);
-        view.setMaxCellWidth(Double.NaN);
-        assertTrue(Double.isNaN(view.getMaxCellWidth()));
+        view.setMaxTileWidth(Double.NaN);
+        assertTrue(Double.isNaN(view.getMaxTileWidth()));
         view.setMaxColumns(-4);
         assertEquals(-4, view.getMaxColumns());
         view.setSectionSpacing(-8.0); // lenient: accepted, treated as 0 at layout
@@ -594,11 +594,11 @@ public class RXTileViewTest {
     @Test
     public void classCssMetadataExposesStyleableProperties() {
         List<CssMetaData<? extends Styleable, ?>> metadata = RXTileView.getClassCssMetaData();
-        assertTrue(hasProperty(metadata, "-rx-cell-width"));
-        assertTrue(hasProperty(metadata, "-rx-cell-height"));
+        assertTrue(hasProperty(metadata, "-rx-pref-tile-width"));
+        assertTrue(hasProperty(metadata, "-rx-pref-tile-height"));
         assertTrue(hasProperty(metadata, "-rx-hgap"));
         assertTrue(hasProperty(metadata, "-rx-vgap"));
-        assertTrue(hasProperty(metadata, "-rx-max-cell-width"));
+        assertTrue(hasProperty(metadata, "-rx-max-tile-width"));
         assertTrue(hasProperty(metadata, "-rx-max-columns"));
         assertTrue(hasProperty(metadata, "-rx-section-header-height"));
         assertTrue(hasProperty(metadata, "-rx-section-spacing"));

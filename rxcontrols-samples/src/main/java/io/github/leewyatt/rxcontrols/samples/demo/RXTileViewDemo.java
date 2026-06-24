@@ -47,8 +47,8 @@ public class RXTileViewDemo extends Application {
         SortedList<Photo> sorted = new SortedList<>(raw, Comparator.comparingInt(Photo::year));
 
         RXTileView<Photo> tiles = new RXTileView<>(sorted);
-        tiles.setCellWidth(120);
-        tiles.setCellHeight(120);
+        tiles.setPrefTileWidth(120);
+        tiles.setPrefTileHeight(120);
         tiles.setHgap(14);
         tiles.setVgap(14);
         tiles.setPadding(new Insets(14));

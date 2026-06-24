@@ -95,10 +95,10 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     private Node cellSizeGrid() {
-        Slider width = createSlider(40, 280, tile.getCellWidth());
-        width.valueProperty().addListener((obs, old, value) -> tile.setCellWidth(value.doubleValue()));
-        Slider height = createSlider(40, 280, tile.getCellHeight());
-        height.valueProperty().addListener((obs, old, value) -> tile.setCellHeight(value.doubleValue()));
+        Slider width = createSlider(40, 280, tile.getPrefTileWidth());
+        width.valueProperty().addListener((obs, old, value) -> tile.setPrefTileWidth(value.doubleValue()));
+        Slider height = createSlider(40, 280, tile.getPrefTileHeight());
+        height.valueProperty().addListener((obs, old, value) -> tile.setPrefTileHeight(value.doubleValue()));
         return createGrid(
                 row("Width", width, createValueLabel(width, "%.0f px")),
                 row("Height", height, createValueLabel(height, "%.0f px")));
@@ -122,7 +122,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        // maxCellWidth is a low-frequency, STRETCH-only cap (kept in the API / docs);
+        // maxTileWidth is a low-frequency, STRETCH-only cap (kept in the API / docs);
         // it is intentionally not shown here so it does not read as a core layout knob.
         ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
                 FXCollections.observableArrayList(ItemsJustify.values()));
