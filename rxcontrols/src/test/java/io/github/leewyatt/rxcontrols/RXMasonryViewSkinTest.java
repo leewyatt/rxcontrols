@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -490,6 +491,90 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    // ==================== Reorder animation ====================
+
+    @Test
+    public void reorderGlideOnColumnChangePreservesIdentityAndAnimates() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setAnimated(true);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+            RXMasonryCell<?> before = cellByIndex(view, 2);
+            assertNotNull(before);
+
+            // 3 -> 2 columns moves item 2 from column 2 to column 0 row 1: a real reflow.
+            view.setColumnCount(2);
+            layoutOnce(root);
+            RXMasonryCell<?> after = cellByIndex(view, 2);
+            assertSame(before, after, "the carry-over cell keeps its identity and glides");
+            assertTrue(Math.abs(after.getTranslateX()) + Math.abs(after.getTranslateY()) > 0.5,
+                    "the cell is mid-glide (the FLIP delta is set synchronously)");
+        });
+    }
+
+    @Test
+    public void animationDisabledSnapsInsteadOfGliding() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setAnimated(false);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            view.setColumnCount(2);
+            layoutOnce(root);
+            RXMasonryCell<?> cell = cellByIndex(view, 2);
+            assertEquals(0.0, cell.getTranslateX(), 0.001);
+            assertEquals(0.0, cell.getTranslateY(), 0.001);
+        });
+    }
+
+    @Test
+    public void disablingAnimationMidGlideSnapsToFinal() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setAnimated(true);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            view.setColumnCount(2);
+            layoutOnce(root);
+            RXMasonryCell<?> gliding = cellByIndex(view, 2);
+            assertTrue(Math.abs(gliding.getTranslateX()) + Math.abs(gliding.getTranslateY()) > 0.5,
+                    "mid-glide");
+
+            view.setAnimated(false); // onAnimationSettingsChanged snaps every in-flight glide
+            layoutOnce(root);
+            RXMasonryCell<?> snapped = cellByIndex(view, 2);
+            assertEquals(0.0, snapped.getTranslateX(), 0.001);
+            assertEquals(0.0, snapped.getTranslateY(), 0.001);
+        });
+    }
+
+    @Test
+    public void disposeStopsInFlightGlide() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setAnimated(true);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            view.setColumnCount(2);
+            layoutOnce(root);
+            RXMasonryCell<?> gliding = cellByIndex(view, 2);
+            assertTrue(Math.abs(gliding.getTranslateX()) + Math.abs(gliding.getTranslateY()) > 0.5,
+                    "mid-glide");
+
+            view.getSkin().dispose(); // disposeSkin -> viewport.dispose -> snapAllGlides
+            assertEquals(0.0, gliding.getTranslateX(), 0.001, "the glide is snapped on dispose");
+            assertEquals(0.0, gliding.getTranslateY(), 0.001);
+        });
+    }
+
     // ==================== Helpers ====================
 
     // An image-gallery-style view: each item's height comes from its index, so the
@@ -605,6 +690,13 @@ public class RXMasonryViewSkinTest {
             root.applyCss();
             root.layout();
         }
+    }
+
+    // A single layout pass, so a reorder pass's just-set glide translate is observable
+    // before any subsequent non-reorder fill re-acquires cells.
+    private static void layoutOnce(Region root) {
+        root.applyCss();
+        root.layout();
     }
 
     private static void onFx(Runnable body) throws Exception {

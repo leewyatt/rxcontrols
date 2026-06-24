@@ -49,6 +49,8 @@ public class RXMasonryViewDemo extends Application {
         // Exact height from the slot width and the photo's aspect ratio.
         masonry.setCellHeightProvider(context -> context.cellWidth() / context.item().aspectRatio());
         masonry.setCellFactory(view -> new PhotoCell());
+        // Glide the tiles to their new slots when a resize changes the column count.
+        masonry.setAnimated(true);
 
         BorderPane root = new BorderPane(masonry);
         root.setTop(createHeader());

@@ -13,12 +13,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Reorder glide animator for {@link RXTileViewport}. Each node gets its own
- * one-shot {@link Timeline} that tweens {@code translateX/translateY} from a
- * captured FLIP delta back to zero, while layout owns the authoritative
- * {@code layoutX/layoutY}. Independent per-node timelines (rather than one shared
- * timeline) let a virtualized cell be re-aimed mid-glide without disturbing the
- * others, and let a cell that finishes be recycled on its own.
+ * Reorder glide animator shared by the virtualized viewports ({@link RXTileViewport}
+ * and {@code RXMasonryViewport}). Each node gets its own one-shot {@link Timeline}
+ * that tweens {@code translateX/translateY} from a captured FLIP delta back to zero,
+ * while layout owns the authoritative {@code layoutX/layoutY}. Independent per-node
+ * timelines (rather than one shared timeline) let a virtualized cell be re-aimed
+ * mid-glide without disturbing the others, and let a cell that finishes be recycled
+ * on its own.
  *
  * <p>This class only manages the tween + transform cleanup; the viewport owns the
  * recycler pin-set (a gliding cell must not be parked or rebound) and removes the

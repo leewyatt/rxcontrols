@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.skins.RXMasonryPlacement.Geometry;
+import javafx.animation.Interpolator;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
@@ -17,10 +18,15 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Self-built virtualizing viewport for {@link RXMasonryViewSkin}. It owns the data
@@ -38,7 +44,12 @@ import java.util.Objects;
  * appearing or disappearing, a placement rebuild) it re-pins the previously
  * top-most visible item to its old screen offset, so the view does not jump at
  * critical widths. The pin is self-correcting: when the geometry is unchanged it is
- * a no-op. Reorder glide animation is added in a later phase.</p>
+ * a no-op.</p>
+ *
+ * <p>On a column-count change, when animation is enabled, the visible cells keep
+ * their identity, are repositioned to their new slots and tween from their old
+ * position via {@link RXTileReorderAnimator}; cells mid-glide are pinned so the
+ * recycler leaves them alone until they land.</p>
  *
  * @param <T> the item type
  */
@@ -55,6 +66,15 @@ final class RXMasonryViewport<T> extends Region {
     private final Rectangle contentClip = new Rectangle();
 
     private final List<RXMasonryCell<T>> cellPool = new ArrayList<>();
+
+    // Cells mid-glide are pinned here and skipped by the recycler so a cell gliding to a
+    // new slot is not grabbed and re-bound before it lands.
+    private final Set<RXMasonryCell<T>> animating = new HashSet<>();
+    private final RXTileReorderAnimator reorderAnimator = new RXTileReorderAnimator();
+    // True for the duration of one fillVisible when a column-count change should glide
+    // cells from their old positions to the new ones.
+    private boolean reorderPass;
+    private int lastColumns = -1;
 
     // Built by the skin each pass and shared so its scroll-bar / column decision and
     // this viewport's geometry use the exact same placement.
@@ -288,6 +308,7 @@ final class RXMasonryViewport<T> extends Region {
      * cell factory changes. A normal layout repopulates it.
      */
     void recreateCells() {
+        snapAllGlides();
         contentLayer.getChildren().removeAll(cellPool);
         cellPool.clear();
         requestLayout();
@@ -296,6 +317,7 @@ final class RXMasonryViewport<T> extends Region {
     void dispose() {
         vbar.valueProperty().removeListener(scrollBarValueListener);
         removeEventHandler(ScrollEvent.SCROLL, scrollHandler);
+        snapAllGlides();
         contentLayer.getChildren().removeAll(cellPool);
         cellPool.clear();
         contentLayer.setClip(null);
@@ -404,6 +426,13 @@ final class RXMasonryViewport<T> extends Region {
                 scrollY = anchor.y() - anchorOffset;
             }
         }
+        // A column-count change is the reorder-glide trigger when animation is on;
+        // otherwise cells snap to their new slots. The first sized pass (lastColumns < 0)
+        // never animates. Skipped right after an explicit scroll.
+        int columns = current.columns();
+        boolean columnsChanged = !explicitScrollPending && lastColumns > 0 && lastColumns != columns;
+        reorderPass = columnsChanged && animationEnabled();
+        lastColumns = columns;
         explicitScrollPending = false;
         scrollY = clamp(scrollY, 0.0, maxScroll);
 
@@ -441,6 +470,21 @@ final class RXMasonryViewport<T> extends Region {
 
     private void fillVisible(RXMasonryPlacement current, double viewportHeight) {
         int[] visible = current.visibleItems(scrollY, viewportHeight);
+
+        // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding, so
+        // the same node can be re-found for its item and glide to the new slot.
+        Map<Integer, RXMasonryCell<T>> priorItemToCell = null;
+        Set<RXMasonryCell<T>> usedThisPass = null;
+        if (reorderPass) {
+            priorItemToCell = new HashMap<>();
+            for (RXMasonryCell<T> cell : cellPool) {
+                if (cell.getIndex() >= 0) {
+                    priorItemToCell.put(cell.getIndex(), cell);
+                }
+            }
+            usedThisPass = new HashSet<>();
+        }
+
         int cursor = 0;
         int anchorCandidate = -1;
         double anchorCandidateTop = Double.POSITIVE_INFINITY;
@@ -449,21 +493,30 @@ final class RXMasonryViewport<T> extends Region {
             if (geometry == null) {
                 continue;
             }
-            RXMasonryCell<T> cell = acquireCell(cursor++);
+            RXMasonryCell<T> prior = reorderPass ? priorItemToCell.get(itemIndex) : null;
+            RXMasonryCell<T> cell = reorderPass
+                    ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
+                    : acquireCell(cursor++);
             String oldStyle = cell.getStyle();
             cell.updateMasonryPosition(current.startColumnOf(itemIndex), current.spanOf(itemIndex));
             cell.updateIndex(itemIndex);
             cell.setVisible(true);
             applyCellState(cell, itemIndex);
             applyCssAfterCellUpdate(cell, oldStyle);
-            cell.resizeRelocate(snapPositionX(geometry.x()), snapPositionY(geometry.y() - scrollY),
-                    snapSizeX(geometry.width()), snapSizeY(geometry.height()));
+            // Only a carry-over cell (the one that rendered this item last pass) glides;
+            // a freshly repurposed or entering cell pops in at its slot.
+            placeCell(cell, snapPositionX(geometry.x()), snapPositionY(geometry.y() - scrollY),
+                    snapSizeX(geometry.width()), snapSizeY(geometry.height()), cell == prior);
             if (geometry.y() < anchorCandidateTop) {
                 anchorCandidateTop = geometry.y();
                 anchorCandidate = itemIndex;
             }
         }
-        parkCellsFrom(cursor);
+        if (reorderPass) {
+            parkUnusedCells(usedThisPass);
+        } else {
+            parkCellsFrom(cursor);
+        }
 
         visibleFirstIndex = visible.length == 0 ? -1 : visible[0];
         visibleLastIndex = visible.length == 0 ? -1 : visible[visible.length - 1];
@@ -535,9 +588,71 @@ final class RXMasonryViewport<T> extends Region {
         return cellPool.get(slotIndex);
     }
 
+    // Reorder pass: reuse the node that rendered this item last pass so the SAME node
+    // glides to its new slot; otherwise take a free, non-gliding pool cell.
+    private RXMasonryCell<T> acquireCellForItem(int itemIndex, Map<Integer, RXMasonryCell<T>> prior,
+                                                Set<RXMasonryCell<T>> used) {
+        RXMasonryCell<T> cell = prior.get(itemIndex);
+        if (cell != null && !used.contains(cell)) {
+            used.add(cell);
+            return cell;
+        }
+        for (RXMasonryCell<T> candidate : cellPool) {
+            if (!used.contains(candidate) && !animating.contains(candidate)) {
+                used.add(candidate);
+                return candidate;
+            }
+        }
+        RXMasonryCell<T> created = createCell();
+        cellPool.add(created);
+        contentLayer.getChildren().add(created);
+        used.add(created);
+        return created;
+    }
+
+    // Sets the cell's final geometry. A carry-over cell on a reorder pass captures its
+    // old visual position and glides translate back to zero (FLIP). A fresh cell entering
+    // on a reorder pops in (translate cleared). A non-reorder pass places directly and
+    // never touches translate, so an in-flight glide keeps running.
+    private void placeCell(RXMasonryCell<T> cell, double x, double y, double width, double height,
+                           boolean glide) {
+        if (glide) {
+            double oldVisualX = cell.getLayoutX() + cell.getTranslateX();
+            double oldVisualY = cell.getLayoutY() + cell.getTranslateY();
+            cell.resizeRelocate(x, y, width, height);
+            animating.add(cell);
+            reorderAnimator.animate(cell, oldVisualX - cell.getLayoutX(), oldVisualY - cell.getLayoutY(),
+                    control.getAnimationDuration(), interpolatorOrDefault(), this::onGlideFinished);
+            return;
+        }
+        if (reorderPass) {
+            cell.setTranslateX(0.0);
+            cell.setTranslateY(0.0);
+        }
+        cell.resizeRelocate(x, y, width, height);
+    }
+
+    private void onGlideFinished(Node node) {
+        animating.remove(node);
+        requestLayoutIfGlidesDone();
+    }
+
     private void parkCellsFrom(int from) {
         for (int i = from; i < cellPool.size(); i++) {
-            parkCell(cellPool.get(i));
+            RXMasonryCell<T> cell = cellPool.get(i);
+            if (animating.contains(cell)) {
+                continue;
+            }
+            parkCell(cell);
+        }
+    }
+
+    private void parkUnusedCells(Set<RXMasonryCell<T>> used) {
+        for (RXMasonryCell<T> cell : cellPool) {
+            if (used.contains(cell) || animating.contains(cell)) {
+                continue;
+            }
+            parkCell(cell);
         }
     }
 
@@ -545,6 +660,8 @@ final class RXMasonryViewport<T> extends Region {
         if (cell.isVisible() || cell.getIndex() != -1) {
             cell.setVisible(false);
             cell.updateMasonryFocus(false);
+            cell.setTranslateX(0.0);
+            cell.setTranslateY(0.0);
             cell.updateIndex(-1);
         }
     }
@@ -567,6 +684,46 @@ final class RXMasonryViewport<T> extends Region {
                 }
             }
         };
+    }
+
+    // ==================== Reorder animation ====================
+
+    private boolean animationEnabled() {
+        return control.isAnimated() && getScene() != null && isAnimationDurationPositive();
+    }
+
+    private boolean isAnimationDurationPositive() {
+        Duration duration = control.getAnimationDuration();
+        return duration != null && !duration.isUnknown() && !duration.isIndefinite()
+                && duration.greaterThan(Duration.ZERO);
+    }
+
+    private Interpolator interpolatorOrDefault() {
+        Interpolator value = control.getAnimationInterpolator();
+        return value == null ? Interpolator.EASE_BOTH : value;
+    }
+
+    private void requestLayoutIfGlidesDone() {
+        if (animating.isEmpty()) {
+            requestLayout();
+        }
+    }
+
+    private void snapAllGlides() {
+        reorderAnimator.snapAll();
+        animating.clear();
+    }
+
+    /**
+     * Re-evaluates the animation settings after {@code animated} or
+     * {@code animationDuration} changed; snaps any in-flight glide if animation is now
+     * disabled. The skin wires this to both property changes.
+     */
+    void onAnimationSettingsChanged() {
+        if (!animationEnabled()) {
+            snapAllGlides();
+            requestLayout();
+        }
     }
 
     // ==================== Geometry helpers ====================

@@ -175,6 +175,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // Breakpoint overrides live in an observable map, not a property, but change the
         // resolved column count just the same.
         disposer.registerListener(control.getBreakpointColumnOverrides(), this::requestRelayout);
+        // Reorder animation: snap any in-flight glide when it is turned off mid-flight.
+        disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
+        disposer.registerListener(control.animationDurationProperty(), viewport::onAnimationSettingsChanged);
         // prefColumns only feeds computePrefWidth (a parent size hint), not the
         // placement, so it relays out the control rather than re-filling the viewport.
         disposer.registerListener(control.prefColumnsProperty(), () -> getSkinnable().requestLayout());
