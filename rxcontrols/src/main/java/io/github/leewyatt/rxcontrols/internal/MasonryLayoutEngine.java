@@ -91,6 +91,37 @@ public final class MasonryLayoutEngine {
      *                                  or any block height is not finite and non-negative
      */
     public static OutlineResult place(double[] startOutline, double vgap, int[] spans, double[] blockHeights) {
+        return place(startOutline, vgap, spans, blockHeights, null);
+    }
+
+    /**
+     * Places items into columns starting from an explicit outline, honoring already
+     * committed column assignments (commit-once). For each item, a committed column
+     * ({@code >= 0}) is used as its start column without re-scanning; an uncommitted
+     * entry ({@code -1}) falls back to the stable shortest-column choice. A
+     * {@code null} {@code committedColumns} means every item is chosen by the
+     * shortest-column strategy (identical to {@link #place(double[], double, int[], double[])}).
+     *
+     * <p>This is the engine half of the estimated path's measure-time re-pack: passing
+     * the previously resolved columns back as {@code committedColumns} re-derives every
+     * item's top from new heights while never re-routing a column.</p>
+     *
+     * @param startOutline    each column's current bottom; its length is the column count
+     * @param vgap            the vertical gap inserted below each placed item; may be negative
+     * @param spans           the column span per item, each clamped to {@code [1, columns]}
+     * @param blockHeights    the vertical extent per item
+     * @param committedColumns the committed start column per item ({@code -1} = choose by
+     *                        shortest column), or {@code null} to choose every column
+     * @return the placement result, whose {@code startColumns} echo the resolved columns
+     * @throws NullPointerException     if {@code startOutline}, {@code spans} or
+     *                                  {@code blockHeights} is {@code null}
+     * @throws IllegalArgumentException if {@code startOutline} is empty, the array lengths
+     *                                  disagree, {@code vgap} or any outline value is not
+     *                                  finite, any block height is not finite and non-negative,
+     *                                  or a committed column is out of {@code [-1, columns)}
+     */
+    public static OutlineResult place(double[] startOutline, double vgap, int[] spans, double[] blockHeights,
+                                      int[] committedColumns) {
         Objects.requireNonNull(startOutline, "startOutline cannot be null");
         Objects.requireNonNull(spans, "spans cannot be null");
         Objects.requireNonNull(blockHeights, "blockHeights cannot be null");
@@ -99,6 +130,9 @@ public final class MasonryLayoutEngine {
         }
         if (spans.length != blockHeights.length) {
             throw new IllegalArgumentException("spans and blockHeights must have the same length");
+        }
+        if (committedColumns != null && committedColumns.length != blockHeights.length) {
+            throw new IllegalArgumentException("committedColumns must match the item count");
         }
         if (!Double.isFinite(vgap)) {
             throw new IllegalArgumentException("vgap must be finite");
@@ -114,6 +148,13 @@ public final class MasonryLayoutEngine {
             }
         }
         int columnCount = startOutline.length;
+        if (committedColumns != null) {
+            for (int committed : committedColumns) {
+                if (committed < -1 || committed >= columnCount) {
+                    throw new IllegalArgumentException("committed columns must be in [-1, columns)");
+                }
+            }
+        }
         int itemCount = blockHeights.length;
         int[] startColumns = new int[itemCount];
         double[] tops = new double[itemCount];
@@ -123,24 +164,34 @@ public final class MasonryLayoutEngine {
 
         for (int i = 0; i < itemCount; i++) {
             int span = clampSpan(spans[i], columnCount);
-            int lastStart = columnCount - span;
-            int bestStart = 0;
-            double bestTop = Double.POSITIVE_INFINITY;
-            for (int start = 0; start <= lastStart; start++) {
-                double top = spanTop(columnBottoms, start, span);
-                if (top < bestTop - EPSILON) {
-                    bestTop = top;
-                    bestStart = start;
+            int committed = committedColumns == null ? -1 : committedColumns[i];
+            int start;
+            double top;
+            if (committed >= 0) {
+                // Commit-once: keep the committed column; clamp the start leftward only if a
+                // narrower column count from an earlier pass would push the span out of range.
+                start = Math.min(committed, columnCount - span);
+                top = spanTop(columnBottoms, start, span);
+            } else {
+                int lastStart = columnCount - span;
+                start = 0;
+                top = Double.POSITIVE_INFINITY;
+                for (int candidate = 0; candidate <= lastStart; candidate++) {
+                    double candidateTop = spanTop(columnBottoms, candidate, span);
+                    if (candidateTop < top - EPSILON) {
+                        top = candidateTop;
+                        start = candidate;
+                    }
                 }
             }
-            startColumns[i] = bestStart;
-            tops[i] = bestTop;
-            double itemBottom = bestTop + blockHeights[i];
+            startColumns[i] = start;
+            tops[i] = top;
+            double itemBottom = top + blockHeights[i];
             if (itemBottom > maxItemBottom) {
                 maxItemBottom = itemBottom;
             }
             double newBottom = itemBottom + vgap;
-            for (int c = bestStart; c < bestStart + span; c++) {
+            for (int c = start; c < start + span; c++) {
                 columnBottoms[c] = newBottom;
             }
         }

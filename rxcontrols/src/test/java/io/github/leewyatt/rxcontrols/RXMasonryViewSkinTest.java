@@ -21,7 +21,9 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -575,6 +577,161 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    // ==================== Estimated path: measure-time re-pack ====================
+
+    @Test
+    public void estimatedPathKeepsColumnsBalancedDeepInList() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> items = FXCollections.observableArrayList();
+            for (int i = 0; i < 5000; i++) {
+                items.add(i);
+            }
+            RXMasonryView<Integer> view = new RXMasonryView<>(items);
+            view.setColumnWidth(220);
+            view.setHgap(12);
+            view.setVgap(12);
+            // Heights swing widely (98..314), so a fixed column assignment would random-walk
+            // the column bottoms apart over thousands of items and blank out short columns.
+            view.setCellFactory(v -> new RXMasonryCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setPrefHeight(empty || item == null ? USE_COMPUTED_SIZE : 44.0 + (1 + (item % 5)) * 54.0);
+                }
+            });
+            StackPane root = host(view, 1100, 680);
+            pumpUntilStable(root, 120);
+            int columns = view.getActualColumnCount();
+            for (int target : new int[]{1500, 3200, 4990, 4999}) {
+                view.scrollTo(target);
+                pumpUntilStable(root, 200);
+            }
+
+            // Near the very bottom, every column must still reach the visible window — no
+            // column drifted hundreds of px above the others.
+            Set<Integer> visibleColumns = new HashSet<>();
+            for (Node n : view.lookupAll(".rx-masonry-cell")) {
+                if (n instanceof RXMasonryCell<?> c && n.isVisible() && c.getIndex() >= 0) {
+                    visibleColumns.add(c.getColumnIndex());
+                }
+            }
+            assertEquals(columns, visibleColumns.size(),
+                    "all columns reach the bottom window (no blank column from drift)");
+        });
+    }
+
+    // Each item's real cell height, deterministic and different from the default estimate
+    // (200) so a correction is forced.
+    private static double measuredHeightOf(int item) {
+        return 60.0 + (item % 5) * 20.0;
+    }
+
+    // An estimated-path view (no cellHeightProvider): cells carry a fixed pref height the
+    // skin must measure and re-pack around.
+    private static RXMasonryView<Integer> estimatedGallery(int count) {
+        ObservableList<Integer> items = FXCollections.observableArrayList();
+        for (int i = 0; i < count; i++) {
+            items.add(i);
+        }
+        RXMasonryView<Integer> view = new RXMasonryView<>(items);
+        view.setColumnCount(3);
+        view.setHgap(8);
+        view.setVgap(8);
+        view.setCellFactory(v -> new RXMasonryCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setPrefHeight(empty || item == null ? USE_COMPUTED_SIZE : measuredHeightOf(item));
+            }
+        });
+        return view;
+    }
+
+    @Test
+    public void estimatedPathConvergesToMeasuredHeights() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = estimatedGallery(30);
+            StackPane root = host(view, 340, 420);
+            pump(root);
+
+            // The top items are realized and measured on the first pass, so by now the
+            // placement uses their real heights, not the 200 estimate.
+            RXMasonryCell<?> cell0 = cellByIndex(view, 0);
+            RXMasonryCell<?> cell1 = cellByIndex(view, 1);
+            assertNotNull(cell0);
+            assertNotNull(cell1);
+            assertEquals(measuredHeightOf(0), cell0.getHeight(), 1.0, "item 0 converged to its measured height");
+            assertEquals(measuredHeightOf(1), cell1.getHeight(), 1.0, "item 1 converged to its measured height");
+        });
+    }
+
+    @Test
+    public void estimatedPathMeasuresItemsRevealedByUpwardScroll() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = estimatedGallery(120);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+
+            // Jump down past never-realized items, then scroll back UP a little into items
+            // that were never measured. They must be measured now (not stranded at the 200
+            // estimate) — the bug the removed up-scroll skip caused.
+            view.scrollTo(90);
+            pumpUntilStable(root, 60);
+            view.scrollTo(86);
+            pumpUntilStable(root, 60);
+
+            RXMasonryCell<?> revealed = cellByIndex(view, 87);
+            assertNotNull(revealed, "item 87 is realized after scrolling up to it");
+            assertEquals(measuredHeightOf(87), revealed.getHeight(), 1.0,
+                    "an item first revealed by an upward scroll is measured, not stranded at the estimate");
+        });
+    }
+
+    @Test
+    public void estimatedPathSettlesAtScrollBarBoundary() throws Exception {
+        onFx(() -> {
+            // Content height sits right at the viewport bottom, so the scroll bar toggles
+            // as cells converge. Before the column-count-keyed invalidation fix this
+            // re-measured at alternating track widths and span layout forever.
+            ObservableList<Integer> items = FXCollections.observableArrayList();
+            for (int i = 0; i < 16; i++) {
+                items.add(i);
+            }
+            RXMasonryView<Integer> view = new RXMasonryView<>(items);
+            view.setColumnCount(3);
+            view.setHgap(8);
+            view.setVgap(8);
+            // Fixed height 50, far below the 200 estimate, so content crosses the viewport
+            // bottom as it converges — the boundary case.
+            view.setCellFactory(v -> new RXMasonryCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setPrefHeight(empty || item == null ? USE_COMPUTED_SIZE : 50.0);
+                }
+            });
+            StackPane root = host(view, 340, 420);
+            assertTrue(pumpUntilStable(root, 40), "the estimated layout settles at the scroll-bar boundary");
+        });
+    }
+
+    @Test
+    public void estimatedPathConvergenceSettlesAndStopsDirtying() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = estimatedGallery(24);
+            StackPane root = host(view, 340, 420);
+            pump(root);
+
+            // Once settled, another layout must not move the converged top cell — proves
+            // the measure loop reaches a fixpoint rather than oscillating.
+            double before = cellByIndex(view, 0).getHeight();
+            layoutOnce(root);
+            double after = cellByIndex(view, 0).getHeight();
+            assertEquals(before, after, 0.001, "a settled estimated layout is stable");
+            assertEquals(measuredHeightOf(0), after, 1.0);
+        });
+    }
+
     // ==================== Helpers ====================
 
     // An image-gallery-style view: each item's height comes from its index, so the
@@ -697,6 +854,19 @@ public class RXMasonryViewSkinTest {
     private static void layoutOnce(Region root) {
         root.applyCss();
         root.layout();
+    }
+
+    // Lays out until the tree stops requesting layout (a settled measure loop) or the cap
+    // is hit. Returns false when it never settles — the infinite-loop signature.
+    private static boolean pumpUntilStable(Region root, int maxPasses) {
+        for (int i = 0; i < maxPasses; i++) {
+            root.applyCss();
+            root.layout();
+            if (!root.isNeedsLayout()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void onFx(Runnable body) throws Exception {

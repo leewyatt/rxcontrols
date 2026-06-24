@@ -79,12 +79,24 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // (mirrors ListView's CellBehaviorBase anchor) so it needs no new API.
     private static final String ANCHOR_KEY = "rx-masonry-view-selection-anchor";
 
+    private static final double HEIGHT_EPSILON = 0.5;
+    // Safety net: cap consecutive re-pack iterations that make NO progress (no newly
+    // measured item — only known heights re-flipping) so a pathological non-deterministic-
+    // height cell can never spin layout forever. An iteration that measures new items
+    // resets it, so a genuine multi-step convergence (a deep scrollTo cascade) is not cut
+    // short.
+    private static final int MAX_STALLED_REPACK_PASSES = 8;
+
     private final RXMasonryViewport<T> viewport;
     private final StackPane placeholderRegion;
     private final Rectangle selectionRectangle;
     private final Timeline marqueeAutoScroll;
 
-    private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
+    // Persistent estimated-path height state (unused on the precise provider path).
+    private final MasonryHeightCache heightCache = new MasonryHeightCache();
+    private boolean heightsDirty;
+
+    private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
     private final WeakListChangeListener<T> weakItemsContentListener =
             new WeakListChangeListener<>(itemsContentListener);
     private ObservableList<T> observedItems;
@@ -143,6 +155,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // focusable. The focus model reads the lead through the live selection model.
         focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
+        viewport.setHeightSink(this::recordMeasuredHeight);
 
         registerListeners(control);
         attachItems(control.getItems());
@@ -170,7 +183,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         disposer.registerListener(control.alignmentProperty(), this::requestRelayout);
         disposer.registerListener(control.breakpointProfileProperty(), this::requestRelayout);
         disposer.registerListener(control.estimatedCellHeightProperty(), this::requestRelayout);
-        disposer.registerListener(control.cellHeightProviderProperty(), this::requestRelayout);
+        // Switching the height source (provider <-> estimated, or a different provider)
+        // makes the persistent cache stale; drop it.
+        disposer.registerListener(control.cellHeightProviderProperty(), this::onHeightSourceChanged);
         disposer.registerListener(control.columnSpanFactoryProperty(), this::requestRelayout);
         // Breakpoint overrides live in an observable map, not a property, but change the
         // resolved column count just the same.
@@ -210,17 +225,47 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         viewport.resetAnchor();
         resetAnchor();
         resetPreferredNav();
+        // Every index meaning is gone with the old list.
+        heightCache.clear();
         updatePlaceholder();
         requestRelayout();
     }
 
-    private void onItemsContentChanged() {
+    private void onItemsContentChanged(ListChangeListener.Change<? extends T> change) {
         finishMarquee();
         viewport.resetAnchor();
         resetAnchor();
         resetPreferredNav();
+        applyHeightCacheChange(change);
         updatePlaceholder();
         requestRelayout();
+    }
+
+    private void onHeightSourceChanged() {
+        heightCache.clear();
+        requestRelayout();
+    }
+
+    // Keep the estimated-path cache index-aligned with the list (mirrors the index shift
+    // in the selection / focus models); a no-op on the precise path.
+    private void applyHeightCacheChange(ListChangeListener.Change<? extends T> change) {
+        if (!estimatedPath()) {
+            return;
+        }
+        double estimated = estimatedCellHeightOrDefault(getSkinnable());
+        while (change.next()) {
+            if (change.wasPermutated() || change.wasUpdated()) {
+                // Reordered or changed in place: the stored heights no longer describe the
+                // range, so drop them and re-measure.
+                heightCache.invalidateRange(change.getFrom(), change.getTo(), estimated);
+            } else {
+                heightCache.shift(change.getFrom(), change.getRemovedSize(), change.getAddedSize(), estimated);
+            }
+        }
+    }
+
+    private boolean estimatedPath() {
+        return getSkinnable().getCellHeightProvider() == null;
     }
 
     private void attachItems(ObservableList<T> items) {
@@ -808,11 +853,41 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         consumePendingScroll();
-        // Force the viewport to realize cells now so the scroll request and the
-        // published visible bounds reflect this pass, not the previous one.
+        // Realize the cells now so the scroll request and the published bounds reflect this
+        // pass. On the estimated path, also measure each realized cell; re-measuring an
+        // already-measured cell is a no-op (record() returns false within an epsilon), and
+        // unlike an up-scroll skip it never strands a never-measured item.
+        viewport.setMeasureGate(estimatedPath());
+        heightsDirty = false;
         viewport.layout();
+        if (estimatedPath()) {
+            convergeEstimatedHeights(contentWidth, contentHeight);
+        }
         publishVisibleBounds();
         layoutMarqueeRectangle();
+    }
+
+    // A measured height differing from the placed (cached) one re-packs the layout. Rather
+    // than rely on a fragile cross-pulse re-layout (a requestLayout issued from inside
+    // layoutChildren is not reliably honored), converge WITHIN this pass: rebuild the
+    // placement from the updated cache, re-fill and re-measure, looping until nothing
+    // changes. A pass that measures a NEW item is progress (resets the stall counter), so a
+    // genuine multi-step convergence (a deep scrollTo cascade) runs to completion; a pass
+    // that only re-flips known heights counts toward the cap so a non-deterministic cell
+    // cannot spin forever. The anchor pin keeps the top visible item put across the snap.
+    private void convergeEstimatedHeights(double contentWidth, double contentHeight) {
+        int lastMeasured = heightCache.measuredCount();
+        int stalled = 0;
+        while (heightsDirty && stalled < MAX_STALLED_REPACK_PASSES) {
+            heightsDirty = false;
+            PlacementResult result = buildPlacement(contentWidth, contentHeight);
+            viewport.setPlacement(result.placement());
+            viewport.requestLayout();
+            viewport.layout();
+            int measured = heightCache.measuredCount();
+            stalled = measured > lastMeasured ? 0 : stalled + 1;
+            lastMeasured = measured;
+        }
     }
 
     private void publishVisibleBounds() {
@@ -855,9 +930,16 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
         Resolution first = MasonryColumns.resolve(breakpointWidth, breakpointWidth, control.getColumnCount(),
                 snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);
-        RXMasonryPlacement firstPlacement = placementFor(first, breakpointWidth, snappedHgap, snappedVgap);
+        // The overflow decision needs a content height. On the estimated path that build
+        // must NOT drive the cache (it is at the pre-scrollbar width and may be discarded);
+        // only the chosen, settled-width placement below writes the cache.
+        boolean estimated = estimatedPath();
+        RXMasonryPlacement firstPlacement = placementFor(first, breakpointWidth, snappedHgap, snappedVgap, !estimated);
         if (firstPlacement.contentHeight() <= availableHeight) {
-            return new PlacementResult(firstPlacement, first.activeBreakpoint());
+            RXMasonryPlacement finalPlacement = estimated
+                    ? placementFor(first, breakpointWidth, snappedHgap, snappedVgap, true)
+                    : firstPlacement;
+            return new PlacementResult(finalPlacement, first.activeBreakpoint());
         }
 
         // Overflow: a vertical bar is needed, so re-resolve the columns / track against
@@ -865,40 +947,77 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         double layoutWidth = Math.max(0.0, breakpointWidth - viewport.scrollBarBreadth());
         Resolution second = MasonryColumns.resolve(breakpointWidth, layoutWidth, control.getColumnCount(),
                 snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);
-        RXMasonryPlacement secondPlacement = placementFor(second, layoutWidth, snappedHgap, snappedVgap);
+        RXMasonryPlacement secondPlacement = placementFor(second, layoutWidth, snappedHgap, snappedVgap, true);
         return new PlacementResult(secondPlacement, second.activeBreakpoint());
     }
 
     private RXMasonryPlacement placementFor(Resolution resolution, double layoutWidth,
                                             double snappedHgap, double snappedVgap) {
+        return placementFor(resolution, layoutWidth, snappedHgap, snappedVgap, true);
+    }
+
+    // driveCache: only the final, settled-width placement writes the persistent cache
+    // (commits columns, fires the geometry-change invalidation). The overflow probe
+    // builds at the pre-scrollbar width with driveCache=false, so the two widths in one
+    // pass do not thrash the cache and drop every measured height.
+    private RXMasonryPlacement placementFor(Resolution resolution, double layoutWidth,
+                                            double snappedHgap, double snappedVgap, boolean driveCache) {
         RXMasonryView<T> control = getSkinnable();
         ObservableList<T> items = control.getItems();
         int count = items == null ? 0 : items.size();
         int columns = resolution.columns();
         double track = resolution.trackWidth();
         double startX = horizontalAlignmentOffset(control, layoutWidth, resolution.usedWidth());
+        double estimated = estimatedCellHeightOrDefault(control);
+        Callback<T, Integer> spanFactory = control.getColumnSpanFactory();
 
         double[] heights = new double[count];
         int[] spans = new int[count];
         CellHeightProvider<T> provider = control.getCellHeightProvider();
-        double estimated = estimatedCellHeightOrDefault(control);
-        Callback<T, Integer> spanFactory = control.getColumnSpanFactory();
-        for (int i = 0; i < count; i++) {
-            T item = items.get(i);
-            int span = resolveSpan(spanFactory, item, columns);
-            spans[i] = span;
-            double cellWidth = span * track + (span - 1) * snappedHgap;
-            double height = estimated;
-            if (provider != null) {
+
+        if (provider != null) {
+            // Precise path: exact height from the provider, immutable shortest-column
+            // placement rebuilt each pass. The persistent cache is never touched.
+            for (int i = 0; i < count; i++) {
+                T item = items.get(i);
+                int span = resolveSpan(spanFactory, item, columns);
+                spans[i] = span;
+                double cellWidth = span * track + (span - 1) * snappedHgap;
                 double provided = provider.computeHeight(
                         new CellHeightContext<>(item, i, cellWidth, span, track, columns));
-                if (Double.isFinite(provided) && provided >= 0.0) {
-                    height = provided;
-                }
+                heights[i] = snapSizeY(Double.isFinite(provided) && provided >= 0.0 ? provided : estimated);
             }
-            heights[i] = snapSizeY(height);
+            return new RXMasonryPlacement(columns, track, snappedHgap, snappedVgap, startX, heights, spans);
+        }
+
+        // Estimated path: heights come from the persistent cache (measured or estimated);
+        // the columns are re-derived by the same shortest-column placement as the precise
+        // path. (A frozen, commit-once assignment was tried but a fixed assignment does not
+        // balance, so the column bottoms random-walk apart over thousands of items and the
+        // shortest columns end far above the tallest — blank columns. Re-deriving each pass
+        // keeps the columns balanced; a below-fold measurement only re-routes later items,
+        // which are off-screen.)
+        if (driveCache) {
+            heightCache.onColumnsChanged(columns);
+            heightCache.ensureCapacity(count, estimated);
+        }
+        for (int i = 0; i < count; i++) {
+            int span = resolveSpan(spanFactory, items.get(i), columns);
+            spans[i] = span;
+            heights[i] = snapSizeY(heightCache.heightAt(i, estimated));
         }
         return new RXMasonryPlacement(columns, track, snappedHgap, snappedVgap, startX, heights, spans);
+    }
+
+    // The estimated-path measure sink (installed on the viewport): a changed measured
+    // height marks the cache dirty so layoutChildren re-packs on the next pass.
+    private void recordMeasuredHeight(int index, double measuredHeight) {
+        if (!estimatedPath() || !Double.isFinite(measuredHeight) || measuredHeight < 0.0) {
+            return;
+        }
+        if (heightCache.record(index, measuredHeight, HEIGHT_EPSILON)) {
+            heightsDirty = true;
+        }
     }
 
     private static int resolveSpan(Callback<?, Integer> spanFactory, Object item, int columns) {

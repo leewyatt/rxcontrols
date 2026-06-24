@@ -58,6 +58,20 @@ final class RXMasonryViewport<T> extends Region {
     // Below this px difference the bar value already matches the scroll offset, so a
     // programmatic setValue would be a redundant no-op (and a feedback risk).
     private static final double SCROLL_BAR_SYNC_EPSILON = 1.0e-4;
+    // Below this px difference a measured height matches the placed height — no churn.
+    private static final double MEASURE_EPSILON = 0.5;
+    // Realize and measure cells up to one viewport-height below the fold so the
+    // estimate->measured height change happens off-screen (capped for tall viewports).
+    private static final double OVERSCAN_BELOW_MAX = 600.0;
+
+    /**
+     * Receives a measured cell height for the estimated path. {@code int}/{@code double}
+     * to keep the hot measure loop free of boxing.
+     */
+    @FunctionalInterface
+    interface HeightSink {
+        void onMeasured(int index, double measuredHeight);
+    }
 
     private final RXMasonryView<T> control;
     private final ScrollBar vbar = new ScrollBar();
@@ -83,6 +97,11 @@ final class RXMasonryViewport<T> extends Region {
     // The skin's internal focus model; selection comes from the control. Both feed the
     // per-cell :selected / focus-ring state, re-applied on every (re)bind.
     private RXIndexedFocusModel<T> focusModel;
+
+    // Estimated-path measurement: when the gate is open, realized cells are measured and
+    // corrections reported to the sink. Both off for the precise provider path.
+    private boolean measureGate;
+    private HeightSink heightSink;
 
     private double scrollY;
     private boolean adjustingScrollBar;
@@ -169,6 +188,14 @@ final class RXMasonryViewport<T> extends Region {
 
     void setFocusModel(RXIndexedFocusModel<T> focusModel) {
         this.focusModel = focusModel;
+    }
+
+    void setHeightSink(HeightSink heightSink) {
+        this.heightSink = heightSink;
+    }
+
+    void setMeasureGate(boolean measureGate) {
+        this.measureGate = measureGate;
     }
 
     double scrollOffset() {
@@ -469,7 +496,12 @@ final class RXMasonryViewport<T> extends Region {
     }
 
     private void fillVisible(RXMasonryPlacement current, double viewportHeight) {
-        int[] visible = current.visibleItems(scrollY, viewportHeight);
+        // Extend the realized window DOWNWARD only, so the estimate->measured change for
+        // items about to scroll into view from below (the dominant direction) happens
+        // off-screen; items entering from the top are measured on entry and the anchor pin
+        // keeps the visible content put.
+        double overscanBelow = measureGate ? Math.min(viewportHeight, OVERSCAN_BELOW_MAX) : 0.0;
+        int[] visible = current.visibleItems(scrollY, viewportHeight + overscanBelow);
 
         // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding, so
         // the same node can be re-found for its item and glide to the new slot.
@@ -488,6 +520,9 @@ final class RXMasonryViewport<T> extends Region {
         int cursor = 0;
         int anchorCandidate = -1;
         double anchorCandidateTop = Double.POSITIVE_INFINITY;
+        int trueFirst = -1;
+        int trueLast = -1;
+        double trueBottom = scrollY + viewportHeight;
         for (int itemIndex : visible) {
             Geometry geometry = current.geometryOf(itemIndex);
             if (geometry == null) {
@@ -507,9 +542,19 @@ final class RXMasonryViewport<T> extends Region {
             // a freshly repurposed or entering cell pops in at its slot.
             placeCell(cell, snapPositionX(geometry.x()), snapPositionY(geometry.y() - scrollY),
                     snapSizeX(geometry.width()), snapSizeY(geometry.height()), cell == prior);
+            measureCell(cell, itemIndex, geometry);
             if (geometry.y() < anchorCandidateTop) {
                 anchorCandidateTop = geometry.y();
                 anchorCandidate = itemIndex;
+            }
+            // True visible window (excluding the overscan band) for the published metrics.
+            if (geometry.y() < trueBottom && geometry.y() + geometry.height() > scrollY) {
+                if (trueFirst < 0 || itemIndex < trueFirst) {
+                    trueFirst = itemIndex;
+                }
+                if (itemIndex > trueLast) {
+                    trueLast = itemIndex;
+                }
             }
         }
         if (reorderPass) {
@@ -518,10 +563,23 @@ final class RXMasonryViewport<T> extends Region {
             parkCellsFrom(cursor);
         }
 
-        visibleFirstIndex = visible.length == 0 ? -1 : visible[0];
-        visibleLastIndex = visible.length == 0 ? -1 : visible[visible.length - 1];
+        visibleFirstIndex = trueFirst;
+        visibleLastIndex = trueLast;
         anchorIndex = anchorCandidate;
         anchorOffset = anchorCandidate >= 0 ? anchorCandidateTop - scrollY : 0.0;
+    }
+
+    // Estimated path only: measure the realized cell's real pref height at its effective
+    // width and, when it differs from the placed (cached/estimated) height, report the
+    // correction so the cache can re-pack on the next pass.
+    private void measureCell(RXMasonryCell<T> cell, int itemIndex, Geometry geometry) {
+        if (!measureGate || heightSink == null) {
+            return;
+        }
+        double real = snapSizeY(cell.prefHeight(geometry.width()));
+        if (Math.abs(real - geometry.height()) > MEASURE_EPSILON) {
+            heightSink.onMeasured(itemIndex, real);
+        }
     }
 
     double contentWidth() {
