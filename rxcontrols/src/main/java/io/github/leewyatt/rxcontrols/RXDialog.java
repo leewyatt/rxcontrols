@@ -118,14 +118,11 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_ENABLE_DRAGGABLE = false;
 
     /**
-     * Default card minimum width (the lower bound of a width resize).
+     * Default card minimum width (the lower bound of a width resize). A fixed floor —
+     * wrapped content reflows horizontally, so this prevents a sliver-narrow card without
+     * risking overflow.
      */
     public static final double DEFAULT_CARD_MIN_WIDTH = 280.0;
-
-    /**
-     * Default card minimum height (the lower bound of a height resize).
-     */
-    public static final double DEFAULT_CARD_MIN_HEIGHT = 120.0;
     private static final boolean DEFAULT_SHOWING = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog";
@@ -828,7 +825,7 @@ public class RXDialog<R> extends Control {
         cardMaxWidth.set(value);
     }
 
-    private final DoubleProperty cardMinHeight = new StyleableDoubleProperty(DEFAULT_CARD_MIN_HEIGHT) {
+    private final DoubleProperty cardMinHeight = new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
         @Override
         protected void invalidated() {
             requestLayout();
@@ -852,8 +849,10 @@ public class RXDialog<R> extends Control {
 
     /**
      * The card's minimum height — the lower bound when the user shrinks the card by
-     * dragging. Defaults to {@link #DEFAULT_CARD_MIN_HEIGHT}. {@code USE_COMPUTED_SIZE}
-     * ({@code -1}) lets the content drive the minimum.
+     * dragging. Defaults to {@code USE_COMPUTED_SIZE} ({@code -1}): the content drives the
+     * minimum, so the card never shrinks below the height its content needs and the action
+     * bar can't be pushed outside the card. (Unlike width, content height can't reflow, so a
+     * fixed floor below the content would overflow.) Set a positive value for a taller floor.
      *
      * @return the card minimum-height property
      */
@@ -1648,7 +1647,7 @@ public class RXDialog<R> extends Control {
                 };
 
         private static final CssMetaData<RXDialog<?>, Number> CARD_MIN_HEIGHT =
-                new CssMetaData<>("-rx-card-min-height", SizeConverter.getInstance(), DEFAULT_CARD_MIN_HEIGHT) {
+                new CssMetaData<>("-rx-card-min-height", SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
                     @Override
                     public boolean isSettable(RXDialog<?> node) {
                         return !node.cardMinHeight.isBound();

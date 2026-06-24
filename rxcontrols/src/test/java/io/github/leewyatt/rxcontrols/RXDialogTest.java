@@ -822,7 +822,8 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
             assertEquals(RXDialog.DEFAULT_CARD_MIN_WIDTH, dialog.getCardMinWidth(), 0.0);
-            assertEquals(RXDialog.DEFAULT_CARD_MIN_HEIGHT, dialog.getCardMinHeight(), 0.0);
+            assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardMinHeight(), 0.0,
+                    "min height defaults to content-driven so the card never shrinks below its content");
             assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardPrefWidth(), 0.0, "pref defaults to computed");
             assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardPrefHeight(), 0.0);
             assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardMaxWidth(), 0.0, "max defaults to unbounded");
@@ -949,6 +950,31 @@ public class RXDialogTest {
 
             assertEquals(w0, card.getWidth(), 1.0, "card stays at min under a 0 max");
             assertEquals(x0, card.getLayoutX(), 1.0, "card does not slide (clamp and layout agree)");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void heightShrinkKeepsActionsInsideTheCard() throws Exception {
+        // Regression for devdoc/dialog/img_2.png: with cardMinHeight content-driven by default,
+        // dragging the top edge up cannot shrink the card below the height its content needs, so
+        // the action bar can't be pushed past the card's bottom edge.
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            showAndLayout(dialog, 800, 600);
+            Region card = card(dialog);
+
+            // Drag the south (bottom) edge up hard to try to shrink the height.
+            pressDragRelease(card, card.getWidth() / 2, card.getHeight() - 3, 0, -400);
+
+            Region actions = (Region) dialog.lookup(".actions");
+            assertNotNull(actions, "the action bar exists");
+            // The action bar is a direct child of the card; its bottom (card-local) must stay
+            // within the card. A fixed min below the content would push it out (the bug).
+            double actionsBottom = actions.getLayoutY() + actions.getHeight();
+            assertTrue(actionsBottom <= card.getHeight() + 0.5,
+                    "the action bar stays inside the card after shrinking the height (no overflow)");
             dialog.close();
         });
     }
