@@ -230,6 +230,18 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_EXITED, this::onCardMouseExited);
         disposer.registerListener(control.enableDraggableProperty(), this::onGestureEnablementChanged);
         disposer.registerListener(control.enableResizableProperty(), this::onGestureEnablementChanged);
+
+        // Drive the card's own min / pref / max size from the control's card-bounds properties,
+        // so a resize is clamped to them and the card opens at the pref — the existing
+        // boundedSize clamp and layoutInArea both read these card size properties, so binding
+        // keeps them consistent. (These are the card's bounds, not the control's Region min/max,
+        // which must stay unbounded so the control fills the scene to back the scrim.)
+        disposer.registerBinding(dialogCard.minWidthProperty(), control.cardMinWidthProperty());
+        disposer.registerBinding(dialogCard.prefWidthProperty(), control.cardPrefWidthProperty());
+        disposer.registerBinding(dialogCard.maxWidthProperty(), control.cardMaxWidthProperty());
+        disposer.registerBinding(dialogCard.minHeightProperty(), control.cardMinHeightProperty());
+        disposer.registerBinding(dialogCard.prefHeightProperty(), control.cardPrefHeightProperty());
+        disposer.registerBinding(dialogCard.maxHeightProperty(), control.cardMaxHeightProperty());
     }
 
     // ==================== Slots ====================
@@ -329,12 +341,14 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         layoutInArea(dialogCard, cardX, cardY, cardW, cardH, 0, HPos.CENTER, VPos.CENTER);
     }
 
-    // Clamp pref into [min, max] with min winning when min > max (mirrors Region.boundedSize);
-    // a non-positive / non-finite max means "no upper bound".
+    // Mirrors JFX Region.boundedSize exactly so the resize clamp and layoutInArea (which uses
+    // Region's own boundedSize) can never diverge: min wins when min > max — including a
+    // degenerate 0 max, which Region.maxWidth coerces a negative / NaN card bound down to.
+    // min / pref / max here are the card's already-resolved (sentinel-free) sizes read via
+    // minWidth(-1) / prefWidth(-1) / maxWidth(-1).
     private static double boundedSize(double min, double pref, double max) {
-        double effectiveMax = (max <= 0.0 || !Double.isFinite(max)) ? Double.MAX_VALUE : max;
         double atLeastMin = Math.max(pref, min);
-        double cap = min >= effectiveMax ? min : effectiveMax;
+        double cap = Math.max(min, max);
         return Math.min(atLeastMin, cap);
     }
 

@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.skins.RXDialogSkin;
 
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -22,11 +23,13 @@ import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.scene.AccessibleRole;
@@ -35,6 +38,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
@@ -112,6 +116,16 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
     private static final boolean DEFAULT_ENABLE_RESIZABLE = false;
     private static final boolean DEFAULT_ENABLE_DRAGGABLE = false;
+
+    /**
+     * Default card minimum width (the lower bound of a width resize).
+     */
+    public static final double DEFAULT_CARD_MIN_WIDTH = 280.0;
+
+    /**
+     * Default card minimum height (the lower bound of a height resize).
+     */
+    public static final double DEFAULT_CARD_MIN_HEIGHT = 120.0;
     private static final boolean DEFAULT_SHOWING = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog";
@@ -577,9 +591,11 @@ public class RXDialog<R> extends Control {
     /**
      * Whether the user can resize the card by dragging its edges and corners
      * ({@code false} by default). The skin shows the eight resize cursors over the
-     * border zones and grows / shrinks the card within its CSS {@code -fx-min-width}
-     * / {@code -fx-min-height} and the available scene; the elevation shadow is never
-     * clipped. Only effective while the dialog is shown and not animating. Turning it
+     * border zones and grows / shrinks the card within its
+     * {@link #cardMinWidthProperty() card size bounds} ({@code cardMinWidth} /
+     * {@code cardMaxWidth} / {@code cardMinHeight} / {@code cardMaxHeight}) and the
+     * available scene; the elevation shadow is never clipped. Only effective while the
+     * dialog is shown and not animating. Turning it
      * off cancels an in-progress resize and stops new ones, but keeps the card at its
      * current size; the size resets to automatic only when the dialog has fully hidden.
      *
@@ -648,6 +664,320 @@ public class RXDialog<R> extends Control {
      */
     public final void setEnableDraggable(boolean value) {
         enableDraggable.set(value);
+    }
+
+    // ==================== Card size bounds ====================
+
+    // These six properties drive the dialog card's own min / pref / max width and height
+    // (the skin binds the card's size properties to them), so they bound an interactive
+    // resize and set the card's initial size. They are the card's bounds, deliberately NOT
+    // the control's Region min/max (the control fills the scene to back the scrim). A value
+    // of USE_COMPUTED_SIZE (-1) means "compute from content" (pref) / "no bound" (max); the
+    // skin clamps with the same boundedSize contract used for layout, so an inverted
+    // min > max never throws (min wins).
+
+    private final DoubleProperty cardMinWidth = new StyleableDoubleProperty(DEFAULT_CARD_MIN_WIDTH) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_MIN_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardMinWidth";
+        }
+    };
+
+    /**
+     * The card's minimum width — the lower bound when the user shrinks the card by
+     * dragging. Defaults to {@link #DEFAULT_CARD_MIN_WIDTH}. {@code USE_COMPUTED_SIZE}
+     * ({@code -1}) lets the content drive the minimum.
+     *
+     * @return the card minimum-width property
+     */
+    public final DoubleProperty cardMinWidthProperty() {
+        return cardMinWidth;
+    }
+
+    /**
+     * Returns the card minimum width.
+     *
+     * @return the card minimum width
+     */
+    public final double getCardMinWidth() {
+        return cardMinWidth.get();
+    }
+
+    /**
+     * Sets the card minimum width.
+     *
+     * @param value the card minimum width, or {@code USE_COMPUTED_SIZE} to compute from content
+     */
+    public final void setCardMinWidth(double value) {
+        cardMinWidth.set(value);
+    }
+
+    private final DoubleProperty cardPrefWidth = new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_PREF_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardPrefWidth";
+        }
+    };
+
+    /**
+     * The card's preferred (initial) width before any resize. Defaults to
+     * {@code USE_COMPUTED_SIZE} ({@code -1}), which sizes the card to its content.
+     *
+     * @return the card preferred-width property
+     */
+    public final DoubleProperty cardPrefWidthProperty() {
+        return cardPrefWidth;
+    }
+
+    /**
+     * Returns the card preferred width.
+     *
+     * @return the card preferred width
+     */
+    public final double getCardPrefWidth() {
+        return cardPrefWidth.get();
+    }
+
+    /**
+     * Sets the card preferred width.
+     *
+     * @param value the card preferred width, or {@code USE_COMPUTED_SIZE} to size to content
+     */
+    public final void setCardPrefWidth(double value) {
+        cardPrefWidth.set(value);
+    }
+
+    private final DoubleProperty cardMaxWidth = new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_MAX_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardMaxWidth";
+        }
+    };
+
+    /**
+     * The card's maximum width — the upper bound when the user grows the card by dragging.
+     * Defaults to {@code USE_COMPUTED_SIZE} ({@code -1}), i.e. no bound beyond the available
+     * scene.
+     *
+     * @return the card maximum-width property
+     */
+    public final DoubleProperty cardMaxWidthProperty() {
+        return cardMaxWidth;
+    }
+
+    /**
+     * Returns the card maximum width.
+     *
+     * @return the card maximum width
+     */
+    public final double getCardMaxWidth() {
+        return cardMaxWidth.get();
+    }
+
+    /**
+     * Sets the card maximum width.
+     *
+     * @param value the card maximum width, or {@code USE_COMPUTED_SIZE} for no bound
+     */
+    public final void setCardMaxWidth(double value) {
+        cardMaxWidth.set(value);
+    }
+
+    private final DoubleProperty cardMinHeight = new StyleableDoubleProperty(DEFAULT_CARD_MIN_HEIGHT) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_MIN_HEIGHT;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardMinHeight";
+        }
+    };
+
+    /**
+     * The card's minimum height — the lower bound when the user shrinks the card by
+     * dragging. Defaults to {@link #DEFAULT_CARD_MIN_HEIGHT}. {@code USE_COMPUTED_SIZE}
+     * ({@code -1}) lets the content drive the minimum.
+     *
+     * @return the card minimum-height property
+     */
+    public final DoubleProperty cardMinHeightProperty() {
+        return cardMinHeight;
+    }
+
+    /**
+     * Returns the card minimum height.
+     *
+     * @return the card minimum height
+     */
+    public final double getCardMinHeight() {
+        return cardMinHeight.get();
+    }
+
+    /**
+     * Sets the card minimum height.
+     *
+     * @param value the card minimum height, or {@code USE_COMPUTED_SIZE} to compute from content
+     */
+    public final void setCardMinHeight(double value) {
+        cardMinHeight.set(value);
+    }
+
+    private final DoubleProperty cardPrefHeight = new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_PREF_HEIGHT;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardPrefHeight";
+        }
+    };
+
+    /**
+     * The card's preferred (initial) height before any resize. Defaults to
+     * {@code USE_COMPUTED_SIZE} ({@code -1}), which sizes the card to its content.
+     *
+     * @return the card preferred-height property
+     */
+    public final DoubleProperty cardPrefHeightProperty() {
+        return cardPrefHeight;
+    }
+
+    /**
+     * Returns the card preferred height.
+     *
+     * @return the card preferred height
+     */
+    public final double getCardPrefHeight() {
+        return cardPrefHeight.get();
+    }
+
+    /**
+     * Sets the card preferred height.
+     *
+     * @param value the card preferred height, or {@code USE_COMPUTED_SIZE} to size to content
+     */
+    public final void setCardPrefHeight(double value) {
+        cardPrefHeight.set(value);
+    }
+
+    private final DoubleProperty cardMaxHeight = new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.CARD_MAX_HEIGHT;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "cardMaxHeight";
+        }
+    };
+
+    /**
+     * The card's maximum height — the upper bound when the user grows the card by dragging.
+     * Defaults to {@code USE_COMPUTED_SIZE} ({@code -1}), i.e. no bound beyond the available
+     * scene.
+     *
+     * @return the card maximum-height property
+     */
+    public final DoubleProperty cardMaxHeightProperty() {
+        return cardMaxHeight;
+    }
+
+    /**
+     * Returns the card maximum height.
+     *
+     * @return the card maximum height
+     */
+    public final double getCardMaxHeight() {
+        return cardMaxHeight.get();
+    }
+
+    /**
+     * Sets the card maximum height.
+     *
+     * @param value the card maximum height, or {@code USE_COMPUTED_SIZE} for no bound
+     */
+    public final void setCardMaxHeight(double value) {
+        cardMaxHeight.set(value);
     }
 
     // ==================== Transition ====================
@@ -1275,6 +1605,90 @@ public class RXDialog<R> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXDialog<?>, Number> CARD_MIN_WIDTH =
+                new CssMetaData<>("-rx-card-min-width", SizeConverter.getInstance(), DEFAULT_CARD_MIN_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardMinWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardMinWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXDialog<?>, Number> CARD_PREF_WIDTH =
+                new CssMetaData<>("-rx-card-pref-width", SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardPrefWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardPrefWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXDialog<?>, Number> CARD_MAX_WIDTH =
+                new CssMetaData<>("-rx-card-max-width", SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardMaxWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardMaxWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXDialog<?>, Number> CARD_MIN_HEIGHT =
+                new CssMetaData<>("-rx-card-min-height", SizeConverter.getInstance(), DEFAULT_CARD_MIN_HEIGHT) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardMinHeight.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardMinHeightProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXDialog<?>, Number> CARD_PREF_HEIGHT =
+                new CssMetaData<>("-rx-card-pref-height", SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardPrefHeight.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardPrefHeightProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXDialog<?>, Number> CARD_MAX_HEIGHT =
+                new CssMetaData<>("-rx-card-max-height", SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.cardMaxHeight.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Number>) node.cardMaxHeightProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -1284,6 +1698,12 @@ public class RXDialog<R> extends Control {
             styleables.add(ACTIONS_LAYOUT);
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
+            styleables.add(CARD_MIN_WIDTH);
+            styleables.add(CARD_PREF_WIDTH);
+            styleables.add(CARD_MAX_WIDTH);
+            styleables.add(CARD_MIN_HEIGHT);
+            styleables.add(CARD_PREF_HEIGHT);
+            styleables.add(CARD_MAX_HEIGHT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

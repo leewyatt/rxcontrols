@@ -1008,8 +1008,9 @@
 .rx-dialog > .dialog-card {
     -fx-background-color: -rx-surface;
     -fx-background-radius: 12;
-    -fx-min-width: 280;
-    -fx-min-height: 120;
+    /* The card's min/pref/max size (and the resize bounds) come from the dialog's
+       -rx-card-* properties, which the skin binds onto this node; do not set -fx-*-width
+       / -fx-*-height here (a bound property ignores them). */
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 8);
 }
 

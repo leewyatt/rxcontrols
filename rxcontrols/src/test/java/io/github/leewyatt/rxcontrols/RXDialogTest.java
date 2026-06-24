@@ -791,6 +791,144 @@ public class RXDialogTest {
         });
     }
 
+    // ==================== Card size bounds ====================
+
+    @Test
+    public void cardSizeBoundsDefaults() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            assertEquals(RXDialog.DEFAULT_CARD_MIN_WIDTH, dialog.getCardMinWidth(), 0.0);
+            assertEquals(RXDialog.DEFAULT_CARD_MIN_HEIGHT, dialog.getCardMinHeight(), 0.0);
+            assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardPrefWidth(), 0.0, "pref defaults to computed");
+            assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardPrefHeight(), 0.0);
+            assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardMaxWidth(), 0.0, "max defaults to unbounded");
+            assertEquals(Region.USE_COMPUTED_SIZE, dialog.getCardMaxHeight(), 0.0);
+        });
+    }
+
+    @Test
+    public void cardBoundsResolveFromCss() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            StackPane root = new StackPane(dialog);
+            new Scene(root, 400, 300);
+            dialog.setStyle("-rx-card-max-width: 444; -rx-card-min-height: 99;");
+            root.applyCss();
+
+            assertEquals(444, dialog.getCardMaxWidth(), 0.0, "-rx-card-max-width resolves from CSS");
+            assertEquals(99, dialog.getCardMinHeight(), 0.0, "-rx-card-min-height resolves from CSS");
+        });
+    }
+
+    @Test
+    public void cardPrefWidthSetsTheInitialCardWidth() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setCardPrefWidth(380);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+
+            assertEquals(380, card.getWidth(), 1.0, "the card opens at cardPrefWidth");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void cardMaxWidthCapsResizeWithoutShrinkingTheControl() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            dialog.setCardMaxWidth(420);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+
+            assertEquals(800, dialog.getWidth(), 1.0,
+                    "the control still fills the scene (the card bound did not leak to the control)");
+
+            pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, 1000, 0); // grow east, far
+
+            assertEquals(420, card.getWidth(), 1.0, "resize is capped at cardMaxWidth");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void cardMinWidthBoundsTheShrink() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            dialog.setCardPrefWidth(500);
+            dialog.setCardMinWidth(320);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+            assertEquals(500, card.getWidth(), 1.0, "opens at cardPrefWidth");
+
+            pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, -400, 0); // shrink east edge
+
+            assertEquals(320, card.getWidth(), 1.0, "shrink is bounded by cardMinWidth");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void invertedCardBoundsClampToMinWithoutThrowing() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setCardMinWidth(550);
+            dialog.setCardMaxWidth(350); // min > max (unreasonable)
+            dialog.setCardPrefWidth(400);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+
+            // boundedSize makes min win (mirrors JFX Region.boundedSize); no exception.
+            assertEquals(550, card.getWidth(), 1.0, "min wins when min > max");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void cardMaxHeightCapsResizeWithoutShrinkingTheControl() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            dialog.setCardMaxHeight(420);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+
+            assertEquals(600, dialog.getHeight(), 1.0,
+                    "the control still fills the scene height (the card bound did not leak)");
+
+            pressDragRelease(card, card.getWidth() / 2, card.getHeight() - 3, 0, 1000); // grow south, far
+
+            assertEquals(420, card.getHeight(), 1.0, "height resize is capped at cardMaxHeight");
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void cardMaxWidthZeroCollapsesToMinConsistently() throws Exception {
+        // A degenerate 0 max (not the USE_COMPUTED_SIZE -1 sentinel) must clamp the card to its
+        // min in BOTH the skin clamp and layoutInArea, so the card cannot grow and never slides —
+        // the skin's boundedSize mirrors Region.boundedSize exactly (no max<=0 "unbounded" quirk).
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            dialog.setEnableResizable(true);
+            dialog.setCardPrefWidth(400);
+            dialog.setCardMaxWidth(0);
+            showAndLayout(dialog, 800, 600);
+            StackPane card = card(dialog);
+            double w0 = card.getWidth();
+            double x0 = card.getLayoutX();
+            assertEquals(RXDialog.DEFAULT_CARD_MIN_WIDTH, w0, 1.0, "a 0 max collapses the card to its min");
+
+            pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, 200, 0); // try to grow east
+
+            assertEquals(w0, card.getWidth(), 1.0, "card stays at min under a 0 max");
+            assertEquals(x0, card.getLayoutX(), 1.0, "card does not slide (clamp and layout agree)");
+            dialog.close();
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXDialog<ButtonType> newDialog(ButtonType... types) {

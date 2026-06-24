@@ -61,6 +61,11 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 "Your changes will be lost if you don't save them.");
         dialog.setContent(layout);
         dialog.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+        // Seed the card bounds so the "Card bounds" sliders start consistent with the card:
+        // it opens at 380 wide and (when resizable) can grow to 600 x 420.
+        dialog.setCardPrefWidth(380);
+        dialog.setCardMaxWidth(600);
+        dialog.setCardMaxHeight(420);
         dialog.setResultConverter(buttonType -> buttonType);
         dialog.setOnResult(result -> lastResult.set(result == null ? "—" : result.getText()));
         dialog.addEventHandler(RXDialogEvent.ANY, event -> lastEvent.set(event.getEventType().getName()));
@@ -88,7 +93,25 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 section("Actions", actionsGrid()),
                 section("Animation", animationGrid()),
                 section("Behaviour", behaviourBox()),
+                section("Card bounds (px)", cardBoundsGrid()),
                 section("State", stateBox()));
+    }
+
+    private Node cardBoundsGrid() {
+        Slider prefWidth = createSlider(280.0, 760.0, dialog.getCardPrefWidth());
+        prefWidth.valueProperty().addListener((obs, old, value) -> dialog.setCardPrefWidth(value.doubleValue()));
+
+        Slider maxWidth = createSlider(280.0, 900.0, dialog.getCardMaxWidth());
+        maxWidth.valueProperty().addListener((obs, old, value) -> dialog.setCardMaxWidth(value.doubleValue()));
+
+        Slider maxHeight = createSlider(160.0, 640.0, dialog.getCardMaxHeight());
+        maxHeight.valueProperty().addListener((obs, old, value) -> dialog.setCardMaxHeight(value.doubleValue()));
+
+        // Enable "User-resizable" in Behaviour, then drag the card's edges to see these bounds.
+        return createGrid(
+                row("Pref width", prefWidth, createValueLabel(prefWidth, "%.0f")),
+                row("Max width", maxWidth, createValueLabel(maxWidth, "%.0f")),
+                row("Max height", maxHeight, createValueLabel(maxHeight, "%.0f")));
     }
 
     private Node transitionGrid() {
