@@ -6,6 +6,8 @@ import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -80,10 +82,43 @@ public class RXDialogShowcase extends RXShowcaseApplication {
         show.getStyleClass().add("preview-show");
         show.setOnAction(event -> dialog.show(show));
 
-        VBox box = new VBox(14.0, heading, hint, show);
+        Button stack = new Button("Show 4 stacked dialogs");
+        stack.getStyleClass().add("preview-show");
+        stack.setOnAction(event -> showStackedDialogs(stack));
+
+        VBox box = new VBox(14.0, heading, hint, show, stack);
         box.getStyleClass().add("preview-content");
         box.setAlignment(Pos.CENTER);
         return box;
+    }
+
+    // Pops four independent dialogs over the same scene, ~450ms apart, to show stacking: they
+    // share the per-scene overlay (one merged scrim, focus trapped in the top one), the cards
+    // nest (decreasing width), and closing / dragging the top reveals the one below.
+    private void showStackedDialogs(Node owner) {
+        int count = 4;
+        showOneStacked(owner, 1, count, 460.0);
+        Timeline timeline = new Timeline();
+        for (int i = 2; i <= count; i++) {
+            int index = i;
+            double prefWidth = 460.0 - (i - 1) * 50.0;
+            timeline.getKeyFrames().add(new KeyFrame(Duration.millis(650.0 * (i - 1)),
+                    event -> showOneStacked(owner, index, count, prefWidth)));
+        }
+        timeline.play();
+    }
+
+    private void showOneStacked(Node owner, int index, int count, double prefWidth) {
+        RXDialog<ButtonType> stacked = new RXDialog<>();
+        stacked.setContent(new RXDialogContent("Dialog " + index + " of " + count,
+                "Stacked above the previous ones — drag me aside, or close me (OK / ESC / scrim) "
+                        + "to reveal the dialog below."));
+        stacked.getButtonTypes().setAll(ButtonType.OK);
+        stacked.setCardPrefWidth(prefWidth);
+        stacked.setEnableDraggable(true);
+        stacked.setEnableResizable(true);
+        stacked.setCloseOnScrimClick(false);
+        stacked.show(owner);
     }
 
     @Override
