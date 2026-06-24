@@ -16,6 +16,7 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -131,6 +132,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 section("Behaviour", behaviourBox()),
                 section("Card bounds (px)", cardBoundsGrid()),
                 section("Quick dialogs (RXDialogs)", quickDialogsBox()),
+                section("Custom dialogs (builder)", builderDialogsBox()),
                 section("State", stateBox()));
     }
 
@@ -167,6 +169,39 @@ public class RXDialogShowcase extends RXShowcaseApplication {
         button.setMaxWidth(Double.MAX_VALUE);
         button.setOnAction(event -> action.accept(button));
         return button;
+    }
+
+    // Two builder-built dialogs: one configured purely by chaining (custom buttons + PLATFORM
+    // action order + close X + draggable — no factory overload), and one validity-gated
+    // confirmation (OK vetoed until the checkbox is ticked) over custom content.
+    private Node builderDialogsBox() {
+        Button custom = facadeButton("create()… 3 actions + PLATFORM + close X + drag", b -> {
+            ButtonType save = new ButtonType("Save", ButtonData.OK_DONE);
+            ButtonType discard = new ButtonType("Discard", ButtonData.OTHER);
+            RXDialogs.create(b).type(RXDialogs.Type.WARNING)
+                    .title("Unsaved changes").message("Save your changes before closing?")
+                    .buttons(ButtonType.CANCEL, discard, save)
+                    .actionsLayout(RXDialogActionsLayout.PLATFORM)
+                    .closeButton(true).draggable(true)
+                    .show()
+                    .thenAccept(result -> lastResult.set(
+                            "builder → " + (result == null ? "—" : result.getText())));
+        });
+        Button gated = facadeButton("create()… validWhen (OK gated on a checkbox)", b -> {
+
+            CheckBox agree = new CheckBox("I accept the terms");
+            VBox content = new VBox(10.0, new Label("Please accept the terms to continue."), agree);
+            RXDialogs.create(b).type(RXDialogs.Type.CONFIRMATION)
+                    .title("Terms").content(content)
+                    .buttons(ButtonType.CANCEL, ButtonType.OK)
+                    .validWhen(agree.selectedProperty())
+                    .closeButton(true)
+                    .draggable(true)
+                    .show()
+                    .thenAccept(result -> lastResult.set(
+                            "terms → " + (result == null ? "—" : result.getText())));
+        });
+        return new VBox(8.0, custom, gated);
     }
 
     private Node cardBoundsGrid() {

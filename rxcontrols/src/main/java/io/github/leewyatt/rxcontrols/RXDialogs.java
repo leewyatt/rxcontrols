@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
@@ -257,6 +258,8 @@ public final class RXDialogs {
         private Boolean closeOnScrimClick;
         private Boolean draggable;
         private Boolean resizable;
+        private RXDialogActionsLayout actionsLayout;
+        private Boolean closeButton;
         private ObservableValue<Boolean> validCondition;
 
         Builder(Node owner) {
@@ -376,6 +379,30 @@ public final class RXDialogs {
         }
 
         /**
+         * Sets the action-bar layout (for example {@link RXDialogActionsLayout#PLATFORM}
+         * to follow OS button ordering).
+         *
+         * @param value the actions layout
+         * @return this builder
+         */
+        public Builder actionsLayout(RXDialogActionsLayout value) {
+            this.actionsLayout = value;
+            return this;
+        }
+
+        /**
+         * Shows or hides the heading's close (X) button. Only applies when the content is
+         * the built-in heading/body ({@link RXDialogContent}); ignored for custom content.
+         *
+         * @param value {@code true} to show the close (X) button
+         * @return this builder
+         */
+        public Builder closeButton(boolean value) {
+            this.closeButton = value;
+            return this;
+        }
+
+        /**
          * Gates the affirmative (default / first non-cancel) button on a validity
          * condition: while {@code condition} is not {@code true}, clicking that button
          * is vetoed and the dialog stays open. Other buttons (Cancel, ESC, scrim) are
@@ -396,7 +423,11 @@ public final class RXDialogs {
          */
         public CompletableFuture<ButtonType> show() {
             RXDialog<ButtonType> dialog = new RXDialog<>();
-            dialog.setContent(content != null ? content : new RXDialogContent(title, message));
+            Node contentNode = content != null ? content : new RXDialogContent(title, message);
+            if (closeButton != null && contentNode instanceof RXDialogContent dialogContent) {
+                dialogContent.setShowClose(closeButton);
+            }
+            dialog.setContent(contentNode);
             if (buttons.isEmpty()) {
                 dialog.getButtonTypes().setAll(ButtonType.OK);
             } else {
@@ -404,6 +435,9 @@ public final class RXDialogs {
             }
             if (type != Type.NONE) {
                 dialog.getStyleClass().add("rx-dialog-" + type.name().toLowerCase(Locale.ROOT));
+            }
+            if (actionsLayout != null) {
+                dialog.setActionsLayout(actionsLayout);
             }
             if (modal != null) {
                 dialog.setModal(modal);

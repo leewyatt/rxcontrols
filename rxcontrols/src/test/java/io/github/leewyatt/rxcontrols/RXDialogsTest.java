@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
+import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -254,6 +255,27 @@ public class RXDialogsTest {
             assertFalse(dialog.isCloseOnEsc(), "closeOnEsc override applied");
             assertTrue(dialog.isEnableDraggable(), "draggable override applied");
             assertTrue(dialog.isEnableResizable(), "resizable override applied");
+
+            dialog.setAnimated(false);
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void builderAppliesActionsLayoutAndCloseButton() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            // Extra knobs configured by chaining — no new factory overload needed.
+            RXDialogs.create(owner).type(RXDialogs.Type.INFORMATION).title("T").message("M")
+                    .actionsLayout(RXDialogActionsLayout.PLATFORM).closeButton(true).show();
+            RXDialog<?> dialog = shownDialog(scene);
+
+            assertEquals(RXDialogActionsLayout.PLATFORM, dialog.getActionsLayout(),
+                    "actionsLayout flows to the dialog");
+            assertTrue(((RXDialogContent) dialog.getContent()).isShowClose(),
+                    "closeButton(true) shows the heading X");
 
             dialog.setAnimated(false);
             dialog.close();
