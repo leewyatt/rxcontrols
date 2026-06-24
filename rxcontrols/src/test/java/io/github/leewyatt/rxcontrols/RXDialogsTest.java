@@ -86,6 +86,27 @@ public class RXDialogsTest {
     }
 
     @Test
+    public void messageFactoriesAcceptCustomActionButtons() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            ButtonType report = new ButtonType("Report");
+            CompletableFuture<ButtonType> result =
+                    RXDialogs.error(owner, "Crashed", "Unexpected error.", ButtonType.OK, report);
+            RXDialog<?> dialog = shownDialog(scene);
+
+            assertEquals(List.of(ButtonType.OK, report), dialog.getButtonTypes(),
+                    "a typed message can still offer custom action buttons");
+            assertTrue(dialog.getStyleClass().contains("rx-dialog-error"), "and keeps its type styling");
+
+            dialog.setAnimated(false);
+            dialog.requestClose(report, CloseReason.ACTION_BUTTON);
+            assertEquals(report, result.getNow(null), "the future reports the custom button");
+        });
+    }
+
+    @Test
     public void inputReturnsTheFieldTextOnOk() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();

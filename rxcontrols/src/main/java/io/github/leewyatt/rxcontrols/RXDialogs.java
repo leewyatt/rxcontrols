@@ -72,39 +72,49 @@ public final class RXDialogs {
     // ==================== One-line factories ====================
 
     /**
-     * Shows an informational message with a single OK button.
+     * Shows an informational message. With no {@code buttons} a single OK is used;
+     * pass button types to offer extra actions — the future reports which was clicked
+     * (compare it against your own {@link ButtonType} instances).
      *
      * @param owner   a node in the target scene (the dialog attaches over its scene)
      * @param title   the heading text
      * @param message the body text
-     * @return a future completed with the clicked button (OK), or the dismiss result
+     * @param buttons the buttons to offer; empty for a single OK
+     * @return a future completed with the clicked button (or the dismiss result)
      */
-    public static CompletableFuture<ButtonType> information(Node owner, String title, String message) {
-        return create(owner).type(Type.INFORMATION).title(title).message(message).buttons(ButtonType.OK).show();
+    public static CompletableFuture<ButtonType> information(Node owner, String title, String message,
+                                                            ButtonType... buttons) {
+        return message(owner, Type.INFORMATION, title, message, buttons);
     }
 
     /**
-     * Shows a warning message with a single OK button.
+     * Shows a warning message. With no {@code buttons} a single OK is used; pass
+     * button types to offer extra actions.
      *
      * @param owner   a node in the target scene
      * @param title   the heading text
      * @param message the body text
-     * @return a future completed with the clicked button (OK), or the dismiss result
+     * @param buttons the buttons to offer; empty for a single OK
+     * @return a future completed with the clicked button (or the dismiss result)
      */
-    public static CompletableFuture<ButtonType> warning(Node owner, String title, String message) {
-        return create(owner).type(Type.WARNING).title(title).message(message).buttons(ButtonType.OK).show();
+    public static CompletableFuture<ButtonType> warning(Node owner, String title, String message,
+                                                        ButtonType... buttons) {
+        return message(owner, Type.WARNING, title, message, buttons);
     }
 
     /**
-     * Shows an error message with a single OK button.
+     * Shows an error message. With no {@code buttons} a single OK is used; pass button
+     * types to offer extra actions (for example an OK plus a "Retry" or "Report").
      *
      * @param owner   a node in the target scene
      * @param title   the heading text
      * @param message the body text
-     * @return a future completed with the clicked button (OK), or the dismiss result
+     * @param buttons the buttons to offer; empty for a single OK
+     * @return a future completed with the clicked button (or the dismiss result)
      */
-    public static CompletableFuture<ButtonType> error(Node owner, String title, String message) {
-        return create(owner).type(Type.ERROR).title(title).message(message).buttons(ButtonType.OK).show();
+    public static CompletableFuture<ButtonType> error(Node owner, String title, String message,
+                                                      ButtonType... buttons) {
+        return message(owner, Type.ERROR, title, message, buttons);
     }
 
     /**
@@ -458,6 +468,15 @@ public final class RXDialogs {
     }
 
     // ==================== Internals ====================
+
+    private static CompletableFuture<ButtonType> message(Node owner, Type type, String title, String message,
+                                                         ButtonType[] buttons) {
+        Builder builder = create(owner).type(type).title(title).message(message);
+        if (buttons.length > 0) {
+            builder.buttons(buttons);
+        }
+        return builder.show();
+    }
 
     // The button a validity gate applies to: the default button if there is one,
     // else the first non-cancel button, else the last button.

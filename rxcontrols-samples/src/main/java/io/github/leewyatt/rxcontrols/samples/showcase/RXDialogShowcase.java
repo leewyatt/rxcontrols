@@ -141,8 +141,12 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 b -> RXDialogs.information(b, "Saved", "Your changes have been saved."));
         Button warn = facadeButton("warning(…)",
                 b -> RXDialogs.warning(b, "Low disk space", "Less than 1 GB remaining."));
-        Button error = facadeButton("error(…)",
-                b -> RXDialogs.error(b, "Upload failed", "The server could not be reached."));
+        Button error = facadeButton("error(…) + custom Report button", b -> {
+            ButtonType report = new ButtonType("Report");
+            RXDialogs.error(b, "Upload failed", "The server could not be reached.", ButtonType.OK, report)
+                    .thenAccept(result -> lastResult.set(
+                            "error → " + (result == null ? "—" : result.getText())));
+        });
         Button confirm = facadeButton("confirm(…)",
                 b -> RXDialogs.confirm(b, "Delete file?", "This cannot be undone.")
                         .thenAccept(result -> lastResult.set(
