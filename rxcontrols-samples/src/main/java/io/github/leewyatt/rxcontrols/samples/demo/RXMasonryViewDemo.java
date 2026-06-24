@@ -18,15 +18,17 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Compact demo for {@link RXMasonryView}: a virtualized text wall where each tile holds
+ * Compact demo for {@link RXMasonryView}: a virtualized note wall where each tile holds
  * a title plus a paragraph of its own length, so the tiles genuinely stagger into the
- * shortest column and only the cells intersecting the viewport ever hold live cells —
- * the same code scales from dozens to thousands of tiles.
+ * shortest column. Every ninth note is "featured" and spans two columns. Click a note to
+ * select it; double-click (or press Enter) to fire its action into the header. Only the
+ * cells intersecting the viewport ever hold live cells, so the same code scales from
+ * dozens to thousands of tiles.
  *
  * <p>The "Measured heights" toggle switches between the two height paths: unchecked uses
  * a {@code cellHeightProvider} (the precise, never-jumping path); checked clears it, so
  * the skin estimates, measures each realized cell's real height and re-packs to converge
- * (the estimated path). Resize the window to see the column count and the reflow.</p>
+ * (the estimated path). Resize the window to see the column count and the glide reflow.</p>
  */
 public class RXMasonryViewDemo extends Application {
 
@@ -34,14 +36,16 @@ public class RXMasonryViewDemo extends Application {
     private static final double APPROX_LINE_HEIGHT = 21.0;
     private static final double TILE_CHROME_HEIGHT = 58.0;
 
-    private record Note(String title, int paragraphs) {
+    private record Note(String title, int paragraphs, boolean featured) {
     }
+
+    private final Label status = new Label("Click to select · double-click to open");
 
     @Override
     public void start(Stage primaryStage) {
         ObservableList<Note> notes = FXCollections.observableArrayList();
         for (int i = 0; i < TILE_COUNT; i++) {
-            notes.add(new Note("Note " + (i + 1), 1 + (i % 5)));
+            notes.add(new Note("Note " + (i + 1), 1 + (i % 5), i % 9 == 0));
         }
 
         RXMasonryView<Note> masonry = new RXMasonryView<>(notes);
@@ -50,8 +54,11 @@ public class RXMasonryViewDemo extends Application {
         masonry.setVgap(12);
         masonry.setPadding(new Insets(12));
         masonry.setCellFactory(view -> new NoteCell());
+        // A featured note spans two columns (clamped to the column count on narrow widths).
+        masonry.setColumnSpanFactory(note -> note.featured() ? 2 : 1);
         // Glide the tiles to their new slots when a resize changes the column count.
         masonry.setAnimated(true);
+        masonry.setOnAction(event -> status.setText("Opened: " + event.getItem().title()));
 
         // The precise path: a per-item height approximating the rendered paragraph.
         CellHeightProvider<Note> provider = context ->
@@ -74,9 +81,8 @@ public class RXMasonryViewDemo extends Application {
     private Region createHeader(CheckBox measuredToggle) {
         Label title = new Label("Masonry note wall");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-        Label subtitle = new Label("Tiles of different heights tile into the shortest column — resize to reflow");
-        subtitle.setStyle("-fx-text-fill: #6b7280;");
-        VBox text = new VBox(2.0, title, subtitle);
+        status.setStyle("-fx-text-fill: #6b7280;");
+        VBox text = new VBox(2.0, title, status);
         HBox header = new HBox(24.0, text, measuredToggle);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(16, 16, 8, 16));
@@ -85,7 +91,7 @@ public class RXMasonryViewDemo extends Application {
 
     /**
      * A tile that paints a rounded card tinted by the note's index, with the title and a
-     * paragraph of its own length wrapped inside.
+     * paragraph of its own length wrapped inside; featured notes carry a marker.
      */
     private static final class NoteCell extends RXMasonryCell<Note> {
 
@@ -107,13 +113,14 @@ public class RXMasonryViewDemo extends Application {
             } else {
                 setText(blurb(item));
                 double hue = (getIndex() * 37.0) % 360.0;
-                setStyle(BASE_STYLE + " -fx-background-color: hsb(" + hue + ", 55%, 70%);"
+                String saturation = item.featured() ? "70%" : "55%";
+                setStyle(BASE_STYLE + " -fx-background-color: hsb(" + hue + ", " + saturation + ", 70%);"
                         + " -fx-background-radius: 12;");
             }
         }
 
         private static String blurb(Note note) {
-            StringBuilder builder = new StringBuilder(note.title());
+            StringBuilder builder = new StringBuilder(note.featured() ? "★ " : "").append(note.title());
             for (int i = 0; i < note.paragraphs(); i++) {
                 builder.append("\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit.");
             }

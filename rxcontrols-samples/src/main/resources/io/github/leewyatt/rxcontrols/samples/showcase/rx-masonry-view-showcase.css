@@ -1,0 +1,17 @@
+.rx-masonry-view {
+    -fx-padding: 12px;
+}
+
+.masonry-placeholder {
+    -fx-font-size: 16px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.resolved-label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
