@@ -127,8 +127,8 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 checkBox("Close on ESC", dialog.isCloseOnEsc(), dialog::setCloseOnEsc),
                 checkBox("Close on scrim click", dialog.isCloseOnScrimClick(), dialog::setCloseOnScrimClick),
                 checkBox("Show close (X) button", layout.isShowClose(), layout::setShowClose),
-                checkBox("User-resizable (drag edges)", dialog.isUserResizable(), dialog::setUserResizable),
-                checkBox("User-draggable (drag title)", dialog.isUserDraggable(), dialog::setUserDraggable));
+                checkBox("User-resizable (drag edges)", dialog.isEnableResizable(), dialog::setEnableResizable),
+                checkBox("User-draggable (drag title)", dialog.isEnableDraggable(), dialog::setEnableDraggable));
     }
 
     private Node stateBox() {

@@ -469,11 +469,11 @@ public class RXDialogTest {
     // The animated transitions, the eight resize cursors, and touch are real-device checks.
 
     @Test
-    public void userResizableAndUserDraggableDefaultFalse() throws Exception {
+    public void enableResizableAndEnableDraggableDefaultFalse() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
-            assertFalse(dialog.isUserResizable(), "userResizable defaults to false");
-            assertFalse(dialog.isUserDraggable(), "userDraggable defaults to false");
+            assertFalse(dialog.isEnableResizable(), "enableResizable defaults to false");
+            assertFalse(dialog.isEnableDraggable(), "enableDraggable defaults to false");
         });
     }
 
@@ -481,7 +481,7 @@ public class RXDialogTest {
     public void dragMovesCardByTheDelta() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserDraggable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double x0 = card.getLayoutX();
@@ -499,7 +499,7 @@ public class RXDialogTest {
     public void dragClampsCardWithinTheScene() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserDraggable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
 
@@ -518,7 +518,7 @@ public class RXDialogTest {
     public void sceneShrinkReclampsADraggedCard() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserDraggable(true);
+            dialog.setEnableDraggable(true);
             StackPane root = showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             pressDragRelease(card, card.getWidth() / 2, 24, 300, 200);
@@ -538,7 +538,7 @@ public class RXDialogTest {
     public void resizeEastGrowsWidthKeepingTheLeftEdgeFixed() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double x0 = card.getLayoutX();
@@ -556,7 +556,7 @@ public class RXDialogTest {
     public void resizeWestGrowsWidthKeepingTheRightEdgeFixed() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double right0 = card.getLayoutX() + card.getWidth();
@@ -576,7 +576,7 @@ public class RXDialogTest {
     public void resizeNorthGrowsHeightKeepingTheBottomEdgeFixed() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double bottom0 = card.getLayoutY() + card.getHeight();
@@ -598,7 +598,7 @@ public class RXDialogTest {
     public void resizeSouthGrowsHeightKeepingTheTopEdgeFixed() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double y0 = card.getLayoutY();
@@ -616,7 +616,7 @@ public class RXDialogTest {
     public void resizeSouthEastCornerGrowsBothKeepingTopLeftFixed() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double x0 = card.getLayoutX();
@@ -643,8 +643,8 @@ public class RXDialogTest {
         // re-clears, so it would not by itself catch a missing release-time reset).
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
-            dialog.setUserDraggable(true);
+            dialog.setEnableResizable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double w0 = card.getWidth();
@@ -670,8 +670,8 @@ public class RXDialogTest {
         // to clear resizeActive, this body drag would run updateResize from stale anchors.
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
-            dialog.setUserDraggable(true);
+            dialog.setEnableResizable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
 
@@ -692,7 +692,7 @@ public class RXDialogTest {
     public void tinySceneResizeNeverThrows() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             // A scene smaller than the card's CSS min is a degenerate case: layoutInArea keeps
             // the card at its min so it overflows (centered), but layout + a resize gesture must
             // stay well-defined and never throw (spec §3.4 #1 uses boundedSize + Math.min/max,
@@ -717,7 +717,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             RXDialogContent content = (RXDialogContent) dialog.getContent();
             content.setShowClose(true);
-            dialog.setUserDraggable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             Node closeButton = dialog.lookup(".close-button");
@@ -741,7 +741,7 @@ public class RXDialogTest {
     public void disablingDraggableMidDragCancelsButKeepsPosition() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserDraggable(true);
+            dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double x0 = card.getLayoutX();
@@ -753,7 +753,7 @@ public class RXDialogTest {
             assertEquals(x0 + 100, card.getLayoutX(), 2.0, "card follows the drag");
 
             // Disabling mid-drag cancels the gesture but keeps the current position (§3.4 #10).
-            dialog.setUserDraggable(false);
+            dialog.setEnableDraggable(false);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 200, press.getY(), MouseButton.NONE, true);
             layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
             assertEquals(x0 + 100, card.getLayoutX(), 2.0,
@@ -768,7 +768,7 @@ public class RXDialogTest {
     public void disablingResizableMidResizeCancelsButKeepsSize() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            dialog.setUserResizable(true);
+            dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
             StackPane card = card(dialog);
             double w0 = card.getWidth();
@@ -780,7 +780,7 @@ public class RXDialogTest {
             assertEquals(w0 + 100, card.getWidth(), 2.0, "card grows during the resize");
 
             // Disabling mid-resize cancels the gesture but keeps the current size (§3.4 #10).
-            dialog.setUserResizable(false);
+            dialog.setEnableResizable(false);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 200, press.getY(), MouseButton.NONE, true);
             layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
             assertEquals(w0 + 100, card.getWidth(), 2.0,

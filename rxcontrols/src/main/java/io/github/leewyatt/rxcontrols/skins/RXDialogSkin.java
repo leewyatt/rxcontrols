@@ -228,8 +228,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_DRAGGED, this::onCardMouseDragged);
         disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_RELEASED, this::onCardMouseReleased);
         disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_EXITED, this::onCardMouseExited);
-        disposer.registerListener(control.userDraggableProperty(), this::onGestureEnablementChanged);
-        disposer.registerListener(control.userResizableProperty(), this::onGestureEnablementChanged);
+        disposer.registerListener(control.enableDraggableProperty(), this::onGestureEnablementChanged);
+        disposer.registerListener(control.enableResizableProperty(), this::onGestureEnablementChanged);
     }
 
     // ==================== Slots ====================
@@ -808,13 +808,13 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
             return null;
         }
         Point2D local = dialogCard.sceneToLocal(event.getSceneX(), event.getSceneY());
-        if (getSkinnable().isUserResizable()) {
+        if (getSkinnable().isEnableResizable()) {
             Cursor resize = resizeCursor(hitResizeEdges(local));
             if (resize != null) {
                 return resize;
             }
         }
-        if (getSkinnable().isUserDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
+        if (getSkinnable().isEnableDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
             return Cursor.MOVE;
         }
         return null;
@@ -891,7 +891,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         Point2D local = dialogCard.sceneToLocal(event.getSceneX(), event.getSceneY());
         // Resize wins over drag (so the top border band resizes north rather than dragging),
         // and corners win over edges inside resizeCursor / beginResize (spec §3.4 #3).
-        if (getSkinnable().isUserResizable()) {
+        if (getSkinnable().isEnableResizable()) {
             int edges = hitResizeEdges(local);
             if (edges != 0) {
                 beginResize(edges, event);
@@ -899,7 +899,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
                 return;
             }
         }
-        if (getSkinnable().isUserDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
+        if (getSkinnable().isEnableDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
             beginDrag(event);
             event.consume();
         }
@@ -1016,14 +1016,14 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         return false;
     }
 
-    // Disabling userDraggable / userResizable cancels the matching in-flight gesture and stops
+    // Disabling enableDraggable / enableResizable cancels the matching in-flight gesture and stops
     // new ones, but keeps geometry (decision 3.4 #10); the cursor is cleared so the next hover
     // recomputes it.
     private void onGestureEnablementChanged() {
-        if (!getSkinnable().isUserDraggable()) {
+        if (!getSkinnable().isEnableDraggable()) {
             dragActive = false;
         }
-        if (!getSkinnable().isUserResizable()) {
+        if (!getSkinnable().isEnableResizable()) {
             resizeActive = false;
         }
         dialogCard.setCursor(null);

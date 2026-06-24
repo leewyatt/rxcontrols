@@ -110,8 +110,8 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_MODAL = true;
     private static final boolean DEFAULT_CLOSE_ON_ESC = true;
     private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
-    private static final boolean DEFAULT_USER_RESIZABLE = false;
-    private static final boolean DEFAULT_USER_DRAGGABLE = false;
+    private static final boolean DEFAULT_ENABLE_RESIZABLE = false;
+    private static final boolean DEFAULT_ENABLE_DRAGGABLE = false;
     private static final boolean DEFAULT_SHOWING = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog";
@@ -565,14 +565,14 @@ public class RXDialog<R> extends Control {
         closeOnScrimClick.set(value);
     }
 
-    // ==================== User Resizable ====================
+    // ==================== Enable Resizable ====================
 
-    // Named userResizable, not resizable: Node.isResizable() is an existing layout-contract
+    // Named enableResizable, not resizable: Node.isResizable() is an existing layout-contract
     // method (Region returns true so the RXDialogLayer can stretch this control to fill the
     // scene). Overriding it with a user-gesture flag would collapse the scrim, so the
     // end-user-resize capability gets its own name.
-    private final BooleanProperty userResizable =
-            new SimpleBooleanProperty(this, "userResizable", DEFAULT_USER_RESIZABLE);
+    private final BooleanProperty enableResizable =
+            new SimpleBooleanProperty(this, "enableResizable", DEFAULT_ENABLE_RESIZABLE);
 
     /**
      * Whether the user can resize the card by dragging its edges and corners
@@ -583,13 +583,13 @@ public class RXDialog<R> extends Control {
      * off cancels an in-progress resize and stops new ones, but keeps the card at its
      * current size; the size resets to automatic only when the dialog has fully hidden.
      *
-     * <p>Named {@code userResizable} (not {@code resizable}) so it does not override
+     * <p>Named {@code enableResizable} (not {@code resizable}) so it does not override
      * {@link javafx.scene.Node#isResizable()}, the unrelated layout-contract method.</p>
      *
      * @return the user-resizable property
      */
-    public final BooleanProperty userResizableProperty() {
-        return userResizable;
+    public final BooleanProperty enableResizableProperty() {
+        return enableResizable;
     }
 
     /**
@@ -597,8 +597,8 @@ public class RXDialog<R> extends Control {
      *
      * @return whether the card is user-resizable
      */
-    public final boolean isUserResizable() {
-        return userResizable.get();
+    public final boolean isEnableResizable() {
+        return enableResizable.get();
     }
 
     /**
@@ -606,16 +606,16 @@ public class RXDialog<R> extends Control {
      *
      * @param value whether the card is user-resizable
      */
-    public final void setUserResizable(boolean value) {
-        userResizable.set(value);
+    public final void setEnableResizable(boolean value) {
+        enableResizable.set(value);
     }
 
-    // ==================== User Draggable ====================
+    // ==================== Enable Draggable ====================
 
-    // Named userDraggable for symmetry with userResizable (both are end-user mouse
+    // Named enableDraggable for symmetry with enableResizable (both are end-user mouse
     // gestures); Node has no draggable member, so the name is otherwise free.
-    private final BooleanProperty userDraggable =
-            new SimpleBooleanProperty(this, "userDraggable", DEFAULT_USER_DRAGGABLE);
+    private final BooleanProperty enableDraggable =
+            new SimpleBooleanProperty(this, "enableDraggable", DEFAULT_ENABLE_DRAGGABLE);
 
     /**
      * Whether the user can move the card by dragging its top (title) band
@@ -628,8 +628,8 @@ public class RXDialog<R> extends Control {
      *
      * @return the user-draggable property
      */
-    public final BooleanProperty userDraggableProperty() {
-        return userDraggable;
+    public final BooleanProperty enableDraggableProperty() {
+        return enableDraggable;
     }
 
     /**
@@ -637,8 +637,8 @@ public class RXDialog<R> extends Control {
      *
      * @return whether the card is user-draggable
      */
-    public final boolean isUserDraggable() {
-        return userDraggable.get();
+    public final boolean isEnableDraggable() {
+        return enableDraggable.get();
     }
 
     /**
@@ -646,8 +646,8 @@ public class RXDialog<R> extends Control {
      *
      * @param value whether the card is user-draggable
      */
-    public final void setUserDraggable(boolean value) {
-        userDraggable.set(value);
+    public final void setEnableDraggable(boolean value) {
+        enableDraggable.set(value);
     }
 
     // ==================== Transition ====================
