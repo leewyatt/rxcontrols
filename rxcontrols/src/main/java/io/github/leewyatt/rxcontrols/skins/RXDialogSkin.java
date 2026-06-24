@@ -65,9 +65,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private final Region overlay = new Region();
     private final StackPane dialogCard = new StackPane();
-    private final StackPane contentHolder = new StackPane();
+    private final StackPane contentWrapper = new StackPane();
     private final VBox cardColumn = new VBox();
-    // The action bar (a ButtonBar for PLATFORM, else an HBox), rebuilt when buttonTypes
+    // The action bar (a ButtonBar for PLATFORM, else an RXBox), rebuilt when buttonTypes
     // or actionsLayout change; null when there are no buttons.
     private Region actionsNode;
 
@@ -107,7 +107,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         overlay.getStyleClass().add("overlay");
         dialogCard.getStyleClass().add("dialog-card");
         cardColumn.getStyleClass().add("card-body");
-        contentHolder.getStyleClass().add("content");
+        contentWrapper.getStyleClass().add("content-wrapper");
 
         // The card catches clicks across its whole bounds so a click on it never
         // falls through to the scrim (which would request a close).
@@ -115,8 +115,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         // Last-resort focus target when modal and nothing inside is focusable.
         dialogCard.setFocusTraversable(true);
 
-        VBox.setVgrow(contentHolder, Priority.ALWAYS);
-        cardColumn.getChildren().setAll(contentHolder);
+        VBox.setVgrow(contentWrapper, Priority.ALWAYS);
+        cardColumn.getChildren().setAll(contentWrapper);
         dialogCard.getChildren().setAll(cardColumn);
 
         getChildren().setAll(overlay, dialogCard);
@@ -171,9 +171,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private void updateContent() {
         Node content = getSkinnable().getContent();
         if (content == null) {
-            contentHolder.getChildren().clear();
+            contentWrapper.getChildren().clear();
         } else {
-            contentHolder.getChildren().setAll(content);
+            contentWrapper.getChildren().setAll(content);
         }
     }
 
