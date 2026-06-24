@@ -110,6 +110,8 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_MODAL = true;
     private static final boolean DEFAULT_CLOSE_ON_ESC = true;
     private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
+    private static final boolean DEFAULT_USER_RESIZABLE = false;
+    private static final boolean DEFAULT_USER_DRAGGABLE = false;
     private static final boolean DEFAULT_SHOWING = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog";
@@ -561,6 +563,91 @@ public class RXDialog<R> extends Control {
      */
     public final void setCloseOnScrimClick(boolean value) {
         closeOnScrimClick.set(value);
+    }
+
+    // ==================== User Resizable ====================
+
+    // Named userResizable, not resizable: Node.isResizable() is an existing layout-contract
+    // method (Region returns true so the RXDialogLayer can stretch this control to fill the
+    // scene). Overriding it with a user-gesture flag would collapse the scrim, so the
+    // end-user-resize capability gets its own name.
+    private final BooleanProperty userResizable =
+            new SimpleBooleanProperty(this, "userResizable", DEFAULT_USER_RESIZABLE);
+
+    /**
+     * Whether the user can resize the card by dragging its edges and corners
+     * ({@code false} by default). The skin shows the eight resize cursors over the
+     * border zones and grows / shrinks the card within its CSS {@code -fx-min-width}
+     * / {@code -fx-min-height} and the available scene; the elevation shadow is never
+     * clipped. Only effective while the dialog is shown and not animating. Turning it
+     * off cancels an in-progress resize and stops new ones, but keeps the card at its
+     * current size; the size resets to automatic only when the dialog has fully hidden.
+     *
+     * <p>Named {@code userResizable} (not {@code resizable}) so it does not override
+     * {@link javafx.scene.Node#isResizable()}, the unrelated layout-contract method.</p>
+     *
+     * @return the user-resizable property
+     */
+    public final BooleanProperty userResizableProperty() {
+        return userResizable;
+    }
+
+    /**
+     * Returns whether the card is user-resizable.
+     *
+     * @return whether the card is user-resizable
+     */
+    public final boolean isUserResizable() {
+        return userResizable.get();
+    }
+
+    /**
+     * Sets whether the card is user-resizable.
+     *
+     * @param value whether the card is user-resizable
+     */
+    public final void setUserResizable(boolean value) {
+        userResizable.set(value);
+    }
+
+    // ==================== User Draggable ====================
+
+    // Named userDraggable for symmetry with userResizable (both are end-user mouse
+    // gestures); Node has no draggable member, so the name is otherwise free.
+    private final BooleanProperty userDraggable =
+            new SimpleBooleanProperty(this, "userDraggable", DEFAULT_USER_DRAGGABLE);
+
+    /**
+     * Whether the user can move the card by dragging its top (title) band
+     * ({@code false} by default). The skin clamps the card so it always stays within
+     * the scene; presses on the close (X) button or other interactive header nodes
+     * are excluded so they keep working. Only effective while the dialog is shown and
+     * not animating. Turning it off cancels an in-progress drag and stops new ones,
+     * but keeps the card at its current position; the position recenters only when the
+     * dialog has fully hidden.
+     *
+     * @return the user-draggable property
+     */
+    public final BooleanProperty userDraggableProperty() {
+        return userDraggable;
+    }
+
+    /**
+     * Returns whether the card is user-draggable.
+     *
+     * @return whether the card is user-draggable
+     */
+    public final boolean isUserDraggable() {
+        return userDraggable.get();
+    }
+
+    /**
+     * Sets whether the card is user-draggable.
+     *
+     * @param value whether the card is user-draggable
+     */
+    public final void setUserDraggable(boolean value) {
+        userDraggable.set(value);
     }
 
     // ==================== Transition ====================

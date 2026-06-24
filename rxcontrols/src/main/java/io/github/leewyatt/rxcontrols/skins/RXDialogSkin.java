@@ -17,17 +17,22 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
+import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.geometry.HPos;
+import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ButtonType;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -63,6 +68,19 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     // Card scale at progress 0 for the CENTER transition (scales up to 1.0 at open).
     private static final double CLOSED_SCALE = 0.8;
 
+    // Height of the top "title band" within which a press starts a move drag (decision
+    // 6.2; real-device tunable). Presses on interactive header nodes (close X, focusable
+    // controls) inside the band are excluded so they keep working.
+    private static final double DRAG_BAND_HEIGHT = 48.0;
+
+    // Width (in card-local px) of the border band that begins an edge / corner resize.
+    private static final double RESIZE_EDGE = 8.0;
+    // Resize-edge bitmask (combined into corners).
+    private static final int EDGE_WEST = 1;
+    private static final int EDGE_EAST = 1 << 1;
+    private static final int EDGE_NORTH = 1 << 2;
+    private static final int EDGE_SOUTH = 1 << 3;
+
     private final Region overlay = new Region();
     private final StackPane dialogCard = new StackPane();
     private final StackPane contentWrapper = new StackPane();
@@ -94,6 +112,43 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
             applyPose(get());
         }
     };
+
+    // ==================== Drag / resize state ====================
+
+    // Persistent, raw (un-clamped) layout offset added to the centered card every layout
+    // pass, then clamped into the scene for that frame only (the raw value is kept so a
+    // window that shrinks then grows restores the dragged position). Reset to 0 only when
+    // the dialog has fully hidden (finalizeClose / resetCardGeometry).
+    private double dragOffsetX;
+    private double dragOffsetY;
+
+    // User-chosen card size from a resize gesture; null = automatic (content-driven). Reset
+    // to null only when the dialog has fully hidden (resetCardGeometry).
+    private Double userWidth;
+    private Double userHeight;
+
+    // Available content area cached from the last layoutChildren pass, so a live resize can
+    // clamp against the same bounds layoutChildren uses. MAX_VALUE until the first layout.
+    private double availContentWidth = Double.MAX_VALUE;
+    private double availContentHeight = Double.MAX_VALUE;
+
+    // True while a press-drag-release move / resize gesture is active.
+    private boolean dragActive;
+    private boolean resizeActive;
+    // Which edges the active resize is dragging (corners set two).
+    private boolean resizeWest;
+    private boolean resizeEast;
+    private boolean resizeNorth;
+    private boolean resizeSouth;
+
+    // Gesture anchor captured on press (scene coords + the drag offsets and, for resize, the
+    // card size at press time), shared by drag and resize since only one runs at a time.
+    private double gestureStartSceneX;
+    private double gestureStartSceneY;
+    private double gestureStartOffsetX;
+    private double gestureStartOffsetY;
+    private double gestureStartW;
+    private double gestureStartH;
 
     /**
      * Creates the skin, assembles the scrim and card layers, and registers all
@@ -164,6 +219,17 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         // transition / animated / animationDuration / animationInterpolator are read
         // at play time, so a change applies to the next transition.
         disposer.registerListener(control.sceneProperty(), (obs, oldScene, newScene) -> onSceneChanged(newScene));
+
+        // Move / resize gestures on the card. Handlers (not filters) so they run on the
+        // bubbling phase after interactive children; a gesture only starts (and consumes)
+        // over a non-interactive part of the card.
+        disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_MOVED, this::onCardMouseMoved);
+        disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_PRESSED, this::onCardMousePressed);
+        disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_DRAGGED, this::onCardMouseDragged);
+        disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_RELEASED, this::onCardMouseReleased);
+        disposer.registerEventHandler(dialogCard, MouseEvent.MOUSE_EXITED, this::onCardMouseExited);
+        disposer.registerListener(control.userDraggableProperty(), this::onGestureEnablementChanged);
+        disposer.registerListener(control.userResizableProperty(), this::onGestureEnablementChanged);
     }
 
     // ==================== Slots ====================
@@ -240,12 +306,26 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
                                   double contentWidth, double contentHeight) {
         layoutInArea(overlay, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
-        double cardW = Math.min(contentWidth,
-                boundedSize(dialogCard.minWidth(-1), dialogCard.prefWidth(-1), dialogCard.maxWidth(-1)));
-        double cardH = Math.min(contentHeight,
-                boundedSize(dialogCard.minHeight(cardW), dialogCard.prefHeight(cardW), dialogCard.maxHeight(cardW)));
-        double cardX = contentX + (contentWidth - cardW) / 2.0;
-        double cardY = contentY + (contentHeight - cardH) / 2.0;
+        // Remember the available area so a live resize clamps against the same bounds.
+        availContentWidth = contentWidth;
+        availContentHeight = contentHeight;
+
+        // A user resize size wins over the content's preferred size; both are clamped the
+        // same way (clampCardWidth/Height), so resize feeds the identical math layout uses.
+        double targetW = userWidth != null ? userWidth : dialogCard.prefWidth(-1);
+        double cardW = clampCardWidth(targetW, contentWidth);
+        double targetH = userHeight != null ? userHeight : dialogCard.prefHeight(cardW);
+        double cardH = clampCardHeight(targetH, cardW, contentHeight);
+        double cardX = contentX + (contentWidth - cardW) / 2.0 + dragOffsetX;
+        double cardY = contentY + (contentHeight - cardH) / 2.0 + dragOffsetY;
+        // Clamp the (possibly dragged) card fully inside the content area for this frame
+        // only; dragOffset itself stays raw. maxX >= contentX because cardW <= contentWidth,
+        // so the two-step max/min never inverts (plain math, not RXMath.clamp, to stay
+        // throw-free even if a future change makes the card wider than the content).
+        double maxX = contentX + contentWidth - cardW;
+        double maxY = contentY + contentHeight - cardH;
+        cardX = Math.max(contentX, Math.min(maxX, cardX));
+        cardY = Math.max(contentY, Math.min(maxY, cardY));
         layoutInArea(dialogCard, cardX, cardY, cardW, cardH, 0, HPos.CENTER, VPos.CENTER);
     }
 
@@ -256,6 +336,21 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         double atLeastMin = Math.max(pref, min);
         double cap = min >= effectiveMax ? min : effectiveMax;
         return Math.min(atLeastMin, cap);
+    }
+
+    // The card's width: clamp the target (user size or pref) into the card's [min, max] via
+    // boundedSize, then cap at the available content width. boundedSize handles min > max, so
+    // RXMath.clamp (which throws) is never used and a tiny scene can't break it (spec §3.4 #1).
+    private double clampCardWidth(double targetWidth, double availWidth) {
+        return Math.min(availWidth,
+                boundedSize(dialogCard.minWidth(-1), targetWidth, dialogCard.maxWidth(-1)));
+    }
+
+    // The card's height for a given width (the card is height-for-width: a wrapped body
+    // reflows as the width changes), capped at the available content height.
+    private double clampCardHeight(double targetHeight, double width, double availHeight) {
+        return Math.min(availHeight,
+                boundedSize(dialogCard.minHeight(width), targetHeight, dialogCard.maxHeight(width)));
     }
 
     /**
@@ -318,6 +413,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     // ==================== Show / hide transition ====================
 
     private void handleShowingChanged(boolean showing) {
+        // A starting transition disables gestures (gesturesEnabled() is false while
+        // animating); cancel any in-flight one so its drag events stop fighting the
+        // animation. Geometry is preserved here and reset only in finalizeClose.
+        cancelGestures();
         if (showing) {
             openInFlight = true;
             closeInFlight = false;
@@ -387,6 +486,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         dialogCard.setVisible(false);
         dialogCard.setMouseTransparent(true);
         restoreFocus();
+        // Reset drag / resize geometry now that the hide animation is done (decision 3.4
+        // #5), and before hideCompleted so a re-show chained from a HIDDEN / onResult
+        // handler starts centered and auto-sized rather than at the last dragged pose.
+        resetCardGeometry();
         if (closeInFlight) {
             closeInFlight = false;
             // Last action: fires HIDDEN, delivers the result, and detaches from the
@@ -412,6 +515,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
             return;
         }
         stopAnimation();
+        // Torn out of the scene: drop drag/resize geometry so a later re-attach starts
+        // centered / auto-sized. finalizeClose resets too, but finalizeOpen does not, so
+        // resetting here also covers the scene-yank-while-showing branch.
+        resetCardGeometry();
         if (getSkinnable().isShowing()) {
             finalizeOpen();
         } else {
@@ -676,6 +783,277 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
             return 0.0;
         }
         return Math.min(value, 1.0);
+    }
+
+    // ==================== Drag / resize gestures ====================
+
+    // Gestures are live only while the dialog is shown and not animating.
+    private boolean gesturesEnabled() {
+        return getSkinnable().isShowing() && !isAnimationRunning();
+    }
+
+    private boolean gestureInProgress() {
+        return dragActive || resizeActive;
+    }
+
+    private void onCardMouseMoved(MouseEvent event) {
+        dialogCard.setCursor(resolveHoverCursor(event));
+    }
+
+    // The cursor for a hover at the event's position: one of the eight resize cursors over a
+    // border zone (priority), else MOVE over the draggable title band (away from interactive
+    // header nodes), else null so the node's own / inherited cursor shows.
+    private Cursor resolveHoverCursor(MouseEvent event) {
+        if (!gesturesEnabled()) {
+            return null;
+        }
+        Point2D local = dialogCard.sceneToLocal(event.getSceneX(), event.getSceneY());
+        if (getSkinnable().isUserResizable()) {
+            Cursor resize = resizeCursor(hitResizeEdges(local));
+            if (resize != null) {
+                return resize;
+            }
+        }
+        if (getSkinnable().isUserDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
+            return Cursor.MOVE;
+        }
+        return null;
+    }
+
+    private boolean inDragBand(Point2D local) {
+        return local.getX() >= 0.0 && local.getX() <= dialogCard.getWidth()
+                && local.getY() >= 0.0 && local.getY() <= DRAG_BAND_HEIGHT;
+    }
+
+    // Bitmask of the resize edges hit at a card-local point (0 = none / outside the card).
+    // West/East and North/South are mutually exclusive (else-if), so a card narrower than
+    // 2*RESIZE_EDGE never reports both sides and the resize math stays well-defined.
+    private int hitResizeEdges(Point2D local) {
+        double w = dialogCard.getWidth();
+        double h = dialogCard.getHeight();
+        if (local.getX() < 0.0 || local.getX() > w || local.getY() < 0.0 || local.getY() > h) {
+            return 0;
+        }
+        int edges = 0;
+        if (local.getX() <= RESIZE_EDGE) {
+            edges |= EDGE_WEST;
+        } else if (local.getX() >= w - RESIZE_EDGE) {
+            edges |= EDGE_EAST;
+        }
+        if (local.getY() <= RESIZE_EDGE) {
+            edges |= EDGE_NORTH;
+        } else if (local.getY() >= h - RESIZE_EDGE) {
+            edges |= EDGE_SOUTH;
+        }
+        return edges;
+    }
+
+    // Maps an edge bitmask to its resize cursor (corners take priority over single edges);
+    // null when no edge is set.
+    private static Cursor resizeCursor(int edges) {
+        boolean west = (edges & EDGE_WEST) != 0;
+        boolean east = (edges & EDGE_EAST) != 0;
+        boolean north = (edges & EDGE_NORTH) != 0;
+        boolean south = (edges & EDGE_SOUTH) != 0;
+        if (north && west) {
+            return Cursor.NW_RESIZE;
+        }
+        if (north && east) {
+            return Cursor.NE_RESIZE;
+        }
+        if (south && west) {
+            return Cursor.SW_RESIZE;
+        }
+        if (south && east) {
+            return Cursor.SE_RESIZE;
+        }
+        if (west) {
+            return Cursor.W_RESIZE;
+        }
+        if (east) {
+            return Cursor.E_RESIZE;
+        }
+        if (north) {
+            return Cursor.N_RESIZE;
+        }
+        if (south) {
+            return Cursor.S_RESIZE;
+        }
+        return null;
+    }
+
+    private void onCardMousePressed(MouseEvent event) {
+        // Only the primary button starts a gesture (decision 3.4 #9); never while
+        // animating / hidden.
+        if (event.getButton() != MouseButton.PRIMARY || !gesturesEnabled()) {
+            return;
+        }
+        Point2D local = dialogCard.sceneToLocal(event.getSceneX(), event.getSceneY());
+        // Resize wins over drag (so the top border band resizes north rather than dragging),
+        // and corners win over edges inside resizeCursor / beginResize (spec §3.4 #3).
+        if (getSkinnable().isUserResizable()) {
+            int edges = hitResizeEdges(local);
+            if (edges != 0) {
+                beginResize(edges, event);
+                event.consume();
+                return;
+            }
+        }
+        if (getSkinnable().isUserDraggable() && inDragBand(local) && !isInteractiveTarget(event.getTarget())) {
+            beginDrag(event);
+            event.consume();
+        }
+    }
+
+    private void beginDrag(MouseEvent event) {
+        // Start from a fully-cleared state so drag and resize are never both active.
+        clearGestureFlags();
+        dragActive = true;
+        gestureStartSceneX = event.getSceneX();
+        gestureStartSceneY = event.getSceneY();
+        gestureStartOffsetX = dragOffsetX;
+        gestureStartOffsetY = dragOffsetY;
+        dialogCard.setCursor(Cursor.MOVE);
+    }
+
+    private void beginResize(int edges, MouseEvent event) {
+        clearGestureFlags();
+        resizeActive = true;
+        resizeWest = (edges & EDGE_WEST) != 0;
+        resizeEast = (edges & EDGE_EAST) != 0;
+        resizeNorth = (edges & EDGE_NORTH) != 0;
+        resizeSouth = (edges & EDGE_SOUTH) != 0;
+        gestureStartSceneX = event.getSceneX();
+        gestureStartSceneY = event.getSceneY();
+        gestureStartOffsetX = dragOffsetX;
+        gestureStartOffsetY = dragOffsetY;
+        gestureStartW = dialogCard.getWidth();
+        gestureStartH = dialogCard.getHeight();
+        dialogCard.setCursor(resizeCursor(edges));
+    }
+
+    private void onCardMouseDragged(MouseEvent event) {
+        if (!event.isPrimaryButtonDown()) {
+            return;
+        }
+        if (resizeActive) {
+            updateResize(event);
+            event.consume();
+        } else if (dragActive) {
+            // Accumulate the raw offset; layoutChildren clamps it into the scene per frame.
+            dragOffsetX = gestureStartOffsetX + (event.getSceneX() - gestureStartSceneX);
+            dragOffsetY = gestureStartOffsetY + (event.getSceneY() - gestureStartSceneY);
+            // The offset is consumed by the control's layoutChildren, so relayout the control.
+            getSkinnable().requestLayout();
+            event.consume();
+        }
+    }
+
+    // Resize keeps the edge OPPOSITE the dragged one fixed. The card is centered + offset, so
+    // holding one edge still means the offset shifts by half the *clamped* size change — using
+    // the raw mouse delta would let the offset drift on after the size hits a min/max/scene
+    // bound, dragging the opposite edge with it (spec §3.4 #2).
+    private void updateResize(MouseEvent event) {
+        double dx = event.getSceneX() - gestureStartSceneX;
+        double dy = event.getSceneY() - gestureStartSceneY;
+        if (resizeEast || resizeWest) {
+            double desiredW = resizeEast ? gestureStartW + dx : gestureStartW - dx;
+            double clampedW = clampCardWidth(desiredW, availContentWidth);
+            userWidth = clampedW;
+            double actualDelta = clampedW - gestureStartW;
+            dragOffsetX = resizeEast
+                    ? gestureStartOffsetX + actualDelta / 2.0
+                    : gestureStartOffsetX - actualDelta / 2.0;
+        }
+        if (resizeNorth || resizeSouth) {
+            double desiredH = resizeSouth ? gestureStartH + dy : gestureStartH - dy;
+            // Height is for-width: use the (possibly just-updated) card width so the clamp
+            // matches what layoutChildren will compute for this frame.
+            double widthForHeight = userWidth != null
+                    ? clampCardWidth(userWidth, availContentWidth) : dialogCard.getWidth();
+            double clampedH = clampCardHeight(desiredH, widthForHeight, availContentHeight);
+            userHeight = clampedH;
+            double actualDelta = clampedH - gestureStartH;
+            dragOffsetY = resizeSouth
+                    ? gestureStartOffsetY + actualDelta / 2.0
+                    : gestureStartOffsetY - actualDelta / 2.0;
+        }
+        getSkinnable().requestLayout();
+    }
+
+    private void onCardMouseReleased(MouseEvent event) {
+        if (gestureInProgress()) {
+            // End whichever gesture was active (drag OR resize), then recompute the hover
+            // cursor for where the pointer ended up. Geometry is left untouched.
+            clearGestureFlags();
+            dialogCard.setCursor(resolveHoverCursor(event));
+            event.consume();
+        }
+    }
+
+    private void onCardMouseExited(MouseEvent event) {
+        // Don't clear the cursor mid-gesture: drag events keep targeting the card while the
+        // pointer roams outside it, and the release handler refreshes the cursor.
+        if (!gestureInProgress()) {
+            dialogCard.setCursor(null);
+        }
+    }
+
+    // Walks the pick chain from the event target up to (not including) the card; true if any
+    // node is a button, a focus-traversable control, or the header close (X) button — those
+    // keep their own click handling, so a press on them never starts a drag (decision 4 #4).
+    private boolean isInteractiveTarget(EventTarget target) {
+        if (!(target instanceof Node node)) {
+            return false;
+        }
+        while (node != null && node != dialogCard) {
+            if (node instanceof ButtonBase || node.isFocusTraversable()
+                    || node.getStyleClass().contains("close-button")) {
+                return true;
+            }
+            node = node.getParent();
+        }
+        return false;
+    }
+
+    // Disabling userDraggable / userResizable cancels the matching in-flight gesture and stops
+    // new ones, but keeps geometry (decision 3.4 #10); the cursor is cleared so the next hover
+    // recomputes it.
+    private void onGestureEnablementChanged() {
+        if (!getSkinnable().isUserDraggable()) {
+            dragActive = false;
+        }
+        if (!getSkinnable().isUserResizable()) {
+            resizeActive = false;
+        }
+        dialogCard.setCursor(null);
+    }
+
+    // Clears every active-gesture flag (drag, resize, and the resize edge set) without
+    // touching geometry or the cursor. The single place gesture state ends.
+    private void clearGestureFlags() {
+        dragActive = false;
+        resizeActive = false;
+        resizeWest = false;
+        resizeEast = false;
+        resizeNorth = false;
+        resizeSouth = false;
+    }
+
+    // Ends any in-flight gesture without touching geometry (called when a transition starts).
+    private void cancelGestures() {
+        clearGestureFlags();
+        dialogCard.setCursor(null);
+    }
+
+    // Recenters and drops the user size + drag offset after the dialog has fully hidden, so a
+    // re-show starts centered and auto-sized.
+    private void resetCardGeometry() {
+        cancelGestures();
+        dragOffsetX = 0.0;
+        dragOffsetY = 0.0;
+        userWidth = null;
+        userHeight = null;
     }
 
     // ==================== Dispose ====================

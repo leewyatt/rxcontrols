@@ -1009,6 +1009,7 @@
     -fx-background-color: -rx-surface;
     -fx-background-radius: 12;
     -fx-min-width: 280;
+    -fx-min-height: 120;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 8);
 }
 

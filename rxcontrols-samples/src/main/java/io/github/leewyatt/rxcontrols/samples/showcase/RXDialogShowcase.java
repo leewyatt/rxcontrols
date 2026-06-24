@@ -126,7 +126,9 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 checkBox("Modal (scrim + focus trap)", dialog.isModal(), dialog::setModal),
                 checkBox("Close on ESC", dialog.isCloseOnEsc(), dialog::setCloseOnEsc),
                 checkBox("Close on scrim click", dialog.isCloseOnScrimClick(), dialog::setCloseOnScrimClick),
-                checkBox("Show close (X) button", layout.isShowClose(), layout::setShowClose));
+                checkBox("Show close (X) button", layout.isShowClose(), layout::setShowClose),
+                checkBox("User-resizable (drag edges)", dialog.isUserResizable(), dialog::setUserResizable),
+                checkBox("User-draggable (drag title)", dialog.isUserDraggable(), dialog::setUserDraggable));
     }
 
     private Node stateBox() {
