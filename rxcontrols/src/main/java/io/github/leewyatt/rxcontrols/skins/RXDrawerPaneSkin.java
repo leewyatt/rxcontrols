@@ -55,7 +55,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
 
     private final StackPane contentPane = new StackPane();
-    private final Region overlayPane = new Region();
+    private final Region scrim = new Region();
     private final StackPane drawerWrapper = new StackPane();
     private final Rectangle clipRect = new Rectangle();
 
@@ -91,18 +91,18 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         super(control);
 
         drawerWrapper.getStyleClass().add("drawer-wrapper");
-        overlayPane.getStyleClass().add("overlay-pane");
+        scrim.getStyleClass().add("scrim");
 
         // The drawer wrapper is the last-resort focus target when modal and nothing
         // inside is focusable.
         drawerWrapper.setFocusTraversable(true);
 
-        // z-order: content (bottom) → overlay pane (middle) → drawer (top).
-        getChildren().setAll(contentPane, overlayPane, drawerWrapper);
+        // z-order: content (bottom) → scrim (middle) → drawer (top).
+        getChildren().setAll(contentPane, scrim, drawerWrapper);
         updateContent();
         updateDrawerContent();
         applyDrawerWrapperRest(control.isShowing());
-        applyOverlayPaneRest(control.isShowing());
+        applyScrimRest(control.isShowing());
 
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
@@ -111,10 +111,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         // subtree and never escape (capturing filter takes over traversal).
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleTabTrap);
 
-        // Clicking the overlay pane requests a close (it is pickable only while
+        // Clicking the scrim requests a close (it is pickable only while
         // open and modal, so the guard is belt-and-suspenders).
-        disposer.registerEventHandler(overlayPane, MouseEvent.MOUSE_CLICKED, event -> {
-            if (control.isCloseOnOverlayPaneClick() && overlayPaneActive() && control.isShowing()) {
+        disposer.registerEventHandler(scrim, MouseEvent.MOUSE_CLICKED, event -> {
+            if (control.isCloseOnScrimClick() && scrimActive() && control.isShowing()) {
                 control.close();
                 event.consume();
             }
@@ -137,7 +137,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         disposer.registerListener(control.drawerModeProperty(), this::onModeChanged);
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.drawerContentProperty(), this::updateDrawerContent);
-        disposer.registerListener(control.overlayPaneVisibleProperty(), this::onOverlayPaneChanged);
+        disposer.registerListener(control.scrimVisibleProperty(), this::onScrimChanged);
         // animated / animationDuration / animationInterpolator are intentionally NOT
         // observed: they are read at play time, so a change applies to the next
         // transition and never disturbs an in-flight slide.
@@ -185,13 +185,13 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         double drawerW = horizontal ? drawerThickness : contentWidth;
         double drawerH = horizontal ? contentHeight : drawerThickness;
 
-        // The overlay pane always fills; it is only visible while modal (see applyOverlayPaneRest).
-        layoutInArea(overlayPane, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
+        // The scrim always fills; it is only visible while modal (see applyScrimRest).
+        layoutInArea(scrim, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
         if (isPush()) {
             layoutPush(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
         } else {
-            layoutOverlay(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
+            layoutScrim(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
         }
 
         if ((!initialized || thicknessChanged) && !isAnimationRunning()) {
@@ -203,7 +203,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     // OVERLAY: content fills, the panel rests at its open (edge-attached) position;
     // the closed state and the slide are expressed purely by translate.
-    private void layoutOverlay(double contentX, double contentY, double contentWidth,
+    private void layoutScrim(double contentX, double contentY, double contentWidth,
                                double contentHeight, double drawerW, double drawerH) {
         layoutInArea(contentPane, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
@@ -346,11 +346,11 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             keyValues.add(new KeyValue(progress, 1.0, interpolator));
         } else {
             keyValues.add(new KeyValue(axisTranslate(), 0.0, interpolator));
-            if (overlayPaneActive()) {
-                // Make the overlay pane pickable and fade it in along the same KeyFrame.
-                overlayPane.setVisible(true);
-                overlayPane.setMouseTransparent(false);
-                keyValues.add(new KeyValue(overlayPane.opacityProperty(), 1.0, interpolator));
+            if (scrimActive()) {
+                // Make the scrim pickable and fade it in along the same KeyFrame.
+                scrim.setVisible(true);
+                scrim.setMouseTransparent(false);
+                keyValues.add(new KeyValue(scrim.opacityProperty(), 1.0, interpolator));
             }
         }
         Timeline timeline = playTimeline(keyValues, this::finalizeOpen);
@@ -370,8 +370,8 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             keyValues.add(new KeyValue(progress, 0.0, interpolator));
         } else {
             keyValues.add(new KeyValue(axisTranslate(), closedTranslate(), interpolator));
-            if (overlayPaneActive()) {
-                keyValues.add(new KeyValue(overlayPane.opacityProperty(), 0.0, interpolator));
+            if (scrimActive()) {
+                keyValues.add(new KeyValue(scrim.opacityProperty(), 0.0, interpolator));
             }
         }
         Timeline timeline = playTimeline(keyValues, this::finalizeClose);
@@ -402,7 +402,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             drawerWrapper.setTranslateY(0.0);
         }
         applyDrawerWrapperRest(true);
-        applyOverlayPaneRest(true);
+        applyScrimRest(true);
         if (openInFlight) {
             openInFlight = false;
             fireLifecycle(RXDrawerEvent.OPENED);
@@ -424,7 +424,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 drawerWrapper.setTranslateX(0.0);
             }
         }
-        applyOverlayPaneRest(false);
+        applyScrimRest(false);
         boolean wasCloseInFlight = closeInFlight;
         if (wasCloseInFlight) {
             closeInFlight = false;
@@ -443,7 +443,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
      * modal (a non-modal drawer leaves the page interactive and does not steal focus).
      */
     private void moveFocusIntoDrawer() {
-        if (!overlayPaneActive()) {
+        if (!scrimActive()) {
             return;
         }
         Scene scene = getSkinnable().getScene();
@@ -492,7 +492,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     private void handleTabTrap(KeyEvent event) {
-        if (event.getCode() != KeyCode.TAB || !overlayPaneActive() || !getSkinnable().isShowing()) {
+        if (event.getCode() != KeyCode.TAB || !scrimActive() || !getSkinnable().isShowing()) {
             return;
         }
         Scene scene = getSkinnable().getScene();
@@ -548,7 +548,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 drawerWrapper.setTranslateX(0.0);
             }
         }
-        applyOverlayPaneRest(open);
+        applyScrimRest(open);
         applyDrawerWrapperRest(open);
     }
 
@@ -562,29 +562,29 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     /**
-     * Whether the overlay pane participates: only when overlaying with the pane
+     * Whether the scrim participates: only when overlaying with the pane
      * enabled. PUSH is never modal.
      */
-    private boolean overlayPaneActive() {
-        return drawerModeOrDefault() == DrawerMode.OVERLAY && getSkinnable().isOverlayPaneVisible();
+    private boolean scrimActive() {
+        return drawerModeOrDefault() == DrawerMode.OVERLAY && getSkinnable().isScrimVisible();
     }
 
     /**
-     * Settles the overlay pane to its resting pose: opaque (its dim comes from the
-     * {@code .overlay-pane} CSS background colour) and pickable when open and active,
+     * Settles the scrim to its resting pose: opaque (its dim comes from the
+     * {@code .scrim} CSS background colour) and pickable when open and active,
      * fully transparent and click-through otherwise.
      *
      * @param open whether the drawer rests open
      */
-    private void applyOverlayPaneRest(boolean open) {
-        if (open && overlayPaneActive()) {
-            overlayPane.setVisible(true);
-            overlayPane.setMouseTransparent(false);
-            overlayPane.setOpacity(1.0);
+    private void applyScrimRest(boolean open) {
+        if (open && scrimActive()) {
+            scrim.setVisible(true);
+            scrim.setMouseTransparent(false);
+            scrim.setOpacity(1.0);
         } else {
-            overlayPane.setVisible(false);
-            overlayPane.setMouseTransparent(true);
-            overlayPane.setOpacity(0.0);
+            scrim.setVisible(false);
+            scrim.setMouseTransparent(true);
+            scrim.setOpacity(0.0);
         }
     }
 
@@ -593,11 +593,11 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         drawerWrapper.setMouseTransparent(!open);
     }
 
-    private void onOverlayPaneChanged() {
-        // An overlayPaneVisible change re-settles the resting pose unless an animation
+    private void onScrimChanged() {
+        // An scrimVisible change re-settles the resting pose unless an animation
         // currently owns the pane opacity.
         if (!isAnimationRunning()) {
-            applyOverlayPaneRest(getSkinnable().isShowing());
+            applyScrimRest(getSkinnable().isShowing());
         }
     }
 

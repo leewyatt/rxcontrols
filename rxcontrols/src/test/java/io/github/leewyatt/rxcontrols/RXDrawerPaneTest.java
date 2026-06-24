@@ -85,8 +85,8 @@ public class RXDrawerPaneTest {
             assertFalse(pane.isShowing());
             assertNull(pane.getContent());
             assertNull(pane.getDrawerContent());
-            assertTrue(pane.isOverlayPaneVisible());
-            assertTrue(pane.isCloseOnOverlayPaneClick());
+            assertTrue(pane.isScrimVisible());
+            assertTrue(pane.isCloseOnScrimClick());
             assertTrue(pane.isCloseOnEsc());
         });
     }
@@ -156,7 +156,7 @@ public class RXDrawerPaneTest {
                     "-rx-drawer-mode",
                     "-rx-animated",
                     "-rx-animation-duration",
-                    "-rx-overlay-pane-visible"), customProperties);
+                    "-rx-scrim-visible"), customProperties);
         });
     }
 
@@ -168,7 +168,7 @@ public class RXDrawerPaneTest {
                     + "-rx-drawer-mode: push;"
                     + "-rx-animated: false;"
                     + "-rx-animation-duration: 75ms;"
-                    + "-rx-overlay-pane-visible: false;");
+                    + "-rx-scrim-visible: false;");
 
             attach(pane);
 
@@ -176,7 +176,7 @@ public class RXDrawerPaneTest {
             assertEquals(DrawerMode.PUSH, pane.getDrawerMode());
             assertFalse(pane.isAnimated());
             assertEquals(Duration.millis(75.0), pane.getAnimationDuration());
-            assertFalse(pane.isOverlayPaneVisible());
+            assertFalse(pane.isScrimVisible());
         });
     }
 
@@ -206,11 +206,11 @@ public class RXDrawerPaneTest {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             attach(pane);
-            // The skin's children are content (bottom) → overlay pane (middle) → drawer (top).
+            // The skin's children are content (bottom) → scrim (middle) → drawer (top).
             assertEquals(3, pane.getChildrenUnmodifiable().size());
             Node middle = pane.getChildrenUnmodifiable().get(1);
             Node top = pane.getChildrenUnmodifiable().get(2);
-            assertTrue(middle.getStyleClass().contains("overlay-pane"), "overlay pane is the middle layer");
+            assertTrue(middle.getStyleClass().contains("scrim"), "scrim is the middle layer");
             assertTrue(top.getStyleClass().contains("drawer-wrapper"), "drawer wrapper is the top layer");
         });
     }

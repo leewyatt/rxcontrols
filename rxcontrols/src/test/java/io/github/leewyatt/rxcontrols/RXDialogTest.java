@@ -281,8 +281,8 @@ public class RXDialogTest {
             lower.show(owner);
             upper.show(owner);
 
-            Node lowerScrim = lower.lookup(".overlay");
-            Node upperScrim = upper.lookup(".overlay");
+            Node lowerScrim = lower.lookup(".scrim");
+            Node upperScrim = upper.lookup(".scrim");
             assertNotNull(lowerScrim, "the lower dialog has a scrim node");
             assertNotNull(upperScrim, "the upper dialog has a scrim node");
             assertFalse(lowerScrim.isVisible(),
@@ -301,7 +301,7 @@ public class RXDialogTest {
     public void stackedScrimStaysFullSoItDoesNotFlashOnOpen() throws Exception {
         // A second modal dialog opening over a first must show its scrim at full opacity
         // immediately, not fade in from 0 — otherwise the swap between the just-hidden lower
-        // overlay and this fading one flashes the scene through (the stacked-open scrim flicker).
+        // scrim and this fading one flashes the scene through (the stacked-open scrim flicker).
         runOnFx(() -> {
             Region owner = new Region();
             new Scene(new StackPane(owner), 400, 300);
@@ -314,8 +314,8 @@ public class RXDialogTest {
             lower.show(owner);
             upper.show(owner);
 
-            // Right after show, before any animation frame, the stacked overlay is already full.
-            Node upperScrim = upper.lookup(".overlay");
+            // Right after show, before any animation frame, the stacked scrim is already full.
+            Node upperScrim = upper.lookup(".scrim");
             assertNotNull(upperScrim, "the upper dialog has a scrim node");
             assertEquals(1.0, upperScrim.getOpacity(), 0.001,
                     "the stacked scrim starts full immediately (no fade-in flash)");

@@ -352,7 +352,7 @@ final class ThemeGalleryCards {
         drawer.setSide(Side.RIGHT);
         drawer.setDrawerMode(RXDrawerPane.DrawerMode.PUSH);
         drawer.setPrefDrawerWidth(140.0);
-        drawer.setOverlayPaneVisible(false);
+        drawer.setScrimVisible(false);
 
         Button toggle = new Button("Toggle drawer");
         toggle.setOnAction(e -> drawer.toggle());

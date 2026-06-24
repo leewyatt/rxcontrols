@@ -81,7 +81,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private static final int EDGE_NORTH = 1 << 2;
     private static final int EDGE_SOUTH = 1 << 3;
 
-    private final Region overlay = new Region();
+    private final Region scrim = new Region();
     // The visible card. A VBox so it lays out the content (vgrow) above the action bar directly,
     // with the background / shadow / size on the same node — no extra wrapper.
     private final VBox dialogCard = new VBox();
@@ -105,8 +105,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private Parent observedParent;
     private final ListChangeListener<Node> stackListener = change -> refreshTopMost();
     // True for a transition that opens / closes on top of an already-scrimmed modal stack: the
-    // merged scrim is continuous, so this dialog's overlay holds full opacity instead of fading
-    // with the card — otherwise the swap between the lower (hidden) and this (fading) overlay
+    // merged scrim is continuous, so this dialog's scrim holds full opacity instead of fading
+    // with the card — otherwise the swap between the lower (hidden) and this (fading) scrim
     // flashes the scene through. Recomputed at each transition start.
     private boolean scrimSteady;
 
@@ -165,7 +165,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     public RXDialogSkin(RXDialog<?> control) {
         super(control);
 
-        overlay.getStyleClass().add("overlay");
+        scrim.getStyleClass().add("scrim");
         dialogCard.getStyleClass().add("dialog-card");
         contentWrapper.getStyleClass().add("content-wrapper");
 
@@ -180,14 +180,14 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         VBox.setVgrow(contentWrapper, Priority.ALWAYS);
         dialogCard.getChildren().setAll(contentWrapper);
 
-        getChildren().setAll(overlay, dialogCard);
+        getChildren().setAll(scrim, dialogCard);
 
         updateContent();
         rebuildActions();
         snapToShowing();
 
         // Scrim click -> close (only while modal + open; the scrim is pickable only then).
-        disposer.registerEventHandler(overlay, MouseEvent.MOUSE_CLICKED, event -> {
+        disposer.registerEventHandler(scrim, MouseEvent.MOUSE_CLICKED, event -> {
             RXDialog<?> dialog = getSkinnable();
             if (dialog.isModal() && dialog.isCloseOnScrimClick() && dialog.isShowing()) {
                 dialog.requestClose(null, CloseReason.SCRIM);
@@ -322,7 +322,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     @Override
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
-        layoutInArea(overlay, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
+        layoutInArea(scrim, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
         // Remember the available area so a live resize clamps against the same bounds.
         availContentWidth = contentWidth;
@@ -437,7 +437,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         // animating); cancel any in-flight one so its drag events stop fighting the
         // animation. Geometry is preserved here and reset only in finalizeClose.
         cancelGestures();
-        // A lower modal dialog already paints the scrim => keep this overlay steady (full) so
+        // A lower modal dialog already paints the scrim => keep this scrim steady (full) so
         // the merged scrim never flashes the scene through during the stacked open / close.
         scrimSteady = hasModalDialogBelow();
         if (showing) {
@@ -554,12 +554,12 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private void applyPose(double rawProgress) {
         double p = clamp01(rawProgress);
         dialogCard.setOpacity(p);
-        boolean scrim = scrimActive();
+        boolean scrimOn = scrimActive();
         // A continuous (stacked) scrim stays full; a solo scrim fades in / out with the card.
-        overlay.setOpacity(scrim ? (scrimSteady ? 1.0 : p) : 0.0);
+        scrim.setOpacity(scrimOn ? (scrimSteady ? 1.0 : p) : 0.0);
         // An inactive scrim (non-modal, or a lower stacked dialog) must not swallow clicks
         // even while a transition still has it visible: opacity alone does not block picking.
-        overlay.setMouseTransparent(!scrim);
+        scrim.setMouseTransparent(!scrimOn);
 
         RXDialogTransition transition = transitionOrDefault();
         if (transition == RXDialogTransition.CENTER) {
@@ -609,12 +609,12 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void prepareScrimForOpen() {
         if (scrimActive()) {
-            overlay.setVisible(true);
-            overlay.setMouseTransparent(false);
+            scrim.setVisible(true);
+            scrim.setMouseTransparent(false);
             if (scrimSteady) {
                 // Continuous scrim: start at full so the open animation's first frame doesn't
-                // flash a gap between the just-hidden lower overlay and this one.
-                overlay.setOpacity(1.0);
+                // flash a gap between the just-hidden lower scrim and this one.
+                scrim.setOpacity(1.0);
             }
         } else {
             applyScrimRest(false);
@@ -623,13 +623,13 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void applyScrimRest(boolean open) {
         if (open && scrimActive()) {
-            overlay.setVisible(true);
-            overlay.setMouseTransparent(false);
-            overlay.setOpacity(1.0);
+            scrim.setVisible(true);
+            scrim.setMouseTransparent(false);
+            scrim.setOpacity(1.0);
         } else {
-            overlay.setVisible(false);
-            overlay.setMouseTransparent(true);
-            overlay.setOpacity(0.0);
+            scrim.setVisible(false);
+            scrim.setMouseTransparent(true);
+            scrim.setOpacity(0.0);
         }
     }
 
@@ -644,7 +644,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     }
 
     // Whether a lower sibling in the shared layer is a modal dialog that is currently showing —
-    // i.e. the merged scrim already exists below this dialog, so this one's overlay transitions
+    // i.e. the merged scrim already exists below this dialog, so this one's scrim transitions
     // must be instant (steady) rather than fading, to keep the scrim continuous.
     private boolean hasModalDialogBelow() {
         Parent parent = getSkinnable().getParent();
