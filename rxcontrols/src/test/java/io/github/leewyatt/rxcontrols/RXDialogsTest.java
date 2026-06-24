@@ -107,6 +107,43 @@ public class RXDialogsTest {
     }
 
     @Test
+    public void confirmDismissalYieldsTheCancelButton() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            CompletableFuture<ButtonType> result = RXDialogs.confirm(owner, "Delete?", "Cannot be undone.");
+            RXDialog<?> dialog = shownDialog(scene);
+            dialog.setAnimated(false);
+
+            // ESC carries no explicit candidate; a confirmation resolves it to its Cancel button.
+            dialog.requestClose(null, CloseReason.ESC);
+            assertEquals(ButtonType.CANCEL, result.getNow(null),
+                    "dismissing a confirmation yields Cancel, not OK");
+        });
+    }
+
+    @Test
+    public void messageDismissalNeverActivatesAnAffirmativeButton() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            ButtonType report = new ButtonType("Report");
+            CompletableFuture<ButtonType> result =
+                    RXDialogs.error(owner, "Crashed", "Unexpected error.", ButtonType.OK, report);
+            RXDialog<?> dialog = shownDialog(scene);
+            dialog.setAnimated(false);
+
+            // No cancel-type button exists, so a dismissal must yield null — never OK / Report,
+            // so a stray ESC / scrim can't trigger an affirmative action.
+            dialog.requestClose(null, CloseReason.SCRIM);
+            assertTrue(result.isDone(), "the dismissal still completes the future");
+            assertNull(result.getNow(report), "dismissal yields null, not an affirmative button");
+        });
+    }
+
+    @Test
     public void inputReturnsTheFieldTextOnOk() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();

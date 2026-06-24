@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
-
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
@@ -45,6 +44,13 @@ import java.util.concurrent.CompletionStage;
  * <p>For anything richer, {@link #create(Node)} returns a {@link Builder} that maps
  * to the same control (custom content, button sets, modality, and validity-gated
  * confirmation).</p>
+ *
+ * <p><b>Dismissal.</b> ESC and scrim clicks dismiss every dialog except {@link #busy}.
+ * A dismissal resolves to the dialog's cancel-type button if it has one ({@code confirm}'s
+ * Cancel), otherwise to {@code null} — a dismissal never activates an affirmative button,
+ * so a stray ESC or scrim click cannot trigger an action. (A confirmation that must force an
+ * explicit choice can switch this off via {@link Builder#closeOnEsc(boolean)} /
+ * {@link Builder#closeOnScrimClick(boolean)}.)</p>
  */
 public final class RXDialogs {
 
