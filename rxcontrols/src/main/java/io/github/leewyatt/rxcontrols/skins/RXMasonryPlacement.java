@@ -27,6 +27,8 @@ import java.util.List;
  */
 final class RXMasonryPlacement {
 
+    private static final double EPSILON = 1.0e-6;
+
     /**
      * An item's rectangle in content coordinates (before the scroll offset is folded
      * in).
@@ -145,10 +147,8 @@ final class RXMasonryPlacement {
         if (index < 0 || index >= startColumns.length) {
             return null;
         }
-        int span = clampSpan(spans[index]);
-        double x = startX + startColumns[index] * (trackWidth + hgap);
-        double width = span * trackWidth + (span - 1) * hgap;
-        return new Geometry(x, tops[index], width, heights[index]);
+        return new Geometry(columnX(startColumns[index]), tops[index],
+                spanWidth(spans[index]), heights[index]);
     }
 
     int startColumnOf(int index) {
@@ -157,6 +157,81 @@ final class RXMasonryPlacement {
 
     int spanOf(int index) {
         return index >= 0 && index < spans.length ? clampSpan(spans[index]) : 1;
+    }
+
+    /**
+     * Returns the content-space horizontal center of the item, or {@code NaN} when the
+     * index is out of range. Used to seed a vertical-navigation reference x.
+     *
+     * @param index the item index
+     * @return the center x, or {@code NaN}
+     */
+    double itemCenterX(int index) {
+        if (index < 0 || index >= startColumns.length) {
+            return Double.NaN;
+        }
+        return columnX(startColumns[index]) + spanWidth(spans[index]) / 2.0;
+    }
+
+    /**
+     * Returns the geometric vertical neighbor of the item in the given direction, or
+     * {@code -1} when there is none (the top / bottom edge, no wrap). Masonry has no row
+     * grid, so among items strictly in the target direction (a smaller top for up, a
+     * larger top for down) it picks the one whose horizontal range is closest to
+     * {@code referenceX} — zero distance when the range contains it — then the smallest
+     * vertical gap, then the lowest index. Passing {@code NaN} uses the source item's
+     * own horizontal center.
+     *
+     * @param index      the source item index
+     * @param direction  {@code -1} for up (above), {@code +1} for down (below)
+     * @param referenceX the content-space x to align to, or {@code NaN} for the source center
+     * @return the neighbor item index, or {@code -1}
+     */
+    int verticalNeighbor(int index, int direction, double referenceX) {
+        if (index < 0 || index >= startColumns.length) {
+            return -1;
+        }
+        double sourceTop = tops[index];
+        double refX = Double.isNaN(referenceX) ? itemCenterX(index) : referenceX;
+        int best = -1;
+        double bestDistanceX = Double.POSITIVE_INFINITY;
+        double bestGapY = Double.POSITIVE_INFINITY;
+        for (int j = 0; j < startColumns.length; j++) {
+            if (j == index) {
+                continue;
+            }
+            double top = tops[j];
+            boolean inDirection = direction > 0 ? top > sourceTop : top < sourceTop;
+            if (!inDirection) {
+                continue;
+            }
+            double left = columnX(startColumns[j]);
+            double right = left + spanWidth(spans[j]);
+            double distanceX = refX < left ? left - refX : (refX > right ? refX - right : 0.0);
+            double gapY = Math.abs(top - sourceTop);
+            // Lower horizontal distance wins; within an EPSILON tie the smaller vertical
+            // gap wins; on a full tie the earlier (lower) index is kept by not updating,
+            // since j scans ascending. bestDistanceX stays the running minimum so the tie
+            // band cannot creep upward across a chain of near-equal distances.
+            if (best < 0 || distanceX < bestDistanceX - EPSILON) {
+                best = j;
+                bestDistanceX = distanceX;
+                bestGapY = gapY;
+            } else if (distanceX <= bestDistanceX + EPSILON && gapY < bestGapY - EPSILON) {
+                best = j;
+                bestGapY = gapY;
+            }
+        }
+        return best;
+    }
+
+    private double columnX(int startColumn) {
+        return startX + startColumn * (trackWidth + hgap);
+    }
+
+    private double spanWidth(int span) {
+        int clamped = clampSpan(span);
+        return clamped * trackWidth + (clamped - 1) * hgap;
     }
 
     /**

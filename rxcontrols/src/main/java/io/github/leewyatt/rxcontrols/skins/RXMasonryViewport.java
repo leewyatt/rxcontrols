@@ -186,7 +186,7 @@ final class RXMasonryViewport<T> extends Region {
         if (viewportX < 0.0 || viewportY < 0.0 || viewportY > getHeight()) {
             return false;
         }
-        double contentWidth = currentContentWidth();
+        double contentWidth = contentWidth();
         if (viewportX > contentWidth || contentWidth <= 0.0) {
             return false;
         }
@@ -471,9 +471,28 @@ final class RXMasonryViewport<T> extends Region {
         anchorOffset = anchorCandidate >= 0 ? anchorCandidateTop - scrollY : 0.0;
     }
 
-    private double currentContentWidth() {
+    double contentWidth() {
         double barBreadth = cachedMaxScroll > 0.0 ? scrollBarBreadth() : 0.0;
         return Math.max(0.0, getWidth() - barBreadth);
+    }
+
+    int verticalNeighbor(int index, int direction, double referenceX) {
+        RXMasonryPlacement current = placement;
+        return current == null ? -1 : current.verticalNeighbor(index, direction, referenceX);
+    }
+
+    double itemCenterX(int index) {
+        RXMasonryPlacement current = placement;
+        return current == null ? Double.NaN : current.itemCenterX(index);
+    }
+
+    double itemTop(int index) {
+        RXMasonryPlacement current = placement;
+        if (current == null) {
+            return Double.NaN;
+        }
+        Geometry geometry = current.geometryOf(index);
+        return geometry == null ? Double.NaN : geometry.y();
     }
 
     // A reasonable wheel/arrow step that does not depend on variable cell heights.

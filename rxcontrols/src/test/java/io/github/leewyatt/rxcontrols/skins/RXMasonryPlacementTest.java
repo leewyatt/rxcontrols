@@ -104,6 +104,49 @@ public class RXMasonryPlacementTest {
         assertArrayEquals(new int[]{1}, placement.itemsIntersecting(140.0, 0.0, 160.0, 300.0));
     }
 
+    // 3 columns, track 100, hgap 10, vgap 0, two tiers of equal-height items so the
+    // columns line up: tier 0 = items 0,1,2; tier 1 = items 3,4,5.
+    private static RXMasonryPlacement twoTier() {
+        return new RXMasonryPlacement(3, 100.0, 10.0, 0.0, 0.0,
+                new double[]{100.0, 100.0, 100.0, 50.0, 50.0, 50.0}, new int[]{1, 1, 1, 1, 1, 1});
+    }
+
+    @Test
+    public void verticalNeighborDownPicksAlignedColumn() {
+        RXMasonryPlacement placement = twoTier();
+        // NaN reference uses the source center; down from each tier-0 item lands on the
+        // tier-1 item in the same column.
+        assertEquals(3, placement.verticalNeighbor(0, 1, Double.NaN));
+        assertEquals(4, placement.verticalNeighbor(1, 1, Double.NaN));
+        assertEquals(5, placement.verticalNeighbor(2, 1, Double.NaN));
+    }
+
+    @Test
+    public void verticalNeighborUpReturnsAlignedColumnAbove() {
+        RXMasonryPlacement placement = twoTier();
+        assertEquals(0, placement.verticalNeighbor(3, -1, Double.NaN));
+        assertEquals(1, placement.verticalNeighbor(4, -1, Double.NaN));
+    }
+
+    @Test
+    public void verticalNeighborAtEdgesReturnsMinusOne() {
+        RXMasonryPlacement placement = twoTier();
+        // Nothing above the top tier, nothing below the bottom tier.
+        assertEquals(-1, placement.verticalNeighbor(0, -1, Double.NaN));
+        assertEquals(-1, placement.verticalNeighbor(5, 1, Double.NaN));
+    }
+
+    @Test
+    public void verticalNeighborHonorsPreferredReferenceX() {
+        RXMasonryPlacement placement = twoTier();
+        // Holding x = 160 (column 1's band) makes down from item 0 land in column 1
+        // (item 4) instead of column 0 (item 3) — the anti-drift behavior.
+        assertEquals(4, placement.verticalNeighbor(0, 1, 160.0));
+        // The source item's own center is exposed for seeding the reference.
+        assertEquals(50.0, placement.itemCenterX(0), DELTA);
+        assertEquals(160.0, placement.itemCenterX(1), DELTA);
+    }
+
     @Test
     public void emptyPlacementAnswersAllQueriesSafely() {
         RXMasonryPlacement placement = new RXMasonryPlacement(3, 100.0, 10.0, 5.0, 0.0,

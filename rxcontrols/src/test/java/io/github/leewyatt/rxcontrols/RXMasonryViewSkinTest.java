@@ -4,17 +4,27 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventType;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
+import javafx.scene.control.SelectionMode;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -232,6 +242,254 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    // ==================== Keyboard ====================
+
+    @Test
+    public void verticalArrowNavigatesGeometricallyWithinColumn() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireKey(view, KeyCode.DOWN, false, false); // no focus -> first item
+            assertEquals(0, sm.getSelectedIndex());
+            fireKey(view, KeyCode.DOWN, false, false); // geometric down in column 0 -> item 3
+            assertEquals(3, sm.getSelectedIndex());
+            fireKey(view, KeyCode.DOWN, false, false); // -> item 6
+            assertEquals(6, sm.getSelectedIndex());
+            fireKey(view, KeyCode.UP, false, false);   // -> item 3
+            assertEquals(3, sm.getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void leftRightStepBySourceIndexAndHomeEndJump() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus 0
+            fireKey(view, KeyCode.RIGHT, false, false);
+            assertEquals(1, sm.getSelectedIndex());
+            fireKey(view, KeyCode.RIGHT, false, false);
+            assertEquals(2, sm.getSelectedIndex());
+            fireKey(view, KeyCode.LEFT, false, false);
+            assertEquals(1, sm.getSelectedIndex());
+
+            fireKey(view, KeyCode.END, false, false);
+            assertEquals(59, sm.getSelectedIndex());
+            fireKey(view, KeyCode.HOME, false, false);
+            assertEquals(0, sm.getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void spaceTogglesShiftExtendsAndCtrlASelectsAll() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+            sm.setSelectionMode(SelectionMode.MULTIPLE);
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus + select 0, anchor 0
+            fireKey(view, KeyCode.DOWN, true, false);  // shift + geometric down -> range 0..3 by index
+            assertEquals(List.of(0, 1, 2, 3), List.copyOf(sm.getSelectedIndices()));
+
+            fireKey(view, KeyCode.SPACE, false, false); // toggle the focused lead (3) off
+            assertFalse(sm.isSelected(3));
+
+            fireKey(view, KeyCode.A, false, true);       // Ctrl/Cmd + A
+            assertEquals(60, sm.getSelectedIndices().size());
+        });
+    }
+
+    @Test
+    public void shortcutArrowMovesFocusOnlyWithoutChangingSelection() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus + select 0
+            fireKey(view, KeyCode.DOWN, false, true);  // Shortcut + down: focus only
+            assertEquals(0, sm.getSelectedIndex(), "selection unchanged by Shortcut+arrow");
+            assertTrue(hasFocusRing(cellByIndex(view, 3)), "focus ring moved to item 3");
+        });
+    }
+
+    @Test
+    public void enterActivatesFocusedItem() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            AtomicInteger fired = new AtomicInteger(-1);
+            view.setOnAction(e -> fired.set(e.getIndex()));
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus 0
+            fireKey(view, KeyCode.ENTER, false, false);
+            assertEquals(0, fired.get());
+        });
+    }
+
+    // ==================== Mouse ====================
+
+    @Test
+    public void plainClickSelectsAndFocuses() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 400);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireCellPress(cellByIndex(view, 4), false, false);
+            assertEquals(4, sm.getSelectedIndex());
+            assertTrue(isSelected(cellByIndex(view, 4)));
+            assertTrue(hasFocusRing(cellByIndex(view, 4)));
+        });
+    }
+
+    @Test
+    public void shortcutClickTogglesAndShiftClickExtendsRange() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+            sm.setSelectionMode(SelectionMode.MULTIPLE);
+
+            fireCellPress(cellByIndex(view, 1), false, false);
+            fireCellPress(cellByIndex(view, 4), false, true);  // shortcut adds 4
+            fireCellPress(cellByIndex(view, 7), false, true);  // shortcut adds 7
+            assertTrue(sm.isSelected(1) && sm.isSelected(4) && sm.isSelected(7));
+            fireCellPress(cellByIndex(view, 4), false, true);  // shortcut toggles 4 off
+            assertFalse(sm.isSelected(4));
+
+            fireCellPress(cellByIndex(view, 2), false, false); // anchor 2
+            fireCellPress(cellByIndex(view, 6), true, false);  // shift -> range 2..6
+            assertEquals(List.of(2, 3, 4, 5, 6), List.copyOf(sm.getSelectedIndices()));
+        });
+    }
+
+    @Test
+    public void doubleClickFiresActionEvent() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            AtomicInteger fired = new AtomicInteger(-1);
+            view.setOnAction(e -> fired.set(e.getIndex()));
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            fireDoubleClick(cellByIndex(view, 4));
+            assertEquals(4, fired.get());
+        });
+    }
+
+    @Test
+    public void marqueeFromBlankSpaceSelectsIntersectingCells() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(6);
+            view.setColumnCount(3);
+            view.setHgap(10);
+            view.setVgap(10);
+            StackPane root = host(view, 340, 400);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            // Content is two ~100px tiers (< 400), so below ~210px is blank space.
+            Node viewport = view.lookup(".viewport");
+            assertFalse(selectionRectangle(view).isVisible(), "overlay hidden before drag");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 50, 380, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 300, 5, true);
+            assertTrue(selectionRectangle(view).isVisible(), "overlay visible during drag");
+            fireMouse(viewport, MouseEvent.MOUSE_RELEASED, 300, 5, false);
+            pump(root);
+
+            // The rect [50,300] x [5,380] in content space covers all six cells (two
+            // ~106px-wide tiers within x and y).
+            assertEquals(List.of(0, 1, 2, 3, 4, 5), List.copyOf(sm.getSelectedIndices()));
+            assertFalse(selectionRectangle(view).isVisible(), "overlay hidden after release");
+        });
+    }
+
+    @Test
+    public void escapeCancelsAnArmedMarquee() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(6);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 400);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 50, 380, true);
+            fireMouse(viewport, MouseEvent.MOUSE_DRAGGED, 300, 5, true);
+            assertTrue(selectionRectangle(view).isVisible());
+
+            fireKey(view, KeyCode.ESCAPE, false, false);
+            assertFalse(selectionRectangle(view).isVisible(), "Escape cancels the marquee");
+        });
+    }
+
+    @Test
+    public void pageDownAndUpWalkAndStopAtEdges() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(120);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus 0
+            fireKey(view, KeyCode.PAGE_DOWN, false, false);
+            int first = sm.getSelectedIndex();
+            assertTrue(first > 3 && first % 3 == 0, "PageDown walks several rows in column 0, got " + first);
+            fireKey(view, KeyCode.PAGE_DOWN, false, false);
+            int second = sm.getSelectedIndex();
+            assertTrue(second > first, "a second PageDown advances further");
+            fireKey(view, KeyCode.PAGE_UP, false, false);
+            assertTrue(sm.getSelectedIndex() < second, "PageUp walks back");
+
+            fireKey(view, KeyCode.END, false, false);
+            fireKey(view, KeyCode.PAGE_DOWN, false, false);
+            assertEquals(119, sm.getSelectedIndex(), "PageDown at the bottom does not move");
+        });
+    }
+
+    @Test
+    public void horizontalNavResetsTheHeldVerticalColumn() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+
+            fireKey(view, KeyCode.DOWN, false, false); // focus 0 (column 0)
+            fireKey(view, KeyCode.DOWN, false, false); // hold column 0 -> item 3
+            assertEquals(3, sm.getSelectedIndex());
+            fireKey(view, KeyCode.RIGHT, false, false); // -> item 4 (column 1), resets the held x
+            assertEquals(4, sm.getSelectedIndex());
+            fireKey(view, KeyCode.DOWN, false, false); // re-seeds from item 4's column -> item 7
+            assertEquals(7, sm.getSelectedIndex(),
+                    "after RIGHT the held column is re-seeded, so DOWN stays in column 1");
+        });
+    }
+
     // ==================== Helpers ====================
 
     // An image-gallery-style view: each item's height comes from its index, so the
@@ -244,6 +502,56 @@ public class RXMasonryViewSkinTest {
         RXMasonryView<Integer> view = new RXMasonryView<>(items);
         view.setCellHeightProvider(ctx -> 100.0 + (ctx.index() % 4) * 30.0);
         return view;
+    }
+
+    // Uniform cell heights so columns line up in predictable tiers for keyboard tests.
+    private static RXMasonryView<Integer> uniformGallery(int count) {
+        ObservableList<Integer> items = FXCollections.observableArrayList();
+        for (int i = 0; i < count; i++) {
+            items.add(i);
+        }
+        RXMasonryView<Integer> view = new RXMasonryView<>(items);
+        view.setCellHeightProvider(context -> 100.0);
+        return view;
+    }
+
+    private static void fireKey(Node target, KeyCode code, boolean shift, boolean shortcut) {
+        target.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, shift, shortcut, false, shortcut));
+    }
+
+    private static void fireCellPress(Node cell, boolean shift, boolean shortcut) {
+        cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+                shift, shortcut, false, shortcut, true, false, false, false, false, true,
+                new PickResult(cell, 0, 0)));
+    }
+
+    private static void fireDoubleClick(Node cell) {
+        cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 2,
+                false, false, false, false, false, false, false, false, false, true,
+                new PickResult(cell, 0, 0)));
+    }
+
+    private static void fireMouse(Node target, EventType<MouseEvent> type, double x, double y,
+                                  boolean primaryDown) {
+        target.fireEvent(new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1,
+                false, false, false, false, primaryDown, false, false, false, false, false,
+                new PickResult(target, x, y)));
+    }
+
+    private static boolean isSelected(RXMasonryCell<?> cell) {
+        return cell != null && cell.getPseudoClassStates().stream()
+                .anyMatch(pc -> pc.getPseudoClassName().equals("selected"));
+    }
+
+    private static boolean hasFocusRing(RXMasonryCell<?> cell) {
+        return cell != null && cell.getPseudoClassStates().stream()
+                .anyMatch(pc -> pc.getPseudoClassName().equals("focused"));
+    }
+
+    private static Node selectionRectangle(RXMasonryView<?> view) {
+        Node rectangle = view.lookup(".selection-rectangle");
+        assertNotNull(rectangle);
+        return rectangle;
     }
 
     private static int liveCellCount(RXMasonryView<?> view) {
