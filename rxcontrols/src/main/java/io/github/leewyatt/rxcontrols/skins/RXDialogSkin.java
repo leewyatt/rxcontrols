@@ -82,9 +82,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private static final int EDGE_SOUTH = 1 << 3;
 
     private final Region overlay = new Region();
-    private final StackPane dialogCard = new StackPane();
+    // The visible card. A VBox so it lays out the content (vgrow) above the action bar directly,
+    // with the background / shadow / size on the same node — no extra wrapper.
+    private final VBox dialogCard = new VBox();
     private final StackPane contentWrapper = new StackPane();
-    private final VBox cardBody = new VBox();
     // The action bar (a ButtonBar for PLATFORM, else an RXBox), rebuilt when buttonTypes
     // or actionsLayout change; null when there are no buttons.
     private Region actionsNode;
@@ -161,7 +162,6 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
         overlay.getStyleClass().add("overlay");
         dialogCard.getStyleClass().add("dialog-card");
-        cardBody.getStyleClass().add("card-body");
         contentWrapper.getStyleClass().add("content-wrapper");
 
         // The card catches clicks across its whole bounds so a click on it never
@@ -170,9 +170,10 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         // Last-resort focus target when modal and nothing inside is focusable.
         dialogCard.setFocusTraversable(true);
 
+        // The card lays out the content (filling the free space) above the action bar; the
+        // action bar is appended after contentWrapper by rebuildActions when there are buttons.
         VBox.setVgrow(contentWrapper, Priority.ALWAYS);
-        cardBody.getChildren().setAll(contentWrapper);
-        dialogCard.getChildren().setAll(cardBody);
+        dialogCard.getChildren().setAll(contentWrapper);
 
         getChildren().setAll(overlay, dialogCard);
 
@@ -257,7 +258,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void rebuildActions() {
         if (actionsNode != null) {
-            cardBody.getChildren().remove(actionsNode);
+            dialogCard.getChildren().remove(actionsNode);
             actionsNode = null;
         }
         List<RXButton> buttons = new ArrayList<>();
@@ -271,7 +272,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
         actionsNode = buildActionsContainer(buttons);
         actionsNode.getStyleClass().add("actions");
-        cardBody.getChildren().add(actionsNode);
+        dialogCard.getChildren().add(actionsNode);
     }
 
     // PLATFORM keeps the native ButtonBar (OS order, trailing-aligned). BOX (default) is a

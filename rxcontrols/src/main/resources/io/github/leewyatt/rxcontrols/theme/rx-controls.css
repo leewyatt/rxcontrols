@@ -1014,7 +1014,7 @@
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 8);
 }
 
-.rx-dialog > .dialog-card > .card-body > .actions {
+.rx-dialog > .dialog-card > .actions {
     -fx-padding: 8 16 16 16;
     /* the default BOX layout is an RXBox styled here (centered + spaced); change
        -rx-alignment / -rx-spacing / -rx-orientation to taste, and give the buttons an

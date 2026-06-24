@@ -10,6 +10,7 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -454,6 +455,29 @@ public class RXDialogTest {
     }
 
     @Test
+    public void actionsStyleResolvesThroughTheFlattenedCard() throws Exception {
+        // Guards selector liveness after merging cardBody into the card: the action bar is now a
+        // direct child of .dialog-card, so .dialog-card > .actions (not > .card-body > .actions)
+        // must still apply its padding. lookup finds the node by style class regardless, so only
+        // the resolved padding proves the rule still matches.
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
+            Region owner = new Region();
+            StackPane root = new StackPane(owner);
+            new Scene(root, 400, 300);
+            dialog.show(owner);
+            root.applyCss();
+            root.layout();
+
+            Region actions = (Region) dialog.lookup(".actions");
+            assertNotNull(actions, "the action bar exists");
+            assertEquals(new Insets(8, 16, 16, 16), actions.getPadding(),
+                    "actions padding resolves through .dialog-card > .actions");
+            dialog.close();
+        });
+    }
+
+    @Test
     public void showWithoutOwnerOrContainerThrows() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
@@ -483,7 +507,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double x0 = card.getLayoutX();
             double y0 = card.getLayoutY();
 
@@ -501,7 +525,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             // Fling far past the edges; the per-frame clamp must keep the card fully visible.
             pressDragRelease(card, card.getWidth() / 2, 24, 100_000, 100_000);
@@ -520,7 +544,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableDraggable(true);
             StackPane root = showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             pressDragRelease(card, card.getWidth() / 2, 24, 300, 200);
 
             // Shrink the scene: the card must be pulled back into view (raw offset preserved).
@@ -540,7 +564,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double x0 = card.getLayoutX();
             double w0 = card.getWidth();
 
@@ -558,7 +582,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double right0 = card.getLayoutX() + card.getWidth();
             double w0 = card.getWidth();
 
@@ -578,7 +602,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double bottom0 = card.getLayoutY() + card.getHeight();
             double h0 = card.getHeight();
 
@@ -600,7 +624,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double y0 = card.getLayoutY();
             double h0 = card.getHeight();
 
@@ -618,7 +642,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double x0 = card.getLayoutX();
             double y0 = card.getLayoutY();
             double w0 = card.getWidth();
@@ -646,7 +670,7 @@ public class RXDialogTest {
             dialog.setEnableResizable(true);
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double w0 = card.getWidth();
 
             pressDragRelease(card, w0 - 3, card.getHeight() / 2, 100, 0);
@@ -673,7 +697,7 @@ public class RXDialogTest {
             dialog.setEnableResizable(true);
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, 100, 0); // resize east
             double w1 = card.getWidth();
@@ -698,7 +722,7 @@ public class RXDialogTest {
             // stay well-defined and never throw (spec §3.4 #1 uses boundedSize + Math.min/max,
             // never RXMath.clamp which throws when min > max).
             showAndLayout(dialog, 120, 120);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             assertNotNull(card, "card lays out in a tiny scene");
             double w0 = card.getWidth();
             assertTrue(w0 > 0 && Double.isFinite(w0), "card keeps a sane size in a tiny scene");
@@ -719,7 +743,7 @@ public class RXDialogTest {
             content.setShowClose(true);
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             Node closeButton = dialog.lookup(".close-button");
             assertNotNull(closeButton, "showClose adds the close button");
             double x0 = card.getLayoutX();
@@ -743,7 +767,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double x0 = card.getLayoutX();
 
             Point2D press = card.localToScene(card.getWidth() / 2, 24);
@@ -770,7 +794,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableResizable(true);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double w0 = card.getWidth();
 
             Point2D press = card.localToScene(card.getWidth() - 3, card.getHeight() / 2);
@@ -826,7 +850,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setCardPrefWidth(380);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             assertEquals(380, card.getWidth(), 1.0, "the card opens at cardPrefWidth");
             dialog.close();
@@ -840,7 +864,7 @@ public class RXDialogTest {
             dialog.setEnableResizable(true);
             dialog.setCardMaxWidth(420);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             assertEquals(800, dialog.getWidth(), 1.0,
                     "the control still fills the scene (the card bound did not leak to the control)");
@@ -860,7 +884,7 @@ public class RXDialogTest {
             dialog.setCardPrefWidth(500);
             dialog.setCardMinWidth(320);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             assertEquals(500, card.getWidth(), 1.0, "opens at cardPrefWidth");
 
             pressDragRelease(card, card.getWidth() - 3, card.getHeight() / 2, -400, 0); // shrink east edge
@@ -878,7 +902,7 @@ public class RXDialogTest {
             dialog.setCardMaxWidth(350); // min > max (unreasonable)
             dialog.setCardPrefWidth(400);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             // boundedSize makes min win (mirrors JFX Region.boundedSize); no exception.
             assertEquals(550, card.getWidth(), 1.0, "min wins when min > max");
@@ -893,7 +917,7 @@ public class RXDialogTest {
             dialog.setEnableResizable(true);
             dialog.setCardMaxHeight(420);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
 
             assertEquals(600, dialog.getHeight(), 1.0,
                     "the control still fills the scene height (the card bound did not leak)");
@@ -916,7 +940,7 @@ public class RXDialogTest {
             dialog.setCardPrefWidth(400);
             dialog.setCardMaxWidth(0);
             showAndLayout(dialog, 800, 600);
-            StackPane card = card(dialog);
+            Region card = card(dialog);
             double w0 = card.getWidth();
             double x0 = card.getLayoutX();
             assertEquals(RXDialog.DEFAULT_CARD_MIN_WIDTH, w0, 1.0, "a 0 max collapses the card to its min");
@@ -966,8 +990,8 @@ public class RXDialogTest {
         return root;
     }
 
-    private static StackPane card(RXDialog<?> dialog) {
-        return (StackPane) dialog.lookup(".dialog-card");
+    private static Region card(RXDialog<?> dialog) {
+        return (Region) dialog.lookup(".dialog-card");
     }
 
     // Fires a full press -> drag -> release on the card (local press point, scene-space delta),
