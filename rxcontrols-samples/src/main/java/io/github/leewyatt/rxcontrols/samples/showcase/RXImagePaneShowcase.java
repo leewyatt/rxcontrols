@@ -29,7 +29,7 @@ import java.util.List;
 public class RXImagePaneShowcase extends RXShowcaseApplication {
 
     private static final double PREVIEW_WIDTH = 380.0;
-    private static final double PREVIEW_HEIGHT = 250.0;
+    private static final double PREVIEW_HEIGHT = 260.0;
 
     private RXImagePane imagePane;
     private Region scrim;

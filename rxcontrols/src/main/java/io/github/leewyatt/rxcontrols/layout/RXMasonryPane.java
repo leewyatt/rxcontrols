@@ -70,7 +70,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Default target column width used to derive the responsive column count.
      */
-    private static final double DEFAULT_COLUMN_WIDTH = 250.0;
+    private static final double DEFAULT_COLUMN_WIDTH = 260.0;
 
     /**
      * Default horizontal gap between columns.
