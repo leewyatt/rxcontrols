@@ -24,13 +24,14 @@ import javafx.scene.control.ButtonType;
 public interface RXDialogAware {
 
     /**
-     * Sets (or, with {@code null}, clears) the hosting dialog. This is the host's
+     * Updates (or, with {@code null}, clears) the hosting dialog. This is the host's
      * write channel for the otherwise read-only {@link #dialogProperty() dialog}
      * property: {@code dialogProperty()} is read-only to <em>observers</em> (they may
      * listen but not write or bind it), while {@link RXDialog} injects the value here
-     * when this node becomes — or stops being — its content. It is {@code public}
-     * only because this is an interface method an {@code RXDialog} in another package
-     * must be able to call; it is <strong>not</strong> intended for application code.
+     * when this node becomes — or stops being — its content. Named {@code update*} (as
+     * with {@code ListCell.updateListView}) because it is {@code public} only so an
+     * {@code RXDialog} in another package can call it; it is <strong>not</strong> a
+     * setter for application code.
      *
      * <p>The value is host-controlled: anything an application sets is overwritten the
      * next time the node is added to or removed from a dialog's
@@ -38,7 +39,7 @@ public interface RXDialogAware {
      *
      * @param dialog the hosting dialog, or {@code null} when detached
      */
-    void setDialog(RXDialog<?> dialog);
+    void updateDialog(RXDialog<?> dialog);
 
     /**
      * Returns the hosting dialog, or {@code null} when this node is not currently an

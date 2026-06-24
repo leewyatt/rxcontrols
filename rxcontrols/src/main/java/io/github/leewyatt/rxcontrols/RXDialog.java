@@ -163,12 +163,12 @@ public class RXDialog<R> extends Control {
         protected void invalidated() {
             // Inject this dialog into RXDialogAware content (clearing the previous one) so the
             // content — e.g. an RXDialogContent header close button — can drive the dialog.
-            // The tracked field is updated before each setDialog notification so a re-entrant
+            // The tracked field is updated before each updateDialog notification so a re-entrant
             // setContent (from a dialogProperty listener) always observes a consistent state.
             RXDialogAware previous = awareContent;
             awareContent = null;
             if (previous != null) {
-                previous.setDialog(null);
+                previous.updateDialog(null);
             }
             if (get() instanceof RXDialogAware aware) {
                 // A node lives in one place: if it is another dialog's tracked content, release
@@ -178,7 +178,7 @@ public class RXDialog<R> extends Control {
                     prior.releaseAwareContent(aware);
                 }
                 awareContent = aware;
-                aware.setDialog(RXDialog.this);
+                aware.updateDialog(RXDialog.this);
             }
         }
     };
