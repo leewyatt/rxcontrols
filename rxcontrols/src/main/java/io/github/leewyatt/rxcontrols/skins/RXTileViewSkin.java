@@ -2,12 +2,12 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXTileCell;
-import io.github.leewyatt.rxcontrols.RXTileSelectionModel;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
-import io.github.leewyatt.rxcontrols.internal.RXTileSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -77,7 +77,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
     private ObservableList<T> observedItems;
 
-    private final RXTileFocusModel<T> focusModel;
+    private final RXIndexedFocusModel<T> focusModel;
     private MultipleSelectionModel<T> observedSelectionModel;
     private final ListChangeListener<Integer> selectionListener = change -> onSelectionChanged();
     private final ChangeListener<Number> selectedIndexListener = (obs, oldIndex, newIndex) -> syncFocusSelectionLead();
@@ -124,7 +124,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
                 event -> onMarqueeAutoScroll()));
         marqueeAutoScroll.setCycleCount(Animation.INDEFINITE);
 
-        focusModel = new RXTileFocusModel<>(control);
+        focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
 
         attachItems(control.getItems());
@@ -457,7 +457,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void syncFocusSelectionLead() {
-        if (!RXTileSelectionMutationGuard.isActive(observedSelectionModel)) {
+        if (!RXIndexedSelectionMutationGuard.isActive(observedSelectionModel)) {
             focusModel.syncSelectionLeadState();
         }
     }
@@ -861,9 +861,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private void clearAndSelectRange(MultipleSelectionModel<T> selectionModel, int anchor, int target) {
         int end = target >= anchor ? target + 1 : target - 1;
-        if (selectionModel instanceof RXTileSelectionModel<?> rxSelectionModel) {
+        if (selectionModel instanceof RXIndexedSelectionModel<?> rxSelectionModel) {
             @SuppressWarnings("unchecked")
-            RXTileSelectionModel<T> typedModel = (RXTileSelectionModel<T>) rxSelectionModel;
+            RXIndexedSelectionModel<T> typedModel = (RXIndexedSelectionModel<T>) rxSelectionModel;
             typedModel.clearAndSelectRange(anchor, end);
         } else {
             selectionModel.clearSelection();
@@ -872,9 +872,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private void clearAndSelectIndices(MultipleSelectionModel<T> selectionModel, List<Integer> indices, int lead) {
-        if (selectionModel instanceof RXTileSelectionModel<?> rxSelectionModel) {
+        if (selectionModel instanceof RXIndexedSelectionModel<?> rxSelectionModel) {
             @SuppressWarnings("unchecked")
-            RXTileSelectionModel<T> typedModel = (RXTileSelectionModel<T>) rxSelectionModel;
+            RXIndexedSelectionModel<T> typedModel = (RXIndexedSelectionModel<T>) rxSelectionModel;
             typedModel.clearAndSelectIndices(indices, lead);
             return;
         }

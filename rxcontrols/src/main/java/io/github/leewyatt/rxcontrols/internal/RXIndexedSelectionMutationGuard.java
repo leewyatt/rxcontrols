@@ -6,15 +6,16 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
- * Thread-local guard used while {@code RXTileSelectionModel} updates selection
- * in response to an items-list mutation.
+ * Thread-local guard used while an {@code RXIndexedSelectionModel} updates
+ * selection in response to an items-list mutation, so a skin can tell that the
+ * change came from a list mutation rather than a user action.
  */
-public final class RXTileSelectionMutationGuard {
+public final class RXIndexedSelectionMutationGuard {
 
     private static final ThreadLocal<Map<MultipleSelectionModel<?>, Integer>> ACTIVE =
             ThreadLocal.withInitial(IdentityHashMap::new);
 
-    private RXTileSelectionMutationGuard() {
+    private RXIndexedSelectionMutationGuard() {
     }
 
     /**

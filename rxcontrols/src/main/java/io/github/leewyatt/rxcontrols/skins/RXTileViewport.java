@@ -78,7 +78,7 @@ final class RXTileViewport<T> extends Region {
 
     // The skin's internal focus model; selection comes from the control. Both feed
     // the per-cell :selected / focus-ring state, re-applied on every (re)bind.
-    private RXTileFocusModel<T> focusModel;
+    private RXIndexedFocusModel<T> focusModel;
 
     private double scrollY;
     private boolean adjustingScrollBar;
@@ -281,7 +281,7 @@ final class RXTileViewport<T> extends Region {
         return indices;
     }
 
-    void setFocusModel(RXTileFocusModel<T> focusModel) {
+    void setFocusModel(RXIndexedFocusModel<T> focusModel) {
         this.focusModel = focusModel;
     }
 

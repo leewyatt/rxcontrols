@@ -23,13 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Contract tests for {@link RXTileSelectionModel}: single/multiple selection,
+ * Contract tests for {@link RXIndexedSelectionModel}: single/multiple selection,
  * the sorted-distinct {@code selectedIndices} / derived {@code selectedItems}
  * observable lists, coalesced changes, and selection maintenance as the items
  * list mutates (add/remove shift, removal drop, permutation re-map, swap). No
  * skin or layout is involved — the model is exercised directly.
  */
-public class RXTileSelectionModelTest {
+public class RXIndexedSelectionModelTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -56,7 +56,7 @@ public class RXTileSelectionModelTest {
     public void defaultModelIsSingleAndNonNull() {
         MultipleSelectionModel<String> sm = view(5).getSelectionModel();
         assertNotNull(sm);
-        assertInstanceOf(RXTileSelectionModel.class, sm);
+        assertInstanceOf(RXIndexedSelectionModel.class, sm);
         assertSame(SelectionMode.SINGLE, sm.getSelectionMode());
         assertTrue(sm.isEmpty());
         assertEquals(-1, sm.getSelectedIndex());
@@ -128,7 +128,7 @@ public class RXTileSelectionModelTest {
 
     @Test
     public void clearAndSelectRangeEmitsOneChangeWithoutIntermediateClear() {
-        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        RXIndexedSelectionModel<String> sm = (RXIndexedSelectionModel<String>) view(10).getSelectionModel();
         sm.setSelectionMode(SelectionMode.MULTIPLE);
         sm.select(0);
         List<List<Integer>> snapshots = new ArrayList<>();
@@ -146,7 +146,7 @@ public class RXTileSelectionModelTest {
 
     @Test
     public void clearAndSelectRangeDescendingKeepsTargetAsLead() {
-        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        RXIndexedSelectionModel<String> sm = (RXIndexedSelectionModel<String>) view(10).getSelectionModel();
         sm.setSelectionMode(SelectionMode.MULTIPLE);
 
         sm.clearAndSelectRange(3, -1);
@@ -157,7 +157,7 @@ public class RXTileSelectionModelTest {
 
     @Test
     public void clearAndSelectIndicesEmitsOneChangeWithoutIntermediateClear() {
-        RXTileSelectionModel<String> sm = (RXTileSelectionModel<String>) view(10).getSelectionModel();
+        RXIndexedSelectionModel<String> sm = (RXIndexedSelectionModel<String>) view(10).getSelectionModel();
         sm.setSelectionMode(SelectionMode.MULTIPLE);
         sm.select(0);
         List<List<Integer>> snapshots = new ArrayList<>();

@@ -2117,7 +2117,7 @@ public class RXTileViewSkinTest {
             pump(root);
             assertTrue(isSelected(cellByIndex(view, 0)));
 
-            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
             view.setSelectionModel(newModel);
             pump(root);
             assertFalse(isSelected(cellByIndex(view, 0)), "the old selection is gone after the swap");
@@ -2297,7 +2297,7 @@ public class RXTileViewSkinTest {
             fireMousePressed(cellByIndex(view, 8), false, false); // anchor + focus at 8
             pump(root);
 
-            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
             newModel.setSelectionMode(SelectionMode.MULTIPLE);
             view.setSelectionModel(newModel);
             pump(root);
@@ -2424,7 +2424,7 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 400, 400);
             pump(root);
 
-            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
             newModel.setSelectionMode(SelectionMode.MULTIPLE);
             view.setSelectionModel(newModel);
             ObservableList<String> newItems = items(20);
@@ -2447,7 +2447,7 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 400, 400);
             pump(root);
 
-            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
             newModel.setSelectionMode(SelectionMode.MULTIPLE);
             view.setSelectionModel(newModel);
             ObservableList<String> newItems = items(20);
@@ -2479,7 +2479,7 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 500, 240);
             pump(root);
 
-            RXTileSelectionModel<String> newModel = new RXTileSelectionModel<>(view);
+            RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
             view.setSelectionModel(newModel);
             ObservableList<String> items = FXCollections.observableArrayList(
                     "0", "1", "2", "3", "4", null, null, "7");

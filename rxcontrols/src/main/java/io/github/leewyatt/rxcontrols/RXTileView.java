@@ -1019,10 +1019,10 @@ public class RXTileView<T> extends Control {
     // ==================== Selection Model ====================
 
     private final ObjectProperty<MultipleSelectionModel<T>> selectionModel =
-            new SimpleObjectProperty<>(this, "selectionModel", new RXTileSelectionModel<>(this));
+            new SimpleObjectProperty<>(this, "selectionModel", new RXIndexedSelectionModel<>(itemsProperty()));
 
     /**
-     * The selection model. Defaults to a non-null {@link RXTileSelectionModel} in
+     * The selection model. Defaults to a non-null {@link RXIndexedSelectionModel} in
      * single-selection mode; switch to multiple selection via
      * {@code getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE)}.
      *

@@ -1,8 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.internal.RXTileSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -17,10 +18,12 @@ import java.util.List;
 import java.util.TreeSet;
 
 /**
- * Default {@link MultipleSelectionModel} for {@link RXTileView}. JavaFX exposes
- * no reusable public multiple-selection implementation (the {@code TableView} /
- * {@code ListView} models hang off {@code com.sun} internals), so this is
- * hand-rolled on the public API.
+ * Reusable index-based {@link MultipleSelectionModel} for virtualized,
+ * data-driven RX controls (such as {@link RXTileView} and {@code RXMasonryView}).
+ * JavaFX exposes no reusable public multiple-selection implementation (the
+ * {@code TableView} / {@code ListView} models hang off {@code com.sun} internals),
+ * so this is hand-rolled on the public API and bound only to an items property —
+ * not to any one control — so both controls share it directly.
  *
  * <p>The selected indices are kept in a sorted, distinct observable list — the
  * read-only {@link #getSelectedIndices()} view — which fires precise list changes
@@ -37,9 +40,9 @@ import java.util.TreeSet;
  *
  * @param <T> the item type
  */
-public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
+public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
 
-    private final RXTileView<T> tileView;
+    private final ObservableValue<? extends ObservableList<T>> itemsProperty;
 
     private final ObservableList<Integer> selectedIndicesBacking = FXCollections.observableArrayList();
     private final ObservableList<Integer> selectedIndicesView =
@@ -62,19 +65,20 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     private int pendingLeadRevertFrom = -1;
 
     /**
-     * Creates a selection model bound to the given tile view's items.
+     * Creates a selection model bound to the given items property. The property is
+     * observed for list swaps, and its current value for content mutations.
      *
-     * @param tileView the owning tile view
+     * @param itemsProperty the observable items property to track
      */
-    public RXTileSelectionModel(RXTileView<T> tileView) {
-        this.tileView = tileView;
+    public RXIndexedSelectionModel(ObservableValue<? extends ObservableList<T>> itemsProperty) {
+        this.itemsProperty = itemsProperty;
         selectedIndicesBacking.addListener((ListChangeListener<Integer>) change -> syncSelectedItems());
 
-        itemsSwapListener = obs -> attachItems(tileView.getItems());
+        itemsSwapListener = obs -> attachItems(getItems());
         // Weak so a replaced model (setSelectionModel) is not pinned by the live
         // items property / list (AGENTS §3.1).
-        tileView.itemsProperty().addListener(new WeakInvalidationListener(itemsSwapListener));
-        attachItems(tileView.getItems());
+        itemsProperty.addListener(new WeakInvalidationListener(itemsSwapListener));
+        attachItems(getItems());
     }
 
     // ==================== Selected indices / items ====================
@@ -121,7 +125,7 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
 
     @Override
     public void select(T obj) {
-        ObservableList<T> items = tileView.getItems();
+        ObservableList<T> items = getItems();
         if (items != null) {
             int index = items.indexOf(obj);
             if (index >= 0) {
@@ -346,7 +350,7 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     // new list (collapsing any multi-selection to that item), else clear.
     private void resolveSelectionForNewList() {
         T leadItem = getSelectedItem();
-        ObservableList<T> items = tileView.getItems();
+        ObservableList<T> items = getItems();
         int index = (leadItem != null && items != null) ? items.indexOf(leadItem) : -1;
         if (index >= 0) {
             setSelectedIndex(index);
@@ -362,9 +366,9 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     }
 
     private void onItemsChanged(ListChangeListener.Change<? extends T> change) {
-        RXTileSelectionMutationGuard.enter(this);
+        RXIndexedSelectionMutationGuard.enter(this);
         try {
-            ObservableList<T> items = tileView.getItems();
+            ObservableList<T> items = getItems();
             int itemCount = items == null ? 0 : items.size();
             if (itemCount == 0) {
                 clearSelection();
@@ -383,7 +387,7 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
             updateLeadAfterItemsChange();
             syncSelectedItems();
         } finally {
-            RXTileSelectionMutationGuard.exit(this);
+            RXIndexedSelectionMutationGuard.exit(this);
         }
     }
 
@@ -471,7 +475,7 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
         // No selection: re-resolve a remembered item (a prior select(T) miss whose
         // item later appeared), else clear so no removed item dangles on the lead.
         T leadItem = getSelectedItem();
-        ObservableList<T> items = tileView.getItems();
+        ObservableList<T> items = getItems();
         if (leadItem != null && items != null) {
             int index = items.indexOf(leadItem);
             if (index >= 0) {
@@ -507,15 +511,19 @@ public class RXTileSelectionModel<T> extends MultipleSelectionModel<T> {
     }
 
     private int getItemCount() {
-        ObservableList<T> items = tileView.getItems();
+        ObservableList<T> items = getItems();
         return items == null ? 0 : items.size();
     }
 
     private T getModelItem(int index) {
-        ObservableList<T> items = tileView.getItems();
+        ObservableList<T> items = getItems();
         if (items == null || index < 0 || index >= items.size()) {
             return null;
         }
         return items.get(index);
+    }
+
+    private ObservableList<T> getItems() {
+        return itemsProperty.getValue();
     }
 }
