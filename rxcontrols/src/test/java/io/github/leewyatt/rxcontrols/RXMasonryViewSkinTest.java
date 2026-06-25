@@ -5,8 +5,10 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
@@ -18,6 +20,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -426,6 +429,71 @@ public class RXMasonryViewSkinTest {
             // ~106px-wide tiers within x and y).
             assertEquals(List.of(0, 1, 2, 3, 4, 5), List.copyOf(sm.getSelectedIndices()));
             assertFalse(selectionRectangle(view).isVisible(), "overlay hidden after release");
+        });
+    }
+
+    @Test
+    public void marqueeCanStartFromControlPadding() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(6);
+            view.setPadding(new Insets(30.0));
+            view.setColumnCount(3);
+            view.setHgap(10);
+            view.setVgap(10);
+            StackPane root = host(view, 400, 460);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(view, MouseEvent.MOUSE_PRESSED,
+                    viewport.getLayoutX() - 10.0, viewport.getLayoutY() + 380.0, true);
+            fireMouse(view, MouseEvent.MOUSE_DRAGGED,
+                    viewport.getLayoutX() + 300.0, viewport.getLayoutY() + 5.0, true);
+            Rectangle overlay = (Rectangle) selectionRectangle(view);
+            assertTrue(overlay.isVisible(), "overlay visible during drag");
+            assertTrue(overlay.getX() < viewport.getLayoutX(), "overlay extends into the padding start area");
+            fireMouse(view, MouseEvent.MOUSE_RELEASED,
+                    viewport.getLayoutX() + 300.0, viewport.getLayoutY() + 5.0, false);
+            pump(root);
+
+            assertEquals(List.of(0, 1, 2, 3, 4, 5), List.copyOf(view.getSelectionModel().getSelectedIndices()),
+                    "left padding is usable marquee-start whitespace");
+            assertFalse(selectionRectangle(view).isVisible(), "overlay hidden after release");
+        });
+    }
+
+    @Test
+    public void marqueeOverlayDoesNotCoverVerticalScrollBar() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(120);
+            view.setPadding(new Insets(0.0, 50.0, 0.0, 0.0));
+            view.setColumnCount(3);
+            view.setHgap(10);
+            view.setVgap(10);
+            view.setPrefSize(390, 240);
+            view.setMaxSize(390, 240);
+            StackPane root = host(view, 390, 240);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            double barLeft = vbar.getLayoutX();
+            assertTrue(vbar.isVisible(), "setup has a vertical scroll bar");
+
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 50, 105, true);
+            fireMouse(view, MouseEvent.MOUSE_DRAGGED,
+                    view.getWidth(),
+                    viewport.getLayoutY() + 5.0, true);
+
+            Rectangle overlay = (Rectangle) selectionRectangle(view);
+            assertTrue(overlay.isVisible(), "overlay visible during drag");
+            double overlayRight = overlay.getX() + overlay.getWidth();
+            assertTrue(overlayRight > barLeft + vbar.getWidth() - 0.1,
+                    "overlay reaches past the scroll bar into the right padding");
+            List<Node> children = ((Parent) viewport).getChildrenUnmodifiable();
+            assertTrue(children.indexOf(overlay) < children.indexOf(vbar),
+                    "the scroll bar is rendered above the marquee overlay");
         });
     }
 

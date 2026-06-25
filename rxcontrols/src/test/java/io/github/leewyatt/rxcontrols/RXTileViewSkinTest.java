@@ -8,7 +8,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
@@ -1821,6 +1823,75 @@ public class RXTileViewSkinTest {
             assertEquals(7, sm.getSelectedIndex());
             assertEquals(List.of(List.of(1, 4, 7)), snapshots);
             assertFalse(selectionRectangle(view).isVisible(), "marquee overlay is hidden after release");
+        });
+    }
+
+    @Test
+    public void marqueeCanStartFromControlPadding() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setPadding(new Insets(30.0));
+            view.setMaxColumns(3);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(30);
+            view.setHgap(10);
+            view.setVgap(10);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 220, 220);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            fireMouse(view, MouseEvent.MOUSE_PRESSED,
+                    viewport.getLayoutX() - 12.0, viewport.getLayoutY() + 5.0, true);
+            fireMouse(view, MouseEvent.MOUSE_DRAGGED,
+                    viewport.getLayoutX() + 88.0, viewport.getLayoutY() + 110.0, true);
+            Rectangle overlay = (Rectangle) selectionRectangle(view);
+            assertTrue(overlay.isVisible(), "marquee overlay is visible during drag");
+            assertTrue(overlay.getX() < viewport.getLayoutX(), "overlay extends into the padding start area");
+            fireMouse(view, MouseEvent.MOUSE_RELEASED,
+                    viewport.getLayoutX() + 88.0, viewport.getLayoutY() + 110.0, false);
+            pump(root);
+
+            assertEquals(List.of(0, 1, 3, 4, 6, 7), view.getSelectionModel().getSelectedIndices(),
+                    "left padding is usable marquee-start whitespace");
+            assertFalse(selectionRectangle(view).isVisible(), "marquee overlay is hidden after release");
+        });
+    }
+
+    @Test
+    public void marqueeOverlayDoesNotCoverVerticalScrollBar() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setStyle("-fx-padding: 0 50 0 0;");
+            view.setMaxColumns(3);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(30);
+            view.setHgap(10);
+            view.setVgap(10);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            view.setPrefSize(230, 160);
+            view.setMaxSize(230, 160);
+            StackPane root = host(view, 230, 160);
+            pump(root);
+
+            Node viewport = view.lookup(".viewport");
+            ScrollBar vbar = (ScrollBar) view.lookup(".scroll-bar");
+            double barLeft = vbar.getLayoutX();
+            assertTrue(vbar.isVisible(), "setup has a vertical scroll bar");
+
+            fireMouse(viewport, MouseEvent.MOUSE_PRESSED, 45, 5, true);
+            fireMouse(view, MouseEvent.MOUSE_DRAGGED,
+                    view.getWidth(),
+                    viewport.getLayoutY() + 120.0, true);
+
+            Rectangle overlay = (Rectangle) selectionRectangle(view);
+            assertTrue(overlay.isVisible(), "marquee overlay is visible during drag");
+            double overlayRight = overlay.getX() + overlay.getWidth();
+            assertTrue(overlayRight > barLeft + vbar.getWidth() - 0.1,
+                    "overlay reaches past the scroll bar into the right padding");
+            List<Node> children = ((Parent) viewport).getChildrenUnmodifiable();
+            assertTrue(children.indexOf(overlay) < children.indexOf(vbar),
+                    "the scroll bar is rendered above the marquee overlay");
         });
     }
 

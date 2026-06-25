@@ -159,6 +159,10 @@ final class RXMasonryViewport<T> extends Region {
         return snapSizeX(vbar.prefWidth(-1));
     }
 
+    void addOverlay(Node overlay) {
+        getChildren().add(getChildren().indexOf(vbar), overlay);
+    }
+
     /**
      * Installs the placement for this pass. The skin builds it so its column / scroll
      * bar decision and this viewport's geometry stay consistent.

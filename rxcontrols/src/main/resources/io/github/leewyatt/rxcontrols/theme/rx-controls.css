@@ -1351,7 +1351,7 @@
     -fx-alignment: center;
 }
 
-.rx-tile-view > .selection-rectangle {
+.rx-tile-view > .viewport > .selection-rectangle {
     -fx-fill: -fx-selection-bar;
     -fx-opacity: 0.22;
     -fx-stroke: -fx-accent;
@@ -1423,7 +1423,7 @@
     -fx-alignment: center;
 }
 
-.rx-masonry-view > .selection-rectangle {
+.rx-masonry-view > .viewport > .selection-rectangle {
     -fx-fill: -fx-selection-bar;
     -fx-opacity: 0.22;
     -fx-stroke: -fx-accent;

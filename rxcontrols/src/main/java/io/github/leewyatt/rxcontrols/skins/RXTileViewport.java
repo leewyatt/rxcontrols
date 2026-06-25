@@ -138,6 +138,10 @@ final class RXTileViewport<T> extends Region {
         return snapSizeX(vbar.prefWidth(-1));
     }
 
+    void addOverlay(Node overlay) {
+        getChildren().add(getChildren().indexOf(vbar), overlay);
+    }
+
     /**
      * The pixel height of one data-row slot (cell height + vgap), snapped, and the
      * single source of truth shared with the skin's plan + overflow check. Never

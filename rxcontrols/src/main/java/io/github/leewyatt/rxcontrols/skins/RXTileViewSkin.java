@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXTileCell;
+import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
@@ -15,9 +16,11 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.event.EventTarget;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -129,7 +132,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         selectionRectangle.setManaged(false);
         selectionRectangle.setMouseTransparent(true);
         selectionRectangle.setVisible(false);
-        getChildren().add(selectionRectangle);
+        viewport.addOverlay(selectionRectangle);
 
         marqueeAutoScroll = new Timeline(new KeyFrame(MARQUEE_AUTO_SCROLL_INTERVAL,
                 event -> onMarqueeAutoScroll()));
@@ -170,15 +173,15 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), viewport::onAnimationSettingsChanged);
         // Selection / focus: re-apply the per-cell state on change; re-wire on a
-        // selection-model swap; install the keyboard (control) and mouse (viewport)
-        // handlers. The control is the single Tab stop, so keys arrive on it.
+        // selection-model swap; install keyboard and mouse handlers on the control.
+        // Control-level mouse handling lets padding act as marquee-start whitespace.
         disposer.registerListener(focusModel.focusedIndexProperty(), this::refreshSelectionAndFocus);
         disposer.registerListener(control.selectionModelProperty(), this::onSelectionModelSwapped);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
-        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
-        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
-        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
-        disposer.registerEventHandler(viewport, MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
         disposer.registerDisposeTask(this::detachItems);
     }
 
@@ -939,7 +942,35 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         return selectionModel.getSelectionMode() == SelectionMode.MULTIPLE
                 && itemCount() > 0
                 && !hasModifier(event)
-                && viewport.isSelectableBlankPoint(point.getX(), point.getY());
+                && isMarqueeStartTarget(event.getTarget(), point);
+    }
+
+    private boolean isMarqueeStartTarget(EventTarget target, Point2D point) {
+        if (viewport.cellAt(target) != null
+                || targetIsInside(target, RXTileSectionCell.class)
+                || targetIsInside(target, ScrollBar.class)) {
+            return false;
+        }
+        if (isInsideViewport(point)) {
+            return viewport.isSelectableBlankPoint(point.getX(), point.getY());
+        }
+        return viewport.getWidth() > 0.0 && viewport.getHeight() > 0.0 && viewport.contentWidth() > 0.0;
+    }
+
+    private boolean isInsideViewport(Point2D point) {
+        return point.getX() >= 0.0 && point.getX() <= viewport.getWidth()
+                && point.getY() >= 0.0 && point.getY() <= viewport.getHeight();
+    }
+
+    private boolean targetIsInside(EventTarget target, Class<?> type) {
+        Node node = target instanceof Node ? (Node) target : null;
+        while (node != null && node != getSkinnable()) {
+            if (type.isInstance(node)) {
+                return true;
+            }
+            node = node.getParent();
+        }
+        return false;
     }
 
     private void armMarquee(Point2D point) {
@@ -1046,13 +1077,18 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             selectionRectangle.setVisible(false);
             return;
         }
+        RXTileView<T> control = getSkinnable();
         double anchorY = marqueeAnchorContentY - viewport.scrollOffset();
-        double minX = clamp(Math.min(marqueeAnchorX, marqueeLastX), 0.0, viewport.contentWidth());
-        double maxX = clamp(Math.max(marqueeAnchorX, marqueeLastX), 0.0, viewport.contentWidth());
-        double minY = clamp(Math.min(anchorY, marqueeLastY), 0.0, viewport.getHeight());
-        double maxY = clamp(Math.max(anchorY, marqueeLastY), 0.0, viewport.getHeight());
-        selectionRectangle.setX(viewport.getLayoutX() + minX);
-        selectionRectangle.setY(viewport.getLayoutY() + minY);
+        double minX = clamp(Math.min(marqueeAnchorX, marqueeLastX),
+                -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
+        double maxX = clamp(Math.max(marqueeAnchorX, marqueeLastX),
+                -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
+        double minY = clamp(Math.min(anchorY, marqueeLastY),
+                -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
+        double maxY = clamp(Math.max(anchorY, marqueeLastY),
+                -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
+        selectionRectangle.setX(minX);
+        selectionRectangle.setY(minY);
         selectionRectangle.setWidth(maxX - minX);
         selectionRectangle.setHeight(maxY - minY);
         selectionRectangle.setVisible((maxX - minX) > 0.0 && (maxY - minY) > 0.0);
