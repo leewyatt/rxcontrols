@@ -889,6 +889,17 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // that only re-flips known heights counts toward the cap so a non-deterministic cell
     // cannot spin forever. The anchor pin keeps the top visible item put across the snap.
     private void convergeEstimatedHeights(double contentWidth, double contentHeight) {
+        if (!heightsDirty) {
+            // No measurement changed this pass (the common case — e.g. a pure scroll whose
+            // visible cells are already measured): nothing to re-pack, and no glide can be
+            // in flight without a column change (which would have dirtied heights).
+            return;
+        }
+        // A column-count change fires a reorder glide AND (by wiping measured heights)
+        // this re-pack; the non-reorder converge re-fill would otherwise re-bind the
+        // gliding cells. The glide's target is unstable across the re-pack anyway, so drop
+        // it and let the cells settle to their converged slots.
+        viewport.snapReorderGlides();
         int lastMeasured = heightCache.measuredCount();
         int stalled = 0;
         while (heightsDirty && stalled < MAX_STALLED_REPACK_PASSES) {
@@ -962,11 +973,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
                 snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);
         RXMasonryPlacement secondPlacement = placementFor(second, layoutWidth, snappedHgap, snappedVgap, true);
         return new PlacementResult(secondPlacement, second.activeBreakpoint());
-    }
-
-    private RXMasonryPlacement placementFor(Resolution resolution, double layoutWidth,
-                                            double snappedHgap, double snappedVgap) {
-        return placementFor(resolution, layoutWidth, snappedHgap, snappedVgap, true);
     }
 
     // driveCache: only the final, settled-width placement writes the persistent cache

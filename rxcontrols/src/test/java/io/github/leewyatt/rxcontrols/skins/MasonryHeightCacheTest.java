@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link MasonryHeightCache}: the estimated-path height state — record /
- * idempotence, index-shift alignment through list mutations, geometry invalidation,
- * and committed-column round-trip. Pure arithmetic, no JavaFX toolkit.
+ * idempotence, index-shift alignment through list mutations, column-count invalidation
+ * and clear. Pure arithmetic, no JavaFX toolkit.
  */
 public class MasonryHeightCacheTest {
 

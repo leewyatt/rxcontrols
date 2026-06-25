@@ -577,6 +577,28 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    @Test
+    public void estimatedColumnChangeSnapsGlideInsteadOfFightingTheRepack() throws Exception {
+        onFx(() -> {
+            // On the estimated path a column-count change re-measures and re-packs every
+            // cell in the pass, so a reorder glide started by that change has an unstable
+            // target and is snapped — not left mid-glide for the converge re-fill to fight.
+            RXMasonryView<Integer> view = estimatedGallery(30);
+            view.setColumnCount(3);
+            view.setAnimated(true);
+            StackPane root = host(view, 340, 420);
+            pump(root);
+
+            view.setColumnCount(2);
+            layoutOnce(root);
+
+            RXMasonryCell<?> cell = cellByIndex(view, 2);
+            assertNotNull(cell);
+            assertEquals(0.0, cell.getTranslateX(), 0.001, "estimated-path column change snaps the glide");
+            assertEquals(0.0, cell.getTranslateY(), 0.001);
+        });
+    }
+
     // ==================== Estimated path: measure-time re-pack ====================
 
     @Test

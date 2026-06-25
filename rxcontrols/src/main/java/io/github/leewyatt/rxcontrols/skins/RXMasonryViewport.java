@@ -783,6 +783,19 @@ final class RXMasonryViewport<T> extends Region {
     }
 
     /**
+     * Snaps any in-flight reorder glide to its landing position. The skin calls this
+     * before an estimated-path measure-repack: a column-count change there re-measures
+     * and re-packs every cell within the pass, so a glide started at the column change
+     * has an unstable target and is dropped (rather than re-bound mid-flight by the
+     * non-reorder converge re-fill).
+     */
+    void snapReorderGlides() {
+        if (!animating.isEmpty()) {
+            snapAllGlides();
+        }
+    }
+
+    /**
      * Re-evaluates the animation settings after {@code animated} or
      * {@code animationDuration} changed; snaps any in-flight glide if animation is now
      * disabled. The skin wires this to both property changes.
