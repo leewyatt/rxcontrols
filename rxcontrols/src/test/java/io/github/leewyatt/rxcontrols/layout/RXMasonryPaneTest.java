@@ -476,22 +476,19 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies columnWidth rejects invalid values and coerces to the default, while
-     * the tolerant gap and column-count properties accept any value.
+     * Verifies size properties accept invalid values and leave coercion to layout.
      */
     @Test
     public void sizePropertiesHandleInvalidValues() {
         RXMasonryPane pane = new RXMasonryPane();
 
         pane.setColumnWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(0.0));
-        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
-        pane.setColumnWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(-1.0));
-        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
-        pane.setColumnWidth(120.0);
-        assertThrows(IllegalArgumentException.class, () -> pane.setColumnWidth(Double.NaN));
-        assertClose(260.0, pane.getColumnWidth(), "columnWidth coerced to default");
+        pane.setColumnWidth(0.0);
+        assertClose(0.0, pane.getColumnWidth(), "columnWidth zero accepted");
+        pane.setColumnWidth(-1.0);
+        assertClose(-1.0, pane.getColumnWidth(), "columnWidth negative accepted");
+        pane.setColumnWidth(Double.NaN);
+        assertTrue(Double.isNaN(pane.getColumnWidth()), "columnWidth NaN accepted");
 
         pane.setHgap(-1.0);
         assertClose(-1.0, pane.getHgap(), "hgap accepted");
@@ -510,7 +507,8 @@ public class RXMasonryPaneTest {
     public void invalidGapsAndPrefColumnsSurviveLayout() {
         RXMasonryPane pane = pane(100.0, 0.0, 10.0, card(80.0, 100.0), card(80.0, 50.0));
 
-        // A negative / non-finite gap must not crash the masonry engine or the pref math.
+        // Invalid size hints must not crash the masonry engine or the pref math.
+        pane.setColumnWidth(Double.NaN);
         pane.setVgap(-5.0);
         pane.setHgap(Double.NaN);
         layout(pane, 300.0, 200.0);
@@ -521,6 +519,23 @@ public class RXMasonryPaneTest {
         pane.setPrefColumns(0);
         double pw = pane.prefWidth(-1.0);
         assertTrue(Double.isFinite(pw) && pw >= 0.0, "finite non-negative pref width for prefColumns <= 0");
+    }
+
+    @Test
+    public void invalidColumnWidthUsesDefaultDuringLayout() {
+        Region a = card(60.0, 50.0);
+        Region b = card(60.0, 50.0);
+        RXMasonryPane pane = pane(100.0, 0.0, 0.0, a, b);
+        pane.setColumnWidth(Double.NaN);
+        pane.setColumnCount(2);
+        pane.setFillWidth(false);
+
+        layout(pane, 600.0, 200.0);
+
+        assertTrue(Double.isNaN(pane.getColumnWidth()), "invalid value remains visible on the property");
+        assertClose(260.0, b.getLayoutX(), "second column uses the default track step");
+        assertClose(260.0, pane.minWidth(-1.0), "default column width used for min width");
+        assertClose(780.0, pane.prefWidth(-1.0), "default column width used for pref width");
     }
 
     @Test

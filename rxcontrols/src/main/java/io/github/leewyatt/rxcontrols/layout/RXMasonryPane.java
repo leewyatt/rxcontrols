@@ -309,13 +309,6 @@ public class RXMasonryPane extends Pane {
     private final DoubleProperty columnWidth = new StyleableDoubleProperty(DEFAULT_COLUMN_WIDTH) {
         @Override
         protected void invalidated() {
-            double value = get();
-            if (!Double.isFinite(value) || value <= 0.0) {
-                if (!isBound()) {
-                    set(DEFAULT_COLUMN_WIDTH);
-                }
-                throw new IllegalArgumentException("columnWidth must be a finite positive number");
-            }
             requestLayout();
         }
 
@@ -336,8 +329,8 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Target column width that drives the responsive column count. Must be a
-     * finite positive number.
+     * Target column width that drives the responsive column count. A non-positive
+     * or non-finite value is accepted but resolved to the default at layout time.
      *
      * <p>Column width is authoritative: a child wider than its resolved track
      * (for example a {@code minWidth} larger than the column) overflows into the
@@ -363,7 +356,6 @@ public class RXMasonryPane extends Pane {
      * Sets the column width.
      *
      * @param value the column width
-     * @throws IllegalArgumentException if {@code value} is not a finite positive number
      */
     public final void setColumnWidth(double value) {
         columnWidth.set(value);
@@ -966,6 +958,11 @@ public class RXMasonryPane extends Pane {
         return value == null ? DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
+    private double columnWidthOrDefault() {
+        double value = getColumnWidth();
+        return Double.isFinite(value) && value > 0.0 ? value : DEFAULT_COLUMN_WIDTH;
+    }
+
     private double sanitizedHgap() {
         double g = getHgap();
         return Double.isFinite(g) ? g : DEFAULT_HGAP;
@@ -1330,7 +1327,7 @@ public class RXMasonryPane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return snappedLeftInset() + snapSizeX(getColumnWidth()) + snappedRightInset();
+        return snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset();
     }
 
     @Override
@@ -1345,7 +1342,7 @@ public class RXMasonryPane extends Pane {
         if (max > 0 && columns > max) {
             columns = max;
         }
-        double content = columns * snapSizeX(getColumnWidth()) + (columns - 1) * snapSpaceX(sanitizedHgap());
+        double content = columns * snapSizeX(columnWidthOrDefault()) + (columns - 1) * snapSpaceX(sanitizedHgap());
         return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
     }
 
@@ -1428,7 +1425,7 @@ public class RXMasonryPane extends Pane {
         if (isFillWidth()) {
             trackWidth = Math.max(0.0, (contentWidth - (columns - 1) * gap) / columns);
         } else {
-            trackWidth = snapSizeX(getColumnWidth());
+            trackWidth = snapSizeX(columnWidthOrDefault());
         }
 
         List<Node> managed = getManagedChildren();
@@ -1465,7 +1462,7 @@ public class RXMasonryPane extends Pane {
             if (breakpointColumnCount != null) {
                 columns = breakpointColumnCount;
             } else {
-                double track = snapSizeX(getColumnWidth());
+                double track = snapSizeX(columnWidthOrDefault());
                 double gap = snapSpaceX(sanitizedHgap());
                 columns = (int) Math.floor((contentWidth + gap) / (track + gap));
             }
