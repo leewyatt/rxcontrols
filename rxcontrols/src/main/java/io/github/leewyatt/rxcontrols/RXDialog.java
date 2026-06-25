@@ -58,8 +58,8 @@ import java.util.function.Consumer;
  * <p>The card hosts the {@link #contentProperty() content} node (often an
  * {@link RXDialogContent}, or any bare {@code Node}) above an action bar the skin
  * builds from {@link #getButtonTypes() buttonTypes}. Clicking an action button,
- * pressing ESC, clicking the scrim, or clicking a content-provided close (X) button
- * (e.g. {@link RXDialogContent#showCloseProperty() RXDialogContent's}) all flow
+ * pressing ESC, clicking the scrim, or clicking the optional
+ * {@link #showCloseButtonProperty() close (X) button} all flow
  * through one vetoable gate: a {@code CLOSE_REQUEST}
  * {@link RXDialogEvent} fires first (consume it to keep the dialog open); if not
  * vetoed, the {@link #resultProperty() result} is computed from the candidate
@@ -114,6 +114,7 @@ public class RXDialog<R> extends Control {
     private static final boolean DEFAULT_MODAL = true;
     private static final boolean DEFAULT_CLOSE_ON_ESC = true;
     private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
+    private static final boolean DEFAULT_SHOW_CLOSE_BUTTON = false;
     private static final boolean DEFAULT_ENABLE_RESIZABLE = false;
     private static final boolean DEFAULT_ENABLE_DRAGGABLE = false;
 
@@ -574,6 +575,57 @@ public class RXDialog<R> extends Control {
      */
     public final void setCloseOnScrimClick(boolean value) {
         closeOnScrimClick.set(value);
+    }
+
+    // ==================== Show Close Button ====================
+
+    private final BooleanProperty showCloseButton = new StyleableBooleanProperty(DEFAULT_SHOW_CLOSE_BUTTON) {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.SHOW_CLOSE_BUTTON;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXDialog.this;
+        }
+
+        @Override
+        public String getName() {
+            return "showCloseButton";
+        }
+    };
+
+    /**
+     * Whether the skin overlays a close (X) button at the card's trailing top corner.
+     * Default {@code false}. The button is dialog chrome — it works over any content
+     * (a bare node or an {@link RXDialogContent}) and closes the dialog through the
+     * vetoable gate (reason {@link CloseReason#CLOSE_BUTTON}). For a custom close
+     * affordance, hide this and place your own node in a content's trailing slot (for
+     * example {@link RXDialogContent#headerTrailingProperty() RXDialogContent.headerTrailing}).
+     *
+     * @return the show-close-button property
+     */
+    public final BooleanProperty showCloseButtonProperty() {
+        return showCloseButton;
+    }
+
+    /**
+     * Returns whether the close (X) button is shown.
+     *
+     * @return whether the close button is shown
+     */
+    public final boolean isShowCloseButton() {
+        return showCloseButton.get();
+    }
+
+    /**
+     * Sets whether the close (X) button is shown.
+     *
+     * @param value whether the close button is shown
+     */
+    public final void setShowCloseButton(boolean value) {
+        showCloseButton.set(value);
     }
 
     // ==================== Enable Resizable ====================
@@ -1589,6 +1641,21 @@ public class RXDialog<R> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXDialog<?>, Boolean> SHOW_CLOSE_BUTTON =
+                new CssMetaData<>("-rx-show-close-button",
+                        BooleanConverter.getInstance(), DEFAULT_SHOW_CLOSE_BUTTON) {
+                    @Override
+                    public boolean isSettable(RXDialog<?> node) {
+                        return !node.showCloseButton.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<Boolean>) node.showCloseButtonProperty();
+                    }
+                };
+
         private static final CssMetaData<RXDialog<?>, Duration> ANIMATION_DURATION =
                 new CssMetaData<>("-rx-animation-duration",
                         DurationConverter.getInstance(), DEFAULT_ANIMATION_DURATION) {
@@ -1696,6 +1763,7 @@ public class RXDialog<R> extends Control {
             styleables.add(TRANSITION);
             styleables.add(ACTIONS_LAYOUT);
             styleables.add(ANIMATED);
+            styleables.add(SHOW_CLOSE_BUTTON);
             styleables.add(ANIMATION_DURATION);
             styleables.add(CARD_MIN_WIDTH);
             styleables.add(CARD_PREF_WIDTH);

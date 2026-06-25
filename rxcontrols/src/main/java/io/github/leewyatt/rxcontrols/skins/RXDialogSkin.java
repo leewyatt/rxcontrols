@@ -20,7 +20,9 @@ import javafx.event.ActionEvent;
 import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -86,6 +88,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     // with the background / shadow / size on the same node — no extra wrapper.
     private final VBox dialogCard = new VBox();
     private final StackPane contentWrapper = new StackPane();
+    // Dialog chrome: an optional close (X) overlaid at the content's trailing top corner,
+    // shown only while showCloseButton is set. Works over any content (see updateContent).
+    private final StackPane closeButton = createCloseButton();
     // The action bar (a ButtonBar for PLATFORM, else an RXBox), rebuilt when buttonTypes
     // or actionsLayout change; null when there are no buttons.
     private Region actionsNode;
@@ -195,6 +200,15 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
             }
         });
 
+        // Close (X) button: shown only while showCloseButton is set; a click closes through
+        // the vetoable gate (reason CLOSE_BUTTON).
+        disposer.registerBinding(closeButton.visibleProperty(), control.showCloseButtonProperty());
+        disposer.registerBinding(closeButton.managedProperty(), control.showCloseButtonProperty());
+        disposer.registerEventHandler(closeButton, MouseEvent.MOUSE_CLICKED, event -> {
+            getSkinnable().requestClose(null, CloseReason.CLOSE_BUTTON);
+            event.consume();
+        });
+
         // ESC anywhere in the dialog subtree requests a close. A capturing filter
         // catches it before a focused descendant consumes it; with focus trapped in
         // the top-most modal dialog, only that dialog sees it.
@@ -254,11 +268,30 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void updateContent() {
         Node content = getSkinnable().getContent();
+        // The close (X) stays on top of the content (last child), so it overlays whatever
+        // content node is set; it only paints / picks while showCloseButton is set.
         if (content == null) {
-            contentWrapper.getChildren().clear();
+            contentWrapper.getChildren().setAll(closeButton);
         } else {
-            contentWrapper.getChildren().setAll(content);
+            contentWrapper.getChildren().setAll(content, closeButton);
         }
+    }
+
+    // The close (X): a shape-backed icon in a transparent, pickable wrapper, pinned to its
+    // preferred size and aligned to the content's trailing top corner. Clicking it closes the
+    // dialog through the vetoable gate (reason CLOSE_BUTTON); it is excluded from the drag band
+    // (isInteractiveTarget) so a press on it never starts a move.
+    private StackPane createCloseButton() {
+        Region icon = new Region();
+        icon.getStyleClass().add("icon");
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        icon.setMouseTransparent(true);
+        StackPane button = new StackPane(icon);
+        button.getStyleClass().add("close-button");
+        button.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        StackPane.setAlignment(button, Pos.TOP_RIGHT);
+        StackPane.setMargin(button, new Insets(8, 8, 0, 0));
+        return button;
     }
 
     private void rebuildActions() {

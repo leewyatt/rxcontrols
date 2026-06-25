@@ -144,44 +144,25 @@ public class RXDialogContentTest {
     }
 
     @Test
-    public void showCloseAddsPinnedCloseButtonToHeading() throws Exception {
-        runOnFx(() -> {
-            RXDialogContent layout = new RXDialogContent();
-            assertNull(layout.lookup(".close-button"), "no close button by default");
-
-            layout.setShowClose(true);
-            Region closeButton = (Region) layout.lookup(".close-button");
-            assertNotNull(closeButton, "showClose adds a close button");
-            assertNotNull(closeButton.getParent(), "the close button is mounted in the heading (in flow)");
-            // Pinned to its preferred size, so the BorderPane right slot does not stretch it.
-            assertEquals(closeButton.prefWidth(-1), closeButton.maxWidth(-1), 0.01,
-                    "the close button is pinned to its preferred size");
-            assertNull(layout.getDialog(),
-                    "a standalone layout has no hosting dialog, so clicking the X is a no-op");
-        });
-    }
-
-    @Test
-    public void closeButtonStyleResolvesAndStandaloneClickIsNoOp() throws Exception {
+    public void headerTrailingMountsACustomNodeInTheHeading() throws Exception {
         runOnFx(() -> {
             RXDialogContent layout = new RXDialogContent("Title", "Body");
-            layout.setShowClose(true);
+            Region menu = new Region();
+            menu.getStyleClass().add("header-menu");
+            assertNull(layout.lookup(".header-menu"), "no trailing node by default");
+
+            layout.setHeaderTrailing(menu);
             StackPane root = new StackPane(layout);
             new Scene(root, 320, 240);
             root.applyCss();
             root.layout();
 
-            Region closeButton = (Region) layout.lookup(".close-button");
-            assertNotNull(closeButton, "the close button exists");
-            // The heading > .close-button selector is live (padding applies after a CSS pass).
-            assertTrue(closeButton.getInsets().getTop() > 0.0,
-                    "close-button padding resolves (the in-header selector is live)");
+            assertSame(menu, layout.lookup(".header-menu"),
+                    "headerTrailing mounts a custom node at the heading's trailing edge");
+            assertNotNull(menu.getParent(), "the trailing node is laid out in the heading");
 
-            // Standalone (no hosting dialog): firing the X must be a graceful no-op, not a throw.
-            assertNull(layout.getDialog());
-            closeButton.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
-                    MouseButton.PRIMARY, 1, false, false, false, false, true, false, false,
-                    false, false, false, null));
+            layout.setHeaderTrailing(null);
+            assertNull(layout.lookup(".header-menu"), "clearing headerTrailing removes it");
         });
     }
 

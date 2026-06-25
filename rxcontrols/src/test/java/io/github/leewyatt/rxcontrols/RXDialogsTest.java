@@ -274,8 +274,8 @@ public class RXDialogsTest {
 
             assertEquals(RXDialogActionsLayout.PLATFORM, dialog.getActionsLayout(),
                     "actionsLayout flows to the dialog");
-            assertTrue(((RXDialogContent) dialog.getContent()).isShowClose(),
-                    "closeButton(true) shows the heading X");
+            assertTrue(dialog.isShowCloseButton(),
+                    "closeButton(true) shows the dialog's close (X)");
 
             dialog.setAnimated(false);
             dialog.close();

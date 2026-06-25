@@ -81,10 +81,10 @@ public class RXDialogDemo extends Application {
 
         RXDialogContent layout = new RXDialogContent("Build succeeded", "All 1254 tests passed.");
         layout.setExpandableContent(details);
-        layout.setShowClose(true);
 
         RXDialog<ButtonType> dialog = new RXDialog<>();
         dialog.setContent(layout);
+        dialog.setShowCloseButton(true);
         dialog.setTransition(RXDialogTransition.SLIDE_TOP);
         dialog.getButtonTypes().setAll(ButtonType.CLOSE);
         dialog.setOnResult(result -> status.set("Report dismissed."));

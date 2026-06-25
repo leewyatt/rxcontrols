@@ -411,29 +411,28 @@ public class RXDialogTest {
     }
 
     @Test
-    public void headerCloseButtonClosesHostingDialog() throws Exception {
+    public void closeButtonClosesTheDialog() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             List<RXDialogEvent> events = recordEvents(dialog);
-            RXDialogContent layout = new RXDialogContent("Title", "Body");
-            layout.setShowClose(true);
-            dialog.setContent(layout);
+            dialog.setContent(new RXDialogContent("Title", "Body"));
+            dialog.setShowCloseButton(true);
 
             Region owner = new Region();
             new Scene(new StackPane(owner), 400, 300);
             dialog.show(owner);
 
-            Node closeButton = layout.lookup(".close-button");
-            assertNotNull(closeButton, "showClose adds an in-header close button");
+            Node closeButton = dialog.lookup(".close-button");
+            assertNotNull(closeButton, "showCloseButton overlays a close (X) — dialog chrome, over any content");
             closeButton.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
                     MouseButton.PRIMARY, 1, false, false, false, false, true, false, false,
                     false, false, false, null));
 
-            assertFalse(dialog.isShowing(), "clicking the header X closes the hosting dialog");
+            assertFalse(dialog.isShowing(), "clicking the X closes the dialog");
             RXDialogEvent hidden = events.stream()
                     .filter(e -> e.getEventType() == RXDialogEvent.HIDDEN).findFirst().orElseThrow();
             assertEquals(CloseReason.CLOSE_BUTTON, hidden.getCloseReason(),
-                    "the header X closes with reason CLOSE_BUTTON");
+                    "the X closes with reason CLOSE_BUTTON");
         });
     }
 
@@ -802,13 +801,12 @@ public class RXDialogTest {
     public void pressOnCloseButtonDoesNotDragTheCard() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
-            RXDialogContent content = (RXDialogContent) dialog.getContent();
-            content.setShowClose(true);
+            dialog.setShowCloseButton(true);
             dialog.setEnableDraggable(true);
             showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
             Node closeButton = dialog.lookup(".close-button");
-            assertNotNull(closeButton, "showClose adds the close button");
+            assertNotNull(closeButton, "showCloseButton adds the close button");
             double x0 = card.getLayoutX();
 
             // A press-drag starting on the close (X) button must be excluded from dragging.

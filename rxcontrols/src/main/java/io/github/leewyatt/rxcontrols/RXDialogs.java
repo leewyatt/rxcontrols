@@ -391,8 +391,8 @@ public final class RXDialogs {
         }
 
         /**
-         * Shows or hides the heading's close (X) button. Only applies when the content is
-         * the built-in heading/body ({@link RXDialogContent}); ignored for custom content.
+         * Shows or hides the dialog's close (X) button. It is dialog chrome (overlaid at the
+         * card's trailing top corner), so it works over any content.
          *
          * @param value {@code true} to show the close (X) button
          * @return this builder
@@ -423,11 +423,10 @@ public final class RXDialogs {
          */
         public CompletableFuture<ButtonType> show() {
             RXDialog<ButtonType> dialog = new RXDialog<>();
-            Node contentNode = content != null ? content : new RXDialogContent(title, message);
-            if (closeButton != null && contentNode instanceof RXDialogContent dialogContent) {
-                dialogContent.setShowClose(closeButton);
+            dialog.setContent(content != null ? content : new RXDialogContent(title, message));
+            if (closeButton != null) {
+                dialog.setShowCloseButton(closeButton);
             }
-            dialog.setContent(contentNode);
             if (buttons.isEmpty()) {
                 dialog.getButtonTypes().setAll(ButtonType.OK);
             } else {

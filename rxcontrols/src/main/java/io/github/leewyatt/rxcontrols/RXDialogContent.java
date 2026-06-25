@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 
 import javafx.beans.NamedArg;
@@ -13,12 +12,10 @@ import javafx.beans.property.StringProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -27,13 +24,13 @@ import javafx.scene.layout.VBox;
 
 /**
  * A rich content template for an {@link RXDialog} card: an optional graphic +
- * header row (with an optional in-header close button), a body, and an optional
- * collapsible "details" region. Modelled on the native {@code DialogPane} content
- * model, but with <strong>no</strong> action bar — that belongs to {@link RXDialog}
- * ({@link RXDialog#getButtonTypes() buttonTypes}). It is an {@link RXDialogContentBase}
- * (a {@link Region} that carries a {@link #dialogProperty() dialog} back-reference),
- * usable standalone or as an {@code RXDialog}'s {@link RXDialog#contentProperty()
- * content}.
+ * header row (with an optional {@link #headerTrailingProperty() trailing} node), a
+ * body, and an optional collapsible "details" region. Modelled on the native
+ * {@code DialogPane} content model, but with <strong>no</strong> action bar — that
+ * belongs to {@link RXDialog} ({@link RXDialog#getButtonTypes() buttonTypes}). It is an
+ * {@link RXDialogContentBase} (a {@link Region} that carries a {@link #dialogProperty()
+ * dialog} back-reference), usable standalone or as an {@code RXDialog}'s
+ * {@link RXDialog#contentProperty() content}.
  *
  * <p>The header shows {@link #headerProperty() header} (a node) or, as a
  * convenience, {@link #headerTextProperty() headerText} (a string); likewise the
@@ -41,10 +38,10 @@ import javafx.scene.layout.VBox;
  * contentText}. Heading and body padding are styled with standard {@code -fx-padding}
  * on the {@code .heading} / {@code .body} sub-structures.</p>
  *
- * <p>When {@link #showCloseProperty() showClose} is set, a close (X) button is laid
- * out in the header's trailing edge (in flow, so it never overlaps the title) and,
- * when this layout is hosted by an {@link RXDialog}, closes it through that dialog's
- * vetoable gate. Standalone (no hosting dialog), clicking it does nothing.</p>
+ * <p>The header's trailing slot ({@link #headerTrailingProperty() headerTrailing}) takes
+ * a custom node such as a menu or a bespoke close button — wire it through
+ * {@link #getDialog()}. The default close (X) is dialog chrome, toggled with
+ * {@link RXDialog#showCloseButtonProperty()}.</p>
  *
  * <pre>{@code
  * RXDialogContent layout = new RXDialogContent("Delete file?", "This cannot be undone.");
@@ -64,7 +61,6 @@ public class RXDialogContent extends RXDialogContentBase {
     private final Hyperlink detailsToggle = new Hyperlink();
     private final StackPane expandableWrapper = new StackPane();
     private final StackPane graphicWrapper = new StackPane();
-    private final StackPane closeButton = createCloseButton();
 
     // ==================== Constructors ====================
 
@@ -187,6 +183,46 @@ public class RXDialogContent extends RXDialogContentBase {
      */
     public final void setHeader(Node value) {
         header.set(value);
+    }
+
+    // ==================== Header Trailing ====================
+
+    private final ObjectProperty<Node> headerTrailing = new SimpleObjectProperty<>(this, "headerTrailing") {
+        @Override
+        protected void invalidated() {
+            updateHeading();
+        }
+    };
+
+    /**
+     * A custom node at the header's trailing edge (the title bar's end side — the right
+     * in left-to-right, mirrored under RTL). Use it for header controls such as a custom
+     * close button or a menu; a node placed here can reach the hosting dialog through
+     * {@link #getDialog()}. May be {@code null}. The default close (X) is dialog chrome,
+     * toggled separately with {@link RXDialog#showCloseButtonProperty()}.
+     *
+     * @return the header-trailing property
+     */
+    public final ObjectProperty<Node> headerTrailingProperty() {
+        return headerTrailing;
+    }
+
+    /**
+     * Returns the header trailing node.
+     *
+     * @return the trailing node, or {@code null}
+     */
+    public final Node getHeaderTrailing() {
+        return headerTrailing.get();
+    }
+
+    /**
+     * Sets the header trailing node.
+     *
+     * @param value the trailing node, or {@code null}
+     */
+    public final void setHeaderTrailing(Node value) {
+        headerTrailing.set(value);
     }
 
     // ==================== Header Text ====================
@@ -374,46 +410,6 @@ public class RXDialogContent extends RXDialogContentBase {
         expanded.set(value);
     }
 
-    // ==================== Show Close ====================
-
-    private final BooleanProperty showClose = new SimpleBooleanProperty(this, "showClose", false) {
-        @Override
-        protected void invalidated() {
-            updateHeading();
-        }
-    };
-
-    /**
-     * Whether a close (X) button is shown at the header's trailing edge. Default
-     * {@code false}. The button lays out in flow (it never overlaps the title) and,
-     * when this layout is the {@link #dialogProperty() content of an RXDialog}, closes
-     * that dialog through its vetoable gate (reason {@link CloseReason#CLOSE_BUTTON});
-     * standalone it does nothing.
-     *
-     * @return the show-close property
-     */
-    public final BooleanProperty showCloseProperty() {
-        return showClose;
-    }
-
-    /**
-     * Returns whether the close button is shown.
-     *
-     * @return whether the close button is shown
-     */
-    public final boolean isShowClose() {
-        return showClose.get();
-    }
-
-    /**
-     * Sets whether the close button is shown.
-     *
-     * @param value whether the close button is shown
-     */
-    public final void setShowClose(boolean value) {
-        showClose.set(value);
-    }
-
     // ==================== Slots ====================
 
     private void updateHeading() {
@@ -433,35 +429,12 @@ public class RXDialogContent extends RXDialogContentBase {
         }
         heading.setLeft(graphicNode != null ? graphicWrapper : null);
         heading.setCenter(center);
-        heading.setRight(isShowClose() ? closeButton : null);
+        Node trailing = getHeaderTrailing();
+        heading.setRight(trailing);
 
-        boolean visible = graphicNode != null || center != null || isShowClose();
+        boolean visible = graphicNode != null || center != null || trailing != null;
         heading.setVisible(visible);
         heading.setManaged(visible);
-    }
-
-    // The close (X) button: a shape-backed icon in a transparent, pickable wrapper
-    // (the wrapper is pinned to its preferred size so the BorderPane right slot does
-    // not stretch it). It closes the hosting dialog, if any, through the vetoable gate.
-    private StackPane createCloseButton() {
-        Region icon = new Region();
-        icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.setMouseTransparent(true);
-        StackPane button = new StackPane(icon);
-        button.getStyleClass().add("close-button");
-        button.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        BorderPane.setAlignment(button, Pos.TOP_RIGHT);
-        button.addEventHandler(MouseEvent.MOUSE_CLICKED, this::handleCloseClicked);
-        return button;
-    }
-
-    private void handleCloseClicked(MouseEvent event) {
-        RXDialog<?> dialog = getDialog();
-        if (dialog != null) {
-            dialog.requestClose(null, CloseReason.CLOSE_BUTTON);
-            event.consume();
-        }
     }
 
     private void updateBody() {

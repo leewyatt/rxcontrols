@@ -171,9 +171,10 @@ public class RXDialogShowcase extends RXShowcaseApplication {
         return button;
     }
 
-    // Two builder-built dialogs: one configured purely by chaining (custom buttons + PLATFORM
-    // action order + close X + draggable — no factory overload), and one validity-gated
-    // confirmation (OK vetoed until the checkbox is ticked) over custom content.
+    // Builder-built dialogs: one configured purely by chaining (custom buttons + PLATFORM
+    // action order + close X + draggable — no factory overload), one validity-gated confirmation
+    // (OK vetoed until the checkbox is ticked), and one with a bespoke header close button placed
+    // in RXDialogContent's trailing slot and wired through getDialog().
     private Node builderDialogsBox() {
         Button custom = facadeButton("create()… 3 actions + PLATFORM + close X + drag", b -> {
             ButtonType save = new ButtonType("Save", ButtonData.OK_DONE);
@@ -201,7 +202,20 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                     .thenAccept(result -> lastResult.set(
                             "terms → " + (result == null ? "—" : result.getText())));
         });
-        return new VBox(8.0, custom, gated);
+        Button customHeader = facadeButton("create()… custom header close (headerTrailing + getDialog())", b -> {
+            RXDialogContent content = new RXDialogContent("Custom chrome",
+                    "The default X is off here; this dialog puts its own button in the header's trailing slot.");
+            Button close = new Button("✕");
+            close.setOnAction(ev -> {
+                RXDialog<?> host = content.getDialog();   // RXDialogContent reverse-references its dialog
+                if (host != null) {
+                    host.close();
+                }
+            });
+            content.setHeaderTrailing(close);
+            RXDialogs.create(b).content(content).buttons(ButtonType.OK).show();
+        });
+        return new VBox(8.0, custom, gated, customHeader);
     }
 
     private Node cardBoundsGrid() {
@@ -256,7 +270,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 checkBox("Modal (scrim + focus trap)", dialog.isModal(), dialog::setModal),
                 checkBox("Close on ESC", dialog.isCloseOnEsc(), dialog::setCloseOnEsc),
                 checkBox("Close on scrim click", dialog.isCloseOnScrimClick(), dialog::setCloseOnScrimClick),
-                checkBox("Show close (X) button", layout.isShowClose(), layout::setShowClose),
+                checkBox("Show close (X) button", dialog.isShowCloseButton(), dialog::setShowCloseButton),
                 checkBox("User-resizable (drag edges)", dialog.isEnableResizable(), dialog::setEnableResizable),
                 checkBox("User-draggable (drag title)", dialog.isEnableDraggable(), dialog::setEnableDraggable));
     }

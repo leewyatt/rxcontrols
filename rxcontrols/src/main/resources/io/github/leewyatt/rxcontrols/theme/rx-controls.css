@@ -1038,18 +1038,19 @@
     -fx-padding: 0 12 0 0;
 }
 
-.rx-dialog-content > .container > .heading > .close-button {
+/* Close (X) is dialog chrome: the skin overlays it at the content's trailing top corner. */
+.rx-dialog > .dialog-card > .content-wrapper > .close-button {
     -fx-background-color: transparent;
     -fx-background-radius: 999;
     -fx-padding: 6;
     -fx-cursor: hand;
 }
 
-.rx-dialog-content > .container > .heading > .close-button:hover {
+.rx-dialog > .dialog-card > .content-wrapper > .close-button:hover {
     -fx-background-color: -rx-surface-variant;
 }
 
-.rx-dialog-content > .container > .heading > .close-button > .icon {
+.rx-dialog > .dialog-card > .content-wrapper > .close-button > .icon {
     -fx-pref-width: 12;
     -fx-pref-height: 12;
     -fx-background-color: -rx-on-surface-secondary;
