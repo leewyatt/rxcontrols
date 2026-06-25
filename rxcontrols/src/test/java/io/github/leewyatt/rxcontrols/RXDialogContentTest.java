@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Headless tests for {@link RXDialogContent}: defaults, the node-vs-text slot
- * selection for header / content, and the expandable toggle. Verified through the
+ * selection for header / content, and the header trailing slot. Verified through the
  * placed nodes' parents (a node mounted into a slot has a non-null parent), which
  * needs no scene or CSS pass.
  */
@@ -52,11 +51,10 @@ public class RXDialogContentTest {
     public void defaultsAreEmpty() throws Exception {
         runOnFx(() -> {
             RXDialogContent layout = new RXDialogContent();
-            assertFalse(layout.isExpanded());
             assertNull(layout.getHeaderText());
             assertNull(layout.getContentText());
             assertNull(layout.getContent());
-            assertNull(layout.getExpandableContent());
+            assertNull(layout.getHeaderTrailing());
             assertNotNull(layout.getUserAgentStylesheet(), "standalone use needs a UA stylesheet");
         });
     }
@@ -91,21 +89,6 @@ public class RXDialogContentTest {
         });
     }
 
-    @Test
-    public void expandableContentMountsOnlyWhenExpanded() throws Exception {
-        runOnFx(() -> {
-            RXDialogContent layout = new RXDialogContent();
-            Region details = new Region();
-            layout.setExpandableContent(details);
-            assertNull(details.getParent(), "collapsed details are not mounted");
-
-            layout.setExpanded(true);
-            assertNotNull(details.getParent(), "expanded details are mounted");
-
-            layout.setExpanded(false);
-            assertNull(details.getParent(), "re-collapsing unmounts the details");
-        });
-    }
 
     @Test
     public void headingAndBodyPaddingResolveThroughContainer() throws Exception {

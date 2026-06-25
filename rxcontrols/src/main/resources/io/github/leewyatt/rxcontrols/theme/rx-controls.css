@@ -1057,7 +1057,7 @@
     -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
 }
 
-.rx-dialog-content > .container > .heading > .title {
+.rx-dialog-content > .container > .heading > .title-text {
     -fx-font-size: 1.15em;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
@@ -1071,25 +1071,17 @@
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
-.rx-dialog-content > .container > .details-toggle {
-    -fx-padding: 0 24 8 24;
-}
-
-.rx-dialog-content > .container > .expandable-wrapper {
-    -fx-padding: 0 24 16 24;
-}
-
 /* RXDialogs message-type heading accents (added by the RXDialogs facade as a
    rx-dialog-<type> style class on the dialog; CONFIRMATION / NONE stay neutral). */
-.rx-dialog-information .rx-dialog-content > .container > .heading > .title {
+.rx-dialog-information .rx-dialog-content > .container > .heading > .title-text {
     /*-fx-text-fill: -rx-primary;*/
 }
 
-.rx-dialog-warning .rx-dialog-content > .container > .heading > .title {
+.rx-dialog-warning .rx-dialog-content > .container > .heading > .title-text {
     -fx-text-fill: -rx-warning;
 }
 
-.rx-dialog-error .rx-dialog-content > .container > .heading > .title {
+.rx-dialog-error .rx-dialog-content > .container > .heading > .title-text {
     -fx-text-fill: -rx-danger;
 }
 

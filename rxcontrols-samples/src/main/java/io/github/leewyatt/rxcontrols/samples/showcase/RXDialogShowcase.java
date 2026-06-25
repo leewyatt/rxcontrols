@@ -22,6 +22,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -266,13 +267,30 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     }
 
     private Node behaviourBox() {
+        Region graphic = demoGraphic();
         return new VBox(10.0,
                 checkBox("Modal (scrim + focus trap)", dialog.isModal(), dialog::setModal),
                 checkBox("Close on ESC", dialog.isCloseOnEsc(), dialog::setCloseOnEsc),
                 checkBox("Close on scrim click", dialog.isCloseOnScrimClick(), dialog::setCloseOnScrimClick),
+                checkBox("Show graphic", layout.getGraphic() != null,
+                        show -> layout.setGraphic(show ? graphic : null)),
                 checkBox("Show close (X) button", dialog.isShowCloseButton(), dialog::setShowCloseButton),
-                checkBox("User-resizable (drag edges)", dialog.isEnableResizable(), dialog::setEnableResizable),
-                checkBox("User-draggable (drag title)", dialog.isEnableDraggable(), dialog::setEnableDraggable));
+                checkBox("Enable resizable (drag edges)", dialog.isEnableResizable(), dialog::setEnableResizable),
+                checkBox("Enable draggable (drag title)", dialog.isEnableDraggable(), dialog::setEnableDraggable));
+    }
+
+    // A 24px info glyph for the "Show graphic" toggle, so the heading's leading graphic slot
+    // is visible. Built as a shape-filled Region (the project's icon idiom), tinted via a token.
+    private Region demoGraphic() {
+        Region icon = new Region();
+        int size = 12;
+        icon.setMinSize(size, size);
+        icon.setPrefSize(size, size);
+        icon.setMaxSize(size, size);
+        icon.setStyle("-fx-background-color: -rx-primary;"
+                + " -fx-shape: \"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1"
+                + " 15h-2v-6h2v6zm0-8h-2V7h2v2z\";");
+        return icon;
     }
 
     private Node stateBox() {

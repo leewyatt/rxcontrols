@@ -3,9 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 
 import javafx.beans.NamedArg;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -14,7 +12,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
@@ -23,11 +20,13 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 /**
- * A rich content template for an {@link RXDialog} card: an optional graphic +
- * header row (with an optional {@link #headerTrailingProperty() trailing} node), a
- * body, and an optional collapsible "details" region. Modelled on the native
- * {@code DialogPane} content model, but with <strong>no</strong> action bar — that
- * belongs to {@link RXDialog} ({@link RXDialog#getButtonTypes() buttonTypes}). It is an
+ * A content template for an {@link RXDialog} card: an optional graphic + header row
+ * (with an optional {@link #headerTrailingProperty() trailing} node) above a body.
+ * Modelled on the native {@code DialogPane} content model, but with <strong>no</strong>
+ * action bar — that belongs to {@link RXDialog} ({@link RXDialog#getButtonTypes()
+ * buttonTypes}). For anything richer than a heading + body (a collapsible "details"
+ * region, custom panels), set your own node as the {@link #contentProperty() content}.
+ * It is an
  * {@link RXDialogContentBase} (a {@link Region} that carries a {@link #dialogProperty()
  * dialog} back-reference), usable standalone or as an {@code RXDialog}'s
  * {@link RXDialog#contentProperty() content}.
@@ -45,7 +44,6 @@ import javafx.scene.layout.VBox;
  *
  * <pre>{@code
  * RXDialogContent layout = new RXDialogContent("Delete file?", "This cannot be undone.");
- * layout.setExpandableContent(new TextArea(stackTrace));
  * dialog.setContent(layout);
  * }</pre>
  */
@@ -58,8 +56,6 @@ public class RXDialogContent extends RXDialogContentBase {
     private final Label titleLabel = new Label();
     private final StackPane body = new StackPane();
     private final Label contentLabel = new Label();
-    private final Hyperlink detailsToggle = new Hyperlink();
-    private final StackPane expandableWrapper = new StackPane();
     private final StackPane graphicWrapper = new StackPane();
 
     // ==================== Constructors ====================
@@ -82,26 +78,21 @@ public class RXDialogContent extends RXDialogContentBase {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         container.getStyleClass().add("container");
-        titleLabel.getStyleClass().add("title");
+        titleLabel.getStyleClass().add("title-text");
         contentLabel.getStyleClass().add("content-text");
         contentLabel.setWrapText(true);
         heading.getStyleClass().add("heading");
         graphicWrapper.getStyleClass().add("graphic-wrapper");
         body.getStyleClass().add("body");
-        detailsToggle.getStyleClass().add("details-toggle");
-        expandableWrapper.getStyleClass().add("expandable-wrapper");
 
         VBox.setVgrow(body, Priority.ALWAYS);
-        container.getChildren().setAll(heading, body, detailsToggle, expandableWrapper);
+        container.getChildren().setAll(heading, body);
         getChildren().setAll(container);
-
-        detailsToggle.setOnAction(event -> setExpanded(!isExpanded()));
 
         setHeaderText(headerText);
         setContentText(contentText);
         updateHeading();
         updateBody();
-        updateExpandable();
     }
 
     /**
@@ -336,80 +327,6 @@ public class RXDialogContent extends RXDialogContentBase {
         contentText.set(value);
     }
 
-    // ==================== Expandable Content ====================
-
-    private final ObjectProperty<Node> expandableContent = new SimpleObjectProperty<>(this, "expandableContent") {
-        @Override
-        protected void invalidated() {
-            updateExpandable();
-        }
-    };
-
-    /**
-     * Optional content revealed by a built-in "Show Details" toggle. When
-     * {@code null}, no toggle is shown.
-     *
-     * @return the expandable content property
-     */
-    public final ObjectProperty<Node> expandableContentProperty() {
-        return expandableContent;
-    }
-
-    /**
-     * Returns the expandable content node.
-     *
-     * @return the expandable content node, or {@code null}
-     */
-    public final Node getExpandableContent() {
-        return expandableContent.get();
-    }
-
-    /**
-     * Sets the expandable content node.
-     *
-     * @param value the expandable content node, or {@code null}
-     */
-    public final void setExpandableContent(Node value) {
-        expandableContent.set(value);
-    }
-
-    // ==================== Expanded ====================
-
-    private final BooleanProperty expanded = new SimpleBooleanProperty(this, "expanded", false) {
-        @Override
-        protected void invalidated() {
-            updateExpandable();
-        }
-    };
-
-    /**
-     * Whether the {@link #expandableContentProperty() expandableContent} is
-     * currently revealed.
-     *
-     * @return the expanded property
-     */
-    public final BooleanProperty expandedProperty() {
-        return expanded;
-    }
-
-    /**
-     * Returns whether the expandable content is revealed.
-     *
-     * @return whether expanded
-     */
-    public final boolean isExpanded() {
-        return expanded.get();
-    }
-
-    /**
-     * Sets whether the expandable content is revealed.
-     *
-     * @param value whether expanded
-     */
-    public final void setExpanded(boolean value) {
-        expanded.set(value);
-    }
-
     // ==================== Slots ====================
 
     private void updateHeading() {
@@ -452,23 +369,6 @@ public class RXDialogContent extends RXDialogContentBase {
         boolean visible = bodyChild != null;
         body.setVisible(visible);
         body.setManaged(visible);
-    }
-
-    private void updateExpandable() {
-        Node expandable = getExpandableContent();
-        boolean hasExpandable = expandable != null;
-        detailsToggle.setVisible(hasExpandable);
-        detailsToggle.setManaged(hasExpandable);
-        detailsToggle.setText(isExpanded() ? "Hide Details" : "Show Details");
-
-        boolean reveal = hasExpandable && isExpanded();
-        if (reveal) {
-            expandableWrapper.getChildren().setAll(expandable);
-        } else {
-            expandableWrapper.getChildren().clear();
-        }
-        expandableWrapper.setVisible(reveal);
-        expandableWrapper.setManaged(reveal);
     }
 
     // ==================== Layout ====================

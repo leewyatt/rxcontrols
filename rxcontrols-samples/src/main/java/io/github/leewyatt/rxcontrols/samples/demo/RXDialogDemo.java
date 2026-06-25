@@ -16,6 +16,7 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -25,7 +26,8 @@ import javafx.stage.Stage;
  * over the page. "Delete file…" opens a centered confirmation built from an
  * {@link RXDialogContent} with {@code Cancel} / {@code Delete} actions and reports
  * the choice through {@code onResult}; "Show report…" opens a sliding dialog with
- * a close (X) button and an expandable "details" region.
+ * a close (X) button and a composed, collapsible "details" region (a {@code TitledPane}
+ * set as the content).
  *
  * <p>Everything uses only the public API — {@code content} + {@code buttonTypes} +
  * {@code resultConverter} + the asynchronous {@code onResult} — to keep the demo an
@@ -79,8 +81,14 @@ public class RXDialogDemo extends Application {
         details.setEditable(false);
         details.setPrefRowCount(4);
 
-        RXDialogContent layout = new RXDialogContent("Build succeeded", "All 1254 tests passed.");
-        layout.setExpandableContent(details);
+        // Collapsible "details" is composed, not built in: drop any node (here a TitledPane)
+        // into the content area for full control over its look and behaviour.
+        TitledPane detailsPane = new TitledPane("Details", details);
+        detailsPane.setExpanded(false);
+
+        RXDialogContent layout = new RXDialogContent();
+        layout.setHeaderText("Build succeeded");
+        layout.setContent(new VBox(10.0, new Label("All 1254 tests passed."), detailsPane));
 
         RXDialog<ButtonType> dialog = new RXDialog<>();
         dialog.setContent(layout);
