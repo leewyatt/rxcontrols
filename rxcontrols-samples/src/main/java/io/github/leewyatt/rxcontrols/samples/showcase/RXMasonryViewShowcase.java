@@ -39,7 +39,9 @@ import java.util.function.Function;
  */
 public class RXMasonryViewShowcase extends RXShowcaseApplication {
 
-    private static final int ITEM_COUNT = 1000000;
+    // Opens instantly and stays responsive at every knob (including the O(N) resize /
+    // column-count rebuild). Bump locally to stress-test the virtualization at scale.
+    private static final int ITEM_COUNT = 10_000;
     // "Inherit" selection value for the per-breakpoint column ComboBox.
     private static final int CONTROL_INHERIT = -1;
     private static final double APPROX_LINE_HEIGHT = 21.0;

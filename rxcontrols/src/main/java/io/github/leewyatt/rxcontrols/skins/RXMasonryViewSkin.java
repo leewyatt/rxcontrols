@@ -100,7 +100,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // the (otherwise per-frame O(N)) placement is reused. Any geometry input change routes
     // through requestRelayout() and flips placementDirty; a resize is caught by the content
     // size compare; an estimated-path measurement updates the cache from convergeEstimated-
-    // Heights. The viewport still re-fills every pass (O(visible)).
+    // Heights. The viewport still re-fills every pass (O(visible)). The one geometry input
+    // not tracked is the scroll-bar breadth (used only for the overflow track width); it
+    // changes only if the scroll-bar's CSS width changes at runtime, which does not happen
+    // without re-styling that would rebuild this skin — so it is left out by design.
     private PlacementResult cachedPlacement;
     private double cachedContentWidth = -1.0;
     private double cachedContentHeight = -1.0;

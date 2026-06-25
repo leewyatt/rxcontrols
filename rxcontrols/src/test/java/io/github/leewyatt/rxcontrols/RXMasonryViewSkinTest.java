@@ -601,7 +601,7 @@ public class RXMasonryViewSkinTest {
 
     // ==================== Placement cache ====================
 
-    private static RXMasonryView<Integer> countingProviderView(java.util.concurrent.atomic.AtomicInteger calls) {
+    private static RXMasonryView<Integer> countingProviderView(AtomicInteger calls) {
         ObservableList<Integer> items = FXCollections.observableArrayList();
         for (int i = 0; i < 300; i++) {
             items.add(i);
