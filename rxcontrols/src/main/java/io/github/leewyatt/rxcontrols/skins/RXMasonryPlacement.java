@@ -248,21 +248,18 @@ final class RXMasonryPlacement {
         if (startColumns.length == 0 || viewportHeight <= 0.0 || bottom <= 0.0 || top >= contentHeight) {
             return new int[0];
         }
-        // De-duplicate spanning items via a marker; collect in ascending index order.
-        boolean[] seen = new boolean[startColumns.length];
+        // Collect the per-column hits (a spanning item appears in each column it covers)
+        // and de-duplicate by sort, so the query allocates only O(visible), never the
+        // O(itemCount) marker array a per-frame fill cannot afford on a large list.
         List<Integer> result = new ArrayList<>();
         for (int c = 0; c < columns; c++) {
             int lo = firstIndexGreater(columnBottoms[c], top);
             int hi = firstIndexAtLeast(columnTops[c], bottom);
             for (int k = lo; k < hi; k++) {
-                int item = columnItems[c][k];
-                if (!seen[item]) {
-                    seen[item] = true;
-                    result.add(item);
-                }
+                result.add(columnItems[c][k]);
             }
         }
-        return sortedToArray(result);
+        return sortedDistinctToArray(result);
     }
 
     /**
@@ -312,24 +309,23 @@ final class RXMasonryPlacement {
         if (startColumns.length == 0 || maxY <= 0.0 || minY >= contentHeight || maxX < startX) {
             return new int[0];
         }
-        boolean[] seen = new boolean[startColumns.length];
+        // As in visibleItems: collect the intersecting hits and de-duplicate by sort,
+        // allocating only O(visible). A spanning item may be re-tested per column it covers
+        // (its geometry is identical each time), which is cheap and avoids the O(itemCount)
+        // marker array.
         List<Integer> result = new ArrayList<>();
         for (int c = 0; c < columns; c++) {
             int lo = firstIndexGreater(columnBottoms[c], minY);
             int hi = firstIndexAtLeast(columnTops[c], maxY);
             for (int k = lo; k < hi; k++) {
                 int item = columnItems[c][k];
-                if (seen[item]) {
-                    continue;
-                }
                 Geometry geometry = geometryOf(item);
                 if (geometry != null && geometry.x() <= maxX && geometry.x() + geometry.width() >= minX) {
-                    seen[item] = true;
                     result.add(item);
                 }
             }
         }
-        return sortedToArray(result);
+        return sortedDistinctToArray(result);
     }
 
     // ==================== Binary search ====================
@@ -379,14 +375,22 @@ final class RXMasonryPlacement {
         return lo - 1;
     }
 
-    private static int[] sortedToArray(List<Integer> values) {
-        int[] array = new int[values.size()];
-        for (int i = 0; i < array.length; i++) {
+    private static int[] sortedDistinctToArray(List<Integer> values) {
+        int n = values.size();
+        int[] array = new int[n];
+        for (int i = 0; i < n; i++) {
             array[i] = values.get(i);
         }
         // Columns are visited left to right and items appended in column order, so the
-        // combined list is not globally sorted; sort to honor the ascending contract.
+        // combined list is not globally sorted; sort to honor the ascending contract, then
+        // drop adjacent duplicates (a spanning item was collected once per spanned column).
         Arrays.sort(array);
-        return array;
+        int write = 0;
+        for (int read = 0; read < n; read++) {
+            if (write == 0 || array[read] != array[write - 1]) {
+                array[write++] = array[read];
+            }
+        }
+        return write == n ? array : Arrays.copyOf(array, write);
     }
 }

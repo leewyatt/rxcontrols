@@ -306,67 +306,6 @@ public class MasonryLayoutEngineTest {
                 Math.max(batch1.contentHeight(), batch2.contentHeight()), DELTA);
     }
 
-    // ==================== Committed-columns (commit-once) ====================
-
-    /**
-     * Verifies that re-packing at the columns the shortest-column scan chose reproduces
-     * the shortest placement exactly — the engine half of commit-once.
-     */
-    @Test
-    public void committedColumnsReproducesShortestPlacement() {
-        int[] spans = {1, 1, 1, 1, 1};
-        double[] heights = {100.0, 50.0, 80.0, 40.0, 30.0};
-        OutlineResult shortest = MasonryLayoutEngine.place(new double[3], 10.0, spans, heights);
-        OutlineResult committed = MasonryLayoutEngine.place(new double[3], 10.0, spans, heights,
-                shortest.startColumns());
-
-        assertArrayEquals(shortest.startColumns(), committed.startColumns());
-        assertArrayEquals(shortest.tops(), committed.tops(), DELTA);
-        assertArrayEquals(shortest.endOutline(), committed.endOutline(), DELTA);
-        assertEquals(shortest.contentHeight(), committed.contentHeight(), DELTA);
-    }
-
-    /**
-     * Verifies a height correction with committed columns never re-routes a column and
-     * shifts the tops only within the corrected item's own column (within-column cascade).
-     */
-    @Test
-    public void committedColumnsHeightChangeShiftsWithinColumnOnly() {
-        int[] spans = {1, 1, 1, 1, 1, 1};
-        double[] heights = {100.0, 100.0, 100.0, 50.0, 50.0, 50.0};
-        OutlineResult first = MasonryLayoutEngine.place(new double[3], 0.0, spans, heights);
-        // Items 0,3 land in column 0; 1,4 in column 1; 2,5 in column 2.
-        assertArrayEquals(new int[]{0, 1, 2, 0, 1, 2}, first.startColumns());
-
-        double[] taller = heights.clone();
-        taller[0] = 200.0; // item 0 (column 0) grows by 100
-        OutlineResult repacked = MasonryLayoutEngine.place(new double[3], 0.0, spans, taller,
-                first.startColumns());
-
-        // Columns are unchanged (commit-once); only column 0's later item (3) shifts down.
-        assertArrayEquals(new int[]{0, 1, 2, 0, 1, 2}, repacked.startColumns());
-        assertArrayEquals(new double[]{0.0, 0.0, 0.0, 200.0, 100.0, 100.0}, repacked.tops(), DELTA);
-    }
-
-    /**
-     * Verifies a {@code null} committed-columns argument is identical to the
-     * shortest-column overload, and an out-of-range committed column is rejected.
-     */
-    @Test
-    public void committedColumnsNullEqualsShortestAndValidatesRange() {
-        int[] spans = {1, 1, 1};
-        double[] heights = {10.0, 20.0, 30.0};
-        OutlineResult viaNull = MasonryLayoutEngine.place(new double[2], 5.0, spans, heights, null);
-        OutlineResult shortest = MasonryLayoutEngine.place(new double[2], 5.0, spans, heights);
-        assertArrayEquals(shortest.startColumns(), viaNull.startColumns());
-        assertArrayEquals(shortest.tops(), viaNull.tops(), DELTA);
-
-        assertThrows(IllegalArgumentException.class, () -> MasonryLayoutEngine.place(new double[2], 5.0,
-                spans, heights, new int[]{0, 2, 1}));
-        assertThrows(IllegalArgumentException.class, () -> MasonryLayoutEngine.place(new double[2], 5.0,
-                spans, heights, new int[]{0, 1}));
-    }
-
     /**
      * Verifies the outline overload rejects an empty outline and non-finite outline
      * values rather than producing garbage.

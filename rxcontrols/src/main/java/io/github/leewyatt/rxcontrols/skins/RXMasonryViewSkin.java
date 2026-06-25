@@ -100,13 +100,13 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // the (otherwise per-frame O(N)) placement is reused. Any geometry input change routes
     // through requestRelayout() and flips placementDirty; a resize is caught by the content
     // size compare; an estimated-path measurement updates the cache from convergeEstimated-
-    // Heights. The viewport still re-fills every pass (O(visible)). The one geometry input
-    // not tracked is the scroll-bar breadth (used only for the overflow track width); it
-    // changes only if the scroll-bar's CSS width changes at runtime, which does not happen
-    // without re-styling that would rebuild this skin — so it is left out by design.
+    // Heights. The viewport still re-fills every pass (O(visible)). The scroll-bar breadth
+    // (the overflow track width input) is compared too — it changes with no property event
+    // when a runtime stylesheet swap re-widths the scroll bar without rebuilding the skin.
     private PlacementResult cachedPlacement;
     private double cachedContentWidth = -1.0;
     private double cachedContentHeight = -1.0;
+    private double cachedScrollBarBreadth = -1.0;
     private boolean placementDirty = true;
 
     private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
@@ -870,13 +870,16 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         double bottomInset = Math.max(0.0, control.getHeight() - contentY - contentHeight);
         viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
 
+        double barBreadth = viewport.scrollBarBreadth();
         PlacementResult result;
         if (placementDirty || cachedPlacement == null
-                || contentWidth != cachedContentWidth || contentHeight != cachedContentHeight) {
+                || contentWidth != cachedContentWidth || contentHeight != cachedContentHeight
+                || barBreadth != cachedScrollBarBreadth) {
             result = buildPlacement(contentWidth, contentHeight);
             cachedPlacement = result;
             cachedContentWidth = contentWidth;
             cachedContentHeight = contentHeight;
+            cachedScrollBarBreadth = barBreadth;
             placementDirty = false;
         } else {
             // Pure scroll (geometry inputs unchanged): reuse the placement and only re-fill
@@ -950,6 +953,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             cachedPlacement = converged;
             cachedContentWidth = contentWidth;
             cachedContentHeight = contentHeight;
+            cachedScrollBarBreadth = viewport.scrollBarBreadth();
             placementDirty = false;
         }
     }
