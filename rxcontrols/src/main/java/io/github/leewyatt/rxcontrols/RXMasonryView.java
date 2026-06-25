@@ -217,8 +217,9 @@ public class RXMasonryView<T> extends Control {
      * Supplies each cell's exact height from its item and resolved slot width. This
      * is the primary, precise height path: when set, the view never measures a live
      * cell, so scrolling and the scroll bar are exact and the layout never jumps. When
-     * {@code null} (the default), the view falls back to
-     * {@link #estimatedCellHeightProperty() estimatedCellHeight}.
+     * {@code null} (the default), the view seeds each item at
+     * {@link #estimatedCellHeightProperty() estimatedCellHeight}, then measures each
+     * realized cell and re-packs to converge on the real heights.
      *
      * @return the cell-height-provider property
      */
@@ -250,11 +251,12 @@ public class RXMasonryView<T> extends Control {
             new SimpleDoubleProperty(this, "estimatedCellHeight", DEFAULT_ESTIMATED_CELL_HEIGHT);
 
     /**
-     * Fixed height used for every cell when no
-     * {@link #cellHeightProviderProperty() cellHeightProvider} is set. With no
-     * provider the view places all items at this height — a deterministic layout with
-     * no measurement and no jumping. A non-positive or non-finite value is accepted but
-     * resolved to the default at layout time.
+     * Placeholder height for an item before its cell has been measured, used when no
+     * {@link #cellHeightProviderProperty() cellHeightProvider} is set. With no provider
+     * the view seeds each item at this height, then measures each cell as it is realized
+     * and re-packs to converge on the real heights (so the layout settles as cells are
+     * measured rather than staying at the estimate). A non-positive or non-finite value
+     * is accepted but resolved to the default at layout time.
      *
      * @return the estimated-cell-height property
      */
