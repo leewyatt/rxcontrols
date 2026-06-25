@@ -1016,12 +1016,12 @@
 
 .rx-dialog > .dialog-card > .actions {
     -fx-padding: 8 16 16 16;
-    /* the default BOX layout is an RXBox styled here (centered + spaced); change
-       -rx-alignment / -rx-spacing / -rx-orientation to taste, and give the buttons an
-       explicit -fx-pref-width for equal widths. The native ButtonBar of PLATFORM ignores
-       these and manages its own layout. */
+    /* Material 2: actions trailing-aligned (confirm on the right). The default BOX layout is an
+       RXBox styled here; change -rx-alignment / -rx-spacing / -rx-orientation to taste, and give
+       the buttons an explicit -fx-pref-width for equal widths. The native ButtonBar of PLATFORM
+       ignores these and manages its own (OS-ordered) layout. */
     -rx-spacing: 8;
-    -rx-alignment: center;
+    -rx-alignment: center-right;
 }
 
 /*******************************************************************************
@@ -1032,10 +1032,6 @@
 
 .rx-dialog-content > .container > .heading {
     -fx-padding: 20 24 0 24;
-}
-
-.rx-dialog-content > .container > .heading > .graphic-wrapper {
-    -fx-padding: 0 12 0 0;
 }
 
 /* Close (X) is dialog chrome: the skin overlays it at the content's trailing top corner. */
@@ -1061,6 +1057,7 @@
     -fx-font-size: 1.15em;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
+    -fx-graphic-text-gap: 12;
 }
 
 .rx-dialog-content > .container > .body {

@@ -150,9 +150,9 @@ public class RXDialogContentTest {
     }
 
     @Test
-    public void graphicSitsInACssPaddedWrapper() throws Exception {
-        // The graphic-to-title gap is the wrapper's CSS padding (author-tunable), not a
-        // hardcoded BorderPane margin.
+    public void graphicRidesInsideTheTitleLabel() throws Exception {
+        // The title's icon is the title label's own graphic (so -fx-content-display can move it
+        // before / after / above the text), not a separate slot — no .graphic-wrapper exists.
         runOnFx(() -> {
             RXDialogContent layout = new RXDialogContent("Title", "Body");
             Region graphic = new Region();
@@ -162,11 +162,10 @@ public class RXDialogContentTest {
             root.applyCss();
             root.layout();
 
-            Region wrapper = (Region) layout.lookup(".graphic-wrapper");
-            assertNotNull(wrapper, "the graphic wrapper exists");
-            assertSame(wrapper, graphic.getParent(), "the graphic is mounted in the wrapper");
-            assertTrue(wrapper.getInsets().getRight() > 0.0,
-                    "the graphic-to-title gap comes from CSS padding (.heading > .graphic-wrapper)");
+            assertNull(layout.lookup(".graphic-wrapper"), "there is no separate graphic wrapper");
+            Label title = (Label) layout.lookup(".title-text");
+            assertNotNull(title, "the title label exists");
+            assertSame(graphic, title.getGraphic(), "the graphic is the title label's graphic");
         });
     }
 

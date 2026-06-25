@@ -10,10 +10,11 @@ import javafx.beans.property.StringProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -52,11 +53,10 @@ public class RXDialogContent extends RXDialogContentBase {
     private static final String DEFAULT_STYLE_CLASS = "rx-dialog-content";
 
     private final VBox container = new VBox();
-    private final BorderPane heading = new BorderPane();
+    private final HBox heading = new HBox();
     private final Label titleLabel = new Label();
     private final StackPane body = new StackPane();
     private final Label contentLabel = new Label();
-    private final StackPane graphicWrapper = new StackPane();
 
     // ==================== Constructors ====================
 
@@ -82,8 +82,12 @@ public class RXDialogContent extends RXDialogContentBase {
         contentLabel.getStyleClass().add("content-text");
         contentLabel.setWrapText(true);
         heading.getStyleClass().add("heading");
-        graphicWrapper.getStyleClass().add("graphic-wrapper");
+        heading.setAlignment(Pos.CENTER_LEFT);
         body.getStyleClass().add("body");
+
+        // The title's icon rides inside titleLabel as its graphic, so its position relative to
+        // the text is just the label's content display — no separate graphic slot / wrapper.
+        titleLabel.graphicProperty().bind(graphicProperty());
 
         VBox.setVgrow(body, Priority.ALWAYS);
         container.getChildren().setAll(heading, body);
@@ -113,7 +117,11 @@ public class RXDialogContent extends RXDialogContentBase {
     };
 
     /**
-     * An optional graphic shown to the left of the header. May be {@code null}.
+     * An optional graphic for the title. It is rendered as the title label's graphic, so its
+     * position relative to the text is the label's content display — leading by default; set
+     * {@code -fx-content-display: right / top / bottom} on {@code .title-text} to move it after /
+     * above / below the title. A custom {@link #headerProperty() header} node replaces the title
+     * label, so the graphic is not shown then. May be {@code null}.
      *
      * @return the graphic property
      */
@@ -330,26 +338,23 @@ public class RXDialogContent extends RXDialogContentBase {
     // ==================== Slots ====================
 
     private void updateHeading() {
-        Node graphicNode = getGraphic();
         Node headerNode = getHeader();
         String text = getHeaderText();
         boolean hasText = text != null && !text.isEmpty();
         titleLabel.setText(text == null ? "" : text);
-
-        Node center = headerNode != null ? headerNode : (hasText ? titleLabel : null);
-        // The graphic sits in a wrapper whose CSS padding (.heading > .graphic-wrapper) is
-        // the graphic-to-title gap — author-tunable, unlike a hardcoded BorderPane margin.
-        if (graphicNode != null) {
-            graphicWrapper.getChildren().setAll(graphicNode);
-        } else {
-            graphicWrapper.getChildren().clear();
-        }
-        heading.setLeft(graphicNode != null ? graphicWrapper : null);
-        heading.setCenter(center);
         Node trailing = getHeaderTrailing();
-        heading.setRight(trailing);
 
-        boolean visible = graphicNode != null || center != null || trailing != null;
+        // The lead grows to fill the row (left-aligning the title and pushing any trailing node
+        // to the end); the title's graphic rides inside titleLabel. A custom header replaces it.
+        Node lead = headerNode != null ? headerNode : titleLabel;
+        HBox.setHgrow(lead, Priority.ALWAYS);
+        heading.getChildren().clear();
+        heading.getChildren().add(lead);
+        if (trailing != null) {
+            heading.getChildren().add(trailing);
+        }
+
+        boolean visible = headerNode != null || hasText || getGraphic() != null || trailing != null;
         heading.setVisible(visible);
         heading.setManaged(visible);
     }
