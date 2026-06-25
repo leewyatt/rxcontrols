@@ -39,7 +39,7 @@ import java.util.function.Function;
  */
 public class RXMasonryViewShowcase extends RXShowcaseApplication {
 
-    private static final int ITEM_COUNT = 10_000;
+    private static final int ITEM_COUNT = 1000000;
     // "Inherit" selection value for the per-breakpoint column ComboBox.
     private static final int CONTROL_INHERIT = -1;
     private static final double APPROX_LINE_HEIGHT = 21.0;

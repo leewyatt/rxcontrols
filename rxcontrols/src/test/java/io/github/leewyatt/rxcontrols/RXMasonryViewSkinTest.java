@@ -599,6 +599,53 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    // ==================== Placement cache ====================
+
+    private static RXMasonryView<Integer> countingProviderView(java.util.concurrent.atomic.AtomicInteger calls) {
+        ObservableList<Integer> items = FXCollections.observableArrayList();
+        for (int i = 0; i < 300; i++) {
+            items.add(i);
+        }
+        RXMasonryView<Integer> view = new RXMasonryView<>(items);
+        view.setColumnCount(3);
+        view.setCellHeightProvider(ctx -> {
+            calls.incrementAndGet();
+            return 100.0 + (ctx.index() % 4) * 30.0;
+        });
+        return view;
+    }
+
+    @Test
+    public void pureScrollReusesThePlacementWithoutRebuilding() throws Exception {
+        onFx(() -> {
+            AtomicInteger calls = new AtomicInteger();
+            RXMasonryView<Integer> view = countingProviderView(calls);
+            StackPane root = host(view, 340, 400);
+            pumpUntilStable(root, 20);
+            assertTrue(calls.get() > 0, "the initial layout builds the placement");
+
+            calls.set(0);
+            view.scrollTo(150); // pure scroll: geometry inputs unchanged
+            pumpUntilStable(root, 20);
+            assertEquals(0, calls.get(), "a pure scroll reuses the cached placement, never recomputing it");
+        });
+    }
+
+    @Test
+    public void geometryChangeRebuildsThePlacement() throws Exception {
+        onFx(() -> {
+            AtomicInteger calls = new AtomicInteger();
+            RXMasonryView<Integer> view = countingProviderView(calls);
+            StackPane root = host(view, 340, 400);
+            pumpUntilStable(root, 20);
+
+            calls.set(0);
+            view.setColumnCount(2); // a geometry input change must invalidate the cache
+            pumpUntilStable(root, 20);
+            assertTrue(calls.get() > 0, "a column-count change rebuilds the placement");
+        });
+    }
+
     // ==================== Estimated path: measure-time re-pack ====================
 
     @Test

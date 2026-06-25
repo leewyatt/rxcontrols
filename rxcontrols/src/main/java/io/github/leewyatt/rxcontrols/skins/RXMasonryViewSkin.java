@@ -96,6 +96,16 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private final MasonryHeightCache heightCache = new MasonryHeightCache();
     private boolean heightsDirty;
 
+    // Placement cache: a pure scroll changes only scrollY, not the placement geometry, so
+    // the (otherwise per-frame O(N)) placement is reused. Any geometry input change routes
+    // through requestRelayout() and flips placementDirty; a resize is caught by the content
+    // size compare; an estimated-path measurement updates the cache from convergeEstimated-
+    // Heights. The viewport still re-fills every pass (O(visible)).
+    private PlacementResult cachedPlacement;
+    private double cachedContentWidth = -1.0;
+    private double cachedContentHeight = -1.0;
+    private boolean placementDirty = true;
+
     private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
     private final WeakListChangeListener<T> weakItemsContentListener =
             new WeakListChangeListener<>(itemsContentListener);
@@ -210,8 +220,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     }
 
     // Dirties the viewport (forcing a re-fill) and, by propagation, the control (so the
-    // skin re-runs buildPlacement and republishes metrics).
+    // skin re-runs buildPlacement and republishes metrics). Every geometry input change
+    // funnels through here, so it is also where the placement cache is invalidated.
     private void requestRelayout() {
+        placementDirty = true;
         viewport.requestLayout();
     }
 
@@ -247,8 +259,11 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     }
 
     private void onCellFactoryChanged() {
-        // New cells produce new heights, so every cached measured height is stale.
+        // New cells produce new heights, so every cached measured height is stale; this
+        // also changes the estimated-path placement, so invalidate the placement cache.
+        // (recreateCells dirties the viewport but does not route through requestRelayout.)
         heightCache.clear();
+        placementDirty = true;
         viewport.recreateCells();
     }
 
@@ -852,7 +867,19 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         double bottomInset = Math.max(0.0, control.getHeight() - contentY - contentHeight);
         viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
 
-        PlacementResult result = buildPlacement(contentWidth, contentHeight);
+        PlacementResult result;
+        if (placementDirty || cachedPlacement == null
+                || contentWidth != cachedContentWidth || contentHeight != cachedContentHeight) {
+            result = buildPlacement(contentWidth, contentHeight);
+            cachedPlacement = result;
+            cachedContentWidth = contentWidth;
+            cachedContentHeight = contentHeight;
+            placementDirty = false;
+        } else {
+            // Pure scroll (geometry inputs unchanged): reuse the placement and only re-fill
+            // the viewport (O(visible)) below, instead of rebuilding it O(N) every frame.
+            result = cachedPlacement;
+        }
         int newColumns = result.placement().columns();
         if (newColumns != control.getActualColumnCount()) {
             // A column-count reflow shifts every column's x; drop the held navigation x
@@ -902,15 +929,25 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         viewport.snapReorderGlides();
         int lastMeasured = heightCache.measuredCount();
         int stalled = 0;
+        PlacementResult converged = null;
         while (heightsDirty && stalled < MAX_STALLED_REPACK_PASSES) {
             heightsDirty = false;
-            PlacementResult result = buildPlacement(contentWidth, contentHeight);
-            viewport.setPlacement(result.placement());
+            converged = buildPlacement(contentWidth, contentHeight);
+            viewport.setPlacement(converged.placement());
             viewport.requestLayout();
             viewport.layout();
             int measured = heightCache.measuredCount();
             stalled = measured > lastMeasured ? 0 : stalled + 1;
             lastMeasured = measured;
+        }
+        if (converged != null) {
+            // The cache holds the pre-converge placement from layoutChildren; replace it
+            // with the settled one so a later pure scroll reuses the converged geometry
+            // (otherwise the next frame would re-pack from a stale placement every time).
+            cachedPlacement = converged;
+            cachedContentWidth = contentWidth;
+            cachedContentHeight = contentHeight;
+            placementDirty = false;
         }
     }
 
