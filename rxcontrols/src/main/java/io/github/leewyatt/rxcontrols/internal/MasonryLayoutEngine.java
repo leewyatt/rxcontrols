@@ -19,8 +19,8 @@ import java.util.Objects;
  * fixed-column overload is the all-zero-outline special case.</p>
  *
  * <p>The engine is pure arithmetic with no JavaFX dependency, so it can be unit
- * tested directly and shared by both the node-based pane and a future virtualized
- * view.</p>
+ * tested directly and shared by both the node-based pane and the virtualized
+ * RXMasonryView.</p>
  */
 public final class MasonryLayoutEngine {
 
