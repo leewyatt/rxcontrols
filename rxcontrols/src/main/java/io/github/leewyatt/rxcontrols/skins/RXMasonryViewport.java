@@ -576,6 +576,12 @@ final class RXMasonryViewport<T> extends Region {
         if (!measureGate || heightSink == null) {
             return;
         }
+        // A custom cell may switch a style class (padding / font / wrap) in updateItem
+        // without dirtying layout, which the inline-style check above does not catch;
+        // force CSS now (cheap when already clean) so the measured height is not stale.
+        if (cell.getScene() != null) {
+            cell.applyCss();
+        }
         double real = snapSizeY(cell.prefHeight(geometry.width()));
         if (Math.abs(real - geometry.height()) > MEASURE_EPSILON) {
             heightSink.onMeasured(itemIndex, real);
@@ -720,6 +726,10 @@ final class RXMasonryViewport<T> extends Region {
             cell.updateMasonryFocus(false);
             cell.setTranslateX(0.0);
             cell.setTranslateY(0.0);
+            // Reset the slot position too, so a parked (empty) cell honors the
+            // columnIndex == -1 / columnSpan == 1 contract and updateItem(empty) never
+            // sees a stale column.
+            cell.updateMasonryPosition(-1, 1);
             cell.updateIndex(-1);
         }
     }

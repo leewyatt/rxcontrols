@@ -170,7 +170,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private void registerListeners(RXMasonryView<T> control) {
         disposer.registerListener(control.itemsProperty(), this::onItemsListSwapped);
         disposer.registerListener(control.placeholderProperty(), this::updatePlaceholder);
-        disposer.registerListener(control.cellFactoryProperty(), viewport::recreateCells);
+        disposer.registerListener(control.cellFactoryProperty(), this::onCellFactoryChanged);
 
         // Every property that changes the placement geometry asks for a relayout; the
         // control's plain (no-invalidated) styleable properties rely on this.
@@ -186,7 +186,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // Switching the height source (provider <-> estimated, or a different provider)
         // makes the persistent cache stale; drop it.
         disposer.registerListener(control.cellHeightProviderProperty(), this::onHeightSourceChanged);
-        disposer.registerListener(control.columnSpanFactoryProperty(), this::requestRelayout);
+        disposer.registerListener(control.columnSpanFactoryProperty(), this::onSpanFactoryChanged);
         // Breakpoint overrides live in an observable map, not a property, but change the
         // resolved column count just the same.
         disposer.registerListener(control.getBreakpointColumnOverrides(), this::requestRelayout);
@@ -242,6 +242,19 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     }
 
     private void onHeightSourceChanged() {
+        heightCache.clear();
+        requestRelayout();
+    }
+
+    private void onCellFactoryChanged() {
+        // New cells produce new heights, so every cached measured height is stale.
+        heightCache.clear();
+        viewport.recreateCells();
+    }
+
+    private void onSpanFactoryChanged() {
+        // A span change alters each item's effective cell width, so its measured height
+        // (taken at the old width) no longer applies.
         heightCache.clear();
         requestRelayout();
     }

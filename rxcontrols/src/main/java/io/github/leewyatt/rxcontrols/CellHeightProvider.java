@@ -5,8 +5,9 @@ package io.github.leewyatt.rxcontrols;
  * effective width of its slot. This is the primary, precise height contract of
  * {@link RXMasonryView}: when set, the view places every item without ever
  * measuring a live cell, so scrolling, the scroll bar and hit-testing are exact and
- * the layout never jumps. When {@code null}, the view falls back to the estimated
- * {@link RXMasonryView#estimatedCellHeightProperty() estimatedCellHeight}.
+ * the layout never jumps. When {@code null}, the view seeds each item at the
+ * {@link RXMasonryView#estimatedCellHeightProperty() estimatedCellHeight} and then
+ * measures each realized cell, re-packing to converge on the real heights.
  *
  * @param <T> the item type
  */

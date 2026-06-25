@@ -51,14 +51,15 @@ import java.util.List;
  * equal-width columns, each placed in the currently shortest column, so cells of
  * different heights tile without row alignment. Built on a self-contained viewport
  * (not {@code VirtualFlow}), it virtualizes by vertical range so only the cells
- * intersecting the viewport hold live cells. It is to {@link RXMasonryView} what
+ * intersecting the viewport hold live cells. It is to a waterfall layout what
  * {@link RXTileView} is to a uniform grid.
  *
  * <p>Cell height is the design's primary contract. Set a
  * {@link #cellHeightProviderProperty() cellHeightProvider} to give each item's exact
  * height from its data (an image gallery returns {@code cellWidth / aspectRatio});
- * the layout is then exact and never jumps. With no provider the view falls back to
- * a fixed {@link #estimatedCellHeightProperty() estimatedCellHeight}.
+ * the layout is then exact and never jumps. With no provider the view seeds each item
+ * at the {@link #estimatedCellHeightProperty() estimatedCellHeight}, then measures each
+ * cell as it is realized and re-packs to converge on the real heights.
  *
  * <p>The column count is derived from {@link #columnWidthProperty() columnWidth} and
  * the available width, or forced by {@link #columnCountProperty() columnCount} or by

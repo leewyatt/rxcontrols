@@ -133,7 +133,13 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
                 return;
             }
         }
-        // Not in the list: remember the item so a later add can re-resolve it.
+        // Not in the list: remember the item so a later add can re-resolve it. In SINGLE
+        // mode select replaces the selection, so drop any prior index — otherwise a
+        // surviving index is promoted as the lead ahead of the remembered item when it
+        // later appears. (MULTIPLE mode keeps the others, matching select-adds semantics.)
+        if (getSelectionMode() == SelectionMode.SINGLE) {
+            selectedIndicesBacking.clear();
+        }
         setSelectedIndex(-1);
         setSelectedItem(obj);
     }

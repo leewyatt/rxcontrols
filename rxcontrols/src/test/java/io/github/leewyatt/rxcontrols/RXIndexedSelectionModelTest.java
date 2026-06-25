@@ -74,6 +74,28 @@ public class RXIndexedSelectionModelTest {
     }
 
     @Test
+    public void singleSelectOfAbsentItemDropsPriorAndResolvesOnLaterAdd() {
+        RXTileView<String> view = view(3);
+        ObservableList<String> items = view.getItems();
+        MultipleSelectionModel<String> sm = view.getSelectionModel(); // SINGLE by default
+
+        sm.select("Item 0");
+        assertEquals(List.of(0), sm.getSelectedIndices());
+
+        // Absent item: SINGLE select replaces, so the prior index must be dropped.
+        sm.select("New");
+        assertEquals(-1, sm.getSelectedIndex());
+        assertEquals("New", sm.getSelectedItem());
+        assertTrue(sm.getSelectedIndices().isEmpty(), "SINGLE select of an absent item drops the prior selection");
+
+        // When it appears, the remembered item resolves — not the old survivor promoted.
+        items.add("New");
+        assertEquals("New", sm.getSelectedItem(), "the remembered absent item resolves, not the prior survivor");
+        assertEquals(3, sm.getSelectedIndex());
+        assertEquals(List.of(3), sm.getSelectedIndices());
+    }
+
+    @Test
     public void multipleSelectAccumulatesSortedAndDistinct() {
         MultipleSelectionModel<String> sm = view(10).getSelectionModel();
         sm.setSelectionMode(SelectionMode.MULTIPLE);
