@@ -36,7 +36,7 @@ import java.util.List;
  * panel's open position, so reopening is always geometrically correct and a
  * mid-flight reversal resumes smoothly from the current value.
  *
- * <p>The animation paradigm mirrors {@code RelayoutAnimator}: a single
+ * <p>The animation paradigm mirrors {@code PaneRelayoutAnimator}: a single
  * {@link #animation} field is stopped and replaced rather than reused, every
  * termination path converges on {@link #finalizeOpen()} / {@link #finalizeClose()},
  * and because the field is rebuilt repeatedly it is stopped explicitly in

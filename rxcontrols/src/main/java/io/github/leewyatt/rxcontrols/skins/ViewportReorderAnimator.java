@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * recycler pin-set (a gliding cell must not be parked or rebound) and removes the
  * node from that set in the {@code onFinished} callback.
  */
-final class RXTileReorderAnimator {
+final class ViewportReorderAnimator {
 
     // Sub-pixel moves are snapped rather than animated (no 0-frame Timeline churn).
     private static final double MOVE_EPSILON = 0.5;

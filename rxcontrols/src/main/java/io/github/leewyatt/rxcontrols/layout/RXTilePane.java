@@ -177,7 +177,7 @@ public class RXTilePane extends Pane {
 
     // Reuses the same FLIP relayout animator as RXMasonryPane (same package). All
     // children are real and persistent, so no recycler pin-set is needed.
-    private final RelayoutAnimator animator = new RelayoutAnimator();
+    private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private boolean firstLayoutDone;
     // Children added after the first layout: they snap into their slot rather than
     // gliding in from the pane origin (no enter animation in V1).
@@ -1042,7 +1042,7 @@ public class RXTilePane extends Pane {
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null && isAnimationDurationPositive();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
-        List<RelayoutAnimator.Move> moves = null;
+        List<PaneRelayoutAnimator.Move> moves = null;
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
@@ -1059,12 +1059,12 @@ public class RXTilePane extends Pane {
                     childAlignment.getHpos(), childAlignment.getVpos());
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
-            if (Math.abs(fromDx) >= RelayoutAnimator.MOVE_EPSILON
-                    || Math.abs(fromDy) >= RelayoutAnimator.MOVE_EPSILON) {
+            if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
+                    || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON) {
                 if (moves == null) {
                     moves = new ArrayList<>();
                 }
-                moves.add(new RelayoutAnimator.Move(child, fromDx, fromDy, false));
+                moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
             }
         }
         animator.runRelayout(moves == null ? List.of() : moves, animate, getAnimationDuration(), interpolatorOrDefault());

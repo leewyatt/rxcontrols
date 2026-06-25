@@ -44,7 +44,7 @@ import java.util.Set;
  *
  * <p>On a column-count change the viewport runs a reorder glide: visible cells
  * (and section headers) keep their identity, are repositioned to their new slots,
- * and tween from their old position via {@link RXTileReorderAnimator}. Cells
+ * and tween from their old position via {@link ViewportReorderAnimator}. Cells
  * mid-glide are pinned so the recycler leaves them alone until they land.
  *
  * @param <T> the item type
@@ -67,7 +67,7 @@ final class RXTileViewport<T> extends Region {
     // tile gliding to a new slot is not grabbed and re-bound before it lands.
     private final Set<RXTileCell<T>> animating = new HashSet<>();
     private final Set<RXTileSectionCell> animatingHeaders = new HashSet<>();
-    private final RXTileReorderAnimator reorderAnimator = new RXTileReorderAnimator();
+    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
     // True for the duration of one fillVisibleRows when a column-count change should
     // glide cells/headers from their old positions to the new ones.
     private boolean reorderPass;

@@ -48,7 +48,7 @@ import java.util.Set;
  *
  * <p>On a column-count change, when animation is enabled, the visible cells keep
  * their identity, are repositioned to their new slots and tween from their old
- * position via {@link RXTileReorderAnimator}; cells mid-glide are pinned so the
+ * position via {@link ViewportReorderAnimator}; cells mid-glide are pinned so the
  * recycler leaves them alone until they land.</p>
  *
  * @param <T> the item type
@@ -84,7 +84,7 @@ final class RXMasonryViewport<T> extends Region {
     // Cells mid-glide are pinned here and skipped by the recycler so a cell gliding to a
     // new slot is not grabbed and re-bound before it lands.
     private final Set<RXMasonryCell<T>> animating = new HashSet<>();
-    private final RXTileReorderAnimator reorderAnimator = new RXTileReorderAnimator();
+    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
     // True for the duration of one fillVisible when a column-count change should glide
     // cells from their old positions to the new ones.
     private boolean reorderPass;

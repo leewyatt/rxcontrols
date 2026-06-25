@@ -200,7 +200,7 @@ public class RXFlowPane extends Pane {
 
     // The same FLIP relayout animator RXTilePane / RXMasonryPane use (same package).
     // All children are real and persistent, so no recycler pin-set is needed.
-    private final RelayoutAnimator animator = new RelayoutAnimator();
+    private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private boolean firstLayoutDone;
     // Children added after the first layout snap into their slot rather than gliding
     // in from the pane origin (no enter animation, matching RXTilePane).
@@ -1295,7 +1295,7 @@ public class RXFlowPane extends Pane {
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
                 && isAnimationDurationPositive();
-        List<RelayoutAnimator.Move> moves = new ArrayList<>();
+        List<PaneRelayoutAnimator.Move> moves = new ArrayList<>();
 
         if (horizontal) {
             // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
@@ -1345,16 +1345,16 @@ public class RXFlowPane extends Pane {
     // no meaningful previous position, so it snaps to its slot (fromD* = 0).
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
-                            List<RelayoutAnimator.Move> moves) {
+                            List<PaneRelayoutAnimator.Move> moves) {
         double oldVisualX = node.getLayoutX() + node.getTranslateX();
         double oldVisualY = node.getLayoutY() + node.getTranslateY();
         layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                 false, false, hpos, vpos);
         double fromDx = enteringNodes.contains(node) ? 0.0 : oldVisualX - node.getLayoutX();
         double fromDy = enteringNodes.contains(node) ? 0.0 : oldVisualY - node.getLayoutY();
-        if (Math.abs(fromDx) >= RelayoutAnimator.MOVE_EPSILON
-                || Math.abs(fromDy) >= RelayoutAnimator.MOVE_EPSILON) {
-            moves.add(new RelayoutAnimator.Move(node, fromDx, fromDy, false));
+        if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
+                || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON) {
+            moves.add(new PaneRelayoutAnimator.Move(node, fromDx, fromDy, false));
         }
     }
 

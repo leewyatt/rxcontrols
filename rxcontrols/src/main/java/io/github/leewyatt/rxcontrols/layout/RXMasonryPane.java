@@ -240,7 +240,7 @@ public class RXMasonryPane extends Pane {
 
     // ==================== Animation state ====================
 
-    private final RelayoutAnimator animator = new RelayoutAnimator();
+    private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final Set<Node> enteringNodes = new HashSet<>();
     // leaving node -> its managed state before the exit animation, restored on finish
     private final Map<Node, Boolean> leavingNodes = new HashMap<>();
@@ -1387,7 +1387,7 @@ public class RXMasonryPane extends Pane {
         List<Node> managed = metrics.managed();
         int[] startColumns = metrics.result().startColumns();
         double[] tops = metrics.result().tops();
-        List<RelayoutAnimator.Move> moves = new ArrayList<>(managed.size());
+        List<PaneRelayoutAnimator.Move> moves = new ArrayList<>(managed.size());
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
@@ -1403,9 +1403,9 @@ public class RXMasonryPane extends Pane {
             double oldVisualY = child.getLayoutY() + child.getTranslateY();
             layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
             if (enteringNodes.contains(child)) {
-                moves.add(new RelayoutAnimator.Move(child, 0.0, enterOffset, true));
+                moves.add(new PaneRelayoutAnimator.Move(child, 0.0, enterOffset, true));
             } else {
-                moves.add(new RelayoutAnimator.Move(child,
+                moves.add(new PaneRelayoutAnimator.Move(child,
                         oldVisualX - child.getLayoutX(), oldVisualY - child.getLayoutY(), false));
             }
         }

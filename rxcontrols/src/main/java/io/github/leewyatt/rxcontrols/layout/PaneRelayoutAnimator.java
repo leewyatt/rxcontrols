@@ -31,7 +31,7 @@ import java.util.Set;
  * converge on the same cleanup: {@code translateX} / {@code translateY} return to
  * {@code 0} and {@code opacity} to {@code 1} (or the node is removed for exits).</p>
  */
-final class RelayoutAnimator {
+final class PaneRelayoutAnimator {
 
     /**
      * One node move within a relayout pass.
