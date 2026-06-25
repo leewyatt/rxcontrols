@@ -71,15 +71,15 @@ final class RXTileRowPlan {
 
     RXTileRowPlan(List<RXTileSection> sections, boolean showHeaders, int columns,
                   double headerHeight, double dataSlotHeight, int itemCount, double sectionSpacing) {
-        this.sections = sections;
-        this.grouped = !sections.isEmpty();
+        this.sections = List.copyOf(sections);
+        this.grouped = !this.sections.isEmpty();
         this.headersShown = grouped && showHeaders;
         this.columns = Math.max(1, columns);
         this.headerHeight = headerHeight;
         this.dataSlotHeight = dataSlotHeight;
         this.itemCount = Math.max(0, itemCount);
 
-        int count = sections.size();
+        int count = this.sections.size();
         sectionFirstVisualRow = new int[count];
         sectionTopY = new double[count];
         sectionDataRowStart = new int[count];
@@ -106,7 +106,7 @@ final class RXTileRowPlan {
                     visualRow += 1;
                     y += headerHeight;
                 }
-                int dataRows = (int) Math.ceil((double) sections.get(s).itemCount() / this.columns);
+                int dataRows = (int) Math.ceil((double) this.sections.get(s).itemCount() / this.columns);
                 visualRow += dataRows;
                 y += dataRows * dataSlotHeight;
                 dataRowStart += dataRows;
