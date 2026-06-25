@@ -5,16 +5,19 @@ import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -184,6 +187,64 @@ public final class RXDialogs {
         field.requestFocus();
         field.selectAll();
         return future;
+    }
+
+    /**
+     * Shows a single-choice dialog: a drop-down of {@code choices} with {@code defaultChoice}
+     * pre-selected, plus Cancel and OK. The selection-input sibling of {@link #input}, mirroring
+     * the native {@code ChoiceDialog}.
+     *
+     * @param owner         a node in the target scene
+     * @param title         the heading text
+     * @param message       a prompt shown above the chooser, or {@code null}
+     * @param defaultChoice the initially selected choice, or {@code null}
+     * @param choices       the available choices
+     * @param <T>           the choice type
+     * @return a future completed with the chosen value on OK, or {@code null} when cancelled / dismissed
+     */
+    public static <T> CompletableFuture<T> choice(Node owner, String title, String message,
+                                                  T defaultChoice, Collection<T> choices) {
+        ComboBox<T> combo = new ComboBox<>(FXCollections.observableArrayList(choices));
+        combo.setValue(defaultChoice);
+        combo.setMaxWidth(Double.MAX_VALUE);
+        combo.getStyleClass().add("dialog-choice");
+
+        RXDialogContent content = new RXDialogContent();
+        content.setHeaderText(title);
+        if (message != null && !message.isEmpty()) {
+            Label label = new Label(message);
+            label.setWrapText(true);
+            content.setContent(new VBox(8.0, label, combo));
+        } else {
+            content.setContent(combo);
+        }
+
+        RXDialog<T> dialog = new RXDialog<>();
+        dialog.setContent(content);
+        dialog.getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.OK);
+        dialog.setResultConverter(buttonType -> buttonType == ButtonType.OK ? combo.getValue() : null);
+
+        CompletableFuture<T> future = new CompletableFuture<>();
+        dialog.setOnResult(future::complete);
+        dialog.show(owner);
+        return future;
+    }
+
+    /**
+     * Shows a single-choice dialog with the choices given inline.
+     *
+     * @param owner         a node in the target scene
+     * @param title         the heading text
+     * @param message       a prompt shown above the chooser, or {@code null}
+     * @param defaultChoice the initially selected choice, or {@code null}
+     * @param choices       the available choices
+     * @param <T>           the choice type
+     * @return a future completed with the chosen value on OK, or {@code null} when cancelled / dismissed
+     */
+    @SafeVarargs
+    public static <T> CompletableFuture<T> choice(Node owner, String title, String message,
+                                                  T defaultChoice, T... choices) {
+        return choice(owner, title, message, defaultChoice, Arrays.asList(choices));
     }
 
     /**

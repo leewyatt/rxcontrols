@@ -178,6 +178,39 @@ public class RXDialogsTest {
     }
 
     @Test
+    public void choiceReturnsTheSelectionOnOk() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            CompletableFuture<String> result = RXDialogs.choice(owner, "Size", "Pick a size:",
+                    "Medium", "Small", "Medium", "Large");
+            RXDialog<?> dialog = shownDialog(scene);
+            dialog.setAnimated(false);
+
+            dialog.requestClose(ButtonType.OK, CloseReason.ACTION_BUTTON);
+            assertEquals("Medium", result.getNow(null), "OK yields the selected choice (the default)");
+        });
+    }
+
+    @Test
+    public void choiceYieldsNullOnCancel() throws Exception {
+        runOnFx(() -> {
+            Region owner = new Region();
+            Scene scene = new Scene(new StackPane(owner), 400, 300);
+
+            CompletableFuture<String> result = RXDialogs.choice(owner, "Size", "Pick a size:",
+                    "Medium", "Small", "Medium", "Large");
+            RXDialog<?> dialog = shownDialog(scene);
+            dialog.setAnimated(false);
+
+            dialog.requestClose(ButtonType.CANCEL, CloseReason.ACTION_BUTTON);
+            assertTrue(result.isDone(), "cancel still completes the future");
+            assertNull(result.getNow("sentinel"), "cancel yields null, not the selection");
+        });
+    }
+
+    @Test
     public void busyIgnoresEscAndScrimAndCloseHidesIt() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();

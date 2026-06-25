@@ -158,11 +158,16 @@ public class RXDialogShowcase extends RXShowcaseApplication {
                 b -> RXDialogs.input(b, "Rename", "New name:", "untitled")
                         .thenAccept(text -> lastResult.set(
                                 "input → " + (text == null ? "(cancelled)" : text))));
+        Button choice = facadeButton("choice(…)",
+                b -> RXDialogs.choice(b, "Pick a size", "Size:", "Medium",
+                                "Small", "Medium", "Large", "Extra Large")
+                        .thenAccept(size -> lastResult.set(
+                                "choice → " + (size == null ? "(cancelled)" : size))));
         Button busy = facadeButton("busy(…) — auto-closes in 1.5s", b -> {
             RXDialogs.Busy handle = RXDialogs.busy(b, "Working…");
             new Timeline(new KeyFrame(Duration.seconds(1.5), event -> handle.close())).play();
         });
-        return new VBox(8.0, info, warn, error, confirm, input, busy);
+        return new VBox(8.0, info, warn, error, confirm, input, choice, busy);
     }
 
     private Button facadeButton(String text, Consumer<Button> action) {
