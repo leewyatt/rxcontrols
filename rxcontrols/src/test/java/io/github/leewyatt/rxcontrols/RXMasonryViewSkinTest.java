@@ -646,6 +646,36 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    @Test
+    public void scrollBarWidthChangeRebuildsThePlacement() throws Exception {
+        onFx(() -> {
+            AtomicInteger calls = new AtomicInteger();
+            RXMasonryView<Integer> view = countingProviderView(calls);
+            StackPane root = host(view, 340, 400);
+            pumpUntilStable(root, 20);
+
+            // The overflow track width depends on the scroll-bar breadth, which a runtime
+            // stylesheet swap can change with no control-geometry property event. Re-width the
+            // vertical bar inline and assert the cache invalidates (rebuilds), not reuses.
+            ScrollBar vbar = verticalScrollBar(view);
+            assertNotNull(vbar, "an overflowing list shows a vertical scroll bar");
+            calls.set(0);
+            vbar.setStyle("-fx-pref-width: 40px;");
+            view.requestLayout();
+            pumpUntilStable(root, 20);
+            assertTrue(calls.get() > 0, "a runtime scroll-bar width change rebuilds the placement");
+        });
+    }
+
+    private static ScrollBar verticalScrollBar(RXMasonryView<?> view) {
+        for (Node node : view.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL) {
+                return bar;
+            }
+        }
+        return null;
+    }
+
     // ==================== Estimated path: measure-time re-pack ====================
 
     @Test
