@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -310,6 +311,35 @@ public class RXIndexedSelectionModelTest {
 
         listA.add(0, "z"); // mutate the OLD list
         assertEquals(0, sm.getSelectedIndex(), "the old list's listener was detached on swap");
+    }
+
+    @Test
+    public void selectedNullItemReResolvesOnItemsSwap() {
+        ObservableList<String> listA = FXCollections.observableArrayList("a", null, "c");
+        RXTileView<String> view = new RXTileView<>(listA);
+        MultipleSelectionModel<String> sm = view.getSelectionModel();
+        sm.select(1);
+        assertEquals(1, sm.getSelectedIndex());
+        assertNull(sm.getSelectedItem());
+
+        ObservableList<String> listB = FXCollections.observableArrayList("x", "y", null);
+        view.setItems(listB);
+
+        assertEquals(2, sm.getSelectedIndex(), "the selected null item re-resolves in the new list");
+        assertEquals(List.of(2), sm.getSelectedIndices());
+        assertNull(sm.getSelectedItem());
+    }
+
+    @Test
+    public void noSelectionDoesNotResolveNullOnItemsSwap() {
+        RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a"));
+        MultipleSelectionModel<String> sm = view.getSelectionModel();
+
+        view.setItems(FXCollections.observableArrayList((String) null));
+
+        assertEquals(-1, sm.getSelectedIndex(), "an unselected null value is not treated as a remembered selection");
+        assertTrue(sm.getSelectedIndices().isEmpty());
+        assertNull(sm.getSelectedItem());
     }
 
     @Test

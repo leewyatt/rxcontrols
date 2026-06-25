@@ -1184,8 +1184,9 @@ public class RXTileView<T> extends Control {
             new ReadOnlyObjectWrapper<>(this, "visibleRange", RXTileVisibleRange.EMPTY);
 
     /**
-     * The item / row range currently realized in the viewport, refreshed after
-     * each layout pass. Replaced wholesale, so listeners never see a torn read.
+     * The item / row range currently realized in the viewport, refreshed when
+     * the realized range changes. Immutable snapshots keep listeners from seeing
+     * torn reads.
      *
      * @return the read-only visible-range property
      */

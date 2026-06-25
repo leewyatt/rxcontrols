@@ -40,9 +40,10 @@ import java.util.List;
  *
  * <p>Grouping is supplied by the control's width-independent
  * {@link RXTileView#sectionsProperty() sections}; the skin builds a
- * {@link RXTileRowPlan} (header rows interleaved with data rows) and shares it
- * with the viewport. A flat view (no section-key factory) is the degenerate plan
- * with no header rows.
+ * {@link RXTileRowPlan} (header rows interleaved with data rows), caches stable
+ * plans across repeated parent layouts, and shares the resolved plan with the
+ * viewport. A flat view (no section-key factory) is the degenerate plan with no
+ * header rows.
  *
  * @param <T> the item type
  */
@@ -76,6 +77,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
     private ObservableList<T> observedItems;
+    private int rowPlanRevision;
+    private RowPlanKey primaryRowPlanKey;
+    private RXTileRowPlan primaryRowPlan;
+    private RowPlanKey secondaryRowPlanKey;
+    private RXTileRowPlan secondaryRowPlan;
 
     private final RXIndexedFocusModel<T> focusModel;
     private MultipleSelectionModel<T> observedSelectionModel;
@@ -96,6 +102,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     private double marqueeAnchorContentY;
     private double marqueeLastX;
     private double marqueeLastY;
+
+    private record RowPlanKey(int revision, boolean showHeaders, int columns,
+                              double headerHeight, double dataSlotHeight,
+                              int itemCount, double sectionSpacing) {
+    }
 
     /**
      * Creates the skin for the given tile view.
@@ -150,7 +161,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         // Sections are derived on the control; the skin relayouts to rebuild the
         // row plan whenever the derived list, the header toggle or the header
         // height change. (sectionKeyFactory changes flow through sectionsProperty.)
-        disposer.registerListener(control.sectionsProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionsProperty(), this::onSectionsChanged);
         disposer.registerListener(control.showSectionHeadersProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
@@ -178,10 +189,16 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         viewport.requestLayout();
     }
 
+    private void onSectionsChanged() {
+        rowPlanRevision++;
+        requestLayoutPass();
+    }
+
     // ==================== Items ====================
 
     private void onItemsListSwapped() {
         finishMarquee();
+        rowPlanRevision++;
         attachItems(getSkinnable().getItems());
         // The shift-range anchor referred to the previous list; drop it so a later
         // Shift+arrow / Shift+click starts a fresh range instead of a stale origin.
@@ -192,6 +209,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private void onItemsContentChanged() {
         finishMarquee();
+        rowPlanRevision++;
         resetAnchor();
         updatePlaceholder();
         viewport.requestLayout();
@@ -259,9 +277,28 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private RXTileRowPlan buildPlan(int columns) {
         RXTileView<T> control = getSkinnable();
-        return new RXTileRowPlan(control.getSections(), control.isShowSectionHeaders(), columns,
+        RowPlanKey key = new RowPlanKey(rowPlanRevision, control.isShowSectionHeaders(), columns,
                 snapSizeY(sectionHeaderHeightOrDefault(control)), viewport.slotHeight(), itemCount(),
                 snapSizeY(gapOrZero(control.getSectionSpacing())));
+        if (key.equals(primaryRowPlanKey)) {
+            return primaryRowPlan;
+        }
+        if (key.equals(secondaryRowPlanKey)) {
+            RowPlanKey oldPrimaryKey = primaryRowPlanKey;
+            RXTileRowPlan oldPrimaryPlan = primaryRowPlan;
+            primaryRowPlanKey = secondaryRowPlanKey;
+            primaryRowPlan = secondaryRowPlan;
+            secondaryRowPlanKey = oldPrimaryKey;
+            secondaryRowPlan = oldPrimaryPlan;
+            return primaryRowPlan;
+        }
+        RXTileRowPlan plan = new RXTileRowPlan(control.getSections(), control.isShowSectionHeaders(), columns,
+                key.headerHeight(), key.dataSlotHeight(), key.itemCount(), key.sectionSpacing());
+        secondaryRowPlanKey = primaryRowPlanKey;
+        secondaryRowPlan = primaryRowPlan;
+        primaryRowPlanKey = key;
+        primaryRowPlan = plan;
+        return plan;
     }
 
     private int computeColumns(double availableWidth) {
@@ -294,14 +331,20 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         int firstIndex = viewport.getVisibleFirstIndex();
         int lastIndex = viewport.getVisibleLastIndex();
         if (firstIndex < 0 || lastIndex < 0) {
-            control.setVisibleRange(RXTileVisibleRange.EMPTY);
+            setVisibleRangeIfChanged(control, RXTileVisibleRange.EMPTY);
             return;
         }
         // firstRow / lastRow are DATA-row indices (header rows excluded), distinct
         // from the visual rowCount which counts header rows too.
-        control.setVisibleRange(new RXTileVisibleRange(firstIndex, lastIndex,
+        setVisibleRangeIfChanged(control, new RXTileVisibleRange(firstIndex, lastIndex,
                 viewport.getVisibleFirstRow(), viewport.getVisibleLastRow(),
                 control.getActualColumnCount()));
+    }
+
+    private void setVisibleRangeIfChanged(RXTileView<T> control, RXTileVisibleRange range) {
+        if (!range.equals(control.getVisibleRange())) {
+            control.setVisibleRange(range);
+        }
     }
 
     private void updateVisibleSection() {

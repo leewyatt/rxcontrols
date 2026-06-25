@@ -72,8 +72,8 @@ final class RXTileViewport<T> extends Region {
     // glide cells/headers from their old positions to the new ones.
     private boolean reorderPass;
 
-    // Built by the skin each pass and shared so the skin's scroll-bar/column
-    // decision and this viewport's geometry use the exact same plan.
+    // Supplied by the skin after its scroll-bar/column decision so the skin and
+    // this viewport use the exact same geometry plan.
     private RXTileRowPlan rowPlan;
 
     // The skin's internal focus model; selection comes from the control. Both feed
@@ -915,6 +915,7 @@ final class RXTileViewport<T> extends Region {
             cell.updateTileFocus(false);
             cell.setTranslateX(0.0);
             cell.setTranslateY(0.0);
+            cell.updateGridPosition(-1, -1);
             cell.updateIndex(-1);
         }
     }

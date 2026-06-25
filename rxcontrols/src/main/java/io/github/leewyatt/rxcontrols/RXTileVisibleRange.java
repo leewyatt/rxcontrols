@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols;
 /**
  * Immutable snapshot of the item and row range currently realized in a
  * {@link RXTileView} viewport, published through
- * {@link RXTileView#visibleRangeProperty()} after each layout pass.
+ * {@link RXTileView#visibleRangeProperty()} when the realized range changes.
  *
  * <p>Indices are inclusive and refer to item positions in
  * {@link RXTileView#getItems()}; rows are visual rows (data rows only — section
@@ -11,8 +11,8 @@ package io.github.leewyatt.rxcontrols;
  * (no items, or not yet laid out) and reports {@link #isEmpty()} {@code true}
  * with a {@link #size()} of {@code 0}.
  *
- * <p>This object is replaced wholesale on every scroll, so a listener always
- * sees a consistent pair of bounds and never a torn read.
+ * <p>This object is immutable and replaced when the realized range changes, so
+ * a listener always sees a consistent pair of bounds and never a torn read.
  *
  * @param firstIndex  index of the first visible item, or {@code -1} when empty
  * @param lastIndex   index of the last visible item, or {@code -1} when empty

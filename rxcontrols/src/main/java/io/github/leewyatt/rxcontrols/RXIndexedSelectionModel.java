@@ -355,9 +355,10 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
     // A list swap invalidates the old indices; re-resolve the lead item against the
     // new list (collapsing any multi-selection to that item), else clear.
     private void resolveSelectionForNewList() {
+        boolean hadIndexedLead = getSelectedIndex() >= 0;
         T leadItem = getSelectedItem();
         ObservableList<T> items = getItems();
-        int index = (leadItem != null && items != null) ? items.indexOf(leadItem) : -1;
+        int index = (items != null && (leadItem != null || hadIndexedLead)) ? items.indexOf(leadItem) : -1;
         if (index >= 0) {
             setSelectedIndex(index);
             setSelectedItem(getModelItem(index));
@@ -374,6 +375,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
     private void onItemsChanged(ListChangeListener.Change<? extends T> change) {
         RXIndexedSelectionMutationGuard.enter(this);
         try {
+            boolean hadIndexedLead = getSelectedIndex() >= 0;
             ObservableList<T> items = getItems();
             int itemCount = items == null ? 0 : items.size();
             if (itemCount == 0) {
@@ -390,7 +392,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
                     applyAddOrRemove(change);
                 }
             }
-            updateLeadAfterItemsChange();
+            updateLeadAfterItemsChange(hadIndexedLead);
             syncSelectedItems();
         } finally {
             RXIndexedSelectionMutationGuard.exit(this);
@@ -452,7 +454,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
     // Keep the lead consistent after an items change: re-sync the item for a still
     // valid lead; promote a survivor or revert to the prior row when the lead was
     // removed; otherwise re-resolve a remembered item or clear a dangling one.
-    private void updateLeadAfterItemsChange() {
+    private void updateLeadAfterItemsChange(boolean hadIndexedLead) {
         int itemCount = getItemCount();
         int lead = getSelectedIndex();
         if (lead >= 0 && lead < itemCount) {
@@ -482,7 +484,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
         // item later appeared), else clear so no removed item dangles on the lead.
         T leadItem = getSelectedItem();
         ObservableList<T> items = getItems();
-        if (leadItem != null && items != null) {
+        if (items != null && (leadItem != null || hadIndexedLead)) {
             int index = items.indexOf(leadItem);
             if (index >= 0) {
                 select(index);

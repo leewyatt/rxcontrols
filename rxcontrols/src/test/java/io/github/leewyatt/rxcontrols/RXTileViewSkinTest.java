@@ -234,6 +234,40 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void parkedCellReportsEmptyGridPositionDuringUpdateItem() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(7);
+            view.setMaxColumns(3);
+            AtomicInteger emptyUpdates = new AtomicInteger();
+            AtomicInteger emptyRow = new AtomicInteger(Integer.MIN_VALUE);
+            AtomicInteger emptyColumn = new AtomicInteger(Integer.MIN_VALUE);
+            view.setCellFactory(tile -> new RXTileCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        emptyUpdates.incrementAndGet();
+                        emptyRow.set(getRowIndex());
+                        emptyColumn.set(getColumnIndex());
+                    }
+                }
+            });
+            StackPane root = host(view, 400, 600);
+            pump(root);
+
+            int before = emptyUpdates.get();
+            emptyRow.set(Integer.MIN_VALUE);
+            emptyColumn.set(Integer.MIN_VALUE);
+            view.getItems().setAll("Item 0");
+            pump(root);
+
+            assertTrue(emptyUpdates.get() > before, "shrinking the list parks previously realized cells");
+            assertEquals(-1, emptyRow.get(), "empty cells report no data row during updateItem");
+            assertEquals(-1, emptyColumn.get(), "empty cells report no column during updateItem");
+        });
+    }
+
+    @Test
     public void visibleRangeTailIsClampedToItemCount() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(7);
@@ -243,6 +277,23 @@ public class RXTileViewSkinTest {
             assertEquals(0, range.firstIndex());
             assertEquals(6, range.lastIndex(), "tail clamps to itemCount-1, not lastRow*cols+cols-1");
             assertEquals(7, range.size());
+        });
+    }
+
+    @Test
+    public void equalVisibleRangeDoesNotFireRepeatedNotifications() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(3);
+            StackPane root = host(view, 400, 600);
+            pump(root);
+
+            AtomicInteger changes = new AtomicInteger();
+            view.visibleRangeProperty().addListener((obs, oldRange, newRange) -> changes.incrementAndGet());
+
+            view.requestLayout();
+            pump(root);
+            assertEquals(0, changes.get(), "an equal immutable range should not notify listeners again");
         });
     }
 
@@ -2325,6 +2376,29 @@ public class RXTileViewSkinTest {
             pump(root);
             assertTrue(hasFocusRing(cellByIndex(view, 3)), "the focus ring follows item 'b' to its new index");
             assertFalse(hasFocusRing(cellByIndex(view, 1)), "the stale numeric index no longer carries the ring");
+        });
+    }
+
+    @Test
+    public void focusRingReResolvesNullItemOnSwap() throws Exception {
+        onFx(() -> {
+            ObservableList<String> listA = FXCollections.observableArrayList("a", null, "c", "d");
+            RXTileView<String> view = new RXTileView<>(listA);
+            view.setMaxColumns(4);
+            StackPane root = host(view, 400, 200);
+            pump(root);
+            fireMousePressed(cellByIndex(view, 1), false, false);
+            pump(root);
+            assertTrue(hasFocusRing(cellByIndex(view, 1)));
+            assertEquals(1, view.getSelectionModel().getSelectedIndex());
+
+            view.setItems(FXCollections.observableArrayList("x", "y", null, "z"));
+            pump(root);
+
+            assertTrue(hasFocusRing(cellByIndex(view, 2)), "the focus ring follows the selected null item");
+            assertFalse(hasFocusRing(cellByIndex(view, 1)), "the stale numeric index no longer carries the ring");
+            assertEquals(2, view.getSelectionModel().getSelectedIndex(),
+                    "selection follows the selected null item to its new index");
         });
     }
 

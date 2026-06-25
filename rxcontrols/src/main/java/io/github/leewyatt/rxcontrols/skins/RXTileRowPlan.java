@@ -245,8 +245,12 @@ final class RXTileRowPlan {
             }
             if (column >= target.cellCount()) {
                 if (target.section() != null) {
+                    // Grouped navigation must cross uneven section tails instead of
+                    // trapping focus at the previous section boundary.
                     return target.firstItemIndex() + target.cellCount() - 1;
                 }
+                // In flat mode the only short row is the final row; keep strict
+                // column navigation rather than jumping sideways to the last item.
                 return -1;
             }
             return target.firstItemIndex() + column;

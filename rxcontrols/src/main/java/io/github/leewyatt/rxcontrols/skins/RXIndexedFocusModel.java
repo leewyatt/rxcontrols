@@ -65,6 +65,7 @@ class RXIndexedFocusModel<T> extends FocusModel<T> {
     }
 
     private void attachItems(ObservableList<T> items) {
+        boolean hadFocus = getFocusedIndex() >= 0;
         T focusedItem = getFocusedItem();
         if (observedItems != null) {
             observedItems.removeListener(weakItemsContentListener);
@@ -76,7 +77,7 @@ class RXIndexedFocusModel<T> extends FocusModel<T> {
         // A list swap invalidates the numeric index; re-resolve focus by item so the
         // focus ring follows the same item (or clears if absent), mirroring the
         // selection model's swap handling.
-        focus((focusedItem != null && items != null) ? items.indexOf(focusedItem) : -1);
+        focus((items != null && (focusedItem != null || hadFocus)) ? items.indexOf(focusedItem) : -1);
         syncSelectionLeadState();
     }
 
