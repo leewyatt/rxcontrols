@@ -846,6 +846,93 @@ public class RXListViewSkinTest {
         });
     }
 
+    // ==================== Sticky section header (PR4) ====================
+
+    @Test
+    public void stickyHeaderShownByDefaultWhenGrouped() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            RXListSectionCell sticky = stickyHeader(view);
+            assertNotNull(sticky, "sticky overlay exists by default (stickySectionHeader=true)");
+            assertTrue(sticky.isVisible());
+            assertEquals(0, sticky.getItem().sectionIndex(), "sticky shows the top section");
+        });
+    }
+
+    @Test
+    public void inFlowTopHeaderSkippedWhenSticky() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            // The top section's header is rendered ONLY by the sticky overlay; the
+            // in-flow header pool must not also render it.
+            assertTrue(inFlowHeaders(view).stream().noneMatch(h -> h.getItem().sectionIndex() == 0),
+                    "the top section's in-flow header is skipped");
+        });
+    }
+
+    @Test
+    public void stickyRestsAtTopThenPinsWhenScrolled() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            RXListSectionCell sticky = stickyHeader(view);
+            assertFalse(hasPseudo(sticky, "pinned"), "not pinned while the section rests at the top");
+            view.scrollBy(50);
+            pump((StackPane) view.getParent());
+            assertTrue(hasPseudo(sticky, "pinned"), "pinned once content has scrolled under it");
+        });
+    }
+
+    @Test
+    public void stickyIsPushedUpByNextHeader() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            // Section 0 occupies [0, 230) (30px header + 10*20px rows); scrolling to 220
+            // brings section 1's header to y=10, inside the [0,30) sticky band, pushing
+            // the pinned header partly off the top.
+            view.scrollBy(220);
+            pump((StackPane) view.getParent());
+            assertTrue(stickyHeader(view).getLayoutY() < 0.0,
+                    "the sticky header is pushed up as the next header rises");
+        });
+    }
+
+    @Test
+    public void stickyTracksCurrentSectionAfterScroll() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            view.scrollToSection(5);
+            pump((StackPane) view.getParent());
+            assertEquals(5, stickyHeader(view).getItem().sectionIndex(),
+                    "the sticky rebinds to the section at the top");
+        });
+    }
+
+    @Test
+    public void disablingStickyRemovesOverlayAndRendersInFlowHeader() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            assertNotNull(stickyHeader(view));
+            view.setStickySectionHeader(false);
+            pump((StackPane) view.getParent());
+            assertNull(stickyHeader(view), "the sticky overlay is removed when disabled");
+            assertTrue(inFlowHeaders(view).stream().anyMatch(h -> h.getItem().sectionIndex() == 0),
+                    "the top section's header is now rendered in-flow");
+        });
+    }
+
+    @Test
+    public void noStickyWhenShowHeadersFalse() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            view.setShowSectionHeaders(false);
+            pump((StackPane) view.getParent());
+            RXListSectionCell sticky = stickyHeader(view);
+            // The overlay node may persist but must be parked (not rendering a section).
+            assertTrue(sticky == null || !sticky.isVisible() || sticky.getItem() == null,
+                    "no sticky header is shown when headers are hidden");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {
@@ -886,6 +973,37 @@ public class RXListViewSkinTest {
         List<RXListSectionCell> result = new ArrayList<>();
         for (Node node : view.lookupAll(".rx-list-section-header")) {
             if (node instanceof RXListSectionCell header && header.getItem() != null) {
+                result.add(header);
+            }
+        }
+        return result;
+    }
+
+    // 100 items grouped 10-per-section (10 sections), laid out 20px rows / 30px
+    // headers, hosted and pumped — the standard fixture for the sticky tests.
+    private static RXListView<Integer> groupedList(double w, double h) {
+        RXListView<Integer> view = intItems(100);
+        view.setSectionKeyFactory(i -> i / 10);
+        view.setFixedCellSize(20);
+        view.setSectionHeaderHeight(30);
+        pump(host(view, w, h));
+        return view;
+    }
+
+    private static RXListSectionCell stickyHeader(RXListView<?> view) {
+        for (Node node : view.lookupAll(".rx-list-section-header.sticky")) {
+            if (node instanceof RXListSectionCell header) {
+                return header;
+            }
+        }
+        return null;
+    }
+
+    private static List<RXListSectionCell> inFlowHeaders(RXListView<?> view) {
+        List<RXListSectionCell> result = new ArrayList<>();
+        for (Node node : view.lookupAll(".rx-list-section-header")) {
+            if (node instanceof RXListSectionCell header && header.getItem() != null
+                    && !header.getStyleClass().contains("sticky")) {
                 result.add(header);
             }
         }

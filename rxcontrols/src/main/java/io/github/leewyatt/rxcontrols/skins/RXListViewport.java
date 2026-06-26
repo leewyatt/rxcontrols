@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.util.Callback;
@@ -29,9 +30,20 @@ import java.util.List;
  */
 final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
+    // Sub-pixel threshold for the sticky header's :pinned state: it only elevates
+    // once content has actually scrolled under it, not when a section rests at the top.
+    private static final double STICKY_PINNED_EPSILON = 0.5;
+
+    private static final PseudoClass PINNED_PSEUDO_CLASS = PseudoClass.getPseudoClass("pinned");
+
     private final RXListView<T> control;
 
     private final List<RXListSectionCell> headerPool = new ArrayList<>();
+    // The single pinned section header (sticky subheader). Created lazily only when
+    // enabled, removed when disabled, recreated on a header-factory change. It lives
+    // in the overlay layer (above content, below the scroll bar), so it never joins
+    // the recycling pool.
+    private RXListSectionCell stickyHeader;
 
     // Supplied by the skin (sections + resolved row height) as the geometry source
     // of truth; this viewport then decides the scroll bar from it.
@@ -158,12 +170,38 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     /**
+     * Adds or removes the pinned sticky header in response to the control's
+     * {@code stickySectionHeader} property; the skin wires its listener and an
+     * initial sync to this.
+     *
+     * @param enabled whether sticky headers are enabled
+     */
+    void setStickyEnabled(boolean enabled) {
+        // The node is built lazily on the first pass where the sticky is actually
+        // active (layoutStickyHeader -> ensureStickyHeader), so a flat list — the
+        // default, with stickySectionHeader == true — never allocates one. Only the
+        // disable path acts here, dropping any node a prior grouped pass created.
+        // (Unlike RXTileViewport, the list has no marquee overlay, so there is no
+        // z-order reason to create it eagerly.)
+        if (!enabled && stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
+        requestLayout();
+    }
+
+    /**
      * Discards the section-header pool; used when the section-header factory
      * changes. A normal layout repopulates it.
      */
     void recreateHeaders() {
         contentLayer.getChildren().removeAll(headerPool);
         headerPool.clear();
+        // Drop the sticky too; the next layout rebuilds it with the new factory.
+        if (stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
         requestLayout();
     }
 
@@ -171,6 +209,10 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     protected void dispose() {
         contentLayer.getChildren().removeAll(headerPool);
         headerPool.clear();
+        if (stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
         super.dispose();
     }
 
@@ -213,10 +255,14 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
         topSection = plan.sectionOf(first);
         fillVisibleRows(plan, first, last, contentWidth);
+        layoutStickyHeader(plan, contentWidth);
     }
 
     private void fillVisibleRows(RXListRowPlan plan, int first, int last, double contentWidth) {
         double rowHeight = snapSizeY(plan.rowHeight());
+        // When the sticky overlay is active it is the sole renderer of the top
+        // section's header, so the in-flow copy of that header row is skipped here.
+        boolean stickyActive = isStickyHeaderActive(plan);
         int cellCursor = 0;
         int headerCursor = 0;
         int firstItem = -1;
@@ -225,6 +271,9 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             RXListRowPlan.RowInfo info = plan.rowInfo(visualRow);
             double rowTop = snapPositionY(info.top() - scrollY);
             if (info.header()) {
+                if (stickyActive && info.section().sectionIndex() == topSection.sectionIndex()) {
+                    continue;
+                }
                 RXListSectionCell header = acquireHeader(headerCursor++);
                 String oldStyle = header.getStyle();
                 header.updateSection(info.section());
@@ -262,6 +311,76 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     protected void parkAllRealized() {
         parkCellsFrom(0);
         parkHeadersFrom(0);
+        parkStickyHeader();
+    }
+
+    // ==================== Sticky section header ====================
+
+    // Single creation entry. The sticky shares the section-header factory and style
+    // class but adds a 'sticky' class so tests / CSS can target it; pickOnBounds
+    // makes the whole strip block clicks from reaching the cells scrolled under it.
+    private void ensureStickyHeader() {
+        if (stickyHeader == null) {
+            stickyHeader = createHeader();
+            stickyHeader.getStyleClass().add("sticky");
+            stickyHeader.setPickOnBounds(true);
+            addOverlay(stickyHeader);
+        }
+    }
+
+    // The single gate shared by the fill skip (fillVisibleRows) and the sticky
+    // placement so the two never disagree (no "skipped the in-flow header but the
+    // sticky did not show" hole).
+    private boolean isStickyHeaderActive(RXListRowPlan plan) {
+        return control.isStickySectionHeader()
+                && plan != null && plan.headersShown()
+                && plan.totalVisualRows() > 0 && topSection != null;
+    }
+
+    private void layoutStickyHeader(RXListRowPlan plan, double contentWidth) {
+        if (!isStickyHeaderActive(plan)) {
+            parkStickyHeader();
+            return;
+        }
+        ensureStickyHeader();
+        double stickyH = snapSizeY(plan.headerHeight());
+        int topIndex = topSection.sectionIndex();
+
+        // Handoff: once the next section's header rises into the [0, stickyH] band it
+        // pushes the pinned header up; before that the pinned header rests at the top.
+        double stickyY = 0.0;
+        if (topIndex + 1 < plan.sectionCount()) {
+            double nextY = plan.sectionTop(topIndex + 1) - scrollY;
+            if (nextY < stickyH) {
+                stickyY = nextY - stickyH;
+            }
+        }
+
+        // Re-bind only when the pinned section actually changes; the sticky usually
+        // shows the same section across many scroll frames, so this skips a per-frame
+        // updateItem on the (possibly heavy) factory cell. Section records are fresh
+        // instances after a recompute, so reference inequality is the right signal.
+        if (stickyHeader.getItem() != topSection) {
+            String oldStyle = stickyHeader.getStyle();
+            stickyHeader.updateSection(topSection);
+            applyCssAfterCellUpdate(stickyHeader, oldStyle);
+        }
+        stickyHeader.setVisible(true);
+        stickyHeader.resizeRelocate(snapPositionX(0.0), snapPositionY(stickyY), contentWidth, stickyH);
+
+        boolean pinned = scrollY > plan.sectionTop(topIndex) + STICKY_PINNED_EPSILON;
+        stickyHeader.pseudoClassStateChanged(PINNED_PSEUDO_CLASS, pinned);
+    }
+
+    private void parkStickyHeader() {
+        if (stickyHeader == null) {
+            return;
+        }
+        if (stickyHeader.isVisible() || stickyHeader.getItem() != null) {
+            stickyHeader.setVisible(false);
+            stickyHeader.updateSection(null);
+        }
+        stickyHeader.pseudoClassStateChanged(PINNED_PSEUDO_CLASS, false);
     }
 
     // ==================== Header pool ====================

@@ -106,6 +106,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         attachItems(control.getItems());
         updatePlaceholder();
         registerListeners(control);
+        // Initial sync: the property listener only fires on change, so honor a value
+        // set before the skin existed (FXML / builder).
+        viewport.setStickyEnabled(control.isStickySectionHeader());
         attachSelectionModel(control.getSelectionModel());
         focusModel.moveItemsObserversToEnd();
         focusModel.syncSelectionLeadState();
@@ -127,6 +130,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
+        disposer.registerListener(control.stickySectionHeaderProperty(), this::onStickyChanged);
         // Visual mode: re-render the cells (their selection slot is derived) and
         // refresh the control-root pseudo-classes.
         disposer.registerListener(control.selectionVisualModeProperty(), this::onDecorationStateChanged);
@@ -195,6 +199,11 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private void onSectionHeaderFactoryChanged() {
         // recreateHeaders() discards the header pool and requests a viewport layout.
         viewport.recreateHeaders();
+    }
+
+    private void onStickyChanged() {
+        // Adds or removes the pinned sticky header and requests a viewport layout.
+        viewport.setStickyEnabled(getSkinnable().isStickySectionHeader());
     }
 
     private void onPlaceholderChanged() {

@@ -72,6 +72,9 @@ public class RXListView<T> extends Control {
     /** Default for {@link #showSectionHeadersProperty()}. */
     public static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
 
+    /** Default for {@link #stickySectionHeaderProperty()}. */
+    public static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
+
     private static final String DEFAULT_STYLE_CLASS = "rx-list-view";
 
     // ==================== Constructors ====================
@@ -620,6 +623,40 @@ public class RXListView<T> extends Control {
      */
     public final void setSectionSpacing(double value) {
         sectionSpacing.set(value);
+    }
+
+    private final BooleanProperty stickySectionHeader =
+            new SimpleBooleanProperty(this, "stickySectionHeader", DEFAULT_STICKY_SECTION_HEADER);
+
+    /**
+     * Whether the current section's header pins to the top of the viewport as its
+     * items scroll under it, handing off to the next header as that section rises
+     * into view. Defaults to {@code true} (the common list idiom). Only has an
+     * effect when sections are grouped and {@link #showSectionHeadersProperty()
+     * showSectionHeaders} is {@code true}.
+     *
+     * @return the sticky-section-header property
+     */
+    public final BooleanProperty stickySectionHeaderProperty() {
+        return stickySectionHeader;
+    }
+
+    /**
+     * Returns whether the section header is sticky.
+     *
+     * @return {@code true} if the section header pins to the top
+     */
+    public final boolean isStickySectionHeader() {
+        return stickySectionHeader.get();
+    }
+
+    /**
+     * Sets whether the section header is sticky.
+     *
+     * @param value {@code true} to pin the current section's header to the top
+     */
+    public final void setStickySectionHeader(boolean value) {
+        stickySectionHeader.set(value);
     }
 
     private final ObservableList<RXListSection> sectionsBacking = FXCollections.observableArrayList();

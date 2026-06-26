@@ -128,6 +128,10 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         headers.setSelected(list.isShowSectionHeaders());
         headers.selectedProperty().addListener((obs, old, on) -> list.setShowSectionHeaders(on));
 
+        CheckBox sticky = new CheckBox("Sticky header");
+        sticky.setSelected(list.isStickySectionHeader());
+        sticky.selectedProperty().addListener((obs, old, on) -> list.setStickySectionHeader(on));
+
         Slider headerHeight = createSlider(20, 64, list.getSectionHeaderHeight());
         headerHeight.valueProperty().addListener((obs, old, value) ->
                 list.setSectionHeaderHeight(value.doubleValue()));
@@ -149,6 +153,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Grouping", grouped),
                 row("Headers", headers),
+                row("Sticky", sticky),
                 row("Header h", headerHeight, createValueLabel(headerHeight, "%.0f px")),
                 row("Spacing", spacing, createValueLabel(spacing, "%.0f px")),
                 row(sectionBox),
