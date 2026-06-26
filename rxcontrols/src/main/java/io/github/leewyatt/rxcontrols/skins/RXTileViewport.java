@@ -1050,6 +1050,10 @@ final class RXTileViewport<T> extends Region {
      * @param enabled whether sticky headers are enabled
      */
     void setStickyEnabled(boolean enabled) {
+        // Like recreateHeaders() / dispose(): this structural change snaps any in-flight
+        // reorder glide first, so a gliding header is never left mid-flight (and skipped
+        // by parkHeadersFrom) once the sticky takes over the top section's header.
+        snapAllGlides();
         if (enabled) {
             ensureStickyHeader();
         } else if (stickyHeader != null) {
@@ -1099,10 +1103,16 @@ final class RXTileViewport<T> extends Region {
             }
         }
 
-        String oldStyle = stickyHeader.getStyle();
-        stickyHeader.updateSection(topSection);
+        // Re-bind only when the pinned section actually changes; the sticky usually
+        // shows the same section across many scroll frames, so this skips a per-frame
+        // updateItem on the (possibly heavy) factory cell. Section records are fresh
+        // instances after a recompute, so reference inequality is the right signal.
+        if (stickyHeader.getItem() != topSection) {
+            String oldStyle = stickyHeader.getStyle();
+            stickyHeader.updateSection(topSection);
+            applyCssAfterCellUpdate(stickyHeader, oldStyle);
+        }
         stickyHeader.setVisible(true);
-        applyCssAfterCellUpdate(stickyHeader, oldStyle);
         stickyHeader.resizeRelocate(snapPositionX(0.0), snapPositionY(stickyY), contentWidth, stickyH);
 
         boolean pinned = scrollY > plan.sectionTop(topIndex) + STICKY_PINNED_EPSILON;

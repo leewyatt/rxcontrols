@@ -3049,6 +3049,26 @@ public class RXTileViewSkinTest {
         });
     }
 
+    @Test
+    public void togglingStickyMidGlideSnapsReorder() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(3, 12);
+            view.setMaxColumns(4);
+            view.setPrefTileWidth(80);
+            view.setPrefTileHeight(40);
+            view.setAnimated(true);
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            view.setMaxColumns(6); // column change -> reorder glide in flight
+            pump(root);
+            assertTrue(anyCellTranslated(view, 36), "setup: a reorder glide is in flight");
+            view.setStickySectionHeader(true);
+            pump(root);
+            assertFalse(anyCellTranslated(view, 36),
+                    "toggling sticky snaps any in-flight glide (like recreateHeaders / dispose)");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXTileView<String> stickyGeometry() {
