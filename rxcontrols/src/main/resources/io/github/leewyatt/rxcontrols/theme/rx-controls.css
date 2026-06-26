@@ -1364,6 +1364,14 @@
     -fx-font-weight: bold;
 }
 
+.rx-tile-view .rx-tile-section-header.sticky {
+    -fx-background-color: -fx-background;
+}
+
+.rx-tile-view .rx-tile-section-header.sticky:pinned {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
+}
+
 .rx-tile-cell:focused {
     -fx-border-color: -fx-focus-color;
     -fx-border-width: 2;

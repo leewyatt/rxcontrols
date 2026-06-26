@@ -151,11 +151,16 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         show.setSelected(tile.isShowSectionHeaders());
         show.selectedProperty().addListener((obs, old, value) -> tile.setShowSectionHeaders(value));
 
+        CheckBox sticky = new CheckBox("Sticky section header");
+        sticky.setSelected(tile.isStickySectionHeader());
+        sticky.selectedProperty().addListener((obs, old, value) -> tile.setStickySectionHeader(value));
+
         return createGrid(
                 row("Grouping", grouping),
                 row("Header H", headerHeight, createValueLabel(headerHeight, "%.0f px")),
                 row("Section gap", spacing, createValueLabel(spacing, "%.0f px")),
-                row(show));
+                row(show),
+                row(sticky));
     }
 
     private void applyGrouping(String mode) {

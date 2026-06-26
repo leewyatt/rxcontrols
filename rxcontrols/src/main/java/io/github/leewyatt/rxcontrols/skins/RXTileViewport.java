@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import javafx.animation.Interpolator;
 import javafx.beans.value.ChangeListener;
+import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Orientation;
@@ -55,6 +56,12 @@ final class RXTileViewport<T> extends Region {
     // a programmatic setValue would be a redundant no-op (and a feedback risk).
     private static final double SCROLL_BAR_SYNC_EPSILON = 1.0e-4;
 
+    // Sub-pixel threshold for the sticky header's :pinned state: it only elevates
+    // once content has actually scrolled under it, not when a section rests at the top.
+    private static final double STICKY_PINNED_EPSILON = 0.5;
+
+    private static final PseudoClass PINNED_PSEUDO_CLASS = PseudoClass.getPseudoClass("pinned");
+
     private final RXTileView<T> control;
     private final ScrollBar vbar = new ScrollBar();
     private final Pane contentLayer = new Pane();
@@ -63,6 +70,11 @@ final class RXTileViewport<T> extends Region {
 
     private final List<RXTileCell<T>> cellPool = new ArrayList<>();
     private final List<RXTileSectionCell> headerPool = new ArrayList<>();
+    // The single pinned section header (sticky subheader). Created lazily only when
+    // enabled, removed when disabled, recreated on a header-factory change. It lives
+    // in the overlay layer (above content + marquee, below the scroll bar), so it
+    // never joins the recycling pool or the reorder glide.
+    private RXTileSectionCell stickyHeader;
     // Cells / headers mid-glide are pinned here and skipped by the recycler so a
     // tile gliding to a new slot is not grabbed and re-bound before it lands.
     private final Set<RXTileCell<T>> animating = new HashSet<>();
@@ -466,6 +478,11 @@ final class RXTileViewport<T> extends Region {
         snapAllGlides();
         contentLayer.getChildren().removeAll(headerPool);
         headerPool.clear();
+        // Drop the sticky too; the next layout rebuilds it with the new factory.
+        if (stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
         requestLayout();
     }
 
@@ -477,6 +494,10 @@ final class RXTileViewport<T> extends Region {
         contentLayer.getChildren().removeAll(headerPool);
         cellPool.clear();
         headerPool.clear();
+        if (stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
         contentLayer.setClip(null);
         setClip(null);
     }
@@ -550,6 +571,7 @@ final class RXTileViewport<T> extends Region {
             adjustingScrollBar = false;
             parkCellsFrom(0);
             parkHeadersFrom(0);
+            parkStickyHeader();
             vbar.setVisible(false);
             clearVisibleMetrics();
             return;
@@ -568,6 +590,7 @@ final class RXTileViewport<T> extends Region {
             adjustingScrollBar = false;
             parkCellsFrom(0);
             parkHeadersFrom(0);
+            parkStickyHeader();
             vbar.setVisible(false);
             clearVisibleMetrics();
             return;
@@ -629,6 +652,7 @@ final class RXTileViewport<T> extends Region {
 
         topSection = plan.sectionOf(first);
         fillVisibleRows(plan, first, last, contentWidth);
+        layoutStickyHeader(plan, contentWidth);
         lastVisibleFirstIndex = visibleFirstIndex;
     }
 
@@ -646,6 +670,10 @@ final class RXTileViewport<T> extends Region {
         double cellWidth = geometry.cellWidth();
         double cellHeight = geometry.cellHeight();
         double startX = geometry.startX();
+
+        // When the sticky overlay is active it is the sole renderer of the top
+        // section's header, so the in-flow copy of that header row is skipped here.
+        boolean stickyActive = isStickyHeaderActive(plan);
 
         // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding,
         // so the same node can be re-found for its item and glide to the new slot.
@@ -671,6 +699,9 @@ final class RXTileViewport<T> extends Region {
             RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
             double rowTop = snapPositionY(info.top() - scrollY);
             if (info.header()) {
+                if (stickyActive && info.section().sectionIndex() == topSection.sectionIndex()) {
+                    continue;
+                }
                 RXTileSectionCell header = acquireHeader(headerCursor++);
                 String oldStyle = header.getStyle();
                 header.updateSection(info.section());
@@ -1007,6 +1038,86 @@ final class RXTileViewport<T> extends Region {
                 }
             }
         };
+    }
+
+    // ==================== Sticky section header ====================
+
+    /**
+     * Adds or removes the pinned sticky header in response to the control's
+     * {@code stickySectionHeader} property; the skin wires its listener and an
+     * initial sync to this.
+     *
+     * @param enabled whether sticky headers are enabled
+     */
+    void setStickyEnabled(boolean enabled) {
+        if (enabled) {
+            ensureStickyHeader();
+        } else if (stickyHeader != null) {
+            getChildren().remove(stickyHeader);
+            stickyHeader = null;
+        }
+        requestLayout();
+    }
+
+    // Single creation entry. The sticky shares the section-header factory and style
+    // class but adds a 'sticky' class so tests / CSS can target it; pickOnBounds
+    // makes the whole strip block clicks from reaching the cells scrolled under it.
+    private void ensureStickyHeader() {
+        if (stickyHeader == null) {
+            stickyHeader = createHeader();
+            stickyHeader.getStyleClass().add("sticky");
+            stickyHeader.setPickOnBounds(true);
+            addOverlay(stickyHeader);
+        }
+    }
+
+    // The single gate shared by the fill skip (RXTileViewport#fillVisibleRows) and
+    // the sticky placement so the two never disagree (no "skipped the in-flow header
+    // but the sticky did not show" hole).
+    private boolean isStickyHeaderActive(RXTileRowPlan plan) {
+        return control.isStickySectionHeader()
+                && plan != null && plan.headersShown()
+                && plan.totalVisualRows() > 0 && topSection != null;
+    }
+
+    private void layoutStickyHeader(RXTileRowPlan plan, double contentWidth) {
+        if (!isStickyHeaderActive(plan)) {
+            parkStickyHeader();
+            return;
+        }
+        ensureStickyHeader();
+        double stickyH = snapSizeY(plan.headerHeight());
+        int topIndex = topSection.sectionIndex();
+
+        // Handoff: once the next section's header rises into the [0, stickyH] band it
+        // pushes the pinned header up; before that the pinned header rests at the top.
+        double stickyY = 0.0;
+        if (topIndex + 1 < plan.sectionCount()) {
+            double nextY = plan.sectionTop(topIndex + 1) - scrollY;
+            if (nextY < stickyH) {
+                stickyY = nextY - stickyH;
+            }
+        }
+
+        String oldStyle = stickyHeader.getStyle();
+        stickyHeader.updateSection(topSection);
+        stickyHeader.setVisible(true);
+        applyCssAfterCellUpdate(stickyHeader, oldStyle);
+        stickyHeader.resizeRelocate(snapPositionX(0.0), snapPositionY(stickyY), contentWidth, stickyH);
+
+        boolean pinned = scrollY > plan.sectionTop(topIndex) + STICKY_PINNED_EPSILON;
+        stickyHeader.pseudoClassStateChanged(PINNED_PSEUDO_CLASS, pinned);
+    }
+
+    private void parkStickyHeader() {
+        if (stickyHeader == null) {
+            return;
+        }
+        if (stickyHeader.isVisible() || stickyHeader.getItem() != null) {
+            stickyHeader.setVisible(false);
+            stickyHeader.updateSection(null);
+        }
+        stickyHeader.pseudoClassStateChanged(PINNED_PSEUDO_CLASS, false);
     }
 
     // ==================== Reorder animation ====================

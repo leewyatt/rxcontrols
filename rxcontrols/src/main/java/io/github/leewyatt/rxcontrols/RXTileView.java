@@ -107,6 +107,7 @@ public class RXTileView<T> extends Control {
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
+    private static final boolean DEFAULT_STICKY_SECTION_HEADER = false;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -836,6 +837,58 @@ public class RXTileView<T> extends Control {
         showSectionHeaders.set(value);
     }
 
+    // ==================== Sticky Section Header ====================
+
+    private final BooleanProperty stickySectionHeader = new StyleableBooleanProperty(DEFAULT_STICKY_SECTION_HEADER) {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.STICKY_SECTION_HEADER;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTileView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "stickySectionHeader";
+        }
+    };
+
+    /**
+     * Whether the header of the section currently at the top of the viewport sticks
+     * there while that section scrolls, sliding up only as the next section's header
+     * arrives to replace it (the iOS / MUI "sticky subheader" effect). Off by
+     * default. Only has a visible effect when a
+     * {@link #sectionKeyFactoryProperty() sectionKeyFactory} is set,
+     * {@link #showSectionHeadersProperty() showSectionHeaders} is {@code true} and
+     * at least one section exists. While disabled it adds no extra node.
+     *
+     * @return the sticky-section-header property
+     */
+    public final BooleanProperty stickySectionHeaderProperty() {
+        return stickySectionHeader;
+    }
+
+    /**
+     * Returns whether the top section header sticks to the viewport top.
+     *
+     * @return whether the top section header is sticky
+     */
+    public final boolean isStickySectionHeader() {
+        return stickySectionHeader.get();
+    }
+
+    /**
+     * Sets whether the top section header sticks to the viewport top.
+     *
+     * @param value whether the top section header is sticky
+     */
+    public final void setStickySectionHeader(boolean value) {
+        stickySectionHeader.set(value);
+    }
+
     // ==================== Animated ====================
 
     private final BooleanProperty animated = new StyleableBooleanProperty(DEFAULT_ANIMATED) {
@@ -1551,6 +1604,21 @@ public class RXTileView<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTileView<?>, Boolean> STICKY_SECTION_HEADER =
+                new CssMetaData<>("-rx-sticky-section-header", BooleanConverter.getInstance(),
+                        DEFAULT_STICKY_SECTION_HEADER) {
+                    @Override
+                    public boolean isSettable(RXTileView<?> node) {
+                        return !node.stickySectionHeader.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<Boolean>) node.stickySectionHeaderProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTileView<?>, Boolean> ANIMATED =
                 new CssMetaData<>("-rx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
                     @Override
@@ -1586,7 +1654,8 @@ public class RXTileView<T> extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_COLUMNS, HGAP, VGAP,
-                    SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY, ANIMATED, ANIMATION_DURATION);
+                    SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY, STICKY_SECTION_HEADER, ANIMATED,
+                    ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

@@ -129,6 +129,33 @@ final class RXTileRowPlan {
         return columns;
     }
 
+    boolean headersShown() {
+        return headersShown;
+    }
+
+    int sectionCount() {
+        return sections.size();
+    }
+
+    double headerHeight() {
+        return headerHeight;
+    }
+
+    /**
+     * The content-space top Y of the section at {@code sectionIndex} — the top of
+     * its header row (it already folds in {@code sectionSpacing}). Used by the
+     * sticky-header handoff math.
+     *
+     * @param sectionIndex a valid section index
+     * @return the section's content-space top Y, or {@code 0} when out of range / flat
+     */
+    double sectionTop(int sectionIndex) {
+        if (!grouped || sectionIndex < 0 || sectionIndex >= sectionTopY.length) {
+            return 0.0;
+        }
+        return sectionTopY[sectionIndex];
+    }
+
     /**
      * The visual row whose band contains content-space {@code y}, clamped to the
      * valid range, or {@code -1} when there are no rows.

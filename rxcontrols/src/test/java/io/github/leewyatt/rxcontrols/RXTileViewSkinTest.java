@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -2836,7 +2837,253 @@ public class RXTileViewSkinTest {
         });
     }
 
+    // ==================== Sticky section header ====================
+
+    @Test
+    public void stickySectionHeaderDefaultsOff() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            assertFalse(view.isStickySectionHeader(), "sticky is opt-in (off by default)");
+            boolean hasMeta = RXTileView.getClassCssMetaData().stream()
+                    .anyMatch(m -> "-rx-sticky-section-header".equals(m.getProperty()));
+            assertTrue(hasMeta, "the sticky property is exposed to CSS");
+        });
+    }
+
+    @Test
+    public void stickyDisabledAddsNoNode() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            pump(host(view, 400, 600));
+            assertNull(view.lookup(".rx-tile-section-header.sticky"),
+                    "while disabled the sticky adds no node");
+        });
+    }
+
+    @Test
+    public void stickyEnabledRendersTopSectionHeader() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(true);
+            pump(host(view, 400, 600));
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertNotNull(sticky, "enabling sticky realizes one pinned header");
+            assertTrue(sticky.isVisible());
+            assertNotNull(sticky.getItem());
+            assertEquals("a", sticky.getItem().key(), "sticky shows the top section");
+            assertEquals(0.0, sticky.getLayoutY(), 1.0, "it rests at the viewport top");
+        });
+    }
+
+    @Test
+    public void stickySkipsTopSectionInflowHeader() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(true);
+            pump(host(view, 400, 600));
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertEquals("a", sticky.getItem().key());
+            List<RXTileSectionCell> inflow = poolHeaders(view);
+            assertTrue(inflow.stream().noneMatch(h -> "a".equals(h.getItem().key())),
+                    "the top section's in-flow header is suppressed; only the sticky shows it");
+            assertTrue(inflow.stream().anyMatch(h -> "b".equals(h.getItem().key())),
+                    "other sections still render their in-flow headers");
+        });
+    }
+
+    @Test
+    public void stickyHandoffPushesUpAtBoundary() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = stickyGeometry();
+            StackPane root = host(view, 400, 60);
+            pump(root);
+            Node viewport = view.lookup(".viewport");
+            fireWheel(viewport, -30); // scroll down 30px
+            pump(root);
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertEquals("s0", sticky.getItem().key(), "top section is still s0 at scrollY=30");
+            // s1 header top=40, nextY=10 < stickyH=20 -> pushed up by 10
+            assertEquals(-10.0, sticky.getLayoutY(), 1.0, "the arriving header pushes the sticky up");
+            assertTrue(isPinned(sticky), "content scrolled under -> :pinned");
+        });
+    }
+
+    @Test
+    public void stickyHandoffSwitchesSection() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = stickyGeometry();
+            StackPane root = host(view, 400, 60);
+            pump(root);
+            Node viewport = view.lookup(".viewport");
+            fireWheel(viewport, -40); // scrollY=40 == s1 top
+            pump(root);
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertEquals("s1", sticky.getItem().key(), "crossing the boundary hands off to s1");
+            assertEquals(0.0, sticky.getLayoutY(), 1.0, "the new sticky rests at the top");
+        });
+    }
+
+    @Test
+    public void stickyPinnedOnlyAfterScroll() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = stickyGeometry();
+            StackPane root = host(view, 400, 60);
+            pump(root);
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertFalse(isPinned(sticky), "at rest (section top) the sticky is not elevated");
+            Node viewport = view.lookup(".viewport");
+            fireWheel(viewport, -10); // scrollY=10, content scrolled under s0 header
+            pump(root);
+            assertTrue(isPinned(sticky), "after scrolling under it, the sticky is :pinned");
+        });
+    }
+
+    @Test
+    public void stickyEnablingAtRuntimeAddsNode() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            assertNull(view.lookup(".rx-tile-section-header.sticky"));
+            view.setStickySectionHeader(true);
+            pump(root);
+            assertNotNull(stickyHeader(view), "enabling at runtime adds the sticky");
+        });
+    }
+
+    @Test
+    public void stickyDisablingRemovesNode() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(true);
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            assertNotNull(stickyHeader(view));
+            view.setStickySectionHeader(false);
+            pump(root);
+            assertNull(view.lookup(".rx-tile-section-header.sticky"),
+                    "disabling removes the sticky node entirely");
+        });
+    }
+
+    @Test
+    public void stickyFactoryChangeReplacesStickyNode() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(true);
+            StackPane root = host(view, 400, 600);
+            pump(root);
+            RXTileSectionCell before = stickyHeader(view);
+            assertNotNull(before);
+            view.setSectionHeaderFactory(v -> new RXTileSectionCell());
+            pump(root);
+            RXTileSectionCell after = stickyHeader(view);
+            assertNotNull(after);
+            assertNotSame(before, after, "a header-factory change recreates the sticky");
+            assertTrue(after.getStyleClass().contains("sticky"));
+        });
+    }
+
+    @Test
+    public void stickyRendersAboveMarqueeBelowScrollBar() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = stickyGeometry(); // scrollable, grouped, sticky on
+            StackPane root = host(view, 400, 60);
+            pump(root);
+            Node viewport = view.lookup(".viewport");
+            Node sticky = stickyHeader(view);
+            Node marquee = selectionRectangle(view);
+            Node vbar = view.lookup(".scroll-bar");
+            List<Node> children = ((Parent) viewport).getChildrenUnmodifiable();
+            assertTrue(children.indexOf(marquee) < children.indexOf(sticky),
+                    "the sticky renders above the marquee overlay");
+            assertTrue(children.indexOf(sticky) < children.indexOf(vbar),
+                    "the scroll bar renders above the sticky");
+        });
+    }
+
+    @Test
+    public void stickyParkedWhenHeadersHidden() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(true);
+            view.setShowSectionHeaders(false);
+            pump(host(view, 400, 600));
+            Node node = view.lookup(".rx-tile-section-header.sticky");
+            assertNotNull(node, "enabled -> node exists");
+            assertFalse(node.isVisible(), "headers hidden -> sticky parked (not shown)");
+        });
+    }
+
+    @Test
+    public void stickyParkedWhenFlat() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = new RXTileView<>(items(20));
+            view.setStickySectionHeader(true); // no sectionKeyFactory -> flat
+            pump(host(view, 400, 300));
+            Node node = view.lookup(".rx-tile-section-header.sticky");
+            assertNotNull(node);
+            assertFalse(node.isVisible(), "flat view -> sticky parked");
+        });
+    }
+
+    @Test
+    public void stickyShowsForSingleSection() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(1, 40);
+            view.setMaxColumns(2);
+            view.setPrefTileHeight(20);
+            view.setVgap(0);
+            view.setSectionHeaderHeight(20);
+            view.setStickySectionHeader(true);
+            StackPane root = host(view, 400, 100);
+            pump(root);
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertNotNull(sticky);
+            assertEquals("s0", sticky.getItem().key());
+            Node viewport = view.lookup(".viewport");
+            fireWheel(viewport, -60);
+            pump(root);
+            assertEquals("s0", sticky.getItem().key(), "a single long section stays pinned");
+            assertTrue(isPinned(sticky));
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static RXTileView<String> stickyGeometry() {
+        RXTileView<String> view = manySections(3, 2);
+        view.setMaxColumns(2);
+        view.setPrefTileWidth(40);
+        view.setPrefTileHeight(20);
+        view.setHgap(10);
+        view.setVgap(0);
+        view.setSectionHeaderHeight(20);
+        view.setSectionSpacing(0);
+        view.setStickySectionHeader(true);
+        return view;
+    }
+
+    private static RXTileSectionCell stickyHeader(RXTileView<?> view) {
+        Node node = view.lookup(".rx-tile-section-header.sticky");
+        return node instanceof RXTileSectionCell sticky ? sticky : null;
+    }
+
+    private static List<RXTileSectionCell> poolHeaders(RXTileView<?> view) {
+        List<RXTileSectionCell> result = new ArrayList<>();
+        for (Node node : view.lookupAll(".rx-tile-section-header")) {
+            if (node instanceof RXTileSectionCell header && !header.isEmpty()
+                    && !header.getStyleClass().contains("sticky")) {
+                result.add(header);
+            }
+        }
+        return result;
+    }
+
+    private static boolean isPinned(RXTileSectionCell sticky) {
+        return sticky != null && sticky.getPseudoClassStates().stream()
+                .anyMatch(pc -> pc.getPseudoClassName().equals("pinned"));
+    }
 
     private static boolean anyCellTranslated(RXTileView<?> view, int itemCount) {
         for (int i = 0; i < itemCount; i++) {

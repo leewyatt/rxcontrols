@@ -55,6 +55,7 @@ public class RXTileViewDemo extends Application {
         tiles.setSectionKeyFactory(Photo::year);
         tiles.setCellFactory(view -> new PhotoCell());
         tiles.setSectionHeaderFactory(view -> new YearHeader());
+        tiles.setStickySectionHeader(true);
         tiles.setAnimated(true);
 
         BorderPane root = new BorderPane(tiles);
