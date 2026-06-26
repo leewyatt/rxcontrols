@@ -1,0 +1,13 @@
+.rx-list-view {
+    -fx-padding: 6px;
+}
+
+.placeholder .label {
+    -fx-font-size: 16px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}

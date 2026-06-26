@@ -26,6 +26,7 @@
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
     /* brand / primary */

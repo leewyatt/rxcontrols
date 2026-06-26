@@ -23,6 +23,7 @@
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
     /* brand / primary */
@@ -1386,6 +1387,97 @@
     -fx-border-color: -fx-selection-bar, -fx-focus-color;
     -fx-border-width: 2, 1;
     -fx-border-insets: 0, 2;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXListView                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.rx-list-view {
+    -fx-background-color: -fx-box-border, -fx-background;
+    -fx-background-insets: 0, 1;
+    -fx-padding: 1;
+}
+
+.rx-list-view:focused {
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -fx-background;
+    -fx-background-insets: -1.4, -0.3, 1;
+    -fx-background-radius: 2, 0, 0;
+}
+
+.rx-list-view > .viewport {
+    -fx-background-color: -fx-background;
+}
+
+.rx-list-view > .viewport > .scroll-bar:vertical {
+    -fx-background-insets: 1 1 1 0, 1;
+    -fx-padding: 1 0 1 0;
+}
+
+.rx-list-view > .viewport > .scroll-bar:vertical > .increment-button,
+.rx-list-view > .viewport > .scroll-bar:vertical > .decrement-button {
+    -fx-padding: 0.25em 0.25em 0.25em 0.166667em;
+}
+
+.rx-list-view > .placeholder {
+    -fx-alignment: center;
+}
+
+.rx-list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    /* Interaction feedback comes from the embedded ripple / state overlay. */
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.18;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
+}
+
+.rx-list-cell:selected {
+    -fx-background-color: -rx-selection;
+}
+
+.rx-list-cell:focused {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 1;
+    -fx-border-insets: 0;
+}
+
+/* Three-segment content (child-combinator scoped to the cell's own container, so a
+   custom createContent node never inherits these): leading selection slot, then the
+   content area. The slot reserves a constant width across visual modes so the text
+   left edge does not jump when switching (ROW keeps the reserved width but renders
+   nothing). */
+.rx-list-cell > .container > .selection-slot {
+    -fx-min-width: 2em;
+    -fx-pref-width: 2em;
+    -fx-alignment: center;
+}
+
+.rx-list-cell > .container > .content {
+    -fx-padding: 0 0.75em 0 0.25em;
+}
+
+.rx-list-cell > .container > .content > .text-box {
+    -fx-alignment: center-left;
+}
+
+.rx-list-cell > .container > .content > .text-box > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/* CHECKMARK mode: a lightweight leading tick, shown only on the selected row. */
+.rx-list-cell > .container > .selection-slot > .checkmark {
+    -fx-pref-width: 0.85em;
+    -fx-pref-height: 0.85em;
+    -fx-background-color: -rx-primary;
+    -fx-shape: "M5.5,11.9 L1.1,7.5 L2.5,6.1 L5.5,9.1 L11.5,3.1 L12.9,4.5 Z";
+    visibility: hidden;
+}
+
+.rx-list-cell:selected > .container > .selection-slot > .checkmark {
+    visibility: visible;
 }
 
 /*******************************************************************************
