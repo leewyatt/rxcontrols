@@ -7,19 +7,9 @@ import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import javafx.animation.Interpolator;
-import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
-import javafx.event.EventHandler;
-import javafx.event.EventTarget;
-import javafx.geometry.Orientation;
 import javafx.scene.Node;
-import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
-import javafx.scene.control.ScrollBar;
-import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
-import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
@@ -28,14 +18,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
- * Self-built virtualizing viewport for {@link RXTileViewSkin}. It owns the data
- * cell pool, an independent section-header pool, its own vertical
- * {@link ScrollBar}, a content clip and the scroll offset; only the visual rows
- * intersecting the visible window hold live cells/headers.
+ * Self-built virtualizing viewport for {@link RXTileViewSkin}. On top of the
+ * {@link RXVirtualViewportBase} shell it adds a multi-column tile layout
+ * ({@link ItemsJustify} distribution), an independent section-header pool with a
+ * pinned sticky header, and a reorder glide on column-count changes.
  *
  * <p>The visual-row geometry is supplied by a {@link RXTileRowPlan} that the
  * skin builds (it is width-dependent and shared with the skin's column / scroll
@@ -50,11 +39,7 @@ import java.util.Set;
  *
  * @param <T> the item type
  */
-final class RXTileViewport<T> extends Region {
-
-    // Below this px difference the bar value already matches the scroll offset, so
-    // a programmatic setValue would be a redundant no-op (and a feedback risk).
-    private static final double SCROLL_BAR_SYNC_EPSILON = 1.0e-4;
+final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
 
     // Sub-pixel threshold for the sticky header's :pinned state: it only elevates
     // once content has actually scrolled under it, not when a section rests at the top.
@@ -63,12 +48,7 @@ final class RXTileViewport<T> extends Region {
     private static final PseudoClass PINNED_PSEUDO_CLASS = PseudoClass.getPseudoClass("pinned");
 
     private final RXTileView<T> control;
-    private final ScrollBar vbar = new ScrollBar();
-    private final Pane contentLayer = new Pane();
-    private final Rectangle viewportClip = new Rectangle();
-    private final Rectangle contentClip = new Rectangle();
 
-    private final List<RXTileCell<T>> cellPool = new ArrayList<>();
     private final List<RXTileSectionCell> headerPool = new ArrayList<>();
     // The single pinned section header (sticky subheader). Created lazily only when
     // enabled, removed when disabled, recreated on a header-factory change. It lives
@@ -88,71 +68,19 @@ final class RXTileViewport<T> extends Region {
     // this viewport use the exact same geometry plan.
     private RXTileRowPlan rowPlan;
 
-    // The skin's internal focus model; selection comes from the control. Both feed
-    // the per-cell :selected / focus-ring state, re-applied on every (re)bind.
-    private RXIndexedFocusModel<T> focusModel;
-
-    private double scrollY;
-    private boolean adjustingScrollBar;
-
     private int lastColumnCount = -1;
     private int lastVisibleFirstIndex = -1;
-    private boolean explicitScrollPending;
-
-    private double cachedMaxScroll;
-    private double chromeLeft;
-    private double chromeTop;
-    private double chromeRight;
-    private double chromeBottom;
 
     // Published to the skin after each pass (-1 / null when nothing is visible).
-    private int visibleFirstIndex = -1;
-    private int visibleLastIndex = -1;
     private int visibleFirstRow = -1;
     private int visibleLastRow = -1;
     private RXTileSection topSection;
 
-    private final ChangeListener<Number> scrollBarValueListener;
-    private final EventHandler<ScrollEvent> scrollHandler;
-
     RXTileViewport(RXTileView<T> control) {
         this.control = control;
-        getStyleClass().add("viewport");
-        setClip(viewportClip);
-
-        contentLayer.getStyleClass().add("content");
-        contentLayer.setManaged(false);
-        contentLayer.setPickOnBounds(false);
-        contentLayer.setClip(contentClip);
-
-        vbar.setOrientation(Orientation.VERTICAL);
-        vbar.setManaged(false);
-        vbar.setVisible(false);
-        vbar.setMin(0.0);
-        getChildren().addAll(contentLayer, vbar);
-
-        scrollBarValueListener = (obs, oldValue, newValue) -> onScrollBarValue();
-        scrollHandler = this::onScroll;
-        vbar.valueProperty().addListener(scrollBarValueListener);
-        addEventHandler(ScrollEvent.SCROLL, scrollHandler);
     }
 
     // ==================== Skin-facing API ====================
-
-    /**
-     * The vertical scroll-bar's CSS-preferred breadth (never a hard-coded guess),
-     * returned unconditionally so the skin can subtract it when deciding — within
-     * a single layout pass — whether the bar is needed and how many columns fit.
-     *
-     * @return the scroll-bar breadth in pixels
-     */
-    double scrollBarBreadth() {
-        return snapSizeX(vbar.prefWidth(-1));
-    }
-
-    void addOverlay(Node overlay) {
-        getChildren().add(getChildren().indexOf(vbar), overlay);
-    }
 
     /**
      * The pixel height of one data-row slot (cell height + vgap), snapped, and the
@@ -179,13 +107,6 @@ final class RXTileViewport<T> extends Region {
         this.rowPlan = plan;
     }
 
-    void setChromeInsets(double left, double top, double right, double bottom) {
-        chromeLeft = Math.max(0.0, left);
-        chromeTop = Math.max(0.0, top);
-        chromeRight = Math.max(0.0, right);
-        chromeBottom = Math.max(0.0, bottom);
-    }
-
     RXTileRowPlan.ItemPosition itemPositionOf(int itemIndex) {
         RXTileRowPlan plan = rowPlan;
         if (plan == null) {
@@ -197,14 +118,6 @@ final class RXTileViewport<T> extends Region {
     int columnCount() {
         RXTileRowPlan plan = rowPlan;
         return plan == null ? -1 : plan.columns();
-    }
-
-    double scrollOffset() {
-        return scrollY;
-    }
-
-    double contentWidth() {
-        return currentContentWidth();
     }
 
     int verticalNeighborOf(int itemIndex, int direction, int preferredColumn) {
@@ -219,7 +132,7 @@ final class RXTileViewport<T> extends Region {
         if (viewportX < 0.0 || viewportY < 0.0 || viewportY > getHeight()) {
             return false;
         }
-        double contentWidth = currentContentWidth();
+        double contentWidth = contentWidth();
         if (viewportX > contentWidth || contentWidth <= 0.0) {
             return false;
         }
@@ -240,7 +153,7 @@ final class RXTileViewport<T> extends Region {
                 || contentY < 0.0 || contentY >= plan.contentHeight()) {
             return -1;
         }
-        CellGeometry geometry = cellGeometry(currentContentWidth());
+        CellGeometry geometry = cellGeometry(contentWidth());
         RXTileRowPlan.RowInfo info = plan.rowInfo(plan.firstVisualRowAt(contentY));
         if (info.header() || contentY >= info.top() + geometry.cellHeight()) {
             return -1;
@@ -262,7 +175,7 @@ final class RXTileViewport<T> extends Region {
             return List.of();
         }
 
-        CellGeometry geometry = cellGeometry(currentContentWidth());
+        CellGeometry geometry = cellGeometry(contentWidth());
         if (geometry.cellWidth() <= 0.0 || geometry.cellHeight() <= 0.0) {
             return List.of();
         }
@@ -295,72 +208,6 @@ final class RXTileViewport<T> extends Region {
             }
         }
         return indices;
-    }
-
-    void setFocusModel(RXIndexedFocusModel<T> focusModel) {
-        this.focusModel = focusModel;
-    }
-
-    /**
-     * Re-applies the {@code :selected} state and keyboard focus ring to every
-     * realized cell from the current selection model and focus model. Cheap path
-     * for selection/focus changes that do not need a full relayout.
-     */
-    void refreshSelectionAndFocus() {
-        for (RXTileCell<T> cell : cellPool) {
-            int index = cell.getIndex();
-            if (cell.isVisible() && index >= 0) {
-                applyCellState(cell, index);
-            }
-        }
-    }
-
-    /**
-     * The realized data cell under the given event target, or {@code null} when
-     * the target is not a (non-empty) cell of this viewport.
-     *
-     * @param target the event target (typically {@code MouseEvent.getTarget()})
-     * @return the hit cell, or {@code null}
-     */
-    RXTileCell<T> cellAt(EventTarget target) {
-        Node node = target instanceof Node ? (Node) target : null;
-        while (node != null && node != this) {
-            if (node instanceof RXTileCell) {
-                @SuppressWarnings("unchecked")
-                RXTileCell<T> cell = (RXTileCell<T>) node;
-                if (!cell.isEmpty() && cell.getIndex() >= 0) {
-                    return cell;
-                }
-                return null;
-            }
-            node = node.getParent();
-        }
-        return null;
-    }
-
-    private void applyCellState(RXTileCell<T> cell, int index) {
-        MultipleSelectionModel<T> selectionModel = control.getSelectionModel();
-        cell.updateSelected(selectionModel != null && selectionModel.isSelected(index));
-        // The keyboard focus ring tracks the focused index regardless of whether the
-        // control currently owns scene focus (the grid keeps its cursor position).
-        cell.updateTileFocus(focusModel != null && focusModel.getFocusedIndex() == index);
-    }
-
-    private static void applyCssAfterCellUpdate(Control cell, String oldInlineStyle) {
-        // Match VirtualFlow.setCellIndex: updateItem can mutate CSS while the
-        // virtualizer is already in layout, so apply before this frame is painted.
-        if (cell.getScene() != null
-                && (cell.isNeedsLayout() || !Objects.equals(oldInlineStyle, cell.getStyle()))) {
-            cell.applyCss();
-        }
-    }
-
-    int getVisibleFirstIndex() {
-        return visibleFirstIndex;
-    }
-
-    int getVisibleLastIndex() {
-        return visibleLastIndex;
     }
 
     int getVisibleFirstRow() {
@@ -399,7 +246,7 @@ final class RXTileViewport<T> extends Region {
         RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
-        double target = targetScrollFor(info, viewportHeight, alignment);
+        double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
         scrollY = clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
@@ -432,42 +279,21 @@ final class RXTileViewport<T> extends Region {
         RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
-        double target = targetScrollFor(info, viewportHeight, alignment);
+        double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
         scrollY = clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
         return true;
     }
 
-    private double targetScrollFor(RXTileRowPlan.RowInfo info, double viewportHeight,
-                                   ScrollAlignment alignment) {
-        double targetTop = info.top();
-        double targetBottom = targetTop + info.height();
-        return switch (alignment) {
-            case CENTER -> targetTop - (viewportHeight - info.height()) / 2.0;
-            case END -> targetBottom - viewportHeight;
-            case NEAREST -> {
-                if (targetTop < scrollY) {
-                    yield targetTop;
-                }
-                if (targetBottom > scrollY + viewportHeight) {
-                    yield targetBottom - viewportHeight;
-                }
-                yield scrollY;
-            }
-            default -> targetTop;
-        };
-    }
-
     /**
      * Discards the data cell pool (the only path that drops cell instances); used
      * when the cell factory changes. A normal layout repopulates it.
      */
-    void recreateCells() {
+    @Override
+    protected void recreateCells() {
         snapAllGlides();
-        contentLayer.getChildren().removeAll(cellPool);
-        cellPool.clear();
-        requestLayout();
+        super.recreateCells();
     }
 
     /**
@@ -486,67 +312,18 @@ final class RXTileViewport<T> extends Region {
         requestLayout();
     }
 
-    void dispose() {
-        vbar.valueProperty().removeListener(scrollBarValueListener);
-        removeEventHandler(ScrollEvent.SCROLL, scrollHandler);
+    @Override
+    protected void dispose() {
+        // Snap glides before the base removes cells, so no Timeline points at a
+        // detached node; then drop the header pool and sticky overlay.
         snapAllGlides();
-        contentLayer.getChildren().removeAll(cellPool);
         contentLayer.getChildren().removeAll(headerPool);
-        cellPool.clear();
         headerPool.clear();
         if (stickyHeader != null) {
             getChildren().remove(stickyHeader);
             stickyHeader = null;
         }
-        contentLayer.setClip(null);
-        setClip(null);
-    }
-
-    // ==================== Scrolling ====================
-
-    private void onScrollBarValue() {
-        if (adjustingScrollBar) {
-            return;
-        }
-        scrollY = vbar.getValue();
-        explicitScrollPending = true;
-        // Dirties this viewport (so it re-fills) and propagates to the control (so
-        // the skin republishes the visible range).
-        requestLayout();
-    }
-
-    private void onScroll(ScrollEvent event) {
-        double maxScroll = cachedMaxScroll;
-        if (maxScroll <= 0.0) {
-            // Nothing to scroll; leave the event for an enclosing scroll surface.
-            return;
-        }
-        double deltaY = event.getDeltaY();
-        if (deltaY == 0.0) {
-            return;
-        }
-        double target = clamp(scrollY - deltaY, 0.0, maxScroll);
-        if (target != scrollY) {
-            scrollY = target;
-            explicitScrollPending = true;
-            requestLayout();
-        }
-        event.consume();
-    }
-
-    boolean scrollByPixels(double deltaY) {
-        double maxScroll = cachedMaxScroll;
-        if (maxScroll <= 0.0 || deltaY == 0.0) {
-            return false;
-        }
-        double target = clamp(scrollY + deltaY, 0.0, maxScroll);
-        if (target == scrollY) {
-            return false;
-        }
-        scrollY = target;
-        explicitScrollPending = true;
-        requestLayout();
-        return true;
+        super.dispose();
     }
 
     // ==================== Layout ====================
@@ -555,44 +332,15 @@ final class RXTileViewport<T> extends Region {
     protected void layoutChildren() {
         double w = getWidth();
         double h = getHeight();
-        viewportClip.setX(-chromeLeft);
-        viewportClip.setY(-chromeTop);
-        viewportClip.setWidth(w + chromeLeft + chromeRight);
-        viewportClip.setHeight(h + chromeTop + chromeBottom);
+        syncViewportClip(w, h);
 
         RXTileRowPlan plan = rowPlan;
         if (w <= 0.0 || h <= 0.0 || plan == null) {
-            layoutContentLayer(0.0, 0.0);
-            cachedMaxScroll = 0.0;
-            explicitScrollPending = false;
-            adjustingScrollBar = true;
-            vbar.setMax(0.0);
-            vbar.setVisibleAmount(0.0);
-            adjustingScrollBar = false;
-            parkCellsFrom(0);
-            parkHeadersFrom(0);
-            parkStickyHeader();
-            vbar.setVisible(false);
-            clearVisibleMetrics();
+            resetToEmptyState(0.0, 0.0, false);
             return;
         }
         if (plan.totalVisualRows() == 0) {
-            layoutContentLayer(w, h);
-            scrollY = 0.0;
-            cachedMaxScroll = 0.0;
-            explicitScrollPending = false;
-            adjustingScrollBar = true;
-            vbar.setMax(0.0);
-            vbar.setVisibleAmount(0.0);
-            if (Math.abs(vbar.getValue()) > SCROLL_BAR_SYNC_EPSILON) {
-                vbar.setValue(0.0);
-            }
-            adjustingScrollBar = false;
-            parkCellsFrom(0);
-            parkHeadersFrom(0);
-            parkStickyHeader();
-            vbar.setVisible(false);
-            clearVisibleMetrics();
+            resetToEmptyState(w, h, true);
             return;
         }
 
@@ -618,25 +366,7 @@ final class RXTileViewport<T> extends Region {
 
         scrollY = clamp(scrollY, 0.0, maxScroll);
 
-        boolean needBar = maxScroll > 0.0;
-        double barBreadth = needBar ? scrollBarBreadth() : 0.0;
-        if (needBar) {
-            adjustingScrollBar = true;
-            vbar.setMax(maxScroll);
-            vbar.setVisibleAmount(h);
-            vbar.setUnitIncrement(slotHeight());
-            vbar.setBlockIncrement(h);
-            if (Math.abs(vbar.getValue() - scrollY) > SCROLL_BAR_SYNC_EPSILON) {
-                vbar.setValue(scrollY);
-            }
-            adjustingScrollBar = false;
-            double barX = w - barBreadth + (chromeRight < 1.0 ? 0.0 : chromeRight - 1.0);
-            vbar.resizeRelocate(barX, -chromeTop, barBreadth, h + chromeTop + chromeBottom);
-            vbar.setVisible(true);
-        } else {
-            vbar.setVisible(false);
-        }
-
+        double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
         double contentWidth = Math.max(0.0, w - barBreadth);
         layoutContentLayer(contentWidth, h);
 
@@ -654,14 +384,6 @@ final class RXTileViewport<T> extends Region {
         fillVisibleRows(plan, first, last, contentWidth);
         layoutStickyHeader(plan, contentWidth);
         lastVisibleFirstIndex = visibleFirstIndex;
-    }
-
-    private void layoutContentLayer(double width, double height) {
-        contentLayer.resizeRelocate(0.0, 0.0, width, height);
-        contentClip.setX(0.0);
-        contentClip.setY(0.0);
-        contentClip.setWidth(width);
-        contentClip.setHeight(height);
     }
 
     private void fillVisibleRows(RXTileRowPlan plan, int first, int last, double contentWidth) {
@@ -815,11 +537,6 @@ final class RXTileViewport<T> extends Region {
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
-    private double currentContentWidth() {
-        double barBreadth = cachedMaxScroll > 0.0 ? scrollBarBreadth() : 0.0;
-        return Math.max(0.0, getWidth() - barBreadth);
-    }
-
     private boolean isHeaderAtContentY(double contentY) {
         RXTileRowPlan plan = rowPlan;
         if (plan == null || plan.totalVisualRows() == 0
@@ -849,9 +566,9 @@ final class RXTileViewport<T> extends Region {
     private record CellGeometry(double cellWidth, double cellHeight, double hgap, double startX) {
     }
 
-    private void clearVisibleMetrics() {
-        visibleFirstIndex = -1;
-        visibleLastIndex = -1;
+    @Override
+    protected void clearVisibleMetrics() {
+        super.clearVisibleMetrics();
         visibleFirstRow = -1;
         visibleLastRow = -1;
         lastVisibleFirstIndex = -1;
@@ -859,23 +576,6 @@ final class RXTileViewport<T> extends Region {
     }
 
     // ==================== Cell pool ====================
-
-    /**
-     * Returns the cell for the {@code slotIndex}-th visible tile of this pass
-     * (sequential assignment), growing the pool as needed. Used on normal passes;
-     * a reorder pass uses {@link #acquireCellForItem} to keep cell identity.
-     *
-     * @param slotIndex the zero-based position in this pass's visible cell sequence
-     * @return a cell to bind
-     */
-    private RXTileCell<T> acquireCell(int slotIndex) {
-        while (cellPool.size() <= slotIndex) {
-            RXTileCell<T> cell = createCell();
-            cellPool.add(cell);
-            contentLayer.getChildren().add(cell);
-        }
-        return cellPool.get(slotIndex);
-    }
 
     // Reorder pass: reuse the node that rendered this item last pass so the SAME
     // node glides to its new slot; otherwise take a free, non-gliding pool cell.
@@ -925,16 +625,6 @@ final class RXTileViewport<T> extends Region {
         requestLayoutIfGlidesDone();
     }
 
-    private void parkCellsFrom(int from) {
-        for (int i = from; i < cellPool.size(); i++) {
-            RXTileCell<T> cell = cellPool.get(i);
-            if (animating.contains(cell)) {
-                continue;
-            }
-            parkCell(cell);
-        }
-    }
-
     private void parkUnusedCells(Set<RXTileCell<T>> used) {
         for (RXTileCell<T> cell : cellPool) {
             if (used.contains(cell) || animating.contains(cell)) {
@@ -944,18 +634,28 @@ final class RXTileViewport<T> extends Region {
         }
     }
 
-    private void parkCell(RXTileCell<T> cell) {
-        if (cell.isVisible() || cell.getIndex() != -1) {
-            cell.setVisible(false);
-            cell.updateTileFocus(false);
-            cell.setTranslateX(0.0);
-            cell.setTranslateY(0.0);
-            cell.updateGridPosition(-1, -1);
-            cell.updateIndex(-1);
-        }
+    @Override
+    protected boolean isPinnedForAnimation(RXTileCell<T> cell) {
+        return animating.contains(cell);
     }
 
-    private RXTileCell<T> createCell() {
+    @Override
+    protected void onCellParked(RXTileCell<T> cell) {
+        cell.updateTileFocus(false);
+        cell.setTranslateX(0.0);
+        cell.setTranslateY(0.0);
+        cell.updateGridPosition(-1, -1);
+    }
+
+    @Override
+    protected void parkAllRealized() {
+        parkCellsFrom(0);
+        parkHeadersFrom(0);
+        parkStickyHeader();
+    }
+
+    @Override
+    protected RXTileCell<T> createCell() {
         Callback<RXTileView<T>, RXTileCell<T>> factory = control.getCellFactory();
         RXTileCell<T> cell = factory != null ? factory.call(control) : createDefaultCell();
         cell.updateTileView(control);
@@ -1179,21 +879,24 @@ final class RXTileViewport<T> extends Region {
         }
     }
 
-    // ==================== Geometry helpers ====================
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    // ==================== Sizing ====================
+    // ==================== Geometry hooks ====================
 
     @Override
-    protected double computeMaxWidth(double height) {
-        return Double.MAX_VALUE;
+    protected double unitScrollIncrement() {
+        return slotHeight();
     }
 
     @Override
-    protected double computeMaxHeight(double width) {
-        return Double.MAX_VALUE;
+    protected boolean isOwnCell(Node node) {
+        return node instanceof RXTileCell;
+    }
+
+    @Override
+    protected void applyCellState(RXTileCell<T> cell, int index) {
+        MultipleSelectionModel<T> selectionModel = control.getSelectionModel();
+        cell.updateSelected(selectionModel != null && selectionModel.isSelected(index));
+        // The keyboard focus ring tracks the focused index regardless of whether the
+        // control currently owns scene focus (the grid keeps its cursor position).
+        cell.updateTileFocus(focusModel != null && focusModel.getFocusedIndex() == index);
     }
 }
