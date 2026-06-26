@@ -1488,6 +1488,14 @@
     visibility: visible;
 }
 
+/* Section header rows (PR3): a bold, lightly tinted band separating groups. */
+.rx-list-section-header {
+    -fx-padding: 0.333em 0.75em;
+    -fx-background-color: -rx-surface-variant;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXMasonryView                                                               *

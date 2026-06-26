@@ -3,17 +3,23 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXListViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXListViewSkin;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
+import javafx.beans.property.ReadOnlyListProperty;
+import javafx.beans.property.ReadOnlyListWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
@@ -22,6 +28,10 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A virtualized, single-column list of items with selection, keyboard navigation
@@ -53,6 +63,15 @@ public class RXListView<T> extends Control {
     /** Default fixed row height, in pixels. */
     public static final double DEFAULT_FIXED_CELL_SIZE = 28.0;
 
+    /** Default section-header row height, in pixels. */
+    public static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
+
+    /** Default extra spacing inserted before each section after the first, in pixels. */
+    public static final double DEFAULT_SECTION_SPACING = 0.0;
+
+    /** Default for {@link #showSectionHeadersProperty()}. */
+    public static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
+
     private static final String DEFAULT_STYLE_CLASS = "rx-list-view";
 
     // ==================== Constructors ====================
@@ -64,6 +83,12 @@ public class RXListView<T> extends Control {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         // The control is a single Tab stop; cells are not focus-traversable.
         setFocusTraversable(true);
+        // The field initializer installs the default items list without firing the
+        // property's invalidated(), so observe that initial list here.
+        observedSectionItems = getItems();
+        if (observedSectionItems != null) {
+            observedSectionItems.addListener(weakItemsSectionListener);
+        }
     }
 
     /**
@@ -88,8 +113,28 @@ public class RXListView<T> extends Control {
 
     // ==================== Items ====================
 
+    // Section derivation is width-independent, so it lives on the control, not the
+    // skin. The control observes its items list directly; the listener is re-pointed
+    // on every list swap (detach old, attach new) by the items property's invalidated().
+    private final ListChangeListener<T> itemsSectionListener = change -> recomputeSections();
+    private final WeakListChangeListener<T> weakItemsSectionListener =
+            new WeakListChangeListener<>(itemsSectionListener);
+    private ObservableList<T> observedSectionItems;
+
     private final ObjectProperty<ObservableList<T>> items =
-            new SimpleObjectProperty<>(this, "items", FXCollections.observableArrayList());
+            new SimpleObjectProperty<>(this, "items", FXCollections.observableArrayList()) {
+                @Override
+                protected void invalidated() {
+                    if (observedSectionItems != null) {
+                        observedSectionItems.removeListener(weakItemsSectionListener);
+                    }
+                    observedSectionItems = get();
+                    if (observedSectionItems != null) {
+                        observedSectionItems.addListener(weakItemsSectionListener);
+                    }
+                    recomputeSections();
+                }
+            };
 
     /**
      * The items shown by the view. A {@code null} list is treated as empty.
@@ -404,6 +449,264 @@ public class RXListView<T> extends Control {
         onActionProperty().set(value);
     }
 
+    // ==================== Sections ====================
+
+    private final ObjectProperty<Callback<T, Object>> sectionKeyFactory =
+            new SimpleObjectProperty<>(this, "sectionKeyFactory") {
+                @Override
+                protected void invalidated() {
+                    recomputeSections();
+                }
+            };
+
+    /**
+     * Groups adjacent items that map to the same key into sections, deriving the
+     * read-only {@link #sectionsProperty() sections} and enabling section headers.
+     * When {@code null} (the default) the view is flat. The items are not
+     * reordered, so two non-adjacent runs of the same key form two sections.
+     *
+     * @return the section-key-factory property
+     */
+    public final ObjectProperty<Callback<T, Object>> sectionKeyFactoryProperty() {
+        return sectionKeyFactory;
+    }
+
+    /**
+     * Returns the section key factory.
+     *
+     * @return the section key factory, or {@code null} for a flat view
+     */
+    public final Callback<T, Object> getSectionKeyFactory() {
+        return sectionKeyFactory.get();
+    }
+
+    /**
+     * Sets the section key factory.
+     *
+     * @param value the section key factory, or {@code null} for a flat view
+     */
+    public final void setSectionKeyFactory(Callback<T, Object> value) {
+        sectionKeyFactory.set(value);
+    }
+
+    private final ObjectProperty<Callback<RXListView<T>, RXListSectionCell>> sectionHeaderFactory =
+            new SimpleObjectProperty<>(this, "sectionHeaderFactory");
+
+    /**
+     * Factory that creates the section-header cells. When {@code null}, the view
+     * uses a default factory that renders the section key as text.
+     *
+     * @return the section-header-factory property
+     */
+    public final ObjectProperty<Callback<RXListView<T>, RXListSectionCell>> sectionHeaderFactoryProperty() {
+        return sectionHeaderFactory;
+    }
+
+    /**
+     * Returns the section header factory.
+     *
+     * @return the section header factory, or {@code null} for the default
+     */
+    public final Callback<RXListView<T>, RXListSectionCell> getSectionHeaderFactory() {
+        return sectionHeaderFactory.get();
+    }
+
+    /**
+     * Sets the section header factory.
+     *
+     * @param value the section header factory, or {@code null} for the default
+     */
+    public final void setSectionHeaderFactory(Callback<RXListView<T>, RXListSectionCell> value) {
+        sectionHeaderFactory.set(value);
+    }
+
+    private final BooleanProperty showSectionHeaders =
+            new SimpleBooleanProperty(this, "showSectionHeaders", DEFAULT_SHOW_SECTION_HEADERS);
+
+    /**
+     * Whether section-header rows are rendered. Combined with the
+     * {@link #sectionKeyFactoryProperty() sectionKeyFactory}: with no factory the
+     * view is flat (no headers); with a factory and {@code true} (the default)
+     * headers are rendered; with a factory and {@code false} sections are still
+     * computed (so {@link #scrollToSection(Object) scrollToSection} and
+     * {@link #visibleSectionProperty() visibleSection} work) but no header rows
+     * appear.
+     *
+     * @return the show-section-headers property
+     */
+    public final BooleanProperty showSectionHeadersProperty() {
+        return showSectionHeaders;
+    }
+
+    /**
+     * Returns whether section headers are rendered.
+     *
+     * @return {@code true} if section headers are rendered
+     */
+    public final boolean isShowSectionHeaders() {
+        return showSectionHeaders.get();
+    }
+
+    /**
+     * Sets whether section headers are rendered.
+     *
+     * @param value {@code true} to render section headers
+     */
+    public final void setShowSectionHeaders(boolean value) {
+        showSectionHeaders.set(value);
+    }
+
+    private final DoubleProperty sectionHeaderHeight =
+            new SimpleDoubleProperty(this, "sectionHeaderHeight", DEFAULT_SECTION_HEADER_HEIGHT);
+
+    /**
+     * Fixed height of every section-header row, in pixels. A non-positive or
+     * non-finite value is accepted and resolved to
+     * {@link #DEFAULT_SECTION_HEADER_HEIGHT} at layout time. Sized by the skin
+     * rather than CSS so the row geometry stays a single source of truth (matching
+     * {@link #fixedCellSizeProperty() fixedCellSize}).
+     *
+     * @return the section-header-height property
+     */
+    public final DoubleProperty sectionHeaderHeightProperty() {
+        return sectionHeaderHeight;
+    }
+
+    /**
+     * Returns the section-header row height.
+     *
+     * @return the section-header row height
+     */
+    public final double getSectionHeaderHeight() {
+        return sectionHeaderHeight.get();
+    }
+
+    /**
+     * Sets the section-header row height.
+     *
+     * @param value the section-header row height
+     */
+    public final void setSectionHeaderHeight(double value) {
+        sectionHeaderHeight.set(value);
+    }
+
+    private final DoubleProperty sectionSpacing =
+            new SimpleDoubleProperty(this, "sectionSpacing", DEFAULT_SECTION_SPACING);
+
+    /**
+     * Extra blank space inserted before each section after the first, in pixels. A
+     * non-positive or non-finite value is treated as zero at layout time. It only
+     * has a visible effect with two or more sections.
+     *
+     * @return the section-spacing property
+     */
+    public final DoubleProperty sectionSpacingProperty() {
+        return sectionSpacing;
+    }
+
+    /**
+     * Returns the inter-section spacing.
+     *
+     * @return the inter-section spacing
+     */
+    public final double getSectionSpacing() {
+        return sectionSpacing.get();
+    }
+
+    /**
+     * Sets the inter-section spacing.
+     *
+     * @param value the inter-section spacing
+     */
+    public final void setSectionSpacing(double value) {
+        sectionSpacing.set(value);
+    }
+
+    private final ObservableList<RXListSection> sectionsBacking = FXCollections.observableArrayList();
+
+    private final ReadOnlyListWrapper<RXListSection> sections = new ReadOnlyListWrapper<>(
+            this, "sections", FXCollections.unmodifiableObservableList(sectionsBacking));
+
+    /**
+     * The sections derived from the items and the
+     * {@link #sectionKeyFactoryProperty() sectionKeyFactory}, in item order. Empty
+     * when the view is flat. Every section has at least one item.
+     *
+     * @return the read-only sections property
+     */
+    public final ReadOnlyListProperty<RXListSection> sectionsProperty() {
+        return sections.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the derived sections.
+     *
+     * @return the sections, never {@code null}
+     */
+    public final ObservableList<RXListSection> getSections() {
+        return sections.get();
+    }
+
+    // Adjacent items mapping to the same key (by equals) form one section; a
+    // non-adjacent run of the same key yields a second section. With no factory (or
+    // no items) the view is flat and the section list is empty.
+    private void recomputeSections() {
+        Callback<T, Object> factory = getSectionKeyFactory();
+        ObservableList<T> list = getItems();
+        if (factory == null || list == null || list.isEmpty()) {
+            if (!sectionsBacking.isEmpty()) {
+                sectionsBacking.clear();
+            }
+            return;
+        }
+        List<RXListSection> built = new ArrayList<>();
+        int size = list.size();
+        int runStart = 0;
+        Object runKey = factory.call(list.get(0));
+        int sectionIndex = 0;
+        for (int i = 1; i < size; i++) {
+            Object key = factory.call(list.get(i));
+            if (!Objects.equals(key, runKey)) {
+                built.add(new RXListSection(runKey, sectionIndex++, runStart, i - runStart));
+                runStart = i;
+                runKey = key;
+            }
+        }
+        built.add(new RXListSection(runKey, sectionIndex, runStart, size - runStart));
+        sectionsBacking.setAll(built);
+    }
+
+    private final ReadOnlyObjectWrapper<RXListSection> visibleSection =
+            new ReadOnlyObjectWrapper<>(this, "visibleSection");
+
+    /**
+     * The section at the top of the viewport, or {@code null} when the view is flat
+     * or empty. Refreshed after each layout pass.
+     *
+     * @return the read-only visible-section property
+     */
+    public final ReadOnlyObjectProperty<RXListSection> visibleSectionProperty() {
+        return visibleSection.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the section at the top of the viewport.
+     *
+     * @return the visible section, or {@code null}
+     */
+    public final RXListSection getVisibleSection() {
+        return visibleSection.get();
+    }
+
+    /**
+     * Updates the visible section. Intended for skins / behaviors.
+     *
+     * @param value the visible section, or {@code null} for none
+     */
+    public final void setVisibleSection(RXListSection value) {
+        visibleSection.set(value);
+    }
+
     // ==================== Row Count (read-only) ====================
 
     private final ReadOnlyIntegerWrapper rowCount = new ReadOnlyIntegerWrapper(this, "rowCount", 0);
@@ -477,6 +780,8 @@ public class RXListView<T> extends Control {
     // >= 0 : scroll the row at this index per pendingScrollAlignment.
     // -1   : relative scroll by pendingScrollDelta pixels.
     private int pendingScrollIndex = -1;
+    // >= 0 : the pending request targets this section (takes priority over the index).
+    private int pendingScrollSectionIndex = -1;
     private double pendingScrollDelta;
     private ScrollAlignment pendingScrollAlignment = ScrollAlignment.NEAREST;
 
@@ -502,6 +807,7 @@ public class RXListView<T> extends Control {
     public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
         pendingScrollIndex = index;
+        pendingScrollSectionIndex = -1;
         pendingScrollDelta = 0.0;
         pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
         requestLayout();
@@ -539,6 +845,71 @@ public class RXListView<T> extends Control {
     }
 
     /**
+     * Scrolls so the first section with the given key is visible
+     * ({@link ScrollAlignment#START}). Does nothing if no section matches or the
+     * view is flat.
+     *
+     * @param sectionKey the section key to scroll to, matched by
+     *                   {@link Objects#equals(Object, Object)}
+     */
+    public final void scrollToSection(Object sectionKey) {
+        scrollToSection(sectionKey, ScrollAlignment.START);
+    }
+
+    /**
+     * Scrolls so the first section with the given key is visible with the given
+     * alignment. Does nothing if no section matches or the view is flat.
+     *
+     * @param sectionKey the section key to scroll to, matched by
+     *                   {@link Objects#equals(Object, Object)}
+     * @param alignment  where the target should land; {@code null} is treated as
+     *                   {@link ScrollAlignment#START}
+     */
+    public final void scrollToSection(Object sectionKey, ScrollAlignment alignment) {
+        for (RXListSection section : getSections()) {
+            if (Objects.equals(section.key(), sectionKey)) {
+                requestSectionScroll(section, alignment);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Scrolls so the section at the given index (handling duplicate keys) is
+     * visible ({@link ScrollAlignment#START}). Does nothing if the index is out of
+     * range.
+     *
+     * @param sectionIndex the section index in {@link #getSections()}
+     */
+    public final void scrollToSectionIndex(int sectionIndex) {
+        scrollToSectionIndex(sectionIndex, ScrollAlignment.START);
+    }
+
+    /**
+     * Scrolls so the section at the given index is visible with the given
+     * alignment. Does nothing if the index is out of range.
+     *
+     * @param sectionIndex the section index in {@link #getSections()}
+     * @param alignment    where the target should land; {@code null} is treated as
+     *                     {@link ScrollAlignment#START}
+     */
+    public final void scrollToSectionIndex(int sectionIndex, ScrollAlignment alignment) {
+        List<RXListSection> list = getSections();
+        if (sectionIndex >= 0 && sectionIndex < list.size()) {
+            requestSectionScroll(list.get(sectionIndex), alignment);
+        }
+    }
+
+    private void requestSectionScroll(RXListSection section, ScrollAlignment alignment) {
+        pendingScroll = true;
+        pendingScrollIndex = section.firstItemIndex();
+        pendingScrollSectionIndex = section.sectionIndex();
+        pendingScrollDelta = 0.0;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
+        requestLayout();
+    }
+
+    /**
      * Scrolls the viewport by a relative pixel delta (positive scrolls down,
      * negative up), clamped to the scrollable range on the next layout pass.
      * Multiple calls before a layout pass accumulate.
@@ -548,6 +919,7 @@ public class RXListView<T> extends Control {
     public final void scrollBy(double deltaY) {
         pendingScroll = true;
         pendingScrollIndex = -1;
+        pendingScrollSectionIndex = -1;
         pendingScrollDelta += deltaY;
         requestLayout();
     }
@@ -570,6 +942,18 @@ public class RXListView<T> extends Control {
      */
     public final int getPendingScrollIndex() {
         return pendingScrollIndex;
+    }
+
+    /**
+     * The section index of the pending scroll request, or {@code -1} when the
+     * request does not target a section. Takes priority over
+     * {@link #getPendingScrollIndex()} when {@code >= 0}. Intended for skins /
+     * behaviors.
+     *
+     * @return the pending scroll section index, or {@code -1}
+     */
+    public final int getPendingScrollSectionIndex() {
+        return pendingScrollSectionIndex;
     }
 
     /**
@@ -599,6 +983,7 @@ public class RXListView<T> extends Control {
     public final void clearPendingScroll() {
         pendingScroll = false;
         pendingScrollIndex = -1;
+        pendingScrollSectionIndex = -1;
         pendingScrollDelta = 0.0;
     }
 }

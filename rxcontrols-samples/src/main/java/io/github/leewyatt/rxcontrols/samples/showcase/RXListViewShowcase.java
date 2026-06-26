@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
@@ -12,6 +13,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
@@ -76,6 +78,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Selection", selectionGrid()),
                 section("Row height", cellSizeGrid()),
+                section("Sections", sectionsGrid()),
                 section("Scroll", scrollGrid()),
                 section("Metrics", metricsGrid()));
     }
@@ -112,6 +115,59 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         cellSize.valueProperty().addListener((obs, old, value) -> list.setFixedCellSize(value.doubleValue()));
         return createGrid(
                 row("Cell size", cellSize, createValueLabel(cellSize, "%.0f px")));
+    }
+
+    private Node sectionsGrid() {
+        CheckBox grouped = new CheckBox("Group by hundreds");
+        grouped.setSelected(false);
+        // On: derive a section per hundred (10000 items -> 100 sections). Off: flat.
+        grouped.selectedProperty().addListener((obs, old, on) ->
+                list.setSectionKeyFactory(on ? value -> value / 100 : null));
+
+        CheckBox headers = new CheckBox("Show headers");
+        headers.setSelected(list.isShowSectionHeaders());
+        headers.selectedProperty().addListener((obs, old, on) -> list.setShowSectionHeaders(on));
+
+        Slider headerHeight = createSlider(20, 64, list.getSectionHeaderHeight());
+        headerHeight.valueProperty().addListener((obs, old, value) ->
+                list.setSectionHeaderHeight(value.doubleValue()));
+
+        Slider spacing = createSlider(0, 40, list.getSectionSpacing());
+        spacing.valueProperty().addListener((obs, old, value) -> list.setSectionSpacing(value.doubleValue()));
+
+        TextField sectionKey = new TextField("50");
+        sectionKey.setPrefColumnCount(5);
+        Button goSection = new Button("Scroll to section");
+        goSection.setOnAction(e -> scrollToSection(sectionKey.getText()));
+        HBox sectionBox = new HBox(8.0, sectionKey, goSection);
+        sectionBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label topSection = new Label();
+        topSection.textProperty().bind(Bindings.createStringBinding(
+                () -> describeSection(list.getVisibleSection()), list.visibleSectionProperty()));
+
+        return createGrid(
+                row("Grouping", grouped),
+                row("Headers", headers),
+                row("Header h", headerHeight, createValueLabel(headerHeight, "%.0f px")),
+                row("Spacing", spacing, createValueLabel(spacing, "%.0f px")),
+                row(sectionBox),
+                row("Top section", topSection),
+                row(hint("Grouping derives sections from the items (no item is moved). Headers are a separate "
+                        + "pooled row type — arrow keys skip them and they are never selected. With headers off, "
+                        + "sections are still computed so scroll-to-section keeps working.")));
+    }
+
+    private void scrollToSection(String text) {
+        try {
+            list.scrollToSection(Integer.parseInt(text.trim()), ScrollAlignment.START);
+        } catch (NumberFormatException ignored) {
+            // Leave an unparseable key alone rather than disrupting the view.
+        }
+    }
+
+    private static String describeSection(RXListSection section) {
+        return section == null ? "—" : "key " + section.key() + " (" + section.itemCount() + " items)";
     }
 
     private Node scrollGrid() {

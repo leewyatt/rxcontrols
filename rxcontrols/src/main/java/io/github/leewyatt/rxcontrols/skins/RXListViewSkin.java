@@ -72,6 +72,18 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private final StringBuilder typeAheadBuffer = new StringBuilder();
     private long lastTypeAheadTime;
 
+    // Row-plan cache: the plan is width-independent (single column), so it only
+    // changes when the revision (sections content), header flag, header / row
+    // height, item count or section spacing change. The revision is bumped on a
+    // sections change so a same-size regrouping still rebuilds.
+    private int rowPlanRevision;
+    private RowPlanKey cachedRowPlanKey;
+    private RXListRowPlan cachedRowPlan;
+
+    private record RowPlanKey(int revision, boolean showHeaders, double headerHeight,
+                              double rowHeight, int itemCount, double sectionSpacing) {
+    }
+
     /**
      * Creates the skin for the given list view.
      *
@@ -107,6 +119,14 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.converterProperty(), this::requestLayoutPass);
         disposer.registerListener(control.fixedCellSizeProperty(), this::requestLayoutPass);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
+        // Sections: a sections-content change bumps the row-plan revision; the header
+        // flag / heights / spacing flow through the row-plan key; a section-header
+        // factory change rebuilds the header pool.
+        disposer.registerListener(control.sectionsProperty(), this::onSectionsChanged);
+        disposer.registerListener(control.showSectionHeadersProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
         // Visual mode: re-render the cells (their selection slot is derived) and
         // refresh the control-root pseudo-classes.
         disposer.registerListener(control.selectionVisualModeProperty(), this::onDecorationStateChanged);
@@ -165,6 +185,18 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         viewport.recreateCells();
     }
 
+    private void onSectionsChanged() {
+        // The sections list content changed; the row-plan key cannot cheaply hash it,
+        // so a revision bump forces a rebuild.
+        rowPlanRevision++;
+        requestLayoutPass();
+    }
+
+    private void onSectionHeaderFactoryChanged() {
+        // recreateHeaders() discards the header pool and requests a viewport layout.
+        viewport.recreateHeaders();
+    }
+
     private void onPlaceholderChanged() {
         updatePlaceholder();
         viewport.requestLayout();
@@ -174,12 +206,29 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
 
     private void updateRowPlan() {
         RXListView<T> control = getSkinnable();
-        double rowHeight = snapSizeY(fixedCellSizeOrDefault(control));
-        RXListRowPlan plan = new RXListRowPlan(itemCount(), rowHeight);
+        RXListRowPlan plan = buildPlan();
         if (control.getRowCount() != plan.itemCount()) {
             control.setRowCount(plan.itemCount());
         }
         viewport.setRowPlan(plan);
+    }
+
+    // The plan is purely a function of the sections + resolved heights + item count
+    // (width-independent), so a single cached slot keyed on those reuses it across
+    // scroll passes and rebuilds only when something it depends on changes.
+    private RXListRowPlan buildPlan() {
+        RXListView<T> control = getSkinnable();
+        RowPlanKey key = new RowPlanKey(rowPlanRevision, control.isShowSectionHeaders(),
+                snapSizeY(sectionHeaderHeightOrDefault(control)), snapSizeY(fixedCellSizeOrDefault(control)),
+                itemCount(), snapSizeY(sectionSpacingOrZero(control.getSectionSpacing())));
+        if (key.equals(cachedRowPlanKey)) {
+            return cachedRowPlan;
+        }
+        RXListRowPlan plan = new RXListRowPlan(control.getSections(), control.isShowSectionHeaders(),
+                key.headerHeight(), key.rowHeight(), key.itemCount(), key.sectionSpacing());
+        cachedRowPlanKey = key;
+        cachedRowPlan = plan;
+        return plan;
     }
 
     private RXListSelectionVisualMode effectiveSelectionVisualMode() {
@@ -223,6 +272,13 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         }
     }
 
+    // ==================== Visible section ====================
+
+    private void updateVisibleSection() {
+        // The viewport reports the section at the top of the window (null when flat).
+        getSkinnable().setVisibleSection(viewport.getTopSection());
+    }
+
     // ==================== Placeholder / :empty ====================
 
     private void updatePlaceholder() {
@@ -251,6 +307,16 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         int itemCount = itemCount();
         if (itemCount == 0) {
             control.clearPendingScroll();
+            return;
+        }
+        int sectionIndex = control.getPendingScrollSectionIndex();
+        if (sectionIndex >= 0) {
+            // Section scroll takes priority; a stale section index (cleared sections)
+            // is dropped rather than left armed.
+            if (sectionIndex >= control.getSections().size()
+                    || viewport.scrollToSectionIndex(sectionIndex, control.getPendingScrollAlignment())) {
+                control.clearPendingScroll();
+            }
             return;
         }
         int index = control.getPendingScrollIndex();
@@ -285,6 +351,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // published visible range reflect this pass, not the previous one.
         viewport.layout();
         updateVisibleRange();
+        updateVisibleSection();
     }
 
     @Override
@@ -728,5 +795,14 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     static double fixedCellSizeOrDefault(RXListView<?> control) {
         double value = control.getFixedCellSize();
         return Double.isFinite(value) && value > 0.0 ? value : FALLBACK_FIXED_CELL_SIZE;
+    }
+
+    static double sectionHeaderHeightOrDefault(RXListView<?> control) {
+        double value = control.getSectionHeaderHeight();
+        return Double.isFinite(value) && value > 0.0 ? value : RXListView.DEFAULT_SECTION_HEADER_HEIGHT;
+    }
+
+    static double sectionSpacingOrZero(double value) {
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 }

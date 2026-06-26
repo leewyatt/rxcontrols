@@ -645,6 +645,207 @@ public class RXListViewSkinTest {
         });
     }
 
+    // ==================== Sections (PR3) ====================
+
+    @Test
+    public void sectionsGroupAdjacentSameKey() {
+        RXListView<Integer> view = intItems(25);
+        view.setSectionKeyFactory(i -> i / 10);
+        List<RXListSection> sections = view.getSections();
+        assertEquals(3, sections.size());
+        assertEquals(0, sections.get(0).firstItemIndex());
+        assertEquals(10, sections.get(0).itemCount());
+        assertEquals(20, sections.get(2).firstItemIndex());
+        assertEquals(5, sections.get(2).itemCount());
+    }
+
+    @Test
+    public void nonAdjacentSameKeyMakesTwoSections() {
+        // Runs A,B,A — the two A runs are distinct sections (items are not reordered).
+        RXListView<String> view = threeRunsABA();
+        List<RXListSection> sections = view.getSections();
+        assertEquals(3, sections.size());
+        assertEquals('A', sections.get(0).key());
+        assertEquals('B', sections.get(1).key());
+        assertEquals('A', sections.get(2).key());
+        assertEquals(0, sections.get(0).sectionIndex());
+        assertEquals(2, sections.get(2).sectionIndex());
+        assertEquals(40, sections.get(2).firstItemIndex());
+    }
+
+    @Test
+    public void noFactoryIsFlatWithNoHeaders() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(20);
+            assertTrue(view.getSections().isEmpty());
+            pump(host(view, 300, 400));
+            assertTrue(sectionHeaders(view).isEmpty(), "no header cells when flat");
+            assertNull(view.getVisibleSection());
+        });
+    }
+
+    @Test
+    public void sectionHeadersAreRealizedAndShowKeyText() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            pump(host(view, 300, 200));
+            List<RXListSectionCell> headers = sectionHeaders(view);
+            assertFalse(headers.isEmpty(), "the first section header is realized");
+            assertTrue(headers.stream().anyMatch(h -> "0".equals(h.getText())),
+                    "the default header renders the section key as text");
+        });
+    }
+
+    @Test
+    public void showSectionHeadersFalseComputesButHidesHeaders() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setShowSectionHeaders(false);
+            view.setFixedCellSize(20);
+            pump(host(view, 300, 200));
+            assertFalse(view.getSections().isEmpty(), "sections are still computed");
+            assertTrue(sectionHeaders(view).isEmpty(), "but no header rows are rendered");
+            assertNotNull(view.getVisibleSection(), "visibleSection still works");
+        });
+    }
+
+    @Test
+    public void visibleSectionTracksTopOfViewport() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 200);
+            pump(root);
+            assertEquals(0, view.getVisibleSection().sectionIndex());
+            view.scrollToSection(5);
+            pump(root);
+            assertEquals(5, view.getVisibleSection().sectionIndex());
+        });
+    }
+
+    @Test
+    public void scrollToSectionBringsSectionToTop() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 200);
+            pump(root);
+            view.scrollToSection(3, ScrollAlignment.START);
+            pump(root);
+            assertEquals(30, view.getVisibleRange().firstIndex(),
+                    "section 3 starts at item 30, which lands at the top");
+        });
+    }
+
+    @Test
+    public void scrollToSectionIndexHandlesDuplicateKeys() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = threeRunsABA();
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 200);
+            pump(root);
+            // Section index 2 is the SECOND 'A' run (items 40..59), not the first.
+            view.scrollToSectionIndex(2, ScrollAlignment.START);
+            pump(root);
+            assertEquals(2, view.getVisibleSection().sectionIndex());
+            assertEquals(40, view.getVisibleRange().firstIndex());
+        });
+    }
+
+    @Test
+    public void headerClickDoesNotSelect() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            pump(host(view, 300, 200));
+            RXListSectionCell header = sectionHeaders(view).get(0);
+            press(header, false, false);
+            assertTrue(view.getSelectionModel().getSelectedIndices().isEmpty(),
+                    "a section header is not a selectable item");
+        });
+    }
+
+    @Test
+    public void arrowNavigationSkipsHeadersAcrossSectionBoundary() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            // Establish focus on item 9 (the last item of section 0) via a click.
+            press(cellByIndex(view, 9), false, false);
+            assertEquals(9, view.getSelectionModel().getSelectedIndex());
+            // Down lands on the first item of section 1 (item 10) — the header carries
+            // no item index, so it is never focused.
+            key(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(10, view.getSelectionModel().getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void regroupingRebuildsPlanWhileLaidOut() throws Exception {
+        // Locks in the cache mechanism: a sections change while laid out must bump the
+        // row-plan revision (single-slot cache miss) so the geometry rebuilds. Here the
+        // item count is unchanged (40) but the grouping changes 2 -> 4 sections.
+        onFx(() -> {
+            RXListView<Integer> view = intItems(40);
+            view.setSectionKeyFactory(i -> i / 20);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 200);
+            pump(root);
+            assertEquals(2, view.getSections().size());
+            view.setSectionKeyFactory(i -> i / 10);
+            pump(root);
+            assertEquals(4, view.getSections().size());
+            // The rebuilt plan knows the new section geometry: section 3 starts at item 30.
+            view.scrollToSectionIndex(3, ScrollAlignment.START);
+            pump(root);
+            assertEquals(3, view.getVisibleSection().sectionIndex());
+            assertEquals(30, view.getVisibleRange().firstIndex());
+        });
+    }
+
+    @Test
+    public void sectionsFollowItemMutation() {
+        ObservableList<Integer> data = FXCollections.observableArrayList(0, 1, 2);
+        RXListView<Integer> view = new RXListView<>(data);
+        view.setSectionKeyFactory(i -> i / 10);
+        assertEquals(1, view.getSections().size());
+        data.add(15);
+        assertEquals(2, view.getSections().size(), "adding an item in a new key group adds a section");
+    }
+
+    @Test
+    public void visibleRangeCountsItemsNotHeaders() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(100);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setFixedCellSize(20);
+            view.setSectionHeaderHeight(30);
+            pump(host(view, 300, 200));
+            // The published range reports item indices; the first item is 0 regardless
+            // of the header occupying the first visual row.
+            assertEquals(0, view.getVisibleRange().firstIndex());
+            assertTrue(view.getVisibleRange().lastIndex() >= 0
+                    && view.getVisibleRange().lastIndex() < 10, "only section-0 items are visible");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {
@@ -653,6 +854,42 @@ public class RXListViewSkinTest {
             data.add("Item " + i);
         }
         return new RXListView<>(data);
+    }
+
+    private static RXListView<Integer> intItems(int count) {
+        ObservableList<Integer> data = FXCollections.observableArrayList();
+        for (int i = 0; i < count; i++) {
+            data.add(i);
+        }
+        return new RXListView<>(data);
+    }
+
+    // Three runs A,B,A (the two A runs are non-adjacent), keyed by the first char,
+    // so duplicate-key sections (index 0 and 2 share key 'A') can be exercised.
+    private static RXListView<String> threeRunsABA() {
+        ObservableList<String> data = FXCollections.observableArrayList();
+        for (int i = 0; i < 20; i++) {
+            data.add("A" + i);
+        }
+        for (int i = 0; i < 20; i++) {
+            data.add("B" + i);
+        }
+        for (int i = 20; i < 40; i++) {
+            data.add("A" + i);
+        }
+        RXListView<String> view = new RXListView<>(data);
+        view.setSectionKeyFactory(s -> s.charAt(0));
+        return view;
+    }
+
+    private static List<RXListSectionCell> sectionHeaders(RXListView<?> view) {
+        List<RXListSectionCell> result = new ArrayList<>();
+        for (Node node : view.lookupAll(".rx-list-section-header")) {
+            if (node instanceof RXListSectionCell header && header.getItem() != null) {
+                result.add(header);
+            }
+        }
+        return result;
     }
 
     private static StackPane host(RXListView<?> view, double w, double h) {
