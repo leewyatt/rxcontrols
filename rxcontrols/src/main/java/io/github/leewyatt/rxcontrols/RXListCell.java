@@ -446,7 +446,10 @@ public class RXListCell<T> extends IndexedCell<T> {
      * to the item's text (via the list view's {@link RXListView#converterProperty()
      * converter}, falling back to {@code item.toString()}) and returns it. Override
      * to render richer content; returning {@code null} renders an empty content
-     * area. Called on each (re)bind, so cache expensive content keyed by item.
+     * area. Called on every layout pass that binds this cell (not only when the item
+     * changes — a resize, scroll-bar toggle or variable-height re-pack re-binds the same
+     * item), so reuse a cached node rather than allocating per call. The default returns
+     * a reused field node and only updates its text.
      *
      * @param item the item to render (never used as the emptiness signal — empty
      *             cells never reach this method)

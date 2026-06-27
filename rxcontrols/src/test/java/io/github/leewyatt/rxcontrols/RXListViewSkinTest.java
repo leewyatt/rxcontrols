@@ -412,18 +412,27 @@ public class RXListViewSkinTest {
     @Test
     public void parkedCellsAreCleared() throws Exception {
         onFx(() -> {
-            RXListView<String> view = items(5);
+            ObservableList<String> data = FXCollections.observableArrayList();
+            for (int i = 0; i < 40; i++) {
+                data.add("Item " + i);
+            }
+            RXListView<String> view = new RXListView<>(data);
             view.setFixedCellSize(20);
             StackPane root = host(view, 300, 600);
+            pump(root); // ~30 rows visible, so the pool grows to ~30 cells
+            // Shrink the list so the surplus cells (no longer mapped to a row) must park.
+            data.remove(5, 40);
             pump(root);
-            // The pool has more cells than items; surplus cells must be parked empty.
+            int parked = 0;
             for (Node node : view.lookupAll(".rx-list-cell")) {
                 if (node instanceof RXListCell<?> cell && cell.getIndex() < 0) {
+                    parked++;
                     assertFalse(cell.isVisible(), "parked cell is invisible");
                     assertTrue(cell.isEmpty(), "parked cell is empty");
                     assertNull(cell.getText(), "parked cell text cleared");
                 }
             }
+            assertTrue(parked > 0, "the shrunk window leaves surplus cells parked (test is not vacuous)");
         });
     }
 
@@ -1124,6 +1133,107 @@ public class RXListViewSkinTest {
             pumpUntilStable(root, 60);
             assertEquals(measuredHeightOf(0), cellByIndex(view, 0).getHeight(), 1.0,
                     "variable mode restores content-sized rows after a fixed-mode round trip");
+        });
+    }
+
+    // ==================== Paging / scroll alignment / item & list scroll ====================
+
+    @Test
+    public void pageDownSinksThenPagesAndPageUpReverses() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(200);
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            key(view, KeyCode.HOME, false, false);
+            pump(root);
+            int bottom = view.getVisibleRange().lastIndex();
+            // First PageDown sinks the cursor to the bottom visible row (no paging yet).
+            key(view, KeyCode.PAGE_DOWN, false, false);
+            pump(root);
+            assertEquals(bottom, view.getSelectionModel().getSelectedIndex(),
+                    "first PageDown sinks the cursor to the bottom visible row");
+            // A second PageDown, now sitting on the edge, pages forward.
+            key(view, KeyCode.PAGE_DOWN, false, false);
+            pump(root);
+            int paged = view.getSelectionModel().getSelectedIndex();
+            assertTrue(paged > bottom, "second PageDown pages forward past the bottom (was " + paged + ")");
+            // PageUp moves back toward the top.
+            key(view, KeyCode.PAGE_UP, false, false);
+            pump(root);
+            assertTrue(view.getSelectionModel().getSelectedIndex() < paged, "PageUp reverses the paging");
+        });
+    }
+
+    @Test
+    public void scrollToEndAlignsItemToViewportBottom() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(500);
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            view.scrollTo(250, ScrollAlignment.END);
+            pump(root);
+            RXListCell<?> cell = cellByIndex(view, 250);
+            assertNotNull(cell);
+            assertEquals(400.0, cell.getLayoutY() + cell.getHeight(), 2.0,
+                    "END aligns the item bottom to the viewport bottom");
+        });
+    }
+
+    @Test
+    public void scrollToCenterAlignsItemToViewportMiddle() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(500);
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            view.scrollTo(250, ScrollAlignment.CENTER);
+            pump(root);
+            RXListCell<?> cell = cellByIndex(view, 250);
+            assertNotNull(cell);
+            // The 20px row centered in a 400px viewport sits at top ≈ (400 - 20) / 2 = 190.
+            assertEquals(190.0, cell.getLayoutY(), 2.0, "CENTER centers the item in the viewport");
+        });
+    }
+
+    @Test
+    public void scrollToItemResolvesByValue() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(500);
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            // Explicit Integer so this binds scrollTo(T, ...), not scrollTo(int, ...).
+            view.scrollTo(Integer.valueOf(300), ScrollAlignment.START);
+            pump(root);
+            RXListCell<?> cell = cellByIndex(view, 300);
+            assertNotNull(cell, "scrollTo(item) resolves the value to its index and realizes it");
+            assertTrue(Math.abs(cell.getLayoutY()) <= 2.0, "the resolved item lands at the top");
+            // A value not in the list is a no-op (and must not throw).
+            view.scrollTo(Integer.valueOf(99_999), ScrollAlignment.START);
+            pump(root);
+        });
+    }
+
+    @Test
+    public void setItemsSwapRevirtualizesNewList() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = intItems(50);
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            assertEquals(50, view.getRowCount());
+            ObservableList<Integer> replacement = FXCollections.observableArrayList();
+            for (int i = 0; i < 1_000; i++) {
+                replacement.add(i);
+            }
+            view.setItems(replacement);
+            pump(root);
+            assertEquals(1_000, view.getRowCount(), "row count tracks the swapped-in list");
+            assertNotNull(cellByIndex(view, 0), "the new list is realized");
+            int realized = view.lookupAll(".rx-list-cell").size();
+            assertTrue(realized < 200, "still virtualized after the swap (was " + realized + ")");
         });
     }
 

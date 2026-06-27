@@ -126,12 +126,18 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         variable.selectedProperty().addListener((obs, old, on) -> {
             cellSize.setDisable(on);
             if (on) {
-                // Variable height: each row wraps its content to a different height.
+                // Variable height: each row wraps its content to a different height. The
+                // label is a reused field (createContent runs on every bind), per its docs.
                 list.setCellFactory(view -> new RXListCell<>() {
+                    private final Label label = new Label();
+
+                    {
+                        label.setWrapText(true);
+                    }
+
                     @Override
                     protected Node createContent(Integer item) {
-                        Label label = new Label(describe(item));
-                        label.setWrapText(true);
+                        label.setText(describe(item));
                         return label;
                     }
                 });

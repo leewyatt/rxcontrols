@@ -67,16 +67,21 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private final StackPane placeholderRegion;
 
     // Persistent variable-height (measure-on-scroll) state; unused on the fixed path. A
-    // measured row height is taken at the content width the row had when it was last
-    // visible. The skin deliberately does NOT invalidate measured heights on a content-
-    // width change (resize / scroll-bar toggle) — mirroring RXMasonryViewSkin's track-width
-    // policy: the visible rows re-measure at the new width every pass, while off-screen rows
-    // keep their last-visible measurement and re-measure when they next scroll into view (so
-    // only the off-screen scroll extent / scrollTo offset is approximate after a resize, not
-    // the rendered content, which the anchor pin keeps put). Wiping instead would revert
-    // every off-screen row to the estimate and jump the scroll bar on resize; and since a
-    // narrower width only ever increases wrap height there is no bar on/off oscillation to
-    // guard against either.
+    // measured row height reflects the row's rendering (content + selection slot) at its
+    // last-visible width. The skin deliberately does NOT eagerly invalidate measured
+    // heights when something that *might* change a row's height varies — a content width
+    // change (resize / scroll-bar toggle), a converter change, or a selection-visual-mode /
+    // selection-mode change (which swaps the leading checkbox / checkmark / nothing). In all
+    // of these the SAME cell re-renders: the visible rows re-measure at the new rendering
+    // every pass while off-screen rows keep their last measurement and re-measure when they
+    // next scroll into view, so only the off-screen scroll extent / scrollTo offset is
+    // approximate (the rendered content is correct; the anchor pin keeps it put). Eager
+    // wiping would revert every off-screen row to the estimate and jump the scroll bar even
+    // when nothing actually changed height (the common case — variable content dominates the
+    // row height, so the leading slot rarely affects it). The cache is cleared only on the
+    // wholesale changes where old measurements are wrong rather than merely approximate: a
+    // cellFactory change (a different renderer), an items-list swap, and a fixed/variable
+    // mode flip.
     private final IndexedHeightCache heightCache = new IndexedHeightCache();
     private boolean heightsDirty;
     // Tracks the fixedCellSize variable/fixed mode so a boundary crossing can drop the
