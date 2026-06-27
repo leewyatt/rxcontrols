@@ -5,6 +5,8 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
@@ -1122,6 +1124,27 @@ public class RXListViewSkinTest {
             pumpUntilStable(root, 60);
             assertEquals(measuredHeightOf(0), cellByIndex(view, 0).getHeight(), 1.0,
                     "variable mode restores content-sized rows after a fixed-mode round trip");
+        });
+    }
+
+    // ==================== Accessibility ====================
+
+    @Test
+    public void exposesBasicAccessibilityRolesAndState() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(20);
+            view.setFixedCellSize(20);
+            view.getSelectionModel().select(2);
+            pump(host(view, 300, 400));
+            assertEquals(AccessibleRole.LIST_VIEW, view.getAccessibleRole());
+            RXListCell<?> selected = cellByIndex(view, 2);
+            RXListCell<?> unselected = cellByIndex(view, 3);
+            assertNotNull(selected);
+            assertNotNull(unselected);
+            assertEquals(AccessibleRole.LIST_ITEM, selected.getAccessibleRole());
+            assertEquals(2, selected.queryAccessibleAttribute(AccessibleAttribute.INDEX));
+            assertEquals(Boolean.TRUE, selected.queryAccessibleAttribute(AccessibleAttribute.SELECTED));
+            assertEquals(Boolean.FALSE, unselected.queryAccessibleAttribute(AccessibleAttribute.SELECTED));
         });
     }
 

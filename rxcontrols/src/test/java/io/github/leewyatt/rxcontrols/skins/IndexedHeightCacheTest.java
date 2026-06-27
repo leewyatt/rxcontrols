@@ -7,24 +7,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link MasonryHeightCache}: the estimated-path height state — record /
- * idempotence, index-shift alignment through list mutations, column-count invalidation
- * and clear. Pure arithmetic, no JavaFX toolkit.
+ * Tests for {@link IndexedHeightCache}: the shared measure-on-scroll height state —
+ * record / idempotence, index-shift alignment through list mutations, structural-width
+ * invalidation and clear. Pure arithmetic, no JavaFX toolkit.
  */
-public class MasonryHeightCacheTest {
+public class IndexedHeightCacheTest {
 
     private static final double EPSILON = 0.5;
     private static final double EST = 100.0;
 
-    private static MasonryHeightCache cacheOf(int count) {
-        MasonryHeightCache cache = new MasonryHeightCache();
+    private static IndexedHeightCache cacheOf(int count) {
+        IndexedHeightCache cache = new IndexedHeightCache();
         cache.ensureCapacity(count, EST);
         return cache;
     }
 
     @Test
     public void recordReturnsChangedAndIsIdempotent() {
-        MasonryHeightCache cache = cacheOf(5);
+        IndexedHeightCache cache = cacheOf(5);
         assertEquals(EST, cache.heightAt(2, EST), EPSILON, "unmeasured returns the estimate");
 
         assertTrue(cache.record(2, 150.0, EPSILON), "first measurement changes the cache");
@@ -36,7 +36,7 @@ public class MasonryHeightCacheTest {
 
     @Test
     public void shiftInsertKeepsMeasuredAlignedWithItems() {
-        MasonryHeightCache cache = cacheOf(5);
+        IndexedHeightCache cache = cacheOf(5);
         cache.record(3, 200.0, EPSILON);
 
         // Insert 2 items at index 1: item previously at index 3 moves to index 5.
@@ -49,7 +49,7 @@ public class MasonryHeightCacheTest {
 
     @Test
     public void shiftRemoveKeepsMeasuredAlignedWithItems() {
-        MasonryHeightCache cache = cacheOf(5);
+        IndexedHeightCache cache = cacheOf(5);
         cache.record(4, 200.0, EPSILON);
 
         // Remove 2 items at index 1: item previously at index 4 moves to index 2.
@@ -59,25 +59,33 @@ public class MasonryHeightCacheTest {
     }
 
     @Test
-    public void columnsChangeDropsMeasured() {
-        MasonryHeightCache cache = cacheOf(4);
-        cache.onColumnsChanged(3);
+    public void invalidateRangeDropsOnlyTheRange() {
+        IndexedHeightCache cache = cacheOf(5);
+        cache.record(1, 150.0, EPSILON);
+        cache.record(3, 200.0, EPSILON);
+
+        cache.invalidateRange(1, 3, EST);
+        assertEquals(EST, cache.heightAt(1, EST), EPSILON, "in-range measurement dropped");
+        assertEquals(200.0, cache.heightAt(3, EST), EPSILON, "out-of-range measurement kept");
+        assertEquals(1, cache.measuredCount());
+    }
+
+    @Test
+    public void invalidateAllMeasuredDropsEveryMeasurement() {
+        IndexedHeightCache cache = cacheOf(4);
         cache.record(1, 180.0, EPSILON);
         assertEquals(180.0, cache.heightAt(1, EST), EPSILON);
 
-        // Same column count (e.g. a scroll-bar toggle changed only the track width): the
-        // measurement survives, so the layout cannot oscillate.
-        assertFalse(cache.onColumnsChanged(3));
-        assertEquals(180.0, cache.heightAt(1, EST), EPSILON);
-
-        // Column count change: drop every measured height (re-measure at the new width).
-        assertTrue(cache.onColumnsChanged(2));
-        assertEquals(EST, cache.heightAt(1, EST), EPSILON, "measured height discarded at the new column count");
+        // A structural width reflow (e.g. a masonry column-count change): every measured
+        // height is discarded and re-measured at the new width.
+        cache.invalidateAllMeasured();
+        assertEquals(EST, cache.heightAt(1, EST), EPSILON, "measured height discarded");
+        assertEquals(0, cache.measuredCount());
     }
 
     @Test
     public void clearResetsToEstimates() {
-        MasonryHeightCache cache = cacheOf(5);
+        IndexedHeightCache cache = cacheOf(5);
         cache.record(2, 150.0, EPSILON);
 
         cache.clear();

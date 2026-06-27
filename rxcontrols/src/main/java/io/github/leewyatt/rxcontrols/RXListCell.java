@@ -18,6 +18,8 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
@@ -79,6 +81,7 @@ public class RXListCell<T> extends IndexedCell<T> {
      */
     public RXListCell() {
         getStyleClass().add("rx-list-cell");
+        setAccessibleRole(AccessibleRole.LIST_ITEM);
         // Cells are not Tab stops — the list view is the single focus owner — so
         // they never receive Node focus and the focus ring above stays under skin
         // control.
@@ -113,6 +116,28 @@ public class RXListCell<T> extends IndexedCell<T> {
         container.getStyleClass().add("container");
         container.setAlignment(Pos.CENTER_LEFT);
         container.getChildren().setAll(selectionSlot, contentHolder);
+    }
+
+    // ==================== Accessibility ====================
+
+    /**
+     * Reports this cell's index and single-selection state to assistive technologies
+     * (mirroring {@code ListCell}); other attributes defer to the superclass. Only the
+     * realized (visible) cells are exposed — the self-built viewport keeps no off-screen
+     * accessibility peers, so screen readers see the visible window rather than the full
+     * item list.
+     *
+     * @param attribute  the requested accessible attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case INDEX -> getIndex();
+            case SELECTED -> isSelected();
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
     }
 
     // ==================== List View ====================

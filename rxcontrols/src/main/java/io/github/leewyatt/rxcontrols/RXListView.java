@@ -21,6 +21,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
 import javafx.event.EventHandler;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
@@ -87,6 +88,7 @@ public class RXListView<T> extends Control {
      */
     public RXListView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        setAccessibleRole(AccessibleRole.LIST_VIEW);
         // The control is a single Tab stop; cells are not focus-traversable.
         setFocusTraversable(true);
         // The field initializer installs the default items list without firing the

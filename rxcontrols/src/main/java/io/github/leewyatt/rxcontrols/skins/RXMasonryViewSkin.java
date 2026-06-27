@@ -95,8 +95,11 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private final Timeline marqueeAutoScroll;
 
     // Persistent estimated-path height state (unused on the precise provider path).
-    private final MasonryHeightCache heightCache = new MasonryHeightCache();
+    private final IndexedHeightCache heightCache = new IndexedHeightCache();
     private boolean heightsDirty;
+    // The column count the cached measured heights were taken at; a change re-widths every
+    // card and invalidates them (the height cache itself is column-agnostic).
+    private int lastMeasuredColumns = -1;
 
     // Placement cache: a pure scroll changes only scrollY, not the placement geometry, so
     // the (otherwise per-frame O(N)) placement is reused. Any geometry input change routes
@@ -232,6 +235,14 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         viewport.requestLayout();
     }
 
+    // Drops the height cache and the column-reflow tracking together (the cache previously
+    // reset its own last-columns on clear); a column change after this re-wipes (a no-op on
+    // the now-empty cache) and re-seeds the tracking.
+    private void clearHeightCache() {
+        heightCache.clear();
+        lastMeasuredColumns = -1;
+    }
+
     // ==================== Items / Placeholder / :empty ====================
 
     private void onItemsListSwapped() {
@@ -243,7 +254,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         resetAnchor();
         resetPreferredNav();
         // Every index meaning is gone with the old list.
-        heightCache.clear();
+        clearHeightCache();
         updatePlaceholder();
         requestRelayout();
     }
@@ -259,7 +270,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     }
 
     private void onHeightSourceChanged() {
-        heightCache.clear();
+        clearHeightCache();
         requestRelayout();
     }
 
@@ -267,7 +278,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // New cells produce new heights, so every cached measured height is stale; this
         // also changes the estimated-path placement, so invalidate the placement cache.
         // (recreateCells dirties the viewport but does not route through requestRelayout.)
-        heightCache.clear();
+        clearHeightCache();
         placementDirty = true;
         viewport.recreateCells();
     }
@@ -275,7 +286,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private void onSpanFactoryChanged() {
         // A span change alters each item's effective cell width, so its measured height
         // (taken at the old width) no longer applies.
-        heightCache.clear();
+        clearHeightCache();
         requestRelayout();
     }
 
@@ -1093,7 +1104,12 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // keeps the columns balanced; a below-fold measurement only re-routes later items,
         // which are off-screen.)
         if (driveCache) {
-            heightCache.onColumnsChanged(columns);
+            // A column-count change re-widths every card, so its measured height no longer
+            // applies; drop all measured heights (the cache itself is column-agnostic).
+            if (columns != lastMeasuredColumns) {
+                heightCache.invalidateAllMeasured();
+                lastMeasuredColumns = columns;
+            }
             heightCache.ensureCapacity(count, estimated);
         }
         for (int i = 0; i < count; i++) {

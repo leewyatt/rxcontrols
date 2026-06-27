@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import java.util.Arrays;
+
 /**
  * Persistent per-item height state for an index-based virtualizing viewport on its
  * estimated (measure-on-scroll) path. It survives layout passes — the immutable
@@ -8,11 +10,14 @@ package io.github.leewyatt.rxcontrols.skins;
  *
  * <p>Indexed by item position, it shifts and invalidates with the items list the same
  * way the index-based selection / focus models do: a list mutation splices the arrays
- * at the mutation point so each slot keeps describing the same logical item.</p>
+ * at the mutation point so each slot keeps describing the same logical item. A measured
+ * height is content-width dependent (a wrapping cell reflows), so a structural width
+ * change can discard every measured height via {@link #invalidateAllMeasured()} and let
+ * the cells re-measure at the new width (the masonry viewport uses this on a column-count
+ * change; the single-column list never needs it).</p>
  *
- * <p>Pure data and arithmetic, no JavaFX, so it is headless-testable in isolation. It is
- * the control-neutral counterpart of {@code MasonryHeightCache} (which keeps its own
- * column-keyed variant for the masonry track-width reflow).</p>
+ * <p>Pure data and arithmetic, no JavaFX, so it is headless-testable in isolation. Shared
+ * by the variable-height list viewport and the masonry viewport's estimated-height path.</p>
  */
 final class IndexedHeightCache {
 
@@ -105,6 +110,16 @@ final class IndexedHeightCache {
     }
 
     /**
+     * Drops every measured height (a structural width reflow, e.g. a masonry column-count
+     * change): the cells re-measure at the new width as they reconcile. The estimates stay
+     * in place so the scroll bar keeps a stable total until the visible cells report their
+     * new heights.
+     */
+    void invalidateAllMeasured() {
+        Arrays.fill(measured, 0, size, false);
+    }
+
+    /**
      * Records a measured height for an item. A no-op (returning {@code false}) when the
      * item is already measured to the same value within {@code epsilon}, which stops a
      * re-measure feedback loop in steady state.
@@ -139,6 +154,10 @@ final class IndexedHeightCache {
             return estimated;
         }
         return measured[index] ? heights[index] : estimated;
+    }
+
+    int size() {
+        return size;
     }
 
     int measuredCount() {
