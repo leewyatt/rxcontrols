@@ -933,6 +933,39 @@ public class RXListViewSkinTest {
         });
     }
 
+    @Test
+    public void scrollToItemLandsBelowStickyHeader() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            // START would land item 50 at y=0 — under the pinned header — without the
+            // sticky inset; it must instead land at/just below the sticky's bottom.
+            view.scrollTo(50, ScrollAlignment.START);
+            pump((StackPane) view.getParent());
+            RXListCell<?> cell = cellByIndex(view, 50);
+            assertNotNull(cell, "the target item is realized");
+            RXListSectionCell sticky = stickyHeader(view);
+            assertNotNull(sticky);
+            double stickyBottom = sticky.getLayoutY() + sticky.getHeight();
+            assertTrue(cell.getLayoutY() >= stickyBottom - 0.5,
+                    "item top " + cell.getLayoutY() + " must be at/below the sticky bottom " + stickyBottom);
+        });
+    }
+
+    @Test
+    public void scrollToItemLandsAtTopWhenStickyDisabled() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = groupedList(300, 200);
+            view.setStickySectionHeader(false);
+            view.scrollTo(50, ScrollAlignment.START);
+            pump((StackPane) view.getParent());
+            RXListCell<?> cell = cellByIndex(view, 50);
+            assertNotNull(cell);
+            // No sticky overlay: START aligns the item to the very top (no inset).
+            assertTrue(cell.getLayoutY() <= 0.5,
+                    "without sticky the item lands at the top, was " + cell.getLayoutY());
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {

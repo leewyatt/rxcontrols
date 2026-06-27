@@ -1488,9 +1488,6 @@
     visibility: visible;
 }
 
-/* Section header rows (PR3): a bold, lightly tinted band separating groups. The
-   opaque background also makes the sticky overlay (PR4) hide content scrolling
-   under it. */
 .rx-list-section-header {
     -fx-padding: 0.333em 0.75em;
     -fx-background-color: -rx-surface-variant;
@@ -1498,7 +1495,6 @@
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
-/* Sticky header (PR4): elevates with a shadow only once content scrolls under it. */
 .rx-list-view .rx-list-section-header.sticky:pinned {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }

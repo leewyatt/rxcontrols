@@ -487,8 +487,9 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
 
     /**
      * The clamped scroll offset that lands a target row / item per
-     * {@code alignment}, given its top and height. Shared alignment math; each
-     * subclass reduces its plan entry to {@code (top, height)} first.
+     * {@code alignment}, given its top and height, against the full viewport.
+     * Shared alignment math; each subclass reduces its plan entry to
+     * {@code (top, height)} first.
      *
      * @param targetTop      the target's top in content coordinates
      * @param targetHeight   the target's height
@@ -498,20 +499,41 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
      */
     protected final double targetScrollFor(double targetTop, double targetHeight,
                                            double viewportHeight, ScrollAlignment alignment) {
+        return targetScrollFor(targetTop, targetHeight, viewportHeight, 0.0, alignment);
+    }
+
+    /**
+     * Variant that treats the top {@code topInset} pixels of the viewport as
+     * occluded (e.g. by a pinned sticky header), landing the target within the
+     * usable area {@code [topInset, viewportHeight)} so it is not hidden behind the
+     * overlay. {@code START} aligns to {@code topInset}, {@code CENTER} centers in
+     * the usable area and {@code NEAREST} measures visibility against it;
+     * {@code END} is unaffected (it is bottom-aligned, and the overlay sits at the
+     * top). A {@code topInset} of {@code 0} reduces to the full-viewport variant.
+     *
+     * @param targetTop      the target's top in content coordinates
+     * @param targetHeight   the target's height
+     * @param viewportHeight the viewport height
+     * @param topInset       the occluded height at the top of the viewport
+     * @param alignment      where the target should land
+     * @return the desired (unclamped) scroll offset
+     */
+    protected final double targetScrollFor(double targetTop, double targetHeight,
+                                           double viewportHeight, double topInset, ScrollAlignment alignment) {
         double targetBottom = targetTop + targetHeight;
         return switch (alignment) {
-            case CENTER -> targetTop - (viewportHeight - targetHeight) / 2.0;
+            case CENTER -> targetTop - topInset - (viewportHeight - topInset - targetHeight) / 2.0;
             case END -> targetBottom - viewportHeight;
             case NEAREST -> {
-                if (targetTop < scrollY) {
-                    yield targetTop;
+                if (targetTop < scrollY + topInset) {
+                    yield targetTop - topInset;
                 }
                 if (targetBottom > scrollY + viewportHeight) {
                     yield targetBottom - viewportHeight;
                 }
                 yield scrollY;
             }
-            default -> targetTop;
+            default -> targetTop - topInset;
         };
     }
 

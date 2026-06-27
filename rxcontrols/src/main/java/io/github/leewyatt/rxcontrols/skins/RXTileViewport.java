@@ -246,7 +246,9 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         RXTileRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
-        double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
+        // Land the item within the area below an active sticky header instead of under it.
+        double target = targetScrollFor(info.top(), info.height(), viewportHeight,
+                stickyOverlayHeight(plan), alignment);
         scrollY = clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
@@ -782,6 +784,15 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         return control.isStickySectionHeader()
                 && plan != null && plan.headersShown()
                 && plan.totalVisualRows() > 0 && topSection != null;
+    }
+
+    // The height the sticky overlay occupies at the top after a scroll (0 when it
+    // will not be shown). Used by item scroll-to so the target lands below the
+    // pinned header. Deliberately independent of the current topSection (which is
+    // stale on the pending-scroll path) — only whether the sticky will be shown.
+    private double stickyOverlayHeight(RXTileRowPlan plan) {
+        return control.isStickySectionHeader() && plan.headersShown()
+                ? snapSizeY(plan.headerHeight()) : 0.0;
     }
 
     private void layoutStickyHeader(RXTileRowPlan plan, double contentWidth) {

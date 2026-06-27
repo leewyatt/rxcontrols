@@ -2939,6 +2939,34 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void scrollToItemLandsBelowStickyHeader() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(10, 4); // s0..s9, 4 items each
+            view.setMaxColumns(2);
+            view.setPrefTileWidth(40);
+            view.setPrefTileHeight(20);
+            view.setHgap(10);
+            view.setVgap(0);
+            view.setSectionHeaderHeight(20);
+            view.setSectionSpacing(0);
+            view.setStickySectionHeader(true);
+            StackPane root = host(view, 400, 200);
+            pump(root);
+            // Item 20 (s5#0) START would land at y=0 under the pinned header without the
+            // sticky inset; it must instead land at/just below the sticky's bottom.
+            view.scrollTo(20, ScrollAlignment.START);
+            pump(root);
+            RXTileCell<?> cell = cellByIndex(view, 20);
+            assertNotNull(cell, "the target item is realized");
+            RXTileSectionCell sticky = stickyHeader(view);
+            assertNotNull(sticky);
+            double stickyBottom = sticky.getLayoutY() + sticky.getHeight();
+            assertTrue(cell.getLayoutY() >= stickyBottom - 0.5,
+                    "item top " + cell.getLayoutY() + " must be at/below the sticky bottom " + stickyBottom);
+        });
+    }
+
+    @Test
     public void stickyEnablingAtRuntimeAddsNode() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4();
