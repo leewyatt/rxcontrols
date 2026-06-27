@@ -882,9 +882,9 @@ public class RXListView<T> extends Control {
      * Scrolls so the item at {@code index} is visible with the given alignment.
      * The request is applied on the next layout pass. In variable-height mode
      * (see {@link #fixedCellSizeProperty() fixedCellSize}) a target far outside the
-     * current window is positioned from estimated row heights and refined as the
-     * surrounding rows are measured, so {@code CENTER} / {@code END} may land
-     * approximately until then.
+     * current window is positioned from provisional row heights (estimated, or measured
+     * at a previous width) and refined as the surrounding rows are measured, so
+     * {@code CENTER} / {@code END} may land approximately until then.
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated

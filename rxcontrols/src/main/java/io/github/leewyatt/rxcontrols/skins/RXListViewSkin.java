@@ -66,7 +66,17 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private final RXListViewport<T> viewport;
     private final StackPane placeholderRegion;
 
-    // Persistent variable-height (measure-on-scroll) state; unused on the fixed path.
+    // Persistent variable-height (measure-on-scroll) state; unused on the fixed path. A
+    // measured row height is taken at the content width the row had when it was last
+    // visible. The skin deliberately does NOT invalidate measured heights on a content-
+    // width change (resize / scroll-bar toggle) — mirroring RXMasonryViewSkin's track-width
+    // policy: the visible rows re-measure at the new width every pass, while off-screen rows
+    // keep their last-visible measurement and re-measure when they next scroll into view (so
+    // only the off-screen scroll extent / scrollTo offset is approximate after a resize, not
+    // the rendered content, which the anchor pin keeps put). Wiping instead would revert
+    // every off-screen row to the estimate and jump the scroll bar on resize; and since a
+    // narrower width only ever increases wrap height there is no bar on/off oscillation to
+    // guard against either.
     private final IndexedHeightCache heightCache = new IndexedHeightCache();
     private boolean heightsDirty;
     // Tracks the fixedCellSize variable/fixed mode so a boundary crossing can drop the
