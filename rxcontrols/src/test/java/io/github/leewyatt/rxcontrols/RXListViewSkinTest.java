@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.IntFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1134,6 +1135,39 @@ public class RXListViewSkinTest {
             assertEquals(measuredHeightOf(0), cellByIndex(view, 0).getHeight(), 1.0,
                     "variable mode restores content-sized rows after a fixed-mode round trip");
         });
+    }
+
+    @Test
+    public void variableHeightConverterChangeRemeasuresRows() throws Exception {
+        onFx(() -> {
+            // Default cell + a multi-line converter is a legitimate way to get variable rows;
+            // a converter change re-sources the text and must re-measure (not strand old heights).
+            RXListView<Integer> view = intItems(200);
+            view.setFixedCellSize(0);
+            view.setConverter(converterOf(value -> value + "\nline 2\nline 3"));
+            StackPane root = host(view, 300, 400);
+            pumpUntilStable(root, 60);
+            double tall = cellByIndex(view, 0).getHeight();
+            view.setConverter(converterOf(String::valueOf));
+            pumpUntilStable(root, 60);
+            double shortHeight = cellByIndex(view, 0).getHeight();
+            assertTrue(shortHeight < tall - 1.0,
+                    "a converter change re-measures variable rows (was " + tall + " -> " + shortHeight + ")");
+        });
+    }
+
+    private static StringConverter<Integer> converterOf(IntFunction<String> format) {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Integer value) {
+                return value == null ? "" : format.apply(value);
+            }
+
+            @Override
+            public Integer fromString(String text) {
+                return 0;
+            }
+        };
     }
 
     // ==================== Paging / scroll alignment / item & list scroll ====================
