@@ -21,6 +21,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
 import javafx.event.EventHandler;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
@@ -112,6 +113,23 @@ public class RXListView<T> extends Control {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXListViewSkin<>(this);
+    }
+
+    /**
+     * Reports whether this list allows multiple selection to assistive technologies
+     * (mirroring {@code ListView}); other attributes defer to the superclass. The
+     * per-item index and selected state are reported by {@link RXListCell}.
+     *
+     * @param attribute  the requested accessible attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case MULTIPLE_SELECTION -> getSelectionMode() == SelectionMode.MULTIPLE;
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
     }
 
     @Override

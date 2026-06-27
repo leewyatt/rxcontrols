@@ -1148,6 +1148,23 @@ public class RXListViewSkinTest {
         });
     }
 
+    @Test
+    public void reportsMultipleSelectionAccessibilityState() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(5);
+            // SINGLE (the default) reports false.
+            assertEquals(Boolean.FALSE,
+                    view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            assertEquals(Boolean.TRUE,
+                    view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+            // A null selection model degrades gracefully to "not multiple".
+            view.setSelectionModel(null);
+            assertEquals(Boolean.FALSE,
+                    view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {
