@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.RXListView;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -48,15 +49,16 @@ public class RXListViewContactsDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        ObservableList<Contact> contacts = createContacts();
-        contacts.sort(Comparator.comparing(Contact::name));
+        ObservableList<Contact> rawContacts = createContacts();
+        SortedList<Contact> contacts = new SortedList<>(rawContacts,
+                Comparator.comparing(Contact::section).thenComparing(Contact::name));
 
         RXListView<Contact> list = new RXListView<>(contacts);
         list.setFixedCellSize(72.0);
         list.setSectionHeaderHeight(34.0);
         list.setSectionSpacing(6.0);
         list.setStickySectionHeader(true);
-        list.setSelectionVisualMode(RXListSelectionVisualMode.CHECKMARK);
+        list.setSelectionVisualMode(RXListSelectionVisualMode.ROW);
         list.setSectionKeyFactory(Contact::section);
         list.setCellFactory(view -> new ContactCell());
         list.setSectionHeaderFactory(view -> new ContactSectionHeader());
@@ -67,7 +69,7 @@ public class RXListViewContactsDemo extends Application {
                 + " -fx-padding: 6;");
         list.getSelectionModel().selectFirst();
 
-        VBox content = new VBox(14.0, createHeader(contacts.size()), list);
+        VBox content = new VBox(14.0, createHeader(rawContacts.size()), list);
         content.setMaxWidth(520.0);
         VBox.setVgrow(list, Priority.ALWAYS);
 
@@ -107,32 +109,32 @@ public class RXListViewContactsDemo extends Application {
 
     private static ObservableList<Contact> createContacts() {
         return FXCollections.observableArrayList(
-                new Contact("Arden Vale", "Product Designer", "Remote", "000-000-0101", "#4f46e5"),
-                new Contact("Avery North", "Research Lead", "Remote", "000-000-0102", "#0891b2"),
-                new Contact("Blair Stone", "Frontend Engineer", "Remote", "000-000-0103", "#059669"),
-                new Contact("Briar Lane", "Brand Strategist", "Remote", "000-000-0104", "#db2777"),
-                new Contact("Cameron Reed", "Platform Engineer", "Remote", "000-000-0105", "#7c3aed"),
-                new Contact("Casey Holt", "Customer Success", "Remote", "000-000-0106", "#ea580c"),
-                new Contact("Devon Pierce", "Data Analyst", "Remote", "000-000-0107", "#2563eb"),
-                new Contact("Drew Mercer", "Operations Manager", "Remote", "000-000-0108", "#16a34a"),
-                new Contact("Ellis Gray", "QA Engineer", "Remote", "000-000-0109", "#0d9488"),
-                new Contact("Emery Frost", "Technical Writer", "Remote", "000-000-0110", "#9333ea"),
-                new Contact("Finley Hart", "Security Engineer", "Remote", "000-000-0111", "#c2410c"),
-                new Contact("Flynn Carter", "Backend Engineer", "Remote", "000-000-0112", "#0284c7"),
-                new Contact("Greer Sloan", "Product Manager", "Remote", "000-000-0113", "#65a30d"),
-                new Contact("Harper Quinn", "People Partner", "Remote", "000-000-0114", "#be123c"),
-                new Contact("Hayden Wells", "Sales Engineer", "Remote", "000-000-0115", "#4f46e5"),
-                new Contact("Indigo Ridge", "Support Specialist", "Remote", "000-000-0116", "#0f766e"),
-                new Contact("Jordan Lake", "Infrastructure Lead", "Remote", "000-000-0117", "#1d4ed8"),
-                new Contact("Kendall Moss", "UX Engineer", "Remote", "000-000-0118", "#c026d3"),
                 new Contact("Logan Field", "Program Manager", "Remote", "000-000-0119", "#15803d"),
-                new Contact("Morgan Ash", "Solutions Architect", "Remote", "000-000-0120", "#b45309"),
-                new Contact("Parker Hale", "Finance Partner", "Remote", "000-000-0121", "#047857"),
-                new Contact("Reese Winter", "Mobile Engineer", "Remote", "000-000-0122", "#7e22ce"),
+                new Contact("Arden Vale", "Product Designer", "Remote", "000-000-0101", "#4f46e5"),
                 new Contact("Rowan Brooks", "Growth Analyst", "Remote", "000-000-0123", "#0369a1"),
+                new Contact("Cameron Reed", "Platform Engineer", "Remote", "000-000-0105", "#7c3aed"),
+                new Contact("Harper Quinn", "People Partner", "Remote", "000-000-0114", "#be123c"),
+                new Contact("Blair Stone", "Frontend Engineer", "Remote", "000-000-0103", "#059669"),
+                new Contact("Wren Calder", "Release Manager", "Remote", "000-000-0126", "#ca8a04"),
+                new Contact("Ellis Gray", "QA Engineer", "Remote", "000-000-0109", "#0d9488"),
+                new Contact("Avery North", "Research Lead", "Remote", "000-000-0102", "#0891b2"),
+                new Contact("Morgan Ash", "Solutions Architect", "Remote", "000-000-0120", "#b45309"),
+                new Contact("Devon Pierce", "Data Analyst", "Remote", "000-000-0107", "#2563eb"),
                 new Contact("Skyler West", "Design Ops", "Remote", "000-000-0124", "#e11d48"),
+                new Contact("Finley Hart", "Security Engineer", "Remote", "000-000-0111", "#c2410c"),
+                new Contact("Casey Holt", "Customer Success", "Remote", "000-000-0106", "#ea580c"),
+                new Contact("Parker Hale", "Finance Partner", "Remote", "000-000-0121", "#047857"),
+                new Contact("Briar Lane", "Brand Strategist", "Remote", "000-000-0104", "#db2777"),
+                new Contact("Jordan Lake", "Infrastructure Lead", "Remote", "000-000-0117", "#1d4ed8"),
+                new Contact("Emery Frost", "Technical Writer", "Remote", "000-000-0110", "#9333ea"),
                 new Contact("Taylor Grove", "Developer Advocate", "Remote", "000-000-0125", "#0e7490"),
-                new Contact("Wren Calder", "Release Manager", "Remote", "000-000-0126", "#ca8a04"));
+                new Contact("Drew Mercer", "Operations Manager", "Remote", "000-000-0108", "#16a34a"),
+                new Contact("Greer Sloan", "Product Manager", "Remote", "000-000-0113", "#65a30d"),
+                new Contact("Indigo Ridge", "Support Specialist", "Remote", "000-000-0116", "#0f766e"),
+                new Contact("Reese Winter", "Mobile Engineer", "Remote", "000-000-0122", "#7e22ce"),
+                new Contact("Hayden Wells", "Sales Engineer", "Remote", "000-000-0115", "#4f46e5"),
+                new Contact("Kendall Moss", "UX Engineer", "Remote", "000-000-0118", "#c026d3"),
+                new Contact("Flynn Carter", "Backend Engineer", "Remote", "000-000-0112", "#0284c7"));
     }
 
     private static final class ContactCell extends RXListCell<Contact> {
