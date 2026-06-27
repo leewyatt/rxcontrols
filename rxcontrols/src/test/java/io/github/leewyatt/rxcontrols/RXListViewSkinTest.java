@@ -529,6 +529,24 @@ public class RXListViewSkinTest {
     }
 
     @Test
+    public void rowModeCollapsesLeadingGutter() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(20); // SINGLE -> AUTO -> ROW
+            view.setFixedCellSize(20);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            double rowWidth = ((Region) cellByIndex(view, 0).lookup(".selection-slot")).prefWidth(-1);
+            assertTrue(rowWidth < 1.0, "ROW mode collapses the leading selection slot (was " + rowWidth + ")");
+            // A checkbox mode reinstates the reserved gutter (text edge shifts right).
+            view.setSelectionVisualMode(RXListSelectionVisualMode.CHECKBOX);
+            pump(root);
+            double boxWidth = ((Region) cellByIndex(view, 0).lookup(".selection-slot")).prefWidth(-1);
+            assertTrue(boxWidth > rowWidth + 5.0,
+                    "CHECKBOX reserves a wider gutter than ROW (row=" + rowWidth + ", box=" + boxWidth + ")");
+        });
+    }
+
+    @Test
     public void checkboxClickTogglesSelection() throws Exception {
         onFx(() -> {
             RXListView<String> view = items(10);

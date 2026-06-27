@@ -1454,13 +1454,22 @@
 
 /* Three-segment content (child-combinator scoped to the cell's own container, so a
    custom createContent node never inherits these): leading selection slot, then the
-   content area. The slot reserves a constant width across visual modes so the text
-   left edge does not jump when switching (ROW keeps the reserved width but renders
-   nothing). */
+   content area. The slot reserves a constant width for the leading checkbox / checkmark
+   in the CHECKBOX / CHECKMARK modes; ROW (no indicator) collapses it to zero below so a
+   plain list reads flush-left (trade-off: switching to a checkbox / checkmark mode then
+   shifts the text right by the slot width). */
 .rx-list-cell > .container > .selection-slot {
     -fx-min-width: 2em;
     -fx-pref-width: 2em;
     -fx-alignment: center;
+}
+
+/* ROW shows no leading indicator, so drop the reserved slot for a flush-left plain list.
+   Scoped to the control's :selection-row pseudo-class (set by the skin from the effective
+   visual mode, so AUTO single-selection collapses it too). */
+.rx-list-view:selection-row .rx-list-cell > .container > .selection-slot {
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
 }
 
 .rx-list-cell > .container > .content {
