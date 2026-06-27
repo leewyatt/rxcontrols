@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
@@ -112,9 +113,51 @@ public class RXListViewShowcase extends RXShowcaseApplication {
 
     private Node cellSizeGrid() {
         Slider cellSize = createSlider(20, 72, list.getFixedCellSize());
-        cellSize.valueProperty().addListener((obs, old, value) -> list.setFixedCellSize(value.doubleValue()));
+        cellSize.valueProperty().addListener((obs, old, value) -> {
+            if (!cellSize.isDisabled()) {
+                list.setFixedCellSize(value.doubleValue());
+            }
+        });
+
+        Slider estimate = createSlider(40, 160, list.getEstimatedCellSize());
+        estimate.valueProperty().addListener((obs, old, value) -> list.setEstimatedCellSize(value.doubleValue()));
+
+        CheckBox variable = new CheckBox("Size rows to content");
+        variable.selectedProperty().addListener((obs, old, on) -> {
+            cellSize.setDisable(on);
+            if (on) {
+                // Variable height: each row wraps its content to a different height.
+                list.setCellFactory(view -> new RXListCell<>() {
+                    @Override
+                    protected Node createContent(Integer item) {
+                        Label label = new Label(describe(item));
+                        label.setWrapText(true);
+                        return label;
+                    }
+                });
+                list.setFixedCellSize(0);
+            } else {
+                list.setCellFactory(null);
+                list.setFixedCellSize(cellSize.getValue());
+            }
+        });
+
         return createGrid(
-                row("Cell size", cellSize, createValueLabel(cellSize, "%.0f px")));
+                row("Cell size", cellSize, createValueLabel(cellSize, "%.0f px")),
+                row("Variable", variable),
+                row("Estimate", estimate, createValueLabel(estimate, "%.0f px")),
+                row(hint("Variable height sizes each row to its content (fixedCellSize <= 0, like ListView). "
+                        + "Unmeasured rows use the estimate until they scroll into view and are measured.")));
+    }
+
+    // Multi-line, varying-length content so variable-height rows wrap to different heights.
+    private static String describe(int item) {
+        StringBuilder text = new StringBuilder("Item ").append(item).append(" — ");
+        int sentences = 1 + (item % 5);
+        for (int i = 0; i < sentences; i++) {
+            text.append("variable height content that wraps across multiple lines. ");
+        }
+        return text.toString();
     }
 
     private Node sectionsGrid() {

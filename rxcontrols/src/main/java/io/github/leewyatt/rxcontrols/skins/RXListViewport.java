@@ -36,6 +36,19 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
     private static final PseudoClass PINNED_PSEUDO_CLASS = PseudoClass.getPseudoClass("pinned");
 
+    // Below this px difference a measured row height matches the placed (cached /
+    // estimated) height, so no correction is reported — stops a re-measure churn loop.
+    private static final double MEASURE_EPSILON = 0.5;
+
+    /**
+     * Receives a measured cell height for the variable-height path. Primitive
+     * {@code int} / {@code double} to keep the hot measure loop free of boxing.
+     */
+    @FunctionalInterface
+    interface HeightSink {
+        void onMeasured(int index, double measuredHeight);
+    }
+
     private final RXListView<T> control;
 
     private final List<RXListSectionCell> headerPool = new ArrayList<>();
@@ -52,6 +65,20 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     // Published to the skin after each pass (null when flat or empty).
     private RXListSection topSection;
 
+    // ==================== Variable-height measure / anchor ====================
+
+    // Variable-height path only: when the gate is open, realized data cells are measured
+    // and any changed height reported to the sink for the skin to re-pack. Both stay off
+    // on the fixed-height fast path.
+    private boolean measureGate;
+    private HeightSink heightSink;
+
+    // Anchor pin (variable-height only): the previously top-most visible item and its
+    // on-screen offset, re-captured each fill and re-applied before the next reflow so the
+    // view does not jump when an off-screen estimate is corrected to a real height.
+    private int anchorIndex = -1;
+    private double anchorOffset;
+
     RXListViewport(RXListView<T> control) {
         this.control = control;
     }
@@ -67,6 +94,36 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
      */
     void setRowPlan(RXListRowPlan plan) {
         this.rowPlan = plan;
+    }
+
+    /**
+     * Installs the sink that receives measured data-row heights on the variable-height
+     * path. The skin records them into its height cache.
+     *
+     * @param heightSink the measure sink
+     */
+    void setHeightSink(HeightSink heightSink) {
+        this.heightSink = heightSink;
+    }
+
+    /**
+     * Opens or closes the measure gate. The skin opens it for the variable-height path
+     * (so realized cells are measured) and closes it for the fixed-height fast path.
+     *
+     * @param measureGate whether to measure realized cells
+     */
+    void setMeasureGate(boolean measureGate) {
+        this.measureGate = measureGate;
+    }
+
+    /**
+     * Drops the anchor pin so the next fill re-pins fresh. The skin calls this on an
+     * items-list change, whose index shifts would otherwise make the pin re-target a
+     * different item and jump the scroll.
+     */
+    void resetAnchor() {
+        anchorIndex = -1;
+        anchorOffset = 0.0;
     }
 
     /**
@@ -106,6 +163,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         double target = targetScrollFor(info.top(), info.height(), viewportHeight,
                 stickyOverlayHeight(plan), alignment);
         scrollY = clamp(target, 0.0, maxScroll);
+        // An explicit scroll target overrides the variable-height anchor pin for this pass.
+        explicitScrollPending = true;
         requestLayout();
         return true;
     }
@@ -137,6 +196,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
         double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
         scrollY = clamp(target, 0.0, maxScroll);
+        explicitScrollPending = true;
         requestLayout();
         return true;
     }
@@ -166,6 +226,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         double target = clamp(scrollY + deltaY, 0.0, maxScroll);
         if (target != scrollY) {
             scrollY = target;
+            explicitScrollPending = true;
             requestLayout();
         }
         return true;
@@ -239,6 +300,18 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         double contentHeight = plan.contentHeight();
         double maxScroll = Math.max(0.0, contentHeight - h);
         cachedMaxScroll = maxScroll;
+
+        // Anchor pin (variable-height only): keep the previously top-most visible item at
+        // its old screen offset across a reflow (an off-screen estimate corrected to a real
+        // height shifts the prefix sum). Skipped right after an explicit scroll (wheel, bar
+        // drag, scrollTo / scrollBy). Self-correcting: a no-op when the geometry is unchanged.
+        if (plan.variable() && !explicitScrollPending && anchorIndex >= 0 && anchorIndex < plan.itemCount()) {
+            double anchorTop = plan.itemTop(anchorIndex);
+            if (anchorTop >= 0.0) {
+                scrollY = anchorTop - anchorOffset;
+            }
+        }
+        explicitScrollPending = false;
         scrollY = clamp(scrollY, 0.0, maxScroll);
 
         double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
@@ -261,7 +334,10 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     private void fillVisibleRows(RXListRowPlan plan, int first, int last, double contentWidth) {
-        double rowHeight = snapSizeY(plan.rowHeight());
+        boolean variable = plan.variable();
+        // Fixed mode: every data row is the uniform height (snapped once); variable mode
+        // reads each row's height from the plan's prefix sum.
+        double uniformRowHeight = variable ? 0.0 : snapSizeY(plan.rowHeight());
         // When the sticky overlay is active it is the sole renderer of the top
         // section's header, so the in-flow copy of that header row is skipped here.
         boolean stickyActive = isStickyHeaderActive(plan);
@@ -269,6 +345,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         int headerCursor = 0;
         int firstItem = -1;
         int lastItem = -1;
+        int anchorCandidate = -1;
+        double anchorCandidateTop = 0.0;
         for (int visualRow = first; visualRow <= last; visualRow++) {
             RXListRowPlan.RowInfo info = plan.rowInfo(visualRow);
             double rowTop = snapPositionY(info.top() - scrollY);
@@ -286,27 +364,58 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
                 int itemIndex = info.itemIndex();
                 if (firstItem < 0) {
                     firstItem = itemIndex;
+                    // The first (top-most) visible data row is the anchor: pin its
+                    // content-space top so a reflow keeps it on screen.
+                    anchorCandidate = itemIndex;
+                    anchorCandidateTop = info.top();
                 }
                 lastItem = itemIndex;
+                double cellHeight = variable ? snapSizeY(info.height()) : uniformRowHeight;
                 RXListCell<T> cell = acquireCell(cellCursor++);
                 String oldStyle = cell.getStyle();
                 cell.updateIndex(itemIndex);
                 cell.setVisible(true);
                 applyCellState(cell, itemIndex);
                 applyCssAfterCellUpdate(cell, oldStyle);
-                cell.resizeRelocate(snapPositionX(0.0), rowTop, contentWidth, rowHeight);
+                cell.resizeRelocate(snapPositionX(0.0), rowTop, contentWidth, cellHeight);
+                if (variable) {
+                    measureCell(cell, itemIndex, contentWidth, info.height());
+                }
             }
         }
         parkCellsFrom(cellCursor);
         parkHeadersFrom(headerCursor);
         visibleFirstIndex = firstItem;
         visibleLastIndex = lastItem;
+        anchorIndex = anchorCandidate;
+        anchorOffset = anchorCandidate >= 0 ? anchorCandidateTop - scrollY : 0.0;
+    }
+
+    // Variable-height path: measure the realized cell's real pref height at its content
+    // width and, when it differs from the placed (cached / estimated) height, report the
+    // correction so the skin's height cache can re-pack on the next converge iteration.
+    private void measureCell(RXListCell<T> cell, int itemIndex, double width, double placedHeight) {
+        if (!measureGate || heightSink == null) {
+            return;
+        }
+        // A custom cell may switch a style class (padding / font / wrap) in updateItem
+        // without dirtying layout, which the inline-style check does not catch; force CSS
+        // now (cheap when already clean) so the measured height is not stale.
+        if (cell.getScene() != null) {
+            cell.applyCss();
+        }
+        double real = snapSizeY(cell.prefHeight(width));
+        if (Math.abs(real - placedHeight) > MEASURE_EPSILON) {
+            heightSink.onMeasured(itemIndex, real);
+        }
     }
 
     @Override
     protected void clearVisibleMetrics() {
         super.clearVisibleMetrics();
         topSection = null;
+        anchorIndex = -1;
+        anchorOffset = 0.0;
     }
 
     @Override
@@ -442,6 +551,11 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // non-null at every current call site; the fallback keeps the contract (a
         // positive increment) for any future caller on the not-sized path.
         RXListRowPlan plan = rowPlan;
+        if (plan != null && plan.variable()) {
+            // Variable rows have no single height; step by the estimate (always positive)
+            // so the wheel / arrow increment is independent of which rows are measured.
+            return RXListViewSkin.estimatedCellSizeOrDefault(control);
+        }
         return plan != null ? plan.rowHeight() : RXListView.DEFAULT_FIXED_CELL_SIZE;
     }
 

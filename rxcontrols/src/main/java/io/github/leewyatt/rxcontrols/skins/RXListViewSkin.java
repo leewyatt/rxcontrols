@@ -52,6 +52,13 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // A first-letter type-ahead burst resets after this idle gap.
     private static final long TYPE_AHEAD_RESET_MS = 1000L;
 
+    // Variable-height measure: below this px difference a re-measured row matches the
+    // cached height (no churn). Cap consecutive no-progress re-pack passes so a non-
+    // deterministic-height cell can never spin layout forever; a pass that measures a new
+    // item resets the counter, so a genuine multi-step convergence still completes.
+    private static final double HEIGHT_EPSILON = 0.5;
+    private static final int MAX_STALLED_REPACK_PASSES = 8;
+
     // Key for the shift-range selection anchor, stashed in the control's property
     // map (mirrors ListView's CellBehaviorBase anchor) so it needs no new API.
     private static final String ANCHOR_KEY = "rx-list-view-selection-anchor";
@@ -59,7 +66,14 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private final RXListViewport<T> viewport;
     private final StackPane placeholderRegion;
 
-    private final ListChangeListener<T> itemsContentListener = change -> onItemsContentChanged();
+    // Persistent variable-height (measure-on-scroll) state; unused on the fixed path.
+    private final IndexedHeightCache heightCache = new IndexedHeightCache();
+    private boolean heightsDirty;
+    // Tracks the fixedCellSize variable/fixed mode so a boundary crossing can drop the
+    // now-stale height cache (the cache is dormant — its splice skipped — in fixed mode).
+    private boolean lastVariable;
+
+    private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
     private ObservableList<T> observedItems;
 
     private final RXIndexedFocusModel<T> focusModel;
@@ -102,6 +116,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
 
         focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
+        viewport.setHeightSink(this::recordMeasuredHeight);
+        lastVariable = isVariableHeight(control);
 
         attachItems(control.getItems());
         updatePlaceholder();
@@ -120,7 +136,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.itemsProperty(), this::onItemsListSwapped);
         disposer.registerListener(control.cellFactoryProperty(), this::onCellFactoryChanged);
         disposer.registerListener(control.converterProperty(), this::requestLayoutPass);
-        disposer.registerListener(control.fixedCellSizeProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.fixedCellSizeProperty(), this::onFixedCellSizeChanged);
+        disposer.registerListener(control.estimatedCellSizeProperty(), this::requestLayoutPass);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
         // Sections: a sections-content change bumps the row-plan revision; the header
         // flag / heights / spacing flow through the row-plan key; a section-header
@@ -150,6 +167,20 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         viewport.requestLayout();
     }
 
+    // A fixedCellSize change that crosses the variable/fixed boundary invalidates the
+    // height cache: measured heights from the other mode no longer apply, and items may
+    // have shifted while the cache lay dormant in fixed mode (where its splice is skipped).
+    // Mirrors RXMasonryViewSkin.onHeightSourceChanged for the analogous source switch.
+    private void onFixedCellSizeChanged() {
+        boolean variable = isVariableHeight(getSkinnable());
+        if (variable != lastVariable) {
+            heightCache.clear();
+            viewport.resetAnchor();
+            lastVariable = variable;
+        }
+        requestLayoutPass();
+    }
+
     // ==================== Items ====================
 
     private void onItemsListSwapped() {
@@ -157,12 +188,18 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // The shift-range anchor referred to the previous list; drop it so a later
         // Shift+arrow / Shift+click starts a fresh range instead of a stale origin.
         resetAnchor();
+        // Every index meaning is gone with the old list (selection anchor + height pin).
+        viewport.resetAnchor();
+        heightCache.clear();
         updatePlaceholder();
         viewport.requestLayout();
     }
 
-    private void onItemsContentChanged() {
+    private void onItemsContentChanged(ListChangeListener.Change<? extends T> change) {
         resetAnchor();
+        viewport.resetAnchor();
+        // Keep the variable-height cache index-aligned with the spliced list.
+        applyHeightCacheChange(change);
         updatePlaceholder();
         viewport.requestLayout();
     }
@@ -185,6 +222,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // ==================== Refresh paths ====================
 
     private void onCellFactoryChanged() {
+        // New cells produce new heights, so every cached measured height is stale.
+        heightCache.clear();
         // recreateCells() discards the pool and requests a viewport layout.
         viewport.recreateCells();
     }
@@ -222,22 +261,43 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         viewport.setRowPlan(plan);
     }
 
-    // The plan is purely a function of the sections + resolved heights + item count
-    // (width-independent), so a single cached slot keyed on those reuses it across
-    // scroll passes and rebuilds only when something it depends on changes.
+    // The fixed-mode plan is purely a function of the sections + resolved heights + item
+    // count (width-independent), so a single cached slot keyed on those reuses it across
+    // scroll passes and rebuilds only when something it depends on changes. Variable mode
+    // reads mutable per-item heights, so it bypasses the cache (see buildVariablePlan).
     private RXListRowPlan buildPlan() {
         RXListView<T> control = getSkinnable();
+        if (isVariableHeight(control)) {
+            return buildVariablePlan(control);
+        }
         RowPlanKey key = new RowPlanKey(rowPlanRevision, control.isShowSectionHeaders(),
                 snapSizeY(sectionHeaderHeightOrDefault(control)), snapSizeY(fixedCellSizeOrDefault(control)),
                 itemCount(), snapSizeY(sectionSpacingOrZero(control.getSectionSpacing())));
         if (key.equals(cachedRowPlanKey)) {
             return cachedRowPlan;
         }
-        RXListRowPlan plan = new RXListRowPlan(control.getSections(), control.isShowSectionHeaders(),
+        RXListRowPlan plan = RXListRowPlan.fixed(control.getSections(), control.isShowSectionHeaders(),
                 key.headerHeight(), key.rowHeight(), key.itemCount(), key.sectionSpacing());
         cachedRowPlanKey = key;
         cachedRowPlan = plan;
         return plan;
+    }
+
+    // Variable mode: heights come from the cache (measured or estimated). The plan is
+    // rebuilt fresh each pass because those heights are mutable — the converge loop relies
+    // on rebuilding from the just-updated cache, and a pure scroll pays the O(items)
+    // prefix-sum rebuild that variable rows inherently cost (opt-in via fixedCellSize <= 0).
+    private RXListRowPlan buildVariablePlan(RXListView<T> control) {
+        int count = itemCount();
+        double estimated = snapSizeY(estimatedCellSizeOrDefault(control));
+        heightCache.ensureCapacity(count, estimated);
+        double[] heights = new double[count];
+        for (int i = 0; i < count; i++) {
+            heights[i] = snapSizeY(heightCache.heightAt(i, estimated));
+        }
+        return RXListRowPlan.variable(control.getSections(), control.isShowSectionHeaders(),
+                snapSizeY(sectionHeaderHeightOrDefault(control)), heights,
+                snapSizeY(sectionSpacingOrZero(control.getSectionSpacing())));
     }
 
     private RXListSelectionVisualMode effectiveSelectionVisualMode() {
@@ -356,11 +416,72 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         consumePendingScroll();
-        // Force the viewport to realize cells now so the scroll request and the
-        // published visible range reflect this pass, not the previous one.
+        boolean variable = isVariableHeight(control);
+        viewport.setMeasureGate(variable);
+        heightsDirty = false;
+        // Force the viewport to realize cells now so the scroll request and the published
+        // visible range reflect this pass, not the previous one. On the variable path the
+        // realized cells are also measured; a changed height re-packs within this pass.
         viewport.layout();
+        if (variable) {
+            convergeVariableHeights();
+        }
         updateVisibleRange();
         updateVisibleSection();
+    }
+
+    // A measured height differing from the placed (estimated) one re-packs the layout.
+    // Converge WITHIN this pass: rebuild the plan from the updated cache, re-fill and
+    // re-measure, looping until nothing changes (a requestLayout issued from inside
+    // layoutChildren is not reliably honored). A pass that measures a NEW item is progress
+    // (resets the stall counter), so a genuine multi-step convergence runs to completion;
+    // a pass that only re-flips known heights counts toward the cap so a non-deterministic-
+    // height cell cannot spin forever. The viewport's anchor pin keeps the top visible item
+    // put across each re-pack.
+    private void convergeVariableHeights() {
+        if (!heightsDirty) {
+            return;
+        }
+        int lastMeasured = heightCache.measuredCount();
+        int stalled = 0;
+        while (heightsDirty && stalled < MAX_STALLED_REPACK_PASSES) {
+            heightsDirty = false;
+            updateRowPlan();
+            viewport.requestLayout();
+            viewport.layout();
+            int measured = heightCache.measuredCount();
+            stalled = measured > lastMeasured ? 0 : stalled + 1;
+            lastMeasured = measured;
+        }
+    }
+
+    // The variable-height measure sink (installed on the viewport): a changed measured
+    // height marks the cache dirty so layoutChildren re-packs within the pass.
+    private void recordMeasuredHeight(int index, double measuredHeight) {
+        if (!isVariableHeight(getSkinnable()) || !Double.isFinite(measuredHeight) || measuredHeight < 0.0) {
+            return;
+        }
+        if (heightCache.record(index, measuredHeight, HEIGHT_EPSILON)) {
+            heightsDirty = true;
+        }
+    }
+
+    // Keep the variable-height cache index-aligned with the list (mirrors the index shift
+    // in the selection / focus models); a no-op on the fixed path.
+    private void applyHeightCacheChange(ListChangeListener.Change<? extends T> change) {
+        if (!isVariableHeight(getSkinnable())) {
+            return;
+        }
+        double estimated = estimatedCellSizeOrDefault(getSkinnable());
+        while (change.next()) {
+            if (change.wasPermutated() || change.wasUpdated()) {
+                // Reordered or changed in place: the stored heights no longer describe the
+                // range, so drop them and re-measure.
+                heightCache.invalidateRange(change.getFrom(), change.getTo(), estimated);
+            } else {
+                heightCache.shift(change.getFrom(), change.getRemovedSize(), change.getAddedSize(), estimated);
+            }
+        }
     }
 
     @Override
@@ -372,7 +493,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + DEFAULT_VISIBLE_ROW_COUNT * fixedCellSizeOrDefault(getSkinnable()) + bottomInset;
+        RXListView<T> control = getSkinnable();
+        double rowEstimate = isVariableHeight(control)
+                ? estimatedCellSizeOrDefault(control) : fixedCellSizeOrDefault(control);
+        return topInset + DEFAULT_VISIBLE_ROW_COUNT * rowEstimate + bottomInset;
     }
 
     @Override
@@ -801,9 +925,21 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         return index;
     }
 
+    // Variable-height mode is the fixedCellSize <= 0 / non-finite sentinel (matching
+    // ListView): each row is sized to its content rather than a uniform height.
+    static boolean isVariableHeight(RXListView<?> control) {
+        double value = control.getFixedCellSize();
+        return !(Double.isFinite(value) && value > 0.0);
+    }
+
     static double fixedCellSizeOrDefault(RXListView<?> control) {
         double value = control.getFixedCellSize();
         return Double.isFinite(value) && value > 0.0 ? value : FALLBACK_FIXED_CELL_SIZE;
+    }
+
+    static double estimatedCellSizeOrDefault(RXListView<?> control) {
+        double value = control.getEstimatedCellSize();
+        return Double.isFinite(value) && value > 0.0 ? value : RXListView.DEFAULT_ESTIMATED_CELL_SIZE;
     }
 
     static double sectionHeaderHeightOrDefault(RXListView<?> control) {

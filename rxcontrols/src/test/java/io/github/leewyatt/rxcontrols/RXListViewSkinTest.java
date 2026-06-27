@@ -966,6 +966,165 @@ public class RXListViewSkinTest {
         });
     }
 
+    // ==================== Variable-height rows ====================
+
+    // Each row's content height, deterministic and different from the 48px estimate so a
+    // correction is forced; varies 40..115 across items.
+    private static double measuredHeightOf(int item) {
+        return 40.0 + (item % 4) * 25.0;
+    }
+
+    // A variable-height view (fixedCellSize <= 0): rows carry a per-item pref height the
+    // skin must measure and stack by a prefix sum.
+    private static RXListView<Integer> variableHeightView(int count) {
+        RXListView<Integer> view = intItems(count);
+        view.setFixedCellSize(0);
+        view.setCellFactory(v -> new RXListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : measuredHeightOf(item));
+            }
+        });
+        return view;
+    }
+
+    @Test
+    public void variableHeightConvergesToMeasuredRowHeights() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(40);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            RXListCell<?> cell0 = cellByIndex(view, 0);
+            RXListCell<?> cell1 = cellByIndex(view, 1);
+            assertNotNull(cell0);
+            assertNotNull(cell1);
+            assertEquals(measuredHeightOf(0), cell0.getHeight(), 1.0, "row 0 sized to its content height");
+            assertEquals(measuredHeightOf(1), cell1.getHeight(), 1.0, "row 1 sized to its content height");
+            // Rows stack by their own (variable) heights, not a uniform pitch.
+            assertEquals(cell0.getLayoutY() + cell0.getHeight(), cell1.getLayoutY(), 1.0,
+                    "row 1 stacks directly below row 0's measured height");
+        });
+    }
+
+    @Test
+    public void variableHeightVirtualizesLargeList() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(50_000);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            int realized = view.lookupAll(".rx-list-cell").size();
+            assertTrue(realized > 0 && realized < 200,
+                    "only the visible window is realized in variable mode (was " + realized + ")");
+            assertEquals(50_000, view.getRowCount());
+        });
+    }
+
+    @Test
+    public void variableHeightScrollToLandsTargetNearTop() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(2_000);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            view.scrollTo(900, ScrollAlignment.START);
+            pumpUntilStable(root, 80);
+            RXListCell<?> target = cellByIndex(view, 900);
+            assertNotNull(target, "scrollTo realizes the deep target in variable mode");
+            assertTrue(Math.abs(target.getLayoutY()) <= 2.0,
+                    "the target lands at the top of the viewport, was " + target.getLayoutY());
+        });
+    }
+
+    @Test
+    public void variableHeightMeasuresItemRevealedByUpwardScroll() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(2_000);
+            StackPane root = host(view, 300, 300);
+            pumpUntilStable(root, 60);
+            // Jump deep past never-realized rows, then scroll back up into rows that were
+            // never measured: the anchor pin + measure-on-reveal must size them to their
+            // content, not leave them stranded at the 48px estimate.
+            view.scrollTo(900, ScrollAlignment.START);
+            pumpUntilStable(root, 80);
+            view.scrollTo(890, ScrollAlignment.START);
+            pumpUntilStable(root, 80);
+            RXListCell<?> revealed = cellByIndex(view, 892);
+            assertNotNull(revealed, "row 892 is realized after scrolling up to it");
+            assertEquals(measuredHeightOf(892), revealed.getHeight(), 1.0,
+                    "an upward-revealed row is measured to its content, not left at the estimate");
+        });
+    }
+
+    @Test
+    public void variableHeightSurvivesItemMutation() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(40);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            // Splice the list while measured: the height cache shifts with it, so the rows
+            // stay sized to their items' content with no stale or crashed geometry.
+            view.getItems().addAll(0, List.of(1000, 1001, 1002));
+            view.getItems().remove(20, 25);
+            pumpUntilStable(root, 60);
+            assertEquals(38, view.getRowCount());
+            RXListCell<?> first = cellByIndex(view, 0);
+            assertNotNull(first);
+            assertEquals(measuredHeightOf(1000), first.getHeight(), 1.0,
+                    "the newly inserted top row is sized to its own content");
+        });
+    }
+
+    @Test
+    public void variableHeightSettlesWithoutInfiniteLayout() throws Exception {
+        onFx(() -> {
+            // Estimated total (7 * 48 = 336) is under the 360 viewport but the measured
+            // total (505) overflows it, so the scroll bar appears as rows converge — the
+            // re-pack must reach a fixpoint, not oscillate.
+            RXListView<Integer> view = variableHeightView(7);
+            StackPane root = host(view, 300, 360);
+            boolean settled = pumpUntilStable(root, 120);
+            assertTrue(settled, "the variable-height measure loop settles (no infinite re-pack)");
+        });
+    }
+
+    @Test
+    public void variableHeightInterleavesSectionHeaders() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(40);
+            view.setSectionKeyFactory(i -> i / 10);
+            view.setSectionHeaderHeight(30);
+            StackPane root = host(view, 300, 600);
+            pumpUntilStable(root, 60);
+            RXListCell<?> cell0 = cellByIndex(view, 0);
+            assertNotNull(cell0);
+            // The 30px section header sits above row 0 (sticky overlays the same band);
+            // the data row below it is still sized to its own content.
+            assertTrue(cell0.getLayoutY() >= 29.0,
+                    "row 0 sits below the 30px section header, was " + cell0.getLayoutY());
+            assertEquals(measuredHeightOf(0), cell0.getHeight(), 1.0, "data rows vary even when grouped");
+        });
+    }
+
+    @Test
+    public void togglingVariableAndFixedModeSizesRowsEachWay() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(40);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            assertEquals(measuredHeightOf(0), cellByIndex(view, 0).getHeight(), 1.0,
+                    "variable mode sizes row 0 to its content");
+            // Switch to fixed: uniform rows regardless of content.
+            view.setFixedCellSize(24);
+            pumpUntilStable(root, 30);
+            assertEquals(24.0, cellByIndex(view, 0).getHeight(), 1.0, "fixed mode gives uniform 24px rows");
+            // Back to variable: the cache was cleared on the flip, so rows re-measure to content.
+            view.setFixedCellSize(0);
+            pumpUntilStable(root, 60);
+            assertEquals(measuredHeightOf(0), cellByIndex(view, 0).getHeight(), 1.0,
+                    "variable mode restores content-sized rows after a fixed-mode round trip");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {
@@ -1054,6 +1213,20 @@ public class RXListViewSkinTest {
             root.applyCss();
             root.layout();
         }
+    }
+
+    // Lays out until the tree stops requesting layout (a settled variable-height measure
+    // loop) or the cap is hit. Returns false when it never settles — the infinite-loop
+    // signature.
+    private static boolean pumpUntilStable(Region root, int maxPasses) {
+        for (int i = 0; i < maxPasses; i++) {
+            root.applyCss();
+            root.layout();
+            if (!root.isNeedsLayout()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static RXListCell<?> cellByIndex(RXListView<?> view, int index) {

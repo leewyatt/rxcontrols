@@ -63,6 +63,9 @@ public class RXListView<T> extends Control {
     /** Default fixed row height, in pixels. */
     public static final double DEFAULT_FIXED_CELL_SIZE = 28.0;
 
+    /** Default estimate for an unmeasured row in variable-height mode, in pixels. */
+    public static final double DEFAULT_ESTIMATED_CELL_SIZE = 48.0;
+
     /** Default section-header row height, in pixels. */
     public static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
 
@@ -342,10 +345,14 @@ public class RXListView<T> extends Control {
             new SimpleDoubleProperty(this, "fixedCellSize", DEFAULT_FIXED_CELL_SIZE);
 
     /**
-     * Fixed height of every row, in pixels (the cell fills it). A non-positive or
-     * non-finite value is accepted and resolved to {@link #DEFAULT_FIXED_CELL_SIZE}
-     * at layout time. Sized by the skin rather than CSS so the row geometry stays a
-     * single source of truth.
+     * Fixed height of every row, in pixels (the cell fills it). A positive, finite
+     * value enables the uniform fixed-height fast path. A non-positive or non-finite
+     * value (for example {@link javafx.scene.layout.Region#USE_COMPUTED_SIZE}) instead
+     * enables variable-height mode, where each row is sized to its content's preferred
+     * height — matching the {@code <= 0} sentinel of {@link javafx.scene.control.ListView}.
+     * In that mode unmeasured rows are sized from {@link #estimatedCellSizeProperty()
+     * estimatedCellSize} until they scroll into view and are measured. Sized by the skin
+     * rather than CSS so the row geometry stays a single source of truth.
      *
      * @return the fixed-cell-size property
      */
@@ -369,6 +376,44 @@ public class RXListView<T> extends Control {
      */
     public final void setFixedCellSize(double value) {
         fixedCellSize.set(value);
+    }
+
+    // ==================== Estimated Cell Size ====================
+
+    private final DoubleProperty estimatedCellSize =
+            new SimpleDoubleProperty(this, "estimatedCellSize", DEFAULT_ESTIMATED_CELL_SIZE);
+
+    /**
+     * Provisional height of a not-yet-measured row in variable-height mode (when
+     * {@link #fixedCellSizeProperty() fixedCellSize} is non-positive). It seeds the
+     * total content height and the scroll bar before the rows scroll into view and are
+     * measured, so a value close to the typical row height keeps the scroll thumb
+     * steady; it has no effect on the fixed-height fast path. A non-positive or
+     * non-finite value is accepted and resolved to {@link #DEFAULT_ESTIMATED_CELL_SIZE}
+     * at layout time.
+     *
+     * @return the estimated-cell-size property
+     */
+    public final DoubleProperty estimatedCellSizeProperty() {
+        return estimatedCellSize;
+    }
+
+    /**
+     * Returns the estimated row height used for unmeasured rows in variable-height mode.
+     *
+     * @return the estimated row height
+     */
+    public final double getEstimatedCellSize() {
+        return estimatedCellSize.get();
+    }
+
+    /**
+     * Sets the estimated row height used for unmeasured rows in variable-height mode.
+     *
+     * @param value the estimated row height
+     */
+    public final void setEstimatedCellSize(double value) {
+        estimatedCellSize.set(value);
     }
 
     // ==================== Placeholder ====================
@@ -835,7 +880,11 @@ public class RXListView<T> extends Control {
 
     /**
      * Scrolls so the item at {@code index} is visible with the given alignment.
-     * The request is applied on the next layout pass.
+     * The request is applied on the next layout pass. In variable-height mode
+     * (see {@link #fixedCellSizeProperty() fixedCellSize}) a target far outside the
+     * current window is positioned from estimated row heights and refined as the
+     * surrounding rows are measured, so {@code CENTER} / {@code END} may land
+     * approximately until then.
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated

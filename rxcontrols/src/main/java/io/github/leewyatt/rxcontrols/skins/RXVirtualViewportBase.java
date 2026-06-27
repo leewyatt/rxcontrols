@@ -62,9 +62,10 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
 
     protected double scrollY;
     protected double cachedMaxScroll;
-    // Written by the shared wheel / bar / scroll-by handlers; consumed only by the
-    // animated subclasses' layoutChildren (to suppress the anchor pin + reorder
-    // detection for one pass). The list viewport never reads it (dead write).
+    // Written by the shared wheel / bar / scroll-by handlers; consumed by the animated
+    // subclasses' layoutChildren (to suppress the anchor pin + reorder detection for one
+    // pass) and by the list viewport's variable-height layoutChildren (to suppress its
+    // anchor pin for one pass after an explicit scroll).
     protected boolean explicitScrollPending;
     private boolean adjustingScrollBar;
 

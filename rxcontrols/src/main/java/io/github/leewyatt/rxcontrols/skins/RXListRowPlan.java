@@ -6,25 +6,35 @@ import java.util.List;
 
 /**
  * Immutable visual-row plan for {@link RXListViewport}: the interleaved sequence
- * of section-header rows and single-item data rows, with a per-section offset
- * index so that row&#8596;Y and item&#8596;row lookups cost O(log sections) plus
- * arithmetic (O(sections) memory — never one entry per row, so it scales to
- * millions of items).
+ * of section-header rows and single-item data rows, answering row&#8596;Y and
+ * item&#8596;row lookups for either a uniform fixed row height or per-item variable
+ * heights.
  *
  * <p>A flat view (no {@code sectionKeyFactory}) is the degenerate case: the
- * {@code sections} list is empty, no header rows exist, and every lookup reduces
- * to the closed-form arithmetic of a uniform single column (data row index ==
- * item index).
+ * {@code sections} list is empty, no header rows exist, and (in fixed mode) every
+ * lookup reduces to closed-form arithmetic (data row index == item index).
  *
- * <p>Two fixed row heights: a section-header row is {@code headerHeight}, a data
- * row is {@code rowHeight}. Being single-column, every data row holds exactly one
- * item, so a section contributes one header row (when shown) plus
- * {@code itemCount} data rows.
+ * <p><b>Fixed mode</b> ({@link #fixed}) keeps only the per-section offset index, so
+ * row&#8596;Y and item&#8596;row cost O(log sections) plus arithmetic and the memory
+ * is O(sections) — it scales to millions of items. A section-header row is
+ * {@code headerHeight}; a data row is the uniform {@code rowHeight}.
  *
- * <p>{@code sectionSpacing} is extra blank content-space inserted before every
- * group after the first (it is not a visual row, just added to the section's top
- * Y). It only has a visible effect with two or more sections; a flat view or a
- * single group never shows it.
+ * <p><b>Variable mode</b> ({@link #variable(java.util.List, boolean, double, double[], double)})
+ * stores a per-item prefix-sum of the supplied heights (measured or estimated), so it is
+ * O(items) in memory — the cost of non-uniform rows — and answers a content-space query
+ * by a binary search over the per-item tops. Section-header rows stay the fixed
+ * {@code headerHeight}; only data rows vary. The structural lookups
+ * ({@link #visualRowOfItem}, {@link #visualRowOfSection}, {@link #sectionOf}) are
+ * height-independent and identical in both modes.
+ *
+ * <p>Grouped variable mode requires the {@code sections} to exactly partition
+ * {@code [0, itemCount)} (each section a contiguous run, every item in one section) —
+ * the invariant {@code recomputeSections} guarantees. Both the prefix-sum build and the
+ * per-item lookups rely on it.
+ *
+ * <p>{@code sectionSpacing} is extra blank content-space inserted before every group
+ * after the first (it is not a visual row, just added to the section's top Y). It only
+ * has a visible effect with two or more sections.
  */
 final class RXListRowPlan {
 
@@ -47,16 +57,22 @@ final class RXListRowPlan {
     private final double headerHeight;
     private final double rowHeight;
     private final int itemCount;
+    private final boolean variable;
 
     // Per-section offset index (length == section count; empty when flat).
     private final int[] sectionFirstVisualRow;
     private final double[] sectionTopY;
 
+    // Variable mode only (null when fixed): per-item content-space top and height,
+    // both length itemCount. itemTops is ascending so a content-space query binary-searches it.
+    private final double[] itemTops;
+    private final double[] itemHeights;
+
     private final int totalVisualRows;
     private final double contentHeight;
 
     /**
-     * Creates a plan for the given sections and geometry.
+     * Creates a fixed (uniform row height) plan.
      *
      * @param sections       the sections (empty for a flat view)
      * @param showHeaders    whether header rows are rendered (only honored when grouped)
@@ -65,15 +81,54 @@ final class RXListRowPlan {
      *                       to {@code 1} so the row math never divides by zero
      * @param itemCount      the total item count
      * @param sectionSpacing the extra blank space inserted before each section after the first
+     * @return the fixed-height plan
      */
-    RXListRowPlan(List<RXListSection> sections, boolean showHeaders, double headerHeight,
-                  double rowHeight, int itemCount, double sectionSpacing) {
+    static RXListRowPlan fixed(List<RXListSection> sections, boolean showHeaders, double headerHeight,
+                               double rowHeight, int itemCount, double sectionSpacing) {
+        return new RXListRowPlan(sections, showHeaders, headerHeight, rowHeight, itemCount, null, sectionSpacing);
+    }
+
+    /**
+     * Creates a variable (per-item height) plan. The item count is taken from
+     * {@code itemHeights.length}; the heights are the effective per-item heights
+     * (measured or estimated).
+     *
+     * @param sections       the sections (empty for a flat view)
+     * @param showHeaders    whether header rows are rendered (only honored when grouped)
+     * @param headerHeight   the height of one section-header row
+     * @param itemHeights    the effective per-item data-row heights
+     * @param sectionSpacing the extra blank space inserted before each section after the first
+     * @return the variable-height plan
+     */
+    static RXListRowPlan variable(List<RXListSection> sections, boolean showHeaders, double headerHeight,
+                                  double[] itemHeights, double sectionSpacing) {
+        return new RXListRowPlan(sections, showHeaders, headerHeight, 0.0, itemHeights.length, itemHeights,
+                sectionSpacing);
+    }
+
+    private RXListRowPlan(List<RXListSection> sections, boolean showHeaders, double headerHeight,
+                          double rowHeight, int itemCount, double[] itemHeights, double sectionSpacing) {
         this.sections = List.copyOf(sections);
         this.grouped = !this.sections.isEmpty();
         this.headersShown = grouped && showHeaders;
         this.headerHeight = headerHeight;
         this.rowHeight = rowHeight > 0.0 ? rowHeight : 1.0;
         this.itemCount = Math.max(0, itemCount);
+        this.variable = itemHeights != null;
+
+        if (variable) {
+            this.itemHeights = new double[this.itemCount];
+            this.itemTops = new double[this.itemCount];
+            for (int i = 0; i < this.itemCount; i++) {
+                double h = i < itemHeights.length ? itemHeights[i] : 0.0;
+                // Heights enter the prefix sum, so coerce non-finite / negative to 0 to
+                // keep itemTops monotonic (the binary-search visibility query needs it).
+                this.itemHeights[i] = Double.isFinite(h) && h > 0.0 ? h : 0.0;
+            }
+        } else {
+            this.itemHeights = null;
+            this.itemTops = null;
+        }
 
         int count = this.sections.size();
         sectionFirstVisualRow = new int[count];
@@ -81,7 +136,7 @@ final class RXListRowPlan {
 
         if (!grouped) {
             totalVisualRows = this.itemCount;
-            contentHeight = this.itemCount * this.rowHeight;
+            contentHeight = variable ? fillFlatItemTops() : this.itemCount * this.rowHeight;
         } else {
             int visualRow = 0;
             double y = 0.0;
@@ -97,17 +152,43 @@ final class RXListRowPlan {
                     visualRow += 1;
                     y += this.headerHeight;
                 }
-                int dataRows = this.sections.get(s).itemCount();
+                RXListSection section = this.sections.get(s);
+                int dataRows = section.itemCount();
+                if (variable) {
+                    // Sections partition [0, itemCount) exactly (class doc), so every item
+                    // index is in range and each itemTops slot is written exactly once.
+                    int firstItem = section.firstItemIndex();
+                    for (int k = 0; k < dataRows; k++) {
+                        int itemIndex = firstItem + k;
+                        itemTops[itemIndex] = y;
+                        y += itemHeights[itemIndex];
+                    }
+                } else {
+                    y += dataRows * this.rowHeight;
+                }
                 visualRow += dataRows;
-                y += dataRows * this.rowHeight;
             }
             totalVisualRows = visualRow;
             contentHeight = y;
         }
     }
 
+    // Lays out the flat (ungrouped) per-item tops and returns the total content height.
+    private double fillFlatItemTops() {
+        double y = 0.0;
+        for (int i = 0; i < itemCount; i++) {
+            itemTops[i] = y;
+            y += itemHeights[i];
+        }
+        return y;
+    }
+
     int itemCount() {
         return itemCount;
+    }
+
+    boolean variable() {
+        return variable;
     }
 
     double rowHeight() {
@@ -132,6 +213,23 @@ final class RXListRowPlan {
 
     double headerHeight() {
         return headerHeight;
+    }
+
+    /**
+     * The content-space top Y of the data row holding {@code itemIndex}, used by the
+     * variable-height anchor pin.
+     *
+     * @param itemIndex an item index
+     * @return the data row's content-space top, or {@code -1} when out of range
+     */
+    double itemTop(int itemIndex) {
+        if (itemIndex < 0 || itemIndex >= itemCount) {
+            return -1.0;
+        }
+        if (variable) {
+            return itemTops[itemIndex];
+        }
+        return rowInfo(visualRowOfItem(itemIndex)).top();
     }
 
     /**
@@ -161,22 +259,29 @@ final class RXListRowPlan {
             return -1;
         }
         if (!grouped) {
+            if (variable) {
+                return clamp(lastItemAtMost(y, 0, itemCount), 0, totalVisualRows - 1);
+            }
             int row = (int) Math.floor(y / rowHeight);
             return clamp(row, 0, totalVisualRows - 1);
         }
         int s = sectionAtY(y);
         double dy = y - sectionTopY[s];
-        int visualRow = sectionFirstVisualRow[s];
-        if (headersShown) {
-            if (dy < headerHeight) {
-                return visualRow;
-            }
-            dy -= headerHeight;
-            visualRow += 1;
+        int baseVisualRow = sectionFirstVisualRow[s];
+        if (headersShown && dy < headerHeight) {
+            return baseVisualRow;
         }
-        int dataRows = sections.get(s).itemCount();
-        int local = clamp((int) Math.floor(dy / rowHeight), 0, dataRows - 1);
-        return visualRow + local;
+        int firstDataVisualRow = baseVisualRow + (headersShown ? 1 : 0);
+        RXListSection section = sections.get(s);
+        int firstItem = section.firstItemIndex();
+        int dataRows = section.itemCount();
+        if (variable) {
+            int item = lastItemAtMost(y, firstItem, firstItem + dataRows);
+            return firstDataVisualRow + clamp(item - firstItem, 0, Math.max(0, dataRows - 1));
+        }
+        double dataDy = dy - (headersShown ? headerHeight : 0.0);
+        int local = clamp((int) Math.floor(dataDy / rowHeight), 0, dataRows - 1);
+        return firstDataVisualRow + local;
     }
 
     /**
@@ -187,6 +292,9 @@ final class RXListRowPlan {
      */
     RowInfo rowInfo(int visualRow) {
         if (!grouped) {
+            if (variable) {
+                return new RowInfo(false, null, visualRow, itemTops[visualRow], itemHeights[visualRow]);
+            }
             return new RowInfo(false, null, visualRow, visualRow * rowHeight, rowHeight);
         }
         int s = sectionAtVisualRow(visualRow);
@@ -197,6 +305,9 @@ final class RXListRowPlan {
         }
         int dataLocal = headersShown ? local - 1 : local;
         int itemIndex = section.firstItemIndex() + dataLocal;
+        if (variable) {
+            return new RowInfo(false, section, itemIndex, itemTops[itemIndex], itemHeights[itemIndex]);
+        }
         double top = sectionTopY[s] + (headersShown ? headerHeight : 0.0) + dataLocal * rowHeight;
         return new RowInfo(false, section, itemIndex, top, rowHeight);
     }
@@ -243,7 +354,25 @@ final class RXListRowPlan {
         return sections.get(sectionAtVisualRow(visualRow));
     }
 
-    // ==================== Section lookups ====================
+    // ==================== Lookups ====================
+
+    // Largest index i in [lo, hiExclusive) with itemTops[i] <= y, or lo when y is below
+    // the first (itemTops is ascending). Variable mode only.
+    private int lastItemAtMost(double y, int lo, int hiExclusive) {
+        int low = lo;
+        int high = hiExclusive - 1;
+        int result = lo;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            if (itemTops[mid] <= y) {
+                result = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return result;
+    }
 
     // Last section whose top Y is <= y (so an exact boundary selects the new section).
     private int sectionAtY(double y) {
