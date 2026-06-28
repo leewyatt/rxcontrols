@@ -178,14 +178,22 @@ public final class RippleLayer extends Region {
      * @param dragged whether the host is being dragged
      */
     public void setOverlayState(boolean hover, boolean focus, boolean pressed, boolean dragged) {
-        stateOverlay.setState(hover, focus, pressed, dragged);
-        if (stateOverlay.getTargetOpacity() > 0.0 && !getChildren().contains(stateOverlay)) {
-            // The overlay keeps the bounds set by the last updateClipFor (which
-            // resizes it even while detached), so it stays expanded for any
-            // negative-inset bleed; resizing here would reset that to the plain
-            // layer bounds, and hovering does not trigger a fresh layout pass.
+        if ((hover || focus || pressed || dragged) && !getChildren().contains(stateOverlay)) {
+            // Attach without resizing: the overlay keeps the bounds set by the
+            // last updateClipFor (which resizes it even while detached), so it
+            // stays expanded for any negative-inset bleed; resizing here would
+            // reset that to the plain layer bounds, and a tier change does not
+            // trigger a fresh layout pass.
             getChildren().add(0, stateOverlay);
+            // Resolve CSS on the just-attached overlay before its tier opacities
+            // are read below, so a themed / author-overridden .state-overlay tier
+            // applies on the first show instead of one interaction late (the node
+            // is attached on demand, so it is otherwise unstyled at first read).
+            if (stateOverlay.getScene() != null) {
+                stateOverlay.applyCss();
+            }
         }
+        stateOverlay.setState(hover, focus, pressed, dragged);
     }
 
     /**

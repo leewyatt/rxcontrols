@@ -209,17 +209,22 @@ public final class StateLayer extends Region {
     public void setClipMode(ClipMode mode, Region hostOrNull) {
         clipMode = mode == null ? ClipMode.NONE : mode;
         clipHost = hostOrNull;
-        if (clipMode == ClipMode.NONE || clipMode == ClipMode.CIRCLE) {
+        boolean boundedWithHost = clipHost != null
+                && (clipMode == ClipMode.FOLLOW_HOST || clipMode == ClipMode.ROUNDED_RECT);
+        if (boundedWithHost) {
+            if (boundedClip == null) {
+                boundedClip = new BoundedClipSupport(this);
+            }
+            requestLayout();
+        } else {
+            // Unbounded (NONE/CIRCLE), or a bounded mode with no host to mirror:
+            // never clip, and drop any clip a previous bounded mode installed
+            // (otherwise releasing the host would keep a stale clip shape).
             if (boundedClip != null) {
                 boundedClip.clearClip();
             } else {
                 setClip(null);
             }
-        } else {
-            if (boundedClip == null) {
-                boundedClip = new BoundedClipSupport(this);
-            }
-            requestLayout();
         }
     }
 
@@ -248,8 +253,15 @@ public final class StateLayer extends Region {
     }
 
     private Duration fadeDurationOrDefault() {
+        // A negative or UNKNOWN duration (reachable from a malformed CSS value)
+        // would make the KeyFrame constructor throw, so coerce any unusable
+        // value to the default rather than crash the interaction.
         Duration value = fadeDuration.get();
-        return value == null ? DEFAULT_FADE_DURATION : value;
+        if (value == null || value.isUnknown() || value.isIndefinite()
+                || value.lessThan(Duration.ZERO) || !Double.isFinite(value.toMillis())) {
+            return DEFAULT_FADE_DURATION;
+        }
+        return value;
     }
 
     private static void stop(Animation animation) {

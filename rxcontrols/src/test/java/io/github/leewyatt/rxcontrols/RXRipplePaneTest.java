@@ -896,8 +896,9 @@ public class RXRipplePaneTest {
 
     /**
      * Verifies the Ripple-R2 CSS hook: an author override of the
-     * {@code .state-overlay} hover-tier opacity reaches the embedded overlay, so
-     * the shown tier level can be retuned from CSS (the M2 -> M3 switch path).
+     * {@code .state-overlay} hover-tier opacity reaches the embedded overlay on
+     * the first show, so the shown tier level can be retuned from CSS (the
+     * M2 -> M3 switch path).
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -910,23 +911,47 @@ public class RXRipplePaneTest {
             String css = ".state-overlay { -rx-state-overlay-hover-opacity: 0.5; }";
             scene.getStylesheets().add("data:text/css;base64,"
                     + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+            root.applyCss();
             layout(pane, 100.0, 50.0);
             RippleLayer layer = rippleLayer(pane);
 
-            // Hovering attaches the overlay at the default hover tier; the
-            // override only reaches it once it is in the scene graph and CSS is
-            // applied to it.
+            // The overlay attaches on demand at first hover and resolves its CSS
+            // before the tier opacity is read, so the author override applies on
+            // the very first show — not one interaction late.
             pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
                     MouseButton.NONE, false));
-            assertClose(0.08, layer.getOverlayTargetOpacity(), "default hover tier before CSS");
 
+            assertClose(0.5, layer.getOverlayTargetOpacity(),
+                    "CSS-overridden hover tier on first show");
+        });
+    }
+
+    /**
+     * Verifies an invalid (negative) CSS state-overlay fade duration is coerced
+     * to the default instead of crashing the hover: a negative duration would
+     * otherwise make the fade {@code KeyFrame} constructor throw.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void stateOverlayToleratesInvalidCssFadeDuration() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            StackPane root = new StackPane(pane);
+            Scene scene = new Scene(root);
+            String css = ".state-overlay { -rx-state-overlay-fade-duration: -50ms; }";
+            scene.getStylesheets().add("data:text/css;base64,"
+                    + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
             root.applyCss();
-            // Re-run the tier computation while still hovered so it reads the
-            // CSS-overridden hover opacity instead of the cached default target.
-            pane.setStateOverlayEnabled(false);
-            pane.setStateOverlayEnabled(true);
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
 
-            assertClose(0.5, layer.getOverlayTargetOpacity(), "CSS-overridden hover tier");
+            // Hovering must not throw despite the invalid fade duration.
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+
+            assertTrue(layer.getOverlayTargetOpacity() > 0.0,
+                    "hover still shows the overlay despite an invalid CSS fade duration");
         });
     }
 
