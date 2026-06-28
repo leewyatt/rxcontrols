@@ -1,12 +1,9 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXToggleButton;
-import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
+import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
-import javafx.geometry.Point2D;
 import javafx.scene.control.skin.ToggleButtonSkin;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 
 /**
  * Skin for {@link RXToggleButton}: the standard {@link ToggleButtonSkin} plus a
@@ -24,10 +21,7 @@ public class RXToggleButtonSkin extends ToggleButtonSkin {
 
     private final SkinDisposer disposer = new SkinDisposer();
     private final RippleDecoration ripple;
-
-    private double pressX;
-    private double pressY;
-    private boolean pointerCoordsFresh;
+    private final ArmedRippleTrigger rippleTrigger;
 
     /**
      * Creates the skin and wires the ripple triggers.
@@ -40,21 +34,13 @@ public class RXToggleButtonSkin extends ToggleButtonSkin {
                 toggle.stateOverlayEnabledProperty(), toggle.rippleFillProperty(),
                 toggle::getRippleOpacity, null, toggle.rippleCornerRadiusProperty());
 
-        disposer.registerEventFilter(toggle, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);
-        disposer.registerEventFilter(toggle, MouseEvent.MOUSE_RELEASED,
-                event -> pointerCoordsFresh = false);
-        disposer.registerListener(toggle.armedProperty(), this::handleArmedChanged);
-        disposer.registerEventHandler(toggle, RXAnimationEvent.PLAY_RIPPLE, event -> {
-            // Reject events bubbling up from a nested ripple host.
-            if (event.getTarget() != toggle) {
-                return;
-            }
-            if (toggle.isRippleEnabled() && !toggle.isDisabled()) {
-                ripple.press(0.0, 0.0, true);
-                ripple.release();
-            }
-            event.consume();
-        });
+        // Pointer tracking + armed-driven press/release + PLAY_RIPPLE are shared
+        // across the button skins; see ArmedRippleTrigger.
+        rippleTrigger = new ArmedRippleTrigger(toggle, ripple,
+                toggle::isRippleEnabled, toggle::isRippleCentered);
+        rippleTrigger.installPointerTracking(disposer);
+        disposer.registerListener(toggle.armedProperty(), rippleTrigger::handleArmedChanged);
+        rippleTrigger.installPlayRipple(disposer);
 
         updateChildren();
     }
@@ -89,40 +75,6 @@ public class RXToggleButtonSkin extends ToggleButtonSkin {
     }
 
     // ==================== Ripple Trigger ====================
-
-    private void recordPointerPress(MouseEvent event) {
-        // Mirrors the "valid" arming condition of ToggleButtonBehavior's mouse
-        // press, so stale coordinates are never left behind by presses that never arm.
-        if (event.getButton() != MouseButton.PRIMARY
-                || event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
-            return;
-        }
-        Point2D local = getSkinnable().sceneToLocal(event.getSceneX(), event.getSceneY());
-        pressX = local.getX();
-        pressY = local.getY();
-        pointerCoordsFresh = true;
-    }
-
-    private void handleArmedChanged() {
-        RXToggleButton toggle = (RXToggleButton) getSkinnable();
-        if (!toggle.isArmed()) {
-            ripple.release();
-            return;
-        }
-        if (!toggle.isRippleEnabled() || toggle.isDisabled()) {
-            return;
-        }
-        if (pointerCoordsFresh) {
-            pointerCoordsFresh = false;
-            ripple.press(pressX, pressY, toggle.isRippleCentered());
-        } else if (!toggle.isPressed()) {
-            // Keyboard activation has no pointer location.
-            ripple.press(0.0, 0.0, true);
-        }
-        // Re-armed while still pressed (dragged back in): no new ripple.
-    }
 
     private void disposeRipple() {
         ripple.dispose();

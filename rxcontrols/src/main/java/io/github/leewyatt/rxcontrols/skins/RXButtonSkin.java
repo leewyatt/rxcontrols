@@ -1,12 +1,9 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
+import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
-import javafx.geometry.Point2D;
 import javafx.scene.control.skin.ButtonSkin;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 
 /**
  * Skin for {@link RXButton}: the standard {@link ButtonSkin} plus a
@@ -24,10 +21,7 @@ public class RXButtonSkin extends ButtonSkin {
 
     private final SkinDisposer disposer = new SkinDisposer();
     private final RippleDecoration ripple;
-
-    private double pressX;
-    private double pressY;
-    private boolean pointerCoordsFresh;
+    private final ArmedRippleTrigger rippleTrigger;
 
     /**
      * Creates the skin and wires the ripple triggers.
@@ -40,21 +34,13 @@ public class RXButtonSkin extends ButtonSkin {
                 button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
                 button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
 
-        disposer.registerEventFilter(button, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);
-        disposer.registerEventFilter(button, MouseEvent.MOUSE_RELEASED,
-                event -> pointerCoordsFresh = false);
-        disposer.registerListener(button.armedProperty(), this::handleArmedChanged);
-        disposer.registerEventHandler(button, RXAnimationEvent.PLAY_RIPPLE, event -> {
-            // Reject events bubbling up from a nested ripple host.
-            if (event.getTarget() != button) {
-                return;
-            }
-            if (button.isRippleEnabled() && !button.isDisabled()) {
-                ripple.press(0.0, 0.0, true);
-                ripple.release();
-            }
-            event.consume();
-        });
+        // Pointer tracking + armed-driven press/release + PLAY_RIPPLE are shared
+        // across the button skins; see ArmedRippleTrigger.
+        rippleTrigger = new ArmedRippleTrigger(button, ripple,
+                button::isRippleEnabled, button::isRippleCentered);
+        rippleTrigger.installPointerTracking(disposer);
+        disposer.registerListener(button.armedProperty(), rippleTrigger::handleArmedChanged);
+        rippleTrigger.installPlayRipple(disposer);
 
         updateChildren();
     }
@@ -88,40 +74,6 @@ public class RXButtonSkin extends ButtonSkin {
     }
 
     // ==================== Ripple Trigger ====================
-
-    private void recordPointerPress(MouseEvent event) {
-        // Mirrors the "valid" arming condition of ButtonBehavior.mousePressed,
-        // so stale coordinates are never left behind by presses that never arm.
-        if (event.getButton() != MouseButton.PRIMARY
-                || event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
-            return;
-        }
-        Point2D local = getSkinnable().sceneToLocal(event.getSceneX(), event.getSceneY());
-        pressX = local.getX();
-        pressY = local.getY();
-        pointerCoordsFresh = true;
-    }
-
-    private void handleArmedChanged() {
-        RXButton button = (RXButton) getSkinnable();
-        if (!button.isArmed()) {
-            ripple.release();
-            return;
-        }
-        if (!button.isRippleEnabled() || button.isDisabled()) {
-            return;
-        }
-        if (pointerCoordsFresh) {
-            pointerCoordsFresh = false;
-            ripple.press(pressX, pressY, button.isRippleCentered());
-        } else if (!button.isPressed()) {
-            // Keyboard activation has no pointer location.
-            ripple.press(0.0, 0.0, true);
-        }
-        // Re-armed while still pressed (dragged back in): no new ripple.
-    }
 
     private void disposeRipple() {
         ripple.dispose();

@@ -6,10 +6,10 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
+import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
-import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -51,13 +51,11 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     private final TransitionPages pages = new TransitionPages("page", true);
     private final Label frontLabel = new Label();
     private final RippleDecoration ripple;
+    private final ArmedRippleTrigger rippleTrigger;
 
     // ==================== Behavior state ====================
 
     private boolean keyDown;
-    private double pressX;
-    private double pressY;
-    private boolean pointerCoordsFresh;
 
     private final Runnable defaultButtonRunnable = () -> fireFromAccelerator();
     private final Runnable cancelButtonRunnable = () -> fireFromAccelerator();
@@ -75,6 +73,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
                 button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
                 button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
+        rippleTrigger = new ArmedRippleTrigger(button, ripple,
+                button::isRippleEnabled, button::isRippleCentered);
         getChildren().addAll(ripple.getLayer(), pages.getContentPane());
 
         // Front face: an internal label mirroring the button's Labeled API.
@@ -111,7 +111,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     private void wireFaces(RXTransitionButton button) {
         disposer.registerListener(button.hoverProperty(), this::updateFace);
         disposer.registerListener(button.armedProperty(), () -> {
-            handleArmedChanged();
+            rippleTrigger.handleArmedChanged();
             updateFace();
         });
         disposer.registerListener(button.animationTriggerProperty(), this::updateFace);
@@ -128,9 +128,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     }
 
     private void wireBehavior(RXTransitionButton button) {
-        disposer.registerEventFilter(button, MouseEvent.MOUSE_PRESSED, this::recordPointerPress);
-        disposer.registerEventFilter(button, MouseEvent.MOUSE_RELEASED,
-                event -> pointerCoordsFresh = false);
+        // Shared ripple pointer tracking (records the press location for the next arm).
+        rippleTrigger.installPointerTracking(disposer);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, this::mousePressed);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_RELEASED, this::mouseReleased);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_ENTERED, this::mouseEntered);
@@ -459,42 +458,6 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         } else if (scene.getAccelerators().get(combo) == runnable) {
             scene.getAccelerators().remove(combo);
         }
-    }
-
-    // ==================== Ripple Trigger ====================
-
-    private void recordPointerPress(MouseEvent event) {
-        // Mirrors the "valid" arming condition of mousePressed, so stale
-        // coordinates are never left behind by presses that never arm.
-        if (event.getButton() != MouseButton.PRIMARY
-                || event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
-            return;
-        }
-        Point2D local = getSkinnable().sceneToLocal(event.getSceneX(), event.getSceneY());
-        pressX = local.getX();
-        pressY = local.getY();
-        pointerCoordsFresh = true;
-    }
-
-    private void handleArmedChanged() {
-        RXTransitionButton button = getSkinnable();
-        if (!button.isArmed()) {
-            ripple.release();
-            return;
-        }
-        if (!button.isRippleEnabled() || button.isDisabled()) {
-            return;
-        }
-        if (pointerCoordsFresh) {
-            pointerCoordsFresh = false;
-            ripple.press(pressX, pressY, button.isRippleCentered());
-        } else if (!button.isPressed()) {
-            // Keyboard activation has no pointer location.
-            ripple.press(0.0, 0.0, true);
-        }
-        // Re-armed while still pressed (dragged back in): no new ripple.
     }
 
     // ==================== Dispose ====================
