@@ -23,7 +23,7 @@
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-slider, .rx-range-slider,
-.rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
+.rx-skeleton, .rx-skeleton-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
@@ -509,6 +509,108 @@
 .rx-slider.large .ripple-layer,
 .rx-range-slider.large .ripple-layer {
     -rx-ripple-radius: 18px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSwitchButton                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.rx-switch-button {
+    -fx-label-padding: 0 0.5em 0 0;
+    /* transparent fill (not "no fill") so the whole control bounds is a click /
+       touch target, including the gap between the label and the switch block. */
+    -fx-background-color: transparent;
+}
+.rx-switch-button:left {
+    -fx-label-padding: 0 0 0 0.5em;
+}
+
+/* Thin solid rail (M2 / MUI: a single filled capsule, no border, no inset) with a
+   larger thumb that overflows it vertically. The thumb diameter (22) exceeds the
+   track height (14); the skin centres the thumb and reserves max(track, thumb) so
+   the overflow stays unclipped and inside the control bounds. The thumb's elevation
+   shadow (not its white fill) is what makes the overflow read against a light page. */
+.rx-switch-button > .track {
+    -fx-pref-width: 44px;
+    -fx-pref-height: 14px;
+    -fx-padding: 0;
+    -fx-background-radius: 999px;
+    -fx-background-color: -rx-outline;
+}
+
+.rx-switch-button > .track > .thumb {
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+    -fx-background-radius: 50%;
+    -fx-background-color: -rx-on-primary;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 5, 0.18, 0, 1);
+}
+
+/* On/off icon: a check that scales in when selected (a second, non-colour channel). */
+.rx-switch-button > .track > .thumb > .icon {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 10px;
+    -fx-background-color: -rx-primary;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    -fx-scale-x: 0;
+    -fx-scale-y: 0;
+}
+.rx-switch-button:selected > .track > .thumb > .icon {
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+}
+
+/* Material state-layer halo: unbounded circle (50% radius), drawn below the thumb;
+   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+.rx-switch-button > .track > .state-overlay {
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-background-radius: 50%;
+    -fx-background-color: -rx-state-overlay-color;
+}
+
+.rx-switch-button:hover > .track {
+    -fx-background-color: derive(-rx-outline, -8%);
+}
+
+.rx-switch-button:armed > .track {
+    -fx-background-color: derive(-rx-outline, -16%);
+}
+
+.rx-switch-button:selected > .track {
+    -fx-background-color: -rx-primary;
+}
+
+.rx-switch-button:selected:hover > .track {
+    -fx-background-color: -rx-primary-hover;
+}
+
+.rx-switch-button:selected:armed > .track {
+    -fx-background-color: -rx-primary-active;
+}
+
+.rx-switch-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Compact density variant. */
+.rx-switch-button.small > .track {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 12px;
+    -fx-padding: 0;
+}
+.rx-switch-button.small > .track > .thumb {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+}
+.rx-switch-button.small > .track > .thumb > .icon {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+}
+.rx-switch-button.small > .track > .state-overlay {
+    -fx-pref-width: 32px;
+    -fx-pref-height: 32px;
 }
 
 /*******************************************************************************

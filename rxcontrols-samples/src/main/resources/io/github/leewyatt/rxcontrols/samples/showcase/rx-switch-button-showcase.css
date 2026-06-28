@@ -1,0 +1,9 @@
+.switch-preview {
+    -fx-padding: 42px 56px;
+    -fx-spacing: 20px;
+}
+
+.switch-preview .state-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #52606d;
+}
