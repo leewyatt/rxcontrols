@@ -22,6 +22,7 @@
 .rx-number-field, .rx-password-field, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
+.rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-text-field, .rx-text-view,
 .rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
@@ -365,6 +366,149 @@
 
 .rx-seek-bar:focused > .thumb {
     -fx-effect: dropshadow(three-pass-box, #1f8f76, 7, 0.5, 0, 0);
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSlider / RXRangeSlider                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.rx-slider, .rx-range-slider {
+    -rx-slider-track: #e0e0e0;
+    -rx-slider-fill: -rx-primary;
+    -rx-slider-thumb: -rx-primary;
+    -rx-slider-tick: derive(-rx-slider-track, -20%);
+    -rx-slider-indicator-bg: #424242;
+    -rx-ripple-fill: -rx-slider-thumb;
+}
+
+.rx-slider > .track,
+.rx-range-slider > .track {
+    -fx-background-color: -rx-slider-track;
+    -fx-background-radius: 3px;
+    -fx-pref-height: 4px;
+}
+
+.rx-slider > .fill,
+.rx-range-slider > .fill {
+    -fx-background-color: -rx-slider-fill;
+    -fx-background-radius: 3px;
+}
+
+.rx-slider > .thumb,
+.rx-range-slider > .thumb {
+    -fx-background-color: -rx-slider-thumb;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+
+.rx-slider > .thumb:hover,
+.rx-range-slider > .thumb:hover {
+    -fx-scale-x: 1.18;
+    -fx-scale-y: 1.18;
+}
+
+/* Focus ring: the single slider focuses the control, the range slider focuses
+   each thumb individually. */
+.rx-slider:focused > .thumb,
+.rx-range-slider > .thumb:focused {
+    -fx-effect: dropshadow(three-pass-box, derive(-rx-slider-thumb, -20%), 7, 0.5, 0, 0);
+}
+
+/* Unbounded thumb halo: a square pref the skin shapes round (the fill carries a
+   50% corner radius) and centers on the thumb each layout. Tier opacities come
+   from the global .state-overlay rule. */
+.rx-slider > .state-overlay,
+.rx-range-slider > .state-overlay {
+    -fx-pref-width: 32px;
+    -fx-pref-height: 32px;
+}
+
+.rx-slider > .value-indicator,
+.rx-range-slider > .value-indicator {
+    -fx-background-color: -rx-slider-indicator-bg;
+    -fx-background-radius: 6px;
+    -fx-padding: 2 8 2 8;
+}
+
+.rx-slider > .value-indicator > .label,
+.rx-range-slider > .value-indicator > .label {
+    -fx-text-fill: white;
+}
+
+.rx-slider > .value-indicator > .caret,
+.rx-range-slider > .value-indicator > .caret {
+    -fx-background-color: -rx-slider-indicator-bg;
+    -fx-shape: "M0 0 L8 0 L4 5 Z";
+    -fx-pref-width: 8px;
+    -fx-pref-height: 5px;
+}
+
+.rx-slider > .tick-mark,
+.rx-range-slider > .tick-mark {
+    -fx-background-color: -rx-slider-tick;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 2px;
+    -fx-pref-height: 2px;
+}
+
+.rx-slider > .tick-label,
+.rx-range-slider > .tick-label {
+    -fx-text-fill: -rx-slider-tick;
+    -fx-font-size: 0.83em;
+}
+
+/* Explicit ripple radius: the auto hypot radius is wrong for a small thumb. */
+.rx-slider .ripple-layer,
+.rx-range-slider .ripple-layer {
+    -rx-ripple-radius: 14px;
+}
+
+/* Size variants (style classes, AtlantaFX-style): scale the thumb, track, halo,
+   and press ink. The skin reads the pref sizes, so no Java change is needed. */
+.rx-slider.small > .thumb,
+.rx-range-slider.small > .thumb {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 10px;
+}
+
+.rx-slider.small > .track,
+.rx-range-slider.small > .track {
+    -fx-pref-height: 3px;
+}
+
+.rx-slider.small > .state-overlay,
+.rx-range-slider.small > .state-overlay {
+    -fx-pref-width: 24px;
+    -fx-pref-height: 24px;
+}
+
+.rx-slider.small .ripple-layer,
+.rx-range-slider.small .ripple-layer {
+    -rx-ripple-radius: 10px;
+}
+
+.rx-slider.large > .thumb,
+.rx-range-slider.large > .thumb {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+}
+
+.rx-slider.large > .track,
+.rx-range-slider.large > .track {
+    -fx-pref-height: 6px;
+}
+
+.rx-slider.large > .state-overlay,
+.rx-range-slider.large > .state-overlay {
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+}
+
+.rx-slider.large .ripple-layer,
+.rx-range-slider.large .ripple-layer {
+    -rx-ripple-radius: 18px;
 }
 
 /*******************************************************************************
