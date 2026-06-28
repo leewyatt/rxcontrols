@@ -955,6 +955,36 @@ public class RXRipplePaneTest {
         });
     }
 
+    /**
+     * Verifies a {@code .state-overlay} tier opacity set to {@code 0} from CSS
+     * does not leave an invisible overlay permanently attached: the idle layer
+     * must hold only ripple circles, so the on-demand overlay that resolves to
+     * {@code 0} is detached again rather than lingering.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void zeroCssTierOpacityLeavesNoAttachedOverlay() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            StackPane root = new StackPane(pane);
+            Scene scene = new Scene(root);
+            String css = ".state-overlay { -rx-state-overlay-hover-opacity: 0; }";
+            scene.getStylesheets().add("data:text/css;base64,"
+                    + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+            root.applyCss();
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "zero hover tier shows nothing");
+            assertEquals(0, layer.getChildrenUnmodifiable().size(),
+                    "a zero tier leaves no overlay attached to the idle layer");
+        });
+    }
+
     private static RippleLayer rippleLayer(RXRipplePane pane) {
         return (RippleLayer) pane.getChildrenUnmodifiable()
                 .get(pane.getChildrenUnmodifiable().size() - 1);

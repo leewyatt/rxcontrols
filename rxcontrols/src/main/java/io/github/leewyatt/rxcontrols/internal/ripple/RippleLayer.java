@@ -178,6 +178,7 @@ public final class RippleLayer extends Region {
      * @param dragged whether the host is being dragged
      */
     public void setOverlayState(boolean hover, boolean focus, boolean pressed, boolean dragged) {
+        boolean justAttached = false;
         if ((hover || focus || pressed || dragged) && !getChildren().contains(stateOverlay)) {
             // Attach without resizing: the overlay keeps the bounds set by the
             // last updateClipFor (which resizes it even while detached), so it
@@ -192,8 +193,17 @@ public final class RippleLayer extends Region {
             if (stateOverlay.getScene() != null) {
                 stateOverlay.applyCss();
             }
+            justAttached = true;
         }
         stateOverlay.setState(hover, focus, pressed, dragged);
+        if (justAttached && stateOverlay.getTargetOpacity() == 0.0) {
+            // The resolved tier opacity is 0 (e.g. a CSS tier explicitly set to
+            // 0): setState started no fade and fires no hidden hook, so detach
+            // the overlay we just attached to keep the idle layer to ripple
+            // circles only. Guarded by justAttached so an in-flight fade-out
+            // (which runs while still attached) is never cut short.
+            getChildren().remove(stateOverlay);
+        }
     }
 
     /**
