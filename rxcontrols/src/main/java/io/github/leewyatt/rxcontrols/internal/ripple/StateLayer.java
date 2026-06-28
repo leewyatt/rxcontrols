@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.ripple;
 
 import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -58,9 +59,10 @@ public final class StateLayer extends Region {
      * Clip strategy for the overlay node.
      *
      * <p>{@code NONE} (the embedded facade default) and {@code CIRCLE} (an
-     * unbounded thumb halo, shaped round by CSS background radii) never install
-     * a clip. {@code FOLLOW_HOST} and {@code ROUNDED_RECT} mirror a host's
-     * painted geometry into a self clip for a standalone bounded consumer.</p>
+     * unbounded thumb halo, shaped round by its background radii — CSS
+     * {@code -fx-background-radius:50%} or {@link #setFill(Paint)} in this mode)
+     * never install a clip. {@code FOLLOW_HOST} and {@code ROUNDED_RECT} mirror a
+     * host's painted geometry into a self clip for a standalone bounded consumer.</p>
      */
     public enum ClipMode { FOLLOW_HOST, CIRCLE, ROUNDED_RECT, NONE }
 
@@ -103,6 +105,7 @@ public final class StateLayer extends Region {
     private Timeline fade;
     private double target;
     private Runnable onHidden;
+    private Paint fill;
 
     /**
      * Creates an unmanaged, mouse-transparent, fully transparent overlay node.
@@ -128,11 +131,14 @@ public final class StateLayer extends Region {
      * @param dragged whether the host is being dragged
      */
     public void setState(boolean hover, boolean focus, boolean pressed, boolean dragged) {
-        double next = dragged ? draggedOpacity.get()
+        // Clamp the resolved tier to [0,1] like the ripple opacity: a malformed
+        // theme value (negative, or > 1) would otherwise leave the overlay
+        // attached at a non-zero target while rendering invisible, or oversaturate.
+        double next = RXMath.clamp0To1(dragged ? draggedOpacity.get()
                 : pressed ? pressedOpacity.get()
                 : focus ? focusOpacity.get()
                 : hover ? hoverOpacity.get()
-                : 0.0;
+                : 0.0);
         if (next == target) {
             return;
         }
@@ -184,14 +190,28 @@ public final class StateLayer extends Region {
     // ==================== Fill ====================
 
     /**
-     * Sets the overlay fill as a single opaque {@link BackgroundFill}; the
-     * overlay opacity, not the fill, expresses the tier level.
+     * Sets the overlay fill as a single {@link BackgroundFill}; the overlay
+     * opacity, not the fill, expresses the tier level. The corner radii follow
+     * the clip mode: a {@link ClipMode#CIRCLE} halo is rounded (it is never
+     * clipped, so a Java-set fill must carry the round shape itself), other modes
+     * use square corners (the layer clip shapes them).
      *
      * @param fill the overlay fill, or {@code null} for no fill
      */
     public void setFill(Paint fill) {
-        setBackground(fill == null ? null
-                : new Background(new BackgroundFill(fill, CornerRadii.EMPTY, Insets.EMPTY)));
+        this.fill = fill;
+        applyFill();
+    }
+
+    private void applyFill() {
+        if (fill == null) {
+            setBackground(null);
+            return;
+        }
+        CornerRadii radii = clipMode == ClipMode.CIRCLE
+                ? new CornerRadii(50.0, true)
+                : CornerRadii.EMPTY;
+        setBackground(new Background(new BackgroundFill(fill, radii, Insets.EMPTY)));
     }
 
     // ==================== Clip ====================
@@ -226,6 +246,8 @@ public final class StateLayer extends Region {
                 setClip(null);
             }
         }
+        // Re-shape any Java-set fill: CIRCLE rounds it, other modes square it.
+        applyFill();
     }
 
     @Override

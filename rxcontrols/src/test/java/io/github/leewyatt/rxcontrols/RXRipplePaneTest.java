@@ -1,9 +1,13 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import javafx.application.Platform;
 import javafx.beans.DefaultProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -983,6 +987,92 @@ public class RXRipplePaneTest {
             assertEquals(0, layer.getChildrenUnmodifiable().size(),
                     "a zero tier leaves no overlay attached to the idle layer");
         });
+    }
+
+    /**
+     * Verifies a negative {@code .state-overlay} tier opacity (a malformed theme
+     * value) is clamped to {@code 0} rather than leaving the overlay attached at
+     * a negative target while rendering invisible.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void negativeCssTierOpacityIsClampedAndNotAttached() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            StackPane root = new StackPane(pane);
+            Scene scene = new Scene(root);
+            String css = ".state-overlay { -rx-state-overlay-hover-opacity: -0.5; }";
+            scene.getStylesheets().add("data:text/css;base64,"
+                    + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+            root.applyCss();
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+
+            assertClose(0.0, layer.getOverlayTargetOpacity(), "negative tier clamped to 0");
+            assertEquals(0, layer.getChildrenUnmodifiable().size(),
+                    "a clamped-to-0 tier leaves no overlay attached");
+        });
+    }
+
+    /**
+     * Verifies a cell recycled mid-press cancels the press so it does not carry a
+     * pressed overlay onto the next item, while keeping the ambient pointer-inside
+     * state so the hover tint still follows the pointer. Drives the decoration
+     * directly (the recycle path skins use via {@code cancelInteraction()}).
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void cancelInteractionDropsPressButKeepsHover() throws Exception {
+        runOnFx(() -> {
+            Region host = new Region();
+            RippleDecoration ripple = new RippleDecoration(host,
+                    new SimpleBooleanProperty(true), new SimpleBooleanProperty(true),
+                    new SimpleObjectProperty<>(Color.BLACK), () -> 0.18, null, null);
+            RippleLayer layer = ripple.getLayer();
+            ripple.layout(100.0, 50.0);
+
+            host.fireEvent(mouse(host, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            double hover = layer.getOverlayTargetOpacity();
+            assertTrue(hover > 0.0, "hover tint shows while pointer is inside");
+
+            ripple.press(10.0, 10.0, false);
+            assertTrue(layer.getOverlayTargetOpacity() > hover, "press deepens the tint");
+
+            // Cell recycled while still pressed: the press belongs to the old item.
+            ripple.cancelInteraction();
+            ripple.layout(100.0, 50.0);
+
+            assertClose(hover, layer.getOverlayTargetOpacity(),
+                    "recycle drops the press back to hover (not the pressed tier) on the new item");
+        });
+    }
+
+    /**
+     * Verifies a {@link StateLayer.ClipMode#CIRCLE} overlay rounds a Java-set
+     * fill (it is never clipped, so the round shape must come from the fill), while
+     * the default unclipped/facade mode keeps square corners.
+     */
+    @Test
+    public void circleClipModeRoundsTheJavaSetFill() {
+        StateLayer halo = new StateLayer();
+        halo.setClipMode(StateLayer.ClipMode.CIRCLE, null);
+        halo.setFill(Color.RED);
+
+        BackgroundFill circleFill = halo.getBackground().getFills().get(0);
+        assertEquals(Color.RED, circleFill.getFill());
+        assertTrue(circleFill.getRadii().isTopLeftHorizontalRadiusAsPercentage(),
+                "CIRCLE fill uses percentage radii");
+        assertClose(50.0, circleFill.getRadii().getTopLeftHorizontalRadius(), "CIRCLE fill is 50% round");
+
+        StateLayer flat = new StateLayer();
+        flat.setFill(Color.RED);
+        assertEquals(CornerRadii.EMPTY, flat.getBackground().getFills().get(0).getRadii());
     }
 
     private static RippleLayer rippleLayer(RXRipplePane pane) {

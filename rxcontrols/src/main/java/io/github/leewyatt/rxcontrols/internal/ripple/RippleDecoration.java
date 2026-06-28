@@ -178,6 +178,18 @@ public final class RippleDecoration {
     }
 
     /**
+     * Cancels any in-flight press and tears down live ripple visuals, for hosts
+     * (recycled cells) that may be reused while still pressed: the press belongs
+     * to the old item and must not deepen the overlay on the next one. The
+     * ambient pointer-inside (hover) state is kept, so if the pointer is still
+     * over the row the hover tint re-derives for the new item on the next layout.
+     */
+    public void cancelInteraction() {
+        pressed = false;
+        clear();
+    }
+
+    /**
      * Lays out the ripple layer over the host bounds and refreshes the clip
      * from the host's optional ripple insets and corner radius. An invalid
      * (zero or non-finite) size clears live ripple state and collapses the

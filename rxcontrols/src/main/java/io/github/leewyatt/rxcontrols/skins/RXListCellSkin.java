@@ -39,12 +39,15 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
 
         disposer.registerEventHandler(cell, MouseEvent.MOUSE_PRESSED, this::onPressed);
         disposer.registerEventHandler(cell, MouseEvent.MOUSE_RELEASED, event -> ripple.release());
-        // Drop any in-flight ripple when the cell is recycled so it never bleeds onto
-        // the next item: the index changes on every recycle (covering a new item even
-        // at a duplicate object reference) and on parking (index -> -1); the item
-        // listener additionally covers an in-place replace at the same index.
-        disposer.registerListener(cell.indexProperty(), ripple::clear);
-        disposer.registerListener(cell.itemProperty(), ripple::clear);
+        // Drop any in-flight ripple AND cancel a held press when the cell is recycled
+        // so neither bleeds onto the next item: the index changes on every recycle
+        // (covering a new item even at a duplicate object reference) and on parking
+        // (index -> -1); the item listener additionally covers an in-place replace at
+        // the same index. cancelInteraction (not clear) also resets the pressed flag,
+        // so a cell recycled mid-press does not re-derive a pressed overlay on the new
+        // item at the next layout pass; pointer-inside is kept so hover still follows.
+        disposer.registerListener(cell.indexProperty(), ripple::cancelInteraction);
+        disposer.registerListener(cell.itemProperty(), ripple::cancelInteraction);
 
         updateChildren();
     }
