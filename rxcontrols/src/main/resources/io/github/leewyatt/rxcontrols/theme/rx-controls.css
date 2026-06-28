@@ -64,6 +64,24 @@
 
 /*******************************************************************************
  *                                                                             *
+ * Ripple / state-overlay primitives                                           *
+ *                                                                             *
+ ******************************************************************************/
+
+/* Material state-layer tier opacities; M2 desktop defaults (pressed 0.125), an
+   M3 theme re-declares this rule (e.g. pressed 0.10). No -fx-background-color
+   here on purpose: the overlay fill is set in Java from -rx-ripple-fill (USER
+   origin), so a UA color would fight it. */
+.state-overlay {
+    -rx-state-overlay-hover-opacity: 0.08;
+    -rx-state-overlay-focus-opacity: 0.10;
+    -rx-state-overlay-pressed-opacity: 0.125;
+    -rx-state-overlay-dragged-opacity: 0.16;
+    -rx-state-overlay-fade-duration: 150ms;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXTransitionButton                                                          *
  *                                                                             *
  ******************************************************************************/

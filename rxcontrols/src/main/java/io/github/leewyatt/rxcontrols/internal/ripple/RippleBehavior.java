@@ -89,7 +89,13 @@ public final class RippleBehavior {
 
         double centerX = centered ? width / 2.0 : clamp(x, 0.0, width);
         double centerY = centered ? height / 2.0 : clamp(y, 0.0, height);
-        double radius = computeRadius(width, height, centerX, centerY, layer.getRippleBleed());
+        // The layer carries the radius knob: AUTO falls back to the hypot
+        // center-to-bled-corner radius; an explicit value (small thumb controls)
+        // is used directly. The (layer, fill, opacity) ctor stays unchanged.
+        double explicitRadius = layer.getRippleRadius();
+        double radius = explicitRadius >= 0.0 && Double.isFinite(explicitRadius)
+                ? explicitRadius
+                : computeAutoRadius(width, height, centerX, centerY, layer.getRippleBleed());
         if (radius <= 0.0 || !Double.isFinite(radius)) {
             clear();
             return;
@@ -198,8 +204,8 @@ public final class RippleBehavior {
         }
     }
 
-    private static double computeRadius(double width, double height,
-                                        double centerX, double centerY, Insets bleed) {
+    private static double computeAutoRadius(double width, double height,
+                                            double centerX, double centerY, Insets bleed) {
         double maxX = Math.max(centerX + bleed.getLeft(), width - centerX + bleed.getRight());
         double maxY = Math.max(centerY + bleed.getTop(), height - centerY + bleed.getBottom());
         return Math.hypot(maxX, maxY);

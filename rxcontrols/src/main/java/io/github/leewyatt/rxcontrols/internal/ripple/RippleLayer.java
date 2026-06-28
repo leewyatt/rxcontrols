@@ -1,54 +1,47 @@
 package io.github.leewyatt.rxcontrols.internal.ripple;
 
 import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
-import javafx.animation.Animation;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.css.CssMetaData;
+import javafx.css.SimpleStyleableDoubleProperty;
+import javafx.css.Styleable;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.SizeConverter;
 import javafx.geometry.Insets;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
-import javafx.util.Duration;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Unmanaged overlay layer that hosts bounded ripple circles and a hover state
- * overlay.
+ * Unmanaged overlay layer that hosts bounded ripple circles plus a composed
+ * {@link StateLayer} for the steady-state hover / pressed tint.
  *
  * <p>The bounded clip follows the host region's shape or background geometry
  * via {@link BoundedClipSupport}; see that class for the exact clip contract.
- * The hover state overlay is a low-opacity tint attached only while shown, so
- * an idle layer holds only ripple circles, and it shares the same bounded
- * clip because it lives inside this layer.</p>
+ * The same clip trims both the ripple circles and the embedded state overlay,
+ * so the overlay runs in {@link StateLayer.ClipMode#NONE} (it does not install
+ * a clip of its own). The state overlay is attached only while shown, so an
+ * idle layer holds only ripple circles.</p>
  */
 public final class RippleLayer extends Region {
 
     private static final String STYLE_CLASS = "ripple-layer";
-    private static final String OVERLAY_STYLE_CLASS = "state-overlay";
 
     /**
-     * Peak opacity of the state overlay while hovered: a fixed Material-style
-     * level, independent of the ripple opacity and not exposed for styling.
+     * Sentinel ripple radius selecting the automatic {@code hypot}
+     * center-to-bled-corner radius; any other non-negative value is used as the
+     * explicit ripple radius.
      */
-    private static final double HOVER_OVERLAY_OPACITY = 0.08;
-
-    /**
-     * Peak opacity of the state overlay while pressed: deeper than the hover
-     * level for a clear pressed affordance, layered under the ripple circle.
-     */
-    private static final double PRESSED_OVERLAY_OPACITY = 0.125;
-
-    private static final Duration OVERLAY_FADE_DURATION = Duration.millis(150.0);
+    public static final double AUTO_RIPPLE_RADIUS = -1.0;
 
     private final BoundedClipSupport boundedClip = new BoundedClipSupport(this);
-    private final Region stateOverlay = new Region();
+    private final StateLayer stateOverlay = new StateLayer();
 
-    private Timeline overlayFade;
-    private double overlayTarget;
     private Insets bleed = Insets.EMPTY;
 
     /**
@@ -58,10 +51,9 @@ public final class RippleLayer extends Region {
         getStyleClass().add(STYLE_CLASS);
         setManaged(false);
         setMouseTransparent(true);
-        stateOverlay.getStyleClass().add(OVERLAY_STYLE_CLASS);
-        stateOverlay.setManaged(false);
-        stateOverlay.setMouseTransparent(true);
-        stateOverlay.setOpacity(0.0);
+        // The overlay attaches only while shown and detaches once it fades out;
+        // the embedded overlay shares this layer's clip, so it never clips itself.
+        stateOverlay.setOnHidden(() -> getChildren().remove(stateOverlay));
     }
 
     void addRipple(Circle ripple) {
@@ -78,7 +70,7 @@ public final class RippleLayer extends Region {
 
     /**
      * Updates the bounded clip from the host's shape or background geometry and
-     * resizes the hover state overlay to the layer bounds.
+     * resizes the embedded state overlay to the layer bounds.
      *
      * @param host   the host region providing shape and background geometry
      * @param width  the local clip width
@@ -89,9 +81,8 @@ public final class RippleLayer extends Region {
     }
 
     /**
-     * Updates the bounded clip with extra insets and resizes the hover state
-     * overlay so it always covers the clip region, letting the inset clip
-     * shape it.
+     * Updates the bounded clip with extra insets and resizes the state overlay
+     * so it always covers the clip region, letting the inset clip shape it.
      *
      * @param host   the host region providing shape and background geometry
      * @param width  the local clip width
@@ -105,9 +96,9 @@ public final class RippleLayer extends Region {
 
     /**
      * Updates the bounded clip with extra insets and explicit corner radii, and
-     * resizes the hover state overlay so it always covers the clip region,
-     * letting the inset clip shape it. The overlay is expanded outward to match
-     * any negative-inset bleed: a clip can only trim, not enlarge, so an overlay
+     * resizes the state overlay so it always covers the clip region, letting the
+     * inset clip shape it. The overlay is expanded outward to match any
+     * negative-inset bleed: a clip can only trim, not enlarge, so an overlay
      * left at the layer bounds would keep its square corners and original size
      * when the clip extends past them.
      *
@@ -133,12 +124,13 @@ public final class RippleLayer extends Region {
     }
 
     /**
-     * Clears the bounded clip and tears down the hover state overlay.
+     * Clears the bounded clip and tears down the state overlay.
      */
     public void clearClip() {
         boundedClip.clearClip();
         bleed = Insets.EMPTY;
-        resetOverlay();
+        stateOverlay.reset();
+        getChildren().remove(stateOverlay);
     }
 
     /**
@@ -155,48 +147,45 @@ public final class RippleLayer extends Region {
     // ==================== State Overlay ====================
 
     /**
-     * Sets the fill of the hover state overlay. The overlay paints this fill at
-     * a low fixed opacity; the layer clip rounds it to the host geometry.
+     * Sets the fill of the embedded state overlay.
      *
      * @param fill the overlay fill, or {@code null} for no overlay
      */
     public void setOverlayFill(Paint fill) {
-        stateOverlay.setBackground(fill == null ? null
-                : new Background(new BackgroundFill(fill, CornerRadii.EMPTY, Insets.EMPTY)));
+        stateOverlay.setFill(fill);
     }
 
     /**
-     * Drives the state overlay toward the opacity for the current interaction
-     * state: deeper while pressed, lighter while merely hovered, hidden
-     * otherwise. The overlay node is attached only while visible and below the
-     * ripple circles, so an idle layer keeps only its ripple children.
+     * Drives the state overlay toward the hover / pressed tier. The overlay node
+     * is attached only while visible and below the ripple circles, so an idle
+     * layer keeps only its ripple children.
      *
      * @param pressed whether the host is pressed (deepest tint)
      * @param hovered whether the pointer is inside (light tint)
      */
     public void setOverlayState(boolean pressed, boolean hovered) {
-        double target = pressed ? PRESSED_OVERLAY_OPACITY
-                : hovered ? HOVER_OVERLAY_OPACITY : 0.0;
-        if (target == overlayTarget) {
-            return;
-        }
-        overlayTarget = target;
-        if (target > 0.0 && !getChildren().contains(stateOverlay)) {
+        setOverlayState(hovered, false, pressed, false);
+    }
+
+    /**
+     * Drives the state overlay toward the highest-priority active tier and
+     * attaches the overlay node when a tier becomes visible. Detachment is
+     * handled by the overlay's fade-out hook.
+     *
+     * @param hover   whether the pointer is inside
+     * @param focus   whether the host is focus-visible
+     * @param pressed whether the host is pressed
+     * @param dragged whether the host is being dragged
+     */
+    public void setOverlayState(boolean hover, boolean focus, boolean pressed, boolean dragged) {
+        stateOverlay.setState(hover, focus, pressed, dragged);
+        if (stateOverlay.getTargetOpacity() > 0.0 && !getChildren().contains(stateOverlay)) {
             // The overlay keeps the bounds set by the last updateClipFor (which
             // resizes it even while detached), so it stays expanded for any
             // negative-inset bleed; resizing here would reset that to the plain
             // layer bounds, and hovering does not trigger a fresh layout pass.
             getChildren().add(0, stateOverlay);
         }
-        stop(overlayFade);
-        overlayFade = new Timeline(new KeyFrame(OVERLAY_FADE_DURATION,
-                new KeyValue(stateOverlay.opacityProperty(), target, Interpolator.EASE_BOTH)));
-        overlayFade.setOnFinished(event -> {
-            if (overlayTarget == 0.0) {
-                getChildren().remove(stateOverlay);
-            }
-        });
-        overlayFade.play();
     }
 
     /**
@@ -207,20 +196,69 @@ public final class RippleLayer extends Region {
      * @return the target state-overlay opacity
      */
     public double getOverlayTargetOpacity() {
-        return overlayTarget;
+        return stateOverlay.getTargetOpacity();
     }
 
-    private void resetOverlay() {
-        stop(overlayFade);
-        overlayFade = null;
-        overlayTarget = 0.0;
-        stateOverlay.setOpacity(0.0);
-        getChildren().remove(stateOverlay);
+    // ==================== Ripple Radius ====================
+
+    private final DoubleProperty rippleRadius = new SimpleStyleableDoubleProperty(
+            StyleableProperties.RIPPLE_RADIUS, this, "rippleRadius", AUTO_RIPPLE_RADIUS);
+
+    /**
+     * Returns the explicit ripple radius, or {@link #AUTO_RIPPLE_RADIUS} when
+     * the automatic radius applies.
+     *
+     * @return the ripple radius
+     */
+    double getRippleRadius() {
+        return rippleRadius.get();
     }
 
-    private static void stop(Animation animation) {
-        if (animation != null) {
-            animation.stop();
+    // ==================== CSS Metadata ====================
+
+    private static final class StyleableProperties {
+
+        private static final CssMetaData<RippleLayer, Number> RIPPLE_RADIUS =
+                new CssMetaData<>("-rx-ripple-radius",
+                        SizeConverter.getInstance(), AUTO_RIPPLE_RADIUS) {
+                    @Override
+                    public boolean isSettable(RippleLayer layer) {
+                        return !layer.rippleRadius.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RippleLayer layer) {
+                        return (StyleableProperty<Number>) layer.rippleRadius;
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(Region.getClassCssMetaData());
+            styleables.add(RIPPLE_RADIUS);
+            STYLEABLES = Collections.unmodifiableList(styleables);
         }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata list
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    /**
+     * Returns the CSS metadata associated with this instance.
+     *
+     * @return the CSS metadata list
+     */
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
+        return getClassCssMetaData();
     }
 }

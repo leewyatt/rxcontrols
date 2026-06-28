@@ -32,6 +32,8 @@ import javafx.scene.shape.Shape;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -889,6 +891,42 @@ public class RXRipplePaneTest {
             pane.setRippleEnabled(false);
             assertClose(hover, layer.getOverlayTargetOpacity(),
                     "pressed deepen drops to the hover level when the ripple is disabled");
+        });
+    }
+
+    /**
+     * Verifies the Ripple-R2 CSS hook: an author override of the
+     * {@code .state-overlay} hover-tier opacity reaches the embedded overlay, so
+     * the shown tier level can be retuned from CSS (the M2 -> M3 switch path).
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void stateOverlayTierOpacityIsOverridableFromCss() throws Exception {
+        runOnFx(() -> {
+            RXRipplePane pane = new RXRipplePane(new Region());
+            StackPane root = new StackPane(pane);
+            Scene scene = new Scene(root);
+            String css = ".state-overlay { -rx-state-overlay-hover-opacity: 0.5; }";
+            scene.getStylesheets().add("data:text/css;base64,"
+                    + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+            layout(pane, 100.0, 50.0);
+            RippleLayer layer = rippleLayer(pane);
+
+            // Hovering attaches the overlay at the default hover tier; the
+            // override only reaches it once it is in the scene graph and CSS is
+            // applied to it.
+            pane.fireEvent(mouse(pane, MouseEvent.MOUSE_ENTERED, 10.0, 10.0,
+                    MouseButton.NONE, false));
+            assertClose(0.08, layer.getOverlayTargetOpacity(), "default hover tier before CSS");
+
+            root.applyCss();
+            // Re-run the tier computation while still hovered so it reads the
+            // CSS-overridden hover opacity instead of the cached default target.
+            pane.setStateOverlayEnabled(false);
+            pane.setStateOverlayEnabled(true);
+
+            assertClose(0.5, layer.getOverlayTargetOpacity(), "CSS-overridden hover tier");
         });
     }
 
