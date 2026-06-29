@@ -640,7 +640,9 @@
     -fx-background-color: -rx-state-overlay-color;
 }
 
-.rx-switch-button:hover > .track {
+/* Hover scoped to the track itself (.track:hover), not the control, so hovering
+   the label does not darken the track. */
+.rx-switch-button > .track:hover {
     -fx-background-color: derive(-rx-outline, -8%);
 }
 
@@ -652,7 +654,7 @@
     -fx-background-color: -rx-primary;
 }
 
-.rx-switch-button:selected:hover > .track {
+.rx-switch-button:selected > .track:hover {
     -fx-background-color: -rx-primary-hover;
 }
 

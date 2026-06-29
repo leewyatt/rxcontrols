@@ -16,11 +16,13 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.geometry.HorizontalDirection;
 import javafx.geometry.NodeOrientation;
+import javafx.scene.Node;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -45,7 +47,10 @@ import java.util.Locale;
  * {@code com.sun} {@code ButtonBehavior}), matching the standard
  * {@code ButtonBase} semantics: a valid primary press arms, release fires; SPACE
  * (and ENTER off macOS) arms on press and fires on release. A press that turns
- * into a drag scrubs the thumb and commits to the nearest end on release.</p>
+ * into a drag scrubs the thumb and commits to the nearest end on release. The
+ * whole control toggles, but the halo + ripple feedback is scoped to the switch
+ * block (track / thumb): hovering or clicking the label toggles without lighting
+ * up the thumb.</p>
  *
  * <p>Right-to-left layout is left to JavaFX's automatic node-orientation
  * mirroring: positions are computed in left-to-right layout space and the
@@ -98,6 +103,13 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
     private boolean keyDown;
 
     /**
+     * True while a pointer press landed on the switch block (track / thumb), so the
+     * halo + ripple stay scoped to the switch — a press on the label only toggles and
+     * leaves the thumb dark.
+     */
+    private boolean pointerOnSwitch;
+
+    /**
      * True when the current focus arrived via a pointer press, so the focus halo
      * is suppressed — a JFX17 stand-in for {@code :focus-visible} (added in JFX19),
      * which shows the focus state only for keyboard focus.
@@ -143,7 +155,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         disposer.registerListener(thumbPosition, this::applyThumbTranslate);
         disposer.registerListener(control.selectedProperty(), this::handleSelectedChanged);
         disposer.registerListener(control.switchPositionProperty(), control::requestLayout);
-        disposer.registerListener(control.hoverProperty(), this::updateHaloState);
+        disposer.registerListener(track.hoverProperty(), this::updateHaloState);
         disposer.registerListener(control.focusedProperty(), this::handleFocusChanged);
         disposer.registerListener(control.armedProperty(), this::handleArmedChanged);
         // The ripple ink shares the halo's CSS-resolved colour.
@@ -346,15 +358,23 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         // Focus-visible stand-in: show the focus tier only for keyboard focus, not
         // pointer focus (JFX17 lacks the :focus-visible pseudo-class added in JFX19).
         boolean focusVisible = control.isFocused() && !mouseFocus;
-        stateLayer.setState(control.isHover(), focusVisible, control.isArmed(), dragging);
+        // Hover / pressed / dragged feedback is scoped to the switch block (track +
+        // thumb), so hovering or clicking the label does not light up the thumb.
+        boolean pressed = (control.isArmed() && pointerOnSwitch) || keyDown;
+        stateLayer.setState(track.isHover(), focusVisible, pressed, dragging && pointerOnSwitch);
     }
 
     private void handleArmedChanged() {
-        if (getSkinnable().isArmed()) {
+        RXSwitchButton control = getSkinnable();
+        if (control.isArmed() && (pointerOnSwitch || keyDown)) {
             // Centered press ink in the circular touch area, on top of the halo.
             rippleBehavior.press(0.0, 0.0, true);
         } else {
             rippleBehavior.release();
+            if (!control.isArmed()) {
+                // The press ended; the next press recomputes whether it is on the switch.
+                pointerOnSwitch = false;
+            }
         }
         updateHaloState();
     }
@@ -404,11 +424,26 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
             control.requestFocus();
         }
         if (validPrimaryPress(event) && !control.isArmed()) {
+            // Scope the halo + ripple to the switch block: a press on the track / thumb
+            // lights them up, a press on the label only toggles. Set before arm() so
+            // the armed listener sees it.
+            pointerOnSwitch = isOnSwitchBlock(event);
             control.arm();
             dragStartX = event.getX();
             preDragRatio = thumbPosition.get();
             dragging = false;
         }
+    }
+
+    private boolean isOnSwitchBlock(MouseEvent event) {
+        PickResult pick = event.getPickResult();
+        Node node = pick == null ? null : pick.getIntersectedNode();
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (current == track) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void onMouseDragged(MouseEvent event) {

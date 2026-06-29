@@ -569,11 +569,15 @@ public class RXSwitchButtonTest {
             assertNotNull(halo.getBackground());
             assertFalse(halo.getBackground().getFills().isEmpty());
 
-            // The state wiring raises the overlay when armed and clears it when idle.
+            // The state wiring raises the overlay on a switch-block press and clears
+            // it on release (feedback is scoped to the track / thumb, not the label).
             assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
-            control.arm();
-            assertTrue(halo.getTargetOpacity() > 0.0, "armed raises the halo to the pressed tier");
-            control.disarm();
+            Region track = track(control);
+            control.fireEvent(mouse(track, MouseEvent.MOUSE_PRESSED, 30.0, 11.0,
+                    MouseButton.PRIMARY, true, false));
+            assertTrue(halo.getTargetOpacity() > 0.0, "a switch-block press raises the halo to the pressed tier");
+            control.fireEvent(mouse(track, MouseEvent.MOUSE_RELEASED, 30.0, 11.0,
+                    MouseButton.PRIMARY, false, false));
             assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
         });
     }
@@ -585,15 +589,38 @@ public class RXSwitchButtonTest {
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void pressCreatesRippleInk() throws Exception {
+    public void switchBlockPressCreatesRippleInk() throws Exception {
         runOnFx(() -> {
             RXSwitchButton control = attach(new RXSwitchButton("OK"));
             RippleLayer ripple = (RippleLayer) control.lookup(".ripple-layer");
+            Region track = track(control);
             assertNotNull(ripple);
             assertEquals(0, rippleInkCount(ripple), "no ink at rest");
 
-            control.arm();
-            assertEquals(1, rippleInkCount(ripple), "a press creates one ripple ink circle");
+            // A press on the switch block (pick = track) creates the ink.
+            control.fireEvent(mouse(track, MouseEvent.MOUSE_PRESSED, 30.0, 11.0,
+                    MouseButton.PRIMARY, true, false));
+            assertEquals(1, rippleInkCount(ripple), "a switch-block press creates one ripple ink circle");
+        });
+    }
+
+    /**
+     * Verifies a press whose pick is the control (e.g. the label region), not the
+     * switch block, toggles without creating a thumb ripple.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void labelPressCreatesNoRippleInk() throws Exception {
+        runOnFx(() -> {
+            RXSwitchButton control = attach(new RXSwitchButton("Wi-Fi"));
+            RippleLayer ripple = (RippleLayer) control.lookup(".ripple-layer");
+            assertNotNull(ripple);
+
+            // Target the control, not the switch block (the pick is the control).
+            control.fireEvent(mouse(control, MouseEvent.MOUSE_PRESSED, 5.0, 11.0,
+                    MouseButton.PRIMARY, true, false));
+            assertEquals(0, rippleInkCount(ripple), "a label press creates no thumb ripple");
         });
     }
 
