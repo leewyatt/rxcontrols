@@ -12,7 +12,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
-.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-circular-progress-indicator,
+.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-formatted-number-field, .rx-highlight-text-view,
@@ -509,6 +509,76 @@
 .rx-slider.large .ripple-layer,
 .rx-range-slider.large .ripple-layer {
     -rx-ripple-radius: 18px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXCheckBox                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.rx-check-box {
+    -fx-label-padding: 0 0 0 0.5em;
+    /* transparent fill (not "no fill") so the whole control bounds is a click /
+       touch target, including the gap between the box and the label. */
+    -fx-background-color: transparent;
+}
+.rx-check-box:right {
+    -fx-label-padding: 0 0.5em 0 0;
+}
+
+/* Small rounded box: an outline ring (outer layer) over a surface fill (inner
+   layer); the skin centres it vertically and resizes it to pref. */
+.rx-check-box > .box {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-alignment: CENTER;
+    -fx-background-radius: 4px, 2px;
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 2;
+}
+
+/* The mark is one Region whose shape the pseudo-classes swap (check vs dash). Its
+   scale is driven by the skin's markScale animation, so no -fx-scale-x/y here; the
+   unchecked "hidden" state is the skin's initial markScale = 0, not CSS. */
+.rx-check-box > .box > .mark {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-background-color: -rx-on-primary;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    -fx-scale-shape: true;
+}
+
+/* Indeterminate: same mark node, a dash shape (drawn at its real size). */
+.rx-check-box:indeterminate > .box > .mark {
+    -fx-shape: "M 4 9 H 14 V 11 H 4 Z";
+    -fx-scale-shape: false;
+}
+
+/* Material state-layer halo: unbounded circle (50% radius), drawn below the box;
+   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+.rx-check-box > .state-overlay {
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-background-radius: 50%;
+    -fx-background-color: -rx-state-overlay-color;
+}
+
+/* Hover scoped to the box itself (.box:hover), not the control, so hovering the
+   label does not change the box; the state-layer halo behind the box gives the
+   Material hover feedback. */
+.rx-check-box > .box:hover {
+    -fx-background-color: -rx-on-surface-secondary, -rx-surface-variant;
+}
+
+/* checked / indeterminate: solid primary box, white mark. Placed after :hover so
+   source-order keeps the primary fill on a checked box that is also hovered. */
+.rx-check-box:selected > .box,
+.rx-check-box:indeterminate > .box {
+    -fx-background-color: -rx-primary, -rx-primary;
+}
+
+.rx-check-box:disabled {
+    -fx-opacity: 0.4;
 }
 
 /*******************************************************************************
