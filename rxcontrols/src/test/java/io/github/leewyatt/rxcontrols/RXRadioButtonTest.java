@@ -638,6 +638,33 @@ public class RXRadioButtonTest {
         });
     }
 
+    /**
+     * Verifies keyboard activation (SPACE) produces the same press feedback as a ring
+     * press — a centred ink and the pressed-tier halo — and that both drop on key release
+     * (parity with RXCheckBox / RXSwitchButton). The visual handlers are purely additive;
+     * the inherited behavior still owns the actual selection.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void keyboardActivationCreatesInkAndPressedHalo() throws Exception {
+        runOnFx(() -> {
+            RXRadioButton control = attach(new RXRadioButton("OK"));
+            RippleLayer ripple = (RippleLayer) control.lookup(".ripple-layer");
+            StateLayer halo = (StateLayer) control.lookup(".state-overlay");
+            assertEquals(0, rippleInkCount(ripple), "no ink at rest");
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
+
+            control.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            assertEquals(1, rippleInkCount(ripple), "a SPACE press creates one centred ink");
+            assertEquals(StateLayer.DEFAULT_PRESSED_OPACITY, halo.getTargetOpacity(), EPSILON,
+                    "keyboard activation deepens the halo to the pressed tier");
+
+            control.fireEvent(key(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON, "the pressed tier drops on key release");
+        });
+    }
+
     // ==================== Layout ====================
 
     /**

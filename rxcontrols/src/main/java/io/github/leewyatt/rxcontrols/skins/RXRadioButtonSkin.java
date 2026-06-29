@@ -15,6 +15,8 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HorizontalDirection;
 import javafx.scene.control.skin.RadioButtonSkin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
@@ -23,13 +25,15 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
+import java.util.Locale;
+
 /**
  * Default skin for {@link RXRadioButton}.
  *
  * <p>Extends the public {@link RadioButtonSkin} so the inherited
  * {@code ToggleButtonBehavior} (mouse arming, SPACE, ENTER off macOS and the
- * arrow-key group traversal) is installed for free; no key / mouse activation is
- * wired here. The native {@code .radio} node is removed in {@link #updateChildren()}
+ * arrow-key group traversal) is installed for free; no key / mouse <em>activation</em>
+ * is wired here — the skin adds only visual-feedback handlers (never arming or firing). The native {@code .radio} node is removed in {@link #updateChildren()}
  * and replaced by a self-drawn {@code .radio} {@link StackPane} (the outer ring)
  * holding a {@code .state-overlay} halo (drawn below) and a {@code .dot} (the inner
  * point). The dot appear / disappear is expressed by {@code scaleX/scaleY} and
@@ -41,9 +45,10 @@ import javafx.util.Duration;
  * follows the indicator's own pointer state, not the whole control, so hovering or
  * clicking the label selects the button without lighting up the ring. Keyboard focus
  * shows the focus tier, but a pointer click does not (a {@code :focus-visible}
- * stand-in), even when the click lands on the label. A primary press on the ring also plays a centred M2
- * ripple ink (the {@code .ripple-layer}, drawn above the halo and below the dot,
- * clipped to the touch circle); a press on the label does not. The halo's round
+ * stand-in), even when the click lands on the label. A primary press on the ring — or
+ * keyboard activation (SPACE / ENTER off macOS) — deepens the halo to the pressed tier
+ * and plays a centred M2 ripple ink (the {@code .ripple-layer}, drawn above the halo and
+ * below the dot, clipped to the touch circle); a press on the label does not. The halo's round
  * shape and colour come entirely from CSS ({@code -fx-background-radius:50%} +
  * {@code -rx-state-overlay-color}); the {@link StateLayer} stays in its default
  * {@code ClipMode.NONE} and {@code setFill} is never called — doing so would run
@@ -67,6 +72,10 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
      * by class to tell the two apart.
      */
     private static final String RADIO_STYLE_CLASS = "radio";
+
+    /** ENTER activates the radio everywhere except macOS (matching the inherited ButtonBehavior). */
+    private static final boolean MAC =
+            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
 
     // ==================== Fields ====================
 
@@ -103,6 +112,14 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
      * owns {@code requestFocus}, so the filter must run before it) and reset on focus loss.
      */
     private boolean mouseFocus;
+
+    /**
+     * True while an activation key (SPACE, or ENTER off macOS) is held, so keyboard
+     * activation shows the same pressed tier + centred ink as a ring press. Purely
+     * visual: the inherited {@code ToggleButtonBehavior} owns the actual arm / fire, so
+     * these handlers never arm, fire or consume the event.
+     */
+    private boolean keyDown;
 
     // ==================== Constructor ====================
 
@@ -148,6 +165,10 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         // runs before the inherited behavior's requestFocus, so the focus listener sees it.
         disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> mouseFocus = true);
         disposer.registerListener(control.focusedProperty(), this::handleFocusChanged);
+        // Keyboard press feedback: the inherited behavior owns SPACE / ENTER activation;
+        // these handlers only mirror the pressed tier + ink (they never arm / fire / consume).
+        disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
+        disposer.registerEventHandler(control, KeyEvent.KEY_RELEASED, this::onKeyReleased);
         disposer.registerListener(control.disabledProperty(), this::handleDisabledChanged);
         disposer.registerListener(control.radioPositionProperty(), control::requestLayout);
         // The press ink shares the halo's CSS-resolved colour (Pattern B: no Control property).
@@ -355,7 +376,7 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         stateLayer.setState(
                 enabled && indicator.isHover(),     // hover: pointer over the ring (framework-maintained)
                 enabled && focusVisible,            // focus: keyboard focus only
-                enabled && pressedOnIndicator,      // pressed: a primary press on the ring
+                enabled && (pressedOnIndicator || keyDown),  // pressed: ring press OR keyboard activation
                 false);                             // dragged: a radio cannot be dragged
     }
 
@@ -363,6 +384,12 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         if (!getControl().isFocused()) {
             // Reset so the next keyboard Tab focus is focus-visible (shows the focus tier).
             mouseFocus = false;
+            // Losing focus while an activation key is held would otherwise strand the
+            // pressed tier + ink (the KEY_RELEASED goes to the new focus owner).
+            if (keyDown) {
+                keyDown = false;
+                rippleBehavior.release();
+            }
         }
         updateHalo();
     }
@@ -383,6 +410,29 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         pressedOnIndicator = false;
         rippleBehavior.release();
         updateHalo();
+    }
+
+    private void onKeyPressed(KeyEvent event) {
+        if (isActivationKey(event.getCode()) && !keyDown && !getControl().isDisabled()) {
+            // Mirror the ring-press feedback for keyboard activation: pressed tier + centred
+            // ink. Never arm / fire / consume — the inherited ToggleButtonBehavior owns that
+            // (and consuming would suppress activation). The !keyDown guard ignores OS auto-repeat.
+            keyDown = true;
+            rippleBehavior.press(0.0, 0.0, true);
+            updateHalo();
+        }
+    }
+
+    private void onKeyReleased(KeyEvent event) {
+        if (isActivationKey(event.getCode()) && keyDown) {
+            keyDown = false;
+            rippleBehavior.release();
+            updateHalo();
+        }
+    }
+
+    private static boolean isActivationKey(KeyCode code) {
+        return code == KeyCode.SPACE || (!MAC && code == KeyCode.ENTER);
     }
 
     private void handleDisabledChanged() {
