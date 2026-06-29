@@ -646,7 +646,10 @@
     -fx-background-color: derive(-rx-outline, -8%);
 }
 
-.rx-switch-button:armed > .track {
+/* Pressed colour scoped to the track itself (.track:pressed): JavaFX sets the
+   pressed state up the press path, so the track is pressed only when the track /
+   thumb is pressed, never when the label is. */
+.rx-switch-button > .track:pressed {
     -fx-background-color: derive(-rx-outline, -16%);
 }
 
@@ -658,7 +661,7 @@
     -fx-background-color: -rx-primary-hover;
 }
 
-.rx-switch-button:selected:armed > .track {
+.rx-switch-button:selected > .track:pressed {
     -fx-background-color: -rx-primary-active;
 }
 
