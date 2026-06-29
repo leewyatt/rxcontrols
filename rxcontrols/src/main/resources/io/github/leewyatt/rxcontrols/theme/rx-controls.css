@@ -19,7 +19,7 @@
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
 .rx-masonry-pane, .rx-masonry-view, .rx-material-text-field, .rx-material-password-field,
-.rx-number-field, .rx-password-field, .rx-radio-toggle-button,
+.rx-number-field, .rx-password-field, .rx-radio-button, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-slider, .rx-range-slider,
@@ -686,6 +686,104 @@
 .rx-switch-button.small > .track > .state-overlay {
     -fx-pref-width: 32px;
     -fx-pref-height: 32px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRadioButton                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-radio-button {
+    -fx-label-padding: 0 0 0 0.4em;
+    /* transparent fill (not "no fill") so the whole control bounds is a click /
+       touch target, including the gap between the ring and the label. */
+    -fx-background-color: transparent;
+}
+.rx-radio-button:right {
+    -fx-label-padding: 0 0.4em 0 0;
+}
+
+/* Outer ring: a 2px stroked circle with a transparent (pickable) fill. */
+.rx-radio-button > .radio {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-radius: 50%;
+    -fx-background-insets: 0;
+    -fx-background-color: transparent;
+    -fx-border-radius: 50%;
+    -fx-border-width: 2px;
+    -fx-border-color: -rx-outline;
+}
+
+/* Inner point: always primary; the skin's dotScale animation hides it (scale 0)
+   when unselected, so there is no -fx-scale-x/y here. */
+.rx-radio-button > .radio > .dot {
+    -fx-pref-width: 9px;
+    -fx-pref-height: 9px;
+    -fx-background-radius: 50%;
+    -fx-background-color: -rx-primary;
+}
+
+/* Material state-layer halo: unbounded circle (50% radius), drawn below the dot;
+   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+.rx-radio-button > .radio > .state-overlay {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
+    -fx-background-radius: 50%;
+    -fx-background-color: -rx-state-overlay-color;
+}
+
+/* Explicit ripple radius (like the slider uses one, instead of the auto hypot radius
+   that is too large here): the ink fills the small touch circle, radius = halo / 2. */
+.rx-radio-button .ripple-layer {
+    -rx-ripple-radius: 18px;
+}
+
+/* Selected: the ring and the halo turn primary. Placed after the base rules so
+   source-order keeps the primary colours on a selected ring. */
+.rx-radio-button:selected > .radio {
+    -fx-border-color: -rx-primary;
+}
+.rx-radio-button:selected > .radio > .state-overlay {
+    -fx-background-color: -rx-primary;
+}
+
+.rx-radio-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Size variants (style classes, AtlantaFX-style): scale the ring, dot and halo.
+   The skin reads the pref sizes, so no Java change is needed. */
+.rx-radio-button.small > .radio {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+.rx-radio-button.small > .radio > .dot {
+    -fx-pref-width: 7px;
+    -fx-pref-height: 7px;
+}
+.rx-radio-button.small > .radio > .state-overlay {
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
+}
+.rx-radio-button.small .ripple-layer {
+    -rx-ripple-radius: 14px;
+}
+
+.rx-radio-button.large > .radio {
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+}
+.rx-radio-button.large > .radio > .dot {
+    -fx-pref-width: 11px;
+    -fx-pref-height: 11px;
+}
+.rx-radio-button.large > .radio > .state-overlay {
+    -fx-pref-width: 44px;
+    -fx-pref-height: 44px;
+}
+.rx-radio-button.large .ripple-layer {
+    -rx-ripple-radius: 22px;
 }
 
 /*******************************************************************************
