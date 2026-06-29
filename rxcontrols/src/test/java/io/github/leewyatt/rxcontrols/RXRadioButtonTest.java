@@ -518,35 +518,30 @@ public class RXRadioButtonTest {
     }
 
     /**
-     * Verifies the halo is scoped to the indicator: entering the ring raises it to the
-     * hover tier and exiting clears it, while entering the control (a label hover) does
-     * not raise it, and a disabled control never lights up.
+     * Verifies the halo's press feedback is scoped to the ring and gated by disabled: a
+     * press on the control (the label region) does not light the halo, and a disabled
+     * control shows nothing even on a ring press. The hover tier is driven by the
+     * framework's {@code indicator.hoverProperty()} (so "label hover does not light the
+     * halo" is verified on a real machine, like the sibling controls); the ring-press
+     * pressed tier itself is covered by {@link #ringPressRaisesPressedHaloAndExitDropsIt()}.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void haloIsScopedToIndicator() throws Exception {
+    public void pressHaloScopedToRingAndGatedByDisabled() throws Exception {
         runOnFx(() -> {
             RXRadioButton control = attach(new RXRadioButton("Credit card"));
             StateLayer halo = (StateLayer) control.lookup(".state-overlay");
-            Node ring = control.lookup(".radio");
+            Region ring = ring(control);
             assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
 
-            ring.fireEvent(mouse(ring, MouseEvent.MOUSE_ENTERED, 9.0, 9.0, false));
-            assertEquals(StateLayer.DEFAULT_HOVER_OPACITY, halo.getTargetOpacity(), EPSILON,
-                    "hovering the ring raises the halo to the hover tier");
+            // A press on the control (label region) is not a ring press, so the halo stays dark.
+            control.fireEvent(mouse(control, MouseEvent.MOUSE_PRESSED, 70.0, 9.0, true));
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON, "a label press does not light the halo");
 
-            ring.fireEvent(mouse(ring, MouseEvent.MOUSE_EXITED, -5.0, 9.0, false));
-            assertEquals(0.0, halo.getTargetOpacity(), EPSILON, "exiting the ring clears the halo");
-
-            // A pointer enter on the control (the label region) is not the ring's enter,
-            // so the halo stays dark.
-            control.fireEvent(mouse(control, MouseEvent.MOUSE_ENTERED, 70.0, 9.0, false));
-            assertEquals(0.0, halo.getTargetOpacity(), EPSILON, "a label hover does not light the halo");
-
-            // Disabled gates the halo even with the pointer over the ring.
+            // Disabled gates the halo even on a ring press.
             control.setDisable(true);
-            ring.fireEvent(mouse(ring, MouseEvent.MOUSE_ENTERED, 9.0, 9.0, false));
+            ring.fireEvent(mouse(ring, MouseEvent.MOUSE_PRESSED, 9.0, 9.0, true));
             assertEquals(0.0, halo.getTargetOpacity(), EPSILON, "a disabled control shows no halo");
         });
     }

@@ -88,9 +88,6 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
     /** Single reusable scale animation; rebuilt per toggle, so never registered with the disposer. */
     private Timeline timeline;
 
-    /** True while the pointer is inside the indicator; scopes the hover tier to the ring (not the label). */
-    private boolean pointerInIndicator;
-
     /**
      * True while a primary button is held on the indicator; scopes the pressed tier and
      * the press ink to the ring and keeps them in lockstep (both drop on release or on a
@@ -137,20 +134,15 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         disposer.registerListener(control.selectedProperty(), this::handleSelectedChanged);
         // Halo + ink event source scoped to the indicator: hovering / pressing the label
         // does not light up the ring (selection itself stays whole-control clickable via
-        // the inherited ToggleButtonBehavior). hover = pointer inside the indicator pick
-        // region (not the label, not the halo overflow); pressed = a primary press on the
-        // ring (tracked so the pressed tier and the ink drop together); focus = keyboard
-        // focus; dragged is never active (a radio cannot be dragged).
-        disposer.registerEventHandler(indicator, MouseEvent.MOUSE_ENTERED, event -> {
-            pointerInIndicator = true;
-            updateHalo();
-        });
-        disposer.registerEventHandler(indicator, MouseEvent.MOUSE_EXITED, event -> {
-            pointerInIndicator = false;
-            endPress();   // drag off the ring while held: drop the pressed tier + ink together
-        });
+        // the inherited ToggleButtonBehavior). hover = indicator.hoverProperty()
+        // (framework-maintained, like the sibling box / track); pressed = a primary press
+        // on the ring (tracked so the pressed tier and the ink drop together); focus =
+        // keyboard focus; dragged is never active (a radio cannot be dragged).
+        disposer.registerListener(indicator.hoverProperty(), this::updateHalo);
         disposer.registerEventHandler(indicator, MouseEvent.MOUSE_PRESSED, this::onIndicatorPressed);
         disposer.registerEventHandler(indicator, MouseEvent.MOUSE_RELEASED, event -> endPress());
+        // Dragging off the ring while held ends the press feedback (the pressed tier + ink).
+        disposer.registerEventHandler(indicator, MouseEvent.MOUSE_EXITED, event -> endPress());
         // Any pointer press (ring OR label) marks the resulting focus as pointer-driven so
         // the focus tier stays suppressed (:focus-visible stand-in). A capture-phase filter
         // runs before the inherited behavior's requestFocus, so the focus listener sees it.
@@ -361,7 +353,7 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         // pointer click (mouseFocus), even when the click landed on the label.
         boolean focusVisible = control.isFocused() && !mouseFocus;
         stateLayer.setState(
-                enabled && pointerInIndicator,      // hover: pointer inside the ring
+                enabled && indicator.isHover(),     // hover: pointer over the ring (framework-maintained)
                 enabled && focusVisible,            // focus: keyboard focus only
                 enabled && pressedOnIndicator,      // pressed: a primary press on the ring
                 false);                             // dragged: a radio cannot be dragged
@@ -395,10 +387,9 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
 
     private void handleDisabledChanged() {
         if (getControl().isDisabled()) {
-            // A disabled node may never see the release / exit, so end the press feedback
-            // and reset the pointer flags so re-enabling starts from a clean state
-            // (matching the RXSlider lifecycle).
-            pointerInIndicator = false;
+            // A disabled node may never see the release, so end the press feedback rather
+            // than strand it (matching the RXSlider lifecycle). Hover self-heals via
+            // indicator.hoverProperty(), so no manual hover reset is needed.
             pressedOnIndicator = false;
             rippleBehavior.clear();
         }
