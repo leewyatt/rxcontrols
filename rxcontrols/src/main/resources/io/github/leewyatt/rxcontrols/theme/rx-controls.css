@@ -517,24 +517,25 @@
  *                                                                             *
  ******************************************************************************/
 .rx-check-box {
-    -fx-label-padding: 0 0 0 0.5em;
+    /* No label gap of our own: the 40px touch target already reserves ~11px of
+       transparent space between the visible 18px box and the label (tunable). */
+    -fx-label-padding: 0;
     /* transparent fill (not "no fill") so the whole control bounds is a click /
        touch target, including the gap between the box and the label. */
     -fx-background-color: transparent;
 }
-.rx-check-box:right {
-    -fx-label-padding: 0 0.5em 0 0;
-}
 
-/* Small rounded box: an outline ring (outer layer) over a surface fill (inner
-   layer); the skin centres it vertically and resizes it to pref. */
+/* The .box is the 40px circular touch target (= the halo size): a transparent base
+   layer makes the whole 40px pickable, so hover / press anywhere in it lights the halo /
+   ink (like MUI / the Material 40dp touch target), not just the small box. The visible
+   18px rounded box (an outline ring over a surface fill) is inset 11px and centred. */
 .rx-check-box > .box {
-    -fx-pref-width: 18px;
-    -fx-pref-height: 18px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
     -fx-alignment: CENTER;
-    -fx-background-radius: 4px, 2px;
-    -fx-background-color: -rx-outline, -rx-surface;
-    -fx-background-insets: 0, 2;
+    -fx-background-radius: 0, 4px, 2px;
+    -fx-background-color: transparent, -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 11, 13;
 }
 
 /* The mark is one Region whose shape the pseudo-classes swap (check vs dash). Its
@@ -567,14 +568,14 @@
    label does not change the box; the state-layer halo behind the box gives the
    Material hover feedback. */
 .rx-check-box > .box:hover {
-    -fx-background-color: -rx-on-surface-secondary, -rx-surface-variant;
+    -fx-background-color: transparent, -rx-on-surface-secondary, -rx-surface-variant;
 }
 
 /* checked / indeterminate: solid primary box, white mark. Placed after :hover so
    source-order keeps the primary fill on a checked box that is also hovered. */
 .rx-check-box:selected > .box,
 .rx-check-box:indeterminate > .box {
-    -fx-background-color: -rx-primary, -rx-primary;
+    -fx-background-color: transparent, -rx-primary, -rx-primary;
 }
 
 .rx-check-box:disabled {

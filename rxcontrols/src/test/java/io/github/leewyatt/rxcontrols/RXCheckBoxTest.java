@@ -704,11 +704,11 @@ public class RXCheckBoxTest {
     // ==================== Halo / press ink ====================
 
     /**
-     * Verifies the state-overlay halo is present, unmanaged, mouse-transparent,
-     * larger than the whole control (overflows without inflating layout bounds),
-     * actually receives a CSS background (else it never paints — guards the
-     * setClipMode pitfall), and that the skin wiring raises its tier opacity on
-     * keyboard activation and clears it when idle.
+     * Verifies the state-overlay halo is present, unmanaged (so it never inflates layout
+     * bounds), mouse-transparent, sized to the box's touch-target circle (the 40px hit
+     * area), actually receives a CSS background (else it never paints — guards the
+     * setClipMode pitfall), and that the skin wiring raises its tier opacity on keyboard
+     * activation and clears it when idle.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -718,10 +718,10 @@ public class RXCheckBoxTest {
             RXCheckBox control = attach(new RXCheckBox("OK"));
             StateLayer halo = (StateLayer) control.lookup(".state-overlay");
             assertNotNull(halo);
-            assertFalse(halo.isManaged());
+            assertFalse(halo.isManaged(), "unmanaged, so it never inflates layout bounds");
             assertTrue(halo.isMouseTransparent());
-            assertTrue(halo.prefHeight(-1) > control.prefHeight(-1),
-                    "halo overflows the control without inflating its bounds");
+            assertEquals(box(control).prefHeight(-1), halo.prefHeight(-1), 0.5,
+                    "the halo fills the box's touch-target circle");
 
             // The halo must actually receive a CSS background, else it never paints.
             assertNotNull(halo.getBackground());
