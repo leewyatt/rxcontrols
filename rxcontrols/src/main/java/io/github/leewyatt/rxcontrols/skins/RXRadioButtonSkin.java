@@ -34,9 +34,10 @@ import java.util.Locale;
  * {@code ToggleButtonBehavior} (mouse arming, SPACE, ENTER off macOS and the
  * arrow-key group traversal) is installed for free; no key / mouse <em>activation</em>
  * is wired here — the skin adds only visual-feedback handlers (never arming or firing). The native {@code .radio} node is removed in {@link #updateChildren()}
- * and replaced by a self-drawn {@code .radio} {@link StackPane} (the outer ring)
- * holding a {@code .state-overlay} halo (drawn below) and a {@code .dot} (the inner
- * point). The dot appear / disappear is expressed by {@code scaleX/scaleY} and
+ * and replaced by a self-drawn {@code .radio} {@link StackPane} (the outer ring) holding
+ * a {@code .dot} (the inner point); the {@code .state-overlay} halo and the press ink are
+ * skin-level siblings drawn <em>behind</em> the ring (Material layering — the state layer
+ * sits below the content). The dot appear / disappear is expressed by {@code scaleX/scaleY} and
  * {@code opacity} (no per-frame layout invalidation), driven by a {@code dotScale}
  * ratio in {@code [0, 1]} whose target is {@code selected ? 1 : 0}. The label is
  * laid out beside the ring through {@link #layoutLabelInArea}.</p>
@@ -47,8 +48,8 @@ import java.util.Locale;
  * shows the focus tier, but a pointer click does not (a {@code :focus-visible}
  * stand-in), even when the click lands on the label. A primary press on the ring — or
  * keyboard activation (SPACE / ENTER off macOS) — deepens the halo to the pressed tier
- * and plays a centred M2 ripple ink (the {@code .ripple-layer}, drawn above the halo and
- * below the dot, clipped to the touch circle); a press on the label does not. The halo's round
+ * and plays a centred M2 ripple ink (the {@code .ripple-layer}, drawn behind the ring with
+ * the halo, clipped to the touch circle); a press on the label does not. The halo's round
  * shape and colour come entirely from CSS ({@code -fx-background-radius:50%} +
  * {@code -rx-state-overlay-color}); the {@link StateLayer} stays in its default
  * {@code ClipMode.NONE} and {@code setFill} is never called — doing so would run
@@ -135,11 +136,12 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         dot.getStyleClass().add("dot");
         dot.setManaged(false);
         dot.setMouseTransparent(true);
-        // Halo + ink + dot are unmanaged children of the indicator: the halo overflows
-        // the ring (a StackPane does not clip), and the skin positions them by hand.
-        // z-order: halo (steady tint) and ink (press ripple) below the dot. The halo
-        // keeps the default ClipMode.NONE; its round shape + colour are CSS driven.
-        indicator.getChildren().setAll(stateLayer, rippleLayer, dot);
+        // The dot is the only child of the ring (on top of the ring's stroke). The halo +
+        // ink are skin-level siblings drawn BEHIND the ring (added before it in
+        // updateChildren) — Material layering: the state layer sits below the content, so
+        // the ring's stroke and the dot stay crisp on top. Both halo + ink are unmanaged +
+        // mouse-transparent and overflow the ring; the skin positions them by hand.
+        indicator.getChildren().setAll(dot);
 
         updateChildren();   // remove the native .radio, add the self-drawn indicator
 
@@ -197,14 +199,16 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         if (indicator == null) {  // first call comes from the RadioButtonSkin constructor
             return;
         }
-        // Remove the native .radio (a StackPane with style class "radio" injected by
-        // the super skin); the identity check guards against deleting our own indicator,
-        // which carries the same style class.
+        // Remove the native .radio (re-injected by the super skin each call); the identity
+        // check guards against deleting our own ring, which carries the same style class.
         getChildren().removeIf(node ->
                 node != indicator && node.getStyleClass().contains(RADIO_STYLE_CLASS));
-        if (!getChildren().contains(indicator)) {
-            getChildren().add(indicator);
-        }
+        // Re-add our nodes (LabeledSkinBase.updateChildren cleared them via setAll, so this
+        // never duplicates) in z-order: halo + ink BEHIND the ring (Material — the state
+        // layer is below the content), the ring (with its dot) in front.
+        getChildren().add(stateLayer);
+        getChildren().add(rippleLayer);
+        getChildren().add(indicator);
     }
 
     // ==================== Layout ====================
@@ -239,17 +243,18 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         dot.resize(dotW, dotH);
         dot.relocate(snapPositionX((indW - dotW) / 2.0), snapPositionY((indH - dotH) / 2.0));
 
-        // Halo centred on the indicator and resized square (a 50% background radius
-        // rounds it); larger than the ring, so it reads as a circle around it. resize is
-        // required — relocate alone leaves it 0x0 and invisible.
+        // Halo + ink are skin-level children behind the ring: centred on the indicator in
+        // SKIN coordinates (hence the indX / indY offset) and resized square (a 50%
+        // background radius rounds them); larger than the ring, so the halo reads as a
+        // circle behind / around it. resize is required — relocate alone leaves it 0x0.
         double haloD = snapSizeX(stateLayer.prefWidth(-1));
-        double haloX = snapPositionX((indW - haloD) / 2.0);
-        double haloY = snapPositionY((indH - haloD) / 2.0);
+        double haloX = snapPositionX(indX + (indW - haloD) / 2.0);
+        double haloY = snapPositionY(indY + (indH - haloD) / 2.0);
         stateLayer.resize(haloD, haloD);
         stateLayer.relocate(haloX, haloY);
 
-        // Press ink shares the halo geometry (centred on the ring), clipped to a circle
-        // so the M2 ripple stays round within the touch region.
+        // Press ink shares the halo geometry, clipped to a circle so the M2 ripple stays
+        // round within the touch region.
         rippleLayer.resizeRelocate(haloX, haloY, haloD, haloD);
         Circle clip = (Circle) rippleLayer.getClip();
         if (clip == null) {

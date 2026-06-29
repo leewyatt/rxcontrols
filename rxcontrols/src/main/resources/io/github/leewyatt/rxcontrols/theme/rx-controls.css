@@ -694,24 +694,27 @@
  *                                                                             *
  ******************************************************************************/
 .rx-radio-button {
-    -fx-label-padding: 0 0 0 0.4em;
+    /* No label gap of our own: the 36px touch target already reserves ~9px of
+       transparent space between the visible 18px ring and the label (tunable). */
+    -fx-label-padding: 0;
     /* transparent fill (not "no fill") so the whole control bounds is a click /
        touch target, including the gap between the ring and the label. */
     -fx-background-color: transparent;
 }
-.rx-radio-button:right {
-    -fx-label-padding: 0 0.4em 0 0;
-}
 
-/* Outer ring: a 2px stroked circle with a transparent (pickable) fill. */
+/* The .radio is the 36px circular touch target (= the halo size): a transparent fill
+   over the whole circle makes it pickable, so hover / press anywhere in it lights the
+   halo / ink (like MUI / the Material 40dp touch target), not just the small ring. The
+   visible 18px ring is the 2px border, inset 9px and centred in the touch circle. */
 .rx-radio-button > .radio {
-    -fx-pref-width: 18px;
-    -fx-pref-height: 18px;
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
     -fx-background-radius: 50%;
     -fx-background-insets: 0;
     -fx-background-color: transparent;
     -fx-border-radius: 50%;
     -fx-border-width: 2px;
+    -fx-border-insets: 9px;
     -fx-border-color: -rx-outline;
 }
 
@@ -724,9 +727,10 @@
     -fx-background-color: -rx-primary;
 }
 
-/* Material state-layer halo: unbounded circle (50% radius), drawn below the dot;
+/* Material state-layer halo: unbounded circle (50% radius), a skin-level node drawn
+   BEHIND the ring (Material layering — the state layer sits below the content);
    tier opacity comes from the global .state-overlay rule, driven by the skin. */
-.rx-radio-button > .radio > .state-overlay {
+.rx-radio-button > .state-overlay {
     -fx-pref-width: 36px;
     -fx-pref-height: 36px;
     -fx-background-radius: 50%;
@@ -744,7 +748,7 @@
 .rx-radio-button:selected > .radio {
     -fx-border-color: -rx-primary;
 }
-.rx-radio-button:selected > .radio > .state-overlay {
+.rx-radio-button:selected > .state-overlay {
     -fx-background-color: -rx-primary;
 }
 
@@ -752,17 +756,20 @@
     -fx-opacity: 0.4;
 }
 
-/* Size variants (style classes, AtlantaFX-style): scale the ring, dot and halo.
-   The skin reads the pref sizes, so no Java change is needed. */
+/* Size variants (style classes, AtlantaFX-style): scale the touch target, ring, dot and
+   halo. The .radio pref = the halo size (the touch circle); the border-inset = (touch -
+   ring) / 2 keeps the visible ring centred. The skin reads the pref sizes, so no Java
+   change is needed. */
 .rx-radio-button.small > .radio {
-    -fx-pref-width: 14px;
-    -fx-pref-height: 14px;
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
+    -fx-border-insets: 7px;
 }
 .rx-radio-button.small > .radio > .dot {
     -fx-pref-width: 7px;
     -fx-pref-height: 7px;
 }
-.rx-radio-button.small > .radio > .state-overlay {
+.rx-radio-button.small > .state-overlay {
     -fx-pref-width: 28px;
     -fx-pref-height: 28px;
 }
@@ -771,14 +778,15 @@
 }
 
 .rx-radio-button.large > .radio {
-    -fx-pref-width: 22px;
-    -fx-pref-height: 22px;
+    -fx-pref-width: 44px;
+    -fx-pref-height: 44px;
+    -fx-border-insets: 11px;
 }
 .rx-radio-button.large > .radio > .dot {
     -fx-pref-width: 11px;
     -fx-pref-height: 11px;
 }
-.rx-radio-button.large > .radio > .state-overlay {
+.rx-radio-button.large > .state-overlay {
     -fx-pref-width: 44px;
     -fx-pref-height: 44px;
 }

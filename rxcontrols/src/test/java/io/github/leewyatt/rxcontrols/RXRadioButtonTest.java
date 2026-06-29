@@ -302,8 +302,9 @@ public class RXRadioButtonTest {
 
             Node ring = control.lookup(".radio");
             assertTrue(ring instanceof StackPane);
-            assertNotNull(ring.lookup(".dot"));
-            assertNotNull(ring.lookup(".state-overlay"));
+            assertNotNull(ring.lookup(".dot"), "the dot lives inside the ring");
+            assertNull(ring.lookup(".state-overlay"),
+                    "the halo is a skin-level sibling behind the ring, not a ring child");
         });
     }
 
@@ -495,22 +496,24 @@ public class RXRadioButtonTest {
     // ==================== Halo ====================
 
     /**
-     * Verifies the halo is present, unmanaged, mouse-transparent, larger than the whole
-     * control (overflows without inflating layout bounds) and actually receives a CSS
-     * background (else it never paints — guards the setClipMode pitfall).
+     * Verifies the halo is present, unmanaged (so it never inflates layout bounds),
+     * mouse-transparent, sized to the ring's touch-target circle (the ~36px hit area),
+     * and actually receives a CSS background (else it never paints — guards the
+     * setClipMode pitfall).
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void haloPaintsUnmanagedAndOverflows() throws Exception {
+    public void haloPaintsUnmanagedSizedToTouchTarget() throws Exception {
         runOnFx(() -> {
             RXRadioButton control = attach(new RXRadioButton("OK"));
             StateLayer halo = (StateLayer) control.lookup(".state-overlay");
+            Region ring = ring(control);
             assertNotNull(halo);
-            assertFalse(halo.isManaged());
+            assertFalse(halo.isManaged(), "unmanaged, so it never inflates layout bounds");
             assertTrue(halo.isMouseTransparent());
-            assertTrue(halo.prefHeight(-1) > control.prefHeight(-1),
-                    "the halo overflows the control without inflating its bounds");
+            assertEquals(ring.prefWidth(-1), halo.prefWidth(-1), 0.5,
+                    "the halo fills the ring's touch-target circle");
 
             assertNotNull(halo.getBackground());
             assertFalse(halo.getBackground().getFills().isEmpty());
