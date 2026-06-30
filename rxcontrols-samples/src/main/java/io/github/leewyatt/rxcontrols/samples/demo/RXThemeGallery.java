@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
@@ -13,7 +14,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -31,6 +31,8 @@ import java.util.List;
  * is built by {@link ThemeGalleryCards}.
  */
 public class RXThemeGallery extends Application {
+
+    private static final double CARD_WIDTH = 360.0;
 
     @Override
     public void start(Stage primaryStage) {
@@ -65,9 +67,18 @@ public class RXThemeGallery extends Application {
         return toolbar;
     }
 
-    private FlowPane buildGallery() {
-        FlowPane grid = new FlowPane(18, 18);
-        grid.setPadding(new Insets(18));
+    private RXMasonryPane buildGallery() {
+        final double gap = 32.0;
+        RXMasonryPane grid = new RXMasonryPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(gap);
+        grid.setVgap(gap);
+        grid.setColumnWidth(CARD_WIDTH);
+        grid.setFillWidth(false);
+        System.out.println(grid.getAnimationDuration().toMillis());
+        grid.animationDurationProperty().addListener((observable, oldValue, newValue) -> {
+            System.out.println(newValue.toMillis());
+        });
         for (NamedControl control : ThemeGalleryCards.cards()) {
             grid.getChildren().add(card(control));
         }
@@ -85,8 +96,8 @@ public class RXThemeGallery extends Application {
 
         VBox card = new VBox(10, name, new Separator(), stage);
         card.setPadding(new Insets(16));
-        card.setPrefWidth(360);
-        card.setMinWidth(360);
+        card.setPrefWidth(CARD_WIDTH);
+        card.setMinWidth(CARD_WIDTH);
         card.setMinHeight(Region.USE_PREF_SIZE);
         // Theme-neutral chrome: a translucent grey border reads on light and dark
         // surfaces alike, with a transparent fill so the themed background shows.
