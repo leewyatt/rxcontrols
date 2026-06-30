@@ -96,6 +96,7 @@ public class RXBoxDemo extends Application {
         row.setMaxHeight(Region.USE_PREF_SIZE);
 
         RXBox.setGrow(text, Priority.ALWAYS);
+        //  The open button can align within the row slot without an extra HBox / StackPane wrapper.
         RXBox.setAlignment(open, Pos.BOTTOM_CENTER);
         RXBox.setMargin(open, new Insets(0.0, 0.0, 0.0, 4.0));
         return row;
