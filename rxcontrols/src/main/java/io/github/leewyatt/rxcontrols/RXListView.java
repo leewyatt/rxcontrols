@@ -60,27 +60,37 @@ import java.util.Objects;
  */
 public class RXListView<T> extends Control {
 
-    // ==================== Constants ====================
+    private static final String DEFAULT_STYLE_CLASS = "rx-list-view";
 
-    /** Default fixed row height, in pixels. */
+    /**
+     * Default fixed row height, in pixels.
+     */
     public static final double DEFAULT_FIXED_CELL_SIZE = 28.0;
 
-    /** Default estimate for an unmeasured row in variable-height mode, in pixels. */
+    /**
+     * Default estimate for an unmeasured row in variable-height mode, in pixels.
+     */
     public static final double DEFAULT_ESTIMATED_CELL_SIZE = 48.0;
 
-    /** Default section-header row height, in pixels. */
+    /**
+     * Default section-header row height, in pixels.
+     */
     public static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
 
-    /** Default extra spacing inserted before each section after the first, in pixels. */
-    public static final double DEFAULT_SECTION_SPACING = 0.0;
+    /**
+     * Default extra spacing inserted before each section after the first, in pixels.
+     */
+    private static final double DEFAULT_SECTION_SPACING = 0.0;
 
-    /** Default for {@link #showSectionHeadersProperty()}. */
-    public static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
+    /**
+     * Default for {@link #showSectionHeadersProperty()}.
+     */
+    private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
 
-    /** Default for {@link #stickySectionHeaderProperty()}. */
-    public static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-list-view";
+    /**
+     * Default for {@link #stickySectionHeaderProperty()}.
+     */
+    private static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
 
     // ==================== Constructors ====================
 
