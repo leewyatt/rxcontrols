@@ -1,12 +1,14 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXBackdrop;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
 import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -221,11 +223,9 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
         Button close = new Button("Close");
         close.getStyleClass().add("dialog-close");
         close.setOnAction(event -> backdrop.hide());
-        HBox actions = new HBox(10.0, close);
-        actions.setAlignment(Pos.CENTER_RIGHT);
+        RXBox.setAlignment(close, Pos.CENTER_RIGHT);
 
-
-        VBox card = new VBox(12.0, title, copy, actions);
+        RXBox card = new RXBox(Orientation.VERTICAL, 12.0, title, copy, close);
         card.getStyleClass().add("dialog-card");
         card.setMaxWidth(340.0);
         card.setMaxHeight(Region.USE_PREF_SIZE);

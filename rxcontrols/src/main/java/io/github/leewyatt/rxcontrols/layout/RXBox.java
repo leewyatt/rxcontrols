@@ -46,7 +46,9 @@ import java.util.Objects;
  * still consume space, matching JavaFX pane semantics. In horizontal
  * orientation, {@link VPos#BASELINE} follows HBox-like text baseline
  * alignment. In vertical orientation, {@link VPos#BASELINE} falls back to
- * top-axis behavior and the pane itself reports no baseline.</p>
+ * top-axis behavior and the pane itself reports no baseline. Per-child
+ * {@link #setAlignment(Node, Pos) alignment} constraints can override this
+ * pane's alignment within an individual child's assigned layout area.</p>
  */
 public class RXBox extends Pane {
 
@@ -75,6 +77,7 @@ public class RXBox extends Pane {
     private static final String DEFAULT_STYLE_CLASS = "rx-box";
     private static final String GROW_CONSTRAINT = "rxbox-grow";
     private static final String MARGIN_CONSTRAINT = "rxbox-margin";
+    private static final String ALIGNMENT_CONSTRAINT = "rxbox-alignment";
     private static final double EPSILON = 1.0e-6;
 
     // ==================== Types ====================
@@ -142,6 +145,31 @@ public class RXBox extends Pane {
     }
 
     /**
+     * Sets the alignment constraint for a child. A non-null value overrides
+     * this pane's {@link #alignmentProperty() alignment} for that child within
+     * the child's assigned layout area. Setting {@code null} removes the
+     * constraint.
+     *
+     * @param child the child node
+     * @param value the child alignment, or {@code null}
+     * @throws NullPointerException if {@code child} is {@code null}
+     */
+    public static void setAlignment(Node child, Pos value) {
+        setConstraint(child, ALIGNMENT_CONSTRAINT, value);
+    }
+
+    /**
+     * Returns the alignment constraint for a child.
+     *
+     * @param child the child node
+     * @return the child alignment, or {@code null} if none is set
+     * @throws NullPointerException if {@code child} is {@code null}
+     */
+    public static Pos getAlignment(Node child) {
+        return (Pos) getConstraint(child, ALIGNMENT_CONSTRAINT);
+    }
+
+    /**
      * Removes all RXBox constraints from a child.
      *
      * @param child the child node
@@ -150,6 +178,7 @@ public class RXBox extends Pane {
     public static void clearConstraints(Node child) {
         setGrow(child, null);
         setMargin(child, null);
+        setAlignment(child, null);
     }
 
     private static void setConstraint(Node child, Object key, Object value) {
@@ -593,8 +622,10 @@ public class RXBox extends Pane {
             for (int i = 0, size = managed.size(); i < size; i++) {
                 Node child = managed.get(i);
                 Insets margin = getMargin(child);
+                Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, x, top, areaWidths[i], contentHeight,
-                        baselineOffset, margin, true, fillCrossAxis, hpos, vpos);
+                        baselineOffset, margin, true, fillCrossAxis,
+                        childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, true));
                 x += areaWidths[i] + space;
             }
         } else {
@@ -606,11 +637,26 @@ public class RXBox extends Pane {
             for (int i = 0, size = managed.size(); i < size; i++) {
                 Node child = managed.get(i);
                 Insets margin = getMargin(child);
+                Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, left, y, contentWidth, areaHeights[i],
-                        -1, margin, fillCrossAxis, true, hpos, vpos);
+                        -1, margin, fillCrossAxis, true,
+                        childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, false));
                 y += areaHeights[i] + space;
             }
         }
+    }
+
+    private static Pos childAlignmentOrDefault(Node child, Pos defaultAlignment) {
+        Pos childAlignment = getAlignment(child);
+        return childAlignment == null ? defaultAlignment : childAlignment;
+    }
+
+    private static VPos effectiveChildVPos(Pos childAlignment, VPos boxVPos, boolean horizontal) {
+        VPos childVPos = childAlignment.getVpos();
+        if (childVPos != VPos.BASELINE) {
+            return childVPos;
+        }
+        return horizontal && boxVPos == VPos.BASELINE ? VPos.BASELINE : VPos.TOP;
     }
 
     private boolean isHorizontal() {

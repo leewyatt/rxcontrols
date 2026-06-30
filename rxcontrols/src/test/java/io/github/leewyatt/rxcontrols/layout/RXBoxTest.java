@@ -39,12 +39,15 @@ public class RXBoxTest {
         Insets margin = new Insets(1.0, 2.0, 3.0, 4.0);
         RXBox.setGrow(first, Priority.ALWAYS);
         RXBox.setMargin(first, margin);
+        RXBox.setAlignment(first, Pos.BOTTOM_RIGHT);
         assertSame(Priority.ALWAYS, RXBox.getGrow(first));
         assertEquals(margin, RXBox.getMargin(first));
+        assertSame(Pos.BOTTOM_RIGHT, RXBox.getAlignment(first));
 
         RXBox.clearConstraints(first);
         assertNull(RXBox.getGrow(first));
         assertNull(RXBox.getMargin(first));
+        assertNull(RXBox.getAlignment(first));
     }
 
     /**
@@ -121,6 +124,42 @@ public class RXBoxTest {
 
         assertNodeMatches(defaultFirst, nullFirst, "first");
         assertNodeMatches(defaultSecond, nullSecond, "second");
+    }
+
+    /**
+     * Verifies a vertical child alignment constraint overrides the pane alignment.
+     */
+    @Test
+    public void verticalChildAlignmentOverridesPaneAlignment() {
+        FixedRegion rightAligned = fixedRegion(20.0, 10.0);
+        FixedRegion centered = fixedRegion(30.0, 10.0);
+        RXBox box = new RXBox(Orientation.VERTICAL, rightAligned, centered);
+        box.setAlignment(Pos.TOP_CENTER);
+        box.setFillCrossAxis(false);
+        RXBox.setAlignment(rightAligned, Pos.CENTER_RIGHT);
+
+        layout(box, 100.0, 60.0);
+
+        assertClose(80.0, rightAligned.getLayoutX(), "right child layout x");
+        assertClose(35.0, centered.getLayoutX(), "centered child layout x");
+    }
+
+    /**
+     * Verifies a horizontal child alignment constraint overrides the pane alignment.
+     */
+    @Test
+    public void horizontalChildAlignmentOverridesPaneAlignment() {
+        FixedRegion topAligned = fixedRegion(20.0, 10.0);
+        FixedRegion bottomAligned = fixedRegion(20.0, 20.0);
+        RXBox box = new RXBox(Orientation.HORIZONTAL, topAligned, bottomAligned);
+        box.setAlignment(Pos.BOTTOM_LEFT);
+        box.setFillCrossAxis(false);
+        RXBox.setAlignment(topAligned, Pos.TOP_LEFT);
+
+        layout(box, 80.0, 60.0);
+
+        assertClose(0.0, topAligned.getLayoutY(), "top child layout y");
+        assertClose(40.0, bottomAligned.getLayoutY(), "bottom child layout y");
     }
 
     /**
