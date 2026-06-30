@@ -24,6 +24,10 @@
     -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 24, 0, 0, 10);
 }
 
+.task-row {
+    -fx-pref-height: 132px;
+}
+
 .dialog-title {
     -fx-font-size: 22px;
     -fx-font-weight: bold;

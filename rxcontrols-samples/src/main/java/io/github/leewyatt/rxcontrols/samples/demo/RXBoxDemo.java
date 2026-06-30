@@ -56,21 +56,18 @@ public class RXBoxDemo extends Application {
 
     private Region createDialogCard() {
         Label title = label("Archive project?", "dialog-title");
+
         Label content = label(
                 "The project will move out of the active workspace. You can restore it later from archived items.",
                 "dialog-copy");
         content.setWrapText(true);
         content.setMaxWidth(320.0);
 
-        Button cancel = button("Cancel", "secondary-button");
-        Button archive = button("Archive", "primary-button");
-        RXBox actions = new RXBox(Orientation.HORIZONTAL, 10.0, cancel, archive);
-        actions.getStyleClass().add("dialog-actions");
-        actions.setAlignment(Pos.CENTER_RIGHT);
-        actions.setMaxWidth(Region.USE_PREF_SIZE);
-        RXBox.setAlignment(actions, Pos.CENTER_RIGHT);
+        Button button = button("OK", "primary-button");
+        // The button can align within the card's row slot without an extra HBox / StackPane wrapper.
+        RXBox.setAlignment(button, Pos.CENTER_RIGHT);
 
-        RXBox card = new RXBox(Orientation.VERTICAL, 12.0, title, content, actions);
+        RXBox card = new RXBox(Orientation.VERTICAL, 12.0, title, content, button);
         card.getStyleClass().add("dialog-card");
         card.setPadding(new Insets(24.0));
         card.setAlignment(Pos.CENTER_LEFT);
@@ -99,6 +96,9 @@ public class RXBoxDemo extends Application {
         row.setMaxHeight(Region.USE_PREF_SIZE);
 
         RXBox.setGrow(text, Priority.ALWAYS);
+        RXBox.setAlignment(icon, Pos.TOP_CENTER);
+        RXBox.setAlignment(status, Pos.TOP_CENTER);
+        RXBox.setAlignment(open, Pos.BOTTOM_CENTER);
         RXBox.setMargin(open, new Insets(0.0, 0.0, 0.0, 4.0));
         return row;
     }
