@@ -1,65 +1,86 @@
 .root {
-    -fx-background-color: #f5f7fb;
-    -fx-padding: 16px;
+    -fx-background-color: #f4f7fb;
+    -fx-padding: 24px;
 }
 
-.toolbar {
-    -fx-padding: 14px;
-    -fx-background-color: white;
+.demo-pane {
+    -fx-background-color: #ffffff;
     -fx-background-radius: 8px;
-    -fx-border-color: #d9e0ea;
+    -fx-border-color: #d9e2ef;
     -fx-border-radius: 8px;
 }
 
-.field-label {
-    -fx-min-width: 84px;
-    -fx-text-fill: #4b5563;
+.pane-title {
+    -fx-padding: 18px;
+    -fx-font-size: 13px;
     -fx-font-weight: bold;
+    -fx-text-fill: #475569;
 }
 
-.value-label {
-    -fx-min-width: 72px;
-    -fx-alignment: center-right;
-    -fx-text-fill: #1f2937;
-}
-
-.demo-frame {
+.dialog-card,
+.task-row {
     -fx-background-color: white;
     -fx-background-radius: 8px;
-    -fx-border-color: #ccd5e2;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 24, 0, 0, 10);
+}
+
+.dialog-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.dialog-copy,
+.task-detail {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.dialog-actions {
+    -fx-padding: 8px 0 0 0;
+}
+
+.task-icon {
+    -fx-min-width: 46px;
+    -fx-min-height: 46px;
+    -fx-max-width: 46px;
+    -fx-max-height: 46px;
+    -fx-background-color: #dbeafe;
+    -fx-background-radius: 8px;
+    -fx-border-color: #93c5fd;
     -fx-border-radius: 8px;
 }
 
-.demo-box {
-    -fx-background-color: #eef2ff;
-    -fx-background-radius: 8px;
-    -fx-border-color: #c7d2fe;
-    -fx-border-radius: 8px;
+.task-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.status-pill {
+    -fx-padding: 5px 10px;
+    -fx-background-color: #dcfce7;
+    -fx-background-radius: 999px;
+    -fx-text-fill: #166534;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
 }
 
 .demo-button {
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 7px;
     -fx-padding: 8px 16px;
-}
-
-.demo-button-blue {
-    -fx-background-color: #4f8cff;
-}
-
-.demo-button-green {
-    -fx-background-color: #42b883;
-}
-
-.demo-button-pink {
-    -fx-background-color: #ec4899;
-}
-
-.demo-label {
-    -fx-padding: 6px 12px;
-    -fx-background-color: #fde68a;
-    -fx-background-radius: 6px;
-    -fx-text-fill: #92400e;
     -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.primary-button {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+}
+
+.secondary-button {
+    -fx-background-color: white;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 7px;
+    -fx-text-fill: #334155;
 }
