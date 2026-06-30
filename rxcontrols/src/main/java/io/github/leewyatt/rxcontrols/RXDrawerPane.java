@@ -92,6 +92,11 @@ public class RXDrawerPane extends Control {
     public static final DrawerMode DEFAULT_DRAWER_MODE = DrawerMode.OVERLAY;
 
     /**
+     * Default open/close animation interpolator, also the {@code null} fallback.
+     */
+    public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
+
+    /**
      * Default open/close animation enabled state.
      */
     private static final boolean DEFAULT_ANIMATED = true;
@@ -100,11 +105,6 @@ public class RXDrawerPane extends Control {
      * Default open/close animation duration.
      */
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(220.0);
-
-    /**
-     * Default open/close animation interpolator, also the {@code null} fallback.
-     */
-    public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     /**
      * Default showing state.
