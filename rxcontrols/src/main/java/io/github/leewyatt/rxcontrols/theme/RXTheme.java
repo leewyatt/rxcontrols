@@ -37,7 +37,7 @@ import java.util.Objects;
  * afterwards.
  *
  * <p>For matching an external <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
- * theme instead of the built-in palette, use {@link RXAtlantaFXThemeBridge}.
+ * theme instead of the built-in palette, use {@link AtlantaFXThemeBridge}.
  */
 public final class RXTheme {
 

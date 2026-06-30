@@ -162,13 +162,13 @@
 
 <h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>
 <p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> can make RxControls
-   follow the host theme with <code>RXAtlantaFXThemeBridge</code>. It layers an <b>author-origin</b> stylesheet
+   follow the host theme with <code>AtlantaFXThemeBridge</code>. It layers an <b>author-origin</b> stylesheet
    (<code>rx-controls-atlantafx.css</code>) that re-points the color role tokens above at AtlantaFX
    <code>-color-*</code> functional tokens. Install the AtlantaFX theme as the Application user-agent
    stylesheet <b>before</b> building the scene, then apply the bridge:</p>
 <pre><code>Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 Scene scene = new Scene(root);
-RXAtlantaFXThemeBridge.install(scene);   // popups opened afterwards follow it too</code></pre>
+AtlantaFXThemeBridge.install(scene);   // popups opened afterwards follow it too</code></pre>
 <p>Apply at scene level (recommended) or to a single <code>Parent</code> subtree
    (<code>install(Parent)</code>) when mixing themes. A scene-level bridge reaches popups (e.g.
    <code>RXCascader</code>'s) because the popup snapshots its owner scene's stylesheets at show time;
