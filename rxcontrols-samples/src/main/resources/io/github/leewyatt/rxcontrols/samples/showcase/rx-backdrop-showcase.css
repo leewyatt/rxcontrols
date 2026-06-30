@@ -1,0 +1,61 @@
+.backdrop-preview {
+    -fx-padding: 28px;
+}
+
+.dashboard {
+    -fx-padding: 26px;
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #eaf2ff);
+    -fx-background-radius: 8px;
+    -fx-border-color: #d6e2f0;
+    -fx-border-radius: 8px;
+    -fx-pref-width: 520px;
+    -fx-pref-height: 360px;
+}
+
+.dashboard-title {
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.dashboard-subtitle,
+.dialog-copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.preview-primary-button,
+.dialog-close {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7px;
+    -fx-padding: 8px 18px;
+    -fx-cursor: hand;
+}
+
+.preview-secondary-button {
+    -fx-background-color: white;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 7px;
+    -fx-text-fill: #334155;
+    -fx-padding: 8px 18px;
+    -fx-cursor: hand;
+}
+
+.showcase-backdrop {
+    -fx-background-color: rgba(15, 23, 42, 0.46);
+}
+
+.dialog-card {
+    -fx-padding: 22px;
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.24), 28, 0, 0, 14);
+}
+
+.dialog-title {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}

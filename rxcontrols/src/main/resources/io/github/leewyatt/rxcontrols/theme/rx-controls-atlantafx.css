@@ -14,7 +14,7 @@
  * rx-controls.css; RXAtlantaFXThemeBridgeTest fails otherwise.                     *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,

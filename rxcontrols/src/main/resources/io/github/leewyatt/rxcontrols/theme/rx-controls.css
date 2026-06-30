@@ -11,7 +11,7 @@
  * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-avatar, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -1405,6 +1405,18 @@
 .rx-segmented-step-indicator > .track,
 .rx-segmented-step-indicator > .segment-fill {
     -fx-background-radius: 0px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBackdrop                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-backdrop {
+    -fx-background-color: #00000052;
+    -rx-fade-in-duration: 250ms;
+    -rx-fade-out-duration: 250ms;
 }
 
 /*******************************************************************************

@@ -1,0 +1,61 @@
+.rx-backdrop-demo {
+    -fx-background-color: #eef2f7;
+    -fx-padding: 28px;
+}
+
+.dashboard {
+    -fx-padding: 26px;
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #edf4ff);
+    -fx-background-radius: 8px;
+    -fx-border-color: #d6e2f0;
+    -fx-border-radius: 8px;
+    -fx-pref-width: 520px;
+    -fx-pref-height: 360px;
+}
+
+.dashboard-title {
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.dashboard-subtitle,
+.modal-copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.primary-button {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7px;
+    -fx-padding: 8px 18px;
+    -fx-cursor: hand;
+}
+
+.secondary-button {
+    -fx-background-color: white;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 7px;
+    -fx-text-fill: #334155;
+    -fx-padding: 8px 18px;
+    -fx-cursor: hand;
+}
+
+.app-backdrop {
+    -fx-background-color: rgba(15, 23, 42, 0.46);
+}
+
+.modal-card {
+    -fx-padding: 24px;
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.22), 28, 0, 0, 14);
+}
+
+.modal-title {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
