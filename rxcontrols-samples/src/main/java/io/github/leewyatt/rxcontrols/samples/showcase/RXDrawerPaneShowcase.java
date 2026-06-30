@@ -38,7 +38,7 @@ import java.util.function.Consumer;
  */
 public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
-    private static final double DEFAULT_THICKNESS = 320.0;
+    private static final double DEFAULT_THICKNESS = 260;
 
     private RXDrawerPane drawer;
     private final StringProperty lastEvent = new SimpleStringProperty("—");
