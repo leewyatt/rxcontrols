@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -706,15 +707,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
         double pref = (Double.isFinite(appPref) && appPref > 0.0) ? appPref
                 : (contentPref > 0.0 ? contentPref : DEFAULT_DRAWER_THICKNESS);
-        return clampSize(contentMin, pref, contentMax);
-    }
-
-    // Mirrors the package-private Region.boundedSize: clamp pref into [min, max] with
-    // min taking precedence when min > max, so the content min is never violated.
-    private static double clampSize(double min, double pref, double max) {
-        double atLeastMin = Math.max(pref, min);
-        double cap = min >= max ? min : max;
-        return Math.min(atLeastMin, cap);
+        return RXMath.clamp(pref, contentMin, contentMax);
     }
 
     private double closedTranslate() {
