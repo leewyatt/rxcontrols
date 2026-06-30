@@ -70,25 +70,14 @@ import java.util.List;
  */
 public class RXDrawerPane extends Control {
 
-    // ==================== Enums ====================
+    private static final String DEFAULT_STYLE_CLASS = "rx-drawer-pane";
 
-    /**
-     * How an {@link RXDrawerPane} positions its drawer panel relative to the main
-     * content.
-     */
-    public enum DrawerMode {
-
-        /**
-         * The panel floats over the content, which stays in place.
-         */
-        OVERLAY,
-
-        /**
-         * The panel pushes the content aside and relayouts the content area as it
-         * opens.
-         */
-        PUSH
-    }
+    private static final PseudoClass OPEN_PSEUDO_CLASS = PseudoClass.getPseudoClass("open");
+    private static final PseudoClass LEFT_PSEUDO_CLASS = PseudoClass.getPseudoClass("left");
+    private static final PseudoClass RIGHT_PSEUDO_CLASS = PseudoClass.getPseudoClass("right");
+    private static final PseudoClass TOP_PSEUDO_CLASS = PseudoClass.getPseudoClass("top");
+    private static final PseudoClass BOTTOM_PSEUDO_CLASS = PseudoClass.getPseudoClass("bottom");
+    private static final PseudoClass PUSH_PSEUDO_CLASS = PseudoClass.getPseudoClass("push");
 
     // ==================== Constants ====================
 
@@ -148,15 +137,6 @@ public class RXDrawerPane extends Control {
      * Default for whether pressing ESC requests a close.
      */
     private static final boolean DEFAULT_CLOSE_ON_ESC = true;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-drawer-pane";
-
-    private static final PseudoClass OPEN_PSEUDO_CLASS = PseudoClass.getPseudoClass("open");
-    private static final PseudoClass LEFT_PSEUDO_CLASS = PseudoClass.getPseudoClass("left");
-    private static final PseudoClass RIGHT_PSEUDO_CLASS = PseudoClass.getPseudoClass("right");
-    private static final PseudoClass TOP_PSEUDO_CLASS = PseudoClass.getPseudoClass("top");
-    private static final PseudoClass BOTTOM_PSEUDO_CLASS = PseudoClass.getPseudoClass("bottom");
-    private static final PseudoClass PUSH_PSEUDO_CLASS = PseudoClass.getPseudoClass("push");
 
     // ==================== Constructors ====================
 
@@ -949,7 +929,7 @@ public class RXDrawerPane extends Control {
     }
 
     private ObjectProperty<EventHandler<RXDrawerEvent>> newHandlerProperty(String name,
-                                                                          EventType<RXDrawerEvent> type) {
+                                                                           EventType<RXDrawerEvent> type) {
         return new ObjectPropertyBase<>() {
             @Override
             protected void invalidated() {
@@ -1097,5 +1077,25 @@ public class RXDrawerPane extends Control {
     @Override
     protected List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
+    }
+
+    // ==================== Enums ====================
+
+    /**
+     * How an {@link RXDrawerPane} positions its drawer panel relative to the main
+     * content.
+     */
+    public enum DrawerMode {
+
+        /**
+         * The panel floats over the content, which stays in place.
+         */
+        OVERLAY,
+
+        /**
+         * The panel pushes the content aside and relayouts the content area as it
+         * opens.
+         */
+        PUSH
     }
 }
