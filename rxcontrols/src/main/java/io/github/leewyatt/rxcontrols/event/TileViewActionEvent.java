@@ -8,7 +8,7 @@ import javafx.event.EventType;
  * Event fired when a tile is activated in an {@link RXTileView} — by pressing
  * {@code Enter} on the focused tile or double-clicking it. Install a handler via
  * {@link RXTileView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(RXTileViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(TileViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning tile view
  */
@@ -42,7 +42,7 @@ public class TileViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<RXTileViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<TileViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
     public static <T> EventType<TileViewActionEvent<T>> actionType() {

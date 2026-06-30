@@ -8,7 +8,7 @@ import javafx.event.EventType;
  * Event fired when an item is activated in an {@link RXListView} — by pressing
  * {@code Enter} on the focused row or double-clicking it. Install a handler via
  * {@link RXListView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(RXListViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(ListViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning list view
  */
@@ -42,7 +42,7 @@ public class ListViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<RXListViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<ListViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
     public static <T> EventType<ListViewActionEvent<T>> actionType() {

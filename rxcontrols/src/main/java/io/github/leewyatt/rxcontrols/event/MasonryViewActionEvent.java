@@ -8,7 +8,7 @@ import javafx.event.EventType;
  * Event fired when a cell is activated in an {@link RXMasonryView} — by pressing
  * {@code Enter} on the focused cell or double-clicking it. Install a handler via
  * {@link RXMasonryView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(RXMasonryViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(MasonryViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning masonry view
  */
@@ -42,7 +42,7 @@ public class MasonryViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<RXMasonryViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<MasonryViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
     public static <T> EventType<MasonryViewActionEvent<T>> actionType() {
