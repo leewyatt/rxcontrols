@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
+import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
@@ -78,7 +78,7 @@ public class RXDialogTest {
             assertTrue(dialog.isModal());
             assertTrue(dialog.isCloseOnEsc());
             assertTrue(dialog.isCloseOnScrimClick());
-            assertEquals(RXDialogActionsLayout.BOX, dialog.getActionsLayout());
+            assertEquals(DialogActionsLayout.BOX, dialog.getActionsLayout());
             assertNull(dialog.getResult());
             assertNull(dialog.getContent());
             assertTrue(dialog.getButtonTypes().isEmpty());
@@ -477,7 +477,7 @@ public class RXDialogTest {
                     "BOX keeps buttonTypes insertion order");
 
             // PLATFORM switches to the native ButtonBar.
-            dialog.setActionsLayout(RXDialogActionsLayout.PLATFORM);
+            dialog.setActionsLayout(DialogActionsLayout.PLATFORM);
             assertTrue(dialog.lookup(".actions") instanceof ButtonBar, "PLATFORM uses a ButtonBar");
 
             dialog.close();

@@ -4,7 +4,7 @@ package io.github.leewyatt.rxcontrols.enums;
  * How an {@link io.github.leewyatt.rxcontrols.RXDialog RXDialog} lays out the action
  * buttons it builds from its {@code buttonTypes}.
  */
-public enum RXDialogActionsLayout {
+public enum DialogActionsLayout {
 
     /**
      * A plain {@link io.github.leewyatt.rxcontrols.layout.RXBox RXBox} row of buttons in

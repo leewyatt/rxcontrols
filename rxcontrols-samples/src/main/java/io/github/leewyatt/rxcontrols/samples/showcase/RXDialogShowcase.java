@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.RXDialogs;
-import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
+import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -188,7 +188,7 @@ public class RXDialogShowcase extends RXShowcaseApplication {
             RXDialogs.create(b).type(RXDialogs.Type.WARNING)
                     .title("Unsaved changes").message("Save your changes before closing?")
                     .buttons(ButtonType.CANCEL, discard, save)
-                    .actionsLayout(RXDialogActionsLayout.PLATFORM)
+                    .actionsLayout(DialogActionsLayout.PLATFORM)
                     .closeButton(true).draggable(true)
                     .show()
                     .thenAccept(result -> lastResult.set(
@@ -251,8 +251,8 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     }
 
     private Node actionsGrid() {
-        ComboBox<RXDialogActionsLayout> layout = new ComboBox<>(
-                FXCollections.observableArrayList(RXDialogActionsLayout.values()));
+        ComboBox<DialogActionsLayout> layout = new ComboBox<>(
+                FXCollections.observableArrayList(DialogActionsLayout.values()));
         layout.setValue(dialog.getActionsLayout());
         layout.valueProperty().addListener((obs, old, value) -> dialog.setActionsLayout(value));
         layout.setMaxWidth(Double.MAX_VALUE);

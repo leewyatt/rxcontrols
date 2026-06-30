@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
+import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
@@ -319,7 +319,7 @@ public final class RXDialogs {
         private Boolean closeOnScrimClick;
         private Boolean draggable;
         private Boolean resizable;
-        private RXDialogActionsLayout actionsLayout;
+        private DialogActionsLayout actionsLayout;
         private Boolean closeButton;
         private ObservableValue<Boolean> validCondition;
 
@@ -440,13 +440,13 @@ public final class RXDialogs {
         }
 
         /**
-         * Sets the action-bar layout (for example {@link RXDialogActionsLayout#PLATFORM}
+         * Sets the action-bar layout (for example {@link DialogActionsLayout#PLATFORM}
          * to follow OS button ordering).
          *
          * @param value the actions layout
          * @return this builder
          */
-        public Builder actionsLayout(RXDialogActionsLayout value) {
+        public Builder actionsLayout(DialogActionsLayout value) {
             this.actionsLayout = value;
             return this;
         }

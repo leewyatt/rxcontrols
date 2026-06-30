@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
+import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
@@ -318,7 +318,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     // plain RXBox row in buttonTypes order, fully styled by CSS on .actions (alignment /
     // spacing / orientation); there is no per-layout geometry code on purpose.
     private Region buildActionsContainer(List<RXButton> buttons) {
-        if (actionsLayoutOrDefault() == RXDialogActionsLayout.PLATFORM) {
+        if (actionsLayoutOrDefault() == DialogActionsLayout.PLATFORM) {
             ButtonBar bar = new ButtonBar();
             bar.getButtons().setAll(buttons);
             return bar;
@@ -328,8 +328,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         return row;
     }
 
-    private RXDialogActionsLayout actionsLayoutOrDefault() {
-        RXDialogActionsLayout value = getSkinnable().getActionsLayout();
+    private DialogActionsLayout actionsLayoutOrDefault() {
+        DialogActionsLayout value = getSkinnable().getActionsLayout();
         return value == null ? RXDialog.DEFAULT_ACTIONS_LAYOUT : value;
     }
 

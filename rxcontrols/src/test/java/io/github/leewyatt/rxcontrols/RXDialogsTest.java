@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
+import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -302,10 +302,10 @@ public class RXDialogsTest {
 
             // Extra knobs configured by chaining — no new factory overload needed.
             RXDialogs.create(owner).type(RXDialogs.Type.INFORMATION).title("T").message("M")
-                    .actionsLayout(RXDialogActionsLayout.PLATFORM).closeButton(true).show();
+                    .actionsLayout(DialogActionsLayout.PLATFORM).closeButton(true).show();
             RXDialog<?> dialog = shownDialog(scene);
 
-            assertEquals(RXDialogActionsLayout.PLATFORM, dialog.getActionsLayout(),
+            assertEquals(DialogActionsLayout.PLATFORM, dialog.getActionsLayout(),
                     "actionsLayout flows to the dialog");
             assertTrue(dialog.isShowCloseButton(),
                     "closeButton(true) shows the dialog's close (X)");
