@@ -56,6 +56,20 @@ public final class RXMath {
     }
 
     /**
+     * Clamps a value to the inclusive range {@code [min, max]} without rejecting
+     * degenerate bounds. When {@code min > max}, {@code min} takes precedence and
+     * is returned. {@code NaN} inputs are propagated.
+     *
+     * @param value the value to clamp
+     * @param min   the inclusive lower bound
+     * @param max   the inclusive upper bound
+     * @return the clamped value, or {@code min} when {@code min > max}
+     */
+    public static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
      * Clamps a value to the inclusive range {@code [min, max]}. {@code NaN}
      * values are returned unchanged.
      *
@@ -65,7 +79,7 @@ public final class RXMath {
      * @return the clamped value
      * @throws IllegalArgumentException if {@code min > max}
      */
-    public static double clamp(double value, double min, double max) {
+    public static double clampStrict(double value, double min, double max) {
         if (min > max) {
             throw new IllegalArgumentException("min cannot be greater than max");
         }
@@ -79,6 +93,20 @@ public final class RXMath {
     }
 
     /**
+     * Clamps a value to the inclusive range {@code [min, max]} without rejecting
+     * degenerate bounds. When {@code min > max}, {@code min} takes precedence and
+     * is returned.
+     *
+     * @param value the value to clamp
+     * @param min   the inclusive lower bound
+     * @param max   the inclusive upper bound
+     * @return the clamped value, or {@code min} when {@code min > max}
+     */
+    public static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /**
      * Clamps a value to the inclusive range {@code [min, max]}.
      *
      * @param value the value to clamp
@@ -87,7 +115,7 @@ public final class RXMath {
      * @return the clamped value
      * @throws IllegalArgumentException if {@code min > max}
      */
-    public static int clamp(int value, int min, int max) {
+    public static int clampStrict(int value, int min, int max) {
         if (min > max) {
             throw new IllegalArgumentException("min cannot be greater than max");
         }
