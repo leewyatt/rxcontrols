@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -212,6 +214,42 @@ public class PaneRelayoutAnimatorTest {
             assertTrue(removed.get(), "leaving exited");
             assertEquals(0.0, survivor.getTranslateX(), EPSILON, "survivor settled");
             assertEquals(0.0, leaving.getTranslateX(), EPSILON, "leaving reset");
+        });
+    }
+
+    /**
+     * Verifies that a pane relaid on every pulse with an unchanged target — which
+     * re-submits each node's current translate as the FLIP offset — does not restart
+     * the in-flight tween. A one-second tween restarted ~60 times a second would
+     * crawl for many seconds; the animator must instead let the original tween run
+     * to completion so the node settles within its nominal duration.
+     */
+    @Test
+    public void perPulseSameTargetRelayoutDoesNotResetTweenClock() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = new Region();
+        AtomicReference<Timeline> reissue = new AtomicReference<>();
+        Duration longTween = Duration.millis(1000.0);
+
+        runOnFx(() -> {
+            node.setTranslateX(200.0);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 200.0, 0.0, false)),
+                    true, longTween, Interpolator.EASE_BOTH);
+            Timeline pulse = new Timeline(new KeyFrame(Duration.millis(16.0), e ->
+                    animator.runRelayout(
+                            List.of(new PaneRelayoutAnimator.Move(node, node.getTranslateX(), 0.0, false)),
+                            true, longTween, Interpolator.EASE_BOTH)));
+            pulse.setCycleCount(Timeline.INDEFINITE);
+            pulse.play();
+            reissue.set(pulse);
+        });
+
+        // Without the skip-rearm guard this never settles within the 5 s timeout.
+        waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON);
+
+        runOnFx(() -> {
+            reissue.get().stop();
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX settled despite per-pulse relayout");
         });
     }
 

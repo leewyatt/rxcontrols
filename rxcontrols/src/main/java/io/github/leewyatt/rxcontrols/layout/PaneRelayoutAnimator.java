@@ -69,20 +69,38 @@ final class PaneRelayoutAnimator {
         for (Move move : moves) {
             passNodes.add(move.node());
         }
+        boolean removedActiveMove = false;
         for (Node node : new ArrayList<>(activeMoves.keySet())) {
             if (!passNodes.contains(node)) {
                 finalizeMove(node);
+                removedActiveMove = true;
             }
         }
-        if (relayoutTimeline != null) {
-            relayoutTimeline.stop();
-            relayoutTimeline = null;
-        }
         if (!animate) {
+            if (relayoutTimeline != null) {
+                relayoutTimeline.stop();
+                relayoutTimeline = null;
+            }
             for (Move move : moves) {
                 finalizeMove(move.node());
             }
             return;
+        }
+
+        // A pass whose nodes are all already animating toward an unchanged target
+        // needs no new timeline: the in-flight tween already heads to the right
+        // place. Rebuilding it would reset the tween clock, so a pane relaid on
+        // every pulse (e.g. by an animated child forcing a parent relayout) would
+        // restart the tween each frame and stretch a sub-second animation into a
+        // multi-second crawl. Only (re)arm when a target changes or a node fades in.
+        // Never take this shortcut after dropping an active node above: the running
+        // timeline still holds it, so it must be rebuilt to stop writing that node.
+        if (!removedActiveMove && relayoutTimeline != null && !needsRearm(moves)) {
+            return;
+        }
+        if (relayoutTimeline != null) {
+            relayoutTimeline.stop();
+            relayoutTimeline = null;
         }
 
         lastDuration = duration;
@@ -112,6 +130,33 @@ final class PaneRelayoutAnimator {
             return;
         }
         relayoutTimeline = playRelayout(keyValues, animated, duration);
+    }
+
+    // True when this pass introduces a move the running timeline does not already
+    // cover: a fading-in node, or a node whose layout target shifted since its tween
+    // was armed. A node still tweening toward the same target — its from-translate
+    // (offset from the freshly written layout position) equals its live translate —
+    // is left to its existing timeline, so a per-pulse relayout does not reset the
+    // tween clock.
+    private boolean needsRearm(List<Move> moves) {
+        for (Move move : moves) {
+            Node node = move.node();
+            if (move.fade()) {
+                return true;
+            }
+            boolean hasTranslation = Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
+                    || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON;
+            if (!hasTranslation) {
+                continue;
+            }
+            boolean tweeningToSameTarget = activeMoves.containsKey(node)
+                    && Math.abs(move.fromTranslateX() - node.getTranslateX()) < MOVE_EPSILON
+                    && Math.abs(move.fromTranslateY() - node.getTranslateY()) < MOVE_EPSILON;
+            if (!tweeningToSameTarget) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
