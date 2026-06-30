@@ -145,6 +145,24 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies child alignment is visible with fillCrossAxis enabled when the child has a finite max width.
+     */
+    @Test
+    public void verticalChildAlignmentUsesConstrainedCrossAxisMax() {
+        FixedRegion rightAligned = fixedRegion(20.0, 10.0);
+        rightAligned.setMaxWidth(Region.USE_PREF_SIZE);
+        RXBox box = new RXBox(Orientation.VERTICAL, rightAligned);
+        box.setAlignment(Pos.TOP_LEFT);
+        box.setFillCrossAxis(true);
+        RXBox.setAlignment(rightAligned, Pos.CENTER_RIGHT);
+
+        layout(box, 100.0, 60.0);
+
+        assertClose(80.0, rightAligned.getLayoutX(), "right child layout x");
+        assertClose(20.0, rightAligned.getWidth(), "right child width");
+    }
+
+    /**
      * Verifies a horizontal child alignment constraint overrides the pane alignment.
      */
     @Test
@@ -475,6 +493,72 @@ public class RXBoxTest {
         layout(rxBox, 120.0, 80.0);
 
         assertClose(18.0, baselineChild.getHeight(), "baseline child height");
+    }
+
+    /**
+     * Verifies a non-baseline child alignment does not move the baseline group.
+     */
+    @Test
+    public void childTopAlignmentDoesNotContributeToBaselineGroup() {
+        BaselineRegion topAligned = baselineRegion(20.0, 100.0, 90.0);
+        BaselineRegion baselineAligned = baselineRegion(20.0, 20.0, 10.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, topAligned, baselineAligned);
+        rxBox.setAlignment(Pos.BASELINE_LEFT);
+        rxBox.setFillCrossAxis(false);
+        RXBox.setAlignment(topAligned, Pos.TOP_LEFT);
+
+        layout(rxBox, 80.0, 100.0);
+
+        assertClose(0.0, topAligned.getLayoutY(), "top child layout y");
+        assertClose(0.0, baselineAligned.getLayoutY(), "baseline child layout y");
+        assertClose(10.0, baselineAligned.getLayoutY() + baselineAligned.getBaselineOffset(),
+                "baseline child baseline");
+        assertClose(10.0, rxBox.getBaselineOffset(), "box baseline offset");
+    }
+
+    /**
+     * Verifies non-baseline children can still fill the cross axis in a baseline pane.
+     */
+    @Test
+    public void nonBaselineChildFillsCrossAxisInBaselinePane() {
+        BaselineRegion topAligned = baselineRegion(20.0, 10.0, 5.0);
+        topAligned.setMaxHeight(Double.MAX_VALUE);
+        BaselineRegion baselineAligned = baselineRegion(20.0, 18.0, 12.0);
+        baselineAligned.setMaxHeight(Double.MAX_VALUE);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, topAligned, baselineAligned);
+        rxBox.setAlignment(Pos.BASELINE_LEFT);
+        rxBox.setFillCrossAxis(true);
+        RXBox.setAlignment(topAligned, Pos.TOP_LEFT);
+
+        layout(rxBox, 80.0, 80.0);
+
+        assertClose(80.0, topAligned.getHeight(), "top child height");
+        assertClose(18.0, baselineAligned.getHeight(), "baseline child height");
+    }
+
+    /**
+     * Verifies child baseline alignment falls back to top outside horizontal baseline mode.
+     */
+    @Test
+    public void childBaselineAlignmentFallsBackToTopOutsideBaselineMode() {
+        BaselineRegion horizontal = baselineRegion(20.0, 20.0, 10.0);
+        RXBox horizontalBox = new RXBox(Orientation.HORIZONTAL, horizontal);
+        horizontalBox.setAlignment(Pos.BOTTOM_LEFT);
+        horizontalBox.setFillCrossAxis(false);
+        RXBox.setAlignment(horizontal, Pos.BASELINE_LEFT);
+
+        BaselineRegion vertical = baselineRegion(20.0, 20.0, 10.0);
+        RXBox verticalBox = new RXBox(Orientation.VERTICAL, vertical);
+        verticalBox.setAlignment(Pos.TOP_LEFT);
+        verticalBox.setFillCrossAxis(false);
+        RXBox.setAlignment(vertical, Pos.BASELINE_RIGHT);
+
+        layout(horizontalBox, 80.0, 60.0);
+        layout(verticalBox, 100.0, 60.0);
+
+        assertClose(0.0, horizontal.getLayoutY(), "horizontal child layout y");
+        assertClose(80.0, vertical.getLayoutX(), "vertical child layout x");
+        assertClose(0.0, vertical.getLayoutY(), "vertical child layout y");
     }
 
     /**

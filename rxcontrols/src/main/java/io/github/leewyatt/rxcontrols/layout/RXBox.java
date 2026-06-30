@@ -150,6 +150,18 @@ public class RXBox extends Pane {
      * the child's assigned layout area. Setting {@code null} removes the
      * constraint.
      *
+     * <p>This constraint positions the child; it does not change the child's
+     * size. In a one-dimensional box, the visible effect is normally on the
+     * cross axis: horizontal boxes use the vertical part of {@code value}, and
+     * vertical boxes use the horizontal part. If the child fills the cross axis,
+     * the alignment may not be visible. Constrain the child's cross-axis maximum
+     * size or disable {@link #fillCrossAxisProperty() fillCrossAxis} when the
+     * child should remain smaller than its assigned area.</p>
+     *
+     * <p>{@code BASELINE_*} values participate in baseline alignment only for a
+     * horizontal RXBox whose own alignment is also baseline. In other cases,
+     * the baseline part is treated as top alignment.</p>
+     *
      * @param child the child node
      * @param value the child alignment, or {@code null}
      * @throws NullPointerException if {@code child} is {@code null}
@@ -563,7 +575,12 @@ public class RXBox extends Pane {
             return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
         }
         double max = 0.0;
+        boolean hasBaseline = false;
         for (Node child : managed) {
+            if (!isBaselineParticipant(child)) {
+                continue;
+            }
+            hasBaseline = true;
             double offset = child.getBaselineOffset();
             if (offset == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
                 return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
@@ -571,7 +588,7 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             max = Math.max(max, rawTop(margin) + child.getLayoutBounds().getMinY() + offset);
         }
-        return max + snappedTopInset();
+        return hasBaseline ? max + snappedTopInset() : Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
     }
 
     @Override
@@ -615,7 +632,6 @@ public class RXBox extends Pane {
             double contentMain = adjustAreaSizes(managed, areaWidths, contentWidth, contentHeight, true);
             double x = left + computeXOffset(contentWidth, contentMain, hpos);
             double space = snapSpaceX(spacingOrDefault());
-            boolean fillCrossAxis = shouldFillCrossAxis();
             double baselineOffset = vpos == VPos.BASELINE
                     ? computeAreaBaselineOffset(managed, areaWidths, contentHeight)
                     : -1.0;
@@ -624,7 +640,7 @@ public class RXBox extends Pane {
                 Insets margin = getMargin(child);
                 Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, x, top, areaWidths[i], contentHeight,
-                        baselineOffset, margin, true, fillCrossAxis,
+                        baselineOffset, margin, true, shouldFillCrossAxis(child, true),
                         childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, true));
                 x += areaWidths[i] + space;
             }
@@ -633,13 +649,12 @@ public class RXBox extends Pane {
             double contentMain = adjustAreaSizes(managed, areaHeights, contentHeight, contentWidth, false);
             double y = top + computeYOffset(contentHeight, contentMain, vpos);
             double space = snapSpaceY(spacingOrDefault());
-            boolean fillCrossAxis = shouldFillCrossAxis();
             for (int i = 0, size = managed.size(); i < size; i++) {
                 Node child = managed.get(i);
                 Insets margin = getMargin(child);
                 Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, left, y, contentWidth, areaHeights[i],
-                        -1, margin, fillCrossAxis, true,
+                        -1, margin, shouldFillCrossAxis(child, false), true,
                         childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, false));
                 y += areaHeights[i] + space;
             }
@@ -657,6 +672,14 @@ public class RXBox extends Pane {
             return childVPos;
         }
         return horizontal && boxVPos == VPos.BASELINE ? VPos.BASELINE : VPos.TOP;
+    }
+
+    private boolean isBaselineParticipant(Node child) {
+        if (!isHorizontalBaseline()) {
+            return false;
+        }
+        Pos childAlignment = getAlignment(child);
+        return childAlignment == null || childAlignment.getVpos() == VPos.BASELINE;
     }
 
     private boolean isHorizontal() {
@@ -715,7 +738,6 @@ public class RXBox extends Pane {
     private double[] computeAreaWidths(List<Node> managed, double height, boolean minimum) {
         double availableHeight = height == -1 ? -1 :
                 Math.max(0.0, height - snappedTopInset() - snappedBottomInset());
-        boolean fillHeight = shouldFillCrossAxis();
         double baselineComplement = isHorizontalBaseline()
                 ? (minimum ? computeMinBaselineComplement(managed) : computePrefBaselineComplement(managed))
                 : -1.0;
@@ -723,11 +745,13 @@ public class RXBox extends Pane {
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
+            boolean baselineParticipant = isBaselineParticipant(child);
+            double childBaselineComplement = baselineParticipant ? baselineComplement : -1.0;
             widths[i] = minimum
                     ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
-                            availableHeight, fillHeight, baselineComplement)
+                            availableHeight, shouldFillCrossAxis(child, true), childBaselineComplement)
                     : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
-                            availableHeight, fillHeight, baselineComplement);
+                            availableHeight, shouldFillCrossAxis(child, true), childBaselineComplement);
         }
         return widths;
     }
@@ -735,16 +759,15 @@ public class RXBox extends Pane {
     private double[] computeAreaHeights(List<Node> managed, double width, boolean minimum) {
         double availableWidth = width == -1 ? -1 :
                 Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
-        boolean fillWidth = shouldFillCrossAxis();
         double[] heights = new double[managed.size()];
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             heights[i] = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                            availableWidth, fillWidth)
+                            availableWidth, shouldFillCrossAxis(child, false))
                     : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                            availableWidth, fillWidth);
+                            availableWidth, shouldFillCrossAxis(child, false));
         }
         return heights;
     }
@@ -838,15 +861,17 @@ public class RXBox extends Pane {
     private double computeChildMinMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
+        double childBaselineComplement = isBaselineParticipant(child) ? baselineComplement : -1.0;
         return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MIN,
-                availableCross, shouldFillCrossAxis(), baselineComplement);
+                availableCross, shouldFillCrossAxis(child, horizontal), childBaselineComplement);
     }
 
     private double computeChildMaxMainArea(Node child, double availableCross,
                                            boolean horizontal, double baselineComplement) {
         Insets margin = getMargin(child);
+        double childBaselineComplement = isBaselineParticipant(child) ? baselineComplement : -1.0;
         return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MAX,
-                availableCross, shouldFillCrossAxis(), baselineComplement);
+                availableCross, shouldFillCrossAxis(child, horizontal), childBaselineComplement);
     }
 
     private double computeMaxAreaWidth(List<Node> managed, double[] childHeights,
@@ -1166,8 +1191,8 @@ public class RXBox extends Pane {
         return horizontal ? VPos.BASELINE : VPos.TOP;
     }
 
-    private boolean shouldFillCrossAxis() {
-        return isFillCrossAxis() && !isHorizontalBaseline();
+    private boolean shouldFillCrossAxis(Node child, boolean horizontal) {
+        return isFillCrossAxis() && !(horizontal && isBaselineParticipant(child));
     }
 
     private boolean isHorizontalBaseline() {
@@ -1178,6 +1203,8 @@ public class RXBox extends Pane {
                                              boolean minimum) {
         double maxAbove = 0.0;
         double maxBelow = 0.0;
+        double maxNonBaseline = 0.0;
+        boolean hasBaseline = false;
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
@@ -1186,6 +1213,11 @@ public class RXBox extends Pane {
             double childHeight = minimum
                     ? snapSizeY(child.minHeight(childWidth))
                     : snapSizeY(child.prefHeight(childWidth));
+            if (!isBaselineParticipant(child)) {
+                maxNonBaseline = Math.max(maxNonBaseline, top(margin) + childHeight + bottom(margin));
+                continue;
+            }
+            hasBaseline = true;
             if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
                 maxAbove = Math.max(maxAbove, childHeight + top(margin));
             } else {
@@ -1193,7 +1225,7 @@ public class RXBox extends Pane {
                 maxBelow = Math.max(maxBelow, childHeight - baseline + bottom(margin));
             }
         }
-        return maxAbove + maxBelow;
+        return Math.max(hasBaseline ? maxAbove + maxBelow : 0.0, maxNonBaseline);
     }
 
     private double computeMinBaselineComplement(List<Node> managed) {
@@ -1207,6 +1239,9 @@ public class RXBox extends Pane {
     private double computeBaselineComplement(List<Node> managed, boolean minimum) {
         double complement = 0.0;
         for (Node child : managed) {
+            if (!isBaselineParticipant(child)) {
+                continue;
+            }
             double baseline = child.getBaselineOffset();
             if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
                 continue;
@@ -1223,8 +1258,13 @@ public class RXBox extends Pane {
                                              double areaHeight) {
         double minComplement = computeMinBaselineComplement(managed);
         double offset = 0.0;
+        boolean hasBaseline = false;
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
+            if (!isBaselineParticipant(child)) {
+                continue;
+            }
+            hasBaseline = true;
             Insets margin = getMargin(child);
             double top = top(margin);
             double bottom = bottom(margin);
@@ -1239,7 +1279,7 @@ public class RXBox extends Pane {
                 offset = Math.max(offset, top + baseline);
             }
         }
-        return offset;
+        return hasBaseline ? offset : -1.0;
     }
 
     // ==================== CSS ====================
