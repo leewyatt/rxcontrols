@@ -30,6 +30,8 @@ import java.util.List;
  */
 public abstract class RXAnimatedButton extends RXButton {
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-animated-button";
+
     // ==================== Constants ====================
 
     /**
@@ -48,6 +50,7 @@ public abstract class RXAnimatedButton extends RXButton {
      * Creates an animated button with an empty text caption.
      */
     protected RXAnimatedButton() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
     /**
