@@ -150,17 +150,20 @@ public class RXBox extends Pane {
      * the child's assigned layout area. Setting {@code null} removes the
      * constraint.
      *
-     * <p>This constraint positions the child; it does not change the child's
-     * size. In a one-dimensional box, the visible effect is normally on the
-     * cross axis: horizontal boxes use the vertical part of {@code value}, and
-     * vertical boxes use the horizontal part. If the child fills the cross axis,
-     * the alignment may not be visible. Constrain the child's cross-axis maximum
-     * size or disable {@link #fillCrossAxisProperty() fillCrossAxis} when the
-     * child should remain smaller than its assigned area.</p>
+     * <p>This constraint positions the child; it does not set the child's
+     * min, preferred, or max size. In a one-dimensional box, the visible effect
+     * is normally on the cross axis: horizontal boxes use the vertical part of
+     * {@code value}, and vertical boxes use the horizontal part. If the child
+     * fills the cross axis, the alignment may not be visible. Constrain the
+     * child's cross-axis maximum size or disable
+     * {@link #fillCrossAxisProperty() fillCrossAxis} when the child should
+     * remain smaller than its assigned area.</p>
      *
      * <p>{@code BASELINE_*} values participate in baseline alignment only for a
      * horizontal RXBox whose own alignment is also baseline. In other cases,
-     * the baseline part is treated as top alignment.</p>
+     * the baseline part is treated as top alignment. In a horizontal baseline
+     * RXBox, a child with non-baseline alignment does not participate in the
+     * baseline group and follows normal cross-axis fill behavior.</p>
      *
      * @param child the child node
      * @param value the child alignment, or {@code null}
@@ -640,7 +643,7 @@ public class RXBox extends Pane {
                 Insets margin = getMargin(child);
                 Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, x, top, areaWidths[i], contentHeight,
-                        baselineOffset, margin, true, shouldFillCrossAxis(child, true),
+                        baselineOffset, margin, true, shouldFillCrossAxis(child),
                         childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, true));
                 x += areaWidths[i] + space;
             }
@@ -654,7 +657,7 @@ public class RXBox extends Pane {
                 Insets margin = getMargin(child);
                 Pos childAlignment = childAlignmentOrDefault(child, align);
                 layoutInArea(child, left, y, contentWidth, areaHeights[i],
-                        -1, margin, shouldFillCrossAxis(child, false), true,
+                        -1, margin, shouldFillCrossAxis(child), true,
                         childAlignment.getHpos(), effectiveChildVPos(childAlignment, vpos, false));
                 y += areaHeights[i] + space;
             }
@@ -749,9 +752,9 @@ public class RXBox extends Pane {
             double childBaselineComplement = baselineParticipant ? baselineComplement : -1.0;
             widths[i] = minimum
                     ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
-                            availableHeight, shouldFillCrossAxis(child, true), childBaselineComplement)
+                            availableHeight, shouldFillCrossAxis(child), childBaselineComplement)
                     : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
-                            availableHeight, shouldFillCrossAxis(child, true), childBaselineComplement);
+                            availableHeight, shouldFillCrossAxis(child), childBaselineComplement);
         }
         return widths;
     }
@@ -765,9 +768,9 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             heights[i] = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                            availableWidth, shouldFillCrossAxis(child, false))
+                            availableWidth, shouldFillCrossAxis(child))
                     : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                            availableWidth, shouldFillCrossAxis(child, false));
+                            availableWidth, shouldFillCrossAxis(child));
         }
         return heights;
     }
@@ -863,7 +866,7 @@ public class RXBox extends Pane {
         Insets margin = getMargin(child);
         double childBaselineComplement = isBaselineParticipant(child) ? baselineComplement : -1.0;
         return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MIN,
-                availableCross, shouldFillCrossAxis(child, horizontal), childBaselineComplement);
+                availableCross, shouldFillCrossAxis(child), childBaselineComplement);
     }
 
     private double computeChildMaxMainArea(Node child, double availableCross,
@@ -871,7 +874,7 @@ public class RXBox extends Pane {
         Insets margin = getMargin(child);
         double childBaselineComplement = isBaselineParticipant(child) ? baselineComplement : -1.0;
         return computeChildArea(child, margin, axisOf(horizontal), SizeKind.MAX,
-                availableCross, shouldFillCrossAxis(child, horizontal), childBaselineComplement);
+                availableCross, shouldFillCrossAxis(child), childBaselineComplement);
     }
 
     private double computeMaxAreaWidth(List<Node> managed, double[] childHeights,
@@ -1191,8 +1194,8 @@ public class RXBox extends Pane {
         return horizontal ? VPos.BASELINE : VPos.TOP;
     }
 
-    private boolean shouldFillCrossAxis(Node child, boolean horizontal) {
-        return isFillCrossAxis() && !(horizontal && isBaselineParticipant(child));
+    private boolean shouldFillCrossAxis(Node child) {
+        return isFillCrossAxis() && !isBaselineParticipant(child);
     }
 
     private boolean isHorizontalBaseline() {
@@ -1209,15 +1212,20 @@ public class RXBox extends Pane {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1.0 : childWidths[i];
+            if (!isBaselineParticipant(child)) {
+                double areaHeight = minimum
+                        ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
+                                childWidth, shouldFillCrossAxis(child))
+                        : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
+                                childWidth, shouldFillCrossAxis(child));
+                maxNonBaseline = Math.max(maxNonBaseline, areaHeight);
+                continue;
+            }
+            hasBaseline = true;
             double baseline = child.getBaselineOffset();
             double childHeight = minimum
                     ? snapSizeY(child.minHeight(childWidth))
                     : snapSizeY(child.prefHeight(childWidth));
-            if (!isBaselineParticipant(child)) {
-                maxNonBaseline = Math.max(maxNonBaseline, top(margin) + childHeight + bottom(margin));
-                continue;
-            }
-            hasBaseline = true;
             if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
                 maxAbove = Math.max(maxAbove, childHeight + top(margin));
             } else {

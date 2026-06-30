@@ -517,6 +517,49 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies a non-baseline child contributes its bounded area height in a baseline pane.
+     */
+    @Test
+    public void nonBaselineChildMinHeightContributesToBaselinePanePrefHeight() {
+        FixedRegion tallMin = fixedRegion(10.0, 80.0, 20.0, 20.0,
+                Double.MAX_VALUE, Double.MAX_VALUE);
+        BaselineRegion baselineAligned = baselineRegion(20.0, 20.0, 10.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, tallMin, baselineAligned);
+        rxBox.setAlignment(Pos.BASELINE_LEFT);
+        RXBox.setAlignment(tallMin, Pos.TOP_LEFT);
+
+        assertClose(80.0, rxBox.minHeight(-1), "min height");
+        assertClose(80.0, rxBox.prefHeight(-1), "pref height");
+
+        layout(rxBox, 80.0, rxBox.prefHeight(-1));
+
+        assertClose(80.0, tallMin.getHeight(), "tall child height");
+    }
+
+    /**
+     * Verifies a baseline pane with no baseline participants reports no baseline.
+     */
+    @Test
+    public void allChildrenOptOutOfBaselineGroup() {
+        BaselineRegion topAligned = baselineRegion(20.0, 30.0, 20.0);
+        BaselineRegion bottomAligned = baselineRegion(20.0, 40.0, 30.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, topAligned, bottomAligned);
+        rxBox.setAlignment(Pos.BASELINE_LEFT);
+        rxBox.setFillCrossAxis(false);
+        RXBox.setAlignment(topAligned, Pos.TOP_LEFT);
+        RXBox.setAlignment(bottomAligned, Pos.BOTTOM_LEFT);
+
+        assertClose(40.0, rxBox.prefHeight(-1), "pref height");
+
+        layout(rxBox, 80.0, 50.0);
+
+        assertClose(Node.BASELINE_OFFSET_SAME_AS_HEIGHT, rxBox.getBaselineOffset(),
+                "box baseline offset");
+        assertClose(0.0, topAligned.getLayoutY(), "top child layout y");
+        assertClose(10.0, bottomAligned.getLayoutY(), "bottom child layout y");
+    }
+
+    /**
      * Verifies non-baseline children can still fill the cross axis in a baseline pane.
      */
     @Test
