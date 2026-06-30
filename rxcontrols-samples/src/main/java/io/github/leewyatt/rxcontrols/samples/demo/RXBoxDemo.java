@@ -91,13 +91,11 @@ public class RXBoxDemo extends Application {
         RXBox row = new RXBox(Orientation.HORIZONTAL, 14.0, icon, text, status, open);
         row.getStyleClass().add("task-row");
         row.setPadding(new Insets(18.0));
-        row.setAlignment(Pos.CENTER_LEFT);
+        row.setAlignment(Pos.TOP_CENTER);
         row.setMaxWidth(520.0);
         row.setMaxHeight(Region.USE_PREF_SIZE);
 
         RXBox.setGrow(text, Priority.ALWAYS);
-        RXBox.setAlignment(icon, Pos.TOP_CENTER);
-        RXBox.setAlignment(status, Pos.TOP_CENTER);
         RXBox.setAlignment(open, Pos.BOTTOM_CENTER);
         RXBox.setMargin(open, new Insets(0.0, 0.0, 0.0, 4.0));
         return row;
