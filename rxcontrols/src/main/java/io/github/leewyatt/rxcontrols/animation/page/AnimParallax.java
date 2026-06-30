@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -60,7 +62,7 @@ public class AnimParallax extends PageAnimationBase {
      *                       (0.0 to 1.0; see class javadoc)
      */
     public AnimParallax(double parallaxFactor) {
-        this.parallaxFactor = Math.max(0.0, Math.min(1.0, parallaxFactor));
+        this.parallaxFactor = RXMath.clamp(parallaxFactor, 0.0, 1.0);
     }
 
     /**
@@ -98,7 +100,7 @@ public class AnimParallax extends PageAnimationBase {
      *                       of different ranges
      */
     public void setParallaxFactor(double parallaxFactor) {
-        this.parallaxFactor = Math.max(0.0, Math.min(1.0, parallaxFactor));
+        this.parallaxFactor = RXMath.clamp(parallaxFactor, 0.0, 1.0);
     }
 
     @Override

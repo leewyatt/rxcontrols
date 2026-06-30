@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -77,7 +79,7 @@ public class AnimStack extends PageAnimationBase {
      * @param offsetRatio value between 0.0 and 1.0 (clamped; fraction of pane size for peek distance)
      */
     public void setOffsetRatio(double offsetRatio) {
-        this.offsetRatio = Math.max(0.0, Math.min(1.0, offsetRatio));
+        this.offsetRatio = RXMath.clamp(offsetRatio, 0.0, 1.0);
     }
 
     @Override

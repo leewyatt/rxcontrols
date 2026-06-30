@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -161,8 +163,8 @@ public class AnimCheckerboard extends PageAnimationBase {
         // FORWARD: wave1 = odd cells, wave2 = even cells
         // BACKWARD: wave1 = even cells, wave2 = odd cells
 
-        double wave1P = Math.max(0, Math.min(1, p / 0.5));
-        double wave2P = Math.max(0, Math.min(1, (p - 0.5) / 0.5));
+        double wave1P = RXMath.clamp(p / 0.5, 0.0, 1.0);
+        double wave2P = RXMath.clamp((p - 0.5) / 0.5, 0.0, 1.0);
 
         Shape clip = null;
 

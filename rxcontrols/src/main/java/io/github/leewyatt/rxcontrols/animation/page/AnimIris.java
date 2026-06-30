@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -50,7 +52,7 @@ public class AnimIris extends PageAnimationBase {
      *                   very high values approach a circular reveal)
      */
     public AnimIris(int bladeCount) {
-        this.bladeCount = Math.max(1, Math.min(64, bladeCount));
+        this.bladeCount = RXMath.clamp(bladeCount, 1, 64);
     }
 
     /**

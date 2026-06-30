@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -193,7 +195,7 @@ public class AnimRandomTiles extends PageAnimationBase {
                 continue;
             }
 
-            double localP = Math.max(0, Math.min(1, (p - delays[i]) / fallDuration));
+            double localP = RXMath.clamp((p - delays[i]) / fallDuration, 0.0, 1.0);
             double easedP = interpolator.interpolate(0.0, 1.0, localP);
 
             double scale = 1.0 - easedP;

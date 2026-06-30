@@ -196,7 +196,7 @@ final class RXTileRowPlan {
     RowInfo rowInfo(int visualRow) {
         if (!grouped) {
             int rowStart = visualRow * columns;
-            int cells = Math.max(0, Math.min(columns, itemCount - rowStart));
+            int cells = RXMath.clamp(itemCount - rowStart, 0, columns);
             return new RowInfo(false, null, rowStart, cells,
                     visualRow * dataSlotHeight, dataSlotHeight, visualRow);
         }
@@ -208,7 +208,7 @@ final class RXTileRowPlan {
         }
         int dataLocal = headersShown ? local - 1 : local;
         int rowStart = section.firstItemIndex() + dataLocal * columns;
-        int cells = Math.max(0, Math.min(columns, section.endItemIndex() - rowStart));
+        int cells = RXMath.clamp(section.endItemIndex() - rowStart, 0, columns);
         double top = sectionTopY[s] + (headersShown ? headerHeight : 0.0) + dataLocal * dataSlotHeight;
         int dataRowIndex = sectionDataRowStart[s] + dataLocal;
         return new RowInfo(false, section, rowStart, cells, top, dataSlotHeight, dataRowIndex);

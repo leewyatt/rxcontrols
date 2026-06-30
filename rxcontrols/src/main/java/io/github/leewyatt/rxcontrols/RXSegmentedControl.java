@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSegmentedControlSkin;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -497,7 +498,7 @@ public class RXSegmentedControl<T> extends Control {
         if (count == 0) {
             return -1;
         }
-        int start = Math.min(Math.max(fromIndex, 0), count - 1);
+        int start = RXMath.clamp(fromIndex, 0, count - 1);
         for (int offset = 0; offset < count; offset++) {
             int forward = start + offset;
             if (forward < count && isEnabled(forward)) {

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -93,7 +95,7 @@ public class AnimAround extends PageAnimationBase {
      *                       leave too little time for the main rotation)
      */
     public void setScaleTimeRatio(double scaleTimeRatio) {
-        this.scaleTimeRatio = Math.max(0.0, Math.min(0.4, scaleTimeRatio));
+        this.scaleTimeRatio = RXMath.clamp(scaleTimeRatio, 0.0, 0.4);
     }
 
     @Override

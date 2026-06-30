@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSegmentedProgressBarDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -139,7 +140,7 @@ public class RXSegmentedProgressBarShowcase extends RXShowcaseApplication {
             if (p < 0.0) {
                 return "Step ? of 4";
             }
-            int step = (int) Math.min(4, Math.max(0, Math.ceil(p * 4.0)));
+            int step = RXMath.clamp((int) Math.ceil(p * 4.0), 0, 4);
             return "Step " + step + " of 4";
         }, mainBar.progressProperty()));
 

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -49,7 +51,7 @@ public class AnimCircles extends PageAnimationBase {
      * @param maxRadius   the maximum radius of each circle
      */
     public AnimCircles(int circleCount, double maxRadius) {
-        this.circleCount = Math.max(2, Math.min(100, circleCount));
+        this.circleCount = RXMath.clamp(circleCount, 2, 100);
         this.maxRadius = maxRadius;
         this.circles = new Circle[this.circleCount];
 

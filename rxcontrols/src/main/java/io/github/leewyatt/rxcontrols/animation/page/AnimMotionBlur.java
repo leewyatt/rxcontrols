@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -68,7 +70,7 @@ public class AnimMotionBlur extends PageAnimationBase {
      * @param radius the blur radius
      */
     public void setRadius(double radius) {
-        this.radius = Math.max(0, Math.min(63, radius));
+        this.radius = RXMath.clamp(radius, 0.0, 63.0);
     }
 
     @Override

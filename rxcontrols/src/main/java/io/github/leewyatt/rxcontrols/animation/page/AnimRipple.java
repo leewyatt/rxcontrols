@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -53,7 +55,7 @@ public class AnimRipple extends PageAnimationBase {
      *                  higher values degrade performance due to Shape boolean operations)
      */
     public AnimRipple(int ringCount) {
-        int count = Math.max(3, Math.min(9, ringCount));
+        int count = RXMath.clamp(ringCount, 3, 9);
         this.ringCount = (count % 2 == 0) ? count + 1 : count;
     }
 
@@ -163,8 +165,7 @@ public class AnimRipple extends PageAnimationBase {
         for (int i = 0; i < ringCount; i++) {
             double delay = (ringCount > 1)
                     ? (double) i / (ringCount - 1) * staggerRange : 0;
-            double localP = Math.max(0, Math.min(1,
-                    (p - delay) / waveDuration));
+            double localP = RXMath.clamp((p - delay) / waveDuration, 0.0, 1.0);
             double eased = 1.0 - (1.0 - localP) * (1.0 - localP);
             radii[i] = maxR * eased;
         }

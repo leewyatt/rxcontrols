@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -89,7 +91,7 @@ public class AnimZigzagWipe extends PageAnimationBase {
      * @param toothDepthRatio the ratio (0.0–1.0)
      */
     public void setToothDepthRatio(double toothDepthRatio) {
-        this.toothDepthRatio = Math.max(0.005, Math.min(0.3, toothDepthRatio));
+        this.toothDepthRatio = RXMath.clamp(toothDepthRatio, 0.005, 0.3);
     }
 
     /**

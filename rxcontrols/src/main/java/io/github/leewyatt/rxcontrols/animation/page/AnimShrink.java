@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -74,7 +76,7 @@ public class AnimShrink extends PageAnimationBase {
      * @param minScale the minimum scale (0.0–1.0)
      */
     public void setMinScale(double minScale) {
-        this.minScale = Math.max(0.01, Math.min(0.8, minScale));
+        this.minScale = RXMath.clamp(minScale, 0.01, 0.8);
     }
 
     /**
@@ -93,7 +95,7 @@ public class AnimShrink extends PageAnimationBase {
      * @param fadeStart the fade start threshold (0.0–1.0)
      */
     public void setFadeStart(double fadeStart) {
-        this.fadeStart = Math.max(0.0, Math.min(0.95, fadeStart));
+        this.fadeStart = RXMath.clamp(fadeStart, 0.0, 0.95);
     }
 
     @Override

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -75,7 +77,7 @@ public class AnimTiltSlide extends PageAnimationBase {
      * @param tiltDepth the tilt depth ratio (0.0–0.5)
      */
     public void setTiltDepth(double tiltDepth) {
-        this.tiltDepth = Math.max(0, Math.min(0.5, tiltDepth));
+        this.tiltDepth = RXMath.clamp(tiltDepth, 0.0, 0.5);
     }
 
     @Override

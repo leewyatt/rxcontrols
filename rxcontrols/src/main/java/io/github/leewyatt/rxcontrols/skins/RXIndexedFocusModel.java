@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.value.ObservableValue;
@@ -125,7 +126,7 @@ class RXIndexedFocusModel<T> extends FocusModel<T> {
             if (removedFocusWasSelectionLead && selectionLead >= 0 && selectionLead < itemCount) {
                 focusedIndex = selectionLead;
             } else {
-                focusedIndex = Math.max(0, Math.min(removedFocusedFrom - 1, itemCount - 1));
+                focusedIndex = RXMath.clamp(removedFocusedFrom - 1, 0, itemCount - 1);
             }
         }
         if (focusedIndex != getFocusedIndex()) {

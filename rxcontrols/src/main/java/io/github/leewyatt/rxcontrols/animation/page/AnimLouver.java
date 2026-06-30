@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -103,7 +105,7 @@ public class AnimLouver extends PageAnimationBase {
      * @param staggerFactor the stagger factor (0.0–0.95)
      */
     public void setStaggerFactor(double staggerFactor) {
-        this.staggerFactor = Math.max(0, Math.min(0.95, staggerFactor));
+        this.staggerFactor = RXMath.clamp(staggerFactor, 0.0, 0.95);
     }
 
     /**
@@ -257,7 +259,7 @@ public class AnimLouver extends PageAnimationBase {
             double delay = (strips.length > 1)
                     ? (double) orderIdx / (strips.length - 1) * staggerFactor
                     : 0;
-            double localP = Math.max(0, Math.min(1, (p - delay) / flipDuration));
+            double localP = RXMath.clamp((p - delay) / flipDuration, 0.0, 1.0);
 
             ImageView strip = strips[i];
             PerspectiveTransform pt = transforms[i];

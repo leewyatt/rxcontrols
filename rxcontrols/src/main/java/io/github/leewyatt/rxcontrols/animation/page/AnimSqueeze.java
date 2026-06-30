@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -92,7 +94,7 @@ public class AnimSqueeze extends PageAnimationBase {
      * @param squeezeSplit the split point (0.0–1.0)
      */
     public void setSqueezeSplit(double squeezeSplit) {
-        this.squeezeSplit = Math.max(0.1, Math.min(0.9, squeezeSplit));
+        this.squeezeSplit = RXMath.clamp(squeezeSplit, 0.1, 0.9);
     }
 
     @Override

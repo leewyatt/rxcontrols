@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -88,7 +90,7 @@ public class AnimFlash extends PageAnimationBase {
      * @param flashPeak the peak point (0.0–1.0)
      */
     public void setFlashPeak(double flashPeak) {
-        this.flashPeak = Math.max(0.05, Math.min(0.95, flashPeak));
+        this.flashPeak = RXMath.clamp(flashPeak, 0.05, 0.95);
     }
 
     /**

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -200,7 +202,7 @@ public class AnimDomino extends PageAnimationBase {
             // Determine strip order based on direction
             int idx = forward ? i : (stripCount - 1 - i);
             double staggerDelay = (double) idx / (stripCount - 1) * staggerWindow;
-            double localP = Math.max(0, Math.min(1, (p - staggerDelay) / fallDuration));
+            double localP = RXMath.clamp((p - staggerDelay) / fallDuration, 0.0, 1.0);
 
             // Apply easing to each strip's local progress
             double easedP = interpolator.interpolate(0.0, 1.0, localP);

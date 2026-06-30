@@ -371,12 +371,11 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         double cardX = contentX + (contentWidth - cardW) / 2.0 + dragOffsetX;
         double cardY = contentY + (contentHeight - cardH) / 2.0 + dragOffsetY;
         // Clamp the (possibly dragged) card fully inside the content area for this frame
-        // only; dragOffset itself stays raw. maxX >= contentX because cardW <= contentWidth,
-        // so the two-step max/min never inverts.
+        // only; dragOffset itself stays raw. maxX >= contentX because cardW <= contentWidth.
         double maxX = contentX + contentWidth - cardW;
         double maxY = contentY + contentHeight - cardH;
-        cardX = Math.max(contentX, Math.min(maxX, cardX));
-        cardY = Math.max(contentY, Math.min(maxY, cardY));
+        cardX = RXMath.clamp(cardX, contentX, maxX);
+        cardY = RXMath.clamp(cardY, contentY, maxY);
         layoutInArea(dialogCard, cardX, cardY, cardW, cardH, 0, HPos.CENTER, VPos.CENTER);
     }
 

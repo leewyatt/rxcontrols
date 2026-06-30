@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.css.PseudoClass;
@@ -383,11 +384,10 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         boolean fitsAbove = above >= screen.getMinY();
         double anchorY = (!fitsBelow && fitsAbove) ? above : below;
         // Clamp both axes so a popup larger than the available space is pinned to a
-        // screen edge instead of running off it. The max(min, min(...)) form (not
-        // RXMath.clamp) is deliberate: when the popup is wider/taller than the
-        // screen the min bound exceeds the max bound, and this form keeps the edge.
-        double anchorX = Math.max(screen.getMinX(), Math.min(screenBounds.getMinX(), screen.getMaxX() - popupWidth));
-        double clampedY = Math.max(screen.getMinY(), Math.min(anchorY, screen.getMaxY() - popupHeight));
+        // screen edge instead of running off it. RXMath.clamp keeps the same
+        // lower-bound-first semantics when the popup is larger.
+        double anchorX = RXMath.clamp(screenBounds.getMinX(), screen.getMinX(), screen.getMaxX() - popupWidth);
+        double clampedY = RXMath.clamp(anchorY, screen.getMinY(), screen.getMaxY() - popupHeight);
         popup.setAnchorX(anchorX);
         popup.setAnchorY(clampedY);
     }

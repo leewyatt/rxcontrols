@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.value.ObservableValue;
@@ -474,7 +475,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
         if (pendingLeadRevertFrom >= 0 && itemCount > 0) {
             // The sole selected (lead) item was removed: revert to the prior existing
             // row so selectedIndex/selectedItem stay in sync (ListView RT-28637).
-            int prior = Math.max(0, Math.min(pendingLeadRevertFrom - 1, itemCount - 1));
+            int prior = RXMath.clamp(pendingLeadRevertFrom - 1, 0, itemCount - 1);
             pendingLeadRevertFrom = -1;
             select(prior);
             return;

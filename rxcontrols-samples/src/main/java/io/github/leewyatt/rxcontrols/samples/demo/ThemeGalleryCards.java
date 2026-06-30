@@ -58,6 +58,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.enums.ImageFit;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.List;
@@ -165,7 +166,7 @@ final class ThemeGalleryCards {
             double position = i / (double) rawBands;
             double envelope = Math.exp(-Math.pow((position - 0.28) * 3.2, 2.0));
             double ripple = 0.5 + 0.5 * Math.sin(position * 22.0);
-            double level = Math.max(0.0, Math.min(1.0, 0.25 + 0.75 * envelope * ripple));
+            double level = RXMath.clamp(0.25 + 0.75 * envelope * ripple, 0.0, 1.0);
             frame[i] = (float) (minDb * (1.0 - level));
         }
         spectrum.updateSpectrum(frame);

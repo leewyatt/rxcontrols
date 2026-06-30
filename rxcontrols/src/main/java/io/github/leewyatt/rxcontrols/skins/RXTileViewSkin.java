@@ -404,7 +404,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             }
             return;
         }
-        int index = Math.max(0, Math.min(control.getPendingScrollIndex(), itemCount - 1));
+        int index = RXMath.clamp(control.getPendingScrollIndex(), 0, itemCount - 1);
         // Clear only when the request was actually applied. On a zero-height pass
         // scrollToIndex cannot compute geometry and returns false; keeping the
         // request armed lets the first sized pass honor it.

@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -69,7 +71,7 @@ public class AnimCards extends PageAnimationBase {
      * @param backgroundScale value between 0.0 and 1.0 (recommended 0.8 to 0.95)
      */
     public void setBackgroundScale(double backgroundScale) {
-        this.backgroundScale = Math.max(0.0, Math.min(1.0, backgroundScale));
+        this.backgroundScale = RXMath.clamp(backgroundScale, 0.0, 1.0);
     }
 
     /**

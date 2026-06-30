@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDigitDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
@@ -121,7 +122,7 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         // nearest digit, e.g. "12 -> 9".
         digitValue.textProperty().bind(Bindings.createStringBinding(() -> {
             int raw = liveDigit.getDigit();
-            int shown = Math.max(DIGIT_MIN, Math.min(DIGIT_MAX, raw));
+            int shown = RXMath.clamp(raw, DIGIT_MIN, DIGIT_MAX);
             return raw == shown ? Integer.toString(raw) : raw + " → " + shown;
         }, liveDigit.digitProperty()));
 

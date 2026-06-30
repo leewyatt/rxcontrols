@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -70,7 +72,7 @@ public class AnimNewspaper extends PageAnimationBase {
      * @param minScale value between 0.0 and 1.0 (clamped; the scale factor at the transition midpoint)
      */
     public void setMinScale(double minScale) {
-        this.minScale = Math.max(0.0, Math.min(1.0, minScale));
+        this.minScale = RXMath.clamp(minScale, 0.0, 1.0);
     }
 
     /**

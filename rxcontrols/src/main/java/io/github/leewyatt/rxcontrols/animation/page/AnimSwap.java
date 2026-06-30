@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
+
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -64,7 +66,7 @@ public class AnimSwap extends PageAnimationBase {
      */
     public AnimSwap(double arcHeight, double midScale) {
         this.arcHeight = Math.max(0.01, arcHeight);
-        this.midScale = Math.max(0.2, Math.min(1.0, midScale));
+        this.midScale = RXMath.clamp(midScale, 0.2, 1.0);
     }
 
     /**
@@ -120,7 +122,7 @@ public class AnimSwap extends PageAnimationBase {
      * @param midScale at least 0.2, recommended 0.5 to 0.85
      */
     public void setMidScale(double midScale) {
-        this.midScale = Math.max(0.2, Math.min(1.0, midScale));
+        this.midScale = RXMath.clamp(midScale, 0.2, 1.0);
     }
 
     @Override

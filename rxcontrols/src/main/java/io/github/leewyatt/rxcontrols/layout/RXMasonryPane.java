@@ -975,7 +975,7 @@ public class RXMasonryPane extends Pane {
     }
 
     private double enterTranslateY() {
-        return Math.min(ENTER_TRANSLATE_MAX, Math.max(ENTER_TRANSLATE_MIN, sanitizedVgap()));
+        return RXMath.clamp(sanitizedVgap(), ENTER_TRANSLATE_MIN, ENTER_TRANSLATE_MAX);
     }
 
     // ==================== Breakpoint Profile ====================
