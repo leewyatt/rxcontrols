@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.enums.RXDialogActionsLayout;
 import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -253,7 +254,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
         // Drive the card's own min / pref / max size from the control's card-bounds properties,
         // so a resize is clamped to them and the card opens at the pref — the existing
-        // boundedSize clamp and layoutInArea both read these card size properties, so binding
+        // RXMath.clamp and layoutInArea both read these card size properties, so binding
         // keeps them consistent. (These are the card's bounds, not the control's Region min/max,
         // which must stay unbounded so the control fills the scene to back the scrim.)
         disposer.registerBinding(dialogCard.minWidthProperty(), control.cardMinWidthProperty());
@@ -371,8 +372,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         double cardY = contentY + (contentHeight - cardH) / 2.0 + dragOffsetY;
         // Clamp the (possibly dragged) card fully inside the content area for this frame
         // only; dragOffset itself stays raw. maxX >= contentX because cardW <= contentWidth,
-        // so the two-step max/min never inverts (plain math, not RXMath.clamp, to stay
-        // throw-free even if a future change makes the card wider than the content).
+        // so the two-step max/min never inverts.
         double maxX = contentX + contentWidth - cardW;
         double maxY = contentY + contentHeight - cardH;
         cardX = Math.max(contentX, Math.min(maxX, cardX));
@@ -380,30 +380,19 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         layoutInArea(dialogCard, cardX, cardY, cardW, cardH, 0, HPos.CENTER, VPos.CENTER);
     }
 
-    // Mirrors JFX Region.boundedSize exactly so the resize clamp and layoutInArea (which uses
-    // Region's own boundedSize) can never diverge: min wins when min > max — including a
-    // degenerate 0 max, which Region.maxWidth coerces a negative / NaN card bound down to.
-    // min / pref / max here are the card's already-resolved (sentinel-free) sizes read via
-    // minWidth(-1) / prefWidth(-1) / maxWidth(-1).
-    private static double boundedSize(double min, double pref, double max) {
-        double atLeastMin = Math.max(pref, min);
-        double cap = Math.max(min, max);
-        return Math.min(atLeastMin, cap);
-    }
-
-    // The card's width: clamp the target (user size or pref) into the card's [min, max] via
-    // boundedSize, then cap at the available content width. boundedSize handles min > max, so
-    // RXMath.clamp (which throws) is never used and a tiny scene can't break it (spec §3.4 #1).
+    // The card's width: clamp the target (user size or pref) into the card's [min, max],
+    // then cap at the available content width. RXMath.clamp keeps the same max/min
+    // semantics used here before: min wins when min > max.
     private double clampCardWidth(double targetWidth, double availWidth) {
         return Math.min(availWidth,
-                boundedSize(dialogCard.minWidth(-1), targetWidth, dialogCard.maxWidth(-1)));
+                RXMath.clamp(targetWidth, dialogCard.minWidth(-1), dialogCard.maxWidth(-1)));
     }
 
     // The card's height for a given width (the card is height-for-width: a wrapped body
     // reflows as the width changes), capped at the available content height.
     private double clampCardHeight(double targetHeight, double width, double availHeight) {
         return Math.min(availHeight,
-                boundedSize(dialogCard.minHeight(width), targetHeight, dialogCard.maxHeight(width)));
+                RXMath.clamp(targetHeight, dialogCard.minHeight(width), dialogCard.maxHeight(width)));
     }
 
     /**

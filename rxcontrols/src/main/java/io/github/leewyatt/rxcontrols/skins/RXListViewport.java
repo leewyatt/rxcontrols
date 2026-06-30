@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
@@ -165,7 +166,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // Land the item within the area below an active sticky header instead of under it.
         double target = targetScrollFor(info.top(), info.height(), viewportHeight,
                 stickyOverlayHeight(plan), alignment);
-        scrollY = clamp(target, 0.0, maxScroll);
+        scrollY = RXMath.clamp(target, 0.0, maxScroll);
         // An explicit scroll target overrides the variable-height anchor pin for this pass.
         explicitScrollPending = true;
         requestLayout();
@@ -198,7 +199,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         RXListRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
         double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
-        scrollY = clamp(target, 0.0, maxScroll);
+        scrollY = RXMath.clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
         return true;
@@ -226,7 +227,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             return true;
         }
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
-        double target = clamp(scrollY + deltaY, 0.0, maxScroll);
+        double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
         if (target != scrollY) {
             scrollY = target;
             explicitScrollPending = true;
@@ -315,7 +316,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             }
         }
         explicitScrollPending = false;
-        scrollY = clamp(scrollY, 0.0, maxScroll);
+        scrollY = RXMath.clamp(scrollY, 0.0, maxScroll);
 
         double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
         double contentWidth = Math.max(0.0, w - barBreadth);

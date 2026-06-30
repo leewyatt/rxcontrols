@@ -87,8 +87,8 @@ public final class RippleBehavior {
             return;
         }
 
-        double centerX = centered ? width / 2.0 : clamp(x, 0.0, width);
-        double centerY = centered ? height / 2.0 : clamp(y, 0.0, height);
+        double centerX = centered ? width / 2.0 : RXMath.clamp(x, 0.0, width);
+        double centerY = centered ? height / 2.0 : RXMath.clamp(y, 0.0, height);
         // The layer carries the radius knob: AUTO falls back to the hypot
         // center-to-bled-corner radius; an explicit value (small thumb controls)
         // is used directly. The (layer, fill, opacity) ctor stays unchanged.
@@ -209,16 +209,6 @@ public final class RippleBehavior {
         double maxX = Math.max(centerX + bleed.getLeft(), width - centerX + bleed.getRight());
         double maxY = Math.max(centerY + bleed.getTop(), height - centerY + bleed.getBottom());
         return Math.hypot(maxX, maxY);
-    }
-
-    private static double clamp(double value, double min, double max) {
-        if (value < min) {
-            return min;
-        }
-        if (value > max) {
-            return max;
-        }
-        return value;
     }
 
     private static void stop(RippleHandle handle) {

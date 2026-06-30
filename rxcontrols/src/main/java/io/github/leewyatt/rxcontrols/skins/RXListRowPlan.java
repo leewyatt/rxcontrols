@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXListSection;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import java.util.List;
 
@@ -260,10 +261,10 @@ final class RXListRowPlan {
         }
         if (!grouped) {
             if (variable) {
-                return clamp(lastItemAtMost(y, 0, itemCount), 0, totalVisualRows - 1);
+                return RXMath.clamp(lastItemAtMost(y, 0, itemCount), 0, totalVisualRows - 1);
             }
             int row = (int) Math.floor(y / rowHeight);
-            return clamp(row, 0, totalVisualRows - 1);
+            return RXMath.clamp(row, 0, totalVisualRows - 1);
         }
         int s = sectionAtY(y);
         double dy = y - sectionTopY[s];
@@ -277,10 +278,10 @@ final class RXListRowPlan {
         int dataRows = section.itemCount();
         if (variable) {
             int item = lastItemAtMost(y, firstItem, firstItem + dataRows);
-            return firstDataVisualRow + clamp(item - firstItem, 0, Math.max(0, dataRows - 1));
+            return firstDataVisualRow + RXMath.clamp(item - firstItem, 0, Math.max(0, dataRows - 1));
         }
         double dataDy = dy - (headersShown ? headerHeight : 0.0);
-        int local = clamp((int) Math.floor(dataDy / rowHeight), 0, dataRows - 1);
+        int local = RXMath.clamp((int) Math.floor(dataDy / rowHeight), 0, dataRows - 1);
         return firstDataVisualRow + local;
     }
 
@@ -425,7 +426,4 @@ final class RXListRowPlan {
         return result;
     }
 
-    private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
-    }
 }

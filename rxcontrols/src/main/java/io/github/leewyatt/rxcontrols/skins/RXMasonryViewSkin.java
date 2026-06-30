@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -862,13 +863,13 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         }
         RXMasonryView<T> control = getSkinnable();
         double anchorY = marqueeAnchorContentY - viewport.scrollOffset();
-        double minX = clamp(Math.min(marqueeAnchorX, marqueeLastX),
+        double minX = RXMath.clamp(Math.min(marqueeAnchorX, marqueeLastX),
                 -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
-        double maxX = clamp(Math.max(marqueeAnchorX, marqueeLastX),
+        double maxX = RXMath.clamp(Math.max(marqueeAnchorX, marqueeLastX),
                 -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
-        double minY = clamp(Math.min(anchorY, marqueeLastY),
+        double minY = RXMath.clamp(Math.min(anchorY, marqueeLastY),
                 -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
-        double maxY = clamp(Math.max(anchorY, marqueeLastY),
+        double maxY = RXMath.clamp(Math.max(anchorY, marqueeLastY),
                 -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
         selectionRectangle.setX(minX);
         selectionRectangle.setY(minY);
@@ -898,10 +899,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             return 0;
         }
         return Math.min(index, itemCount - 1);
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
     }
 
     // ==================== Layout ====================

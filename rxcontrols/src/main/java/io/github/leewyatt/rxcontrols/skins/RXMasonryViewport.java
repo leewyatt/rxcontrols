@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.skins.RXMasonryPlacement.Geometry;
 import javafx.animation.Interpolator;
 import javafx.scene.Node;
@@ -177,7 +178,7 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
             return true;
         }
         double maxScroll = Math.max(0.0, current.contentHeight() - viewportHeight);
-        scrollY = clamp(targetScrollFor(geometry.y(), geometry.height(), viewportHeight, alignment),
+        scrollY = RXMath.clamp(targetScrollFor(geometry.y(), geometry.height(), viewportHeight, alignment),
                 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
@@ -243,7 +244,7 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
         reorderPass = columnsChanged && animationEnabled();
         lastColumns = columns;
         explicitScrollPending = false;
-        scrollY = clamp(scrollY, 0.0, maxScroll);
+        scrollY = RXMath.clamp(scrollY, 0.0, maxScroll);
 
         double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
         double contentWidth = Math.max(0.0, w - barBreadth);

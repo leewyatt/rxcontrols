@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
@@ -211,7 +212,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         if (maxScroll <= 0.0 || deltaY == 0.0) {
             return false;
         }
-        double target = clamp(scrollY + deltaY, 0.0, maxScroll);
+        double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
         if (target == scrollY) {
             return false;
         }
@@ -385,7 +386,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         if (deltaY == 0.0) {
             return;
         }
-        double target = clamp(scrollY - deltaY, 0.0, maxScroll);
+        double target = RXMath.clamp(scrollY - deltaY, 0.0, maxScroll);
         if (target != scrollY) {
             scrollY = target;
             explicitScrollPending = true;
@@ -600,12 +601,6 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
             onCellParked(cell);
             cell.updateIndex(-1);
         }
-    }
-
-    // ==================== Geometry helpers ====================
-
-    protected static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
     }
 
     // ==================== Sizing ====================

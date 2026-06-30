@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -249,7 +250,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         // Land the item within the area below an active sticky header instead of under it.
         double target = targetScrollFor(info.top(), info.height(), viewportHeight,
                 stickyOverlayHeight(plan), alignment);
-        scrollY = clamp(target, 0.0, maxScroll);
+        scrollY = RXMath.clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
         return true;
@@ -282,7 +283,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
         double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
-        scrollY = clamp(target, 0.0, maxScroll);
+        scrollY = RXMath.clamp(target, 0.0, maxScroll);
         explicitScrollPending = true;
         requestLayout();
         return true;
@@ -366,7 +367,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         lastColumnCount = cols;
         explicitScrollPending = false;
 
-        scrollY = clamp(scrollY, 0.0, maxScroll);
+        scrollY = RXMath.clamp(scrollY, 0.0, maxScroll);
 
         double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
         double contentWidth = Math.max(0.0, w - barBreadth);

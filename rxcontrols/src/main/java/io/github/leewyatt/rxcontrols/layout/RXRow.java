@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
@@ -774,9 +775,9 @@ public class RXRow extends Pane {
 
     private EffectiveSpec coerceSpec(Node child, int span, int offset, int order,
                                      boolean hidden, int columnsCount) {
-        int coercedOffset = clamp(offset, 0, columnsCount);
+        int coercedOffset = RXMath.clamp(offset, 0, columnsCount);
         int maxSpan = columnsCount - coercedOffset;
-        int coercedSpan = clamp(span, 0, maxSpan);
+        int coercedSpan = RXMath.clamp(span, 0, maxSpan);
         if (shouldWarnSpecCoercion(span, offset, coercedSpan, coercedOffset, columnsCount)) {
             SpecWarningKey warningKey = new SpecWarningKey(span, offset, columnsCount);
             if (!warningKey.equals(coercedSpecWarnings.put(child, warningKey))) {
@@ -804,7 +805,7 @@ public class RXRow extends Pane {
         if (!child.isResizable()) {
             return snapSizeY(prefHeight);
         }
-        return snapSizeY(boundedSize(child.minHeight(width), prefHeight, child.maxHeight(width)));
+        return snapSizeY(RXMath.clamp(prefHeight, child.minHeight(width), child.maxHeight(width)));
     }
 
     private double computeChildPrefWidth(Node child, double height, double gutterValue) {
@@ -814,7 +815,7 @@ public class RXRow extends Pane {
         if (!child.isResizable()) {
             return snapSizeX(prefWidth);
         }
-        return snapSizeX(boundedSize(child.minWidth(height), prefWidth, child.maxWidth(height)));
+        return snapSizeX(RXMath.clamp(prefWidth, child.minWidth(height), child.maxWidth(height)));
     }
 
     private double computePreferredWidth(double height, boolean min) {
@@ -962,21 +963,6 @@ public class RXRow extends Pane {
                 yield new JustifyMetrics(0.0, gap, gap);
             }
         };
-    }
-
-    private static double boundedSize(double min, double pref, double max) {
-        double bounded = Math.max(min, pref);
-        return Math.min(bounded, Math.max(min, max));
-    }
-
-    private static int clamp(int value, int min, int max) {
-        if (value < min) {
-            return min;
-        }
-        if (value > max) {
-            return max;
-        }
-        return value;
     }
 
     // ==================== CSS Metadata ====================

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTileSection;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import java.util.List;
 
@@ -169,7 +170,7 @@ final class RXTileRowPlan {
         }
         if (!grouped) {
             int row = (int) Math.floor(y / dataSlotHeight);
-            return clamp(row, 0, totalVisualRows - 1);
+            return RXMath.clamp(row, 0, totalVisualRows - 1);
         }
         int s = sectionAtY(y);
         double dy = y - sectionTopY[s];
@@ -182,7 +183,7 @@ final class RXTileRowPlan {
             visualRow += 1;
         }
         int dataRows = dataRowsIn(s);
-        int local = clamp((int) Math.floor(dy / dataSlotHeight), 0, dataRows - 1);
+        int local = RXMath.clamp((int) Math.floor(dy / dataSlotHeight), 0, dataRows - 1);
         return visualRow + local;
     }
 
@@ -371,7 +372,4 @@ final class RXTileRowPlan {
         return result;
     }
 
-    private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
-    }
 }

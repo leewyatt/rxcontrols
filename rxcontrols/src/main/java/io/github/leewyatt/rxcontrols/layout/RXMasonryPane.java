@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
@@ -1509,7 +1510,7 @@ public class RXMasonryPane extends Pane {
             double heightHint = child.getContentBias() == Orientation.HORIZONTAL
                     ? boundedChildWidth(child, contentWidth)
                     : -1.0;
-            childHeight = boundedSize(child.minHeight(heightHint), child.prefHeight(heightHint),
+            childHeight = RXMath.clamp(child.prefHeight(heightHint), child.minHeight(heightHint),
                     child.maxHeight(heightHint));
         } else {
             childHeight = child.getLayoutBounds().getHeight();
@@ -1524,7 +1525,7 @@ public class RXMasonryPane extends Pane {
 
     private double boundedChildWidth(Node child, double contentWidth) {
         double pref = isFillWidth() ? contentWidth : Math.min(contentWidth, child.prefWidth(-1));
-        return boundedSize(child.minWidth(-1), pref, child.maxWidth(-1));
+        return RXMath.clamp(pref, child.minWidth(-1), child.maxWidth(-1));
     }
 
     private double computeXOffset(double width, double contentWidth, HPos hpos) {
@@ -1552,12 +1553,6 @@ public class RXMasonryPane extends Pane {
             default:
                 throw new AssertionError("Unhandled VPos: " + vpos);
         }
-    }
-
-    private double boundedSize(double min, double pref, double max) {
-        double lowerBounded = Math.max(min, pref);
-        double upper = Math.max(min, max);
-        return Math.min(lowerBounded, upper);
     }
 
     private double leftSpace(Insets margin) {

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -944,15 +945,15 @@ public class RXBox extends Pane {
                 value = snapSize(axis, childMin(child, axis, alt));
                 break;
             case PREF:
-                value = snapSize(axis, boundedSize(childMin(child, axis, alt),
-                        childPref(child, axis, alt), childMax(child, axis, alt)));
+                value = snapSize(axis, RXMath.clamp(childPref(child, axis, alt),
+                        childMin(child, axis, alt), childMax(child, axis, alt)));
                 break;
             case MAX:
                 double max = childMax(child, axis, alt);
                 if (max == Double.MAX_VALUE) {
                     return max;
                 }
-                value = snapSize(axis, boundedSize(childMin(child, axis, alt), max,
+                value = snapSize(axis, RXMath.clamp(max, childMin(child, axis, alt),
                         Double.MAX_VALUE));
                 break;
             default:
@@ -982,7 +983,7 @@ public class RXBox extends Pane {
     private double computeBounded(Node child, Axis axis, boolean fill, double contentSize) {
         double min = childMin(child, axis, -1);
         double pref = fill ? contentSize : Math.min(contentSize, childPref(child, axis, -1));
-        return snapSize(axis, boundedSize(min, pref, childMax(child, axis, -1)));
+        return snapSize(axis, RXMath.clamp(pref, min, childMax(child, axis, -1)));
     }
 
     private Axis axisOf(boolean horizontal) {
@@ -1154,12 +1155,6 @@ public class RXBox extends Pane {
         return margin == null ? 0.0 : margin.getTop();
     }
 
-    private double boundedSize(double min, double pref, double max) {
-        double lowerBounded = Math.max(min, pref);
-        double upper = Math.max(min, max);
-        return Math.min(lowerBounded, upper);
-    }
-
     private double computeXOffset(double width, double contentWidth, HPos hpos) {
         switch (hpos) {
             case CENTER:
@@ -1282,7 +1277,7 @@ public class RXBox extends Pane {
             if (baseline == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
                 double alt = child.getContentBias() == Orientation.HORIZONTAL ? areaWidths[i] : -1.0;
                 double availableHeight = areaHeight - minComplement - top - bottom;
-                double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt),
+                double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt),
                         Math.min(child.maxHeight(alt), availableHeight));
                 offset = Math.max(offset, top + childHeight);
             } else {

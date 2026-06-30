@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
@@ -1384,11 +1385,11 @@ public class RXFlowPane extends Pane {
         if (child.isResizable() && bias != null) {
             Axis biasAxis = bias == Orientation.HORIZONTAL ? Axis.X : Axis.Y;
             if (axis != biasAxis) {
-                alt = snapSize(biasAxis, boundedSize(childMin(child, biasAxis, -1),
-                        childPref(child, biasAxis, -1), childMax(child, biasAxis, -1)));
+                alt = snapSize(biasAxis, RXMath.clamp(childPref(child, biasAxis, -1),
+                        childMin(child, biasAxis, -1), childMax(child, biasAxis, -1)));
             }
         }
-        double size = boundedSize(childMin(child, axis, alt), childPref(child, axis, alt),
+        double size = RXMath.clamp(childPref(child, axis, alt), childMin(child, axis, alt),
                 childMax(child, axis, alt));
         return marginLeading(axis, margin) + snapSize(axis, size) + marginTrailing(axis, margin);
     }
@@ -1425,10 +1426,6 @@ public class RXFlowPane extends Pane {
             return 0.0;
         }
         return snapSpace(axis, axis == Axis.X ? margin.getRight() : margin.getBottom());
-    }
-
-    private static double boundedSize(double min, double pref, double max) {
-        return Math.min(Math.max(min, pref), Math.max(min, max));
     }
 
     private static double blockHOffset(double area, double content, HPos hpos) {

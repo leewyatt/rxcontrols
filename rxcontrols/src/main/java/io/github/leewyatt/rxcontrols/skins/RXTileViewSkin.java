@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -1089,13 +1090,13 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
         RXTileView<T> control = getSkinnable();
         double anchorY = marqueeAnchorContentY - viewport.scrollOffset();
-        double minX = clamp(Math.min(marqueeAnchorX, marqueeLastX),
+        double minX = RXMath.clamp(Math.min(marqueeAnchorX, marqueeLastX),
                 -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
-        double maxX = clamp(Math.max(marqueeAnchorX, marqueeLastX),
+        double maxX = RXMath.clamp(Math.max(marqueeAnchorX, marqueeLastX),
                 -viewport.getLayoutX(), control.getWidth() - viewport.getLayoutX());
-        double minY = clamp(Math.min(anchorY, marqueeLastY),
+        double minY = RXMath.clamp(Math.min(anchorY, marqueeLastY),
                 -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
-        double maxY = clamp(Math.max(anchorY, marqueeLastY),
+        double maxY = RXMath.clamp(Math.max(anchorY, marqueeLastY),
                 -viewport.getLayoutY(), control.getHeight() - viewport.getLayoutY());
         selectionRectangle.setX(minX);
         selectionRectangle.setY(minY);
@@ -1131,16 +1132,6 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             return itemCount - 1;
         }
         return index;
-    }
-
-    private static double clamp(double value, double min, double max) {
-        if (value < min) {
-            return min;
-        }
-        if (value > max) {
-            return max;
-        }
-        return value;
     }
 
     // ==================== Shared helpers ====================

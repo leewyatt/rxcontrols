@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -712,7 +713,7 @@ public class RXCol extends StackPane {
         if (!child.isResizable()) {
             return snapSizeX(prefWidth);
         }
-        return snapSizeX(boundedSize(child.minWidth(height), prefWidth, child.maxWidth(height)));
+        return snapSizeX(RXMath.clamp(prefWidth, child.minWidth(height), child.maxWidth(height)));
     }
 
     private double boundedPrefHeight(Node child, double width) {
@@ -720,12 +721,7 @@ public class RXCol extends StackPane {
         if (!child.isResizable()) {
             return snapSizeY(prefHeight);
         }
-        return snapSizeY(boundedSize(child.minHeight(width), prefHeight, child.maxHeight(width)));
-    }
-
-    private static double boundedSize(double min, double pref, double max) {
-        double bounded = Math.max(min, pref);
-        return Math.min(bounded, Math.max(min, max));
+        return snapSizeY(RXMath.clamp(prefHeight, child.minHeight(width), child.maxHeight(width)));
     }
 
     private static Insets marginOrEmpty(Node child) {

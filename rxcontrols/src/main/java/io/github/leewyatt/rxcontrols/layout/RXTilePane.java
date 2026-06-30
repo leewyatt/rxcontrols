@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -1208,15 +1209,15 @@ public class RXTilePane extends Pane {
         if (height != -1.0 && child.isResizable() && child.getContentBias() == Orientation.VERTICAL) {
             double childHeight = Math.max(0.0, height - marginHeight);
             if (fillHeight) {
-                alt = snapSizeY(boundedSize(child.minHeight(-1.0), childHeight, child.maxHeight(-1.0)));
+                alt = snapSizeY(RXMath.clamp(childHeight, child.minHeight(-1.0), child.maxHeight(-1.0)));
             } else {
-                alt = snapSizeY(boundedSize(
-                        child.minHeight(-1.0),
+                alt = snapSizeY(RXMath.clamp(
                         child.prefHeight(-1.0),
+                        child.minHeight(-1.0),
                         Math.min(child.maxHeight(-1.0), childHeight)));
             }
         }
-        double childWidth = boundedSize(child.minWidth(alt), child.prefWidth(alt), child.maxWidth(alt));
+        double childWidth = RXMath.clamp(child.prefWidth(alt), child.minWidth(alt), child.maxWidth(alt));
         return snapSizeX(childWidth) + marginWidth;
     }
 
@@ -1229,9 +1230,9 @@ public class RXTilePane extends Pane {
             double targetWidth = width == -1.0
                     ? child.prefWidth(-1.0)
                     : Math.max(0.0, width - marginWidth);
-            alt = snapSizeX(boundedSize(child.minWidth(-1.0), targetWidth, child.maxWidth(-1.0)));
+            alt = snapSizeX(RXMath.clamp(targetWidth, child.minWidth(-1.0), child.maxWidth(-1.0)));
         }
-        double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt), child.maxHeight(alt));
+        double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt), child.maxHeight(alt));
         return snapSizeY(childHeight) + marginHeight;
     }
 
@@ -1253,7 +1254,7 @@ public class RXTilePane extends Pane {
                         ? Math.max(0.0, tileWidth - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight()))
                         : -1.0;
                 double availableHeight = Math.max(0.0, tileHeight - minComplement - top - bottom);
-                double childHeight = boundedSize(child.minHeight(alt), child.prefHeight(alt),
+                double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt),
                         Math.min(child.maxHeight(alt), availableHeight));
                 offset = Math.max(offset, top + childHeight);
             } else {
@@ -1284,10 +1285,6 @@ public class RXTilePane extends Pane {
     private static Insets marginOrEmpty(Node child) {
         Insets margin = getMargin(child);
         return margin == null ? Insets.EMPTY : margin;
-    }
-
-    private static double boundedSize(double min, double value, double max) {
-        return Math.min(Math.max(value, min), Math.max(min, max));
     }
 
     private double maxTileWidthOrUnbounded() {
