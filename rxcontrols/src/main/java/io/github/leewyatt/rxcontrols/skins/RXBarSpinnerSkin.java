@@ -44,6 +44,15 @@ import java.util.List;
  *       frame cannot linger (§1.8).</li>
  *   <li>Bars are bottom-anchored so the row reads as growing upward, which is
  *       the conventional equalizer / spectrum-analyser metaphor.</li>
+ *   <li>Height is animated with a {@code scaleY} + {@code translateY} transform,
+ *       never by resizing each bar per frame. A per-frame {@code resize} /
+ *       {@code relocate} would call {@code requestParentLayout()} on every pulse
+ *       (both {@code Region.heightChanged} and {@code Node.layoutX} escalate, even
+ *       for an unmanaged child) and drag the whole ancestor chain into a relayout
+ *       each frame. {@code layoutChildren} fixes each bar's box at peak height; the
+ *       frame loop only writes transforms. Since {@code .bar} uses
+ *       {@code -fx-background-radius: 50%} (an ellipse), a vertical scale is
+ *       pixel-identical to a shorter ellipse.</li>
  * </ul>
  */
 public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
@@ -105,7 +114,6 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     private Timeline timeline;
 
     /** Cached geometry — kept so the phase listener can update bar heights without re-querying layout. */
-    private double cachedBottomY;
     private double cachedPeakHeight;
     private double cachedMinHeight;
 
@@ -236,10 +244,24 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         for (int i = 0; i < n; i++) {
             double local = computeLocal(t, i, n, mode);
             double k = curveValue(local, mode);
-            double h = minH + range * k;
-            Region r = bars.get(i);
-            r.resizeRelocate(r.getLayoutX(), cachedBottomY - h, r.getWidth(), h);
+            applyBarHeight(bars.get(i), minH + range * k);
         }
+    }
+
+    /**
+     * Expresses a bar's animated height as a transform, never as layout geometry.
+     * Each bar's layout box is fixed at peak height (bottom-anchored) by
+     * {@link #layoutChildren}; this only writes {@code scaleY} + {@code translateY}.
+     * Driving height via {@code resize}/{@code relocate} here would call
+     * {@code requestParentLayout()} every pulse and relayout the whole ancestor
+     * chain each frame; a pure transform leaves layout untouched.
+     */
+    private void applyBarHeight(Region bar, double height) {
+        double scale = cachedPeakHeight > 0.0 ? height / cachedPeakHeight : 0.0;
+        bar.setScaleY(scale);
+        // scaleY pivots about the box center, so the bottom edge rises by
+        // (peak - height) / 2; push it back down to keep the bar bottom-anchored.
+        bar.setTranslateY((cachedPeakHeight - height) / 2.0);
     }
 
     /**
@@ -293,18 +315,11 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
     }
 
     private void applyStaticRest() {
-        if (cachedPeakHeight <= 0.0) {
-            // First-frame guard: layout hasn't happened yet, so we can't
-            // bottom-anchor properly. Drop bars to zero height — layout will
-            // overwrite as soon as it runs.
-            for (Region r : bars) {
-                r.resize(r.getWidth(), 0.0);
-            }
-            return;
-        }
-        double h = cachedMinHeight;
+        // Rest pose = minimum height, expressed as a transform like the frame loop.
+        // When peak <= 0 (before the first layout) applyBarHeight collapses to
+        // scaleY 0 / translateY 0; layout overwrites the box as soon as it runs.
         for (Region r : bars) {
-            r.resizeRelocate(r.getLayoutX(), cachedBottomY - h, r.getWidth(), h);
+            applyBarHeight(r, cachedMinHeight);
         }
     }
 
@@ -331,8 +346,9 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         if (n == 0 || contentWidth <= 0.0 || contentHeight <= 0.0) {
             for (Region r : bars) {
                 r.resizeRelocate(contentX, contentY, 0.0, 0.0);
+                r.setScaleY(1.0);
+                r.setTranslateY(0.0);
             }
-            cachedBottomY = contentY + contentHeight;
             cachedPeakHeight = 0.0;
             cachedMinHeight = 0.0;
             return;
@@ -352,16 +368,19 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         double startX = contentX + (contentWidth - rowWidth) * HALF;
         double bottomY = contentY + contentHeight;
 
-        cachedBottomY = bottomY;
         cachedPeakHeight = peak;
         cachedMinHeight = minH;
 
         for (int i = 0; i < n; i++) {
             Region r = bars.get(i);
-            r.resizeRelocate(startX + i * (width + gap), bottomY, width, 0.0);
+            // Fix the box at full peak height, bottom-anchored, once per layout
+            // pass; the frame loop animates height via scaleY/translateY only
+            // (applyBarHeight). Doing this resize inside layoutChildren keeps it
+            // from escalating a parent relayout.
+            r.resizeRelocate(startX + i * (width + gap), bottomY - peak, width, peak);
         }
-        // Heights/y depend on phase; refresh against the current phase (or
-        // rest pose if the timeline is disabled).
+        // Height depends on phase; refresh against the current phase (or the rest
+        // pose when the timeline is disabled).
         refreshBars();
     }
 
