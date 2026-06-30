@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXLrcViewShowcase;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -111,12 +112,14 @@ public class RXLrcViewDemo extends Application {
         });
         seekBar.progressProperty().addListener((obs, oldValue, newValue) -> {
             if (!syncingSeekBar && seekBar.isSeeking()) {
-                setPlaybackMillis(TRACK_DURATION.toMillis() * clamp0To1(newValue.doubleValue()));
+                setPlaybackMillis(TRACK_DURATION.toMillis() * RXMath.clampFinite(newValue.doubleValue(),
+                        0.0, 1.0, 0.0));
             }
         });
         seekBar.seekingProperty().addListener((obs, wasSeeking, seeking) -> {
             if (wasSeeking && !seeking) {
-                setPlaybackMillis(TRACK_DURATION.toMillis() * clamp0To1(seekBar.getProgress()));
+                setPlaybackMillis(TRACK_DURATION.toMillis() * RXMath.clampFinite(seekBar.getProgress(),
+                        0.0, 1.0, 0.0));
             }
         });
         return seekBar;
@@ -164,22 +167,11 @@ public class RXLrcViewDemo extends Application {
     }
 
     private void setPlaybackMillis(double millis) {
-        currentMillis.set(clamp(millis, 0.0, TRACK_DURATION.toMillis()));
+        currentMillis.set(RXMath.clampFinite(millis, 0.0, TRACK_DURATION.toMillis(), 0.0));
     }
 
     private double ratio(double millis) {
-        return clamp0To1(millis / TRACK_DURATION.toMillis());
-    }
-
-    private static double clamp0To1(double value) {
-        return clamp(value, 0.0, 1.0);
-    }
-
-    private static double clamp(double value, double min, double max) {
-        if (!Double.isFinite(value)) {
-            return min;
-        }
-        return Math.max(min, Math.min(max, value));
+        return RXMath.clampFinite(millis / TRACK_DURATION.toMillis(), 0.0, 1.0, 0.0);
     }
 
     private static String formatTime(Duration duration) {

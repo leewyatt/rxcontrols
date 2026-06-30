@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -471,7 +472,8 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     // ==================== Geometry ====================
 
     private boolean measureLines(double width, double height) {
-        double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
+        double position = RXMath.clampFinite(getSkinnable().getCurrentLinePosition(),
+                0.0, 1.0, 0.0);
         double spacing = Math.max(0.0, getSkinnable().getLineSpacing());
         double y = height * position;
         boolean changed = false;
@@ -503,7 +505,8 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (index < 0 || index >= lineNodes.size()) {
             return 0.0;
         }
-        double position = clamp(getSkinnable().getCurrentLinePosition(), 0.0, 1.0);
+        double position = RXMath.clampFinite(getSkinnable().getCurrentLinePosition(),
+                0.0, 1.0, 0.0);
         double anchorY = viewportHeight * position;
         int currentIndex = getSkinnable().getCurrentLineIndex();
         double shift = shiftTargetFor(index, currentIndex, gapExpansion(currentIndex));
@@ -570,7 +573,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (!Double.isFinite(offset) || isDocumentEmpty()) {
             return 0.0;
         }
-        return clamp(offset, minManualOffset(), maxManualOffset());
+        return RXMath.clamp(offset, minManualOffset(), maxManualOffset());
     }
 
     private double minManualOffset() {
@@ -866,13 +869,6 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         lineNodes.clear();
         content.getChildren().clear();
         viewport.getChildren().clear();
-    }
-
-    private static double clamp(double value, double min, double max) {
-        if (!Double.isFinite(value)) {
-            return min;
-        }
-        return Math.max(min, Math.min(max, value));
     }
 
     // ==================== Manual Pane ====================

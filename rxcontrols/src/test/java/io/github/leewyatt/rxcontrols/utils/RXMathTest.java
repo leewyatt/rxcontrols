@@ -44,6 +44,19 @@ public class RXMathTest {
     }
 
     @Test
+    public void finiteClampUsesFallbackForNonFiniteValues() {
+        assertEquals(0.25, RXMath.clampFinite(Double.NaN, 0.0, 1.0, 0.25), EPSILON);
+        assertEquals(0.25, RXMath.clampFinite(Double.POSITIVE_INFINITY, 0.0, 1.0, 0.25), EPSILON);
+        assertEquals(0.25, RXMath.clampFinite(Double.NEGATIVE_INFINITY, 0.0, 1.0, 0.25), EPSILON);
+    }
+
+    @Test
+    public void finiteClampClampsFallbackAndKeepsLenientBounds() {
+        assertEquals(1.0, RXMath.clampFinite(Double.NaN, 0.0, 1.0, 2.0), EPSILON);
+        assertEquals(10.0, RXMath.clampFinite(Double.NaN, 10.0, 0.0, 5.0), EPSILON);
+    }
+
+    @Test
     public void lenientIntClampMatchesNormalClampForOrderedBounds() {
         assertEquals(0, RXMath.clamp(-1, 0, 10));
         assertEquals(5, RXMath.clamp(5, 0, 10));

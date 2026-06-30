@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
 import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLrcViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -210,18 +211,21 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         playbackMillis.addListener((obs, oldValue, newValue) -> {
             if (!bar.isSeeking()) {
                 syncingSeekBar = true;
-                bar.setProgress(clamp0To1(newValue.doubleValue() / TRACK_MILLIS));
+                bar.setProgress(RXMath.clampFinite(newValue.doubleValue() / TRACK_MILLIS,
+                        0.0, 1.0, 0.0));
                 syncingSeekBar = false;
             }
         });
         bar.progressProperty().addListener((obs, oldValue, newValue) -> {
             if (!syncingSeekBar && bar.isSeeking()) {
-                setPlaybackMillis(TRACK_MILLIS * clamp0To1(newValue.doubleValue()));
+                setPlaybackMillis(TRACK_MILLIS * RXMath.clampFinite(newValue.doubleValue(),
+                        0.0, 1.0, 0.0));
             }
         });
         bar.seekingProperty().addListener((obs, wasSeeking, seeking) -> {
             if (wasSeeking && !seeking) {
-                setPlaybackMillis(TRACK_MILLIS * clamp0To1(bar.getProgress()));
+                setPlaybackMillis(TRACK_MILLIS * RXMath.clampFinite(bar.getProgress(),
+                        0.0, 1.0, 0.0));
             }
         });
         return bar;
@@ -253,7 +257,8 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
     private void syncPlaybackControls() {
         if (seekBar != null && !seekBar.isSeeking()) {
             syncingSeekBar = true;
-            seekBar.setProgress(clamp0To1(playbackMillis.get() / TRACK_MILLIS));
+            seekBar.setProgress(RXMath.clampFinite(playbackMillis.get() / TRACK_MILLIS,
+                    0.0, 1.0, 0.0));
             syncingSeekBar = false;
         }
         if (timeSlider != null) {
@@ -272,18 +277,7 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
     }
 
     private void setPlaybackMillis(double millis) {
-        playbackMillis.set(clamp(millis, 0.0, TRACK_MILLIS));
-    }
-
-    private static double clamp0To1(double value) {
-        return clamp(value, 0.0, 1.0);
-    }
-
-    private static double clamp(double value, double min, double max) {
-        if (!Double.isFinite(value)) {
-            return min;
-        }
-        return Math.max(min, Math.min(max, value));
+        playbackMillis.set(RXMath.clampFinite(millis, 0.0, TRACK_MILLIS, 0.0));
     }
 
     private static String formatTime(Duration duration) {

@@ -70,6 +70,23 @@ public final class RXMath {
     }
 
     /**
+     * Clamps a finite value to the inclusive range {@code [min, max]}, using a
+     * fallback value first when {@code value} is {@code NaN} or infinite. The
+     * fallback is also clamped, and degenerate bounds follow
+     * {@link #clamp(double, double, double)} semantics.
+     *
+     * @param value    the value to clamp
+     * @param min      the inclusive lower bound
+     * @param max      the inclusive upper bound
+     * @param fallback value to use when {@code value} is not finite
+     * @return the clamped value
+     */
+    public static double clampFinite(double value, double min, double max, double fallback) {
+        double finiteValue = Double.isFinite(value) ? value : fallback;
+        return clamp(finiteValue, min, max);
+    }
+
+    /**
      * Clamps a value to the inclusive range {@code [min, max]}. {@code NaN}
      * values are returned unchanged.
      *
