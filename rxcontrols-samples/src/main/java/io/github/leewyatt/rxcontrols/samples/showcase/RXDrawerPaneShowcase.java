@@ -10,7 +10,6 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -18,11 +17,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -52,6 +49,11 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
     }
 
     @Override
+    protected double sceneWidth() {
+        return 1060;
+    }
+
+    @Override
     protected String subtitle() {
         return "An overlay / push content drawer with a backdrop, veto, custom content and a11y.";
     }
@@ -78,53 +80,35 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
                 + "then open the drawer.");
         hint.getStyleClass().add("preview-hint");
         hint.setWrapText(true);
-        VBox box = new VBox(10.0, heading, hint);
+
+        Button open = new Button("Open drawer");
+        open.getStyleClass().add("preview-action");
+        open.setOnAction(e -> drawer.open());
+
+        VBox box = new VBox(14.0, heading, hint, open);
         box.getStyleClass().add("preview-content");
         box.setAlignment(Pos.CENTER);
         return box;
     }
 
-    private Region createForm() {
-        VBox form = new VBox(10.0);
-        form.getChildren().add(new Label("A user-supplied form lives inside drawerContent."));
-        for (int i = 1; i <= 8; i++) {
-            TextField field = new TextField();
-            field.setPromptText("Field " + i);
-            form.getChildren().add(field);
-        }
-        form.setPadding(new Insets(18.0));
-        return form;
-    }
-
     private Region createDrawerContent() {
-        Label title = new Label("Edit item");
+        Label title = new Label("Release notes");
         title.getStyleClass().add("drawer-title");
 
-        Button close = new Button("Close");
+        Label description = new Label("A compact user-supplied node tree. It keeps the "
+                + "drawer focused without turning the showcase into a form demo.");
+        description.getStyleClass().add("drawer-description");
+        description.setWrapText(true);
+
+        Button close = new Button("Done");
+        close.setMaxWidth(Double.MAX_VALUE);
         close.setOnAction(e -> drawer.close());
 
-        BorderPane header = new BorderPane();
-        header.getStyleClass().add("drawer-header");
-        header.setLeft(title);
-        header.setRight(close);
+        Region region = new Region();
+        VBox.setVgrow(region, Priority.ALWAYS);
 
-        ScrollPane scroll = new ScrollPane(createForm());
-        scroll.getStyleClass().add("drawer-scroll");
-        scroll.setFitToWidth(true);
-
-        Button cancel = new Button("Cancel");
-        cancel.setOnAction(e -> drawer.close());
-        Button save = new Button("Save");
-        save.setOnAction(e -> drawer.close());
-        HBox footer = new HBox(8.0, cancel, save);
-        footer.getStyleClass().add("drawer-footer");
-        footer.setAlignment(Pos.CENTER_RIGHT);
-
-        BorderPane panel = new BorderPane();
+        VBox panel = new VBox(16.0, title, description, region, close);
         panel.getStyleClass().add("drawer-panel");
-        panel.setTop(header);
-        panel.setCenter(scroll);
-        panel.setBottom(footer);
         return panel;
     }
 

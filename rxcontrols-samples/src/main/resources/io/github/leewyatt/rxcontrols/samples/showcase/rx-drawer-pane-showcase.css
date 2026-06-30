@@ -15,31 +15,22 @@
     -fx-max-width: 320;
 }
 
-.drawer-panel {
-    -fx-background-color: white;
+.preview-action {
+    -fx-padding: 8 16;
 }
 
-.drawer-header {
-    -fx-padding: 16 18 12;
-    -fx-border-color: transparent transparent #e2e8f0 transparent;
+.drawer-panel {
+    -fx-padding: 24;
+    -fx-background-color: linear-gradient(to bottom right, #eef2ff, #f8fafc);
 }
 
 .drawer-title {
-    -fx-font-size: 17px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: #0f172a;
 }
 
-.drawer-scroll {
-    -fx-background-color: transparent;
-    -fx-background: transparent;
-}
-
-.drawer-scroll > .viewport {
-    -fx-background-color: transparent;
-}
-
-.drawer-footer {
-    -fx-padding: 12 18 16;
-    -fx-border-color: #e2e8f0 transparent transparent transparent;
+.drawer-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #475569;
 }
