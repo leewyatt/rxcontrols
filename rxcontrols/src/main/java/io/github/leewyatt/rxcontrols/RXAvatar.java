@@ -110,8 +110,7 @@ public class RXAvatar extends Control {
     private Image currentImage;
 
     private final InvalidationListener imageProgressListener = obs -> updateDisplayState();
-    private final WeakInvalidationListener weakImageProgressListener =
-            new WeakInvalidationListener(imageProgressListener);
+    private final WeakInvalidationListener weakImageProgressListener = new WeakInvalidationListener(imageProgressListener);
 
     // ==================== Constructors ====================
 
