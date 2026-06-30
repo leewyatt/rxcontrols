@@ -314,6 +314,38 @@ public class RXBoxTest {
     }
 
     /**
+     * Verifies one-pixel grow remainder is left undistributed like {@link HBox}.
+     */
+    @Test
+    public void onePixelGrowRemainderMatchesHBox() {
+        FixedRegion hFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        HBox hbox = new HBox(0.0, hFirst, hSecond, hThird);
+        HBox.setHgrow(hFirst, Priority.ALWAYS);
+        HBox.setHgrow(hSecond, Priority.ALWAYS);
+        HBox.setHgrow(hThird, Priority.ALWAYS);
+
+        FixedRegion rFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 0.0, rFirst, rSecond, rThird);
+        RXBox.setGrow(rFirst, Priority.ALWAYS);
+        RXBox.setGrow(rSecond, Priority.ALWAYS);
+        RXBox.setGrow(rThird, Priority.ALWAYS);
+
+        layout(hbox, 31.0, 40.0);
+        layout(rxBox, 31.0, 40.0);
+
+        assertNodeMatches(hFirst, rFirst, "first");
+        assertNodeMatches(hSecond, rSecond, "second");
+        assertNodeMatches(hThird, rThird, "third");
+        assertClose(10.0, rFirst.getWidth(), "first width");
+        assertClose(10.0, rSecond.getWidth(), "second width");
+        assertClose(10.0, rThird.getWidth(), "third width");
+    }
+
+    /**
      * Verifies fractional vertical grow extra is distributed on pixel portions like {@link VBox}.
      */
     @Test
@@ -391,6 +423,32 @@ public class RXBoxTest {
         assertClose(9.0, rFirst.getWidth(), "first snapped width");
         assertClose(9.0, rSecond.getWidth(), "second snapped width");
         assertClose(10.0, rThird.getWidth(), "third snapped width");
+    }
+
+    /**
+     * Verifies one-pixel shrink remainder is left undistributed like {@link HBox}.
+     */
+    @Test
+    public void onePixelShrinkRemainderMatchesHBox() {
+        FixedRegion hFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion hThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        HBox hbox = new HBox(0.0, hFirst, hSecond, hThird);
+
+        FixedRegion rFirst = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rSecond = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        FixedRegion rThird = fixedRegion(0.0, 10.0, 10.0, 10.0, 100.0, 40.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 0.0, rFirst, rSecond, rThird);
+
+        layout(hbox, 29.0, 40.0);
+        layout(rxBox, 29.0, 40.0);
+
+        assertNodeMatches(hFirst, rFirst, "first");
+        assertNodeMatches(hSecond, rSecond, "second");
+        assertNodeMatches(hThird, rThird, "third");
+        assertClose(10.0, rFirst.getWidth(), "first width");
+        assertClose(10.0, rSecond.getWidth(), "second width");
+        assertClose(10.0, rThird.getWidth(), "third width");
     }
 
     /**
@@ -534,6 +592,29 @@ public class RXBoxTest {
         layout(rxBox, 80.0, rxBox.prefHeight(-1));
 
         assertClose(80.0, tallMin.getHeight(), "tall child height");
+    }
+
+    /**
+     * Verifies non-baseline content-bias children use their allocated width in baseline panes.
+     */
+    @Test
+    public void nonBaselineContentBiasUsesAllocatedWidthInBaselinePanePrefHeight() {
+        ThresholdWidthBiasedRegion topAligned = new ThresholdWidthBiasedRegion();
+        BaselineRegion baselineAligned = baselineRegion(30.0, 20.0, 10.0);
+        RXBox rxBox = new RXBox(Orientation.HORIZONTAL, 4.0, topAligned, baselineAligned);
+        rxBox.setAlignment(Pos.BASELINE_LEFT);
+        rxBox.setFillCrossAxis(false);
+        RXBox.setAlignment(topAligned, Pos.TOP_LEFT);
+        RXBox.setGrow(topAligned, Priority.ALWAYS);
+
+        double prefHeight = rxBox.prefHeight(180.0);
+
+        assertClose(21.0, prefHeight, "pref height");
+
+        layout(rxBox, 180.0, prefHeight);
+
+        assertClose(146.0, topAligned.getWidth(), "top child width");
+        assertClose(21.0, topAligned.getHeight(), "top child height");
     }
 
     /**
@@ -861,6 +942,49 @@ public class RXBoxTest {
         private double computeHeight(double width, double multiplier) {
             double dependentWidth = width == -1.0 ? prefWidth(-1.0) : width;
             return baseHeight * multiplier + dependentWidth / 10.0;
+        }
+    }
+
+    private static final class ThresholdWidthBiasedRegion extends Region {
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return 10.0;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return 20.0;
+        }
+
+        @Override
+        protected double computeMaxWidth(double height) {
+            return Double.MAX_VALUE;
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return computeHeight(width);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return computeHeight(width);
+        }
+
+        @Override
+        protected double computeMaxHeight(double width) {
+            return computeHeight(width);
+        }
+
+        private double computeHeight(double width) {
+            double dependentWidth = width == -1.0 ? prefWidth(-1.0) : width;
+            return 20.0 + Math.max(0.0, dependentWidth - 136.0) / 10.0;
         }
     }
 

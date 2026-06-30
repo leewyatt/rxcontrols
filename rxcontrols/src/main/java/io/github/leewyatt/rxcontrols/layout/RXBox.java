@@ -822,7 +822,7 @@ public class RXBox extends Pane {
 
         double pixelSize = pixelSize(horizontal);
         double available = extra;
-        while (Math.abs(available) >= pixelSize && adjustable > 0) {
+        while (Math.abs(available) > 1.0 && adjustable > 0) {
             double portion = snapPortion(available / adjustable, horizontal);
             if (portion == 0.0) {
                 if (pixelSize == 0.0) {
@@ -850,7 +850,7 @@ public class RXBox extends Pane {
                     limits[i] = Double.NaN;
                     adjustable--;
                 }
-                if (Math.abs(available) < pixelSize) {
+                if (Math.abs(available) < 1.0) {
                     break;
                 }
             }
@@ -1213,11 +1213,13 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             double childWidth = childWidths == null ? -1.0 : childWidths[i];
             if (!isBaselineParticipant(child)) {
+                // Horizontal baseline layout still allocates the child's main-axis width
+                // before measuring height, matching the non-baseline horizontal path.
                 double areaHeight = minimum
                         ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                                childWidth, shouldFillCrossAxis(child))
+                                childWidth, true)
                         : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                                childWidth, shouldFillCrossAxis(child));
+                                childWidth, true);
                 maxNonBaseline = Math.max(maxNonBaseline, areaHeight);
                 continue;
             }
