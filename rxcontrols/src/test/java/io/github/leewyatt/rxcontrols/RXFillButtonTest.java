@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import javafx.application.Platform;

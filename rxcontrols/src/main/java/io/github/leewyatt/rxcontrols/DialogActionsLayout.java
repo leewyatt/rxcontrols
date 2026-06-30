@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.enums;
+package io.github.leewyatt.rxcontrols;
 
 /**
  * How an {@link io.github.leewyatt.rxcontrols.RXDialog RXDialog} lays out the action

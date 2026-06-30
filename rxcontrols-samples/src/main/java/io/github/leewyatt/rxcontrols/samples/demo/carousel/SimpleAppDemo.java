@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import javafx.application.Application;

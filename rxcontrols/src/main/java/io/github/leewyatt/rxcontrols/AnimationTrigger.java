@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.enums;
+package io.github.leewyatt.rxcontrols;
 
 /**
  * Trigger source for decorative button animations: the animation plays

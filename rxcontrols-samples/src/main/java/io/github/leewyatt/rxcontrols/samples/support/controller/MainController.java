@@ -22,7 +22,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.DisplayMode;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

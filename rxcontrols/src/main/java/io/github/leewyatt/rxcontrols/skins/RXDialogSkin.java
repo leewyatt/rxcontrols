@@ -2,9 +2,9 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDialog;
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
-import io.github.leewyatt.rxcontrols.enums.DialogTransition;
+import io.github.leewyatt.rxcontrols.CloseReason;
+import io.github.leewyatt.rxcontrols.DialogActionsLayout;
+import io.github.leewyatt.rxcontrols.DialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;

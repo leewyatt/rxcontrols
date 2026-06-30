@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.ImageFit;
 import io.github.leewyatt.rxcontrols.internal.RXImageRenderer;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.DoubleProperty;

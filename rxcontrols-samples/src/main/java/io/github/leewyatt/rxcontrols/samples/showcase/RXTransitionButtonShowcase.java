@@ -16,7 +16,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWhipPan;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;

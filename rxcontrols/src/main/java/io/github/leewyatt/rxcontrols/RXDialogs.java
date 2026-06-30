@@ -1,7 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.CloseReason;
-import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;

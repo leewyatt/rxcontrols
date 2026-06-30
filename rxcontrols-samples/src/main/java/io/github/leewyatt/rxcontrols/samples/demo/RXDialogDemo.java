@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
-import io.github.leewyatt.rxcontrols.enums.DialogTransition;
+import io.github.leewyatt.rxcontrols.DialogTransition;
 
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;

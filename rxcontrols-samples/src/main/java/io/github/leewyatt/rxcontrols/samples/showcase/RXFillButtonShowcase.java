@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimZigzag;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

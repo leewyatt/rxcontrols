@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
 import io.github.leewyatt.rxcontrols.skins.RXLineLabelSkin;
 import javafx.animation.PauseTransition;

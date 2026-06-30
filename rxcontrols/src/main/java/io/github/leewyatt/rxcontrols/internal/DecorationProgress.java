@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;

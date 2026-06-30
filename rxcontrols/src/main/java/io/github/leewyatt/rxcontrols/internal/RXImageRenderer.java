@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.enums.ImageFit;
+import io.github.leewyatt.rxcontrols.ImageFit;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.Rectangle2D;

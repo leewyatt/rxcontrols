@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.animation.page.*;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;

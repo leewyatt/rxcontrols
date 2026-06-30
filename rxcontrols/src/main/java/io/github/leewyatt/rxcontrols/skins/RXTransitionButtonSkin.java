@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXAnimatedButton;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;

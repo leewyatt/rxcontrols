@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.enums;
+package io.github.leewyatt.rxcontrols;
 
 /**
  * Defines how an optional carousel overlay element is displayed.

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.fill;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
 import io.github.leewyatt.rxcontrols.internal.DecorationProgress;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;

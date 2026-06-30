@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXImagePane;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
+import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;

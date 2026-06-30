@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.enums;
+package io.github.leewyatt.rxcontrols;
 
 /**
  * Why an {@link io.github.leewyatt.rxcontrols.RXDialog RXDialog} close was

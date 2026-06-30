@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.line;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.DecorationProgress;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;

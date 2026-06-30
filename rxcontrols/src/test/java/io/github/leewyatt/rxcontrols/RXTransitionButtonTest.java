@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;

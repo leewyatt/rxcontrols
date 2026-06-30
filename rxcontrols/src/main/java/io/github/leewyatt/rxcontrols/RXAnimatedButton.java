@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;

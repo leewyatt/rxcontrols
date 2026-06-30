@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXLineLabel;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineEdges;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
 import javafx.scene.Node;

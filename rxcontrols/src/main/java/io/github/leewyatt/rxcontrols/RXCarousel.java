@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
 import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
-import io.github.leewyatt.rxcontrols.enums.DisplayMode;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.beans.property.BooleanProperty;

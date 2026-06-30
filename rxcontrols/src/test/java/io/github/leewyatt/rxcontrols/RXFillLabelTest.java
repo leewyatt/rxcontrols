@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.skins.RXFillLabelSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;

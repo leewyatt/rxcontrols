@@ -2,8 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
-import io.github.leewyatt.rxcontrols.animation.line.LineEdges;
-import io.github.leewyatt.rxcontrols.enums.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXLineButtonSkin;
 import javafx.application.Platform;

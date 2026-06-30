@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXImagePane;
-import io.github.leewyatt.rxcontrols.enums.ImageFit;
+import io.github.leewyatt.rxcontrols.ImageFit;
 import io.github.leewyatt.rxcontrols.samples.demo.RXImagePaneDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
