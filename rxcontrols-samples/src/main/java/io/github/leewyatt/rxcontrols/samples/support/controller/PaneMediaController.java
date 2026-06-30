@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.support.controller;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.beans.binding.Bindings;
@@ -151,7 +151,7 @@ public class PaneMediaController {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            lrcPane.setDocument(RXLrcParser.parse(lrc).document());
+            lrcPane.setDocument(LrcParser.parse(lrc).document());
             lrcPane.currentTimeProperty().bind(player.currentTimeProperty());
         } else {
             lrcPane.setDocument(null);

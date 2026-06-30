@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXLrcView;
-import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
+import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcLine;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -91,7 +91,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     private final ChangeListener<Number> currentLineIndexListener =
             (observable, oldValue, newValue) -> onCurrentLineIndexChanged(
                     oldValue.intValue(), newValue.intValue());
-    private final ChangeListener<RXLrcDocument> documentListener =
+    private final ChangeListener<LrcDocument> documentListener =
             (observable, oldValue, newValue) -> onDocumentChanged();
     private final ChangeListener<Node> placeholderListener =
             (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
@@ -271,9 +271,9 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     private void rebuildLineNodes() {
         lineNodes.clear();
-        RXLrcDocument document = getSkinnable().getDocument();
+        LrcDocument document = getSkinnable().getDocument();
         if (document != null) {
-            for (RXLrcLine line : document.lines()) {
+            for (LrcLine line : document.lines()) {
                 lineNodes.add(new LineNode(line));
             }
         }
@@ -327,7 +327,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
     }
 
     private boolean isDocumentEmpty() {
-        RXLrcDocument document = getSkinnable().getDocument();
+        LrcDocument document = getSkinnable().getDocument();
         return document == null || document.isEmpty();
     }
 
@@ -835,10 +835,10 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (lineNode == null) {
             return;
         }
-        RXLrcLine line = lineNode.getLine();
-        getSkinnable().fireEvent(new RXLrcLineEvent(
+        LrcLine line = lineNode.getLine();
+        getSkinnable().fireEvent(new LrcLineEvent(
                 getSkinnable(),
-                RXLrcLineEvent.LINE_CLICKED,
+                LrcLineEvent.LINE_CLICKED,
                 line,
                 line.index(),
                 line.time()));
@@ -884,10 +884,10 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
 
     private static final class LineNode extends Region {
 
-        private final RXLrcLine line;
+        private final LrcLine line;
         private final Label text = new Label();
 
-        private LineNode(RXLrcLine line) {
+        private LineNode(LrcLine line) {
             this.line = line;
             getStyleClass().add("line");
             text.getStyleClass().add("text");
@@ -896,7 +896,7 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
             getChildren().add(text);
         }
 
-        private RXLrcLine getLine() {
+        private LrcLine getLine() {
             return line;
         }
 

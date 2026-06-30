@@ -4,8 +4,8 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests the RXLrcLineView control API, current-line derivation, transition
  * scheduling contract, node reuse, and skin lifecycle.
  */
-public class RXLrcLineViewTest {
+public class LrcLineViewTest {
 
     private static final double EPSILON = 0.0001;
 
@@ -88,7 +88,7 @@ public class RXLrcLineViewTest {
     @Test
     public void currentLineDerivesFromDocumentCurrentTimeAndOffset() {
         RXLrcLineView view = new RXLrcLineView();
-        RXLrcDocument document = RXLrcParser.parse("""
+        LrcDocument document = LrcParser.parse("""
                 [00:01.00]A
                 [00:03.00]B
                 """).document();
@@ -166,7 +166,7 @@ public class RXLrcLineViewTest {
 
     @Test
     public void emptyDocumentShowsPlaceholder() {
-        RXLrcLineView view = createLaidOutView(RXLrcDocument.empty(), Duration.ZERO);
+        RXLrcLineView view = createLaidOutView(LrcDocument.empty(), Duration.ZERO);
         Node placeholder = view.lookup(".placeholder");
 
         assertNotNull(placeholder);
@@ -251,7 +251,7 @@ public class RXLrcLineViewTest {
 
     @Test
     public void adjacentDuplicateTextStillTransitions() {
-        RXLrcLineView view = createLaidOutView(RXLrcParser.parse("""
+        RXLrcLineView view = createLaidOutView(LrcParser.parse("""
                 [00:00.00]Echo
                 [00:02.00]Echo
                 """).document(), Duration.ZERO);
@@ -271,7 +271,7 @@ public class RXLrcLineViewTest {
 
     @Test
     public void blankLineBeforeFirstLineTransitionsBothWays() {
-        RXLrcLineView view = createLaidOutView(RXLrcParser.parse("""
+        RXLrcLineView view = createLaidOutView(LrcParser.parse("""
                 [00:02.00]First
                 """).document(), Duration.ZERO);
         RecordingAnimation recording = new RecordingAnimation(Duration.millis(40.0));
@@ -463,8 +463,8 @@ public class RXLrcLineViewTest {
 
     // ==================== Helpers ====================
 
-    private static RXLrcDocument longDocument() {
-        return RXLrcParser.parse("""
+    private static LrcDocument longDocument() {
+        return LrcParser.parse("""
                 [00:00.00]Line 1
                 [00:02.00]Line 2
                 [00:04.00]Line 3
@@ -474,15 +474,15 @@ public class RXLrcLineViewTest {
                 """).document();
     }
 
-    private static RXLrcDocument alternateDocument() {
-        return RXLrcParser.parse("""
+    private static LrcDocument alternateDocument() {
+        return LrcParser.parse("""
                 [00:00.00]Intro
                 [00:02.00]Verse
                 [00:04.00]Hook
                 """).document();
     }
 
-    private static RXLrcLineView createLaidOutView(RXLrcDocument document, Duration currentTime) {
+    private static RXLrcLineView createLaidOutView(LrcDocument document, Duration currentTime) {
         RXLrcLineView view = new RXLrcLineView();
         view.setAnimated(false);
         view.setDocument(document);

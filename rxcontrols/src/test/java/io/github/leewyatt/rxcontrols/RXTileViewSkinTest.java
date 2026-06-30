@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.TileViewActionEvent;
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -2163,7 +2163,7 @@ public class RXTileViewSkinTest {
 
     @Test
     public void onActionFiresOnEnterAndDoubleClick() throws Exception {
-        AtomicReference<RXTileViewActionEvent<String>> received = new AtomicReference<>();
+        AtomicReference<TileViewActionEvent<String>> received = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(20);
             view.setMaxColumns(3);
@@ -2651,7 +2651,7 @@ public class RXTileViewSkinTest {
 
     @Test
     public void spaceTogglesSelectionWithoutActivating() throws Exception {
-        AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
+        AtomicReference<TileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(20);
             view.setMaxColumns(3);
@@ -2675,7 +2675,7 @@ public class RXTileViewSkinTest {
 
     @Test
     public void doubleClickOnEmptySpaceDoesNotActivate() throws Exception {
-        AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
+        AtomicReference<TileViewActionEvent<String>> activated = new AtomicReference<>();
         onFx(() -> {
             RXTileView<String> view = tiles(3); // few items: lots of empty viewport below
             view.setMaxColumns(3);

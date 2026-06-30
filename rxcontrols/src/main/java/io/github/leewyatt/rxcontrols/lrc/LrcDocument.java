@@ -13,16 +13,16 @@ import java.util.Objects;
  * @param lines    the normalized lyric lines, sorted by time
  * @throws NullPointerException if {@code metadata}, {@code lines}, or one of the lines is {@code null}
  */
-public record RXLrcDocument(RXLrcMetadata metadata, List<RXLrcLine> lines) {
+public record LrcDocument(LrcMetadata metadata, List<LrcLine> lines) {
 
     private static final int NO_LINE_INDEX = -1;
-    private static final RXLrcDocument EMPTY =
-            new RXLrcDocument(new RXLrcMetadata(Map.of()), List.of());
+    private static final LrcDocument EMPTY =
+            new LrcDocument(new LrcMetadata(Map.of()), List.of());
 
     /**
      * Creates an immutable LRC document.
      */
-    public RXLrcDocument {
+    public LrcDocument {
         Objects.requireNonNull(metadata, "metadata");
         Objects.requireNonNull(lines, "lines");
         lines = List.copyOf(lines);
@@ -33,7 +33,7 @@ public record RXLrcDocument(RXLrcMetadata metadata, List<RXLrcLine> lines) {
      *
      * @return an immutable document with empty metadata and no timed lines
      */
-    public static RXLrcDocument empty() {
+    public static LrcDocument empty() {
         return EMPTY;
     }
 

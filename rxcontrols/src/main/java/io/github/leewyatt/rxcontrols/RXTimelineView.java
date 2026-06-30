@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
+import io.github.leewyatt.rxcontrols.event.TimelineItemEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTimelineViewSkin;
 import javafx.beans.InvalidationListener;
@@ -502,11 +502,11 @@ public class RXTimelineView extends Control {
 
     // ==================== On Item Clicked ====================
 
-    private final ObjectProperty<EventHandler<RXTimelineItemEvent>> onItemClicked =
+    private final ObjectProperty<EventHandler<TimelineItemEvent>> onItemClicked =
             new SimpleObjectProperty<>(this, "onItemClicked", null) {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXTimelineItemEvent.ITEM_CLICKED, get());
+                    setEventHandler(TimelineItemEvent.ITEM_CLICKED, get());
                 }
             };
 
@@ -516,7 +516,7 @@ public class RXTimelineView extends Control {
      *
      * @return the item-click handler property
      */
-    public final ObjectProperty<EventHandler<RXTimelineItemEvent>> onItemClickedProperty() {
+    public final ObjectProperty<EventHandler<TimelineItemEvent>> onItemClickedProperty() {
         return onItemClicked;
     }
 
@@ -525,7 +525,7 @@ public class RXTimelineView extends Control {
      *
      * @return the item-click handler, or {@code null}
      */
-    public final EventHandler<RXTimelineItemEvent> getOnItemClicked() {
+    public final EventHandler<TimelineItemEvent> getOnItemClicked() {
         return onItemClicked.get();
     }
 
@@ -534,7 +534,7 @@ public class RXTimelineView extends Control {
      *
      * @param value the item-click handler, or {@code null}
      */
-    public final void setOnItemClicked(EventHandler<RXTimelineItemEvent> value) {
+    public final void setOnItemClicked(EventHandler<TimelineItemEvent> value) {
         onItemClicked.set(value);
     }
 

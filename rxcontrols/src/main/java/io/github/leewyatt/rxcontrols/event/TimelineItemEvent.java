@@ -8,19 +8,17 @@ import javafx.event.EventType;
 /**
  * Event fired when a timeline item is clicked in an {@link RXTimelineView}.
  */
-public class RXTimelineItemEvent extends Event {
+public class TimelineItemEvent extends Event {
 
     /**
      * Base type for all timeline item events.
      */
-    public static final EventType<RXTimelineItemEvent> ANY =
-            new EventType<>(Event.ANY, "RX_TIMELINE_ITEM");
+    public static final EventType<TimelineItemEvent> ANY = new EventType<>(Event.ANY, "TIMELINE_ITEM");
 
     /**
      * Fired when a timeline item is clicked.
      */
-    public static final EventType<RXTimelineItemEvent> ITEM_CLICKED =
-            new EventType<>(ANY, "ITEM_CLICKED");
+    public static final EventType<TimelineItemEvent> ITEM_CLICKED = new EventType<>(ANY, "ITEM_CLICKED");
 
     private final transient RXTimelineView timelineView;
     private final transient RXTimelineItem item;
@@ -35,8 +33,8 @@ public class RXTimelineItemEvent extends Event {
      * @param index     the clicked item's model index (stable regardless of
      *                  {@code reverse})
      */
-    public RXTimelineItemEvent(RXTimelineView source, EventType<RXTimelineItemEvent> eventType,
-                               RXTimelineItem item, int index) {
+    public TimelineItemEvent(RXTimelineView source, EventType<TimelineItemEvent> eventType,
+                             RXTimelineItem item, int index) {
         super(source, source, eventType);
         this.timelineView = source;
         this.item = item;

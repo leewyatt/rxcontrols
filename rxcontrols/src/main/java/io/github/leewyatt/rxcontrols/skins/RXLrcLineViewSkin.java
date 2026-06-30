@@ -5,7 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
@@ -36,14 +36,14 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
      * Document the page texts were derived from; detects document swaps in the
      * current-line listener, which fires before the skin's document listener.
      */
-    private RXLrcDocument shownDocument;
+    private LrcDocument shownDocument;
 
     // ==================== Listeners ====================
 
     private final ChangeListener<Number> currentLineIndexListener =
             (observable, oldValue, newValue) -> onCurrentLineIndexChanged(
                     oldValue.intValue(), newValue.intValue());
-    private final ChangeListener<RXLrcDocument> documentListener =
+    private final ChangeListener<LrcDocument> documentListener =
             (observable, oldValue, newValue) -> onDocumentChanged();
     private final ChangeListener<Node> placeholderListener =
             (observable, oldValue, newValue) -> onPlaceholderChanged(oldValue, newValue);
@@ -175,7 +175,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     }
 
     private String textAt(int index) {
-        RXLrcDocument document = getSkinnable().getDocument();
+        LrcDocument document = getSkinnable().getDocument();
         if (document == null || index < 0 || index >= document.lines().size()) {
             return "";
         }
@@ -262,7 +262,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     }
 
     private boolean isDocumentEmpty() {
-        RXLrcDocument document = getSkinnable().getDocument();
+        LrcDocument document = getSkinnable().getDocument();
         return document == null || document.isEmpty();
     }
 

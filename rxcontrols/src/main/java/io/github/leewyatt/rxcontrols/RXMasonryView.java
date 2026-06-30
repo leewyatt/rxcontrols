@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXMasonryViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.MasonryViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
@@ -1138,7 +1138,7 @@ public class RXMasonryView<T> extends Control {
 
     // ==================== On Action ====================
 
-    private ObjectProperty<EventHandler<RXMasonryViewActionEvent<T>>> onAction;
+    private ObjectProperty<EventHandler<MasonryViewActionEvent<T>>> onAction;
 
     /**
      * Handler invoked when a cell is activated — by pressing {@code Enter} on the
@@ -1146,12 +1146,12 @@ public class RXMasonryView<T> extends Control {
      *
      * @return the on-action property
      */
-    public final ObjectProperty<EventHandler<RXMasonryViewActionEvent<T>>> onActionProperty() {
+    public final ObjectProperty<EventHandler<MasonryViewActionEvent<T>>> onActionProperty() {
         if (onAction == null) {
             onAction = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXMasonryViewActionEvent.actionType(), get());
+                    setEventHandler(MasonryViewActionEvent.actionType(), get());
                 }
 
                 @Override
@@ -1173,7 +1173,7 @@ public class RXMasonryView<T> extends Control {
      *
      * @return the activation handler, or {@code null}
      */
-    public final EventHandler<RXMasonryViewActionEvent<T>> getOnAction() {
+    public final EventHandler<MasonryViewActionEvent<T>> getOnAction() {
         return onAction == null ? null : onAction.get();
     }
 
@@ -1182,7 +1182,7 @@ public class RXMasonryView<T> extends Control {
      *
      * @param value the activation handler, or {@code null} for none
      */
-    public final void setOnAction(EventHandler<RXMasonryViewActionEvent<T>> value) {
+    public final void setOnAction(EventHandler<MasonryViewActionEvent<T>> value) {
         onActionProperty().set(value);
     }
 

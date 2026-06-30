@@ -8,6 +8,7 @@ import javafx.event.EventType;
 import javafx.scene.control.ButtonType;
 
 /**
+ *  Named RXDialogEvent to avoid conflicts with JavaFX DialogEvent.
  * Events fired across the show / hide lifecycle of an {@link RXDialog}.
  *
  * <p>The lifecycle is:</p>

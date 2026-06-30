@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 /**
  * Static, lenient parser for standard line-level LRC text.
  */
-public final class RXLrcParser {
+public final class LrcParser {
 
     private static final String BOM = "\uFEFF";
     private static final String OFFSET_KEY = "offset";
@@ -37,51 +37,51 @@ public final class RXLrcParser {
                     .thenComparingInt(NormalizedLine::sourceLineNumber)
                     .thenComparingInt(NormalizedLine::tagOrder);
 
-    private RXLrcParser() {
+    private LrcParser() {
     }
 
     /**
      * Parses raw LRC text into an immutable document and parse warnings.
      *
      * <p>Content errors are reported as warnings instead of exceptions. Blank or
-     * whitespace-only input returns {@link RXLrcDocument#empty()} with no
+     * whitespace-only input returns {@link LrcDocument#empty()} with no
      * warnings.</p>
      *
      * @param text the raw LRC text, already decoded by the caller
      * @return the parse result; its document is never {@code null}
      * @throws NullPointerException if {@code text} is {@code null}
      */
-    public static RXLrcParseResult parse(String text) {
+    public static LrcParseResult parse(String text) {
         Objects.requireNonNull(text, "text");
 
         String source = stripBom(text);
         if (source.isBlank()) {
-            return new RXLrcParseResult(RXLrcDocument.empty(), List.of());
+            return new LrcParseResult(LrcDocument.empty(), List.of());
         }
 
         Map<String, String> tags = new HashMap<>();
         List<ParsedLine> parsedLines = new ArrayList<>();
-        List<RXLrcParseWarning> warnings = new ArrayList<>();
+        List<LrcParseWarning> warnings = new ArrayList<>();
         String[] sourceLines = LINE_SEPARATOR_REGEX.split(source, -1);
         for (int i = 0; i < sourceLines.length; i++) {
             parseLine(sourceLines[i], i + FIRST_LINE_NUMBER, tags, parsedLines, warnings);
         }
 
-        RXLrcMetadata metadata = new RXLrcMetadata(tags);
+        LrcMetadata metadata = new LrcMetadata(tags);
         if (parsedLines.isEmpty()) {
-            warnings.add(new RXLrcParseWarning(DOCUMENT_WARNING_LINE, "",
-                    RXLrcWarningCode.NO_TIMED_LINES, "No timed lyric lines were found."));
-            return new RXLrcParseResult(new RXLrcDocument(metadata, List.of()), warnings);
+            warnings.add(new LrcParseWarning(DOCUMENT_WARNING_LINE, "",
+                    LrcWarningCode.NO_TIMED_LINES, "No timed lyric lines were found."));
+            return new LrcParseResult(new LrcDocument(metadata, List.of()), warnings);
         }
 
         List<NormalizedLine> normalizedLines = normalizeLines(parsedLines, metadata.getOffset());
         normalizedLines.sort(NORMALIZED_LINE_ORDER);
         addDuplicateWarnings(normalizedLines, warnings);
 
-        List<RXLrcLine> lines = new ArrayList<>(normalizedLines.size());
+        List<LrcLine> lines = new ArrayList<>(normalizedLines.size());
         for (int i = 0; i < normalizedLines.size(); i++) {
             NormalizedLine line = normalizedLines.get(i);
-            lines.add(new RXLrcLine(
+            lines.add(new LrcLine(
                     i,
                     Duration.millis(line.timeMillis()),
                     durationAt(normalizedLines, i),
@@ -92,7 +92,7 @@ public final class RXLrcParser {
                     line.sourceLineNumber()));
         }
 
-        return new RXLrcParseResult(new RXLrcDocument(metadata, lines), warnings);
+        return new LrcParseResult(new LrcDocument(metadata, lines), warnings);
     }
 
     private static String stripBom(String text) {
@@ -104,7 +104,7 @@ public final class RXLrcParser {
 
     private static void parseLine(String line, int lineNumber, Map<String, String> tags,
                                   List<ParsedLine> parsedLines,
-                                  List<RXLrcParseWarning> warnings) {
+                                  List<LrcParseWarning> warnings) {
         String trimmed = line.trim();
         if (trimmed.isEmpty()) {
             return;
@@ -113,8 +113,8 @@ public final class RXLrcParser {
             return;
         }
         if (looksLikeBrokenMetadata(trimmed)) {
-            warnings.add(new RXLrcParseWarning(lineNumber, line,
-                    RXLrcWarningCode.INVALID_METADATA, "Malformed metadata tag."));
+            warnings.add(new LrcParseWarning(lineNumber, line,
+                    LrcWarningCode.INVALID_METADATA, "Malformed metadata tag."));
             return;
         }
 
@@ -129,18 +129,18 @@ public final class RXLrcParser {
             return;
         }
 
-        warnings.add(new RXLrcParseWarning(lineNumber, line,
-                RXLrcWarningCode.UNTIMED_TEXT, "Untimed text line was skipped."));
+        warnings.add(new LrcParseWarning(lineNumber, line,
+                LrcWarningCode.UNTIMED_TEXT, "Untimed text line was skipped."));
     }
 
     private static boolean parseMetadataLine(String trimmed, int lineNumber, String rawLine,
                                              Map<String, String> tags,
-                                             List<RXLrcParseWarning> warnings) {
+                                             List<LrcParseWarning> warnings) {
         Matcher matcher = ID_TAG_REGEX.matcher(trimmed);
         int position = 0;
         boolean found = false;
         Map<String, String> parsedTags = new HashMap<>();
-        List<RXLrcParseWarning> parsedWarnings = new ArrayList<>();
+        List<LrcParseWarning> parsedWarnings = new ArrayList<>();
         while (matcher.find()) {
             if (!trimmed.substring(position, matcher.start()).isBlank()) {
                 return false;
@@ -150,8 +150,8 @@ public final class RXLrcParser {
             String value = matcher.group(2).trim();
             parsedTags.put(key, value);
             if (OFFSET_KEY.equals(key) && !isValidOffset(value)) {
-                parsedWarnings.add(new RXLrcParseWarning(lineNumber, rawLine,
-                        RXLrcWarningCode.INVALID_OFFSET, "Invalid LRC offset metadata."));
+                parsedWarnings.add(new LrcParseWarning(lineNumber, rawLine,
+                        LrcWarningCode.INVALID_OFFSET, "Invalid LRC offset metadata."));
             }
             position = matcher.end();
         }
@@ -183,7 +183,7 @@ public final class RXLrcParser {
     }
 
     private static TimeScan scanLeadingTimeTags(String trimmed, int lineNumber, String rawLine,
-                                                List<RXLrcParseWarning> warnings) {
+                                                List<LrcParseWarning> warnings) {
         List<Long> times = new ArrayList<>();
         int position = 0;
         boolean sawTimeTag = false;
@@ -211,8 +211,8 @@ public final class RXLrcParser {
                 position = closing + 1;
             } else if (isTimestampLike(tag)) {
                 sawTimeTag = true;
-                warnings.add(new RXLrcParseWarning(lineNumber, rawLine,
-                        RXLrcWarningCode.INVALID_TIMESTAMP, "Invalid timestamp tag was skipped."));
+                warnings.add(new LrcParseWarning(lineNumber, rawLine,
+                        LrcWarningCode.INVALID_TIMESTAMP, "Invalid timestamp tag was skipped."));
                 position = closing + 1;
             } else {
                 break;
@@ -222,11 +222,11 @@ public final class RXLrcParser {
     }
 
     private static Long parseTimestampMillis(Matcher matcher, int lineNumber, String rawLine,
-                                             List<RXLrcParseWarning> warnings) {
+                                             List<LrcParseWarning> warnings) {
         int seconds = Integer.parseInt(matcher.group(2));
         if (seconds > MAX_SECONDS) {
-            warnings.add(new RXLrcParseWarning(lineNumber, rawLine,
-                    RXLrcWarningCode.INVALID_TIMESTAMP, "Timestamp seconds must be between 0 and 59."));
+            warnings.add(new LrcParseWarning(lineNumber, rawLine,
+                    LrcWarningCode.INVALID_TIMESTAMP, "Timestamp seconds must be between 0 and 59."));
             return null;
         }
 
@@ -277,7 +277,7 @@ public final class RXLrcParser {
     }
 
     private static void addDuplicateWarnings(List<NormalizedLine> lines,
-                                             List<RXLrcParseWarning> warnings) {
+                                             List<LrcParseWarning> warnings) {
         int index = 0;
         while (index < lines.size()) {
             NormalizedLine first = lines.get(index);
@@ -286,8 +286,8 @@ public final class RXLrcParser {
                 next++;
             }
             if (next - index > 1) {
-                warnings.add(new RXLrcParseWarning(first.sourceLineNumber(), first.rawLine(),
-                        RXLrcWarningCode.DUPLICATE_TIMESTAMP,
+                warnings.add(new LrcParseWarning(first.sourceLineNumber(), first.rawLine(),
+                        LrcWarningCode.DUPLICATE_TIMESTAMP,
                         "Duplicate timestamp after offset normalization."));
             }
             index = next;

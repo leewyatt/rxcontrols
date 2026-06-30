@@ -2,9 +2,9 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcLine;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLrcViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -245,7 +245,7 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         Label label = new Label();
         label.getStyleClass().add("current-line-label");
         label.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXLrcLine line = lrcView.getCurrentLine();
+            LrcLine line = lrcView.getCurrentLine();
             if (line == null) {
                 return "No current line";
             }
@@ -334,16 +334,16 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         EMPTY("Empty Document", null);
 
         private final String displayName;
-        private final RXLrcDocument document;
+        private final LrcDocument document;
 
         DocumentPreset(String displayName, String lyrics) {
             this.displayName = displayName;
             this.document = lyrics == null
-                    ? RXLrcDocument.empty()
-                    : RXLrcParser.parse(lyrics).document();
+                    ? LrcDocument.empty()
+                    : LrcParser.parse(lyrics).document();
         }
 
-        private RXLrcDocument document() {
+        private LrcDocument document() {
             return document;
         }
 

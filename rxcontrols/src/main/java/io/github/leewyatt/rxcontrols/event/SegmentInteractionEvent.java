@@ -11,21 +11,18 @@ public class SegmentInteractionEvent extends Event {
     /**
      * Base event type for all segment interaction events.
      */
-    public static final EventType<SegmentInteractionEvent> ANY =
-            new EventType<>(Event.ANY, "SEGMENT_INTERACTION");
+    public static final EventType<SegmentInteractionEvent> ANY = new EventType<>(Event.ANY, "SEGMENT_INTERACTION");
 
     /**
      * Fired when a segment is clicked.
      */
-    public static final EventType<SegmentInteractionEvent> CLICKED =
-            new EventType<>(ANY, "SEGMENT_CLICKED");
+    public static final EventType<SegmentInteractionEvent> CLICKED = new EventType<>(ANY, "SEGMENT_CLICKED");
 
     /**
      * Fired when the pointer enters a segment, including transitions from one
      * segment to another while moving across the control.
      */
-    public static final EventType<SegmentInteractionEvent> ENTERED =
-            new EventType<>(ANY, "SEGMENT_ENTERED");
+    public static final EventType<SegmentInteractionEvent> ENTERED = new EventType<>(ANY, "SEGMENT_ENTERED");
 
     private final int segmentIndex;
 

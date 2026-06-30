@@ -12,14 +12,13 @@ import javafx.event.EventType;
  *
  * @param <T> the item type of the owning masonry view
  */
-public class RXMasonryViewActionEvent<T> extends Event {
+public class MasonryViewActionEvent<T> extends Event {
 
     /**
      * The single event type for cell activation. Use {@link #actionType()} to obtain
      * it with the item type bound.
      */
-    public static final EventType<RXMasonryViewActionEvent<?>> ACTION =
-            new EventType<>(Event.ANY, "RX_MASONRY_VIEW_ACTION");
+    public static final EventType<MasonryViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "MASONRY_VIEW_ACTION");
 
     private final transient RXMasonryView<T> masonryView;
     private final transient T item;
@@ -32,7 +31,7 @@ public class RXMasonryViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public RXMasonryViewActionEvent(RXMasonryView<T> source, T item, int index) {
+    public MasonryViewActionEvent(RXMasonryView<T> source, T item, int index) {
         super(source, source, actionType());
         this.masonryView = source;
         this.item = item;
@@ -46,8 +45,8 @@ public class RXMasonryViewActionEvent<T> extends Event {
      * @return the {@link #ACTION} type viewed as {@code EventType<RXMasonryViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<RXMasonryViewActionEvent<T>> actionType() {
-        return (EventType<RXMasonryViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<MasonryViewActionEvent<T>> actionType() {
+        return (EventType<MasonryViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

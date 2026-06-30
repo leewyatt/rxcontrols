@@ -12,14 +12,13 @@ import javafx.event.EventType;
  *
  * @param <T> the item type of the owning list view
  */
-public class RXListViewActionEvent<T> extends Event {
+public class ListViewActionEvent<T> extends Event {
 
     /**
      * The single event type for item activation. Use {@link #actionType()} to
      * obtain it with the item type bound.
      */
-    public static final EventType<RXListViewActionEvent<?>> ACTION =
-            new EventType<>(Event.ANY, "RX_LIST_VIEW_ACTION");
+    public static final EventType<ListViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "LIST_VIEW_ACTION");
 
     private final transient RXListView<T> listView;
     private final transient T item;
@@ -32,7 +31,7 @@ public class RXListViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public RXListViewActionEvent(RXListView<T> source, T item, int index) {
+    public ListViewActionEvent(RXListView<T> source, T item, int index) {
         super(source, source, actionType());
         this.listView = source;
         this.item = item;
@@ -46,8 +45,8 @@ public class RXListViewActionEvent<T> extends Event {
      * @return the {@link #ACTION} type viewed as {@code EventType<RXListViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<RXListViewActionEvent<T>> actionType() {
-        return (EventType<RXListViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<ListViewActionEvent<T>> actionType() {
+        return (EventType<ListViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

@@ -7,7 +7,7 @@ import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
-import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.TileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
@@ -821,7 +821,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             return;
         }
         T item = control.getItems().get(index);
-        control.fireEvent(new RXTileViewActionEvent<>(control, item, index));
+        control.fireEvent(new TileViewActionEvent<>(control, item, index));
     }
 
     // ==================== Mouse ====================

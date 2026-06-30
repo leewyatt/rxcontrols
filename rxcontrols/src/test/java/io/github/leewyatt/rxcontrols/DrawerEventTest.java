@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
+import io.github.leewyatt.rxcontrols.event.DrawerEvent;
 
 import javafx.application.Platform;
 import javafx.event.Event;
@@ -22,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the PR2 surface of {@link RXDrawerPane}: the {@link RXDrawerEvent}
+ * Tests for the PR2 surface of {@link RXDrawerPane}: the {@link DrawerEvent}
  * lifecycle (OPENING/OPENED/CLOSING/CLOSED), the vetoable {@code CLOSE_REQUEST}
  * across all close paths, and the {@code onXxx} handler properties.
  */
-public class RXDrawerEventTest {
+public class DrawerEventTest {
 
     private static final double WIDTH = 400.0;
     private static final double HEIGHT = 300.0;
@@ -98,9 +98,9 @@ public class RXDrawerEventTest {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(60.0));
-            pane.addEventHandler(RXDrawerEvent.ANY, e -> log.add(e.getEventType().getName()));
+            pane.addEventHandler(DrawerEvent.ANY, e -> log.add(e.getEventType().getName()));
             attach(pane);
-            pane.addEventHandler(RXDrawerEvent.OPENED, e -> opened.countDown());
+            pane.addEventHandler(DrawerEvent.OPENED, e -> opened.countDown());
 
             pane.open();
             // OPENING fires the instant the slide starts; OPENED waits for the Timeline.
@@ -204,7 +204,7 @@ public class RXDrawerEventTest {
 
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
-        pane.addEventHandler(RXDrawerEvent.ANY,
+        pane.addEventHandler(DrawerEvent.ANY,
                 e -> log.add(e.getEventType().getName()));
         return log;
     }

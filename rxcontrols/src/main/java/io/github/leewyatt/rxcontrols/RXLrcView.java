@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
+import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcLine;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.skins.RXLrcViewSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -90,7 +90,7 @@ public class RXLrcView extends Control {
 
     // ==================== Document ====================
 
-    private final ObjectProperty<RXLrcDocument> document =
+    private final ObjectProperty<LrcDocument> document =
             new SimpleObjectProperty<>(this, "document", null) {
                 @Override
                 protected void invalidated() {
@@ -104,7 +104,7 @@ public class RXLrcView extends Control {
      *
      * @return the document property
      */
-    public final ObjectProperty<RXLrcDocument> documentProperty() {
+    public final ObjectProperty<LrcDocument> documentProperty() {
         return document;
     }
 
@@ -113,7 +113,7 @@ public class RXLrcView extends Control {
      *
      * @return the document, or {@code null}
      */
-    public final RXLrcDocument getDocument() {
+    public final LrcDocument getDocument() {
         return document.get();
     }
 
@@ -122,21 +122,21 @@ public class RXLrcView extends Control {
      *
      * @param value the document, or {@code null}
      */
-    public final void setDocument(RXLrcDocument value) {
+    public final void setDocument(LrcDocument value) {
         document.set(value);
     }
 
     /**
      * Parses LRC text and sets the resulting document.
      *
-     * <p>Parse warnings are discarded. Use {@link RXLrcParser#parse(String)}
+     * <p>Parse warnings are discarded. Use {@link LrcParser#parse(String)}
      * directly when warnings are needed.</p>
      *
      * @param lyrics the raw LRC text
      * @throws NullPointerException if {@code lyrics} is {@code null}
      */
     public final void setLyrics(String lyrics) {
-        setDocument(RXLrcParser.parse(lyrics).document());
+        setDocument(LrcParser.parse(lyrics).document());
     }
 
     // ==================== Current Time ====================
@@ -238,7 +238,7 @@ public class RXLrcView extends Control {
 
     // ==================== Current Line ====================
 
-    private final ReadOnlyObjectWrapper<RXLrcLine> currentLine =
+    private final ReadOnlyObjectWrapper<LrcLine> currentLine =
             new ReadOnlyObjectWrapper<>(this, "currentLine", null);
 
     /**
@@ -246,7 +246,7 @@ public class RXLrcView extends Control {
      *
      * @return the read-only current line property
      */
-    public final ReadOnlyObjectProperty<RXLrcLine> currentLineProperty() {
+    public final ReadOnlyObjectProperty<LrcLine> currentLineProperty() {
         return currentLine.getReadOnlyProperty();
     }
 
@@ -255,7 +255,7 @@ public class RXLrcView extends Control {
      *
      * @return the current line, or {@code null}
      */
-    public final RXLrcLine getCurrentLine() {
+    public final LrcLine getCurrentLine() {
         return currentLine.get();
     }
 
@@ -561,11 +561,11 @@ public class RXLrcView extends Control {
 
     // ==================== On Line Clicked ====================
 
-    private final ObjectProperty<EventHandler<RXLrcLineEvent>> onLineClicked =
+    private final ObjectProperty<EventHandler<LrcLineEvent>> onLineClicked =
             new SimpleObjectProperty<>(this, "onLineClicked", null) {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXLrcLineEvent.LINE_CLICKED, get());
+                    setEventHandler(LrcLineEvent.LINE_CLICKED, get());
                 }
             };
 
@@ -574,7 +574,7 @@ public class RXLrcView extends Control {
      *
      * @return the line-click handler property
      */
-    public final ObjectProperty<EventHandler<RXLrcLineEvent>> onLineClickedProperty() {
+    public final ObjectProperty<EventHandler<LrcLineEvent>> onLineClickedProperty() {
         return onLineClicked;
     }
 
@@ -583,7 +583,7 @@ public class RXLrcView extends Control {
      *
      * @return the line-click handler, or {@code null}
      */
-    public final EventHandler<RXLrcLineEvent> getOnLineClicked() {
+    public final EventHandler<LrcLineEvent> getOnLineClicked() {
         return onLineClicked.get();
     }
 
@@ -592,7 +592,7 @@ public class RXLrcView extends Control {
      *
      * @param value the line-click handler, or {@code null}
      */
-    public final void setOnLineClicked(EventHandler<RXLrcLineEvent> value) {
+    public final void setOnLineClicked(EventHandler<LrcLineEvent> value) {
         onLineClicked.set(value);
     }
 
@@ -649,9 +649,9 @@ public class RXLrcView extends Control {
     }
 
     private void updateCurrentLine() {
-        RXLrcDocument currentDocument = getDocument();
+        LrcDocument currentDocument = getDocument();
         int index = NO_LINE_INDEX;
-        RXLrcLine line = null;
+        LrcLine line = null;
         if (currentDocument != null && !currentDocument.isEmpty()) {
             Duration lookupTime = lookupTime();
             if (lookupTime != null) {
@@ -684,7 +684,7 @@ public class RXLrcView extends Control {
     }
 
     private void updateEmptyPseudoClass() {
-        RXLrcDocument currentDocument = getDocument();
+        LrcDocument currentDocument = getDocument();
         pseudoClassStateChanged(EMPTY_PSEUDO_CLASS,
                 currentDocument == null || currentDocument.isEmpty());
     }

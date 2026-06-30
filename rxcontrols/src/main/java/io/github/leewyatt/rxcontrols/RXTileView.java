@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.TileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTileViewSkin;
 import javafx.animation.Interpolator;
@@ -1021,7 +1021,7 @@ public class RXTileView<T> extends Control {
 
     // ==================== On Action ====================
 
-    private ObjectProperty<EventHandler<RXTileViewActionEvent<T>>> onAction;
+    private ObjectProperty<EventHandler<TileViewActionEvent<T>>> onAction;
 
     /**
      * Handler invoked when a tile is activated — by pressing {@code Enter} on the
@@ -1029,12 +1029,12 @@ public class RXTileView<T> extends Control {
      *
      * @return the on-action property
      */
-    public final ObjectProperty<EventHandler<RXTileViewActionEvent<T>>> onActionProperty() {
+    public final ObjectProperty<EventHandler<TileViewActionEvent<T>>> onActionProperty() {
         if (onAction == null) {
             onAction = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXTileViewActionEvent.actionType(), get());
+                    setEventHandler(TileViewActionEvent.actionType(), get());
                 }
 
                 @Override
@@ -1056,7 +1056,7 @@ public class RXTileView<T> extends Control {
      *
      * @return the activation handler, or {@code null}
      */
-    public final EventHandler<RXTileViewActionEvent<T>> getOnAction() {
+    public final EventHandler<TileViewActionEvent<T>> getOnAction() {
         return onAction == null ? null : onAction.get();
     }
 
@@ -1065,7 +1065,7 @@ public class RXTileView<T> extends Control {
      *
      * @param value the activation handler, or {@code null} for none
      */
-    public final void setOnAction(EventHandler<RXTileViewActionEvent<T>> value) {
+    public final void setOnAction(EventHandler<TileViewActionEvent<T>> value) {
         onActionProperty().set(value);
     }
 

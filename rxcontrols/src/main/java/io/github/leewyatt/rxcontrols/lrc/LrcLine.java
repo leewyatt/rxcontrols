@@ -18,14 +18,14 @@ import java.util.Objects;
  * @throws NullPointerException if {@code time}, {@code duration}, {@code text}, or {@code rawLine}
  *                              is {@code null}
  */
-public record RXLrcLine(int index, Duration time, Duration duration, String text,
-                        String translation, String romanization,
-                        String rawLine, int sourceLineNumber) {
+public record LrcLine(int index, Duration time, Duration duration, String text,
+                      String translation, String romanization,
+                      String rawLine, int sourceLineNumber) {
 
     /**
      * Creates an immutable lyric line.
      */
-    public RXLrcLine {
+    public LrcLine {
         Objects.requireNonNull(time, "time");
         Objects.requireNonNull(duration, "duration");
         Objects.requireNonNull(text, "text");

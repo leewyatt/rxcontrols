@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.lrc;
 /**
  * Categorizes non-fatal issues recorded during lenient LRC parsing.
  */
-public enum RXLrcWarningCode {
+public enum LrcWarningCode {
 
     /**
      * A timestamp tag was malformed or had seconds outside the supported range.

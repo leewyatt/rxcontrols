@@ -3,9 +3,9 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcLine;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.skins.RXLrcLineViewSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -65,7 +65,7 @@ public class RXLrcLineView extends Control {
 
     // ==================== Document ====================
 
-    private final ObjectProperty<RXLrcDocument> document =
+    private final ObjectProperty<LrcDocument> document =
             new SimpleObjectProperty<>(this, "document", null) {
                 @Override
                 protected void invalidated() {
@@ -79,7 +79,7 @@ public class RXLrcLineView extends Control {
      *
      * @return the document property
      */
-    public final ObjectProperty<RXLrcDocument> documentProperty() {
+    public final ObjectProperty<LrcDocument> documentProperty() {
         return document;
     }
 
@@ -88,7 +88,7 @@ public class RXLrcLineView extends Control {
      *
      * @return the document, or {@code null}
      */
-    public final RXLrcDocument getDocument() {
+    public final LrcDocument getDocument() {
         return document.get();
     }
 
@@ -97,21 +97,21 @@ public class RXLrcLineView extends Control {
      *
      * @param value the document, or {@code null}
      */
-    public final void setDocument(RXLrcDocument value) {
+    public final void setDocument(LrcDocument value) {
         document.set(value);
     }
 
     /**
      * Parses LRC text and sets the resulting document.
      *
-     * <p>Parse warnings are discarded. Use {@link RXLrcParser#parse(String)}
+     * <p>Parse warnings are discarded. Use {@link LrcParser#parse(String)}
      * directly when warnings are needed.</p>
      *
      * @param lyrics the raw LRC text
      * @throws NullPointerException if {@code lyrics} is {@code null}
      */
     public final void setLyrics(String lyrics) {
-        setDocument(RXLrcParser.parse(lyrics).document());
+        setDocument(LrcParser.parse(lyrics).document());
     }
 
     // ==================== Current Time ====================
@@ -213,7 +213,7 @@ public class RXLrcLineView extends Control {
 
     // ==================== Current Line ====================
 
-    private final ReadOnlyObjectWrapper<RXLrcLine> currentLine =
+    private final ReadOnlyObjectWrapper<LrcLine> currentLine =
             new ReadOnlyObjectWrapper<>(this, "currentLine", null);
 
     /**
@@ -221,7 +221,7 @@ public class RXLrcLineView extends Control {
      *
      * @return the read-only current line property
      */
-    public final ReadOnlyObjectProperty<RXLrcLine> currentLineProperty() {
+    public final ReadOnlyObjectProperty<LrcLine> currentLineProperty() {
         return currentLine.getReadOnlyProperty();
     }
 
@@ -230,7 +230,7 @@ public class RXLrcLineView extends Control {
      *
      * @return the current line, or {@code null}
      */
-    public final RXLrcLine getCurrentLine() {
+    public final LrcLine getCurrentLine() {
         return currentLine.get();
     }
 
@@ -430,9 +430,9 @@ public class RXLrcLineView extends Control {
     // Mirrors the current-line derivation in RXLrcView so both lyric
     // components resolve the same line for the same document and time.
     private void updateCurrentLine() {
-        RXLrcDocument currentDocument = getDocument();
+        LrcDocument currentDocument = getDocument();
         int index = NO_LINE_INDEX;
-        RXLrcLine line = null;
+        LrcLine line = null;
         if (currentDocument != null && !currentDocument.isEmpty()) {
             Duration lookupTime = lookupTime();
             if (lookupTime != null) {
@@ -465,7 +465,7 @@ public class RXLrcLineView extends Control {
     }
 
     private void updateEmptyPseudoClass() {
-        RXLrcDocument currentDocument = getDocument();
+        LrcDocument currentDocument = getDocument();
         pseudoClassStateChanged(EMPTY_PSEUDO_CLASS,
                 currentDocument == null || currentDocument.isEmpty());
     }

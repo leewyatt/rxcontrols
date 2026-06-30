@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
+import io.github.leewyatt.rxcontrols.event.DrawerEvent;
 
 import javafx.application.Platform;
 import javafx.event.Event;
@@ -228,7 +228,7 @@ public class RXDrawerBackdropTest {
 
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
-        pane.addEventHandler(RXDrawerEvent.ANY,
+        pane.addEventHandler(DrawerEvent.ANY,
                 e -> log.add(e.getEventType().getName()));
         return log;
     }

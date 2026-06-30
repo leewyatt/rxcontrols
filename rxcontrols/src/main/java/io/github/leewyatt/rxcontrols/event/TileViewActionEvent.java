@@ -12,14 +12,13 @@ import javafx.event.EventType;
  *
  * @param <T> the item type of the owning tile view
  */
-public class RXTileViewActionEvent<T> extends Event {
+public class TileViewActionEvent<T> extends Event {
 
     /**
      * The single event type for tile activation. Use {@link #actionType()} to
      * obtain it with the item type bound.
      */
-    public static final EventType<RXTileViewActionEvent<?>> ACTION =
-            new EventType<>(Event.ANY, "RX_TILE_VIEW_ACTION");
+    public static final EventType<TileViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "TILE_VIEW_ACTION");
 
     private final transient RXTileView<T> tileView;
     private final transient T item;
@@ -32,7 +31,7 @@ public class RXTileViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public RXTileViewActionEvent(RXTileView<T> source, T item, int index) {
+    public TileViewActionEvent(RXTileView<T> source, T item, int index) {
         super(source, source, actionType());
         this.tileView = source;
         this.item = item;
@@ -46,8 +45,8 @@ public class RXTileViewActionEvent<T> extends Event {
      * @return the {@link #ACTION} type viewed as {@code EventType<RXTileViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<RXTileViewActionEvent<T>> actionType() {
-        return (EventType<RXTileViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<TileViewActionEvent<T>> actionType() {
+        return (EventType<TileViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

@@ -20,38 +20,38 @@ import javafx.event.EventType;
  * {@link #OPENING} / {@link #CLOSING} when the slide starts, {@link #OPENED} /
  * {@link #CLOSED} when it finishes.</p>
  */
-public class RXDrawerEvent extends Event {
+public class DrawerEvent extends Event {
 
     /**
      * Base type for all drawer events.
      */
-    public static final EventType<RXDrawerEvent> ANY = new EventType<>(Event.ANY, "RX_DRAWER");
+    public static final EventType<DrawerEvent> ANY = new EventType<>(Event.ANY, "DRAWER");
 
     /**
      * Fired when an open slide starts.
      */
-    public static final EventType<RXDrawerEvent> OPENING = new EventType<>(ANY, "OPENING");
+    public static final EventType<DrawerEvent> OPENING = new EventType<>(ANY, "OPENING");
 
     /**
      * Fired when an open slide has fully completed.
      */
-    public static final EventType<RXDrawerEvent> OPENED = new EventType<>(ANY, "OPENED");
+    public static final EventType<DrawerEvent> OPENED = new EventType<>(ANY, "OPENED");
 
     /**
      * Fired before any close proceeds; {@link Event#consume() consuming} it aborts
      * the close.
      */
-    public static final EventType<RXDrawerEvent> CLOSE_REQUEST = new EventType<>(ANY, "CLOSE_REQUEST");
+    public static final EventType<DrawerEvent> CLOSE_REQUEST = new EventType<>(ANY, "CLOSE_REQUEST");
 
     /**
      * Fired when a close slide starts (the close was not vetoed).
      */
-    public static final EventType<RXDrawerEvent> CLOSING = new EventType<>(ANY, "CLOSING");
+    public static final EventType<DrawerEvent> CLOSING = new EventType<>(ANY, "CLOSING");
 
     /**
      * Fired when a close slide has fully completed.
      */
-    public static final EventType<RXDrawerEvent> CLOSED = new EventType<>(ANY, "CLOSED");
+    public static final EventType<DrawerEvent> CLOSED = new EventType<>(ANY, "CLOSED");
 
     private final transient RXDrawerPane drawer;
 
@@ -61,7 +61,7 @@ public class RXDrawerEvent extends Event {
      * @param eventType the specific event type
      * @param drawer    the drawer firing the event
      */
-    public RXDrawerEvent(EventType<RXDrawerEvent> eventType, RXDrawerPane drawer) {
+    public DrawerEvent(EventType<DrawerEvent> eventType, RXDrawerPane drawer) {
         super(drawer, drawer, eventType);
         this.drawer = drawer;
     }

@@ -5,7 +5,7 @@ import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
-import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
+import io.github.leewyatt.rxcontrols.event.AnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
@@ -117,7 +117,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         disposer.registerListener(button.animationTriggerProperty(), this::updateFace);
         disposer.registerListener(button.alternateContentProperty(),
                 () -> setPageContent(pages.getPageB(), button.getAlternateContent()));
-        disposer.registerEventHandler(button, RXAnimationEvent.PLAY_ANIMATION, event -> {
+        disposer.registerEventHandler(button, AnimationEvent.PLAY_ANIMATION, event -> {
             // Reject events bubbling up from a nested animation host.
             if (event.getTarget() != button) {
                 return;

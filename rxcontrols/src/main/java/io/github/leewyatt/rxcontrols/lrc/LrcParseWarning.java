@@ -11,13 +11,13 @@ import java.util.Objects;
  * @param message    the human-readable warning message
  * @throws NullPointerException if {@code line}, {@code code}, or {@code message} is {@code null}
  */
-public record RXLrcParseWarning(int lineNumber, String line,
-                                RXLrcWarningCode code, String message) {
+public record LrcParseWarning(int lineNumber, String line,
+                              LrcWarningCode code, String message) {
 
     /**
      * Creates an immutable parse warning.
      */
-    public RXLrcParseWarning {
+    public LrcParseWarning {
         Objects.requireNonNull(line, "line");
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(message, "message");

@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcDocument;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcLine;
-import io.github.leewyatt.rxcontrols.lrc.RXLrcParser;
+import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
+import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
+import io.github.leewyatt.rxcontrols.lrc.LrcLine;
+import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -108,7 +108,7 @@ public class RXLrcViewTest {
     @Test
     public void currentLineDerivesFromDocumentCurrentTimeAndOffset() {
         RXLrcView view = new RXLrcView();
-        RXLrcDocument document = RXLrcParser.parse("""
+        LrcDocument document = LrcParser.parse("""
                 [00:01.00]A
                 [00:03.00]B
                 """).document();
@@ -151,7 +151,7 @@ public class RXLrcViewTest {
 
         assertTrue(view.getPseudoClassStates().contains(PseudoClass.getPseudoClass("empty")));
 
-        view.setDocument(RXLrcParser.parse("""
+        view.setDocument(LrcParser.parse("""
                 [00:01.00]A
                 [00:03.00]B
                 """).document());
@@ -166,13 +166,13 @@ public class RXLrcViewTest {
     @Test
     public void lineEventTypeHierarchyMatchesContract() {
         RXLrcView view = new RXLrcView();
-        RXLrcLine line = RXLrcParser.parse("[00:01.00]A").document().lines().get(0);
+        LrcLine line = LrcParser.parse("[00:01.00]A").document().lines().get(0);
 
-        RXLrcLineEvent event = new RXLrcLineEvent(
-                view, RXLrcLineEvent.LINE_CLICKED, line, 0, line.time());
+        LrcLineEvent event = new LrcLineEvent(
+                view, LrcLineEvent.LINE_CLICKED, line, 0, line.time());
 
-        assertEquals(RXLrcLineEvent.ANY, RXLrcLineEvent.LINE_CLICKED.getSuperType());
-        assertEquals("RX_LRC_LINE", RXLrcLineEvent.ANY.getName());
+        assertEquals(LrcLineEvent.ANY, LrcLineEvent.LINE_CLICKED.getSuperType());
+        assertEquals("LRC_LINE", LrcLineEvent.ANY.getName());
         assertSame(view, event.getLrcView());
         assertSame(line, event.getLine());
         assertEquals(0, event.getIndex());
@@ -182,10 +182,10 @@ public class RXLrcViewTest {
     @Test
     public void onLineClickedPropertyInstallsEventHandler() {
         RXLrcView view = new RXLrcView();
-        RXLrcLine line = RXLrcParser.parse("[00:01.00]A").document().lines().get(0);
-        RXLrcLineEvent event = new RXLrcLineEvent(
-                view, RXLrcLineEvent.LINE_CLICKED, line, 0, line.time());
-        AtomicReference<RXLrcLineEvent> eventRef = new AtomicReference<>();
+        LrcLine line = LrcParser.parse("[00:01.00]A").document().lines().get(0);
+        LrcLineEvent event = new LrcLineEvent(
+                view, LrcLineEvent.LINE_CLICKED, line, 0, line.time());
+        AtomicReference<LrcLineEvent> eventRef = new AtomicReference<>();
 
         view.setOnLineClicked(eventRef::set);
         view.fireEvent(event);
@@ -302,7 +302,7 @@ public class RXLrcViewTest {
 
     @Test
     public void emptyPlaceholderCanDragAndReboundsToCenter() {
-        RXLrcView view = createLaidOutView(RXLrcDocument.empty(), Duration.ZERO);
+        RXLrcView view = createLaidOutView(LrcDocument.empty(), Duration.ZERO);
         Node placeholder = placeholder(view);
         Node viewport = viewport(view);
 
@@ -318,7 +318,7 @@ public class RXLrcViewTest {
 
     @Test
     public void emptyWheelDoesNotConsumeParentScroll() {
-        RXLrcView view = createLaidOutView(RXLrcDocument.empty(), Duration.ZERO);
+        RXLrcView view = createLaidOutView(LrcDocument.empty(), Duration.ZERO);
         Node viewport = viewport(view);
 
         ScrollEvent scroll = scrollEvent(-35.0);
@@ -648,8 +648,8 @@ public class RXLrcViewTest {
         assertEquals(0.0, content.getChildren().get(index).getTranslateY(), EPSILON);
     }
 
-    private static RXLrcDocument longDocument() {
-        return RXLrcParser.parse("""
+    private static LrcDocument longDocument() {
+        return LrcParser.parse("""
                 [00:00.00]Line 1
                 [00:02.00]Line 2
                 [00:04.00]Line 3
@@ -661,8 +661,8 @@ public class RXLrcViewTest {
                 """).document();
     }
 
-    private static RXLrcDocument alternateDocument() {
-        return RXLrcParser.parse("""
+    private static LrcDocument alternateDocument() {
+        return LrcParser.parse("""
                 [00:00.00]Intro
                 [00:02.00]Verse
                 [00:04.00]Hook
@@ -671,15 +671,15 @@ public class RXLrcViewTest {
                 """).document();
     }
 
-    private static RXLrcDocument wrappingDocument() {
-        return RXLrcParser.parse("""
+    private static LrcDocument wrappingDocument() {
+        return LrcParser.parse("""
                 [00:00.00]Short
                 [00:02.00]This is a deliberately long lyric line that should wrap inside the viewport width instead of expanding the line node beyond the viewport.
                 [00:04.00]After
                 """).document();
     }
 
-    private static RXLrcView createLaidOutView(RXLrcDocument document, Duration currentTime) {
+    private static RXLrcView createLaidOutView(LrcDocument document, Duration currentTime) {
         RXLrcView view = new RXLrcView();
         view.setAnimated(false);
         view.setDocument(document);

@@ -6,7 +6,7 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
-import io.github.leewyatt.rxcontrols.event.RXListViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.ListViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.value.ChangeListener;
@@ -776,7 +776,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             return;
         }
         T item = control.getItems().get(index);
-        control.fireEvent(new RXListViewActionEvent<>(control, item, index));
+        control.fireEvent(new ListViewActionEvent<>(control, item, index));
     }
 
     // ==================== Type-ahead ====================

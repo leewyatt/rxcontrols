@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXListViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.ListViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXListViewSkin;
 import javafx.beans.property.BooleanProperty;
@@ -479,7 +479,7 @@ public class RXListView<T> extends Control {
 
     // ==================== On Action ====================
 
-    private ObjectProperty<EventHandler<RXListViewActionEvent<T>>> onAction;
+    private ObjectProperty<EventHandler<ListViewActionEvent<T>>> onAction;
 
     /**
      * Handler invoked when an item is activated — by pressing {@code Enter} on the
@@ -487,12 +487,12 @@ public class RXListView<T> extends Control {
      *
      * @return the on-action property
      */
-    public final ObjectProperty<EventHandler<RXListViewActionEvent<T>>> onActionProperty() {
+    public final ObjectProperty<EventHandler<ListViewActionEvent<T>>> onActionProperty() {
         if (onAction == null) {
             onAction = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXListViewActionEvent.actionType(), get());
+                    setEventHandler(ListViewActionEvent.actionType(), get());
                 }
 
                 @Override
@@ -514,7 +514,7 @@ public class RXListView<T> extends Control {
      *
      * @return the activation handler, or {@code null}
      */
-    public final EventHandler<RXListViewActionEvent<T>> getOnAction() {
+    public final EventHandler<ListViewActionEvent<T>> getOnAction() {
         return onAction == null ? null : onAction.get();
     }
 
@@ -523,7 +523,7 @@ public class RXListView<T> extends Control {
      *
      * @param value the activation handler, or {@code null} for none
      */
-    public final void setOnAction(EventHandler<RXListViewActionEvent<T>> value) {
+    public final void setOnAction(EventHandler<ListViewActionEvent<T>> value) {
         onActionProperty().set(value);
     }
 
