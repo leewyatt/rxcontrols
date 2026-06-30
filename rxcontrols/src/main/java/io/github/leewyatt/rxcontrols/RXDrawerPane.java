@@ -61,7 +61,7 @@ import java.util.List;
  * }</pre>
  *
  * <p>The drawer can {@link DrawerMode#OVERLAY overlay} the content (optionally
- * over a dimming, click-catching scrim that makes it modal) or
+ * over a dimming, click-catching backdrop that makes it modal) or
  * {@link DrawerMode#PUSH push} it aside. Closing flows through a vetoable
  * {@code CLOSE_REQUEST} {@link io.github.leewyatt.rxcontrols.event.RXDrawerEvent}
  * before any close proceeds. Drawer content
@@ -135,14 +135,14 @@ public class RXDrawerPane extends Control {
     private static final double DEFAULT_PREF_DRAWER_HEIGHT = Region.USE_COMPUTED_SIZE;
 
     /**
-     * Default for whether the scrim (dimmed backdrop) is shown.
+     * Default for whether the backdrop is shown.
      */
-    private static final boolean DEFAULT_SCRIM_VISIBLE = true;
+    private static final boolean DEFAULT_BACKDROP_VISIBLE = true;
 
     /**
-     * Default for whether clicking the scrim requests a close.
+     * Default for whether clicking the backdrop requests a close.
      */
-    private static final boolean DEFAULT_CLOSE_ON_SCRIM_CLICK = true;
+    private static final boolean DEFAULT_CLOSE_ON_BACKDROP_CLICK = true;
 
     /**
      * Default for whether pressing ESC requests a close.
@@ -204,7 +204,7 @@ public class RXDrawerPane extends Control {
 
     /**
      * The main content node laid out behind the drawer panel, filling the whole
-     * pane. May be {@code null} for an empty backdrop.
+     * pane. May be {@code null} for an empty pane.
      *
      * @return the content property
      */
@@ -619,13 +619,13 @@ public class RXDrawerPane extends Control {
         prefDrawerHeight.set(value);
     }
 
-    // ==================== Scrim ====================
+    // ==================== Backdrop ====================
 
-    private final BooleanProperty scrimVisible =
-            new StyleableBooleanProperty(DEFAULT_SCRIM_VISIBLE) {
+    private final BooleanProperty backdropVisible =
+            new StyleableBooleanProperty(DEFAULT_BACKDROP_VISIBLE) {
                 @Override
                 public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
-                    return StyleableProperties.SCRIM_VISIBLE;
+                    return StyleableProperties.BACKDROP_VISIBLE;
                 }
 
                 @Override
@@ -635,71 +635,71 @@ public class RXDrawerPane extends Control {
 
                 @Override
                 public String getName() {
-                    return "scrimVisible";
+                    return "backdropVisible";
                 }
             };
 
     /**
-     * Whether the scrim (the dimmed, click-catching backdrop) is shown
+     * Whether the dimmed, click-catching backdrop is shown
      * behind the open drawer. Only effective in {@link DrawerMode#OVERLAY} mode:
      * showing it makes the drawer modal; hiding it yields a non-modal overlay. The
-     * dim level is styled on {@code .scrim} via {@code -fx-background-color}
+     * dim level is styled on {@code .backdrop} via {@code -fx-background-color}
      * (e.g. {@code rgba(0,0,0,0.32)}), so there is no opacity property.
      *
-     * @return the scrim visible property
+     * @return the backdrop visible property
      */
-    public final BooleanProperty scrimVisibleProperty() {
-        return scrimVisible;
+    public final BooleanProperty backdropVisibleProperty() {
+        return backdropVisible;
     }
 
     /**
-     * Returns whether the scrim is shown.
+     * Returns whether the backdrop is shown.
      *
-     * @return whether the scrim is shown
+     * @return whether the backdrop is shown
      */
-    public final boolean isScrimVisible() {
-        return scrimVisible.get();
+    public final boolean isBackdropVisible() {
+        return backdropVisible.get();
     }
 
     /**
-     * Sets whether the scrim is shown.
+     * Sets whether the backdrop is shown.
      *
-     * @param value whether the scrim is shown
+     * @param value whether the backdrop is shown
      */
-    public final void setScrimVisible(boolean value) {
-        scrimVisible.set(value);
+    public final void setBackdropVisible(boolean value) {
+        backdropVisible.set(value);
     }
 
-    // ==================== Close On Scrim Click ====================
+    // ==================== Close On Backdrop Click ====================
 
-    private final BooleanProperty closeOnScrimClick =
-            new SimpleBooleanProperty(this, "closeOnScrimClick", DEFAULT_CLOSE_ON_SCRIM_CLICK);
-
-    /**
-     * Whether clicking the scrim requests a close.
-     *
-     * @return the close-on-scrim-click property
-     */
-    public final BooleanProperty closeOnScrimClickProperty() {
-        return closeOnScrimClick;
-    }
+    private final BooleanProperty closeOnBackdropClick =
+            new SimpleBooleanProperty(this, "closeOnBackdropClick", DEFAULT_CLOSE_ON_BACKDROP_CLICK);
 
     /**
-     * Returns whether clicking the scrim requests a close.
+     * Whether clicking the backdrop requests a close.
      *
-     * @return whether an scrim click closes the drawer
+     * @return the close-on-backdrop-click property
      */
-    public final boolean isCloseOnScrimClick() {
-        return closeOnScrimClick.get();
+    public final BooleanProperty closeOnBackdropClickProperty() {
+        return closeOnBackdropClick;
     }
 
     /**
-     * Sets whether clicking the scrim requests a close.
+     * Returns whether clicking the backdrop requests a close.
      *
-     * @param value whether an scrim click closes the drawer
+     * @return whether a backdrop click closes the drawer
      */
-    public final void setCloseOnScrimClick(boolean value) {
-        closeOnScrimClick.set(value);
+    public final boolean isCloseOnBackdropClick() {
+        return closeOnBackdropClick.get();
+    }
+
+    /**
+     * Sets whether clicking the backdrop requests a close.
+     *
+     * @param value whether a backdrop click closes the drawer
+     */
+    public final void setCloseOnBackdropClick(boolean value) {
+        closeOnBackdropClick.set(value);
     }
 
     // ==================== Close On Esc ====================
@@ -1051,18 +1051,18 @@ public class RXDrawerPane extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXDrawerPane, Boolean> SCRIM_VISIBLE =
-                new CssMetaData<>("-rx-scrim-visible",
-                        BooleanConverter.getInstance(), DEFAULT_SCRIM_VISIBLE) {
+        private static final CssMetaData<RXDrawerPane, Boolean> BACKDROP_VISIBLE =
+                new CssMetaData<>("-rx-backdrop-visible",
+                        BooleanConverter.getInstance(), DEFAULT_BACKDROP_VISIBLE) {
                     @Override
                     public boolean isSettable(RXDrawerPane node) {
-                        return !node.scrimVisible.isBound();
+                        return !node.backdropVisible.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Boolean> getStyleableProperty(RXDrawerPane node) {
-                        return (StyleableProperty<Boolean>) node.scrimVisibleProperty();
+                        return (StyleableProperty<Boolean>) node.backdropVisibleProperty();
                     }
                 };
 
@@ -1075,7 +1075,7 @@ public class RXDrawerPane extends Control {
             styleables.add(DRAWER_MODE);
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
-            styleables.add(SCRIM_VISIBLE);
+            styleables.add(BACKDROP_VISIBLE);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

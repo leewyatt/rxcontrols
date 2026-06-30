@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
@@ -55,7 +56,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
 
     private final StackPane contentPane = new StackPane();
-    private final Region scrim = new Region();
+    private final RXBackdrop backdrop = new RXBackdrop();
     private final StackPane drawerWrapper = new StackPane();
     private final Rectangle clipRect = new Rectangle();
 
@@ -91,18 +92,18 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         super(control);
 
         drawerWrapper.getStyleClass().add("drawer-wrapper");
-        scrim.getStyleClass().add("scrim");
+        backdrop.getStyleClass().add("backdrop");
 
         // The drawer wrapper is the last-resort focus target when modal and nothing
         // inside is focusable.
         drawerWrapper.setFocusTraversable(true);
 
-        // z-order: content (bottom) → scrim (middle) → drawer (top).
-        getChildren().setAll(contentPane, scrim, drawerWrapper);
+        // z-order: content (bottom) → backdrop (middle) → drawer (top).
+        getChildren().setAll(contentPane, backdrop, drawerWrapper);
         updateContent();
         updateDrawerContent();
         applyDrawerWrapperRest(control.isShowing());
-        applyScrimRest(control.isShowing());
+        applyBackdropRest(control.isShowing());
 
         control.setClip(clipRect);
         disposer.registerDisposeTask(() -> control.setClip(null));
@@ -111,10 +112,10 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         // subtree and never escape (capturing filter takes over traversal).
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleTabTrap);
 
-        // Clicking the scrim requests a close (it is pickable only while
+        // Clicking the backdrop requests a close (it is pickable only while
         // open and modal, so the guard is belt-and-suspenders).
-        disposer.registerEventHandler(scrim, MouseEvent.MOUSE_CLICKED, event -> {
-            if (control.isCloseOnScrimClick() && scrimActive() && control.isShowing()) {
+        disposer.registerEventHandler(backdrop, MouseEvent.MOUSE_CLICKED, event -> {
+            if (control.isCloseOnBackdropClick() && backdropActive() && control.isShowing()) {
                 control.close();
                 event.consume();
             }
@@ -137,7 +138,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         disposer.registerListener(control.drawerModeProperty(), this::onModeChanged);
         disposer.registerListener(control.contentProperty(), this::updateContent);
         disposer.registerListener(control.drawerContentProperty(), this::updateDrawerContent);
-        disposer.registerListener(control.scrimVisibleProperty(), this::onScrimChanged);
+        disposer.registerListener(control.backdropVisibleProperty(), this::onBackdropChanged);
         // animated / animationDuration / animationInterpolator are intentionally NOT
         // observed: they are read at play time, so a change applies to the next
         // transition and never disturbs an in-flight slide.
@@ -185,13 +186,13 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         double drawerW = horizontal ? drawerThickness : contentWidth;
         double drawerH = horizontal ? contentHeight : drawerThickness;
 
-        // The scrim always fills; it is only visible while modal (see applyScrimRest).
-        layoutInArea(scrim, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
+        // The backdrop always fills; it is only visible while modal (see applyBackdropRest).
+        layoutInArea(backdrop, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
         if (isPush()) {
             layoutPush(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
         } else {
-            layoutScrim(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
+            layoutOverlay(contentX, contentY, contentWidth, contentHeight, drawerW, drawerH);
         }
 
         if ((!initialized || thicknessChanged) && !isAnimationRunning()) {
@@ -203,7 +204,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     // OVERLAY: content fills, the panel rests at its open (edge-attached) position;
     // the closed state and the slide are expressed purely by translate.
-    private void layoutScrim(double contentX, double contentY, double contentWidth,
+    private void layoutOverlay(double contentX, double contentY, double contentWidth,
                                double contentHeight, double drawerW, double drawerH) {
         layoutInArea(contentPane, contentX, contentY, contentWidth, contentHeight, 0, HPos.LEFT, VPos.TOP);
 
@@ -346,12 +347,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             keyValues.add(new KeyValue(progress, 1.0, interpolator));
         } else {
             keyValues.add(new KeyValue(axisTranslate(), 0.0, interpolator));
-            if (scrimActive()) {
-                // Make the scrim pickable and fade it in along the same KeyFrame.
-                scrim.setVisible(true);
-                scrim.setMouseTransparent(false);
-                keyValues.add(new KeyValue(scrim.opacityProperty(), 1.0, interpolator));
-            }
+            playBackdropOpen();
         }
         Timeline timeline = playTimeline(keyValues, this::finalizeOpen);
         animation = timeline;
@@ -370,9 +366,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             keyValues.add(new KeyValue(progress, 0.0, interpolator));
         } else {
             keyValues.add(new KeyValue(axisTranslate(), closedTranslate(), interpolator));
-            if (scrimActive()) {
-                keyValues.add(new KeyValue(scrim.opacityProperty(), 0.0, interpolator));
-            }
+            playBackdropClose();
         }
         Timeline timeline = playTimeline(keyValues, this::finalizeClose);
         animation = timeline;
@@ -402,7 +396,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             drawerWrapper.setTranslateY(0.0);
         }
         applyDrawerWrapperRest(true);
-        applyScrimRest(true);
+        applyBackdropRest(true);
         if (openInFlight) {
             openInFlight = false;
             fireLifecycle(RXDrawerEvent.OPENED);
@@ -424,7 +418,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 drawerWrapper.setTranslateX(0.0);
             }
         }
-        applyScrimRest(false);
+        applyBackdropRest(false);
         boolean wasCloseInFlight = closeInFlight;
         if (wasCloseInFlight) {
             closeInFlight = false;
@@ -443,7 +437,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
      * modal (a non-modal drawer leaves the page interactive and does not steal focus).
      */
     private void moveFocusIntoDrawer() {
-        if (!scrimActive()) {
+        if (!backdropActive()) {
             return;
         }
         Scene scene = getSkinnable().getScene();
@@ -492,7 +486,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     private void handleTabTrap(KeyEvent event) {
-        if (event.getCode() != KeyCode.TAB || !scrimActive() || !getSkinnable().isShowing()) {
+        if (event.getCode() != KeyCode.TAB || !backdropActive() || !getSkinnable().isShowing()) {
             return;
         }
         Scene scene = getSkinnable().getScene();
@@ -548,7 +542,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
                 drawerWrapper.setTranslateX(0.0);
             }
         }
-        applyScrimRest(open);
+        applyBackdropRest(open);
         applyDrawerWrapperRest(open);
     }
 
@@ -562,29 +556,26 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
     }
 
     /**
-     * Whether the scrim participates: only when overlaying with the pane
+     * Whether the backdrop participates: only when overlaying with the pane
      * enabled. PUSH is never modal.
      */
-    private boolean scrimActive() {
-        return drawerModeOrDefault() == DrawerMode.OVERLAY && getSkinnable().isScrimVisible();
+    private boolean backdropActive() {
+        return drawerModeOrDefault() == DrawerMode.OVERLAY && getSkinnable().isBackdropVisible();
     }
 
     /**
-     * Settles the scrim to its resting pose: opaque (its dim comes from the
-     * {@code .scrim} CSS background colour) and pickable when open and active,
+     * Settles the backdrop to its resting pose: opaque (its dim comes from the
+     * {@code .backdrop} CSS background colour) and pickable when open and active,
      * fully transparent and click-through otherwise.
      *
      * @param open whether the drawer rests open
      */
-    private void applyScrimRest(boolean open) {
-        if (open && scrimActive()) {
-            scrim.setVisible(true);
-            scrim.setMouseTransparent(false);
-            scrim.setOpacity(1.0);
+    private void applyBackdropRest(boolean open) {
+        if (open && backdropActive()) {
+            syncBackdropAnimationConfig();
+            backdrop.show(false);
         } else {
-            scrim.setVisible(false);
-            scrim.setMouseTransparent(true);
-            scrim.setOpacity(0.0);
+            backdrop.hide(false);
         }
     }
 
@@ -593,11 +584,35 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         drawerWrapper.setMouseTransparent(!open);
     }
 
-    private void onScrimChanged() {
-        // An scrimVisible change re-settles the resting pose unless an animation
-        // currently owns the pane opacity.
+    private void playBackdropOpen() {
+        syncBackdropAnimationConfig();
+        if (backdropActive()) {
+            backdrop.show();
+        } else {
+            backdrop.hide(false);
+        }
+    }
+
+    private void playBackdropClose() {
+        syncBackdropAnimationConfig();
+        backdrop.hide();
+    }
+
+    private void syncBackdropAnimationConfig() {
+        RXDrawerPane control = getSkinnable();
+        Duration duration = control.getAnimationDuration();
+        Interpolator interpolator = interpolatorOrDefault();
+        backdrop.setFadeInDuration(duration);
+        backdrop.setFadeOutDuration(duration);
+        backdrop.setFadeInInterpolator(interpolator);
+        backdrop.setFadeOutInterpolator(interpolator);
+    }
+
+    private void onBackdropChanged() {
+        // A backdropVisible change re-settles the resting pose unless a transition
+        // is in flight; finalizeOpen/finalizeClose will settle the latest state.
         if (!isAnimationRunning()) {
-            applyScrimRest(getSkinnable().isShowing());
+            applyBackdropRest(getSkinnable().isShowing());
         }
     }
 
@@ -746,5 +761,6 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         // The repeatedly-rebuilt animation field is stopped here explicitly rather
         // than via the disposer, which would hold a stale Timeline reference.
         stopAnimation();
+        backdrop.hide(false);
     }
 }

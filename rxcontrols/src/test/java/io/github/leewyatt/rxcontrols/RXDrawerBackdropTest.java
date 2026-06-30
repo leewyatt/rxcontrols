@@ -26,21 +26,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the scrim (modal backdrop) and ESC behavior of
- * {@link RXDrawerPane}: scrim visibility/pickability across open/close,
- * {@code scrimVisible} / {@code closeOnScrimClick} / {@code closeOnEsc},
- * scrim click close, and ESC close, both vetoable.
- * The dim level itself is CSS (the {@code .scrim} background), so the node's
+ * Tests for the backdrop and ESC behavior of
+ * {@link RXDrawerPane}: backdrop visibility/pickability across open/close,
+ * {@code backdropVisible} / {@code closeOnBackdropClick} / {@code closeOnEsc},
+ * backdrop click close, and ESC close, both vetoable.
+ * The dim level itself is CSS (the {@code .backdrop} background), so the node's
  * opacity is just animated between 0 and 1.
  */
-public class RXDrawerScrimTest {
+public class RXDrawerBackdropTest {
 
     private static final double EPSILON = 1.0e-6;
     private static final double WIDTH = 400.0;
     private static final double HEIGHT = 300.0;
 
     /**
-     * Starts the JavaFX toolkit so the skin can build the scrim.
+     * Starts the JavaFX toolkit so the skin can build the backdrop.
      *
      * @throws InterruptedException if the startup wait is interrupted
      */
@@ -57,48 +57,48 @@ public class RXDrawerScrimTest {
         }
     }
 
-    // ==================== Scrim visibility ====================
+    // ==================== Backdrop visibility ====================
 
     @Test
-    public void scrimCatchesClicksWhenOpen() throws Exception {
+    public void backdropCatchesClicksWhenOpen() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
             attach(pane);
-            Region scrim = scrim(pane);
+            Region backdrop = backdrop(pane);
 
             pane.open();
-            assertTrue(scrim.isVisible(), "scrim visible when open");
-            assertFalse(scrim.isMouseTransparent(), "scrim catches clicks when open");
-            assertEquals(1.0, scrim.getOpacity(), EPSILON, "node opacity is 1; dim comes from CSS");
+            assertTrue(backdrop.isVisible(), "backdrop visible when open");
+            assertFalse(backdrop.isMouseTransparent(), "backdrop catches clicks when open");
+            assertEquals(1.0, backdrop.getOpacity(), EPSILON, "node opacity is 1; dim comes from CSS");
 
             pane.close();
-            assertFalse(scrim.isVisible(), "scrim hidden when closed");
-            assertTrue(scrim.isMouseTransparent(), "scrim is click-through when closed");
-            assertEquals(0.0, scrim.getOpacity(), EPSILON);
+            assertFalse(backdrop.isVisible(), "backdrop hidden when closed");
+            assertTrue(backdrop.isMouseTransparent(), "backdrop is click-through when closed");
+            assertEquals(0.0, backdrop.getOpacity(), EPSILON);
         });
     }
 
     @Test
-    public void scrimHiddenStaysHiddenWhenOpen() throws Exception {
+    public void backdropHiddenStaysHiddenWhenOpen() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
-            pane.setScrimVisible(false);
+            pane.setBackdropVisible(false);
             attach(pane);
-            Region scrim = scrim(pane);
+            Region backdrop = backdrop(pane);
 
             pane.open();
-            assertFalse(scrim.isVisible(), "non-modal: scrim stays hidden");
-            assertTrue(scrim.isMouseTransparent(), "non-modal: clicks pass through");
-            assertEquals(0.0, scrim.getOpacity(), EPSILON);
+            assertFalse(backdrop.isVisible(), "non-modal: backdrop stays hidden");
+            assertTrue(backdrop.isMouseTransparent(), "non-modal: clicks pass through");
+            assertEquals(0.0, backdrop.getOpacity(), EPSILON);
         });
     }
 
-    // ==================== Scrim click ====================
+    // ==================== Backdrop click ====================
 
     @Test
-    public void scrimClickRequestsClose() throws Exception {
+    public void backdropClickRequestsClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -107,16 +107,16 @@ public class RXDrawerScrimTest {
             pane.open();
             log.clear();
 
-            fireClick(scrim(pane));
+            fireClick(backdrop(pane));
 
-            assertFalse(pane.isShowing(), "scrim click closes the drawer");
+            assertFalse(pane.isShowing(), "backdrop click closes the drawer");
             assertEquals(List.of(
                     "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
         });
     }
 
     @Test
-    public void scrimClickIsVetoable() throws Exception {
+    public void backdropClickIsVetoable() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
@@ -124,25 +124,25 @@ public class RXDrawerScrimTest {
             pane.open();
             pane.setOnCloseRequest(Event::consume);
 
-            fireClick(scrim(pane));
-            assertTrue(pane.isShowing(), "a consumed scrim CLOSE_REQUEST keeps it open");
+            fireClick(backdrop(pane));
+            assertTrue(pane.isShowing(), "a consumed backdrop CLOSE_REQUEST keeps it open");
         });
     }
 
     @Test
-    public void closeOnScrimClickFalseDoesNotClose() throws Exception {
+    public void closeOnBackdropClickFalseDoesNotClose() throws Exception {
         runOnFx(() -> {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setAnimated(false);
-            pane.setCloseOnScrimClick(false);
+            pane.setCloseOnBackdropClick(false);
             List<String> log = recordEvents(pane);
             attach(pane);
             pane.open();
             log.clear();
 
-            fireClick(scrim(pane));
-            assertTrue(pane.isShowing(), "scrim click ignored");
-            assertTrue(log.isEmpty(), "no CLOSE_REQUEST when closeOnScrimClick is false");
+            fireClick(backdrop(pane));
+            assertTrue(pane.isShowing(), "backdrop click ignored");
+            assertTrue(log.isEmpty(), "no CLOSE_REQUEST when closeOnBackdropClick is false");
         });
     }
 
@@ -209,10 +209,10 @@ public class RXDrawerScrimTest {
 
     // ==================== Helpers ====================
 
-    private static Region scrim(RXDrawerPane pane) {
-        Region scrim = (Region) pane.lookup(".scrim");
-        assertNotNull(scrim, "scrim exists");
-        return scrim;
+    private static Region backdrop(RXDrawerPane pane) {
+        Region backdrop = (Region) pane.lookup(".backdrop");
+        assertNotNull(backdrop, "backdrop exists");
+        return backdrop;
     }
 
     private static void fireClick(Node node) {

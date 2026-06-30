@@ -1425,7 +1425,7 @@
  *                                                                             *
  ******************************************************************************/
 
-.rx-drawer-pane > .scrim {
+.rx-drawer-pane > .backdrop {
     -fx-background-color: rgba(0, 0, 0, 0.32);
 }
 

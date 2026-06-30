@@ -35,7 +35,7 @@ import java.util.function.Consumer;
  *
  * <p>Hosts a drawer with placeholder content and a composed drawer content tree,
  * and a control panel that drives every configurable property: side, mode,
- * scrim group, animation, and drawer thickness, plus open/close/toggle
+ * backdrop group, animation, and drawer thickness, plus open/close/toggle
  * buttons and a live read-out of {@code showing} and the last
  * {@link RXDrawerEvent}.</p>
  */
@@ -132,7 +132,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Layout", layoutGrid()),
-                section("Scrim & dismissal", scrimGrid()),
+                section("Backdrop & dismissal", backdropGrid()),
                 section("Animation", animationGrid()),
                 section("State & actions", actionsBox()));
     }
@@ -165,13 +165,13 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
                 row("Pref height", height, createValueLabel(height, "%.0f")));
     }
 
-    private Node scrimGrid() {
-        // The dim level itself is CSS (the .scrim background), so there is no
+    private Node backdropGrid() {
+        // The dim level itself is CSS (the .backdrop background), so there is no
         // opacity control here.
-        CheckBox visible = checkBox("Scrim (modal)", drawer.isScrimVisible(),
-                drawer::setScrimVisible);
-        CheckBox click = checkBox("Close on scrim click", drawer.isCloseOnScrimClick(),
-                drawer::setCloseOnScrimClick);
+        CheckBox visible = checkBox("Backdrop (modal)", drawer.isBackdropVisible(),
+                drawer::setBackdropVisible);
+        CheckBox click = checkBox("Close on backdrop click", drawer.isCloseOnBackdropClick(),
+                drawer::setCloseOnBackdropClick);
         CheckBox esc = checkBox("Close on ESC", drawer.isCloseOnEsc(), drawer::setCloseOnEsc);
 
         return createGrid(
