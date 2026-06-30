@@ -48,22 +48,17 @@ public class RXBackdrop extends Region {
     /**
      * Default duration for the fade-in transition.
      */
-    public static final Duration DEFAULT_FADE_IN_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_FADE_IN_DURATION = Duration.millis(200.0);
 
     /**
      * Default duration for the fade-out transition.
      */
-    public static final Duration DEFAULT_FADE_OUT_DURATION = Duration.millis(150.0);
+    private static final Duration DEFAULT_FADE_OUT_DURATION = Duration.millis(150.0);
 
     /**
-     * Default interpolator for the fade-in transition, also the {@code null} fallback.
+     * Default interpolator for the fade-in/fade-out transition, also the {@code null} fallback.
      */
-    public static final Interpolator DEFAULT_FADE_IN_INTERPOLATOR = Interpolator.EASE_BOTH;
-
-    /**
-     * Default interpolator for the fade-out transition, also the {@code null} fallback.
-     */
-    public static final Interpolator DEFAULT_FADE_OUT_INTERPOLATOR = Interpolator.EASE_BOTH;
+    private static final Interpolator DEFAULT_FADE_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private static final boolean DEFAULT_SHOWING = false;
 
@@ -237,13 +232,11 @@ public class RXBackdrop extends Region {
 
     // ==================== Fade In Interpolator ====================
 
-    private final ObjectProperty<Interpolator> fadeInInterpolator =
-            new SimpleObjectProperty<>(
-                    this, "fadeInInterpolator", DEFAULT_FADE_IN_INTERPOLATOR);
+    private final ObjectProperty<Interpolator> fadeInInterpolator = new SimpleObjectProperty<>(this, "fadeInInterpolator", DEFAULT_FADE_INTERPOLATOR);
 
     /**
      * Interpolator used by fade-in transitions. Accepts {@code null}, which is
-     * resolved to {@link #DEFAULT_FADE_IN_INTERPOLATOR} when a fade starts.
+     * resolved to {@link #DEFAULT_FADE_INTERPOLATOR} when a fade starts.
      *
      * @return the fade-in interpolator property
      */
@@ -271,13 +264,11 @@ public class RXBackdrop extends Region {
 
     // ==================== Fade Out Interpolator ====================
 
-    private final ObjectProperty<Interpolator> fadeOutInterpolator =
-            new SimpleObjectProperty<>(
-                    this, "fadeOutInterpolator", DEFAULT_FADE_OUT_INTERPOLATOR);
+    private final ObjectProperty<Interpolator> fadeOutInterpolator = new SimpleObjectProperty<>(this, "fadeOutInterpolator", DEFAULT_FADE_INTERPOLATOR);
 
     /**
      * Interpolator used by fade-out transitions. Accepts {@code null}, which is
-     * resolved to {@link #DEFAULT_FADE_OUT_INTERPOLATOR} when a fade starts.
+     * resolved to {@link #DEFAULT_FADE_INTERPOLATOR} when a fade starts.
      *
      * @return the fade-out interpolator property
      */
@@ -454,7 +445,7 @@ public class RXBackdrop extends Region {
         if (value != null) {
             return value;
         }
-        return fadeIn ? DEFAULT_FADE_IN_INTERPOLATOR : DEFAULT_FADE_OUT_INTERPOLATOR;
+        return DEFAULT_FADE_INTERPOLATOR;
     }
 
     // ==================== CSS Metadata ====================

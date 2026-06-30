@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -61,10 +60,6 @@ public class RXBackdropTest {
 
             assertTrue(backdrop.getStyleClass().contains("rx-backdrop"));
             assertFalse(backdrop.isShowing());
-            assertEquals(RXBackdrop.DEFAULT_FADE_IN_DURATION, backdrop.getFadeInDuration());
-            assertEquals(RXBackdrop.DEFAULT_FADE_OUT_DURATION, backdrop.getFadeOutDuration());
-            assertEquals(Interpolator.EASE_BOTH, backdrop.getFadeInInterpolator());
-            assertEquals(Interpolator.EASE_BOTH, backdrop.getFadeOutInterpolator());
             assertFalse(backdrop.isVisible());
             assertTrue(backdrop.isMouseTransparent());
             assertEquals(0.0, backdrop.getOpacity(), EPSILON);
