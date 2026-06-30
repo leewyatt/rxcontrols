@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Modifier;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -266,7 +267,32 @@ public class RxControlsThemeBaselineTest {
         }
         Matcher matcher = DEFAULT_STYLE_CLASS_PATTERN.matcher(content);
         while (matcher.find()) {
-            roots.put(matcher.group(1), toClassName(srcRoot, javaFile));
+            String className = toClassName(srcRoot, javaFile);
+            if (isAbstractControl(className)) {
+                // Abstract base controls (e.g. RXAnimatedButton / RXAnimatedLabel)
+                // add a shared style class — like JavaFX's `.cell` on the abstract
+                // Cell — that always co-occurs with a concrete subclass root already
+                // in the baseline. They cannot be instantiated alone and are never
+                // the sole token receiver, so they are not independent control roots.
+                continue;
+            }
+            roots.put(matcher.group(1), className);
+        }
+    }
+
+    /**
+     * Reports whether the named control class is {@code abstract}. Loaded without
+     * initialization (only the modifiers are needed); a class that cannot be
+     * loaded is treated as concrete so the instantiation guard surfaces the real
+     * error rather than silently dropping a root.
+     */
+    private static boolean isAbstractControl(String className) {
+        try {
+            Class<?> type = Class.forName(className, false,
+                    RxControlsThemeBaselineTest.class.getClassLoader());
+            return Modifier.isAbstract(type.getModifiers());
+        } catch (Throwable notLoadable) {
+            return false;
         }
     }
 
