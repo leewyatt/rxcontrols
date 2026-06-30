@@ -226,7 +226,11 @@ public class AnimAccordion extends PageAnimationBase {
             double di = even ? 0 : depth * p;
 
             setPT(currentPTs[i], 0, d, curStripW, di, curStripW, h - di, 0, h - d);
-            currentStrips[i].setLayoutX(curOrigin + i * curStripW);
+            // Reposition with a transform, not setLayoutX: the strips are unmanaged
+            // but live in the managed contentPane, so a per-frame layoutX change would
+            // bubble requestParentLayout to the transition host every pulse. The base
+            // layoutX (i * stripW) is set once in setup; translate only the delta.
+            currentStrips[i].setTranslateX(curOrigin + i * curStripW - i * stripW);
         }
     }
 
@@ -258,7 +262,9 @@ public class AnimAccordion extends PageAnimationBase {
             double di = even ? 0 : depth * p;
 
             setPT(currentPTs[i], d, 0, w - d, 0, w - di, curStripH, di, curStripH);
-            currentStrips[i].setLayoutY(curOrigin + i * curStripH);
+            // Transform, not setLayoutY — see updateHorizontal. Base layoutY (i * stripH)
+            // is set once in setup; translate only the per-frame delta.
+            currentStrips[i].setTranslateY(curOrigin + i * curStripH - i * stripH);
         }
     }
 
