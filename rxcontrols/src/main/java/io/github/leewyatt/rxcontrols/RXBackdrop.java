@@ -41,17 +41,19 @@ import java.util.List;
  */
 public class RXBackdrop extends Region {
 
-    // ==================== Constants ====================
+    private static final String DEFAULT_STYLE_CLASS = "rx-backdrop";
+
+    private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
 
     /**
      * Default duration for the fade-in transition.
      */
-    public static final Duration DEFAULT_FADE_IN_DURATION = Duration.millis(250.0);
+    public static final Duration DEFAULT_FADE_IN_DURATION = Duration.millis(200.0);
 
     /**
      * Default duration for the fade-out transition.
      */
-    public static final Duration DEFAULT_FADE_OUT_DURATION = Duration.millis(250.0);
+    public static final Duration DEFAULT_FADE_OUT_DURATION = Duration.millis(150.0);
 
     /**
      * Default interpolator for the fade-in transition, also the {@code null} fallback.
@@ -64,8 +66,6 @@ public class RXBackdrop extends Region {
     public static final Interpolator DEFAULT_FADE_OUT_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     private static final boolean DEFAULT_SHOWING = false;
-    private static final String DEFAULT_STYLE_CLASS = "rx-backdrop";
-    private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
 
     // ==================== Internal State ====================
 
