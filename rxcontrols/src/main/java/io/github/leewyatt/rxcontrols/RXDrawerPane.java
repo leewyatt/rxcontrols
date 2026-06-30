@@ -110,7 +110,7 @@ public class RXDrawerPane extends Control {
     /**
      * Default open/close animation duration.
      */
-    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(220.0);
 
     /**
      * Default open/close animation interpolator, also the {@code null} fallback.

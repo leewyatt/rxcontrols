@@ -80,7 +80,7 @@ public class RXDrawerPaneTest {
             RXDrawerPane pane = new RXDrawerPane();
             assertEquals(Side.RIGHT, pane.getSide());
             assertTrue(pane.isAnimated());
-            assertEquals(Duration.millis(250.0), pane.getAnimationDuration());
+            assertEquals(Duration.millis(220.0), pane.getAnimationDuration());
             assertEquals(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
             assertFalse(pane.isShowing());
             assertNull(pane.getContent());
