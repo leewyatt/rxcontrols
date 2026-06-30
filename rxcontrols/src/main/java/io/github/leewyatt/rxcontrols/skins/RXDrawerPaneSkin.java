@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
 import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
-
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -22,7 +21,6 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
@@ -92,6 +90,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         super(control);
 
         drawerWrapper.getStyleClass().add("drawer-wrapper");
+        drawerWrapper.setPickOnBounds(false);
         backdrop.getStyleClass().add("backdrop");
 
         // The drawer wrapper is the last-resort focus target when modal and nothing

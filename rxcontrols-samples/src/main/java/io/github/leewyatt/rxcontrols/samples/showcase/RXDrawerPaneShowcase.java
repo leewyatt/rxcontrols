@@ -131,10 +131,10 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
+                section("State & actions", actionsBox()),
                 section("Layout", layoutGrid()),
                 section("Backdrop & dismissal", backdropGrid()),
-                section("Animation", animationGrid()),
-                section("State & actions", actionsBox()));
+                section("Animation", animationGrid()));
     }
 
     private Node layoutGrid() {
@@ -216,7 +216,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         close.setOnAction(e -> drawer.close());
         Button toggle = new Button("toggle()");
         toggle.setOnAction(e -> drawer.toggle());
-        HBox buttons = new HBox(8.0, open, close, toggle);
+        HBox buttons = new HBox(8.0, toggle, open, close);
 
         Label showing = new Label();
         showing.getStyleClass().add("value-label");
