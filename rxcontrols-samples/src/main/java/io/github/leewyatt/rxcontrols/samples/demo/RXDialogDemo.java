@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
-import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
+import io.github.leewyatt.rxcontrols.enums.DialogTransition;
 
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
@@ -93,7 +93,7 @@ public class RXDialogDemo extends Application {
         RXDialog<ButtonType> dialog = new RXDialog<>();
         dialog.setContent(layout);
         dialog.setShowCloseButton(true);
-        dialog.setTransition(RXDialogTransition.SLIDE_TOP);
+        dialog.setTransition(DialogTransition.SLIDE_TOP);
         dialog.getButtonTypes().setAll(ButtonType.CLOSE);
         dialog.setOnResult(result -> status.set("Report dismissed."));
         dialog.show(owner);

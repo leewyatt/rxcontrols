@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
-import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
+import io.github.leewyatt.rxcontrols.enums.DialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.internal.RXDialogLayer;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
@@ -89,7 +89,7 @@ public class RXDialog<R> extends Control {
     /**
      * Default transition style (centered scale + fade).
      */
-    public static final RXDialogTransition DEFAULT_TRANSITION = RXDialogTransition.CENTER;
+    public static final DialogTransition DEFAULT_TRANSITION = DialogTransition.CENTER;
 
     /**
      * Default action-button layout (a CSS-styled {@code RXBox} row).
@@ -1033,10 +1033,10 @@ public class RXDialog<R> extends Control {
 
     // ==================== Transition ====================
 
-    private final ObjectProperty<RXDialogTransition> transition =
+    private final ObjectProperty<DialogTransition> transition =
             new StyleableObjectProperty<>(DEFAULT_TRANSITION) {
                 @Override
-                public CssMetaData<? extends Styleable, RXDialogTransition> getCssMetaData() {
+                public CssMetaData<? extends Styleable, DialogTransition> getCssMetaData() {
                     return StyleableProperties.TRANSITION;
                 }
 
@@ -1058,7 +1058,7 @@ public class RXDialog<R> extends Control {
      *
      * @return the transition property
      */
-    public final ObjectProperty<RXDialogTransition> transitionProperty() {
+    public final ObjectProperty<DialogTransition> transitionProperty() {
         return transition;
     }
 
@@ -1067,7 +1067,7 @@ public class RXDialog<R> extends Control {
      *
      * @return the transition style
      */
-    public final RXDialogTransition getTransition() {
+    public final DialogTransition getTransition() {
         return transition.get();
     }
 
@@ -1076,7 +1076,7 @@ public class RXDialog<R> extends Control {
      *
      * @param value the transition style, or {@code null} to fall back to the default
      */
-    public final void setTransition(RXDialogTransition value) {
+    public final void setTransition(DialogTransition value) {
         transition.set(value);
     }
 
@@ -1597,9 +1597,9 @@ public class RXDialog<R> extends Control {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXDialog<?>, RXDialogTransition> TRANSITION =
+        private static final CssMetaData<RXDialog<?>, DialogTransition> TRANSITION =
                 new CssMetaData<>("-rx-transition",
-                        new EnumConverter<>(RXDialogTransition.class), DEFAULT_TRANSITION) {
+                        new EnumConverter<>(DialogTransition.class), DEFAULT_TRANSITION) {
                     @Override
                     public boolean isSettable(RXDialog<?> node) {
                         return !node.transition.isBound();
@@ -1607,8 +1607,8 @@ public class RXDialog<R> extends Control {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXDialogTransition> getStyleableProperty(RXDialog<?> node) {
-                        return (StyleableProperty<RXDialogTransition>) node.transitionProperty();
+                    public StyleableProperty<DialogTransition> getStyleableProperty(RXDialog<?> node) {
+                        return (StyleableProperty<DialogTransition>) node.transitionProperty();
                     }
                 };
 

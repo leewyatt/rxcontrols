@@ -7,7 +7,7 @@ package io.github.leewyatt.rxcontrols.enums;
  * {@code applyPose} dispatch: {@link #CENTER} scales and fades, the four
  * {@code SLIDE_*} variants translate from the named edge and fade.
  */
-public enum RXDialogTransition {
+public enum DialogTransition {
 
     /**
      * The card scales up from a slightly smaller size while fading in (and the

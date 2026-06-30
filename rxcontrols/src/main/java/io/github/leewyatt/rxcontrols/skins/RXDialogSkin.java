@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
-import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
+import io.github.leewyatt.rxcontrols.enums.DialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -582,8 +582,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         // even while a transition still has it visible: opacity alone does not block picking.
         scrim.setMouseTransparent(!scrimOn);
 
-        RXDialogTransition transition = transitionOrDefault();
-        if (transition == RXDialogTransition.CENTER) {
+        DialogTransition transition = transitionOrDefault();
+        if (transition == DialogTransition.CENTER) {
             double scale = CLOSED_SCALE + (1.0 - CLOSED_SCALE) * p;
             dialogCard.setScaleX(scale);
             dialogCard.setScaleY(scale);
@@ -611,9 +611,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     // The card's own size along the slide axis (decision 10: slide by the card, not
     // the whole scene). Uses the laid-out size when available, else the preferred size.
-    private double slideOffset(RXDialogTransition transition) {
-        boolean horizontal = transition == RXDialogTransition.SLIDE_LEFT
-                || transition == RXDialogTransition.SLIDE_RIGHT;
+    private double slideOffset(DialogTransition transition) {
+        boolean horizontal = transition == DialogTransition.SLIDE_LEFT
+                || transition == DialogTransition.SLIDE_RIGHT;
         if (horizontal) {
             return dialogCard.getWidth() > 0 ? dialogCard.getWidth() : dialogCard.prefWidth(-1);
         }
@@ -841,8 +841,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         return value == null ? RXDialog.DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
-    private RXDialogTransition transitionOrDefault() {
-        RXDialogTransition value = getSkinnable().getTransition();
+    private DialogTransition transitionOrDefault() {
+        DialogTransition value = getSkinnable().getTransition();
         return value == null ? RXDialog.DEFAULT_TRANSITION : value;
     }
 

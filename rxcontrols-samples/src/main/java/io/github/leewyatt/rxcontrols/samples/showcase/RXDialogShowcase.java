@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.RXDialogs;
 import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
-import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
+import io.github.leewyatt.rxcontrols.enums.DialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.KeyFrame;
@@ -242,8 +242,8 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     }
 
     private Node transitionGrid() {
-        ComboBox<RXDialogTransition> transition = new ComboBox<>(
-                FXCollections.observableArrayList(RXDialogTransition.values()));
+        ComboBox<DialogTransition> transition = new ComboBox<>(
+                FXCollections.observableArrayList(DialogTransition.values()));
         transition.setValue(dialog.getTransition());
         transition.valueProperty().addListener((obs, old, value) -> dialog.setTransition(value));
         transition.setMaxWidth(Double.MAX_VALUE);

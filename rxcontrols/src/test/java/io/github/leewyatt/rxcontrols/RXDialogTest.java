@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.enums.CloseReason;
 import io.github.leewyatt.rxcontrols.enums.DialogActionsLayout;
-import io.github.leewyatt.rxcontrols.enums.RXDialogTransition;
+import io.github.leewyatt.rxcontrols.enums.DialogTransition;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
@@ -73,7 +73,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
             assertFalse(dialog.isShowing(), "a fresh dialog is hidden");
-            assertEquals(RXDialogTransition.CENTER, dialog.getTransition());
+            assertEquals(DialogTransition.CENTER, dialog.getTransition());
             assertTrue(dialog.isAnimated());
             assertTrue(dialog.isModal());
             assertTrue(dialog.isCloseOnEsc());
