@@ -50,7 +50,7 @@ public abstract class RXAnimatedButton extends RXButton {
      * Creates an animated button with an empty text caption.
      */
     protected RXAnimatedButton() {
-        getStyleClass().add(DEFAULT_STYLE_CLASS);
+        initialize();
     }
 
     /**
@@ -60,6 +60,7 @@ public abstract class RXAnimatedButton extends RXButton {
      */
     protected RXAnimatedButton(@NamedArg("text") String text) {
         super(text);
+        initialize();
     }
 
     /**
@@ -70,6 +71,11 @@ public abstract class RXAnimatedButton extends RXButton {
      */
     protected RXAnimatedButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
         super(text, graphic);
+        initialize();
+    }
+
+    private void initialize() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
     // ==================== Programmatic Playback ====================

@@ -33,6 +33,8 @@ import java.util.List;
  */
 public abstract class RXAnimatedLabel extends Label {
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-animated-label";
+
     // ==================== Constants ====================
 
     /**
@@ -51,6 +53,7 @@ public abstract class RXAnimatedLabel extends Label {
      * Creates an animated label with an empty text caption.
      */
     protected RXAnimatedLabel() {
+        initialize();
     }
 
     /**
@@ -60,6 +63,7 @@ public abstract class RXAnimatedLabel extends Label {
      */
     protected RXAnimatedLabel(@NamedArg("text") String text) {
         super(text);
+        initialize();
     }
 
     /**
@@ -70,6 +74,11 @@ public abstract class RXAnimatedLabel extends Label {
      */
     protected RXAnimatedLabel(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
         super(text, graphic);
+        initialize();
+    }
+
+    private void initialize() {
+        getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
     /**
