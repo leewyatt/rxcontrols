@@ -10,12 +10,12 @@ final class RXMomentumDouble implements AutoCloseable {
     // ==================== Constants ====================
 
     private static final double NANOS_PER_SECOND = 1_000_000_000.0;
-    private static final double DEFAULT_VELOCITY_GAIN = 10.0;
-    private static final double DEFAULT_DECELERATION = 7.0;
-    private static final double DEFAULT_MIN_VELOCITY = 15.0;
-    private static final double DEFAULT_MAX_VELOCITY = 3600.0;
+    private static final double DEFAULT_VELOCITY_GAIN = 18.0;
+    private static final double DEFAULT_DECELERATION = 4.6;
+    private static final double DEFAULT_MIN_VELOCITY = 10.0;
+    private static final double DEFAULT_MAX_VELOCITY = 5600.0;
     private static final double DEFAULT_MAX_FRAME_SECONDS = 0.05;
-    private static final double DEFAULT_MAX_DURATION_SECONDS = 0.9;
+    private static final double DEFAULT_MAX_DURATION_SECONDS = 1.25;
 
     // ==================== State ====================
 
