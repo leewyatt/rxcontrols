@@ -24,7 +24,7 @@
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
-.rx-list-view,
+.rx-kanban-view, .rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
     /* brand / primary */
@@ -2031,4 +2031,105 @@
     -fx-border-color: -fx-selection-bar, -fx-focus-color;
     -fx-border-width: 2, 1;
     -fx-border-insets: 0, 2;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXKanbanView                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.rx-kanban-view {
+    -fx-background-color: -rx-surface;
+    -fx-padding: 0.667em;
+}
+
+.rx-kanban-view > .placeholder {
+    -fx-alignment: center;
+}
+
+.rx-kanban-view > .columns > .column {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 8;
+}
+
+.rx-kanban-view > .columns > .column:drop-target {
+    -fx-background-color: -rx-primary-bg;
+    -fx-border-color: -rx-primary;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-border-insets: -1;
+}
+
+.rx-kanban-view > .columns > .column:collapsed {
+    -fx-background-color: -rx-surface-variant;
+    -fx-opacity: 0.9;
+}
+
+.rx-kanban-view > .columns > .column:dragging {
+    -fx-opacity: 0.85;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.1, 0, 4);
+}
+
+.rx-kanban-view > .drag-overlay {
+    -fx-background-color: transparent;
+}
+
+.rx-kanban-view > .columns > .column > .header {
+    -fx-padding: 0.5em 0.75em;
+    -fx-alignment: center-left;
+    -fx-spacing: 0.5em;
+}
+
+.rx-kanban-view > .columns > .column > .header > .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-kanban-view > .columns > .column > .content {
+    -fx-background-color: transparent;
+}
+
+.rx-kanban-view > .columns > .column > .footer {
+    -fx-padding: 0.5em 0.75em;
+}
+
+.rx-kanban-view > .columns > .column > .placeholder {
+    -fx-alignment: center;
+    -fx-padding: 1em 0.75em;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-kanban-card-cell {
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 6;
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-radius: 6;
+    -fx-padding: 0.75em;
+    /* Interaction feedback comes from the embedded ripple / state overlay. */
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.18;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
+}
+
+.rx-kanban-card-cell > .content > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-kanban-card-cell:selected {
+    -fx-border-color: -rx-selection;
+    -fx-border-width: 2;
+    -fx-border-insets: -1;
+}
+
+.rx-kanban-card-cell:focused {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 2;
+    -fx-border-insets: -1;
+}
+
+.rx-kanban-card-cell:selected:focused {
+    -fx-border-color: -rx-selection, -rx-focus;
+    -fx-border-width: 2, 1;
+    -fx-border-insets: -1, 1;
 }

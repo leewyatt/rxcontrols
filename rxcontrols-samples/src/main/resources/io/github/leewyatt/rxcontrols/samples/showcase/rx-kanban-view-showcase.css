@@ -1,0 +1,16 @@
+.rx-kanban-view {
+    -fx-padding: 12px;
+}
+
+.rx-kanban-view > .columns > .column > .footer {
+    -fx-padding: 6px;
+}
+
+.rx-kanban-view > .columns > .column > .footer .button {
+    -fx-background-radius: 6;
+}
+
+.hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}

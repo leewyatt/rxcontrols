@@ -1,0 +1,740 @@
+package io.github.leewyatt.rxcontrols;
+
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import io.github.leewyatt.rxcontrols.event.CardActionEvent;
+import io.github.leewyatt.rxcontrols.event.CardMovedEvent;
+import io.github.leewyatt.rxcontrols.event.ColumnMovedEvent;
+import javafx.event.Event;
+import javafx.event.EventType;
+import javafx.geometry.Bounds;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Skin / virtualization tests for {@link RXKanbanView} (phase 2 scope): the static
+ * board renders, each column's cards fixed-height virtualize, default headers show
+ * the title and count, the board placeholder shows when empty, illegal size values
+ * fall back to the default, and a board wider than its viewport grows a horizontal
+ * scroll bar. Each test drives a real (headless) layout pass.
+ */
+public class RXKanbanViewSkinTest {
+
+    @BeforeAll
+    public static void startToolkit() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        try {
+            Platform.startup(latch::countDown);
+        } catch (IllegalStateException alreadyRunning) {
+            latch.countDown();
+        }
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("JavaFX toolkit did not start");
+        }
+        Platform.runLater(() -> Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA));
+    }
+
+    @Test
+    public void emptyBoardShowsPlaceholder() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            Region placeholder = new Region();
+            board.setPlaceholder(placeholder);
+            pump(host(board, 600, 400));
+            assertTrue(placeholder.isVisible(), "placeholder shows on an empty board");
+            assertEquals(0, realizedCards(board), "no card cells realized on an empty board");
+        });
+    }
+
+    @Test
+    public void columnsRenderDefaultHeaderTitleAndCount() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 3, "DOING", 0, "DONE", 1);
+            pump(host(board, 900, 400));
+            Set<String> labels = labelTexts(board);
+            assertTrue(labels.contains("TODO"), "TODO header title rendered");
+            assertTrue(labels.contains("DOING"), "DOING header title rendered");
+            assertTrue(labels.contains("DONE"), "DONE header title rendered");
+            assertTrue(labels.contains("3"), "TODO count pill shows 3");
+            assertTrue(labels.contains("0"), "empty column count pill shows 0");
+        });
+    }
+
+    @Test
+    public void largeColumnVirtualizes() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("Backlog", 10_000);
+            pump(host(board, 400, 400));
+            int realized = realizedCards(board);
+            assertTrue(realized > 0, "some cards realized");
+            assertTrue(realized < 50,
+                    "only the visible window is realized, not all 10000 cards (was " + realized + ")");
+        });
+    }
+
+    @Test
+    public void firstCardSitsAtTopOfColumnContent() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("Backlog", 50);
+            board.setPrefCardHeight(80);
+            board.setCardSpacing(10);
+            pump(host(board, 400, 500));
+            RXKanbanCardCell<?> first = cellByText(board, "card-0");
+            RXKanbanCardCell<?> second = cellByText(board, "card-1");
+            assertTrue(first != null && second != null, "first two cards realized");
+            double gap = second.getLayoutY() - first.getLayoutY();
+            assertEquals(90.0, gap, 1.0, "row stride is cardHeight(80) + cardSpacing(10)");
+        });
+    }
+
+    @Test
+    public void illegalCardHeightFallsBackToDefault() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("Backlog", 200);
+            board.setPrefCardHeight(0);       // non-positive -> fallback
+            board.setCardSpacing(-5);         // negative -> clamped to 0
+            pump(host(board, 400, 400));
+            assertTrue(realizedCards(board) > 0, "board still renders with fallback sizing");
+        });
+    }
+
+    @Test
+    public void wideBoardGrowsHorizontalScrollBar() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(280);
+            pump(host(board, 400, 400));
+            assertTrue(hasVisibleHorizontalScrollBar(board),
+                    "five 280px columns in a 400px board overflow horizontally");
+        });
+    }
+
+    @Test
+    public void narrowBoardHasNoHorizontalScrollBar() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1);
+            board.setPrefColumnWidth(150);
+            pump(host(board, 900, 400));
+            assertFalse(hasVisibleHorizontalScrollBar(board),
+                    "two 150px columns fit in a 900px board");
+        });
+    }
+
+    // ==================== Selection / focus / keyboard ====================
+
+    @Test
+    public void clickSelectsAndFocusesCard() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 5);
+            RXKanbanColumn<String> todo = board.getColumns().get(0);
+            pump(host(board, 500, 500));
+            RXKanbanCardCell<?> cell = cellByText(board, "card-2");
+            assertNotNull(cell, "card-2 realized");
+            press(cell);
+            assertSame(todo, board.getSelectedColumn());
+            assertEquals(2, board.getSelectedCardIndex());
+            assertEquals("card-2", board.getSelectedCard());
+            assertSame(todo, board.getFocusedColumn());
+            assertEquals(2, board.getFocusedCardIndex());
+            assertTrue(hasPseudo(cell, "selected"), "clicked card gets :selected");
+            assertTrue(hasPseudo(cell, "focused"), "clicked card gets :focused");
+        });
+    }
+
+    @Test
+    public void arrowDownMovesFocusNotSelection() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 5);
+            pump(host(board, 500, 500));
+            press(cellByText(board, "card-0"));
+            key(board, KeyCode.DOWN);
+            assertEquals(1, board.getFocusedCardIndex(), "focus moved down");
+            assertEquals("card-1", board.getFocusedCard());
+            assertEquals(0, board.getSelectedCardIndex(), "selection unchanged by arrow");
+        });
+    }
+
+    @Test
+    public void arrowRightMovesFocusToAdjacentColumn() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 3, "B", 3);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 500));
+            press(cellByText(board, "card-1"));       // in column A
+            key(board, KeyCode.RIGHT);
+            assertSame(b, board.getFocusedColumn(), "focus jumped to column B");
+            assertEquals(1, board.getFocusedCardIndex(), "nearest index preserved");
+        });
+    }
+
+    @Test
+    public void enterFiresCardActionForFocusedCard() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 4);
+            RXKanbanColumn<String> todo = board.getColumns().get(0);
+            AtomicReference<CardActionEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardAction(fired::set);
+            pump(host(board, 500, 500));
+            press(cellByText(board, "card-1"));
+            key(board, KeyCode.ENTER);
+            CardActionEvent<String> event = fired.get();
+            assertNotNull(event, "card action fired");
+            assertEquals("card-1", event.getCard());
+            assertEquals(1, event.getIndex());
+            assertSame(todo, event.getColumn());
+        });
+    }
+
+    @Test
+    public void doubleClickFiresCardAction() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 4);
+            AtomicReference<CardActionEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardAction(fired::set);
+            pump(host(board, 500, 500));
+            doubleClick(cellByText(board, "card-3"));
+            assertNotNull(fired.get(), "double-click fired card action");
+            assertEquals("card-3", fired.get().getCard());
+        });
+    }
+
+    @Test
+    public void spaceSelectsFocusedCard() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 5);
+            pump(host(board, 500, 500));
+            press(cellByText(board, "card-0"));
+            key(board, KeyCode.DOWN);
+            key(board, KeyCode.SPACE);
+            assertEquals(1, board.getSelectedCardIndex(), "space selects the focused card");
+            assertEquals("card-1", board.getSelectedCard());
+        });
+    }
+
+    @Test
+    public void selectionClampsWhenFocusedColumnShrinks() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("TODO", 5);
+            RXKanbanColumn<String> todo = board.getColumns().get(0);
+            pump(host(board, 500, 500));
+            press(cellByText(board, "card-4"));       // select last
+            assertEquals(4, board.getSelectedCardIndex());
+            todo.getCards().remove(0);                // now 4 cards, index 4 out of range
+            assertEquals(3, board.getSelectedCardIndex(), "selection index clamped to new size");
+            assertEquals("card-4", board.getSelectedCard(), "projection re-derived to card now at index 3");
+        });
+    }
+
+    @Test
+    public void selectionClearsWhenColumnRemoved() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2, "B", 2);
+            pump(host(board, 900, 500));
+            press(cellByText(board, "card-0"));       // selects a card in column A
+            board.getColumns().remove(0);             // remove column A
+            assertEquals(-1, board.getSelectedCardIndex(), "selection cleared when its column is removed");
+            assertTrue(board.getSelectedColumn() == null, "selected column cleared");
+        });
+    }
+
+    // ==================== Drag and drop ====================
+
+    @Test
+    public void crossColumnMoveCommitsByIndex() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 900, 500));
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            RXKanbanCardCell<?> targetTop = cellByText(board, "B0");
+            dragTo(board, source, center(targetTop));
+            pump(board);
+
+            assertEquals(List.of("A1", "A2"), a.getCards(), "A0 removed from source column by index");
+            assertEquals(List.of("A0", "B0", "B1"), b.getCards(), "A0 inserted at top of target column");
+            CardMovedEvent<String> event = fired.get();
+            assertNotNull(event, "CardMovedEvent fired");
+            assertSame(a, event.getFromColumn());
+            assertEquals(0, event.getFromIndex());
+            assertSame(b, event.getToColumn());
+            assertEquals(0, event.getToIndex());
+            assertFalse(event.isReorder());
+        });
+    }
+
+    @Test
+    public void sameColumnReorderCommits() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 900, 500));
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            Bounds sb = source.localToScene(source.getBoundsInLocal());
+            // Drop one stride below the source top -> lands A0 after A1 (index 1 of the
+            // source-removed list [A1, A2]).
+            double stride = sb.getHeight() + 8.0;
+            dragTo(board, source, new double[]{(sb.getMinX() + sb.getMaxX()) / 2.0, sb.getMinY() + stride});
+            pump(board);
+
+            assertEquals(List.of("A1", "A0", "A2"), a.getCards(), "same-column reorder by index");
+            assertTrue(fired.get() != null && fired.get().isReorder(), "reorder event fired");
+        });
+    }
+
+    @Test
+    public void vetoedMoveLeavesDataUnchanged() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            board.setOnCardMoved(Event::consume);
+            pump(host(board, 900, 500));
+
+            dragTo(board, cellByText(board, "A0"), center(cellByText(board, "B0")));
+            pump(board);
+
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "consumed move does not mutate source");
+            assertEquals(List.of("B0", "B1"), b.getCards(), "consumed move does not mutate target");
+        });
+    }
+
+    @Test
+    public void dropValidatorRejectsMove() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            // Reject any drop into column B.
+            board.setDropValidator(ctx -> ctx.getTargetColumn() != b);
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 900, 500));
+
+            dragTo(board, cellByText(board, "A0"), center(cellByText(board, "B0")));
+            pump(board);
+
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "rejected drop leaves source unchanged");
+            assertEquals(List.of("B0", "B1"), b.getCards(), "rejected drop leaves target unchanged");
+            assertTrue(fired.get() == null, "no move event when the drop is rejected");
+        });
+    }
+
+    @Test
+    public void dragDisabledWhenNotEditable() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            board.setEditable(false);
+            pump(host(board, 900, 500));
+
+            dragTo(board, cellByText(board, "A0"), center(cellByText(board, "B0")));
+            pump(board);
+
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "no drag when editable=false");
+        });
+    }
+
+    @Test
+    public void animatedFalseSnapsWithoutGlide() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            board.setAnimated(false);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            pump(host(board, 900, 500));
+
+            // A card change would settle-glide when animated; with animation off every
+            // cell must sit at its final layout position (no residual translate).
+            a.getCards().add(0, "A-new");
+            pump(board);
+
+            for (Node node : board.lookupAll(".rx-kanban-card-cell")) {
+                assertEquals(0.0, node.getTranslateY(), 0.001, "no residual glide translate when animated=false");
+            }
+            assertNotNull(cellByText(board, "A-new"), "inserted card rendered");
+        });
+    }
+
+    // ==================== Accessibility ====================
+
+    @Test
+    public void accessibilityRolesAndProjection() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            a.getCards().setAll("A0", "A1", "A2");
+            pump(host(board, 900, 500));
+
+            assertEquals(AccessibleRole.PARENT, board.getAccessibleRole(), "board root is PARENT");
+
+            press(cellByText(board, "A1"));
+            pump(board);
+
+            Region colA = (Region) headerOf(board, "A").getParent();
+            Region colB = (Region) headerOf(board, "B").getParent();
+            Node vpA = colA.lookup(".content");
+            Node vpB = colB.lookup(".content");
+            assertEquals(AccessibleRole.LIST_VIEW, vpA.getAccessibleRole(), "column card area is LIST_VIEW");
+            assertEquals(3, vpA.queryAccessibleAttribute(AccessibleAttribute.ITEM_COUNT));
+
+            Node focusA = (Node) vpA.queryAccessibleAttribute(AccessibleAttribute.FOCUS_ITEM);
+            assertNotNull(focusA, "focused column reports its focus item");
+            assertEquals(AccessibleRole.LIST_ITEM, focusA.getAccessibleRole(), "card is LIST_ITEM");
+            assertEquals("A1", ((RXKanbanCardCell<?>) focusA).getItem());
+            assertEquals(1, ((List<?>) vpA.queryAccessibleAttribute(AccessibleAttribute.SELECTED_ITEMS)).size());
+
+            // The board model projects to the owning column only: column B answers empty.
+            assertNull(vpB.queryAccessibleAttribute(AccessibleAttribute.FOCUS_ITEM), "non-focused column: no focus item");
+            assertTrue(((List<?>) vpB.queryAccessibleAttribute(AccessibleAttribute.SELECTED_ITEMS)).isEmpty());
+        });
+    }
+
+    // ==================== Column level (collapse / reorder) ====================
+
+    @Test
+    public void collapsedColumnNarrowsAndHidesCards() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            board.setAnimated(false);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            pump(host(board, 900, 500));
+
+            Region colA = (Region) headerOf(board, "A").getParent();
+            double expandedWidth = colA.getWidth();
+            assertTrue(expandedWidth > 200.0, "expanded column near prefColumnWidth");
+
+            a.setCollapsed(true);
+            pump(board);
+
+            assertTrue(hasPseudo(colA, "collapsed"), ":collapsed pseudo applied");
+            assertTrue(colA.getWidth() < 60.0, "collapsed column narrows: " + colA.getWidth());
+            Node content = colA.lookup(".content");
+            assertNotNull(content, "viewport present");
+            assertFalse(content.isVisible(), "card area hidden when collapsed");
+        });
+    }
+
+    @Test
+    public void columnReorderMovesByIndex() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            board.setColumnReorderEnabled(true);
+            AtomicReference<ColumnMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnColumnMoved(fired::set);
+            pump(host(board, 1200, 500));
+
+            dragColumn(board, "A", "B");
+            pump(board);
+
+            assertEquals(List.of("B", "A", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "A reordered to index 1");
+            ColumnMovedEvent<String> event = fired.get();
+            assertNotNull(event, "ColumnMovedEvent fired");
+            assertEquals(0, event.getFromIndex());
+            assertEquals(1, event.getToIndex());
+        });
+    }
+
+    @Test
+    public void columnReorderPreservesSelection() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            board.setColumnReorderEnabled(true);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            pump(host(board, 1200, 500));
+
+            press(cellByText(board, "A1"));
+            pump(board);
+            assertSame(a, board.getSelectedColumn(), "column A card selected before reorder");
+            assertEquals(1, board.getSelectedCardIndex());
+
+            dragColumn(board, "A", "B");
+            pump(board);
+
+            assertEquals(List.of("B", "A", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList());
+            // The atomic commit keeps A continuously present, so its selection survives.
+            assertSame(a, board.getSelectedColumn(), "selection preserved across reorder");
+            assertEquals(1, board.getSelectedCardIndex(), "selected index preserved across reorder");
+        });
+    }
+
+    @Test
+    public void columnReorderWithNullDurationDoesNotThrow() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setColumnReorderEnabled(true);
+            // animated stays true (default); a null duration means "no animation" and must
+            // NOT be handed to the glide Timeline.
+            board.setAnimationDuration(null);
+            pump(host(board, 1200, 500));
+
+            dragColumn(board, "A", "B");
+            pump(board);
+
+            assertEquals(List.of("B", "A", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "reorder commits with a null (disabled) animation duration and no exception");
+        });
+    }
+
+    @Test
+    public void columnReorderVetoedLeavesOrder() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            board.setColumnReorderEnabled(true);
+            board.setOnColumnMoved(Event::consume);
+            pump(host(board, 1200, 500));
+
+            dragColumn(board, "A", "B");
+            pump(board);
+
+            assertEquals(List.of("A", "B", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "consumed reorder leaves the column order unchanged");
+        });
+    }
+
+    @Test
+    public void columnReorderDisabledIgnoresHeaderDrag() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            // columnReorderEnabled defaults false.
+            AtomicReference<ColumnMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnColumnMoved(fired::set);
+            pump(host(board, 1200, 500));
+
+            dragColumn(board, "A", "B");
+            pump(board);
+
+            assertEquals(List.of("A", "B", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "no reorder when columnReorderEnabled=false");
+            assertTrue(fired.get() == null, "no event when reorder disabled");
+        });
+    }
+
+    // ==================== Helpers ====================
+
+    private static RXKanbanView<String> threeColumnBoard() {
+        RXKanbanView<String> board = new RXKanbanView<>();
+        ObservableList<RXKanbanColumn<String>> columns = FXCollections.observableArrayList();
+        for (String title : List.of("A", "B", "C")) {
+            RXKanbanColumn<String> column = new RXKanbanColumn<>(title);
+            column.getCards().addAll(title + "0", title + "1");
+            columns.add(column);
+        }
+        board.setColumns(columns);
+        return board;
+    }
+
+    private static Node headerOf(RXKanbanView<?> board, String title) {
+        for (Node h : board.lookupAll(".header")) {
+            for (Node l : h.lookupAll(".label")) {
+                if (l instanceof Label label && title.equals(label.getText())) {
+                    return h;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void dragColumn(RXKanbanView<?> board, String from, String pastCenterOf) {
+        Node header = headerOf(board, from);
+        Node target = headerOf(board, pastCenterOf);
+        Bounds hb = header.localToScene(header.getBoundsInLocal());
+        Bounds tb = target.localToScene(target.getBoundsInLocal());
+        double sx = (hb.getMinX() + hb.getMaxX()) / 2.0;
+        double sy = (hb.getMinY() + hb.getMaxY()) / 2.0;
+        double targetX = (tb.getMinX() + tb.getMaxX()) / 2.0 + 6.0;
+        header.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, header));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, targetX, sy, board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, targetX, sy, board));
+    }
+
+    private static RXKanbanView<String> twoColumnBoard() {
+        RXKanbanView<String> board = new RXKanbanView<>();
+        RXKanbanColumn<String> a = new RXKanbanColumn<>("A");
+        a.getCards().addAll("A0", "A1", "A2");
+        RXKanbanColumn<String> b = new RXKanbanColumn<>("B");
+        b.getCards().addAll("B0", "B1");
+        board.setColumns(FXCollections.observableArrayList(a, b));
+        return board;
+    }
+
+    private static double[] center(Node node) {
+        Bounds b = node.localToScene(node.getBoundsInLocal());
+        return new double[]{(b.getMinX() + b.getMaxX()) / 2.0, (b.getMinY() + b.getMaxY()) / 2.0};
+    }
+
+    private static void dragTo(RXKanbanView<?> board, Node source, double[] target) {
+        Bounds sb = source.localToScene(source.getBoundsInLocal());
+        double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
+        double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
+        source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12, sy + 12, board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, target[0], target[1], board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, target[0], target[1], board));
+    }
+
+    private static MouseEvent mouse(EventType<MouseEvent> type, double sceneX, double sceneY, Node pick) {
+        return new MouseEvent(type, sceneX, sceneY, sceneX, sceneY, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, true,
+                new PickResult(pick, sceneX, sceneY));
+    }
+
+    private static void press(Node target) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, true,
+                new PickResult(target, 5, 5)));
+    }
+
+    private static void doubleClick(Node target) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 5, 5, 5, 5, MouseButton.PRIMARY, 2,
+                false, false, false, false, true, false, false, false, false, true,
+                new PickResult(target, 5, 5)));
+    }
+
+    private static void key(Node target, KeyCode code) {
+        target.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
+    }
+
+    private static boolean hasPseudo(Node node, String name) {
+        return node.getPseudoClassStates().stream().anyMatch(pc -> pc.getPseudoClassName().equals(name));
+    }
+
+
+    @SafeVarargs
+    private static RXKanbanView<String> board(Object... titleThenCount) {
+        RXKanbanView<String> board = new RXKanbanView<>();
+        ObservableList<RXKanbanColumn<String>> columns = FXCollections.observableArrayList();
+        for (int i = 0; i < titleThenCount.length; i += 2) {
+            String title = (String) titleThenCount[i];
+            int count = (Integer) titleThenCount[i + 1];
+            RXKanbanColumn<String> column = new RXKanbanColumn<>(title);
+            for (int c = 0; c < count; c++) {
+                column.getCards().add("card-" + c);
+            }
+            columns.add(column);
+        }
+        board.setColumns(columns);
+        return board;
+    }
+
+    private static int realizedCards(RXKanbanView<?> board) {
+        return board.lookupAll(".rx-kanban-card-cell").size();
+    }
+
+    private static Set<String> labelTexts(RXKanbanView<?> board) {
+        Set<String> texts = new HashSet<>();
+        for (Node node : board.lookupAll(".label")) {
+            if (node instanceof Label label && label.getText() != null) {
+                texts.add(label.getText());
+            }
+        }
+        return texts;
+    }
+
+    private static RXKanbanCardCell<?> cellByText(RXKanbanView<?> board, String text) {
+        for (Node node : board.lookupAll(".rx-kanban-card-cell")) {
+            if (node instanceof RXKanbanCardCell<?> cell && !cell.isEmpty() && text.equals(cell.getItem())) {
+                return cell;
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasVisibleHorizontalScrollBar(RXKanbanView<?> board) {
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar
+                    && bar.getOrientation() == Orientation.HORIZONTAL && bar.isVisible()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static StackPane host(RXKanbanView<?> board, double w, double h) {
+        StackPane root = new StackPane(board);
+        new Scene(root, w, h);
+        return root;
+    }
+
+    private static void pump(Region root) {
+        for (int i = 0; i < 4; i++) {
+            root.applyCss();
+            root.layout();
+        }
+    }
+
+    private static void onFx(FxAction action) throws Exception {
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable t) {
+                error.set(t);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX action timed out");
+        }
+        Throwable t = error.get();
+        if (t instanceof AssertionError assertion) {
+            throw assertion;
+        }
+        if (t != null) {
+            throw new AssertionError(t);
+        }
+    }
+
+    @FunctionalInterface
+    private interface FxAction {
+        void run() throws Exception;
+    }
+}
