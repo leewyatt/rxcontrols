@@ -48,7 +48,7 @@ public class RXRowDemo extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(360.0);
         primaryStage.setMinHeight(520.0);
-        primaryStage.setTitle("RXRow Demo 2");
+        primaryStage.setTitle("RXRow Demo");
         primaryStage.show();
     }
 
