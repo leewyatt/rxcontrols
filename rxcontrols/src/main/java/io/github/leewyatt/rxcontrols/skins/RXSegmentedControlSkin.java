@@ -35,7 +35,13 @@ import java.util.List;
  *
  * <p>The indicator slides between segments: {@link #indicatorX} and
  * {@link #indicatorWidth} are animated by a field-held {@link Timeline} rebuilt
- * on each selection change (latest-wins). The first positioning and any
+ * on each selection change (latest-wins). Those values drive the indicator via a
+ * {@code translateX} / {@code translateY} transform (plus an unmanaged
+ * {@code resize} for the width), never via {@code layoutX}: an unmanaged node's
+ * {@code layoutX} change still bubbles through {@code requestParentLayout}, so
+ * animating it every frame would dirty a layout-sensitive ancestor for the
+ * slide's whole duration; a transform and an unmanaged resize do not. The first
+ * positioning and any
  * non-animated change snap immediately; a resize / CSS relayout calibrates the
  * resting geometry (snapping when idle, retargeting an in-flight slide only when
  * the target really moved, so a {@code :selected} font-weight relayout cannot
@@ -243,7 +249,16 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     // ==================== Indicator positioning ====================
 
     private void applyIndicatorGeometry() {
-        indicator.resizeRelocate(indicatorX.get(), indicatorY, indicatorWidth.get(), indicatorHeight);
+        // Position purely by transform so a slide never dirties ancestor layout:
+        // an unmanaged node's layoutX change still bubbles via requestParentLayout
+        // (Node.layoutX.invalidated: unmanaged -> clearSizeCache + requestParentLayout),
+        // whereas translateX and an unmanaged resize() do not. layoutX/Y stay
+        // pinned at 0; the transform carries the pose.
+        indicator.resize(indicatorWidth.get(), indicatorHeight);
+        indicator.setLayoutX(0.0);
+        indicator.setLayoutY(0.0);
+        indicator.setTranslateX(indicatorX.get());
+        indicator.setTranslateY(indicatorY);
     }
 
     private void positionIndicator(double targetX, double targetY, double targetWidth, double targetHeight) {
@@ -337,7 +352,13 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
         indicatorPositioned = false;
         pendingSelectionAnimation = false;
         indicator.setVisible(false);
-        indicator.resizeRelocate(x, y, 0.0, 0.0);
+        // Match applyIndicatorGeometry's transform-only positioning: keep layoutX/Y
+        // pinned at 0 so even the hidden pose does not bubble a layout request.
+        indicator.resize(0.0, 0.0);
+        indicator.setLayoutX(0.0);
+        indicator.setLayoutY(0.0);
+        indicator.setTranslateX(x);
+        indicator.setTranslateY(y);
     }
 
     // ==================== Layout ====================

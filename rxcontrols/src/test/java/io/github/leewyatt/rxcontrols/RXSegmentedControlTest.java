@@ -490,8 +490,11 @@ public class RXSegmentedControlTest {
 
             // The slide has been created but no animation pulse has advanced it
             // within this synchronous pass, so the indicator is still anchored at
-            // the previous segment rather than snapped to the target.
-            assertEquals(startX, indicator(control).getLayoutX(), EPSILON);
+            // the previous segment rather than snapped to the target. The indicator
+            // is positioned by transform (layoutX pinned at 0), so its effective x
+            // is layoutX + translateX.
+            Region ind = indicator(control);
+            assertEquals(startX, ind.getLayoutX() + ind.getTranslateX(), EPSILON);
         });
     }
 
@@ -1125,8 +1128,10 @@ public class RXSegmentedControlTest {
         Region indicator = indicator(control);
         Region cell = cell(control, index);
         assertTrue(indicator.isVisible());
-        assertEquals(cell.getLayoutX(), indicator.getLayoutX(), EPSILON);
-        assertEquals(cell.getLayoutY(), indicator.getLayoutY(), EPSILON);
+        // The indicator is positioned by transform with layoutX/Y pinned at 0, so
+        // its effective position is layoutX + translateX / layoutY + translateY.
+        assertEquals(cell.getLayoutX(), indicator.getLayoutX() + indicator.getTranslateX(), EPSILON);
+        assertEquals(cell.getLayoutY(), indicator.getLayoutY() + indicator.getTranslateY(), EPSILON);
         assertEquals(cell.getWidth(), indicator.getWidth(), EPSILON);
         assertEquals(cell.getHeight(), indicator.getHeight(), EPSILON);
     }
