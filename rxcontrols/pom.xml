@@ -48,7 +48,7 @@
                 <configuration>
                     <!-- JavaFX tests are sensitive to Toolkit / Platform state leakage.
                          Run test classes one by one, each in a fresh forked JVM. -->
-                    <forkCount>1</forkCount>
+                    <forkCount>5</forkCount>
                     <reuseForks>false</reuseForks>
                     <runOrder>alphabetical</runOrder>
                     <forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
