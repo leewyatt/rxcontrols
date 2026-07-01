@@ -77,6 +77,7 @@ public class RXThemeGallery extends Application {
         grid.setVgap(CARD_GAP);
         grid.setColumnWidth(CARD_WIDTH);
         grid.setFillWidth(false);
+        grid.setPadding(new Insets(20));
         for (NamedControl control : ThemeGalleryCards.cards()) {
             grid.getChildren().add(card(control));
         }
