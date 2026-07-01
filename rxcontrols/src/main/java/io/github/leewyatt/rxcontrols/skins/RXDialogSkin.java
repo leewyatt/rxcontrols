@@ -1,10 +1,11 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.CloseReason;
 import io.github.leewyatt.rxcontrols.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.DialogTransition;
+import io.github.leewyatt.rxcontrols.RXBackdrop;
+import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -84,7 +85,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private static final int EDGE_NORTH = 1 << 2;
     private static final int EDGE_SOUTH = 1 << 3;
 
-    private final Region scrim = new Region();
+    private final RXBackdrop scrim = new RXBackdrop();
     // The visible card. A VBox so it lays out the content (vgrow) above the action bar directly,
     // with the background / shadow / size on the same node — no extra wrapper.
     private final VBox dialogCard = new VBox();
@@ -630,12 +631,13 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void prepareScrimForOpen() {
         if (scrimActive()) {
-            scrim.setVisible(true);
-            scrim.setMouseTransparent(false);
+            scrim.show(false);
             if (scrimSteady) {
                 // Continuous scrim: start at full so the open animation's first frame doesn't
                 // flash a gap between the just-hidden lower scrim and this one.
                 scrim.setOpacity(1.0);
+            } else {
+                scrim.setOpacity(clamp01(progress.get()));
             }
         } else {
             applyScrimRest(false);
@@ -644,13 +646,9 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
 
     private void applyScrimRest(boolean open) {
         if (open && scrimActive()) {
-            scrim.setVisible(true);
-            scrim.setMouseTransparent(false);
-            scrim.setOpacity(1.0);
+            scrim.show(false);
         } else {
-            scrim.setVisible(false);
-            scrim.setMouseTransparent(true);
-            scrim.setOpacity(0.0);
+            scrim.hide(false);
         }
     }
 

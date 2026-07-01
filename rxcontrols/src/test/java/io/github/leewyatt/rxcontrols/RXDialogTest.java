@@ -282,6 +282,8 @@ public class RXDialogTest {
             Node upperScrim = upper.lookup(".scrim");
             assertNotNull(lowerScrim, "the lower dialog has a scrim node");
             assertNotNull(upperScrim, "the upper dialog has a scrim node");
+            assertTrue(lowerScrim instanceof RXBackdrop, "dialog scrim uses RXBackdrop");
+            assertTrue(upperScrim instanceof RXBackdrop, "dialog scrim uses RXBackdrop");
             assertFalse(lowerScrim.isVisible(),
                     "a dialog covered by another suppresses its own scrim (one merged scrim)");
             assertTrue(upperScrim.isVisible(), "the top-most dialog shows its scrim");
