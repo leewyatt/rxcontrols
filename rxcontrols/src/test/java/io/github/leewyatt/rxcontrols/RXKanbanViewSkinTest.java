@@ -425,10 +425,10 @@ public class RXKanbanViewSkinTest {
         });
     }
 
-    // ==================== Column level (collapse / reorder) ====================
+    // ==================== Column level (hide / reorder) ====================
 
     @Test
-    public void collapsedColumnHidesCompletely() throws Exception {
+    public void hiddenColumnDisappearsCompletely() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = twoColumnBoard();
             board.setAnimated(false);
@@ -439,27 +439,26 @@ public class RXKanbanViewSkinTest {
             Region colA = (Region) headerOf(board, "A").getParent();
             Region colB = (Region) headerOf(board, "B").getParent();
             double expandedWidth = colA.getWidth();
-            assertTrue(expandedWidth > 200.0, "expanded column near prefColumnWidth");
-            double bExpandedX = colB.getLayoutX();
+            assertTrue(expandedWidth > 200.0, "shown column near prefColumnWidth");
+            double bShownX = colB.getLayoutX();
 
-            a.setCollapsed(true);
+            a.setVisible(false);
             pump(board);
 
-            assertTrue(hasPseudo(colA, "collapsed"), ":collapsed pseudo applied");
-            assertTrue(colA.getWidth() < 1.0, "collapsed column has zero width: " + colA.getWidth());
-            assertFalse(colA.isVisible(), "collapsed column is fully hidden");
+            assertTrue(colA.getWidth() < 1.0, "hidden column has zero width: " + colA.getWidth());
+            assertFalse(colA.isVisible(), "column is fully hidden");
             // The neighbour closes up into the vacated space (width + gap both gone).
-            assertTrue(colB.getLayoutX() < bExpandedX - 100.0, "sibling column slides left over the hidden one");
+            assertTrue(colB.getLayoutX() < bShownX - 100.0, "sibling column slides left over the hidden one");
 
-            a.setCollapsed(false);
+            a.setVisible(true);
             pump(board);
-            assertTrue(colA.isVisible(), "expanding restores the column");
-            assertTrue(colA.getWidth() > 200.0, "expanded width restored");
+            assertTrue(colA.isVisible(), "showing restores the column");
+            assertTrue(colA.getWidth() > 200.0, "shown width restored");
         });
     }
 
     @Test
-    public void collapsedColumnSurvivesReorderAndReExpands() throws Exception {
+    public void hiddenColumnSurvivesReorderAndReShows() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = threeColumnBoard();
             board.setAnimated(false);
@@ -469,21 +468,21 @@ public class RXKanbanViewSkinTest {
             RXKanbanColumn<String> c = board.getColumns().get(2);
             Region colC = (Region) headerOf(board, "C").getParent();
 
-            c.setCollapsed(true);
+            c.setVisible(false);
             pump(board);
-            assertFalse(colC.isVisible(), "C hidden after collapse");
+            assertFalse(colC.isVisible(), "C hidden");
 
             // Reorder so C is no longer at index 2 (what a header drag does internally).
             board.getColumns().setAll(c, a, b);
             pump(board);
             assertEquals(0, board.getColumns().indexOf(c), "C moved to the front");
-            assertFalse(colC.isVisible(), "C stays collapsed by identity across the reorder");
+            assertFalse(colC.isVisible(), "C stays hidden by identity across the reorder");
 
-            // Re-expanding the SAME column object works regardless of its new index —
+            // Re-showing the SAME column object works regardless of its new index —
             // this is why callers must toggle by identity, not by a stale index.
-            c.setCollapsed(false);
+            c.setVisible(true);
             pump(board);
-            assertTrue(colC.isVisible(), "C re-expands by identity after reorder");
+            assertTrue(colC.isVisible(), "C re-shows by identity after reorder");
             assertTrue(colC.getWidth() > 200.0, "C width restored");
         });
     }

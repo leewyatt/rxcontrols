@@ -16,14 +16,14 @@ import javafx.collections.ObservableList;
 
 /**
  * Public column model of an {@link RXKanbanView}: a property-bean holding one
- * column's ordered cards plus its title, WIP limit, collapsed state and user
+ * column's ordered cards plus its title, WIP limit, visible state and user
  * data. A column's identity <em>is</em> its {@link #getCards() cards} list, which
  * is embedded and not replaceable (there is no {@code setCards}); mutating that
  * list directly changes the board. Cards stay the generic type {@code T} — the
  * view never wraps them.
  *
- * <p>{@code wipLimit} and {@code collapsed} are consumed by the skin for the
- * WIP count pill / {@code :over-limit} colouring and the collapse animation
+ * <p>{@code wipLimit} and {@code visible} are consumed by the skin for the WIP
+ * count pill / {@code :over-limit} colouring and the show / hide animation
  * respectively.
  *
  * @param <T> the card type
@@ -163,36 +163,39 @@ public class RXKanbanColumn<T> {
         wipLimit.set(value);
     }
 
-    // ==================== Collapsed ====================
+    // ==================== Visible ====================
 
-    private final BooleanProperty collapsed = new SimpleBooleanProperty(this, "collapsed", false);
+    private final BooleanProperty visible = new SimpleBooleanProperty(this, "visible", true);
 
     /**
-     * Whether the column is collapsed (its card area hidden). Consumed by the skin
-     * for the collapse/expand animation and the {@code :collapsed} pseudo-class.
+     * Whether the column is shown on the board. Mirrors {@code TableColumn.visible}:
+     * setting it {@code false} hides the whole column (the board reflows and its
+     * neighbours close up); {@code true} shows it. The skin animates the show / hide.
+     * A hidden column keeps its cards and position; the caller re-shows it by
+     * flipping this property back (by column identity, never a stale index).
      *
-     * @return the collapsed property
+     * @return the visible property
      */
-    public final BooleanProperty collapsedProperty() {
-        return collapsed;
+    public final BooleanProperty visibleProperty() {
+        return visible;
     }
 
     /**
-     * Returns whether the column is collapsed.
+     * Returns whether the column is shown on the board.
      *
-     * @return {@code true} if collapsed
+     * @return {@code true} if shown
      */
-    public final boolean isCollapsed() {
-        return collapsed.get();
+    public final boolean isVisible() {
+        return visible.get();
     }
 
     /**
-     * Sets whether the column is collapsed.
+     * Sets whether the column is shown on the board.
      *
-     * @param value {@code true} to collapse
+     * @param value {@code false} to hide the column
      */
-    public final void setCollapsed(boolean value) {
-        collapsed.set(value);
+    public final void setVisible(boolean value) {
+        visible.set(value);
     }
 
     // ==================== User Data ====================

@@ -35,7 +35,6 @@ final class KanbanColumnBox<T> extends Region {
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass DROP_TARGET_PSEUDO_CLASS = PseudoClass.getPseudoClass("drop-target");
     private static final PseudoClass OVER_LIMIT_PSEUDO_CLASS = PseudoClass.getPseudoClass("over-limit");
-    private static final PseudoClass COLLAPSED_PSEUDO_CLASS = PseudoClass.getPseudoClass("collapsed");
     private static final PseudoClass DRAGGING_PSEUDO_CLASS = PseudoClass.getPseudoClass("dragging");
 
     // Horizontal breathing room and header/footer gap for the card area so cards do
@@ -57,18 +56,18 @@ final class KanbanColumnBox<T> extends Region {
     private Label defaultCountLabel;
 
     private final InvalidationListener columnListener = obs -> refreshFromModel();
-    private final InvalidationListener collapsedListener = obs -> animateCollapse();
+    private final InvalidationListener visibilityListener = obs -> animateVisibility();
 
-    // Collapse progress: 0 fully expanded, 1 fully collapsed. The board skin reads it
-    // to interpolate this column's width; the box reads it to fade / hide its own card
-    // area. Animated by a Timeline when animation is enabled, else stepped.
-    private final DoubleProperty collapseProgress = new SimpleDoubleProperty(this, "collapseProgress");
-    private Timeline collapseAnimation;
+    // Hide progress: 0 fully shown, 1 fully hidden. The board skin reads it to
+    // interpolate this column's width to zero; the box reads it to fade its card area.
+    // Animated by a Timeline when animation is enabled, else stepped.
+    private final DoubleProperty hideProgress = new SimpleDoubleProperty(this, "hideProgress");
+    private Timeline hideAnimation;
 
     // Set by the board skin so it can migrate / refresh board-level selection and
     // focus when this column's model changes.
     private Runnable modelListener;
-    // Set by the board skin so a collapse-progress frame relays out the board (columns
+    // Set by the board skin so a hide-progress frame relays out the board (columns
     // reflow to the interpolating width).
     private Runnable boardRelayout;
 
@@ -87,8 +86,8 @@ final class KanbanColumnBox<T> extends Region {
         rebuildFooter();
         rebuildPlaceholder();
 
-        collapseProgress.set(column.isCollapsed() ? 1.0 : 0.0);
-        collapseProgress.addListener(obs -> {
+        hideProgress.set(column.isVisible() ? 0.0 : 1.0);
+        hideProgress.addListener(obs -> {
             if (boardRelayout != null) {
                 boardRelayout.run();
             }
@@ -98,8 +97,7 @@ final class KanbanColumnBox<T> extends Region {
         column.cardCountProperty().addListener(columnListener);
         column.titleProperty().addListener(columnListener);
         column.wipLimitProperty().addListener(columnListener);
-        column.collapsedProperty().addListener(collapsedListener);
-        column.collapsedProperty().addListener(columnListener);
+        column.visibleProperty().addListener(visibilityListener);
         refreshFromModel();
     }
 
@@ -141,31 +139,31 @@ final class KanbanColumnBox<T> extends Region {
     }
 
     /**
-     * This column's collapse progress: 0 fully expanded, 1 fully collapsed. The board
-     * skin lerps the column width between its expanded and collapsed widths by it.
+     * This column's hide progress: 0 fully shown, 1 fully hidden. The board skin lerps
+     * the column width from its full width to zero by it.
      *
-     * @return the collapse progress in {@code [0, 1]}
+     * @return the hide progress in {@code [0, 1]}
      */
-    double getCollapseProgress() {
-        return collapseProgress.get();
+    double getHideProgress() {
+        return hideProgress.get();
     }
 
-    // Drives collapseProgress toward the model's collapsed state, animated when
-    // animation is enabled (each frame relays out the board), else stepped.
-    private void animateCollapse() {
-        double target = column.isCollapsed() ? 1.0 : 0.0;
-        if (collapseAnimation != null) {
-            collapseAnimation.stop();
-            collapseAnimation = null;
+    // Drives hideProgress toward the model's visible state, animated when animation is
+    // enabled (each frame relays out the board), else stepped.
+    private void animateVisibility() {
+        double target = column.isVisible() ? 0.0 : 1.0;
+        if (hideAnimation != null) {
+            hideAnimation.stop();
+            hideAnimation = null;
         }
         if (!animationEnabled()) {
-            collapseProgress.set(target);
+            hideProgress.set(target);
             return;
         }
-        collapseAnimation = new Timeline(new KeyFrame(control.getAnimationDuration(),
-                new KeyValue(collapseProgress, target, interpolatorOrDefault())));
-        collapseAnimation.setOnFinished(e -> collapseAnimation = null);
-        collapseAnimation.play();
+        hideAnimation = new Timeline(new KeyFrame(control.getAnimationDuration(),
+                new KeyValue(hideProgress, target, interpolatorOrDefault())));
+        hideAnimation.setOnFinished(e -> hideAnimation = null);
+        hideAnimation.play();
     }
 
     private boolean animationEnabled() {
@@ -261,7 +259,6 @@ final class KanbanColumnBox<T> extends Region {
         pseudoClassStateChanged(EMPTY_PSEUDO_CLASS, empty);
         int limit = column.getWipLimit();
         pseudoClassStateChanged(OVER_LIMIT_PSEUDO_CLASS, limit > 0 && column.getCardCount() > limit);
-        pseudoClassStateChanged(COLLAPSED_PSEUDO_CLASS, column.isCollapsed());
 
         if (defaultTitleLabel != null) {
             String title = column.getTitle();
@@ -272,7 +269,7 @@ final class KanbanColumnBox<T> extends Region {
             int count = column.getCardCount();
             defaultCountLabel.setText(limit > 0 ? count + "/" + limit : Integer.toString(count));
         }
-        // layoutChildren owns placeholder visibility (it also factors in collapse); a
+        // layoutChildren owns placeholder visibility (it also factors in hiding); a
         // card-count change re-runs it.
         requestLayout();
         if (modelListener != null) {
@@ -292,9 +289,9 @@ final class KanbanColumnBox<T> extends Region {
         double innerW = Math.max(0.0, w - in.getLeft() - in.getRight());
         double innerH = Math.max(0.0, h - in.getTop() - in.getBottom());
 
-        // As the column collapses its card area fades and stops taking hits; the header
-        // stays so the collapsed strip is still recognizable and clickable to expand.
-        double progress = collapseProgress.get();
+        // As the column hides its card area fades out and stops taking hits (the whole
+        // column is set invisible by the skin once fully hidden).
+        double progress = hideProgress.get();
         boolean cardAreaVisible = progress < 0.999;
         double cardAreaOpacity = Math.max(0.0, 1.0 - progress);
         viewport.setVisible(cardAreaVisible);
@@ -330,15 +327,14 @@ final class KanbanColumnBox<T> extends Region {
     // ==================== Dispose ====================
 
     void dispose() {
-        if (collapseAnimation != null) {
-            collapseAnimation.stop();
-            collapseAnimation = null;
+        if (hideAnimation != null) {
+            hideAnimation.stop();
+            hideAnimation = null;
         }
         column.cardCountProperty().removeListener(columnListener);
         column.titleProperty().removeListener(columnListener);
         column.wipLimitProperty().removeListener(columnListener);
-        column.collapsedProperty().removeListener(collapsedListener);
-        column.collapsedProperty().removeListener(columnListener);
+        column.visibleProperty().removeListener(visibilityListener);
         viewport.dispose();
     }
 }

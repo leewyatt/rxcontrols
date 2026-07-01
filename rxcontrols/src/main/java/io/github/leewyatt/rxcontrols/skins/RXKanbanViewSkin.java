@@ -70,7 +70,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     // Column geometry captured on the last layout pass, so keyboard navigation can
     // scroll a column into horizontal view without recomputing the whole layout.
-    // Per-column because collapsed columns are narrower than expanded ones.
+    // Per-column because hidden columns collapse to zero width, shown ones to full.
     private double[] cachedColumnX = new double[0];
     private double[] cachedColumnW = new double[0];
     private double cachedBoardWidth;
@@ -611,17 +611,16 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double colSpacing = snapSizeX(columnSpacingOrDefault(getSkinnable()));
         int columnCount = boxes.size();
 
-        // Per-column effective width: a collapsing column hides completely — its width
-        // AND its trailing gap lerp to zero by collapse progress, so a fully collapsed
-        // column leaves no footprint and its neighbors close up. expand / collapse
-        // reflows the whole board.
+        // Per-column effective width: a hiding column shrinks completely — its width
+        // AND its trailing gap lerp to zero by hide progress, so a fully hidden column
+        // leaves no footprint and its neighbors close up. show / hide reflows the board.
         if (cachedColumnX.length != columnCount) {
             cachedColumnX = new double[columnCount];
             cachedColumnW = new double[columnCount];
         }
         double cursorX = 0.0;
         for (int i = 0; i < columnCount; i++) {
-            double progress = boxes.get(i).getCollapseProgress();
+            double progress = boxes.get(i).getHideProgress();
             double width = snapSizeX(expandedWidth * (1.0 - progress));
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
@@ -651,9 +650,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         for (int i = 0; i < columnCount; i++) {
             KanbanColumnBox<T> box = boxes.get(i);
             double x = snapPositionX(cachedColumnX[i] - boardScrollX);
-            // A fully collapsed column is hidden outright (no rendering, no hit target);
-            // it becomes visible again the moment it starts to expand.
-            box.setVisible(box.getCollapseProgress() < 1.0);
+            // A fully hidden column is invisible outright (no rendering, no hit target);
+            // it becomes visible again the moment it starts to show.
+            box.setVisible(box.getHideProgress() < 1.0);
             box.resizeRelocate(x, 0.0, cachedColumnW[i], columnsAreaHeight);
             if (flip) {
                 applyColumnFlip(box, x);

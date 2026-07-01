@@ -2060,11 +2060,6 @@
     -fx-border-insets: -1;
 }
 
-.rx-kanban-view > .columns > .column:collapsed {
-    -fx-background-color: -rx-surface-variant;
-    -fx-opacity: 0.9;
-}
-
 .rx-kanban-view > .columns > .column:dragging {
     -fx-opacity: 0.85;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.1, 0, 4);

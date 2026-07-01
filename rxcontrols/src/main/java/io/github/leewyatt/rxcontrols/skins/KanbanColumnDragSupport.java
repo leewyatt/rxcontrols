@@ -178,7 +178,7 @@ final class KanbanColumnDragSupport<T> {
             }
             KanbanColumnBox<T> box = skin.columnBoxes().get(i);
             if (!box.isVisible()) {
-                // A collapsed (hidden) neighbor has no on-board position to compare against.
+                // A hidden neighbor has no on-board position to compare against.
                 continue;
             }
             Bounds b = box.localToScene(box.getBoundsInLocal());

@@ -119,16 +119,16 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         columnReorder.selectedProperty().addListener((o, ov, on) -> kanban.setColumnReorderEnabled(on));
         // Toggle the DONE column by IDENTITY, not by index: a column reorder changes
         // indices, so getColumns().get(2) would later resolve to a different column and
-        // leave the real one stuck collapsed. Bind bidirectionally so the checkbox also
-        // reflects the column's state if it changes elsewhere.
+        // leave the real one stuck hidden. Bind bidirectionally to the column's own
+        // visible property (checked = shown).
         RXKanbanColumn<String> doneColumn = kanban.getColumns().get(2);
-        CheckBox collapseDone = new CheckBox("Collapse DONE column");
-        collapseDone.selectedProperty().bindBidirectional(doneColumn.collapsedProperty());
+        CheckBox showDone = new CheckBox("Show DONE column");
+        showDone.selectedProperty().bindBidirectional(doneColumn.visibleProperty());
         return createGrid(
                 row(editable),
                 row(cardDrag),
                 row(columnReorder),
-                row(collapseDone));
+                row(showDone));
     }
 
     private Node animationGrid() {
