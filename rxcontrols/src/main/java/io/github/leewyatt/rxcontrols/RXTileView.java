@@ -108,6 +108,7 @@ public class RXTileView<T> extends Control {
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
     private static final boolean DEFAULT_STICKY_SECTION_HEADER = false;
+    private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -887,6 +888,40 @@ public class RXTileView<T> extends Control {
      */
     public final void setStickySectionHeader(boolean value) {
         stickySectionHeader.set(value);
+    }
+
+    // ==================== Smooth Scrolling ====================
+
+    private final BooleanProperty smoothScrolling =
+            new SimpleBooleanProperty(this, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING);
+
+    /**
+     * Whether indirect wheel input scrolls with a short smooth animation. When
+     * disabled, wheel input is applied immediately while keeping the same boundary
+     * chaining behavior.
+     *
+     * @return the smooth-scrolling property
+     */
+    public final BooleanProperty smoothScrollingProperty() {
+        return smoothScrolling;
+    }
+
+    /**
+     * Returns whether smooth wheel scrolling is enabled.
+     *
+     * @return {@code true} when smooth scrolling is enabled
+     */
+    public final boolean isSmoothScrolling() {
+        return smoothScrolling.get();
+    }
+
+    /**
+     * Sets whether smooth wheel scrolling is enabled.
+     *
+     * @param value {@code true} to enable smooth wheel scrolling
+     */
+    public final void setSmoothScrolling(boolean value) {
+        smoothScrolling.set(value);
     }
 
     // ==================== Animated ====================

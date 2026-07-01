@@ -103,6 +103,7 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         }
 
         masonry = new RXMasonryView<>(items);
+        masonry.setSmoothScrolling(true);
         masonry.setColumnWidth(220.0);
         masonry.setCellFactory(view -> new NoteCell());
         masonry.setColumnSpanFactory(index -> featured(index) ? 2 : 1);

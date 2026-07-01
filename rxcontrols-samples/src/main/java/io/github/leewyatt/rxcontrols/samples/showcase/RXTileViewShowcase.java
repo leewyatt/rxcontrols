@@ -61,6 +61,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         }
 
         tile = new RXTileView<>(items);
+        tile.setSmoothScrolling(true);
         tile.setCellFactory(view -> new TileCell());
         tile.setSectionHeaderFactory(view -> new SectionHeader());
         applyGrouping("By 500s");

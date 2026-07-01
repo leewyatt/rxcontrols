@@ -57,6 +57,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
             items.add(i);
         }
         list = new RXListView<>(items);
+        list.setSmoothScrolling(false);
         list.setConverter(new StringConverter<>() {
             @Override
             public String toString(Integer value) {

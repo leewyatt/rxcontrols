@@ -250,8 +250,8 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         // Land the item within the area below an active sticky header instead of under it.
         double target = targetScrollFor(info.top(), info.height(), viewportHeight,
                 stickyOverlayHeight(plan), alignment);
-        scrollY = RXMath.clamp(target, 0.0, maxScroll);
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(RXMath.clamp(target, 0.0, maxScroll), ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
     }
@@ -283,8 +283,8 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
 
         double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
-        scrollY = RXMath.clamp(target, 0.0, maxScroll);
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(RXMath.clamp(target, 0.0, maxScroll), ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
     }
@@ -359,7 +359,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         boolean columnsChanged = !explicitScrollPending && lastColumnCount > 0 && lastColumnCount != cols
                 && lastVisibleFirstIndex >= 0;
         if (columnsChanged) {
-            scrollY = plan.rowInfo(plan.visualRowOfItem(lastVisibleFirstIndex)).top();
+            double corrected = RXMath.clamp(plan.rowInfo(plan.visualRowOfItem(lastVisibleFirstIndex)).top(),
+                    0.0, maxScroll);
+            double correction = corrected - scrollY;
+            scrollY = corrected;
+            shiftSmoothScrollBy(correction);
         }
         // The same column-count change is the reorder-glide trigger when animation
         // is on; otherwise cells snap to their new slots as before.
@@ -896,6 +900,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     @Override
     protected double unitScrollIncrement() {
         return slotHeight();
+    }
+
+    @Override
+    protected boolean smoothScrollingEnabled() {
+        return control.isSmoothScrolling();
     }
 
     @Override
