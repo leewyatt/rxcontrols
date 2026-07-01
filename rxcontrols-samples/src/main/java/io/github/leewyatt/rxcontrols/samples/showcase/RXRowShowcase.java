@@ -8,7 +8,6 @@ import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
 import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
-import io.github.leewyatt.rxcontrols.samples.demo.RXResponsiveLayoutDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -40,9 +39,9 @@ import java.util.List;
  * responsive hidden. The preview keeps the row in a horizontally scrollable
  * viewport so breakpoint boundaries can be tested without resizing the window.</p>
  *
- * <p>For a compact standalone demo see {@link RXResponsiveLayoutDemo}.</p>
+ * <p>For a compact standalone demo see {@link io.github.leewyatt.rxcontrols.samples.demo.RXRowDemo2}.</p>
  */
-public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
+public class RXRowShowcase extends RXShowcaseApplication {
 
     private static final double[] WIDTH_PRESETS = {
             360.0, 575.0, 576.0, 767.0, 768.0, 991.0, 992.0,
@@ -65,7 +64,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXResponsiveLayout";
+        return "RXRow";
     }
 
     @Override
@@ -95,7 +94,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-responsive-layout-showcase.css").toExternalForm();
+        return getClass().getResource("rx-row-showcase.css").toExternalForm();
     }
 
     @Override
