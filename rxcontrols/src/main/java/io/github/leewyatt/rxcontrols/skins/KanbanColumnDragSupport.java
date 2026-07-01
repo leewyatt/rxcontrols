@@ -56,8 +56,12 @@ final class KanbanColumnDragSupport<T> {
     }
 
     void onMousePressed(MouseEvent event) {
+        if (started) {
+            // A drag is already in progress; ignore extra button presses so a second
+            // button does not silently un-start it (which would strand the column).
+            return;
+        }
         armed = false;
-        started = false;
         if (event.getButton() != MouseButton.PRIMARY || !control.isColumnReorderEnabled()) {
             return;
         }
@@ -87,6 +91,11 @@ final class KanbanColumnDragSupport<T> {
     }
 
     void onMouseReleased(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            // Only the primary button (the one that started the drag) ends it; releasing
+            // some other button mid-drag must not commit or strand the gesture.
+            return;
+        }
         if (!started) {
             armed = false;
             return;

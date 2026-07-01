@@ -22,6 +22,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -425,6 +426,67 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    @Test
+    public void cardDragSurvivesSecondButtonPressThenPrimaryRelease() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 500));
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            double[] target = center(cellByText(board, "B0"));
+            Bounds sb = source.localToScene(source.getBoundsInLocal());
+            double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
+            double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
+
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, target[0], target[1], board));
+            // Press a SECOND button mid-drag, then release the primary button.
+            secondaryPress(board, target[0], target[1]);
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, target[0], target[1], board));
+            pump(board);
+
+            assertEquals(List.of("A1", "A2"), a.getCards(), "drag still commits on primary release");
+            assertEquals(List.of("A0", "B0", "B1"), b.getCards());
+            Pane overlay = (Pane) board.lookup(".drag-overlay");
+            assertNotNull(overlay, "drag overlay present");
+            assertTrue(overlay.getChildrenUnmodifiable().isEmpty(), "no ghost stranded on the overlay");
+        });
+    }
+
+    @Test
+    public void columnDragSurvivesSecondButtonPressThenPrimaryRelease() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            board.setColumnReorderEnabled(true);
+            pump(host(board, 1200, 500));
+
+            Node headerA = headerOf(board, "A");
+            Node headerB = headerOf(board, "B");
+            Region colA = (Region) headerA.getParent();
+            Bounds ha = headerA.localToScene(headerA.getBoundsInLocal());
+            Bounds hb = headerB.localToScene(headerB.getBoundsInLocal());
+            double sx = (ha.getMinX() + ha.getMaxX()) / 2.0;
+            double sy = (ha.getMinY() + ha.getMaxY()) / 2.0;
+            double pastB = (hb.getMinX() + hb.getMaxX()) / 2.0 + 6.0;
+
+            headerA.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerA));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, pastB, sy, board));
+            secondaryPress(board, pastB, sy);
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, pastB, sy, board));
+            pump(board);
+
+            assertEquals(List.of("B", "A", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "column reorder still commits on primary release");
+            assertEquals(0.0, colA.getTranslateX(), 0.001, "dragged column not stranded at the pointer");
+        });
+    }
+
     // ==================== Column level (hide / reorder) ====================
 
     @Test
@@ -693,6 +755,13 @@ public class RXKanbanViewSkinTest {
         return new MouseEvent(type, sceneX, sceneY, sceneX, sceneY, MouseButton.PRIMARY, 1,
                 false, false, false, false, true, false, false, false, false, true,
                 new PickResult(pick, sceneX, sceneY));
+    }
+
+    // A secondary-button press while the primary is still held down (both buttons down).
+    private static void secondaryPress(Node target, double sceneX, double sceneY) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, sceneX, sceneY, sceneX, sceneY,
+                MouseButton.SECONDARY, 1, false, false, false, false, true, false, true, false, false, true,
+                new PickResult(target, sceneX, sceneY)));
     }
 
     private static void press(Node target) {

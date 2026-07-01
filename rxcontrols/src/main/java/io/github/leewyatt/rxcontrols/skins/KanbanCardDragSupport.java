@@ -92,8 +92,12 @@ final class KanbanCardDragSupport<T> {
     }
 
     void onMousePressed(MouseEvent event) {
+        if (started) {
+            // A drag is already in progress; ignore extra button presses so a second
+            // button does not silently un-start it (which would strand the ghost).
+            return;
+        }
         armed = false;
-        started = false;
         if (event.getButton() != MouseButton.PRIMARY || !control.isEditable() || !control.isCardDragEnabled()) {
             return;
         }
@@ -131,6 +135,11 @@ final class KanbanCardDragSupport<T> {
     }
 
     void onMouseReleased(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            // Only the primary button (the one that started the drag) ends it; releasing
+            // some other button mid-drag must not commit or drop the gesture.
+            return;
+        }
         if (!started) {
             armed = false;
             return;
