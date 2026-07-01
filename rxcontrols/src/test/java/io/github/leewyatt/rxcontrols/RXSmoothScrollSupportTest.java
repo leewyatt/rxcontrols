@@ -11,6 +11,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -317,6 +318,51 @@ public class RXSmoothScrollSupportTest {
 
             assertFalse(event.isConsumed(), "top boundary chains to parent");
             assertEquals(1, bubbled.get());
+        });
+    }
+
+    @Test
+    public void nestedChainKeepsMiddleInputInsideAndHandsBoundaryToParent() throws Exception {
+        onFx(() -> {
+            ScrollPane inner = scrollPane(200.0, 800.0);
+            inner.setPrefSize(200.0, 200.0);
+            inner.setMinSize(200.0, 200.0);
+            inner.setMaxSize(200.0, 200.0);
+            Region spacer = new Region();
+            spacer.setPrefSize(200.0, 600.0);
+            spacer.setMinSize(200.0, 600.0);
+            VBox outerContent = new VBox(inner, spacer);
+            outerContent.setPrefSize(200.0, 800.0);
+            outerContent.setMinSize(200.0, 800.0);
+            ScrollPane outer = new ScrollPane(outerContent);
+            StackPane root = host(outer, 200.0, 200.0);
+            pump(root);
+            inner.applyCss();
+            inner.layout();
+            assertNotNull(inner.getContent().getParent(), "inner content parent is ready");
+            RXSmoothScrollOptions options = RXSmoothScrollOptions.builder()
+                    .duration(Duration.ZERO)
+                    .wheelMultiplier(4.0)
+                    .boundaryPolicy(ScrollBoundaryPolicy.CHAIN)
+                    .build();
+            RXSmoothScrollSupport.install(inner, options);
+            RXSmoothScrollSupport.install(outer, options);
+
+            inner.setVvalue(0.5);
+            double outerBefore = outer.getVvalue();
+            ScrollEvent innerEvent = scroll(0.0, -80.0, false);
+            inner.getContent().fireEvent(innerEvent);
+
+            assertEquals(inner.getVmax(), inner.getVvalue(), 0.0001, "inner applies the installed multiplier first");
+            assertEquals(outerBefore, outer.getVvalue(), 0.0001, "outer does not move while inner can absorb");
+
+            inner.setVvalue(inner.getVmax());
+            outer.setVvalue(outer.getVmin());
+            ScrollEvent boundaryEvent = scroll(0.0, -80.0, false);
+            inner.getContent().fireEvent(boundaryEvent);
+
+            assertEquals(inner.getVmax(), inner.getVvalue(), 0.0001, "inner stays at its boundary");
+            assertTrue(outer.getVvalue() > outer.getVmin(), "outer receives the chained scroll");
         });
     }
 
