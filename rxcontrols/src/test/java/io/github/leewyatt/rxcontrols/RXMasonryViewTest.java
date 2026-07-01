@@ -120,7 +120,7 @@ public class RXMasonryViewTest {
         assertEquals(-4.0, view.getVgap(), EPSILON);
     }
 
-    // ==================== Breakpoint API ====================
+    // ==================== RXBreakpoint API ====================
 
     @Test
     public void breakpointOverridesRoundTrip() {

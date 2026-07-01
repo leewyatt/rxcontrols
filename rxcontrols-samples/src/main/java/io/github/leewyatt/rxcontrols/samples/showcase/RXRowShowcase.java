@@ -6,8 +6,6 @@ import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
-import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
-import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -235,14 +233,14 @@ public class RXRowShowcase extends RXShowcaseApplication {
         row.rowGapProperty().bind(rowGapSlider.valueProperty());
         Label rowGapValue = createValueLabel(rowGapSlider, "%.0f px");
 
-        ComboBox<RXRowJustify> justifyBox = new ComboBox<>();
-        justifyBox.getItems().setAll(RXRowJustify.values());
+        ComboBox<RXRow.Justify> justifyBox = new ComboBox<>();
+        justifyBox.getItems().setAll(RXRow.Justify.values());
         justifyBox.setValue(row.getJustify());
         justifyBox.setMaxWidth(Double.MAX_VALUE);
         row.justifyProperty().bind(justifyBox.valueProperty());
 
-        ComboBox<RXRowAlign> alignBox = new ComboBox<>();
-        alignBox.getItems().setAll(RXRowAlign.values());
+        ComboBox<RXRow.Align> alignBox = new ComboBox<>();
+        alignBox.getItems().setAll(RXRow.Align.values());
         alignBox.setValue(row.getAlign());
         alignBox.setMaxWidth(Double.MAX_VALUE);
         row.alignProperty().bind(alignBox.valueProperty());

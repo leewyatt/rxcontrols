@@ -88,7 +88,7 @@ public class RXMasonryView<T> extends Control {
     // ==================== Constants ====================
 
     /**
-     * Breakpoint override sentinel: setting a breakpoint's column count to this value
+     * RXBreakpoint override sentinel: setting a breakpoint's column count to this value
      * breaks the mobile-first cascade and restores {@link #columnWidthProperty()
      * columnWidth} auto-calculation from that breakpoint up.
      */
@@ -698,7 +698,7 @@ public class RXMasonryView<T> extends Control {
         vgap.set(value);
     }
 
-    // ==================== Breakpoint Profile ====================
+    // ==================== RXBreakpoint Profile ====================
 
     private final ObservableMap<RXBreakpoint, Integer> breakpointColumns = FXCollections.observableHashMap();
     private final ObservableMap<RXBreakpoint, Integer> breakpointColumnsView =
@@ -708,7 +708,7 @@ public class RXMasonryView<T> extends Control {
             new SimpleObjectProperty<>(this, "breakpointProfile", DEFAULT_BREAKPOINT_PROFILE);
 
     /**
-     * Breakpoint profile used to resolve the active breakpoint from the view's content
+     * RXBreakpoint profile used to resolve the active breakpoint from the view's content
      * width. Only the profile's breakpoint set and {@code resolve} are used; its grid
      * column count is ignored. A {@code null} value is not rejected; it resolves to the
      * default at the use site.
@@ -737,7 +737,7 @@ public class RXMasonryView<T> extends Control {
         breakpointProfile.set(value);
     }
 
-    // ==================== Breakpoint Columns ====================
+    // ==================== RXBreakpoint Columns ====================
 
     /**
      * Sets the column count for a named breakpoint, overriding the
@@ -916,7 +916,7 @@ public class RXMasonryView<T> extends Control {
         return getBreakpointColumns(RXBreakpoint.XXXL);
     }
 
-    // ==================== Active Breakpoint (read-only) ====================
+    // ==================== Active RXBreakpoint (read-only) ====================
 
     private PseudoClass activeBreakpointPseudoClass;
 
@@ -929,7 +929,7 @@ public class RXMasonryView<T> extends Control {
             };
 
     /**
-     * Breakpoint resolved from the view's current content width, or {@code null}
+     * RXBreakpoint resolved from the view's current content width, or {@code null}
      * before the view is laid out. Updated by the skin each layout pass, and drives
      * the {@code :<name>} pseudo-class.
      *

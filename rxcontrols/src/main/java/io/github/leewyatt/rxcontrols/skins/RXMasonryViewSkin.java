@@ -206,7 +206,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // makes the persistent cache stale; drop it.
         disposer.registerListener(control.cellHeightProviderProperty(), this::onHeightSourceChanged);
         disposer.registerListener(control.columnSpanFactoryProperty(), this::onSpanFactoryChanged);
-        // Breakpoint overrides live in an observable map, not a property, but change the
+        // RXBreakpoint overrides live in an observable map, not a property, but change the
         // resolved column count just the same.
         disposer.registerListener(control.getBreakpointColumnOverrides(), this::requestRelayout);
         // Reorder animation: snap any in-flight glide when it is turned off mid-flight.

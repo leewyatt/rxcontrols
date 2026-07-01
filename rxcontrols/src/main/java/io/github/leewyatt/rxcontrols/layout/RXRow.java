@@ -101,7 +101,7 @@ public class RXRow extends Pane {
     private static final String DEFAULT_STYLE_CLASS = "rx-row";
     private static final Logger LOGGER = Logger.getLogger(RXRow.class.getName());
 
-    private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
+    private final BreakpointSupport breakpointSupport = new BreakpointSupport();
     private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
     private final Map<RXCol, ResponsiveHiddenState> responsiveHiddenStates =
             new IdentityHashMap<>();
@@ -135,6 +135,44 @@ public class RXRow extends Pane {
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Nested Types ====================
+
+    /**
+     * Horizontal distribution of remaining space for each responsive row line.
+     *
+     * <p>Column offsets are treated as occupied space, equivalent to fixed
+     * flexbox margins. Justification distributes only the remaining free space
+     * after spans and offsets are accounted for.</p>
+     */
+    public enum Justify {
+        /** Keep remaining space after the last column. */
+        START,
+        /** Split remaining space before and after the line. */
+        CENTER,
+        /** Place remaining space before the first column. */
+        END,
+        /** Distribute remaining space between columns. */
+        SPACE_BETWEEN,
+        /** Distribute remaining space around columns with half-size edge gaps. */
+        SPACE_AROUND,
+        /** Distribute remaining space evenly between columns and both edges. */
+        SPACE_EVENLY
+    }
+
+    /**
+     * Vertical alignment of columns within a responsive row line.
+     */
+    public enum Align {
+        /** Align columns to the top of the line. */
+        TOP,
+        /** Center columns vertically within the line. */
+        CENTER,
+        /** Align columns to the bottom of the line. */
+        BOTTOM,
+        /** Resize columns to the full line height. */
+        STRETCH
     }
 
     // ==================== Columns ====================
@@ -307,15 +345,15 @@ public class RXRow extends Pane {
 
     // ==================== Justify ====================
 
-    private final ObjectProperty<RXRowJustify> justify =
-            new StyleableObjectProperty<>(RXRowJustify.START) {
+    private final ObjectProperty<Justify> justify =
+            new StyleableObjectProperty<>(Justify.START) {
                 @Override
                 protected void invalidated() {
                     requestLayout();
                 }
 
                 @Override
-                public CssMetaData<? extends Styleable, RXRowJustify> getCssMetaData() {
+                public CssMetaData<? extends Styleable, Justify> getCssMetaData() {
                     return StyleableProperties.JUSTIFY;
                 }
 
@@ -338,7 +376,7 @@ public class RXRow extends Pane {
      *
      * @return the justify property
      */
-    public final ObjectProperty<RXRowJustify> justifyProperty() {
+    public final ObjectProperty<Justify> justifyProperty() {
         return justify;
     }
 
@@ -347,7 +385,7 @@ public class RXRow extends Pane {
      *
      * @return the justification
      */
-    public final RXRowJustify getJustify() {
+    public final Justify getJustify() {
         return justify.get();
     }
 
@@ -356,21 +394,21 @@ public class RXRow extends Pane {
      *
      * @param value the justification
      */
-    public final void setJustify(RXRowJustify value) {
+    public final void setJustify(Justify value) {
         justify.set(value);
     }
 
     // ==================== Align ====================
 
-    private final ObjectProperty<RXRowAlign> align =
-            new StyleableObjectProperty<>(RXRowAlign.TOP) {
+    private final ObjectProperty<Align> align =
+            new StyleableObjectProperty<>(Align.TOP) {
                 @Override
                 protected void invalidated() {
                     requestLayout();
                 }
 
                 @Override
-                public CssMetaData<? extends Styleable, RXRowAlign> getCssMetaData() {
+                public CssMetaData<? extends Styleable, Align> getCssMetaData() {
                     return StyleableProperties.ALIGN;
                 }
 
@@ -391,7 +429,7 @@ public class RXRow extends Pane {
      *
      * @return the align property
      */
-    public final ObjectProperty<RXRowAlign> alignProperty() {
+    public final ObjectProperty<Align> alignProperty() {
         return align;
     }
 
@@ -400,7 +438,7 @@ public class RXRow extends Pane {
      *
      * @return the alignment
      */
-    public final RXRowAlign getAlign() {
+    public final Align getAlign() {
         return align.get();
     }
 
@@ -409,11 +447,11 @@ public class RXRow extends Pane {
      *
      * @param value the alignment
      */
-    public final void setAlign(RXRowAlign value) {
+    public final void setAlign(Align value) {
         align.set(value);
     }
 
-    // ==================== Breakpoint Profile ====================
+    // ==================== RXBreakpoint Profile ====================
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
             new SimpleObjectProperty<>(this, "breakpointProfile", RXBreakpointProfile.ANT_DESIGN) {
@@ -426,7 +464,7 @@ public class RXRow extends Pane {
             };
 
     /**
-     * Breakpoint profile used to resolve active breakpoint and mobile-first
+     * RXBreakpoint profile used to resolve active breakpoint and mobile-first
      * column specs. Changing the profile also updates {@link #columnsProperty()}
      * while columns is still using the profile default. A {@code null} value is
      * not rejected; it resolves to the default at the use site.
@@ -455,7 +493,7 @@ public class RXRow extends Pane {
         breakpointProfile.set(value);
     }
 
-    // ==================== Active Breakpoint ====================
+    // ==================== Active RXBreakpoint ====================
 
     private final ReadOnlyObjectWrapper<RXBreakpoint> activeBreakpoint =
             new ReadOnlyObjectWrapper<>(this, "activeBreakpoint");
@@ -525,8 +563,8 @@ public class RXRow extends Pane {
         double contentWidth = contentWidth(rowWidth);
         double y = contentY;
         double gap = snapSpaceY(rowGapOrDefault());
-        RXRowAlign rowAlign = alignOrDefault();
-        RXRowJustify rowJustify = justifyOrDefault();
+        Align rowAlign = alignOrDefault();
+        Justify rowJustify = justifyOrDefault();
         int columnsCount = columnsOrDefault();
 
         for (int lineIndex = 0; lineIndex < measurement.lines().size(); lineIndex++) {
@@ -541,8 +579,8 @@ public class RXRow extends Pane {
     }
 
     private void layoutLine(Line line, double contentX, double y, double contentWidth,
-                            int columnsCount, RXRowJustify rowJustify,
-                            RXRowAlign rowAlign) {
+                            int columnsCount, Justify rowJustify,
+                            Align rowAlign) {
         JustifyMetrics justifyMetrics = justifyMetrics(rowJustify,
                 Math.max(0.0, contentWidth - line.usedWidth()), line.items().size());
         VPos vpos = switch (rowAlign) {
@@ -550,7 +588,7 @@ public class RXRow extends Pane {
             case CENTER -> VPos.CENTER;
             case BOTTOM -> VPos.BOTTOM;
         };
-        boolean fillHeight = rowAlign == RXRowAlign.STRETCH;
+        boolean fillHeight = rowAlign == Align.STRETCH;
 
         for (int i = 0; i < line.items().size(); i++) {
             LineItem item = line.items().get(i);
@@ -912,14 +950,14 @@ public class RXRow extends Pane {
         return Double.isFinite(value) ? value : DEFAULT_ROW_GAP;
     }
 
-    private RXRowJustify justifyOrDefault() {
-        RXRowJustify value = getJustify();
-        return value == null ? RXRowJustify.START : value;
+    private Justify justifyOrDefault() {
+        Justify value = getJustify();
+        return value == null ? Justify.START : value;
     }
 
-    private RXRowAlign alignOrDefault() {
-        RXRowAlign value = getAlign();
-        return value == null ? RXRowAlign.TOP : value;
+    private Align alignOrDefault() {
+        Align value = getAlign();
+        return value == null ? Align.TOP : value;
     }
 
     private RXBreakpointProfile breakpointProfileOrDefault() {
@@ -943,7 +981,7 @@ public class RXRow extends Pane {
         }
     }
 
-    private JustifyMetrics justifyMetrics(RXRowJustify rowJustify, double remaining, int itemCount) {
+    private JustifyMetrics justifyMetrics(Justify rowJustify, double remaining, int itemCount) {
         if (itemCount <= 0 || remaining <= 0.0) {
             return new JustifyMetrics(0.0, 0.0, 0.0);
         }
@@ -1010,9 +1048,9 @@ public class RXRow extends Pane {
                     }
                 };
 
-        private static final CssMetaData<RXRow, RXRowJustify> JUSTIFY =
+        private static final CssMetaData<RXRow, Justify> JUSTIFY =
                 new CssMetaData<>("-rx-justify",
-                        new EnumConverter<>(RXRowJustify.class), RXRowJustify.START) {
+                        new EnumConverter<>(Justify.class), Justify.START) {
                     @Override
                     public boolean isSettable(RXRow row) {
                         return !row.justify.isBound();
@@ -1020,14 +1058,14 @@ public class RXRow extends Pane {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXRowJustify> getStyleableProperty(RXRow row) {
-                        return (StyleableProperty<RXRowJustify>) row.justifyProperty();
+                    public StyleableProperty<Justify> getStyleableProperty(RXRow row) {
+                        return (StyleableProperty<Justify>) row.justifyProperty();
                     }
                 };
 
-        private static final CssMetaData<RXRow, RXRowAlign> ALIGN =
+        private static final CssMetaData<RXRow, Align> ALIGN =
                 new CssMetaData<>("-rx-align",
-                        new EnumConverter<>(RXRowAlign.class), RXRowAlign.TOP) {
+                        new EnumConverter<>(Align.class), Align.TOP) {
                     @Override
                     public boolean isSettable(RXRow row) {
                         return !row.align.isBound();
@@ -1035,8 +1073,8 @@ public class RXRow extends Pane {
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<RXRowAlign> getStyleableProperty(RXRow row) {
-                        return (StyleableProperty<RXRowAlign>) row.alignProperty();
+                    public StyleableProperty<Align> getStyleableProperty(RXRow row) {
+                        return (StyleableProperty<Align>) row.alignProperty();
                     }
                 };
 

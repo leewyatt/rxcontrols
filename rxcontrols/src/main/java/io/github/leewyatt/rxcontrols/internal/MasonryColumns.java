@@ -34,7 +34,7 @@ import java.util.Objects;
 public final class MasonryColumns {
 
     /**
-     * Breakpoint override sentinel mirroring the public {@code AUTO_COLUMNS} control
+     * RXBreakpoint override sentinel mirroring the public {@code AUTO_COLUMNS} control
      * constant: a cascade that resolves to this value breaks out of the override and
      * falls back to the {@code columnWidth} auto floor.
      */

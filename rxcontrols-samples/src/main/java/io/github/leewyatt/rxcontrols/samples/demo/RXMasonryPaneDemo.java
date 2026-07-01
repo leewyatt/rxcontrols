@@ -58,7 +58,7 @@ public class RXMasonryPaneDemo extends Application {
             new Note("LAYOUT", "Fill the width",
                     "With fill-width on, columns stretch to consume the whole pane, so "
                             + "there is never an awkward gap on the right edge."),
-            new Note("TIP", "Breakpoints optional",
+            new Note("TIP", "RXBreakpoints optional",
                     "Pin a column count per breakpoint — xs through xxxl — or just "
                             + "let the target column width do the work."),
             new Note("PERF", "Measure once",

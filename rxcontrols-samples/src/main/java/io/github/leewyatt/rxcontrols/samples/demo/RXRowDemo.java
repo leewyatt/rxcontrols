@@ -4,8 +4,6 @@ import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
-import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
-import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -55,8 +53,8 @@ public class RXRowDemo extends Application {
     private RXRow createDashboard() {
         RXRow row = new RXRow();
         row.getStyleClass().add("energy-dashboard");
-        row.setAlign(RXRowAlign.STRETCH);
-        row.setJustify(RXRowJustify.START);
+        row.setAlign(RXRow.Align.STRETCH);
+        row.setJustify(RXRow.Justify.START);
 
         row.getChildren().addAll(
                 col(createCommandCard(), spec(24), spec(24), spec(15), spec(15)),

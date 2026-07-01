@@ -979,9 +979,9 @@ public class RXMasonryPane extends Pane {
         return RXMath.clamp(sanitizedVgap(), ENTER_TRANSLATE_MIN, ENTER_TRANSLATE_MAX);
     }
 
-    // ==================== Breakpoint Profile ====================
+    // ==================== RXBreakpoint Profile ====================
 
-    private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
+    private final BreakpointSupport breakpointSupport = new BreakpointSupport();
     private final Map<RXBreakpoint, Integer> breakpointColumns = new EnumMap<>(RXBreakpoint.class);
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
@@ -994,7 +994,7 @@ public class RXMasonryPane extends Pane {
             };
 
     /**
-     * Breakpoint profile used to resolve the active breakpoint from the pane's
+     * RXBreakpoint profile used to resolve the active breakpoint from the pane's
      * content width. Only the profile's breakpoint set and {@code resolve} are used;
      * its grid column count is ignored. A {@code null} value is not rejected; it
      * resolves to the default at the use site.
@@ -1028,13 +1028,13 @@ public class RXMasonryPane extends Pane {
         return value == null ? DEFAULT_BREAKPOINT_PROFILE : value;
     }
 
-    // ==================== Active Breakpoint ====================
+    // ==================== Active RXBreakpoint ====================
 
     private final ReadOnlyObjectWrapper<RXBreakpoint> activeBreakpoint =
             new ReadOnlyObjectWrapper<>(this, "activeBreakpoint");
 
     /**
-     * Breakpoint resolved from the pane's current content width, or {@code null}
+     * RXBreakpoint resolved from the pane's current content width, or {@code null}
      * before the pane is given a width. Updated when the width, insets or profile
      * change. Drives the {@code :<name>} pseudo-class and can be observed for
      * breakpoint-dependent behavior.
@@ -1063,7 +1063,7 @@ public class RXMasonryPane extends Pane {
         }
     }
 
-    // ==================== Breakpoint Columns ====================
+    // ==================== RXBreakpoint Columns ====================
 
     /**
      * Sets the column count for a named breakpoint, overriding the

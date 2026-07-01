@@ -15,7 +15,7 @@ import javafx.css.PseudoClass;
  * <p>The pseudo-class is the tier's lowercase name (e.g. {@code :md}); the fixed
  * {@link RXBreakpoint} names never collide with JavaFX built-in pseudo-classes.</p>
  */
-final class RXBreakpointSupport {
+final class BreakpointSupport {
 
     /**
      * Applies a pseudo-class state on the owning node.

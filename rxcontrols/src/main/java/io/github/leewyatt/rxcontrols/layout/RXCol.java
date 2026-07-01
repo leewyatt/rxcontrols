@@ -128,7 +128,7 @@ public class RXCol extends StackPane {
     /**
      * Number of columns occupied by this column before responsive overrides.
      * A value of {@code 0} keeps the column in a deterministic zero-size
-     * layout state. Breakpoint specs are mobile-first and override this base
+     * layout state. RXBreakpoint specs are mobile-first and override this base
      * value only for the fields they define.
      *
      * @return the span property

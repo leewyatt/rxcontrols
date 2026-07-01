@@ -11,10 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXBreakpointSupport}, the shared breakpoint resolution and
+ * Tests for {@link BreakpointSupport}, the shared breakpoint resolution and
  * {@code :<name>} pseudo-class swapper.
  */
-public class RXBreakpointSupportTest {
+public class BreakpointSupportTest {
 
     /**
      * Verifies the pseudo-class is the bare breakpoint name (no prefix).
@@ -23,7 +23,7 @@ public class RXBreakpointSupportTest {
     public void pseudoClassUsesBreakpointName() {
         RXBreakpoint breakpoint = RXBreakpoint.MD;
         assertSame(PseudoClass.getPseudoClass("md"),
-                RXBreakpointSupport.pseudoClassFor(breakpoint));
+                BreakpointSupport.pseudoClassFor(breakpoint));
     }
 
     /**
@@ -31,7 +31,7 @@ public class RXBreakpointSupportTest {
      */
     @Test
     public void firstUpdateActivatesPseudoClass() {
-        RXBreakpointSupport support = new RXBreakpointSupport();
+        BreakpointSupport support = new BreakpointSupport();
         RecordingApplier applier = new RecordingApplier();
 
         RXBreakpoint resolved = support.update(RXBreakpointProfile.ELEMENT, 100.0, applier);
@@ -46,7 +46,7 @@ public class RXBreakpointSupportTest {
      */
     @Test
     public void unchangedBreakpointDoesNotReapply() {
-        RXBreakpointSupport support = new RXBreakpointSupport();
+        BreakpointSupport support = new BreakpointSupport();
         RecordingApplier applier = new RecordingApplier();
 
         support.update(RXBreakpointProfile.ELEMENT, 100.0, applier);
@@ -60,7 +60,7 @@ public class RXBreakpointSupportTest {
      */
     @Test
     public void changedBreakpointSwapsPseudoClass() {
-        RXBreakpointSupport support = new RXBreakpointSupport();
+        BreakpointSupport support = new BreakpointSupport();
         RecordingApplier applier = new RecordingApplier();
 
         support.update(RXBreakpointProfile.ELEMENT, 100.0, applier);
@@ -73,7 +73,7 @@ public class RXBreakpointSupportTest {
         applier.assertCall(2, "md", true);
     }
 
-    private static final class RecordingApplier implements RXBreakpointSupport.PseudoClassApplier {
+    private static final class RecordingApplier implements BreakpointSupport.PseudoClassApplier {
 
         private final List<String> calls = new ArrayList<>();
 
