@@ -26,6 +26,7 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.scene.AccessibleRole;
@@ -68,6 +69,9 @@ public class RXKanbanView<T> extends Control {
 
     private static final double DEFAULT_COLUMN_SPACING = 12.0;
     private static final double DEFAULT_PREF_COLUMN_WIDTH = 280.0;
+    private static final double DEFAULT_MIN_COLUMN_WIDTH = 0.0;
+    private static final double DEFAULT_MAX_COLUMN_WIDTH = 0.0;
+    private static final ItemsJustify DEFAULT_COLUMNS_JUSTIFY = ItemsJustify.START;
     private static final double DEFAULT_CARD_SPACING = 8.0;
     private static final double DEFAULT_PREF_CARD_HEIGHT = 96.0;
     private static final boolean DEFAULT_ANIMATED = true;
@@ -876,6 +880,163 @@ public class RXKanbanView<T> extends Control {
         prefColumnWidth.set(value);
     }
 
+    // ==================== Min Column Width ====================
+
+    private final DoubleProperty minColumnWidth = new StyleableDoubleProperty(DEFAULT_MIN_COLUMN_WIDTH) {
+        @Override
+        public CssMetaData<RXKanbanView<?>, Number> getCssMetaData() {
+            return StyleableProperties.MIN_COLUMN_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXKanbanView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "minColumnWidth";
+        }
+    };
+
+    /**
+     * Lower bound a column shrinks to when the board is too narrow to hold every
+     * column at {@link #prefColumnWidthProperty() prefColumnWidth}. Columns shrink
+     * evenly down to this width to stay on screen; only when even this width does
+     * not fit does a horizontal scrollbar appear. {@code 0} (the default) or any
+     * value at or above {@code prefColumnWidth} disables shrinking (columns keep
+     * their preferred width and the board scrolls instead), resolved at layout time.
+     *
+     * @return the min-column-width property
+     */
+    public final DoubleProperty minColumnWidthProperty() {
+        return minColumnWidth;
+    }
+
+    /**
+     * Returns the minimum column width.
+     *
+     * @return the minimum column width
+     */
+    public final double getMinColumnWidth() {
+        return minColumnWidth.get();
+    }
+
+    /**
+     * Sets the minimum column width.
+     *
+     * @param value the minimum column width
+     */
+    public final void setMinColumnWidth(double value) {
+        minColumnWidth.set(value);
+    }
+
+    // ==================== Max Column Width ====================
+
+    private final DoubleProperty maxColumnWidth = new StyleableDoubleProperty(DEFAULT_MAX_COLUMN_WIDTH) {
+        @Override
+        public CssMetaData<RXKanbanView<?>, Number> getCssMetaData() {
+            return StyleableProperties.MAX_COLUMN_WIDTH;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXKanbanView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "maxColumnWidth";
+        }
+    };
+
+    /**
+     * Upper bound a column grows to when {@link #columnsJustifyProperty()
+     * columnsJustify} is {@link ItemsJustify#STRETCH} and the board is wider than
+     * the columns need. {@code 0} (the default) or any non-positive value means no
+     * cap (columns grow to fill all spare width); once the cap is reached the filled
+     * block is centered. A cap below {@code prefColumnWidth} is degenerate and is
+     * treated as {@code prefColumnWidth}. Resolved at layout time; it has no effect
+     * unless {@code columnsJustify} is {@code STRETCH}.
+     *
+     * @return the max-column-width property
+     */
+    public final DoubleProperty maxColumnWidthProperty() {
+        return maxColumnWidth;
+    }
+
+    /**
+     * Returns the maximum column width used in {@link ItemsJustify#STRETCH} mode.
+     *
+     * @return the maximum column width
+     */
+    public final double getMaxColumnWidth() {
+        return maxColumnWidth.get();
+    }
+
+    /**
+     * Sets the maximum column width used in {@link ItemsJustify#STRETCH} mode.
+     *
+     * @param value the maximum column width
+     */
+    public final void setMaxColumnWidth(double value) {
+        maxColumnWidth.set(value);
+    }
+
+    // ==================== Columns Justify ====================
+
+    private final ObjectProperty<ItemsJustify> columnsJustify =
+            new StyleableObjectProperty<>(DEFAULT_COLUMNS_JUSTIFY) {
+                @Override
+                public CssMetaData<RXKanbanView<?>, ItemsJustify> getCssMetaData() {
+                    return StyleableProperties.COLUMNS_JUSTIFY;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXKanbanView.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "columnsJustify";
+                }
+            };
+
+    /**
+     * How the board uses spare horizontal width when it is wider than the columns
+     * need: position the block ({@code START} / {@code CENTER} / {@code END}), grow
+     * the gaps between columns ({@code SPACE_BETWEEN} / {@code SPACE_AROUND} /
+     * {@code SPACE_EVENLY}) or grow the columns themselves ({@link ItemsJustify#STRETCH},
+     * capped by {@link #maxColumnWidthProperty() maxColumnWidth}). A {@code null}
+     * value is treated as {@link ItemsJustify#START}. This governs only the spare
+     * width; when the board is too narrow, columns shrink toward
+     * {@link #minColumnWidthProperty() minColumnWidth} regardless of this value.
+     *
+     * @return the columns-justify property
+     */
+    public final ObjectProperty<ItemsJustify> columnsJustifyProperty() {
+        return columnsJustify;
+    }
+
+    /**
+     * Returns the column justification.
+     *
+     * @return the column justification, possibly {@code null}
+     */
+    public final ItemsJustify getColumnsJustify() {
+        return columnsJustify.get();
+    }
+
+    /**
+     * Sets the column justification.
+     *
+     * @param value the column justification, or {@code null} for the default
+     */
+    public final void setColumnsJustify(ItemsJustify value) {
+        columnsJustify.set(value);
+    }
+
     // ==================== Card Spacing ====================
 
     private final DoubleProperty cardSpacing = new StyleableDoubleProperty(DEFAULT_CARD_SPACING) {
@@ -1134,6 +1295,49 @@ public class RXKanbanView<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXKanbanView<?>, Number> MIN_COLUMN_WIDTH =
+                new CssMetaData<>("-rx-min-column-width", SizeConverter.getInstance(), DEFAULT_MIN_COLUMN_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXKanbanView<?> n) {
+                        return !n.minColumnWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXKanbanView<?> n) {
+                        return (StyleableProperty<Number>) n.minColumnWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXKanbanView<?>, Number> MAX_COLUMN_WIDTH =
+                new CssMetaData<>("-rx-max-column-width", SizeConverter.getInstance(), DEFAULT_MAX_COLUMN_WIDTH) {
+                    @Override
+                    public boolean isSettable(RXKanbanView<?> n) {
+                        return !n.maxColumnWidth.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXKanbanView<?> n) {
+                        return (StyleableProperty<Number>) n.maxColumnWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXKanbanView<?>, ItemsJustify> COLUMNS_JUSTIFY =
+                new CssMetaData<>("-rx-columns-justify",
+                        new EnumConverter<>(ItemsJustify.class), DEFAULT_COLUMNS_JUSTIFY) {
+                    @Override
+                    public boolean isSettable(RXKanbanView<?> n) {
+                        return !n.columnsJustify.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<ItemsJustify> getStyleableProperty(RXKanbanView<?> n) {
+                        return (StyleableProperty<ItemsJustify>) n.columnsJustifyProperty();
+                    }
+                };
+
         private static final CssMetaData<RXKanbanView<?>, Number> CARD_SPACING =
                 new CssMetaData<>("-rx-card-spacing", SizeConverter.getInstance(), DEFAULT_CARD_SPACING) {
                     @Override
@@ -1196,8 +1400,8 @@ public class RXKanbanView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, COLUMN_SPACING, PREF_COLUMN_WIDTH, CARD_SPACING, PREF_CARD_HEIGHT,
-                    ANIMATED, ANIMATION_DURATION);
+            Collections.addAll(styleables, COLUMN_SPACING, PREF_COLUMN_WIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH,
+                    COLUMNS_JUSTIFY, CARD_SPACING, PREF_CARD_HEIGHT, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

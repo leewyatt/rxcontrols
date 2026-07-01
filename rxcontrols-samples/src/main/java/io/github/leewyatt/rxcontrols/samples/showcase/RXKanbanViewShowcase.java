@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -9,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.util.Duration;
@@ -48,6 +50,7 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         kanban.setColumns(sampleColumns());
         kanban.setColumnReorderEnabled(true);
         kanban.setPrefColumnWidth(240.0);
+        kanban.setStyle("-fx-background-color: #f0ffff;");
 
         // Each column footer adds a card, so the settle glide and the WIP pill react.
         kanban.setColumnFooterFactory(column -> {
@@ -96,12 +99,26 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         columnWidth.valueProperty().addListener((o, ov, v) -> kanban.setPrefColumnWidth(v.doubleValue()));
         Slider columnSpacing = createSlider(0.0, 40.0, kanban.getColumnSpacing());
         columnSpacing.valueProperty().addListener((o, ov, v) -> kanban.setColumnSpacing(v.doubleValue()));
+        // Column justify governs the spare width; STRETCH grows columns to fill it (capped
+        // by max column width), the SPACE_* modes spread the gaps.
+        ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(FXCollections.observableArrayList(ItemsJustify.values()));
+        justify.setValue(kanban.getColumnsJustify());
+        justify.valueProperty().addListener((o, ov, v) -> kanban.setColumnsJustify(v));
+        // Min column width lets columns shrink to fit a narrow board before scrolling
+        // (0 = never shrink); max column width caps STRETCH growth (0 = uncapped).
+        Slider minWidth = createSlider(0.0, 280.0, kanban.getMinColumnWidth());
+        minWidth.valueProperty().addListener((o, ov, v) -> kanban.setMinColumnWidth(v.doubleValue()));
+        Slider maxWidth = createSlider(0.0, 480.0, kanban.getMaxColumnWidth());
+        maxWidth.valueProperty().addListener((o, ov, v) -> kanban.setMaxColumnWidth(v.doubleValue()));
         Slider cardHeight = createSlider(60.0, 160.0, kanban.getPrefCardHeight());
         cardHeight.valueProperty().addListener((o, ov, v) -> kanban.setPrefCardHeight(v.doubleValue()));
         Slider cardSpacing = createSlider(0.0, 24.0, kanban.getCardSpacing());
         cardSpacing.valueProperty().addListener((o, ov, v) -> kanban.setCardSpacing(v.doubleValue()));
         return createGrid(
+                row("Column justify", justify),
                 row("Column width", columnWidth, createValueLabel(columnWidth, "%.0f px")),
+                row("Min column width", minWidth, createValueLabel(minWidth, "%.0f px")),
+                row("Max column width", maxWidth, createValueLabel(maxWidth, "%.0f px")),
                 row("Column spacing", columnSpacing, createValueLabel(columnSpacing, "%.0f px")),
                 row("Card height", cardHeight, createValueLabel(cardHeight, "%.0f px")),
                 row("Card spacing", cardSpacing, createValueLabel(cardSpacing, "%.0f px")));

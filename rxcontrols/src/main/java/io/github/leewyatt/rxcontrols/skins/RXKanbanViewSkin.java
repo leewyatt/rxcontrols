@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
@@ -75,6 +76,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     private double[] cachedColumnW = new double[0];
     private double cachedBoardWidth;
 
+    // Leading offset and inter-column gap the last layout pass resolved from
+    // columnsJustify (spare width may push the block right or widen the gaps). The
+    // reorder-gap layout reuses them so the make-way slot stays aligned with the rest.
+    private double layoutColumnStartX;
+    private double layoutColumnGap;
+
     // Column reorder: FLIP the boxes from their pre-reorder visual x to the new layout
     // x. Populated by the column drag support on commit, consumed by the next layout.
     private final Map<KanbanColumnBox<T>, Double> pendingColumnFlipFromX = new IdentityHashMap<>();
@@ -126,6 +133,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerListener(control.emptyColumnPlaceholderFactoryProperty(), this::onPlaceholderFactoryChanged);
         disposer.registerListener(control.cardCellFactoryProperty(), this::onCardCellFactoryChanged);
         disposer.registerListener(control.prefColumnWidthProperty(), this::requestLayout);
+        disposer.registerListener(control.minColumnWidthProperty(), this::requestLayout);
+        disposer.registerListener(control.maxColumnWidthProperty(), this::requestLayout);
+        disposer.registerListener(control.columnsJustifyProperty(), this::requestLayout);
         disposer.registerListener(control.columnSpacingProperty(), this::requestLayout);
         disposer.registerListener(control.prefCardHeightProperty(), this::requestLayout);
         disposer.registerListener(control.cardSpacingProperty(), this::requestLayout);
@@ -169,6 +179,31 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     static double columnSpacingOrDefault(RXKanbanView<?> control) {
         double value = control.getColumnSpacing();
         return Double.isFinite(value) ? Math.max(0.0, value) : DEFAULT_COLUMN_SPACING;
+    }
+
+    static ItemsJustify justifyOrDefault(RXKanbanView<?> control) {
+        ItemsJustify value = control.getColumnsJustify();
+        return value != null ? value : ItemsJustify.START;
+    }
+
+    // Shrink floor: never above prefColumnWidth (min is a lower bound), and a
+    // non-positive / non-finite value disables shrinking (floor == pref).
+    static double minColumnWidthOrPref(RXKanbanView<?> control, double pref) {
+        double value = control.getMinColumnWidth();
+        if (!Double.isFinite(value) || value <= 0.0) {
+            return pref;
+        }
+        return Math.min(value, pref);
+    }
+
+    // STRETCH growth cap: 0 (or non-positive / non-finite) means unbounded; a cap
+    // below prefColumnWidth is degenerate and treated as pref.
+    static double maxColumnWidthOrUnbounded(RXKanbanView<?> control, double pref) {
+        double value = control.getMaxColumnWidth();
+        if (!Double.isFinite(value) || value <= 0.0) {
+            return 0.0;
+        }
+        return Math.max(value, pref);
     }
 
     private static double finitePositiveOrDefault(double value, double fallback) {
@@ -613,35 +648,101 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
         columnsBox.setVisible(true);
 
-        double expandedWidth = snapSizeX(prefColumnWidthOrDefault(getSkinnable()));
-        double colSpacing = snapSizeX(columnSpacingOrDefault(getSkinnable()));
+        double pref = snapSizeX(prefColumnWidthOrDefault(getSkinnable()));
+        double baseGap = snapSizeX(columnSpacingOrDefault(getSkinnable()));
         int columnCount = boxes.size();
 
-        // Per-column effective width: a hiding column shrinks completely — its width
-        // AND its trailing gap lerp to zero by hide progress, so a fully hidden column
-        // leaves no footprint and its neighbors close up. show / hide reflows the board.
         if (cachedColumnX.length != columnCount) {
             cachedColumnX = new double[columnCount];
             cachedColumnW = new double[columnCount];
         }
-        double cursorX = 0.0;
+
+        // Effective column / gap counts, weighted by each column's shown fraction: a
+        // hiding column shrinks its width AND its trailing gap toward zero, so a fully
+        // hidden column leaves no footprint and the board reflows to fill the gap.
+        double sumWeight = 0.0;      // Σ (1 - hideProgress): the effective column count
+        double sumGapWeight = 0.0;   // Σ over non-last columns: the effective gap count
+        int shownCount = 0;          // columns not fully hidden — justify denominators
         for (int i = 0; i < columnCount; i++) {
-            double progress = boxes.get(i).getHideProgress();
-            double width = snapSizeX(expandedWidth * (1.0 - progress));
+            double weight = 1.0 - boxes.get(i).getHideProgress();
+            sumWeight += weight;
+            if (i < columnCount - 1) {
+                sumGapWeight += weight;
+            }
+            if (weight > 0.0) {
+                shownCount++;
+            }
+        }
+
+        // Responsive base width: grow to fill spare width (STRETCH, capped by
+        // maxColumnWidth) or, when the board is too narrow, shrink toward
+        // minColumnWidth; columnsJustify positions or spreads any remaining spare width.
+        ItemsJustify justify = justifyOrDefault(getSkinnable());
+        double minWidth = minColumnWidthOrPref(getSkinnable(), pref);
+        double maxCap = maxColumnWidthOrUnbounded(getSkinnable(), pref);
+        double baseWidth = pref;
+        double startX = 0.0;
+        double extraGap = 0.0;
+        boolean overflow = false;
+        if (sumWeight > 0.0) {
+            double fill = (contentWidth - baseGap * sumGapWeight) / sumWeight;
+            if (fill >= pref) {
+                if (justify == ItemsJustify.STRETCH) {
+                    baseWidth = (maxCap > 0.0 && fill > maxCap) ? maxCap : Math.max(0.0, fill);
+                }
+            } else {
+                // Shrink to fit, no thinner than minColumnWidth; below that, scroll.
+                baseWidth = Math.max(fill, minWidth);
+                overflow = fill < minWidth - SCROLL_BAR_SYNC_EPSILON;
+            }
+            baseWidth = snapSizeX(baseWidth);
+            double slack = Math.max(0.0, contentWidth - (baseWidth * sumWeight + baseGap * sumGapWeight));
+            if (justify == ItemsJustify.STRETCH) {
+                // An exact fill has no slack; a capped stretch centers the filled block.
+                startX = slack / 2.0;
+            } else {
+                switch (justify) {
+                    case CENTER -> startX = slack / 2.0;
+                    case END -> startX = slack;
+                    case SPACE_BETWEEN -> extraGap = shownCount > 1 ? slack / (shownCount - 1) : 0.0;
+                    case SPACE_AROUND -> {
+                        extraGap = shownCount > 0 ? slack / shownCount : 0.0;
+                        startX = shownCount > 0 ? slack / (2.0 * shownCount) : 0.0;
+                    }
+                    case SPACE_EVENLY -> {
+                        extraGap = slack / (shownCount + 1);
+                        startX = slack / (shownCount + 1);
+                    }
+                    default -> {
+                        // START: the columns hug the leading edge; trailing space stays empty.
+                    }
+                }
+            }
+        }
+
+        double effectiveGap = baseGap + extraGap;
+        double cursorX = startX;
+        for (int i = 0; i < columnCount; i++) {
+            double weight = 1.0 - boxes.get(i).getHideProgress();
+            double width = snapSizeX(baseWidth * weight);
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
             cursorX += width;
             if (i < columnCount - 1) {
-                cursorX += colSpacing * (1.0 - progress);
+                cursorX += effectiveGap * weight;
             }
         }
-        double totalColumnsWidth = cursorX;
+        layoutColumnStartX = startX;
+        layoutColumnGap = effectiveGap;
 
-        boolean needHbar = totalColumnsWidth > contentWidth + SCROLL_BAR_SYNC_EPSILON;
+        // Only genuine overflow (columns cannot fit even at minColumnWidth) scrolls; the
+        // packed extent (base gaps, no justify spread) drives the scrollbar range.
+        double packedWidth = baseWidth * sumWeight + baseGap * sumGapWeight;
+        boolean needHbar = overflow;
         double hbarBreadth = needHbar ? snapSizeY(hbar.prefHeight(-1)) : 0.0;
         double columnsAreaHeight = Math.max(0.0, contentHeight - hbarBreadth);
 
-        cachedMaxBoardScrollX = Math.max(0.0, totalColumnsWidth - contentWidth);
+        cachedMaxBoardScrollX = needHbar ? Math.max(0.0, packedWidth - contentWidth) : 0.0;
         boardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
         cachedBoardWidth = contentWidth;
 
@@ -652,7 +753,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         columnsClip.setHeight(columnsAreaHeight);
 
         if (reorderDraggedIndex >= 0 && reorderDraggedIndex < columnCount) {
-            layoutColumnsWithReorderGap(columnCount, colSpacing, columnsAreaHeight);
+            layoutColumnsWithReorderGap(columnCount, columnsAreaHeight);
         } else {
             layoutColumnsNormally(columnCount, columnsAreaHeight);
         }
@@ -661,7 +762,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             adjustingHbar = true;
             hbar.setMax(cachedMaxBoardScrollX);
             hbar.setVisibleAmount(contentWidth);
-            hbar.setUnitIncrement(expandedWidth + colSpacing);
+            hbar.setUnitIncrement(pref + baseGap);
             hbar.setBlockIncrement(contentWidth);
             if (Math.abs(hbar.getValue() - boardScrollX) > SCROLL_BAR_SYNC_EPSILON) {
                 hbar.setValue(boardScrollX);
@@ -725,11 +826,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     // Live reorder preview: the dragged column stays at its natural slot (its translate
     // follows the pointer) while every other visible column is repositioned to open a
     // column-wide gap at the hover index, so neighbours glide aside to make way.
-    private void layoutColumnsWithReorderGap(int columnCount, double colSpacing, double height) {
+    private void layoutColumnsWithReorderGap(int columnCount, double height) {
         int dragged = reorderDraggedIndex;
         double draggedWidth = cachedColumnW[dragged];
+        double gap = layoutColumnGap;
         boolean flip = !pendingColumnFlipFromX.isEmpty() && animationEnabled();
-        double cursor = 0.0;
+        double cursor = layoutColumnStartX;
         int slot = 0;
         for (int i = 0; i < columnCount; i++) {
             KanbanColumnBox<T> box = boxes.get(i);
@@ -747,7 +849,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
                 continue;
             }
             if (slot == reorderPreviewIndex) {
-                cursor += draggedWidth + colSpacing;
+                cursor += draggedWidth + gap;
             }
             double x = snapPositionX(cursor - boardScrollX);
             box.resizeRelocate(x, 0.0, cachedColumnW[i], height);
@@ -756,7 +858,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             } else {
                 box.setTranslateX(0.0);
             }
-            cursor += cachedColumnW[i] + colSpacing;
+            cursor += cachedColumnW[i] + gap;
             slot++;
         }
         if (!pendingColumnFlipFromX.isEmpty()) {

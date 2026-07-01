@@ -487,6 +487,136 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    // ==================== Column justify / responsive width ====================
+
+    @Test
+    public void stretchFillsBoardWidth() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            double content = contentWidth(board);
+            double fill = (content - 24.0) / 3.0;   // 3 columns, 2 gaps of 12
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertTrue(a.getWidth() > 260.0, "columns grow past prefColumnWidth to fill: " + a.getWidth());
+            assertEquals(fill, a.getWidth(), 2.0, "columns share the width equally");
+            assertEquals(content, c.getLayoutX() + c.getWidth(), 3.0, "last column reaches the right edge");
+            assertEquals(0.0, a.getLayoutX(), 1.0, "first column hugs the left edge when filled");
+        });
+    }
+
+    @Test
+    public void startLeavesTrailingSlack() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));   // default justify START
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertEquals(200.0, a.getWidth(), 2.0, "START keeps columns at prefColumnWidth");
+            assertEquals(0.0, a.getLayoutX(), 1.0, "block hugs the left edge");
+            assertTrue(c.getLayoutX() + c.getWidth() < 700.0, "trailing space stays empty on the right");
+        });
+    }
+
+    @Test
+    public void centerJustifyCentersBlock() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.CENTER);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            // Block width 3*200 + 2*12 = 624; the leftover is split before and after it.
+            double content = contentWidth(board);
+            double startX = (content - 624.0) / 2.0;
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertEquals(startX, a.getLayoutX(), 3.0, "block is centered");
+            assertEquals(200.0, a.getWidth(), 2.0, "CENTER only positions, keeps prefColumnWidth");
+            assertEquals(startX + 624.0, c.getLayoutX() + c.getWidth(), 3.0);
+        });
+    }
+
+    @Test
+    public void narrowBoardShrinksColumnsToFit() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setMinColumnWidth(120.0);
+            board.setAnimated(false);
+            pump(host(board, 534, 400));
+            // Columns at pref overflow, so they shrink to fill; fill stays above min 120.
+            double content = contentWidth(board);
+            double fill = (content - 24.0) / 3.0;
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertTrue(a.getWidth() < 200.0, "columns shrink below pref to fit: " + a.getWidth());
+            assertEquals(fill, a.getWidth(), 3.0, "columns shrink to the exact fit width");
+            assertEquals(content, c.getLayoutX() + c.getWidth(), 3.0, "shrunk columns fill the board");
+            assertFalse(horizontalScrollBarVisible(board), "no scrollbar while columns still fit by shrinking");
+        });
+    }
+
+    @Test
+    public void tooNarrowBoardScrollsAtMinWidth() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setMinColumnWidth(150.0);
+            board.setAnimated(false);
+            pump(host(board, 300, 400));
+            // Even at min 150: 3*150+24 = 474 > 300 → scroll, columns pinned at min.
+            Region a = boxOf(board, "A");
+            assertEquals(150.0, a.getWidth(), 2.0, "columns bottom out at minColumnWidth");
+            assertTrue(horizontalScrollBarVisible(board), "board scrolls once columns hit the min floor");
+        });
+    }
+
+    @Test
+    public void maxColumnWidthCapsStretch() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setMaxColumnWidth(240.0);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            // fill (~286) exceeds the 240 cap → width pinned to 240; the block is centered.
+            double content = contentWidth(board);
+            double startX = (content - (240.0 * 3.0 + 24.0)) / 2.0;
+            Region a = boxOf(board, "A");
+            assertEquals(240.0, a.getWidth(), 2.0, "stretch is capped at maxColumnWidth");
+            assertEquals(startX, a.getLayoutX(), 3.0, "the capped block is centered");
+        });
+    }
+
+    @Test
+    public void columnReorderCommitsUnderStretch() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setColumnReorderEnabled(true);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            dragColumn(board, "A", "B");
+            pump(board);
+            assertEquals(List.of("B", "A", "C"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "reorder still commits when columns are stretched to fill");
+        });
+    }
+
     // ==================== Column level (hide / reorder) ====================
 
     @Test
@@ -699,6 +829,25 @@ public class RXKanbanViewSkinTest {
         }
         board.setColumns(columns);
         return board;
+    }
+
+    private static Region boxOf(RXKanbanView<?> board, String title) {
+        return (Region) headerOf(board, title).getParent();
+    }
+
+    // The columns are laid out inside the board's padding, so column x is 0-based at the
+    // left content edge and the usable width is the board width minus its insets.
+    private static double contentWidth(RXKanbanView<?> board) {
+        return board.getWidth() - board.getInsets().getLeft() - board.getInsets().getRight();
+    }
+
+    private static boolean horizontalScrollBarVisible(RXKanbanView<?> board) {
+        for (Node n : board.lookupAll(".scroll-bar")) {
+            if (n instanceof ScrollBar sb && sb.getOrientation() == Orientation.HORIZONTAL && sb.isVisible()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Node headerOf(RXKanbanView<?> board, String title) {
