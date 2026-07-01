@@ -335,6 +335,10 @@ final class KanbanCardDragSupport<T> {
         KanbanColumnBox<T> best = null;
         double bestDistance = Double.MAX_VALUE;
         for (KanbanColumnBox<T> box : skin.columnBoxes()) {
+            if (!box.isVisible()) {
+                // A fully collapsed (hidden) column is not a drop target.
+                continue;
+            }
             Bounds b = box.localToScene(box.getBoundsInLocal());
             if (sceneX >= b.getMinX() && sceneX <= b.getMaxX()) {
                 return box;

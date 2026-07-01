@@ -53,8 +53,6 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     private static final double DEFAULT_CARD_SPACING = 8.0;
     private static final double DEFAULT_PREF_COLUMN_WIDTH = 280.0;
     private static final double DEFAULT_COLUMN_SPACING = 12.0;
-    // Width a fully collapsed column shrinks to (just enough for the header strip).
-    private static final double COLLAPSED_COLUMN_WIDTH = 44.0;
 
     private static final double SCROLL_BAR_SYNC_EPSILON = 1.0e-4;
 
@@ -613,8 +611,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double colSpacing = snapSizeX(columnSpacingOrDefault(getSkinnable()));
         int columnCount = boxes.size();
 
-        // Per-column effective width: collapsed columns lerp toward the collapsed strip
-        // width by their collapse progress, so expand / collapse reflows the whole board.
+        // Per-column effective width: a collapsing column hides completely — its width
+        // AND its trailing gap lerp to zero by collapse progress, so a fully collapsed
+        // column leaves no footprint and its neighbors close up. expand / collapse
+        // reflows the whole board.
         if (cachedColumnX.length != columnCount) {
             cachedColumnX = new double[columnCount];
             cachedColumnW = new double[columnCount];
@@ -622,12 +622,15 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double cursorX = 0.0;
         for (int i = 0; i < columnCount; i++) {
             double progress = boxes.get(i).getCollapseProgress();
-            double width = snapSizeX(expandedWidth + (COLLAPSED_COLUMN_WIDTH - expandedWidth) * progress);
+            double width = snapSizeX(expandedWidth * (1.0 - progress));
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
-            cursorX += width + colSpacing;
+            cursorX += width;
+            if (i < columnCount - 1) {
+                cursorX += colSpacing * (1.0 - progress);
+            }
         }
-        double totalColumnsWidth = columnCount > 0 ? cursorX - colSpacing : 0.0;
+        double totalColumnsWidth = cursorX;
 
         boolean needHbar = totalColumnsWidth > contentWidth + SCROLL_BAR_SYNC_EPSILON;
         double hbarBreadth = needHbar ? snapSizeY(hbar.prefHeight(-1)) : 0.0;
@@ -648,6 +651,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         for (int i = 0; i < columnCount; i++) {
             KanbanColumnBox<T> box = boxes.get(i);
             double x = snapPositionX(cachedColumnX[i] - boardScrollX);
+            // A fully collapsed column is hidden outright (no rendering, no hit target);
+            // it becomes visible again the moment it starts to expand.
+            box.setVisible(box.getCollapseProgress() < 1.0);
             box.resizeRelocate(x, 0.0, cachedColumnW[i], columnsAreaHeight);
             if (flip) {
                 applyColumnFlip(box, x);
