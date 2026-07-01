@@ -27,6 +27,11 @@ public final class RXSmoothScrollOptions {
      */
     public static final double DEFAULT_WHEEL_MULTIPLIER = 1.0;
 
+    /**
+     * Default smooth wheel animation mode.
+     */
+    public static final SmoothScrollMode DEFAULT_MODE = SmoothScrollMode.MOMENTUM;
+
     private static final RXSmoothScrollOptions DEFAULTS = builder().build();
 
     // ==================== Fields ====================
@@ -36,6 +41,7 @@ public final class RXSmoothScrollOptions {
     private final Duration duration;
     private final Interpolator interpolator;
     private final double wheelMultiplier;
+    private final SmoothScrollMode mode;
     private final ScrollBoundaryPolicy boundaryPolicy;
     private final boolean shiftWheelHorizontal;
     private final boolean reducedMotion;
@@ -48,6 +54,7 @@ public final class RXSmoothScrollOptions {
         duration = builder.duration;
         interpolator = builder.interpolator;
         wheelMultiplier = builder.wheelMultiplier;
+        mode = builder.mode;
         boundaryPolicy = builder.boundaryPolicy;
         shiftWheelHorizontal = builder.shiftWheelHorizontal;
         reducedMotion = builder.reducedMotion;
@@ -121,6 +128,15 @@ public final class RXSmoothScrollOptions {
     }
 
     /**
+     * Returns the configured smooth scroll mode.
+     *
+     * @return the smooth scroll mode
+     */
+    public SmoothScrollMode getMode() {
+        return mode;
+    }
+
+    /**
      * Returns the boundary policy.
      *
      * @return the boundary policy
@@ -159,6 +175,7 @@ public final class RXSmoothScrollOptions {
         private Duration duration = DEFAULT_DURATION;
         private Interpolator interpolator = DEFAULT_INTERPOLATOR;
         private double wheelMultiplier = DEFAULT_WHEEL_MULTIPLIER;
+        private SmoothScrollMode mode = DEFAULT_MODE;
         private ScrollBoundaryPolicy boundaryPolicy = ScrollBoundaryPolicy.CHAIN;
         private boolean shiftWheelHorizontal = true;
         private boolean reducedMotion;
@@ -218,6 +235,17 @@ public final class RXSmoothScrollOptions {
          */
         public Builder wheelMultiplier(double value) {
             wheelMultiplier = value;
+            return this;
+        }
+
+        /**
+         * Sets the smooth scroll animation mode.
+         *
+         * @param value the mode, or {@code null} to use the default
+         * @return this builder
+         */
+        public Builder mode(SmoothScrollMode value) {
+            mode = value == null ? DEFAULT_MODE : value;
             return this;
         }
 

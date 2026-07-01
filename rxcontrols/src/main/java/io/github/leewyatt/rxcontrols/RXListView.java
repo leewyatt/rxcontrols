@@ -93,6 +93,7 @@ public class RXListView<T> extends Control {
     private static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
 
     private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
+    private static final SmoothScrollMode DEFAULT_SMOOTH_SCROLL_MODE = RXSmoothScrollOptions.DEFAULT_MODE;
 
     // ==================== Constructors ====================
 
@@ -480,6 +481,39 @@ public class RXListView<T> extends Control {
      */
     public final void setSmoothScrolling(boolean value) {
         smoothScrolling.set(value);
+    }
+
+    // ==================== Smooth Scroll Mode ====================
+
+    private final ObjectProperty<SmoothScrollMode> smoothScrollMode =
+            new SimpleObjectProperty<>(this, "smoothScrollMode", DEFAULT_SMOOTH_SCROLL_MODE);
+
+    /**
+     * Smooth animation mode used while smooth scrolling is enabled. A
+     * {@code null} value is treated as {@link RXSmoothScrollOptions#DEFAULT_MODE}.
+     *
+     * @return the smooth-scroll mode property
+     */
+    public final ObjectProperty<SmoothScrollMode> smoothScrollModeProperty() {
+        return smoothScrollMode;
+    }
+
+    /**
+     * Returns the smooth scroll mode.
+     *
+     * @return the smooth scroll mode, possibly {@code null}
+     */
+    public final SmoothScrollMode getSmoothScrollMode() {
+        return smoothScrollMode.get();
+    }
+
+    /**
+     * Sets the smooth scroll mode.
+     *
+     * @param value the mode, or {@code null} for the default
+     */
+    public final void setSmoothScrollMode(SmoothScrollMode value) {
+        smoothScrollMode.set(value);
     }
 
     // ==================== Placeholder ====================

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.internal.smooth;
 
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.input.ScrollEvent;
@@ -43,10 +44,10 @@ public class RXSmoothScrollEngineTest {
         RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
 
         assertTrue(engine.handleScroll(scroll(0.0, -80.0), ScrollAxis.VERTICAL,
-                Duration.millis(120.0), null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.millis(120.0), null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, false, true, false));
         assertTrue(engine.handleScroll(scroll(0.0, -20.0), ScrollAxis.VERTICAL,
-                Duration.millis(120.0), null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.millis(120.0), null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, false, true, false),
                 "target is at max, but current is still gliding toward it");
     }
@@ -59,7 +60,7 @@ public class RXSmoothScrollEngineTest {
         RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
 
         assertFalse(engine.handleScroll(scroll(0.0, -20.0), ScrollAxis.VERTICAL,
-                Duration.ZERO, null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.ZERO, null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, false, false, false));
     }
 
@@ -71,7 +72,7 @@ public class RXSmoothScrollEngineTest {
         RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
 
         assertTrue(engine.handleScroll(scroll(0.0, -20.0), ScrollAxis.VERTICAL,
-                Duration.ZERO, null, 1.0, ScrollBoundaryPolicy.CONTAIN,
+                Duration.ZERO, null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CONTAIN,
                 true, false, false, false));
     }
 
@@ -82,7 +83,7 @@ public class RXSmoothScrollEngineTest {
         RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
 
         assertTrue(engine.handleScroll(scroll(0.0, -60.0), ScrollAxis.VERTICAL,
-                Duration.millis(120.0), null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.millis(120.0), null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, true, true, false));
         assertEquals(60.0, scrollable.offsetY, 0.1);
         assertFalse(scrollable.lastSmoothFrame);
@@ -97,7 +98,7 @@ public class RXSmoothScrollEngineTest {
 
         assertTrue(engine.handleScroll(textScroll(0.0, 0.0, 0.0, -3.0,
                         ScrollEvent.VerticalTextScrollUnits.LINES), ScrollAxis.VERTICAL,
-                Duration.ZERO, null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.ZERO, null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, false, false, true));
         assertEquals(72.0, scrollable.offsetY, 0.1);
     }
@@ -110,10 +111,53 @@ public class RXSmoothScrollEngineTest {
         RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
 
         assertTrue(engine.handleScroll(shiftScroll(0.0, -50.0), ScrollAxis.BOTH,
-                Duration.ZERO, null, 1.0, ScrollBoundaryPolicy.CHAIN,
+                Duration.ZERO, null, 1.0, SmoothScrollMode.TARGET, ScrollBoundaryPolicy.CHAIN,
                 true, false, false, false));
         assertEquals(50.0, scrollable.offsetX, 0.1);
         assertEquals(0.0, scrollable.offsetY, 0.1);
+    }
+
+    @Test
+    public void momentumDoesNotJumpDuringEventDispatch() {
+        FakeScrollable scrollable = new FakeScrollable();
+        scrollable.maxY = 500.0;
+        RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
+
+        assertTrue(engine.handleScroll(scroll(0.0, -120.0), ScrollAxis.VERTICAL,
+                Duration.millis(200.0), null, 1.0, SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN,
+                true, false, true, false));
+
+        assertEquals(0.0, scrollable.offsetY, 0.1,
+                "momentum starts on later pulses, not inside event dispatch");
+    }
+
+    @Test
+    public void momentumChainDoesNotConsumeOutwardBoundaryInput() {
+        FakeScrollable scrollable = new FakeScrollable();
+        scrollable.maxY = 500.0;
+        RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
+
+        assertTrue(engine.handleScroll(scroll(0.0, -120.0), ScrollAxis.VERTICAL,
+                Duration.millis(200.0), null, 1.0, SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN,
+                true, false, true, false));
+        assertFalse(engine.handleScroll(scroll(0.0, 80.0), ScrollAxis.VERTICAL,
+                Duration.millis(200.0), null, 1.0, SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN,
+                true, false, true, false),
+                "old inward momentum does not consume a new outward boundary input");
+    }
+
+    @Test
+    public void inertiaEventAppliesImmediatelyWithoutMomentum() {
+        FakeScrollable scrollable = new FakeScrollable();
+        scrollable.maxY = 500.0;
+        RXSmoothScrollEngine engine = new RXSmoothScrollEngine(scrollable);
+
+        assertTrue(engine.handleScroll(inertiaScroll(0.0, -60.0), ScrollAxis.VERTICAL,
+                Duration.millis(200.0), null, 1.0, SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN,
+                true, false, true, false));
+
+        assertEquals(60.0, scrollable.offsetY, 0.1);
+        assertFalse(scrollable.lastSmoothFrame);
     }
 
     private static ScrollEvent scroll(double deltaX, double deltaY) {
@@ -121,6 +165,18 @@ public class RXSmoothScrollEngineTest {
                 0.0, 0.0, 0.0, 0.0,
                 false, false, false, false,
                 false, false,
+                deltaX, deltaY, deltaX, deltaY,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0,
+                null);
+    }
+
+    private static ScrollEvent inertiaScroll(double deltaX, double deltaY) {
+        return new ScrollEvent(ScrollEvent.SCROLL,
+                0.0, 0.0, 0.0, 0.0,
+                false, false, false, false,
+                false, true,
                 deltaX, deltaY, deltaX, deltaY,
                 ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
                 ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,

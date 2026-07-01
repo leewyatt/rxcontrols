@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
@@ -61,6 +62,19 @@ public class RXSmoothScrollSupportTest {
     }
 
     @Test
+    public void installOptionsSetInitialMode() throws Exception {
+        onFx(() -> {
+            ScrollPane pane = scrollPane(200.0, 800.0);
+            pump(host(pane, 200.0, 200.0));
+
+            RXSmoothScroller scroller = RXSmoothScrollSupport.install(pane,
+                    RXSmoothScrollOptions.builder().mode(SmoothScrollMode.TARGET).build());
+
+            assertEquals(SmoothScrollMode.TARGET, scroller.getMode());
+        });
+    }
+
+    @Test
     public void verticalWheelUpdatesVvalueAndConsumes() throws Exception {
         onFx(() -> {
             ScrollPane pane = scrollPane(200.0, 800.0);
@@ -76,6 +90,33 @@ public class RXSmoothScrollSupportTest {
 
             assertEquals(0, bubbled.get(), "smooth support consumes used wheel input");
             assertTrue(pane.getVvalue() > pane.getVmin(), "vvalue moved down");
+        });
+    }
+
+    @Test
+    public void defaultMomentumWheelAdvancesAfterPulse() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(200.0, 800.0);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScrollSupport.install(pane);
+
+            pane.getContent().fireEvent(scroll(0.0, -120.0, false));
+
+            assertEquals(pane.getVmin(), pane.getVvalue(), 0.0001,
+                    "default momentum does not jump during event dispatch");
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(220.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(paneRef.get().getVvalue() > paneRef.get().getVmin(),
+                    "default momentum advances on later pulses");
         });
     }
 
@@ -333,6 +374,18 @@ public class RXSmoothScrollSupportTest {
         for (int i = 0; i < 4; i++) {
             root.applyCss();
             root.layout();
+        }
+    }
+
+    private static void waitForFx(double millis) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("Timed out waiting for JavaFX pulse");
         }
     }
 

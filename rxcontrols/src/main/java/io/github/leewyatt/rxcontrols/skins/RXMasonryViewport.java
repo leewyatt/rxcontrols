@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.skins.RXMasonryPlacement.Geometry;
 import javafx.animation.Interpolator;
@@ -539,6 +540,11 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     @Override
     protected boolean smoothScrollingEnabled() {
         return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

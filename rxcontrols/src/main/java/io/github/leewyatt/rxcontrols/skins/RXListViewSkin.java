@@ -156,6 +156,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.fixedCellSizeProperty(), this::onFixedCellSizeChanged);
         disposer.registerListener(control.estimatedCellSizeProperty(), this::requestLayoutPass);
         disposer.registerListener(control.smoothScrollingProperty(), viewport::stopSmoothScrolling);
+        disposer.registerListener(control.smoothScrollModeProperty(), viewport::resetSmoothScrolling);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
         // Sections: a sections-content change bumps the row-plan revision; the header
         // flag / heights / spacing flow through the row-plan key; a section-header

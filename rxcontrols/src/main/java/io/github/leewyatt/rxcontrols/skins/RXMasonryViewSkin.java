@@ -213,6 +213,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), viewport::onAnimationSettingsChanged);
         disposer.registerListener(control.smoothScrollingProperty(), viewport::stopSmoothScrolling);
+        disposer.registerListener(control.smoothScrollModeProperty(), viewport::resetSmoothScrolling);
         // prefColumns only feeds computePrefWidth (a parent size hint), not the
         // placement, so it relays out the control rather than re-filling the viewport.
         disposer.registerListener(control.prefColumnsProperty(), () -> getSkinnable().requestLayout());

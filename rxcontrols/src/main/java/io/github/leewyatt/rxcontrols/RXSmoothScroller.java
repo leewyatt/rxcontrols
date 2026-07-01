@@ -61,6 +61,7 @@ public final class RXSmoothScroller implements AutoCloseable {
         setDuration(options.getDuration());
         setInterpolator(options.getInterpolator());
         setWheelMultiplier(options.getWheelMultiplier());
+        setMode(options.getMode());
         setBoundaryPolicy(options.getBoundaryPolicy());
         setShiftWheelHorizontal(options.isShiftWheelHorizontal());
         setReducedMotion(options.isReducedMotion());
@@ -242,6 +243,44 @@ public final class RXSmoothScroller implements AutoCloseable {
         wheelMultiplier.set(value);
     }
 
+    // ==================== Mode ====================
+
+    private final ObjectProperty<SmoothScrollMode> mode =
+            new SimpleObjectProperty<>(this, "mode", RXSmoothScrollOptions.DEFAULT_MODE) {
+                @Override
+                protected void invalidated() {
+                    engine.setMode(get());
+                }
+            };
+
+    /**
+     * Smooth animation mode used while smooth scrolling is enabled. A
+     * {@code null} value is treated as {@link RXSmoothScrollOptions#DEFAULT_MODE}.
+     *
+     * @return the smooth scroll mode property
+     */
+    public ObjectProperty<SmoothScrollMode> modeProperty() {
+        return mode;
+    }
+
+    /**
+     * Returns the smooth scroll mode.
+     *
+     * @return the mode, possibly {@code null}
+     */
+    public SmoothScrollMode getMode() {
+        return mode.get();
+    }
+
+    /**
+     * Sets the smooth scroll mode.
+     *
+     * @param value the mode, or {@code null} for the default
+     */
+    public void setMode(SmoothScrollMode value) {
+        mode.set(value);
+    }
+
     // ==================== Boundary Policy ====================
 
     private final ObjectProperty<ScrollBoundaryPolicy> boundaryPolicy =
@@ -402,7 +441,7 @@ public final class RXSmoothScroller implements AutoCloseable {
             return;
         }
         boolean consume = engine.handleScroll(event, getAxis(), getDuration(), getInterpolator(),
-                getWheelMultiplier(), getBoundaryPolicy(), isShiftWheelHorizontal(), isReducedMotion(),
+                getWheelMultiplier(), getMode(), getBoundaryPolicy(), isShiftWheelHorizontal(), isReducedMotion(),
                 isEnabled(), false);
         if (consume) {
             event.consume();

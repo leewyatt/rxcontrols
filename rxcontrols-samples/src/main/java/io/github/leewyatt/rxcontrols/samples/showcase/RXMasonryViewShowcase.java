@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.CellHeightProvider;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -129,6 +130,7 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
                 section("Responsive (breakpoints, 0 = auto)", responsiveGrid()),
                 section("Selection", selectionGrid()),
                 section("Animation", animationGrid()),
+                section("Smooth scroll", smoothScrollGrid()),
                 section("Layout", layoutGrid()),
                 section("Scroll", scrollGrid()),
                 section("Metrics", metricsGrid()));
@@ -258,6 +260,22 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
                 row(animated),
                 row("Duration", duration, createValueLabel(duration, "%.0f ms")),
                 row("Interpolator", interpolator, new Label()));
+    }
+
+    private Node smoothScrollGrid() {
+        CheckBox enabled = new CheckBox("Smooth wheel scrolling");
+        enabled.setSelected(masonry.isSmoothScrolling());
+        enabled.selectedProperty().addListener((obs, old, value) -> masonry.setSmoothScrolling(value));
+
+        ComboBox<SmoothScrollMode> mode = new ComboBox<>(
+                FXCollections.observableArrayList(SmoothScrollMode.values()));
+        mode.setValue(masonry.getSmoothScrollMode());
+        mode.setMaxWidth(Double.MAX_VALUE);
+        mode.valueProperty().addListener((obs, old, value) -> masonry.setSmoothScrollMode(value));
+
+        return createGrid(
+                row(enabled),
+                row("Mode", mode, new Label()));
     }
 
     private Node layoutGrid() {

@@ -48,6 +48,9 @@ public class RXVirtualSmoothScrollingTest {
             assertTrue(new RXListView<>().isSmoothScrolling());
             assertTrue(new RXTileView<>().isSmoothScrolling());
             assertTrue(new RXMasonryView<>().isSmoothScrolling());
+            assertEquals(SmoothScrollMode.MOMENTUM, new RXListView<>().getSmoothScrollMode());
+            assertEquals(SmoothScrollMode.MOMENTUM, new RXTileView<>().getSmoothScrollMode());
+            assertEquals(SmoothScrollMode.MOMENTUM, new RXMasonryView<>().getSmoothScrollMode());
         });
     }
 

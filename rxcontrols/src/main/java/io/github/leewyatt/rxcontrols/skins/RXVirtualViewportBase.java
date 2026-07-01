@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.value.ChangeListener;
@@ -424,7 +425,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     private void onScroll(ScrollEvent event) {
         boolean consume = smoothScrollEngine.handleScroll(event, ScrollAxis.VERTICAL,
                 RXSmoothScrollOptions.DEFAULT_DURATION, RXSmoothScrollOptions.DEFAULT_INTERPOLATOR,
-                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, ScrollBoundaryPolicy.CHAIN,
+                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, smoothScrollMode(), ScrollBoundaryPolicy.CHAIN,
                 true, false, smoothScrollingEnabled() && !event.isDirect(), true);
         if (consume) {
             event.consume();
@@ -609,10 +610,27 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     }
 
     /**
+     * Returns the smooth scroll animation mode for indirect wheel input.
+     *
+     * @return the smooth scroll mode
+     */
+    protected SmoothScrollMode smoothScrollMode() {
+        return RXSmoothScrollOptions.DEFAULT_MODE;
+    }
+
+    /**
      * Stops the active smooth wheel animation without writing another offset.
      */
     protected final void stopSmoothScrolling() {
         smoothScrollEngine.stop();
+    }
+
+    /**
+     * Stops and syncs the smooth wheel animation state to the current offset.
+     */
+    protected final void resetSmoothScrolling() {
+        smoothScrollEngine.stop();
+        smoothScrollEngine.snapToCurrentOffsets();
     }
 
     /**

@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXTileSection;
 import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import javafx.animation.Interpolator;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -905,6 +906,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     @Override
     protected boolean smoothScrollingEnabled() {
         return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

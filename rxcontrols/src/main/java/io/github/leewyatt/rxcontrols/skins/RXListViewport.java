@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -577,6 +578,11 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     @Override
     protected boolean smoothScrollingEnabled() {
         return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

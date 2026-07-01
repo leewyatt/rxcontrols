@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -57,7 +58,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
             items.add(i);
         }
         list = new RXListView<>(items);
-        list.setSmoothScrolling(false);
+        list.setSmoothScrolling(true);
         list.setConverter(new StringConverter<>() {
             @Override
             public String toString(Integer value) {
@@ -81,6 +82,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
                 section("Selection", selectionGrid()),
                 section("Row height", cellSizeGrid()),
                 section("Sections", sectionsGrid()),
+                section("Smooth scroll", smoothScrollGrid()),
                 section("Scroll", scrollGrid()),
                 section("Metrics", metricsGrid()));
     }
@@ -211,6 +213,21 @@ public class RXListViewShowcase extends RXShowcaseApplication {
                 row(hint("Grouping derives sections from the items (no item is moved). Headers are a separate "
                         + "pooled row type — arrow keys skip them and they are never selected. With headers off, "
                         + "sections are still computed so scroll-to-section keeps working.")));
+    }
+
+    private Node smoothScrollGrid() {
+        CheckBox enabled = new CheckBox("Smooth wheel scrolling");
+        enabled.setSelected(list.isSmoothScrolling());
+        enabled.selectedProperty().addListener((obs, old, value) -> list.setSmoothScrolling(value));
+
+        ChoiceBox<SmoothScrollMode> mode = new ChoiceBox<>(
+                FXCollections.observableArrayList(SmoothScrollMode.values()));
+        mode.setValue(list.getSmoothScrollMode());
+        mode.valueProperty().addListener((obs, old, value) -> list.setSmoothScrollMode(value));
+
+        return createGrid(
+                row(enabled),
+                row("Mode", mode));
     }
 
     private void scrollToSection(String text) {
