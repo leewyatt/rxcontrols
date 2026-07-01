@@ -22,7 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 /**
- * Power industry dashboard demo for {@link RXRow}.
+ * Web-style responsive page demo for {@link RXRow}.
  */
 public class RXRowDemo2 extends Application {
 
@@ -33,9 +33,9 @@ public class RXRowDemo2 extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
-        RXRow dashboard = createDashboard();
-        ScrollPane root = new ScrollPane(dashboard);
-        root.getStyleClass().add("energy-dashboard-scroll");
+        RXRow page = createResponsivePage();
+        ScrollPane root = new ScrollPane(page);
+        root.getStyleClass().add("responsive-page-scroll");
         root.setFitToWidth(true);
         root.setPannable(true);
         root.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -48,230 +48,223 @@ public class RXRowDemo2 extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(360.0);
         primaryStage.setMinHeight(520.0);
-        primaryStage.setTitle("RXRow Demo 2");
+        primaryStage.setTitle("RXRow Demo");
         primaryStage.show();
     }
 
-    private RXRow createDashboard() {
+    private RXRow createResponsivePage() {
         RXRow row = new RXRow();
-        row.getStyleClass().add("energy-dashboard");
+        row.getStyleClass().add("responsive-row-demo");
         row.setAlign(RXRowAlign.STRETCH);
         row.setJustify(RXRowJustify.START);
 
         row.getChildren().addAll(
-                col(createCommandCard(), spec(24), spec(24), spec(15), spec(15)),
-                col(createGridMapCard(), spec(24), spec(24), spec(9), spec(9)),
-                col(createMetricCard("Wind fleet", "4.8 GW", "+12%", "wind"),
-                        spec(24), spec(12), spec(8), spec(4)),
-                col(createMetricCard("Hydro reserve", "72%", "Stable", "hydro"),
-                        spec(24), spec(12), spec(8), spec(5)),
-                col(createMetricCard("Nuclear base", "9.6 GW", "99.4%", "nuclear"),
-                        spec(24), spec(12), spec(8), spec(5)),
-                col(createMetricCard("Solar Fleet", "1.3 GW", "Standby", "solar"),
-                        spec(24), spec(12), spec(12), spec(5)),
-                col(createMetricCard("Gas Fleet", "640 MW", "+4%", "gas"),
-                        spec(24), spec(24), spec(12), spec(5)),
-                col(createMixCard(), spec(24), spec(24), spec(15), spec(16)),
-                col(createPlantStatusCard(), spec(24), spec(24), spec(9), spec(8)),
-                col(createForecastCard(), spec(24), spec(12), spec(8), spec(8)),
-                col(createStorageCard(), spec(24), spec(12), spec(8), spec(8)),
-                col(createDispatchCard(), spec(24), spec(24), spec(8), spec(8)));
+                col(createHeroCard(), spec(24), spec(24), spec(24), spec(13)),
+                visibleFromLg(createHeroVisual()),
+                col(createStatCard("Monthly revenue", "$128.4K", "+18.2%", "accent-mint"),
+                        spec(24), spec(12), spec(8), spec(8)),
+                col(createStatCard("Active customers", "8,420", "+642", "accent-coral"),
+                        spec(24), spec(12), spec(8), spec(8)),
+                col(createStatCard("SLA health", "99.97%", "Live", "accent-gold"),
+                        spec(24), spec(24), spec(8), spec(8)),
+                col(createChartCard(), spec(24), spec(24), spec(16), spec(15)),
+                col(createActivityCard(), spec(24), spec(24), spec(8), spec(9)),
+                col(createFeatureCard("Automations", "Route hot accounts before the first reply."),
+                        spec(24), spec(12), spec(8), spec(8)),
+                col(createFeatureCard("Segments", "Focus each team on the accounts they own."),
+                        spec(24), spec(12), spec(8), spec(8)),
+                hiddenUntilMd(createWideOnlyCard()));
         return row;
     }
 
-    private Node createCommandCard() {
-        Label eyebrow = label("REGIONAL GRID CONTROL", "eyebrow");
-        Label title = label("Live generation balance across a diversified power fleet.",
-                "hero-title");
+    private Node createHeroCard() {
+        Label eyebrow = label("NIMBUS CRM", "eyebrow");
+        Label title = label("A calmer workspace for growing customer teams.", "hero-title");
         title.setWrapText(true);
 
         Label copy = label(
-                "Dispatch monitors wind, hydro, nuclear, solar and gas supply in one responsive dashboard.",
+                "Track pipeline, service load, and campaign momentum in one adaptive surface.",
                 "hero-copy");
         copy.setWrapText(true);
 
-        Button dispatchButton = new Button("Open dispatch plan");
-        dispatchButton.getStyleClass().add("primary-button");
-        Button incidentButton = new Button("Review incidents");
-        incidentButton.getStyleClass().add("secondary-button");
-        HBox actions = new HBox(10.0, dispatchButton, incidentButton);
+        Button primary = new Button("Review pipeline");
+        primary.getStyleClass().add("primary-button");
+        Button secondary = new Button("Open reports");
+        secondary.getStyleClass().add("secondary-button");
+        HBox actions = new HBox(10.0, primary, secondary);
+        actions.getStyleClass().add("hero-actions");
         actions.setAlignment(Pos.CENTER_LEFT);
 
-        HBox telemetry = new HBox(10.0,
-                telemetryTile("Grid load", "38.2 GW"),
-                telemetryTile("Frequency", "50.01 Hz"),
-                telemetryTile("Carbon intensity", "248 gCO2/kWh"));
-        telemetry.getStyleClass().add("telemetry-row");
+        VBox metrics = new VBox(8.0,
+                miniMetric("Qualified pipeline", "$4.2M"),
+                miniMetric("Median response", "14 min"),
+                miniMetric("Expansion forecast", "+22%"));
+        metrics.getStyleClass().add("hero-metrics");
 
-        VBox card = card("command-card", eyebrow, title, copy, actions, telemetry);
+        VBox card = card("hero-card", eyebrow, title, copy, actions, metrics);
         card.setAlignment(Pos.CENTER_LEFT);
         return card;
     }
 
-    private Node createGridMapCard() {
-        Image mapImage = new Image(
-                getClass().getResource("assets/power-grid-overview.jpg").toExternalForm(),
+    private Node createHeroVisual() {
+        Image image = new Image(
+                getClass().getResource("assets/nimbus-crm-hero.jpg").toExternalForm(),
                 true);
-        RXImageView map = new RXImageView(mapImage);
-        map.getStyleClass().add("grid-map");
-        map.setImageRadius(8.0);
-        map.setPrefSize(520.0, 218.0);
-        map.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        RXImageView imageView = new RXImageView(image);
+        imageView.setImageRadius(24.0);
+        imageView.setPrefSize(420.0, 330.0);
+        imageView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
-        Label title = label("Transmission overview", "card-title");
-        Label subtitle = label("Northwest balancing area", "card-subtitle");
-        VBox header = new VBox(2.0, title, subtitle);
+        Label breakpointNote = label(
+                "Shown only on lg+ viewports (1200px+). Hidden below lg.",
+                "visual-note");
+        breakpointNote.setWrapText(true);
+        StackPane notePane = new StackPane(breakpointNote);
+        notePane.getStyleClass().add("visual-note-pane");
+        notePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        notePane.setMouseTransparent(true);
 
-        VBox card = card("map-card", header, map);
-        VBox.setVgrow(map, Priority.ALWAYS);
-        return card;
+        Label caption = label("Enterprise pipeline health", "visual-caption");
+        Label value = label("73%", "visual-value");
+        VBox overlay = new VBox(2.0, caption, value);
+        overlay.getStyleClass().add("visual-overlay");
+        overlay.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        overlay.setMouseTransparent(true);
+
+        StackPane visual = new StackPane(imageView, notePane, overlay);
+        visual.getStyleClass().add("hero-visual");
+        StackPane.setAlignment(notePane, Pos.CENTER);
+        StackPane.setAlignment(overlay, Pos.BOTTOM_LEFT);
+        visual.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        return visual;
     }
 
-    private Node createMetricCard(String title, String value, String status, String type) {
-        Region icon = fixedIcon("energy-icon", type + "-icon");
+    private Node createStatCard(String title, String value, String change, String accentClass) {
+        Region accent = new Region();
+        accent.getStyleClass().addAll("stat-accent", accentClass);
 
-        Label titleLabel = label(title, "metric-title");
-        Label valueLabel = label(value, "metric-value");
-        Label statusLabel = label(status, "metric-status");
-        statusLabel.getStyleClass().add(type + "-text");
+        Label titleLabel = label(title, "stat-title");
+        Label valueLabel = label(value, "stat-value");
+        Label changeLabel = label(change, "stat-change");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox header = new HBox(10.0, icon, spacer, statusLabel);
+        HBox header = new HBox(10.0, titleLabel, spacer, accent);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        VBox card = card("metric-card", header, titleLabel, valueLabel);
-        card.setAlignment(Pos.TOP_LEFT);
+        VBox card = card("stat-card", header, valueLabel, changeLabel);
+        card.setAlignment(Pos.CENTER_LEFT);
         return card;
     }
 
-    private Node createMixCard() {
-        Label title = label("Generation mix", "card-title");
-        Label subtitle = label("Current output by source", "card-subtitle");
+    private Node createChartCard() {
+        HBox bars = new HBox(8.0);
+        bars.getStyleClass().add("chart-bars");
+        bars.setAlignment(Pos.BOTTOM_CENTER);
+        bars.setFillHeight(false);
+
+        double[] heights = {58.0, 92.0, 76.0, 128.0, 108.0, 152.0, 138.0, 172.0};
+        for (double height : heights) {
+            Region bar = new Region();
+            bar.getStyleClass().add("chart-bar");
+            bar.setMinHeight(height);
+            bar.setPrefHeight(height);
+            bar.setMaxHeight(height);
+            bar.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(bar, Priority.ALWAYS);
+            bars.getChildren().add(bar);
+        }
+
+        Label title = label("Revenue pulse", "card-title");
+        Label subtitle = label("Pipeline value by week", "card-subtitle");
         VBox header = new VBox(2.0, title, subtitle);
+        header.getStyleClass().add("card-header");
 
-        VBox bars = new VBox(12.0,
-                mixRow("Wind", "4.8 GW", 72.0, "wind-fill"),
-                mixRow("Hydro", "6.1 GW", 84.0, "hydro-fill"),
-                mixRow("Nuclear", "9.6 GW", 96.0, "nuclear-fill"),
-                mixRow("Gas", "7.4 GW", 58.0, "gas-fill"),
-                mixRow("Solar", "640 MW", 38.0, "solar-fill"));
-        bars.getStyleClass().add("mix-list");
-
-        VBox card = card("mix-card", header, bars);
+        VBox card = card("chart-card", header, bars);
         VBox.setVgrow(bars, Priority.ALWAYS);
         return card;
     }
 
-    private Node createPlantStatusCard() {
-        Label title = label("Plant status", "card-title");
-        Label subtitle = label("Operational watchlist", "card-subtitle");
+    private Node createActivityCard() {
+        Label title = label("Today", "card-title");
+        Label subtitle = label("Account activity", "card-subtitle");
         VBox header = new VBox(2.0, title, subtitle);
+        header.getStyleClass().add("card-header");
 
         VBox list = new VBox(0.0,
-                plantRow("High Ridge Wind", "Curtailment risk low", "Normal", "wind"),
-                divider(),
-                plantRow("Stonefall Hydro", "Reservoir gate inspection", "Watch", "hydro"),
-                divider(),
-                plantRow("Unit 3 Nuclear", "Baseload steady", "Normal", "nuclear"),
-                divider(),
-                plantRow("Riverside Solar", "Cloud cover tapering output", "Watch", "solar"),
-                divider(),
-                plantRow("Cinder Gas", "Fast ramp available", "Standby", "gas"));
-        list.getStyleClass().add("plant-list");
+                activityItem("Acme renewal", "Contract reviewed"),
+                activityDivider(),
+                activityItem("Northstar pilot", "Security call booked"),
+                activityDivider(),
+                activityItem("Studio OS", "Expansion flagged"),
+                activityDivider(),
+                activityItem("Vertex Retail", "Invoice cleared"));
+        list.getStyleClass().add("activity-list");
 
-        VBox card = card("status-card", header, list);
+        VBox card = card("activity-card", header, list);
+        VBox.setVgrow(list, Priority.ALWAYS);
         return card;
     }
 
-    private Node createForecastCard() {
-        Region icon = fixedIcon("panel-icon", "forecast-icon");
-        Label title = label("Peak forecast", "panel-title");
-        Label value = label("42.7 GW", "panel-value");
-        Label copy = label("Evening peak expected at 19:40 with moderate import support.",
-                "panel-copy");
+    private Node createFeatureCard(String title, String text) {
+        Region icon = new Region();
+        icon.getStyleClass().add("feature-icon");
+
+        Label titleLabel = label(title, "feature-title");
+        Label textLabel = label(text, "feature-copy");
+        textLabel.setWrapText(true);
+
+        VBox card = card("feature-card", icon, titleLabel, textLabel);
+        card.setAlignment(Pos.TOP_LEFT);
+        return card;
+    }
+
+    private Node createWideOnlyCard() {
+        Label title = label("Executive view", "feature-title");
+        Label copy = label("Board-ready signals for pipeline risk, forecast, and account growth.",
+                "feature-copy");
         copy.setWrapText(true);
-        return card("panel-card", icon, title, value, copy);
+
+        HBox chips = new HBox(8.0,
+                label("Forecast", "signal-chip"),
+                label("Risk", "signal-chip"),
+                label("Growth", "signal-chip"));
+        chips.getStyleClass().add("signal-chips");
+
+        VBox card = card("wide-card", title, copy, chips);
+        card.setAlignment(Pos.TOP_LEFT);
+        return card;
     }
 
-    private Node createStorageCard() {
-        Region icon = fixedIcon("panel-icon", "storage-icon");
-        Label title = label("Battery storage", "panel-title");
-        Label value = label("81%", "panel-value");
-        Label copy = label("Fleet charge is being held for the evening solar drop-off.",
-                "panel-copy");
-        copy.setWrapText(true);
-        return card("panel-card", icon, title, value, copy);
-    }
-
-    private Node createDispatchCard() {
-        Region icon = fixedIcon("panel-icon", "dispatch-icon");
-        Label title = label("Dispatch margin", "panel-title");
-        Label value = label("3.4 GW", "panel-value");
-        Label copy = label("Reserve margin remains above the operator threshold.",
-                "panel-copy");
-        copy.setWrapText(true);
-        return card("panel-card", icon, title, value, copy);
-    }
-
-    private Node telemetryTile(String title, String value) {
-        Label titleLabel = label(title, "telemetry-title");
-        titleLabel.setWrapText(true);
-        Label valueLabel = label(value, "telemetry-value");
-        valueLabel.setWrapText(true);
-        VBox tile = new VBox(4.0, titleLabel, valueLabel);
-        tile.getStyleClass().add("telemetry-tile");
-        tile.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(tile, Priority.ALWAYS);
-        return tile;
-    }
-
-    private Node mixRow(String source, String value, double percent, String fillClass) {
-        Label sourceLabel = label(source, "mix-source");
-        Label valueLabel = label(value, "mix-value");
+    private Node miniMetric(String title, String value) {
+        Label titleLabel = label(title, "mini-title");
+        Label valueLabel = label(value, "mini-value");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox header = new HBox(8.0, sourceLabel, spacer, valueLabel);
-        header.setAlignment(Pos.CENTER_LEFT);
 
-        Region fill = new Region();
-        fill.getStyleClass().addAll("mix-fill", fillClass);
-        fill.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        fill.setMinSize(0.0, Region.USE_PREF_SIZE);
-
-        StackPane track = new StackPane(fill);
-        track.getStyleClass().add("mix-track");
-        track.setAlignment(Pos.CENTER_LEFT);
-        fill.prefWidthProperty().bind(track.widthProperty().multiply(percent / 100.0));
-        fill.setMaxWidth(Region.USE_PREF_SIZE);
-
-        VBox row = new VBox(6.0, header, track);
-        row.getStyleClass().add("mix-row");
-        return row;
-    }
-
-    private Node plantRow(String plant, String detail, String status, String type) {
-        Region dot = new Region();
-        dot.getStyleClass().addAll("plant-dot", type + "-dot");
-
-        Label plantLabel = label(plant, "plant-title");
-        Label detailLabel = label(detail, "plant-detail");
-        VBox text = new VBox(2.0, plantLabel, detailLabel);
-
-        Label statusLabel = label(status, "plant-status");
-        statusLabel.getStyleClass().add(type + "-status");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row = new HBox(10.0, dot, text, spacer, statusLabel);
-        row.getStyleClass().add("plant-row");
+        HBox row = new HBox(10.0, titleLabel, spacer, valueLabel);
+        row.getStyleClass().add("mini-metric");
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
     }
 
-    private Node divider() {
+    private Node activityItem(String title, String detail) {
+        Region dot = new Region();
+        dot.getStyleClass().add("activity-dot");
+
+        Label titleLabel = label(title, "activity-title");
+        Label detailLabel = label(detail, "activity-detail");
+        VBox text = new VBox(1.0, titleLabel, detailLabel);
+
+        HBox item = new HBox(10.0, dot, text);
+        item.getStyleClass().add("activity-item");
+        item.setAlignment(Pos.CENTER_LEFT);
+        return item;
+    }
+
+    private Node activityDivider() {
         Region divider = new Region();
-        divider.getStyleClass().add("divider");
+        divider.getStyleClass().add("activity-divider");
         return divider;
     }
 
@@ -285,24 +278,42 @@ public class RXRowDemo2 extends Application {
         return col;
     }
 
+    private RXCol hiddenUntilMd(Node content) {
+        RXCol col = new RXCol(content);
+        col.setXs(RXColSpec.builder()
+                .span(24)
+                .hidden(true)
+                .build());
+        col.setMd(RXColSpec.builder()
+                .span(8)
+                .hidden(false)
+                .build());
+        return col;
+    }
+
+    private RXCol visibleFromLg(Node content) {
+        RXCol col = new RXCol(content);
+        col.setXs(RXColSpec.builder()
+                .span(24)
+                .hidden(true)
+                .build());
+        col.setLg(RXColSpec.builder()
+                .span(11)
+                .hidden(false)
+                .build());
+        return col;
+    }
+
     private RXColSpec spec(int span) {
         return RXColSpec.of(span);
     }
 
     private VBox card(String styleClass, Node... children) {
         VBox card = new VBox(14.0, children);
-        card.getStyleClass().addAll("energy-card", styleClass);
+        card.getStyleClass().addAll("content-card", styleClass);
         card.setFillWidth(true);
         card.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         return card;
-    }
-
-    private Region fixedIcon(String baseStyleClass, String iconStyleClass) {
-        Region icon = new Region();
-        icon.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.getStyleClass().addAll(baseStyleClass, iconStyleClass);
-        return icon;
     }
 
     private Label label(String text, String styleClass) {

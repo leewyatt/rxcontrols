@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
-import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXRowAlign;
 import io.github.leewyatt.rxcontrols.layout.RXRowJustify;
@@ -39,7 +39,7 @@ import java.util.List;
  * responsive hidden. The preview keeps the row in a horizontally scrollable
  * viewport so breakpoint boundaries can be tested without resizing the window.</p>
  *
- * <p>For a compact standalone demo see {@link io.github.leewyatt.rxcontrols.samples.demo.RXRowDemo2}.</p>
+ * <p>For a compact standalone demo see {@link io.github.leewyatt.rxcontrols.samples.demo.RXRowDemo}.</p>
  */
 public class RXRowShowcase extends RXShowcaseApplication {
 
