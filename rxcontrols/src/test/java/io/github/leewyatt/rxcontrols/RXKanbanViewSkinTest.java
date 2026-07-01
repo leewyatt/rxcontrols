@@ -488,6 +488,39 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void columnDragOpensLiveMakeWayGap() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setAnimated(false);
+            board.setColumnReorderEnabled(true);
+            pump(host(board, 1200, 500));
+
+            Node headerA = headerOf(board, "A");
+            Node headerB = headerOf(board, "B");
+            Region colB = (Region) headerB.getParent();
+            double bNaturalX = colB.getLayoutX();
+
+            Bounds ha = headerA.localToScene(headerA.getBoundsInLocal());
+            Bounds hb = headerB.localToScene(headerB.getBoundsInLocal());
+            double sx = (ha.getMinX() + ha.getMaxX()) / 2.0;
+            double sy = (ha.getMinY() + ha.getMaxY()) / 2.0;
+            double pastB = (hb.getMinX() + hb.getMaxX()) / 2.0 + 6.0;
+
+            // Press A's header and hover past B WITHOUT releasing.
+            headerA.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerA));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, pastB, sy, board));
+            pump(board);
+
+            // Mid-drag (before release) the neighbour parts to open a slot for A.
+            assertTrue(colB.getLayoutX() < bNaturalX - 100.0,
+                    "column B slides aside to make way mid-drag: " + colB.getLayoutX() + " vs " + bNaturalX);
+
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, pastB, sy, board));
+        });
+    }
+
+    @Test
     public void columnReorderMovesByIndex() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = threeColumnBoard();

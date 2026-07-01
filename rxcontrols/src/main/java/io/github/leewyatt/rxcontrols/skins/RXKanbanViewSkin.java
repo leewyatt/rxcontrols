@@ -81,6 +81,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     private final ViewportReorderAnimator columnAnimator = new ViewportReorderAnimator();
     private final KanbanColumnDragSupport<T> columnDragSupport;
 
+    // Live make-way preview while a column header is being dragged: the dragged column
+    // floats at the pointer while the others open a column-wide gap at the hover index.
+    // -1 when no column drag is in progress.
+    private int reorderDraggedIndex = -1;
+    private int reorderPreviewIndex = -1;
+
     private final ListChangeListener<RXKanbanColumn<T>> columnsListListener = change -> reconcileColumns();
     private final WeakListChangeListener<RXKanbanColumn<T>> weakColumnsListListener =
             new WeakListChangeListener<>(columnsListListener);
@@ -645,24 +651,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         columnsClip.setWidth(contentWidth);
         columnsClip.setHeight(columnsAreaHeight);
 
-        boolean hasPending = !pendingColumnFlipFromX.isEmpty();
-        boolean flip = hasPending && animationEnabled();
-        for (int i = 0; i < columnCount; i++) {
-            KanbanColumnBox<T> box = boxes.get(i);
-            double x = snapPositionX(cachedColumnX[i] - boardScrollX);
-            // A fully hidden column is invisible outright (no rendering, no hit target);
-            // it becomes visible again the moment it starts to show.
-            box.setVisible(box.getHideProgress() < 1.0);
-            box.resizeRelocate(x, 0.0, cachedColumnW[i], columnsAreaHeight);
-            if (flip) {
-                applyColumnFlip(box, x);
-            } else if (hasPending) {
-                // Animation off / disabled: snap straight to the reordered position.
-                box.setTranslateX(0.0);
-            }
-        }
-        if (hasPending) {
-            pendingColumnFlipFromX.clear();
+        if (reorderDraggedIndex >= 0 && reorderDraggedIndex < columnCount) {
+            layoutColumnsWithReorderGap(columnCount, colSpacing, columnsAreaHeight);
+        } else {
+            layoutColumnsNormally(columnCount, columnsAreaHeight);
         }
 
         if (needHbar) {
@@ -706,6 +698,98 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
                 && duration.greaterThan(Duration.ZERO);
     }
 
+    // Normal column layout: each box at its natural cumulative x, honoring any pending
+    // post-commit FLIP.
+    private void layoutColumnsNormally(int columnCount, double height) {
+        boolean hasPending = !pendingColumnFlipFromX.isEmpty();
+        boolean flip = hasPending && animationEnabled();
+        for (int i = 0; i < columnCount; i++) {
+            KanbanColumnBox<T> box = boxes.get(i);
+            double x = snapPositionX(cachedColumnX[i] - boardScrollX);
+            // A fully hidden column is invisible outright (no rendering, no hit target);
+            // it becomes visible again the moment it starts to show.
+            box.setVisible(box.getHideProgress() < 1.0);
+            box.resizeRelocate(x, 0.0, cachedColumnW[i], height);
+            if (flip) {
+                applyColumnFlip(box, x);
+            } else if (hasPending) {
+                // Animation off / disabled: snap straight to the reordered position.
+                box.setTranslateX(0.0);
+            }
+        }
+        if (hasPending) {
+            pendingColumnFlipFromX.clear();
+        }
+    }
+
+    // Live reorder preview: the dragged column stays at its natural slot (its translate
+    // follows the pointer) while every other visible column is repositioned to open a
+    // column-wide gap at the hover index, so neighbours glide aside to make way.
+    private void layoutColumnsWithReorderGap(int columnCount, double colSpacing, double height) {
+        int dragged = reorderDraggedIndex;
+        double draggedWidth = cachedColumnW[dragged];
+        boolean flip = !pendingColumnFlipFromX.isEmpty() && animationEnabled();
+        double cursor = 0.0;
+        int slot = 0;
+        for (int i = 0; i < columnCount; i++) {
+            KanbanColumnBox<T> box = boxes.get(i);
+            if (i == dragged) {
+                // Kept at its natural slot; the drag support's translate offsets it to the
+                // pointer, so this layout x must stay fixed for that offset to hold.
+                box.setVisible(true);
+                box.resizeRelocate(snapPositionX(cachedColumnX[i] - boardScrollX), 0.0,
+                        cachedColumnW[i], height);
+                continue;
+            }
+            box.setVisible(box.getHideProgress() < 1.0);
+            if (!box.isVisible()) {
+                box.resizeRelocate(snapPositionX(cursor - boardScrollX), 0.0, cachedColumnW[i], height);
+                continue;
+            }
+            if (slot == reorderPreviewIndex) {
+                cursor += draggedWidth + colSpacing;
+            }
+            double x = snapPositionX(cursor - boardScrollX);
+            box.resizeRelocate(x, 0.0, cachedColumnW[i], height);
+            if (flip) {
+                applyColumnFlip(box, x);
+            } else {
+                box.setTranslateX(0.0);
+            }
+            cursor += cachedColumnW[i] + colSpacing;
+            slot++;
+        }
+        if (!pendingColumnFlipFromX.isEmpty()) {
+            pendingColumnFlipFromX.clear();
+        }
+    }
+
+    // Called each column-drag frame: opens (and glides neighbours to) a gap at the hover
+    // insertion index. previewIndex is in the visible-non-dragged coordinate system, to
+    // match the gap loop and computeTargetIndex.
+    void setColumnReorderPreview(int draggedIndex, int previewIndex) {
+        if (draggedIndex == reorderDraggedIndex && previewIndex == reorderPreviewIndex) {
+            return;
+        }
+        // Capture the non-dragged columns' current x so they glide to the new gap layout.
+        pendingColumnFlipFromX.clear();
+        for (int i = 0; i < boxes.size(); i++) {
+            if (i == draggedIndex) {
+                continue;
+            }
+            KanbanColumnBox<T> box = boxes.get(i);
+            pendingColumnFlipFromX.put(box, box.getLayoutX() + box.getTranslateX());
+        }
+        reorderDraggedIndex = draggedIndex;
+        reorderPreviewIndex = previewIndex;
+        getSkinnable().requestLayout();
+    }
+
+    void clearColumnReorderPreview() {
+        reorderDraggedIndex = -1;
+        reorderPreviewIndex = -1;
+    }
+
     // ==================== Dispose ====================
 
     @Override
@@ -714,6 +798,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         columnDragSupport.dispose();
         columnAnimator.snapAll();
         pendingColumnFlipFromX.clear();
+        clearColumnReorderPreview();
         for (KanbanColumnBox<T> box : boxes) {
             box.dispose();
         }

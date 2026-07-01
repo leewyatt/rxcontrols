@@ -98,6 +98,10 @@ final class KanbanColumnDragSupport<T> {
     void cancel() {
         if (started) {
             stopAutoScroll();
+            // Capture the preview positions, then drop back to normal layout so the
+            // parted neighbours (and the dragged column) glide back to their home slots.
+            skin.beginColumnFlip();
+            skin.clearColumnReorderPreview();
             if (sourceBox != null) {
                 sourceBox.setColumnDragging(false);
                 sourceBox.setTranslateX(0.0);
@@ -125,6 +129,8 @@ final class KanbanColumnDragSupport<T> {
     private void updateDrag(double sceneX) {
         lastPointerSceneX = sceneX;
         moveBox(sceneX);
+        // Open (and glide neighbours to) a make-way gap at the current hover index.
+        skin.setColumnReorderPreview(sourceIndex, computeTargetIndex(sceneX));
         updateAutoScroll(sceneX);
     }
 
@@ -145,6 +151,7 @@ final class KanbanColumnDragSupport<T> {
         // Capture FLIP origins (every box's current visual x, including this box's drag
         // translate) BEFORE mutating, so the next layout glides them into the new order.
         skin.beginColumnFlip();
+        skin.clearColumnReorderPreview();
         sourceBox.setColumnDragging(false);
         sourceBox.setTranslateX(0.0);
 
