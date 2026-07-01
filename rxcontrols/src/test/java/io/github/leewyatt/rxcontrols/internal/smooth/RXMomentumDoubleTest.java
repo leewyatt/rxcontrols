@@ -48,6 +48,25 @@ public class RXMomentumDoubleTest {
     }
 
     @Test
+    public void repeatedPushRestartsMaxDurationWindow() {
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        value.push(100.0);
+        now.set(1_240 * MILLIS);
+        value.handlePulse(now.get());
+        assertTrue(value.isRunning(), "first momentum is still inside the max-duration window");
+
+        now.set(1_245 * MILLIS);
+        value.push(100.0);
+        now.set(1_260 * MILLIS);
+        value.handlePulse(now.get());
+
+        assertTrue(value.isRunning(), "a fresh wheel push restarts the max-duration window");
+        assertTrue(value.velocity() > 0.0, "the second push remains active after the next pulse");
+    }
+
+    @Test
     public void stopAtDoesNotNotifyUpdate() {
         AtomicLong now = new AtomicLong();
         RXMomentumDouble value = momentum(now, 0.0);

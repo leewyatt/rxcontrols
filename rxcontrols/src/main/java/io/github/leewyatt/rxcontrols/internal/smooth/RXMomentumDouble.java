@@ -156,9 +156,9 @@ final class RXMomentumDouble implements AutoCloseable {
         }
         if (!running) {
             lastNanos = nowNanos;
-            startNanos = nowNanos;
             running = true;
         }
+        startNanos = nowNanos;
         velocity = clamp(velocity + delta * DEFAULT_VELOCITY_GAIN,
                 -DEFAULT_MAX_VELOCITY, DEFAULT_MAX_VELOCITY);
         if (autoStartTimer) {
