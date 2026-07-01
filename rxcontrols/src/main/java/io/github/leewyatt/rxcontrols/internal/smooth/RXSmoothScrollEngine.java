@@ -413,6 +413,8 @@ public final class RXSmoothScrollEngine implements AutoCloseable {
     }
 
     private double clamp(double value, double min, double max) {
+        // Scroll ranges can collapse transiently; keep returning min for max <= min
+        // instead of using RXMath.clamp, which only treats min > max as degenerate.
         if (max <= min) {
             return min;
         }

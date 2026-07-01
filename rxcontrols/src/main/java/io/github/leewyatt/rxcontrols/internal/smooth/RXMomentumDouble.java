@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.smooth;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.AnimationTimer;
 
 import java.util.function.DoubleConsumer;
@@ -159,7 +160,7 @@ final class RXMomentumDouble implements AutoCloseable {
             running = true;
         }
         startNanos = nowNanos;
-        velocity = clamp(velocity + delta * DEFAULT_VELOCITY_GAIN,
+        velocity = RXMath.clamp(velocity + delta * DEFAULT_VELOCITY_GAIN,
                 -DEFAULT_MAX_VELOCITY, DEFAULT_MAX_VELOCITY);
         if (autoStartTimer) {
             timer.start();
@@ -176,13 +177,4 @@ final class RXMomentumDouble implements AutoCloseable {
         timer.stop();
     }
 
-    private double clamp(double value, double min, double max) {
-        if (value < min) {
-            return min;
-        }
-        if (value > max) {
-            return max;
-        }
-        return value;
-    }
 }
