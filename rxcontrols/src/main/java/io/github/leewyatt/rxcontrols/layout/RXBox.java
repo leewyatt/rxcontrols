@@ -55,6 +55,11 @@ public class RXBox extends Pane {
 
     // ==================== Constants ====================
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-box";
+    private static final String GROW_CONSTRAINT = "rx-box-grow";
+    private static final String MARGIN_CONSTRAINT = "rx-box-margin";
+    private static final String ALIGNMENT_CONSTRAINT = "rx-box-alignment";
+
     /**
      * Default orientation.
      */
@@ -75,10 +80,6 @@ public class RXBox extends Pane {
      */
     private static final boolean DEFAULT_FILL_CROSS_AXIS = true;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-box";
-    private static final String GROW_CONSTRAINT = "rxbox-grow";
-    private static final String MARGIN_CONSTRAINT = "rxbox-margin";
-    private static final String ALIGNMENT_CONSTRAINT = "rxbox-alignment";
     private static final double EPSILON = 1.0e-6;
 
     // ==================== Types ====================
@@ -251,7 +252,7 @@ public class RXBox extends Pane {
      * Creates an RXBox with the given orientation and children.
      *
      * @param orientation the orientation
-     * @param children the initial children
+     * @param children    the initial children
      */
     public RXBox(Orientation orientation, Node... children) {
         this(orientation);
@@ -261,7 +262,7 @@ public class RXBox extends Pane {
     /**
      * Creates a horizontal RXBox with the given spacing and children.
      *
-     * @param spacing the child spacing
+     * @param spacing  the child spacing
      * @param children the initial children
      */
     public RXBox(double spacing, Node... children) {
@@ -273,8 +274,8 @@ public class RXBox extends Pane {
      * Creates an RXBox with the given orientation, spacing and children.
      *
      * @param orientation the orientation
-     * @param spacing the child spacing
-     * @param children the initial children
+     * @param spacing     the child spacing
+     * @param children    the initial children
      */
     public RXBox(Orientation orientation, double spacing, Node... children) {
         this(orientation, children);
@@ -753,9 +754,9 @@ public class RXBox extends Pane {
             double childBaselineComplement = baselineParticipant ? baselineComplement : -1.0;
             widths[i] = minimum
                     ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
-                            availableHeight, shouldFillCrossAxis(child), childBaselineComplement)
+                    availableHeight, shouldFillCrossAxis(child), childBaselineComplement)
                     : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
-                            availableHeight, shouldFillCrossAxis(child), childBaselineComplement);
+                    availableHeight, shouldFillCrossAxis(child), childBaselineComplement);
         }
         return widths;
     }
@@ -769,9 +770,9 @@ public class RXBox extends Pane {
             Insets margin = getMargin(child);
             heights[i] = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                            availableWidth, shouldFillCrossAxis(child))
+                    availableWidth, shouldFillCrossAxis(child))
                     : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                            availableWidth, shouldFillCrossAxis(child));
+                    availableWidth, shouldFillCrossAxis(child));
         }
         return heights;
     }
@@ -894,9 +895,9 @@ public class RXBox extends Pane {
             // content-bias child whose pref height is small (see RXBoxTest).
             double areaWidth = minimum
                     ? computeChildArea(child, margin, Axis.X, SizeKind.MIN,
-                            childHeight, false)
+                    childHeight, false)
                     : computeChildArea(child, margin, Axis.X, SizeKind.PREF,
-                            childHeight, false);
+                    childHeight, false);
             max = Math.max(max, areaWidth);
         }
         return max;
@@ -920,9 +921,9 @@ public class RXBox extends Pane {
             // Deliberately asymmetric with computeMaxAreaWidth above (see note there).
             double areaHeight = minimum
                     ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                            childWidth, true)
+                    childWidth, true)
                     : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                            childWidth, true);
+                    childWidth, true);
             max = Math.max(max, areaHeight);
         }
         return max;
@@ -1212,9 +1213,9 @@ public class RXBox extends Pane {
                 // before measuring height, matching the non-baseline horizontal path.
                 double areaHeight = minimum
                         ? computeChildArea(child, margin, Axis.Y, SizeKind.MIN,
-                                childWidth, true)
+                        childWidth, true)
                         : computeChildArea(child, margin, Axis.Y, SizeKind.PREF,
-                                childWidth, true);
+                        childWidth, true);
                 maxNonBaseline = Math.max(maxNonBaseline, areaHeight);
                 continue;
             }

@@ -83,6 +83,9 @@ import java.util.logging.Logger;
  */
 public class RXRow extends Pane {
 
+    // ==================== Constants ====================
+    private static final String DEFAULT_STYLE_CLASS = "rx-row";
+
     /**
      * Default column count from the default Ant Design-style profile.
      */
@@ -98,13 +101,11 @@ public class RXRow extends Pane {
      */
     private static final double DEFAULT_ROW_GAP = 0.0;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-row";
     private static final Logger LOGGER = Logger.getLogger(RXRow.class.getName());
 
     private final BreakpointSupport breakpointSupport = new BreakpointSupport();
     private final Map<Node, SpecWarningKey> coercedSpecWarnings = new IdentityHashMap<>();
-    private final Map<RXCol, ResponsiveHiddenState> responsiveHiddenStates =
-            new IdentityHashMap<>();
+    private final Map<RXCol, ResponsiveHiddenState> responsiveHiddenStates = new IdentityHashMap<>();
     private boolean columnsExplicitlySet;
     private boolean updatingColumnsFromProfile;
 
@@ -147,17 +148,29 @@ public class RXRow extends Pane {
      * after spans and offsets are accounted for.</p>
      */
     public enum Justify {
-        /** Keep remaining space after the last column. */
+        /**
+         * Keep remaining space after the last column.
+         */
         START,
-        /** Split remaining space before and after the line. */
+        /**
+         * Split remaining space before and after the line.
+         */
         CENTER,
-        /** Place remaining space before the first column. */
+        /**
+         * Place remaining space before the first column.
+         */
         END,
-        /** Distribute remaining space between columns. */
+        /**
+         * Distribute remaining space between columns.
+         */
         SPACE_BETWEEN,
-        /** Distribute remaining space around columns with half-size edge gaps. */
+        /**
+         * Distribute remaining space around columns with half-size edge gaps.
+         */
         SPACE_AROUND,
-        /** Distribute remaining space evenly between columns and both edges. */
+        /**
+         * Distribute remaining space evenly between columns and both edges.
+         */
         SPACE_EVENLY
     }
 
@@ -165,13 +178,21 @@ public class RXRow extends Pane {
      * Vertical alignment of columns within a responsive row line.
      */
     public enum Align {
-        /** Align columns to the top of the line. */
+        /**
+         * Align columns to the top of the line.
+         */
         TOP,
-        /** Center columns vertically within the line. */
+        /**
+         * Center columns vertically within the line.
+         */
         CENTER,
-        /** Align columns to the bottom of the line. */
+        /**
+         * Align columns to the bottom of the line.
+         */
         BOTTOM,
-        /** Resize columns to the full line height. */
+        /**
+         * Resize columns to the full line height.
+         */
         STRETCH
     }
 

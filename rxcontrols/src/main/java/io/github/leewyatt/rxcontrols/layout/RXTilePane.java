@@ -74,6 +74,9 @@ import java.util.Set;
 public class RXTilePane extends Pane {
 
     // ==================== Constants ====================
+    private static final String DEFAULT_STYLE_CLASS = "rx-tile-pane";
+    private static final String MARGIN_CONSTRAINT = "rx-tile-pane-margin";
+    private static final String ALIGNMENT_CONSTRAINT = "rx-tile-pane-alignment";
 
     private static final double DEFAULT_PREF_TILE_WIDTH = USE_COMPUTED_SIZE;
     private static final double DEFAULT_PREF_TILE_HEIGHT = USE_COMPUTED_SIZE;
@@ -92,10 +95,6 @@ public class RXTilePane extends Pane {
     private static final int DEFAULT_PREF_COLUMNS = 3;
     // Defensive ceiling so a tiny prefTileWidth cannot explode the column count.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-tile-pane";
-    private static final String MARGIN_CONSTRAINT = "rx-tile-pane-margin";
-    private static final String ALIGNMENT_CONSTRAINT = "rx-tile-pane-alignment";
 
     // ==================== Child Constraints ====================
 

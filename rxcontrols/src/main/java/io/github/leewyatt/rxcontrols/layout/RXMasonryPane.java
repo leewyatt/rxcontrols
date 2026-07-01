@@ -69,6 +69,10 @@ public class RXMasonryPane extends Pane {
 
     // ==================== Constants ====================
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-masonry-pane";
+    private static final String MARGIN_CONSTRAINT = "rx-masonry-margin";
+    private static final String COLUMN_SPAN_CONSTRAINT = "rx-masonry-column-span";
+
     /**
      * Default target column width used to derive the responsive column count.
      */
@@ -146,9 +150,6 @@ public class RXMasonryPane extends Pane {
      */
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-masonry-pane";
-    private static final String MARGIN_CONSTRAINT = "rx-masonry-margin";
-    private static final String COLUMN_SPAN_CONSTRAINT = "rx-masonry-column-span";
     private static final double ENTER_TRANSLATE_MIN = 4.0;
     private static final double ENTER_TRANSLATE_MAX = 12.0;
     // Defensive ceiling on the resolved column count; far beyond any real layout,

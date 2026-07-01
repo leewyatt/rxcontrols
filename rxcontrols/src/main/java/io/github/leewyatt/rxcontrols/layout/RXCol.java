@@ -54,6 +54,8 @@ import java.util.List;
  */
 public class RXCol extends StackPane {
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-col";
+
     /**
      * Default base span. Rows with fewer columns clamp this value to the row's
      * current column count during measurement and layout.
@@ -74,8 +76,6 @@ public class RXCol extends StackPane {
      * Default hidden state.
      */
     private static final boolean DEFAULT_HIDDEN = false;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-col";
 
     // ==================== Constructors ====================
 
@@ -572,7 +572,7 @@ public class RXCol extends StackPane {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
                 : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                - snapSpaceX(normalizeGutter(gutter)));
+                                - snapSpaceX(normalizeGutter(gutter)));
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);
@@ -606,7 +606,7 @@ public class RXCol extends StackPane {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
                 : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                - snapSpaceX(normalizeGutter(gutter)));
+                                - snapSpaceX(normalizeGutter(gutter)));
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);

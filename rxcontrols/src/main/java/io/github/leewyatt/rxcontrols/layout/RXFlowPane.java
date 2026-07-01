@@ -125,6 +125,8 @@ public class RXFlowPane extends Pane {
 
     // ==================== Constants ====================
 
+    private static final String DEFAULT_STYLE_CLASS = "rx-flow-pane";
+    private static final String MARGIN_CONSTRAINT = "rx-flow-pane-margin";
     private static final Orientation DEFAULT_ORIENTATION = Orientation.HORIZONTAL;
     private static final double DEFAULT_HGAP = 0.0;
     private static final double DEFAULT_VGAP = 0.0;
@@ -137,9 +139,6 @@ public class RXFlowPane extends Pane {
     private static final boolean DEFAULT_ANIMATED = false;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
-
-    private static final String DEFAULT_STYLE_CLASS = "rx-flow-pane";
-    private static final String MARGIN_CONSTRAINT = "rxflowpane-margin";
 
     // ==================== Constraints ====================
 
@@ -261,8 +260,8 @@ public class RXFlowPane extends Pane {
     /**
      * Creates an RXFlowPane with the given gaps and children.
      *
-     * @param hgap the horizontal gap between items in a run
-     * @param vgap the vertical gap between runs
+     * @param hgap     the horizontal gap between items in a run
+     * @param vgap     the vertical gap between runs
      * @param children the initial children
      */
     public RXFlowPane(double hgap, double vgap, Node... children) {
@@ -284,7 +283,7 @@ public class RXFlowPane extends Pane {
      * Creates an RXFlowPane with the given orientation and children.
      *
      * @param orientation the flow orientation
-     * @param children the initial children
+     * @param children    the initial children
      */
     public RXFlowPane(Orientation orientation, Node... children) {
         this(orientation);
@@ -295,8 +294,8 @@ public class RXFlowPane extends Pane {
      * Creates an RXFlowPane with the given orientation and gaps.
      *
      * @param orientation the flow orientation
-     * @param hgap the horizontal gap
-     * @param vgap the vertical gap
+     * @param hgap        the horizontal gap
+     * @param vgap        the vertical gap
      */
     public RXFlowPane(Orientation orientation, double hgap, double vgap) {
         this(orientation);
@@ -308,9 +307,9 @@ public class RXFlowPane extends Pane {
      * Creates an RXFlowPane with the given orientation, gaps and children.
      *
      * @param orientation the flow orientation
-     * @param hgap the horizontal gap
-     * @param vgap the vertical gap
-     * @param children the initial children
+     * @param hgap        the horizontal gap
+     * @param vgap        the vertical gap
+     * @param children    the initial children
      */
     public RXFlowPane(Orientation orientation, double hgap, double vgap, Node... children) {
         this(orientation, hgap, vgap);
