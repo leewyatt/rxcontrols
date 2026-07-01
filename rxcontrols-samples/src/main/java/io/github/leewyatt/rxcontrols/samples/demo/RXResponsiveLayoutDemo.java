@@ -135,7 +135,8 @@ public class RXResponsiveLayoutDemo extends Application {
             if (breakpoint == null) {
                 return "";
             }
-            return breakpoint.getName() + " >= " + Math.round(breakpoint.getMinWidth());
+            return breakpoint.cssName() + " >= "
+                    + Math.round(row.getBreakpointProfile().minWidthOf(breakpoint));
         }, row.activeBreakpointProperty()));
 
         FlowPane presetButtons = new FlowPane(6.0, 6.0);

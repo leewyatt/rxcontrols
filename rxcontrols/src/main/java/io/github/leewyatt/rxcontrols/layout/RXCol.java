@@ -24,9 +24,7 @@ import javafx.scene.layout.StackPane;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Column wrapper used by {@link RXRow}.
@@ -78,8 +76,6 @@ public class RXCol extends StackPane {
     private static final boolean DEFAULT_HIDDEN = false;
 
     private static final String DEFAULT_STYLE_CLASS = "rx-col";
-
-    private final Map<String, RXColSpec> namedSpecs = new HashMap<>();
 
     // ==================== Constructors ====================
 
@@ -450,7 +446,7 @@ public class RXCol extends StackPane {
 
     /**
      * Responsive spec for the {@code xxl} breakpoint. It is used when the
-     * active row profile contains a breakpoint named {@code xxl}.
+     * active row profile uses the {@link RXBreakpoint#XXL} tier.
      *
      * @return the xxl spec property
      */
@@ -482,7 +478,7 @@ public class RXCol extends StackPane {
 
     /**
      * Responsive spec for the {@code xxxl} breakpoint. It is used when the
-     * active row profile contains a breakpoint named {@code xxxl}, such as the
+     * active row profile uses the {@link RXBreakpoint#XXXL} tier, such as the
      * default {@link RXBreakpointProfile#ANT_DESIGN} profile.
      *
      * @return the xxxl spec property
@@ -507,42 +503,6 @@ public class RXCol extends StackPane {
      */
     public final void setXxxl(RXColSpec value) {
         xxxl.set(value);
-    }
-
-    // ==================== Named Specs ====================
-
-    /**
-     * Returns the spec registered for an arbitrary breakpoint name.
-     *
-     * @param breakpointName the breakpoint name
-     * @return the spec, or {@code null} if none is registered
-     * @throws NullPointerException if {@code breakpointName} is {@code null}
-     */
-    public final RXColSpec getBreakpointSpec(String breakpointName) {
-        return namedSpecs.get(requireBreakpointName(breakpointName));
-    }
-
-    /**
-     * Registers a spec for an arbitrary breakpoint name. Passing {@code null}
-     * removes the registered spec.
-     *
-     * <p>The typed xs/sm/md/lg/xl/xxl/xxxl properties take precedence when both
-     * APIs define the same breakpoint name.</p>
-     *
-     * @param breakpointName the breakpoint name
-     * @param spec           the spec, or {@code null} to remove it
-     * @throws NullPointerException     if {@code breakpointName} is
-     *                                  {@code null}
-     * @throws IllegalArgumentException if {@code breakpointName} is blank
-     */
-    public final void setBreakpointSpec(String breakpointName, RXColSpec spec) {
-        String normalizedName = requireBreakpointName(breakpointName);
-        if (spec == null) {
-            namedSpecs.remove(normalizedName);
-        } else {
-            namedSpecs.put(normalizedName, spec);
-        }
-        requestRowLayout();
     }
 
     // ==================== Layout ====================
@@ -659,18 +619,16 @@ public class RXCol extends StackPane {
         return insets.getTop() + snapSizeY(maxHeight) + insets.getBottom();
     }
 
-    RXColSpec getSpec(String breakpointName) {
-        RXColSpec standardSpec = switch (breakpointName) {
-            case "xs" -> getXs();
-            case "sm" -> getSm();
-            case "md" -> getMd();
-            case "lg" -> getLg();
-            case "xl" -> getXl();
-            case "xxl" -> getXxl();
-            case "xxxl" -> getXxxl();
-            default -> null;
+    RXColSpec getSpec(RXBreakpoint breakpoint) {
+        return switch (breakpoint) {
+            case XS -> getXs();
+            case SM -> getSm();
+            case MD -> getMd();
+            case LG -> getLg();
+            case XL -> getXl();
+            case XXL -> getXxl();
+            case XXXL -> getXxxl();
         };
-        return standardSpec == null ? namedSpecs.get(breakpointName) : standardSpec;
     }
 
     private ObjectProperty<RXColSpec> createSpecProperty(String name) {
@@ -680,16 +638,6 @@ public class RXCol extends StackPane {
                 requestRowLayout();
             }
         };
-    }
-
-    private String requireBreakpointName(String breakpointName) {
-        if (breakpointName == null) {
-            throw new NullPointerException("breakpointName cannot be null");
-        }
-        if (breakpointName.isBlank()) {
-            throw new IllegalArgumentException("breakpointName cannot be blank");
-        }
-        return breakpointName;
     }
 
     private void requestRowLayout() {

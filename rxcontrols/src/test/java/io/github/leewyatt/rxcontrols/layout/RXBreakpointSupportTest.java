@@ -21,7 +21,7 @@ public class RXBreakpointSupportTest {
      */
     @Test
     public void pseudoClassUsesBreakpointName() {
-        RXBreakpoint breakpoint = new RXBreakpoint("md", 992.0);
+        RXBreakpoint breakpoint = RXBreakpoint.MD;
         assertSame(PseudoClass.getPseudoClass("md"),
                 RXBreakpointSupport.pseudoClassFor(breakpoint));
     }
@@ -36,7 +36,7 @@ public class RXBreakpointSupportTest {
 
         RXBreakpoint resolved = support.update(RXBreakpointProfile.ELEMENT, 100.0, applier);
 
-        assertEquals("xs", resolved.getName());
+        assertEquals(RXBreakpoint.XS, resolved);
         assertEquals(1, applier.calls.size());
         applier.assertCall(0, "xs", true);
     }
@@ -66,7 +66,7 @@ public class RXBreakpointSupportTest {
         support.update(RXBreakpointProfile.ELEMENT, 100.0, applier);
         RXBreakpoint resolved = support.update(RXBreakpointProfile.ELEMENT, 1000.0, applier);
 
-        assertEquals("md", resolved.getName());
+        assertEquals(RXBreakpoint.MD, resolved);
         assertEquals(3, applier.calls.size());
         applier.assertCall(0, "xs", true);
         applier.assertCall(1, "xs", false);

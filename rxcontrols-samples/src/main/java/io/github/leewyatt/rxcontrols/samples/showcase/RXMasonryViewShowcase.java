@@ -332,7 +332,7 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
     }
 
     private String breakpointName(RXBreakpoint breakpoint) {
-        return breakpoint == null ? "—" : breakpoint.getName();
+        return breakpoint == null ? "—" : breakpoint.cssName();
     }
 
     private String interpolatorName(Interpolator interpolator) {

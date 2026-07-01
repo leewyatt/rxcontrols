@@ -92,12 +92,12 @@ public class RXRowTest {
 
         layout(row, 360.0, 40.0);
 
-        assertEquals("xs", row.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XS, row.getActiveBreakpoint());
         assertClose(360.0, col.getWidth(), "xs width");
 
         layout(row, 1000.0, 40.0);
 
-        assertEquals("lg", row.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.LG, row.getActiveBreakpoint());
         assertClose(250.0, col.getWidth(), "lg width");
     }
 
@@ -116,7 +116,7 @@ public class RXRowTest {
 
         layout(row, 2000.0, 40.0);
 
-        assertEquals("xxxl", row.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XXXL, row.getActiveBreakpoint());
         assertClose(500.0, col.getWidth(), "xxxl inherits xxl span 6");
     }
 

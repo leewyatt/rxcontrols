@@ -63,7 +63,7 @@ import java.util.List;
  *
  * <p>The column count is derived from {@link #columnWidthProperty() columnWidth} and
  * the available width, or forced by {@link #columnCountProperty() columnCount} or by
- * mobile-first {@link #setBreakpointColumns(String, Integer) breakpoint overrides};
+ * mobile-first {@link #setBreakpointColumns(RXBreakpoint, Integer) breakpoint overrides};
  * {@link #fillWidthProperty() fillWidth} stretches columns to fill the width. An item
  * may span several columns via a {@link #columnSpanFactoryProperty() columnSpanFactory}.
  * The view publishes read-only metrics after each layout —
@@ -700,8 +700,8 @@ public class RXMasonryView<T> extends Control {
 
     // ==================== Breakpoint Profile ====================
 
-    private final ObservableMap<String, Integer> breakpointColumns = FXCollections.observableHashMap();
-    private final ObservableMap<String, Integer> breakpointColumnsView =
+    private final ObservableMap<RXBreakpoint, Integer> breakpointColumns = FXCollections.observableHashMap();
+    private final ObservableMap<RXBreakpoint, Integer> breakpointColumnsView =
             FXCollections.unmodifiableObservableMap(breakpointColumns);
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
@@ -748,48 +748,45 @@ public class RXMasonryView<T> extends Control {
      * from that breakpoint up, until a wider breakpoint sets a positive count again.
      * Setting {@code null} clears the override entirely so the breakpoint inherits.
      *
-     * @param breakpointName the breakpoint name (e.g. {@code "md"})
-     * @param columns        a positive column count, {@link #AUTO_COLUMNS} for explicit
-     *                       auto, or {@code null} to clear
-     * @throws NullPointerException     if {@code breakpointName} is {@code null}
-     * @throws IllegalArgumentException if {@code breakpointName} is blank or {@code columns} is negative
+     * @param breakpoint the breakpoint tier (e.g. {@link RXBreakpoint#MD})
+     * @param columns    a positive column count, {@link #AUTO_COLUMNS} for explicit
+     *                   auto, or {@code null} to clear
+     * @throws NullPointerException     if {@code breakpoint} is {@code null}
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
-    public final void setBreakpointColumns(String breakpointName, Integer columns) {
-        if (breakpointName == null) {
-            throw new NullPointerException("breakpointName cannot be null");
-        }
-        if (breakpointName.isBlank()) {
-            throw new IllegalArgumentException("breakpointName cannot be blank");
+    public final void setBreakpointColumns(RXBreakpoint breakpoint, Integer columns) {
+        if (breakpoint == null) {
+            throw new NullPointerException("breakpoint cannot be null");
         }
         if (columns != null && columns < 0) {
             throw new IllegalArgumentException("columns cannot be negative");
         }
         if (columns == null) {
-            breakpointColumns.remove(breakpointName);
+            breakpointColumns.remove(breakpoint);
         } else {
-            breakpointColumns.put(breakpointName, columns);
+            breakpointColumns.put(breakpoint, columns);
         }
         // The map is observable; the skin relays out and re-fills in response.
     }
 
     /**
-     * Returns the column count override for a named breakpoint.
+     * Returns the column count override for a breakpoint tier.
      *
-     * @param breakpointName the breakpoint name
+     * @param breakpoint the breakpoint tier
      * @return the override, or {@code null} if none is set
      */
-    public final Integer getBreakpointColumns(String breakpointName) {
-        return breakpointColumns.get(breakpointName);
+    public final Integer getBreakpointColumns(RXBreakpoint breakpoint) {
+        return breakpointColumns.get(breakpoint);
     }
 
     /**
      * Returns an unmodifiable, observable view of all breakpoint column overrides,
-     * keyed by breakpoint name. The skin observes it to re-resolve the column count
+     * keyed by breakpoint tier. The skin observes it to re-resolve the column count
      * when an override changes.
      *
      * @return the breakpoint column overrides
      */
-    public final ObservableMap<String, Integer> getBreakpointColumnOverrides() {
+    public final ObservableMap<RXBreakpoint, Integer> getBreakpointColumnOverrides() {
         return breakpointColumnsView;
     }
 
@@ -799,7 +796,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setXs(Integer columns) {
-        setBreakpointColumns("xs", columns);
+        setBreakpointColumns(RXBreakpoint.XS, columns);
     }
 
     /**
@@ -808,7 +805,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXs() {
-        return getBreakpointColumns("xs");
+        return getBreakpointColumns(RXBreakpoint.XS);
     }
 
     /**
@@ -817,7 +814,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setSm(Integer columns) {
-        setBreakpointColumns("sm", columns);
+        setBreakpointColumns(RXBreakpoint.SM, columns);
     }
 
     /**
@@ -826,7 +823,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getSm() {
-        return getBreakpointColumns("sm");
+        return getBreakpointColumns(RXBreakpoint.SM);
     }
 
     /**
@@ -835,7 +832,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setMd(Integer columns) {
-        setBreakpointColumns("md", columns);
+        setBreakpointColumns(RXBreakpoint.MD, columns);
     }
 
     /**
@@ -844,7 +841,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getMd() {
-        return getBreakpointColumns("md");
+        return getBreakpointColumns(RXBreakpoint.MD);
     }
 
     /**
@@ -853,7 +850,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setLg(Integer columns) {
-        setBreakpointColumns("lg", columns);
+        setBreakpointColumns(RXBreakpoint.LG, columns);
     }
 
     /**
@@ -862,7 +859,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getLg() {
-        return getBreakpointColumns("lg");
+        return getBreakpointColumns(RXBreakpoint.LG);
     }
 
     /**
@@ -871,7 +868,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setXl(Integer columns) {
-        setBreakpointColumns("xl", columns);
+        setBreakpointColumns(RXBreakpoint.XL, columns);
     }
 
     /**
@@ -880,7 +877,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXl() {
-        return getBreakpointColumns("xl");
+        return getBreakpointColumns(RXBreakpoint.XL);
     }
 
     /**
@@ -889,7 +886,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setXxl(Integer columns) {
-        setBreakpointColumns("xxl", columns);
+        setBreakpointColumns(RXBreakpoint.XXL, columns);
     }
 
     /**
@@ -898,7 +895,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXxl() {
-        return getBreakpointColumns("xxl");
+        return getBreakpointColumns(RXBreakpoint.XXL);
     }
 
     /**
@@ -907,7 +904,7 @@ public class RXMasonryView<T> extends Control {
      * @param columns the column count, {@link #AUTO_COLUMNS} for explicit auto, or {@code null} to clear
      */
     public final void setXxxl(Integer columns) {
-        setBreakpointColumns("xxxl", columns);
+        setBreakpointColumns(RXBreakpoint.XXXL, columns);
     }
 
     /**
@@ -916,7 +913,7 @@ public class RXMasonryView<T> extends Control {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXxxl() {
-        return getBreakpointColumns("xxxl");
+        return getBreakpointColumns(RXBreakpoint.XXXL);
     }
 
     // ==================== Active Breakpoint (read-only) ====================
@@ -962,7 +959,7 @@ public class RXMasonryView<T> extends Control {
     }
 
     private void updateActiveBreakpointPseudoClass(RXBreakpoint value) {
-        PseudoClass next = value == null ? null : PseudoClass.getPseudoClass(value.getName());
+        PseudoClass next = value == null ? null : PseudoClass.getPseudoClass(value.cssName());
         if (next == activeBreakpointPseudoClass) {
             return;
         }

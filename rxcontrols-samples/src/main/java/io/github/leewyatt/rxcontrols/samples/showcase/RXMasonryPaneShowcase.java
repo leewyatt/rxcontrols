@@ -231,7 +231,7 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
     }
 
     private String breakpointName(RXBreakpoint breakpoint) {
-        return breakpoint == null ? "—" : breakpoint.getName();
+        return breakpoint == null ? "—" : breakpoint.cssName();
     }
 
     private Node buildAnimationGrid() {

@@ -137,7 +137,8 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
             if (breakpoint == null) {
                 return "breakpoint ?";
             }
-            return breakpoint.getName() + " >= " + Math.round(breakpoint.getMinWidth());
+            return breakpoint.cssName() + " >= "
+                    + Math.round(row.getBreakpointProfile().minWidthOf(breakpoint));
         }, row.activeBreakpointProperty()));
 
         Label widthLabel = new Label();
@@ -207,7 +208,7 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
         activeValue.setAlignment(Pos.CENTER_RIGHT);
         activeValue.textProperty().bind(Bindings.createStringBinding(() -> {
             RXBreakpoint breakpoint = row.getActiveBreakpoint();
-            return breakpoint == null ? "" : breakpoint.getName();
+            return breakpoint == null ? "" : breakpoint.cssName();
         }, row.activeBreakpointProperty()));
 
         FlowPane presetButtons = new FlowPane(6.0, 6.0);
@@ -423,12 +424,13 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
         if (active == null) {
             return order;
         }
-        double activeMinWidth = active.getMinWidth();
-        for (RXBreakpoint breakpoint : row.getBreakpointProfile().getBreakpoints()) {
-            if (breakpoint.getMinWidth() > activeMinWidth) {
+        RXBreakpointProfile profile = row.getBreakpointProfile();
+        double activeMinWidth = profile.minWidthOf(active);
+        for (RXBreakpoint breakpoint : profile.getBreakpoints()) {
+            if (profile.minWidthOf(breakpoint) > activeMinWidth) {
                 break;
             }
-            RXColSpec spec = specFor(col, breakpoint.getName());
+            RXColSpec spec = specFor(col, breakpoint);
             if (spec != null && spec.getOrder() != null) {
                 order = spec.getOrder();
             }
@@ -436,16 +438,15 @@ public class RXResponsiveLayoutShowcase extends RXShowcaseApplication {
         return order;
     }
 
-    private RXColSpec specFor(RXCol col, String breakpointName) {
-        return switch (breakpointName) {
-            case "xs" -> col.getXs();
-            case "sm" -> col.getSm();
-            case "md" -> col.getMd();
-            case "lg" -> col.getLg();
-            case "xl" -> col.getXl();
-            case "xxl" -> col.getXxl();
-            case "xxxl" -> col.getXxxl();
-            default -> col.getBreakpointSpec(breakpointName);
+    private RXColSpec specFor(RXCol col, RXBreakpoint breakpoint) {
+        return switch (breakpoint) {
+            case XS -> col.getXs();
+            case SM -> col.getSm();
+            case MD -> col.getMd();
+            case LG -> col.getLg();
+            case XL -> col.getXl();
+            case XXL -> col.getXxl();
+            case XXXL -> col.getXxxl();
         };
     }
 

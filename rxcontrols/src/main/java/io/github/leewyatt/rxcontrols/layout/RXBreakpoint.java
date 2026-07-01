@@ -1,87 +1,65 @@
 package io.github.leewyatt.rxcontrols.layout;
 
-import java.util.Objects;
+import java.util.Locale;
 
 /**
- * A named responsive breakpoint with a minimum row width.
+ * Responsive breakpoint tiers, ordered from narrowest to widest.
+ *
+ * <p>The enum constant order is the width order:
+ * {@code XS < SM < MD < LG < XL < XXL < XXXL}. A {@link RXBreakpointProfile}
+ * binds the subset of tiers it uses to pixel thresholds; the same tier maps to
+ * different pixel widths across frameworks (for example {@code SM} is 576 in
+ * Bootstrap but 600 in Material UI), so the threshold lives on the profile, not
+ * on the tier. Frameworks that name their tiers differently (Foundation
+ * {@code small/large}, Bulma {@code mobile/tablet}, Material
+ * {@code Compact/Expanded}) map onto these tiers by porting their pixel
+ * thresholds; only the label changes.</p>
+ *
+ * <p>The lowercase constant name doubles as the CSS pseudo-class applied to a
+ * responsive pane while that tier is active (for example {@link #MD} maps to
+ * {@code :md}). The fixed tier names never collide with JavaFX built-in
+ * pseudo-classes such as {@code hover} or {@code focused}.</p>
  */
-public final class RXBreakpoint implements Comparable<RXBreakpoint> {
-
-    private final String name;
-    private final double minWidth;
+public enum RXBreakpoint {
 
     /**
-     * Creates a breakpoint.
-     *
-     * <p>The name is used verbatim as a bare CSS pseudo-class (e.g. {@code :md}).
-     * Prefer a lowercase CSS identifier — letters, digits and hyphens, not
-     * starting with a digit and without spaces (join words with {@code -}) — and
-     * avoid names that collide with JavaFX built-in pseudo-classes such as
-     * {@code hover}, {@code focused}, {@code pressed} or {@code disabled}.</p>
-     *
-     * @param name     the breakpoint name, also used as the row pseudo-class
-     * @param minWidth the inclusive minimum width for this breakpoint
-     * @throws NullPointerException     if {@code name} is {@code null}
-     * @throws IllegalArgumentException if the name is blank or the width is not
-     *                                  finite and non-negative
+     * Extra small tier.
      */
-    public RXBreakpoint(String name, double minWidth) {
-        Objects.requireNonNull(name, "name cannot be null");
-        if (name.isBlank()) {
-            throw new IllegalArgumentException("name cannot be blank");
-        }
-        if (!Double.isFinite(minWidth) || minWidth < 0.0) {
-            throw new IllegalArgumentException("minWidth must be finite and non-negative");
-        }
-        this.name = name;
-        this.minWidth = minWidth;
-    }
+    XS,
+    /**
+     * Small tier.
+     */
+    SM,
+    /**
+     * Medium tier.
+     */
+    MD,
+    /**
+     * Large tier.
+     */
+    LG,
+    /**
+     * Extra large tier.
+     */
+    XL,
+    /**
+     * Double extra large tier.
+     */
+    XXL,
+    /**
+     * Triple extra large tier.
+     */
+    XXXL;
+
+    private final String cssName = name().toLowerCase(Locale.ROOT);
 
     /**
-     * Returns the breakpoint name.
+     * Returns the lowercase CSS pseudo-class name for this tier (for example
+     * {@code "md"} for {@link #MD}).
      *
-     * @return the breakpoint name
+     * @return the CSS pseudo-class name
      */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Returns the inclusive minimum width for this breakpoint.
-     *
-     * @return the minimum width
-     */
-    public double getMinWidth() {
-        return minWidth;
-    }
-
-    @Override
-    public int compareTo(RXBreakpoint other) {
-        int byWidth = Double.compare(minWidth, other.minWidth);
-        if (byWidth != 0) {
-            return byWidth;
-        }
-        return name.compareTo(other.name);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof RXBreakpoint other)) {
-            return false;
-        }
-        return name.equals(other.name) && Double.compare(minWidth, other.minWidth) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, minWidth);
-    }
-
-    @Override
-    public String toString() {
-        return "RXBreakpoint[name=" + name + ", minWidth=" + minWidth + "]";
+    public String cssName() {
+        return cssName;
     }
 }

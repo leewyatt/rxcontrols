@@ -748,12 +748,12 @@ public class RXRow extends Pane {
         boolean hidden = child instanceof RXCol col && col.isHidden();
         if (child instanceof RXCol col) {
             RXBreakpointProfile profile = breakpointProfileOrDefault();
-            double activeMinWidth = breakpoint == null ? 0.0 : breakpoint.getMinWidth();
+            double activeMinWidth = breakpoint == null ? 0.0 : profile.minWidthOf(breakpoint);
             for (RXBreakpoint profileBreakpoint : profile.getBreakpoints()) {
-                if (profileBreakpoint.getMinWidth() > activeMinWidth) {
+                if (profile.minWidthOf(profileBreakpoint) > activeMinWidth) {
                     break;
                 }
-                RXColSpec spec = col.getSpec(profileBreakpoint.getName());
+                RXColSpec spec = col.getSpec(profileBreakpoint);
                 if (spec != null) {
                     if (spec.getSpan() != null) {
                         span = spec.getSpan();

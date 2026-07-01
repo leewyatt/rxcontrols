@@ -77,7 +77,7 @@ public final class MasonryColumns {
      * @param fillWidth        whether tracks stretch to fill {@code layoutWidth} or
      *                         stay at {@code columnWidth}
      * @param profile          the breakpoint profile; must not be {@code null}
-     * @param breakpointColumns the per-breakpoint column overrides, keyed by name;
+     * @param breakpointColumns the per-breakpoint column overrides, keyed by tier;
      *                          {@code null} or empty means no overrides
      * @return the resolved column geometry
      * @throws NullPointerException if {@code profile} is {@code null}
@@ -86,7 +86,7 @@ public final class MasonryColumns {
                                      int columnCount, double columnWidth, double hgap,
                                      int maxColumns, boolean fillWidth,
                                      RXBreakpointProfile profile,
-                                     Map<String, Integer> breakpointColumns) {
+                                     Map<RXBreakpoint, Integer> breakpointColumns) {
         Objects.requireNonNull(profile, "profile cannot be null");
         RXBreakpoint activeBreakpoint = profile.resolve(breakpointWidth);
         int columns = computeColumns(layoutWidth, columnCount, columnWidth, hgap, maxColumns,
@@ -103,7 +103,7 @@ public final class MasonryColumns {
 
     private static int computeColumns(double layoutWidth, int columnCount, double columnWidth,
                                       double hgap, int maxColumns, RXBreakpointProfile profile,
-                                      Map<String, Integer> breakpointColumns,
+                                      Map<RXBreakpoint, Integer> breakpointColumns,
                                       RXBreakpoint activeBreakpoint) {
         int columns;
         if (columnCount >= 1) {
@@ -130,18 +130,18 @@ public final class MasonryColumns {
     }
 
     private static Integer resolveBreakpointColumns(RXBreakpointProfile profile,
-                                                    Map<String, Integer> breakpointColumns,
+                                                    Map<RXBreakpoint, Integer> breakpointColumns,
                                                     RXBreakpoint activeBreakpoint) {
         if (breakpointColumns == null || breakpointColumns.isEmpty()) {
             return null;
         }
-        double activeMinWidth = activeBreakpoint.getMinWidth();
+        double activeMinWidth = profile.minWidthOf(activeBreakpoint);
         Integer resolved = null;
         for (RXBreakpoint breakpoint : profile.getBreakpoints()) {
-            if (breakpoint.getMinWidth() > activeMinWidth) {
+            if (profile.minWidthOf(breakpoint) > activeMinWidth) {
                 break;
             }
-            Integer columns = breakpointColumns.get(breakpoint.getName());
+            Integer columns = breakpointColumns.get(breakpoint);
             if (columns != null) {
                 resolved = columns;
             }

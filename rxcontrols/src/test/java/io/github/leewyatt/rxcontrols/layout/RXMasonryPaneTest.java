@@ -196,7 +196,7 @@ public class RXMasonryPaneTest {
 
         // ANT_DESIGN resolves 800 to "md"; the md override forces 3 columns
         // instead of the auto floor(800 / 100) = 8.
-        assertEquals("md", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.MD, pane.getActiveBreakpoint());
         assertEquals(3, pane.getActualColumnCount());
     }
 
@@ -211,7 +211,7 @@ public class RXMasonryPaneTest {
         layout(pane, 600.0, 1000.0);
 
         // 600 resolves to "sm"; no sm override -> auto floor(600 / 100) = 6.
-        assertEquals("sm", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.SM, pane.getActiveBreakpoint());
         assertEquals(6, pane.getActualColumnCount());
     }
 
@@ -242,7 +242,7 @@ public class RXMasonryPaneTest {
 
         // 1500 resolves to "xl"; with no xl override the md=3 override cascades
         // up instead of falling back to auto floor(1500 / 100) = 15.
-        assertEquals("xl", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XL, pane.getActiveBreakpoint());
         assertEquals(3, pane.getActualColumnCount());
     }
 
@@ -257,7 +257,7 @@ public class RXMasonryPaneTest {
 
         layout(pane, 2000.0, 1000.0);
 
-        assertEquals("xxxl", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XXXL, pane.getActiveBreakpoint());
         assertEquals(4, pane.getActualColumnCount());
     }
 
@@ -278,7 +278,7 @@ public class RXMasonryPaneTest {
         assertEquals(3, pane.getActualColumnCount());
 
         layout(pane, 1500.0, 1000.0);  // xl is explicit AUTO -> floor(1500 / 100) = 15
-        assertEquals("xl", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XL, pane.getActiveBreakpoint());
         assertEquals(15, pane.getActualColumnCount());
     }
 
@@ -297,7 +297,7 @@ public class RXMasonryPaneTest {
         assertEquals(15, pane.getActualColumnCount());
 
         layout(pane, 1700.0, 1000.0);  // xxl -> fixed 5
-        assertEquals("xxl", pane.getActiveBreakpoint().getName());
+        assertEquals(RXBreakpoint.XXL, pane.getActiveBreakpoint());
         assertEquals(5, pane.getActualColumnCount());
     }
 
@@ -310,7 +310,7 @@ public class RXMasonryPaneTest {
         pane.setXs(RXMasonryPane.AUTO_COLUMNS);
         assertEquals(Integer.valueOf(RXMasonryPane.AUTO_COLUMNS), pane.getXs());
         assertThrows(IllegalArgumentException.class,
-                () -> pane.setBreakpointColumns("md", -1));
+                () -> pane.setBreakpointColumns(RXBreakpoint.MD, -1));
     }
 
     /**
@@ -590,7 +590,7 @@ public class RXMasonryPaneTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> RXMasonryPane.setColumnSpan(card(10.0, 10.0), 0));
-        assertThrows(IllegalArgumentException.class, () -> pane.setBreakpointColumns("md", -1));
+        assertThrows(IllegalArgumentException.class, () -> pane.setBreakpointColumns(RXBreakpoint.MD, -1));
     }
 
     /**

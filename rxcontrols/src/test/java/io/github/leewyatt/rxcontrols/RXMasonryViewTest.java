@@ -126,28 +126,27 @@ public class RXMasonryViewTest {
     public void breakpointOverridesRoundTrip() {
         RXMasonryView<String> view = new RXMasonryView<>();
         view.setMd(3);
-        view.setBreakpointColumns("lg", 4);
+        view.setBreakpointColumns(RXBreakpoint.LG, 4);
         view.setXl(RXMasonryView.AUTO_COLUMNS);
 
         assertEquals(3, view.getMd());
-        assertEquals(4, view.getBreakpointColumns("lg"));
+        assertEquals(4, view.getBreakpointColumns(RXBreakpoint.LG));
         assertEquals(0, view.getXl());
         assertNull(view.getSm());
 
-        assertEquals(3, view.getBreakpointColumnOverrides().get("md"));
+        assertEquals(3, view.getBreakpointColumnOverrides().get(RXBreakpoint.MD));
         assertThrows(UnsupportedOperationException.class,
-                () -> view.getBreakpointColumnOverrides().put("sm", 2));
+                () -> view.getBreakpointColumnOverrides().put(RXBreakpoint.SM, 2));
 
         view.setMd(null);
         assertNull(view.getMd());
     }
 
     @Test
-    public void breakpointSettersValidateName() {
+    public void breakpointSettersRejectNullAndNegative() {
         RXMasonryView<String> view = new RXMasonryView<>();
         assertThrows(NullPointerException.class, () -> view.setBreakpointColumns(null, 2));
-        assertThrows(IllegalArgumentException.class, () -> view.setBreakpointColumns("  ", 2));
-        assertThrows(IllegalArgumentException.class, () -> view.setBreakpointColumns("md", -1));
+        assertThrows(IllegalArgumentException.class, () -> view.setBreakpointColumns(RXBreakpoint.MD, -1));
     }
 
     @Test
@@ -155,7 +154,7 @@ public class RXMasonryViewTest {
         RXMasonryView<String> view = new RXMasonryView<>();
         assertNull(view.getActiveBreakpoint());
 
-        RXBreakpoint md = new RXBreakpoint("md", 768.0);
+        RXBreakpoint md = RXBreakpoint.MD;
         view.setActiveBreakpoint(md);
         assertSame(md, view.getActiveBreakpoint());
         assertTrue(view.getPseudoClassStates().contains(PseudoClass.getPseudoClass("md")));

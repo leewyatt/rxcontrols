@@ -12,9 +12,8 @@ import javafx.css.PseudoClass;
  * {@link PseudoClassApplier} bound to its own method reference; this helper only
  * decides when to flip which pseudo-class.</p>
  *
- * <p>The pseudo-class is the bare breakpoint name (e.g. {@code :md}), so avoid
- * breakpoint names that collide with JavaFX built-in pseudo-classes such as
- * {@code hover}, {@code focused}, {@code pressed} or {@code disabled}.</p>
+ * <p>The pseudo-class is the tier's lowercase name (e.g. {@code :md}); the fixed
+ * {@link RXBreakpoint} names never collide with JavaFX built-in pseudo-classes.</p>
  */
 final class RXBreakpointSupport {
 
@@ -36,13 +35,13 @@ final class RXBreakpointSupport {
     private PseudoClass activePseudoClass;
 
     /**
-     * Returns the pseudo-class for a breakpoint, e.g. {@code md} for "md".
+     * Returns the pseudo-class for a breakpoint, e.g. {@code md} for {@link RXBreakpoint#MD}.
      *
      * @param breakpoint the breakpoint
      * @return the pseudo-class
      */
     static PseudoClass pseudoClassFor(RXBreakpoint breakpoint) {
-        return PseudoClass.getPseudoClass(breakpoint.getName());
+        return PseudoClass.getPseudoClass(breakpoint.cssName());
     }
 
     /**

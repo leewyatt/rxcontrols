@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
+import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 
@@ -70,16 +71,16 @@ public class MasonryColumnsTest {
      */
     @Test
     public void breakpointSemanticsMatchPane() {
-        assertColumnParity(800.0, 100.0, 0.0, 0, 0, true, Map.of("md", 3));
-        assertColumnParity(600.0, 100.0, 0.0, 0, 0, true, Map.of("md", 3));
-        assertColumnParity(1500.0, 100.0, 0.0, 0, 0, true, Map.of("md", 3));
-        assertColumnParity(1500.0, 100.0, 0.0, 0, 0, true, Map.of("md", 3, "xl", RXMasonryPane.AUTO_COLUMNS));
+        assertColumnParity(800.0, 100.0, 0.0, 0, 0, true, Map.of(RXBreakpoint.MD, 3));
+        assertColumnParity(600.0, 100.0, 0.0, 0, 0, true, Map.of(RXBreakpoint.MD, 3));
+        assertColumnParity(1500.0, 100.0, 0.0, 0, 0, true, Map.of(RXBreakpoint.MD, 3));
+        assertColumnParity(1500.0, 100.0, 0.0, 0, 0, true, Map.of(RXBreakpoint.MD, 3, RXBreakpoint.XL, RXMasonryPane.AUTO_COLUMNS));
         assertColumnParity(1700.0, 100.0, 0.0, 0, 0, true,
-                Map.of("md", 3, "xl", RXMasonryPane.AUTO_COLUMNS, "xxl", 5));
+                Map.of(RXBreakpoint.MD, 3, RXBreakpoint.XL, RXMasonryPane.AUTO_COLUMNS, RXBreakpoint.XXL, 5));
         // Active band (md@800) is AUTO; positive overrides at strictly wider bands
         // (lg/xl) must not leak in, so the count falls back to the auto floor (8).
         assertColumnParity(800.0, 100.0, 0.0, 0, 0, true,
-                Map.of("md", RXMasonryPane.AUTO_COLUMNS, "lg", 4, "xl", 5));
+                Map.of(RXBreakpoint.MD, RXMasonryPane.AUTO_COLUMNS, RXBreakpoint.LG, 4, RXBreakpoint.XL, 5));
     }
 
     // ==================== Robustness ====================
@@ -167,10 +168,10 @@ public class MasonryColumnsTest {
         // independent of layoutWidth. fillWidth tracks divide layoutWidth (600), not
         // breakpointWidth (800).
         Resolution r = MasonryColumns.resolve(800.0, 600.0, 0, 100.0, 0.0, 0, true,
-                RXBreakpointProfile.ANT_DESIGN, Map.of("md", 3));
+                RXBreakpointProfile.ANT_DESIGN, Map.of(RXBreakpoint.MD, 3));
 
         assertEquals(3, r.columns());
-        assertEquals("md", r.activeBreakpoint().getName());
+        assertEquals(RXBreakpoint.MD, r.activeBreakpoint());
         assertEquals(200.0, r.trackWidth(), DELTA);
     }
 
@@ -186,14 +187,14 @@ public class MasonryColumnsTest {
                 RXBreakpointProfile.ANT_DESIGN, Map.of());
 
         assertEquals(5, r.columns());
-        assertEquals("lg", r.activeBreakpoint().getName());
+        assertEquals(RXBreakpoint.LG, r.activeBreakpoint());
     }
 
     // ==================== Helpers ====================
 
     private void assertColumnParity(double width, double columnWidth, double hgap,
                                     int columnCount, int maxColumns, boolean fillWidth,
-                                    Map<String, Integer> overrides) {
+                                    Map<RXBreakpoint, Integer> overrides) {
         RXMasonryPane pane = new RXMasonryPane();
         pane.setColumnWidth(columnWidth);
         pane.setHgap(hgap);
@@ -209,7 +210,7 @@ public class MasonryColumnsTest {
         String label = "width=" + width + " columnWidth=" + columnWidth + " hgap=" + hgap
                 + " columnCount=" + columnCount + " maxColumns=" + maxColumns + " overrides=" + overrides;
         assertEquals(pane.getActualColumnCount(), resolution.columns(), "columns @ " + label);
-        assertEquals(pane.getActiveBreakpoint().getName(), resolution.activeBreakpoint().getName(),
+        assertEquals(pane.getActiveBreakpoint(), resolution.activeBreakpoint(),
                 "activeBreakpoint @ " + label);
     }
 

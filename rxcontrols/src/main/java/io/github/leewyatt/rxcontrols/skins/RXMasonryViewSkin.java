@@ -1034,7 +1034,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // to stack monotonically, so the virtualized view does not overlap.
         double snappedVgap = Math.max(0.0, snapSpaceY(gapOrDefault(control.getVgap())));
         RXBreakpointProfile profile = breakpointProfileOrDefault(control);
-        Map<String, Integer> overrides = control.getBreakpointColumnOverrides();
+        Map<RXBreakpoint, Integer> overrides = control.getBreakpointColumnOverrides();
 
         Resolution first = MasonryColumns.resolve(breakpointWidth, breakpointWidth, control.getColumnCount(),
                 snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);

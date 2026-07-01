@@ -38,6 +38,7 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -118,7 +119,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Sentinel breakpoint column count that restores
      * {@link #columnWidthProperty() columnWidth} auto-calculation. Passing this
-     * to {@link #setBreakpointColumns(String, Integer)} or a typed setter sets
+     * to {@link #setBreakpointColumns(RXBreakpoint, Integer)} or a typed setter sets
      * an explicit auto override that breaks the mobile-first cascade and resumes
      * auto column counting from that breakpoint up, in contrast to {@code null}
      * which simply clears the override so the breakpoint inherits.
@@ -981,7 +982,7 @@ public class RXMasonryPane extends Pane {
     // ==================== Breakpoint Profile ====================
 
     private final RXBreakpointSupport breakpointSupport = new RXBreakpointSupport();
-    private final Map<String, Integer> breakpointColumns = new HashMap<>();
+    private final Map<RXBreakpoint, Integer> breakpointColumns = new EnumMap<>(RXBreakpoint.class);
 
     private final ObjectProperty<RXBreakpointProfile> breakpointProfile =
             new SimpleObjectProperty<>(this, "breakpointProfile", DEFAULT_BREAKPOINT_PROFILE) {
@@ -1074,38 +1075,35 @@ public class RXMasonryPane extends Pane {
      * until a wider breakpoint sets a positive count again. Setting {@code null}
      * clears the override entirely so the breakpoint inherits.
      *
-     * @param breakpointName the breakpoint name (e.g. {@code "md"})
-     * @param columns        a positive column count, {@link #AUTO_COLUMNS} for
-     *                       explicit auto, or {@code null} to clear
-     * @throws NullPointerException     if {@code breakpointName} is {@code null}
-     * @throws IllegalArgumentException if {@code breakpointName} is blank or {@code columns} is negative
+     * @param breakpoint the breakpoint tier (e.g. {@link RXBreakpoint#MD})
+     * @param columns    a positive column count, {@link #AUTO_COLUMNS} for
+     *                   explicit auto, or {@code null} to clear
+     * @throws NullPointerException     if {@code breakpoint} is {@code null}
+     * @throws IllegalArgumentException if {@code columns} is negative
      */
-    public final void setBreakpointColumns(String breakpointName, Integer columns) {
-        Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
-        if (breakpointName.isBlank()) {
-            throw new IllegalArgumentException("breakpointName cannot be blank");
-        }
+    public final void setBreakpointColumns(RXBreakpoint breakpoint, Integer columns) {
+        Objects.requireNonNull(breakpoint, "breakpoint cannot be null");
         if (columns != null && columns < 0) {
             throw new IllegalArgumentException("columns cannot be negative");
         }
         if (columns == null) {
-            breakpointColumns.remove(breakpointName);
+            breakpointColumns.remove(breakpoint);
         } else {
-            breakpointColumns.put(breakpointName, columns);
+            breakpointColumns.put(breakpoint, columns);
         }
         requestLayout();
     }
 
     /**
-     * Returns the column count override for a named breakpoint.
+     * Returns the column count override for a breakpoint tier.
      *
-     * @param breakpointName the breakpoint name
+     * @param breakpoint the breakpoint tier
      * @return the column count, or {@code null} if none is set
-     * @throws NullPointerException if {@code breakpointName} is {@code null}
+     * @throws NullPointerException if {@code breakpoint} is {@code null}
      */
-    public final Integer getBreakpointColumns(String breakpointName) {
-        Objects.requireNonNull(breakpointName, "breakpointName cannot be null");
-        return breakpointColumns.get(breakpointName);
+    public final Integer getBreakpointColumns(RXBreakpoint breakpoint) {
+        Objects.requireNonNull(breakpoint, "breakpoint cannot be null");
+        return breakpointColumns.get(breakpoint);
     }
 
     /**
@@ -1116,7 +1114,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXs(Integer columns) {
-        setBreakpointColumns("xs", columns);
+        setBreakpointColumns(RXBreakpoint.XS, columns);
     }
 
     /**
@@ -1125,7 +1123,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXs() {
-        return getBreakpointColumns("xs");
+        return getBreakpointColumns(RXBreakpoint.XS);
     }
 
     /**
@@ -1136,7 +1134,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setSm(Integer columns) {
-        setBreakpointColumns("sm", columns);
+        setBreakpointColumns(RXBreakpoint.SM, columns);
     }
 
     /**
@@ -1145,7 +1143,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getSm() {
-        return getBreakpointColumns("sm");
+        return getBreakpointColumns(RXBreakpoint.SM);
     }
 
     /**
@@ -1156,7 +1154,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setMd(Integer columns) {
-        setBreakpointColumns("md", columns);
+        setBreakpointColumns(RXBreakpoint.MD, columns);
     }
 
     /**
@@ -1165,7 +1163,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getMd() {
-        return getBreakpointColumns("md");
+        return getBreakpointColumns(RXBreakpoint.MD);
     }
 
     /**
@@ -1176,7 +1174,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setLg(Integer columns) {
-        setBreakpointColumns("lg", columns);
+        setBreakpointColumns(RXBreakpoint.LG, columns);
     }
 
     /**
@@ -1185,7 +1183,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getLg() {
-        return getBreakpointColumns("lg");
+        return getBreakpointColumns(RXBreakpoint.LG);
     }
 
     /**
@@ -1196,7 +1194,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXl(Integer columns) {
-        setBreakpointColumns("xl", columns);
+        setBreakpointColumns(RXBreakpoint.XL, columns);
     }
 
     /**
@@ -1205,7 +1203,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXl() {
-        return getBreakpointColumns("xl");
+        return getBreakpointColumns(RXBreakpoint.XL);
     }
 
     /**
@@ -1216,7 +1214,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXxl(Integer columns) {
-        setBreakpointColumns("xxl", columns);
+        setBreakpointColumns(RXBreakpoint.XXL, columns);
     }
 
     /**
@@ -1225,7 +1223,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXxl() {
-        return getBreakpointColumns("xxl");
+        return getBreakpointColumns(RXBreakpoint.XXL);
     }
 
     /**
@@ -1236,7 +1234,7 @@ public class RXMasonryPane extends Pane {
      * @throws IllegalArgumentException if {@code columns} is negative
      */
     public final void setXxxl(Integer columns) {
-        setBreakpointColumns("xxxl", columns);
+        setBreakpointColumns(RXBreakpoint.XXXL, columns);
     }
 
     /**
@@ -1245,7 +1243,7 @@ public class RXMasonryPane extends Pane {
      * @return the column count, or {@code null} if none is set
      */
     public final Integer getXxxl() {
-        return getBreakpointColumns("xxxl");
+        return getBreakpointColumns(RXBreakpoint.XXXL);
     }
 
     private Integer resolveBreakpointColumns(double contentWidth) {
@@ -1253,13 +1251,13 @@ public class RXMasonryPane extends Pane {
             return null;
         }
         RXBreakpointProfile profile = breakpointProfileOrDefault();
-        double activeMinWidth = profile.resolve(contentWidth).getMinWidth();
+        double activeMinWidth = profile.minWidthOf(profile.resolve(contentWidth));
         Integer resolved = null;
         for (RXBreakpoint breakpoint : profile.getBreakpoints()) {
-            if (breakpoint.getMinWidth() > activeMinWidth) {
+            if (profile.minWidthOf(breakpoint) > activeMinWidth) {
                 break;
             }
-            Integer columns = breakpointColumns.get(breakpoint.getName());
+            Integer columns = breakpointColumns.get(breakpoint);
             if (columns != null) {
                 resolved = columns;
             }
