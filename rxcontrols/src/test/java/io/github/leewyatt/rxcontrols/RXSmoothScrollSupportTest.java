@@ -121,6 +121,32 @@ public class RXSmoothScrollSupportTest {
     }
 
     @Test
+    public void axisChangeStopsMomentumOnDisabledAxis() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(800.0, 200.0);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScroller scroller = RXSmoothScrollSupport.install(pane);
+
+            pane.getContent().fireEvent(scroll(-120.0, 0.0, false));
+            scroller.setAxis(ScrollAxis.VERTICAL);
+
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(220.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(paneRef.get().getHmin(), paneRef.get().getHvalue(), 0.0001,
+                    "horizontal momentum is stopped when horizontal scrolling is disabled");
+        });
+    }
+
+    @Test
     public void horizontalAndDiagonalWheelUpdateIndependentAxes() throws Exception {
         onFx(() -> {
             ScrollPane pane = scrollPane(800.0, 800.0);

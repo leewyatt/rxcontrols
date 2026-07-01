@@ -135,6 +135,30 @@ final class RXMomentumDouble implements AutoCloseable {
             return;
         }
 
+        advanceTo(nowNanos);
+        notifyUpdate(currentValue);
+    }
+
+    private void push(double delta, long nowNanos) {
+        if (disposed || delta == 0.0) {
+            return;
+        }
+        if (running) {
+            advanceTo(nowNanos);
+        }
+        if (!running) {
+            lastNanos = nowNanos;
+            running = true;
+        }
+        startNanos = nowNanos;
+        velocity = RXMath.clamp(velocity + delta * DEFAULT_VELOCITY_GAIN,
+                -DEFAULT_MAX_VELOCITY, DEFAULT_MAX_VELOCITY);
+        if (autoStartTimer) {
+            timer.start();
+        }
+    }
+
+    private void advanceTo(long nowNanos) {
         double dt = Math.max(0.0, nowNanos - lastNanos) / NANOS_PER_SECOND;
         dt = Math.min(dt, DEFAULT_MAX_FRAME_SECONDS);
         lastNanos = nowNanos;
@@ -147,23 +171,6 @@ final class RXMomentumDouble implements AutoCloseable {
             stopTimer();
             running = false;
             velocity = 0.0;
-        }
-        notifyUpdate(currentValue);
-    }
-
-    private void push(double delta, long nowNanos) {
-        if (disposed || delta == 0.0) {
-            return;
-        }
-        if (!running) {
-            lastNanos = nowNanos;
-            running = true;
-        }
-        startNanos = nowNanos;
-        velocity = RXMath.clamp(velocity + delta * DEFAULT_VELOCITY_GAIN,
-                -DEFAULT_MAX_VELOCITY, DEFAULT_MAX_VELOCITY);
-        if (autoStartTimer) {
-            timer.start();
         }
     }
 

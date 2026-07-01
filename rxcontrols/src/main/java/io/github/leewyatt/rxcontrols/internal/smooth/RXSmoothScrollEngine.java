@@ -266,6 +266,10 @@ public final class RXSmoothScrollEngine implements AutoCloseable {
 
     private void applyMomentumHorizontal(double value) {
         double max = scrollable.getMaxOffsetX();
+        if (!scrollable.isHorizontalWritable()) {
+            xMomentum.stopAt(clamp(scrollable.getOffsetX(), 0.0, max));
+            return;
+        }
         double clamped = clamp(value, 0.0, max);
         scrollable.setOffsetX(clamped, true);
         if (clamped != value) {
@@ -275,6 +279,10 @@ public final class RXSmoothScrollEngine implements AutoCloseable {
 
     private void applyMomentumVertical(double value) {
         double max = scrollable.getMaxOffsetY();
+        if (!scrollable.isVerticalWritable()) {
+            yMomentum.stopAt(clamp(scrollable.getOffsetY(), 0.0, max));
+            return;
+        }
         double clamped = clamp(value, 0.0, max);
         scrollable.setOffsetY(clamped, true);
         if (clamped != value) {

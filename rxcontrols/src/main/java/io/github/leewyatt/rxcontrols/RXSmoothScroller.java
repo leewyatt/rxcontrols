@@ -115,7 +115,13 @@ public final class RXSmoothScroller implements AutoCloseable {
     // ==================== Axis ====================
 
     private final ObjectProperty<ScrollAxis> axis =
-            new SimpleObjectProperty<>(this, "axis", ScrollAxis.BOTH);
+            new SimpleObjectProperty<>(this, "axis", ScrollAxis.BOTH) {
+                @Override
+                protected void invalidated() {
+                    engine.stop();
+                    engine.snapToCurrentOffsets();
+                }
+            };
 
     /**
      * Axes that this scroller may drive. A {@code null} value is treated as

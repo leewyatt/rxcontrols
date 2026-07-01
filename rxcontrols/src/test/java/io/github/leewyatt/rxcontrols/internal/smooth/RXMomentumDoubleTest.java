@@ -67,6 +67,18 @@ public class RXMomentumDoubleTest {
     }
 
     @Test
+    public void repeatedPushAdvancesBeforeAddingImpulse() {
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        value.push(100.0);
+        now.set(100 * MILLIS);
+        value.push(100.0);
+
+        assertTrue(value.currentValue() > 0.0, "running push advances old velocity to the push time first");
+    }
+
+    @Test
     public void stopAtDoesNotNotifyUpdate() {
         AtomicLong now = new AtomicLong();
         RXMomentumDouble value = momentum(now, 0.0);

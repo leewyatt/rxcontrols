@@ -6,9 +6,10 @@ package io.github.leewyatt.rxcontrols;
  */
 public enum ScrollBoundaryPolicy {
     /**
-     * Let an enclosing scroll surface receive the event only when both the
-     * current offset and the pending smooth target are already at the boundary
-     * in the input direction.
+     * Let an enclosing scroll surface receive the event when this surface cannot
+     * absorb the current wheel input. Target mode also considers the pending
+     * smooth target, while momentum and immediate paths use the current offset and
+     * input direction.
      */
     CHAIN,
 
