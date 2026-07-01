@@ -24,15 +24,18 @@ import javafx.stage.Stage;
 import java.util.List;
 
 /**
- * Theme gallery: a scrollable, alphabetised grid of every color-relevant RxControl
- * (each in a labelled card) with a theme switcher to compare the built-in light/dark
- * looks against the AtlantaFX themes (see {@link ShowcaseThemes}). Pure layout
- * containers (RXBox / RXRow / RXCol / RXMasonryPane / RXFlowPane) are omitted; every other control
- * is built by {@link ThemeGalleryCards}.
+ * Theme gallery: a scrollable, alphabetised grid of color-relevant RxControls
+ * (each in a labelled card) with a theme switcher to compare the built-in
+ * light/dark looks against the AtlantaFX themes (see {@link ShowcaseThemes}).
+ * Pure layout containers (RXBox / RXRow / RXCol / RXMasonryPane / RXFlowPane)
+ * are omitted; the displayed controls are built by {@link ThemeGalleryCards}.
  */
 public class RXThemeGallery extends Application {
 
     private static final double CARD_WIDTH = 360.0;
+    private static final double CARD_GAP = 32.0;
+    private static final int DEFAULT_COLUMN_SPAN = 1;
+    private static final int WIDE_COLUMN_SPAN = 2;
 
     @Override
     public void start(Stage primaryStage) {
@@ -68,17 +71,12 @@ public class RXThemeGallery extends Application {
     }
 
     private RXMasonryPane buildGallery() {
-        final double gap = 32.0;
         RXMasonryPane grid = new RXMasonryPane();
         grid.setAlignment(Pos.CENTER);
-        grid.setHgap(gap);
-        grid.setVgap(gap);
+        grid.setHgap(CARD_GAP);
+        grid.setVgap(CARD_GAP);
         grid.setColumnWidth(CARD_WIDTH);
         grid.setFillWidth(false);
-        System.out.println(grid.getAnimationDuration().toMillis());
-        grid.animationDurationProperty().addListener((observable, oldValue, newValue) -> {
-            System.out.println(newValue.toMillis());
-        });
         for (NamedControl control : ThemeGalleryCards.cards()) {
             grid.getChildren().add(card(control));
         }
@@ -86,6 +84,9 @@ public class RXThemeGallery extends Application {
     }
 
     private static Node card(NamedControl control) {
+        int columnSpan = columnSpan(control.name());
+        double cardWidth = cardWidth(columnSpan);
+
         Label name = new Label(control.name());
         name.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
 
@@ -96,14 +97,34 @@ public class RXThemeGallery extends Application {
 
         VBox card = new VBox(10, name, new Separator(), stage);
         card.setPadding(new Insets(16));
-        card.setPrefWidth(CARD_WIDTH);
-        card.setMinWidth(CARD_WIDTH);
+        card.setPrefWidth(cardWidth);
+        card.setMinWidth(cardWidth);
         card.setMinHeight(Region.USE_PREF_SIZE);
+        if (columnSpan > DEFAULT_COLUMN_SPAN) {
+            RXMasonryPane.setColumnSpan(card, columnSpan);
+        }
         // Theme-neutral chrome: a translucent grey border reads on light and dark
         // surfaces alike, with a transparent fill so the themed background shows.
         card.setStyle("-fx-border-color: rgba(128, 128, 128, 0.35);"
                 + " -fx-border-radius: 10; -fx-border-width: 1; -fx-background-radius: 10;");
         return card;
+    }
+
+    private static int columnSpan(String name) {
+        switch (name) {
+            case "RXCarousel":
+            case "RXCascader":
+            case "RXCascaderView":
+            case "RXSidebar":
+            case "RXTimelineView Horizontal":
+                return WIDE_COLUMN_SPAN;
+            default:
+                return DEFAULT_COLUMN_SPAN;
+        }
+    }
+
+    private static double cardWidth(int columnSpan) {
+        return columnSpan * CARD_WIDTH + (columnSpan - 1) * CARD_GAP;
     }
 
     public static void main(String[] args) {

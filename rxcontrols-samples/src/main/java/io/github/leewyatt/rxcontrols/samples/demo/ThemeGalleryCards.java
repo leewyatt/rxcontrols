@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.AnimationTrigger;
+import io.github.leewyatt.rxcontrols.ImageFit;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
@@ -36,16 +38,16 @@ import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
-import io.github.leewyatt.rxcontrols.RXSkeleton.Variant;
-import io.github.leewyatt.rxcontrols.RXSkeletonPane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
+import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.RXToggleButton;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
@@ -56,11 +58,10 @@ import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
-import io.github.leewyatt.rxcontrols.AnimationTrigger;
-import io.github.leewyatt.rxcontrols.ImageFit;
-import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.spectrum.VisRadial;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import javafx.animation.KeyFrame;
@@ -77,6 +78,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -90,13 +92,16 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
-import java.util.ArrayList;
 
 /**
- * Generated demo-card builders for the theme gallery — one populated, size-capped
- * instance per control. Used by {@link RXThemeGallery}.
+ * Demo-card builders for the theme gallery, one populated instance per control.
+ * Used by {@link RXThemeGallery}.
  */
 final class ThemeGalleryCards {
+
+    private static final int AUDIO_RAW_BANDS = 128;
+    private static final double AUDIO_SOURCE_MIN_DB = -60.0;
+    private static final double AUDIO_FEED_RATE_HZ = 10.0;
 
     private ThemeGalleryCards() {
     }
@@ -142,10 +147,10 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXSegmentedStepIndicator", buildRXSegmentedStepIndicator()));
         list.add(new NamedControl("RXSidebar", buildRXSidebar()));
         list.add(new NamedControl("RXSkeleton", buildRXSkeleton()));
-        list.add(new NamedControl("RXSkeletonPane", buildRXSkeletonPane()));
         list.add(new NamedControl("RXTextField", buildRXTextField()));
         list.add(new NamedControl("RXTextView", buildRXTextView()));
         list.add(new NamedControl("RXTimelineView", buildRXTimelineView()));
+        list.add(new NamedControl("RXTimelineView Horizontal", buildRXTimelineViewHorizontal()));
         list.add(new NamedControl("RXToggleButton", buildRXToggleButton()));
         list.add(new NamedControl("RXTransitionButton", buildRXTransitionButton()));
         list.add(new NamedControl("RXTransitionLabel", buildRXTransitionLabel()));
@@ -156,21 +161,37 @@ final class ThemeGalleryCards {
 
     private static Node buildRXAudioSpectrum() {
         RXAudioSpectrum spectrum = new RXAudioSpectrum();
-        spectrum.setBandCount(48);
+        VisRadial value = new VisRadial();
+        value.setInnerRadiusRatio(0.15);
+        spectrum.setVisualization(value);
         spectrum.setPrefSize(300.0, 200.0);
         spectrum.setMaxSize(300.0, 200.0);
-        int rawBands = 128;
-        float[] frame = new float[rawBands];
-        double minDb = spectrum.getMinDecibels();
-        for (int i = 0; i < rawBands; i++) {
-            double position = i / (double) rawBands;
-            double envelope = Math.exp(-Math.pow((position - 0.28) * 3.2, 2.0));
-            double ripple = 0.5 + 0.5 * Math.sin(position * 22.0);
-            double level = RXMath.clamp(0.25 + 0.75 * envelope * ripple, 0.0, 1.0);
-            frame[i] = (float) (minDb * (1.0 - level));
-        }
-        spectrum.updateSpectrum(frame);
+        startSineSpectrumFeed(spectrum);
         return spectrum;
+    }
+
+    private static void startSineSpectrumFeed(RXAudioSpectrum spectrum) {
+        float[] frame = new float[AUDIO_RAW_BANDS];
+        double[] sourceTime = {0.0};
+        Runnable feed = () -> {
+            sourceTime[0] += 1.0 / AUDIO_FEED_RATE_HZ;
+            for (int i = 0; i < AUDIO_RAW_BANDS; i++) {
+                frame[i] = (float) (AUDIO_SOURCE_MIN_DB * (1.0 - sineSpectrumLevelAt(sourceTime[0], i)));
+            }
+            spectrum.updateSpectrum(frame);
+        };
+        feed.run();
+        Timeline feeder = new Timeline(new KeyFrame(Duration.seconds(1.0 / AUDIO_FEED_RATE_HZ), event -> feed.run()));
+        feeder.setCycleCount(Timeline.INDEFINITE);
+        feeder.play();
+    }
+
+    private static double sineSpectrumLevelAt(double sourceTime, int bandIndex) {
+        double position = bandIndex / (double) AUDIO_RAW_BANDS;
+        double wave = Math.max(0.0, Math.sin(sourceTime * 4.0 + bandIndex * 0.25));
+        double tilt = 1.0 - 0.6 * position;
+        double pulse = 0.6 + 0.4 * Math.sin(sourceTime * 2.0 * Math.PI * 0.4);
+        return wave * tilt * pulse;
     }
 
     private static Node buildRXAvatar() {
@@ -206,8 +227,7 @@ final class ThemeGalleryCards {
         button.setRippleFill(Color.web("#1e88e5"));
         button.setRippleOpacity(0.30);
         button.setStateOverlayEnabled(true);
-        button.setMaxWidth(220);
-        button.setPrefWidth(220);
+        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -226,8 +246,8 @@ final class ThemeGalleryCards {
         carousel.setAnimation(new AnimSlide());
         carousel.setAnimationDuration(Duration.millis(500));
         carousel.setPages(pages);
-        carousel.setPrefSize(280, 200);
-        carousel.setMaxSize(280, 200);
+        carousel.setPrefSize(640.0, 260.0);
+        carousel.setMaxSize(Double.MAX_VALUE, Region.USE_PREF_SIZE);
         carousel.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return carousel;
     }
@@ -255,8 +275,7 @@ final class ThemeGalleryCards {
         cascader.setItemTextFactory(value -> value);
         cascader.getRootItems().setAll(List.of(asia, europe));
         cascader.select(shanghai);
-        cascader.setMaxWidth(260);
-        cascader.setPrefWidth(260);
+        cascader.setMaxWidth(Double.MAX_VALUE);
 
         StackPane card = new StackPane(cascader);
         card.setPadding(new Insets(16));
@@ -287,8 +306,7 @@ final class ThemeGalleryCards {
         view.getRootItems().setAll(List.of(asia, europe));
         view.activate(asia);
         view.activate(china);
-        view.setMaxWidth(Region.USE_PREF_SIZE);
-        view.setPrefWidth(300.0);
+        view.setMaxWidth(Double.MAX_VALUE);
         return view;
     }
 
@@ -380,17 +398,23 @@ final class ThemeGalleryCards {
         Label kpiCaption = new Label("Monthly revenue");
         Label kpiValue = new Label("$48,250");
         Label kpiDelta = new Label("+12.4% vs last month");
-        VBox first = new VBox(8.0, kpiCaption, kpiValue, kpiDelta);
+        Button viewDetails = new Button("View breakdown");
+        VBox first = new VBox(8.0, kpiCaption, kpiValue, kpiDelta, viewDetails);
         first.setAlignment(Pos.CENTER);
 
         Label detailTitle = new Label("Revenue breakdown");
         Label detailLine1 = new Label("Subscriptions   $31,400");
         Label detailLine2 = new Label("One-time         $11,850");
         Label detailLine3 = new Label("Add-ons           $5,000");
-        VBox second = new VBox(6.0, detailTitle, detailLine1, detailLine2, detailLine3);
+        Button back = new Button("Back to summary");
+        VBox second = new VBox(6.0, detailTitle, detailLine1, detailLine2, detailLine3, back);
         second.setAlignment(Pos.CENTER);
 
         RXDualPane pane = new RXDualPane(first, second);
+        viewDetails.setOnAction(e -> pane.setShowingSecond(true));
+        back.setOnAction(e -> pane.setShowingSecond(false));
+        first.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> pane.setShowingSecond(true));
+        second.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> pane.setShowingSecond(false));
         pane.setAnimation(new AnimFlip());
         pane.setAnimationDuration(Duration.millis(500.0));
         pane.setPrefSize(280.0, 200.0);
@@ -409,8 +433,7 @@ final class ThemeGalleryCards {
         button.setFillCornerRadius(new CornerRadii(6.0));
         button.setStyle("-rx-fill: #616dff; -fx-background-radius: 6px; -fx-border-radius: 6px;");
         button.setAlignment(Pos.CENTER);
-        button.setMaxWidth(260.0);
-        button.setPrefWidth(260.0);
+        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -445,7 +468,7 @@ final class ThemeGalleryCards {
         badge.setPadding(new Insets(0, 6, 0, 8));
         field.setLeft(badge);
         field.setAlignment(Pos.CENTER_RIGHT);
-        field.setMaxWidth(280);
+        field.setMaxWidth(Double.MAX_VALUE);
         return field;
     }
 
@@ -459,7 +482,7 @@ final class ThemeGalleryCards {
         view.setHighlightFill(Color.web("#fff1a8"));
         view.setLineSpacing(6.0);
         view.setPrefWidth(280.0);
-        view.setMaxWidth(Region.USE_PREF_SIZE);
+        view.setMaxWidth(Double.MAX_VALUE);
         return view;
     }
 
@@ -513,8 +536,7 @@ final class ThemeGalleryCards {
         unit.getStyleClass().add("slot-unit");
         field.setLeft(badge);
         field.setRight(unit);
-        field.setMaxWidth(260);
-        field.setPrefWidth(260);
+        field.setMaxWidth(Double.MAX_VALUE);
         return field;
     }
 
@@ -524,8 +546,7 @@ final class ThemeGalleryCards {
         button.setLineThickness(2.0);
         button.setLineGap(3.0);
         button.setStyle("-rx-line-color: #616dff;");
-        button.setMaxWidth(Region.USE_PREF_SIZE);
-        button.setPrefWidth(220.0);
+        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -554,8 +575,7 @@ final class ThemeGalleryCards {
 
         VBox box = new VBox(16.0, heading, links);
         box.setAlignment(Pos.CENTER);
-        box.setMaxWidth(280);
-        box.setPrefWidth(280);
+        box.setMaxWidth(Double.MAX_VALUE);
         return box;
     }
 
@@ -602,15 +622,14 @@ final class ThemeGalleryCards {
         Label unit = new Label("USD");
         unit.setPadding(new Insets(0, 8, 0, 8));
         field.setRight(unit);
-        field.setMaxWidth(280);
+        field.setMaxWidth(Double.MAX_VALUE);
         return field;
     }
 
     private static Node buildRXPasswordField() {
         RXPasswordField field = new RXPasswordField("hunter2");
         field.setPromptText("Password");
-        field.setMaxWidth(280);
-        field.setPrefWidth(280);
+        field.setMaxWidth(Double.MAX_VALUE);
 
         SVGPath lockPath = new SVGPath();
         lockPath.setContent("M8 1a3 3 0 0 0-3 3v3H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3zm2 6H6V4a2 2 0 1 1 4 0v3z");
@@ -644,8 +663,7 @@ final class ThemeGalleryCards {
         day.setSelected(true);
         HBox row = new HBox(8.0, day, week, month);
         row.setAlignment(Pos.CENTER);
-        row.setMaxWidth(280.0);
-        row.setPrefWidth(280.0);
+        row.setMaxWidth(Double.MAX_VALUE);
         return row;
     }
 
@@ -654,7 +672,7 @@ final class ThemeGalleryCards {
         eyebrow.setStyle("-fx-font-size: 11px; -fx-text-fill: #0f766e; -fx-font-weight: bold;");
         Label title = new Label("Incident response");
         title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
-        Label metric = new Label("18 open  |  92% SLA");
+        Label metric = new Label("Tip: click to play the ripple");
         metric.setStyle("-fx-text-fill: #475569;");
         VBox body = new VBox(8.0, eyebrow, title, metric);
         body.setAlignment(Pos.CENTER_LEFT);
@@ -677,10 +695,10 @@ final class ThemeGalleryCards {
         RXSeekBar seekBar = new RXSeekBar(0.72);
         seekBar.setSecondaryProgress(0.36);
         seekBar.setPrefWidth(280.0);
-        seekBar.setMaxWidth(280.0);
+        seekBar.setMaxWidth(Double.MAX_VALUE);
         StackPane box = new StackPane(seekBar);
         box.setPadding(new Insets(16.0));
-        box.setMaxWidth(300.0);
+        box.setMaxWidth(Double.MAX_VALUE);
         return box;
     }
 
@@ -692,7 +710,8 @@ final class ThemeGalleryCards {
                 RXSegmentedItem.of("monthly", "Monthly"),
                 RXSegmentedItem.of("yearly", "Yearly"));
         control.setValue("weekly");
-        control.setMaxWidth(300.0);
+        control.setEqualSegmentWidth(true);
+        control.setMaxWidth(Double.MAX_VALUE);
         return control;
     }
 
@@ -702,10 +721,10 @@ final class ThemeGalleryCards {
         bar.setSegmentHeight(8.0);
         bar.setSegmentGap(4.0);
         bar.setPrefWidth(260.0);
-        bar.setMaxWidth(260.0);
+        bar.setMaxWidth(Double.MAX_VALUE);
         StackPane card = new StackPane(bar);
         card.setMinHeight(40.0);
-        card.setMaxWidth(280.0);
+        card.setMaxWidth(Double.MAX_VALUE);
         return card;
     }
 
@@ -715,16 +734,25 @@ final class ThemeGalleryCards {
         indicator.setSegmentProgress(0.45);
         indicator.setSegmentHeight(10.0);
         indicator.setPrefWidth(280.0);
-        indicator.setMaxWidth(280.0);
+        indicator.setMaxWidth(Double.MAX_VALUE);
         StackPane card = new StackPane(indicator);
         card.setPadding(new Insets(16.0));
-        card.setMaxWidth(300.0);
+        card.setMaxWidth(Double.MAX_VALUE);
         return card;
     }
 
     private static Node buildRXSidebar() {
+        RXSidebar expanded = createSidebar(SidebarMode.EXPANDED);
+        RXSidebar mini = createSidebar(SidebarMode.MINI);
+        HBox box = new HBox(24.0, expanded, mini);
+        box.setAlignment(Pos.CENTER);
+        box.setPrefHeight(460.0);
+        return box;
+    }
+
+    private static RXSidebar createSidebar(SidebarMode mode) {
         RXSidebar sidebar = new RXSidebar();
-        Label header = new Label("RX App");
+        Label header = new Label(mode == SidebarMode.MINI ? "RX" : "RX App");
         header.setStyle("-fx-font-weight: bold; -fx-padding: 4 8;");
         sidebar.setHeader(header);
         RXSidebarNavItem dashboard = new RXSidebarNavItem("Dashboard", new Circle(8, Color.web("#5b8def")));
@@ -736,9 +764,11 @@ final class ThemeGalleryCards {
         sidebar.getBottomItems().addAll(settings, new RXSidebarNavItem("Help", new Circle(8, Color.web("#8a8f99"))));
         sidebar.setFooter(new Label("v1.0"));
         sidebar.setSelectedItem(dashboard);
-        sidebar.setExpandedWidth(220);
-        sidebar.setMaxSize(240, 230);
-        sidebar.setPrefSize(220, 230);
+        sidebar.setExpandedWidth(220.0);
+        sidebar.setMiniWidth(72.0);
+        sidebar.setMode(mode);
+        sidebar.setAnimated(false);
+        sidebar.setPrefHeight(460.0);
         return sidebar;
     }
 
@@ -766,55 +796,14 @@ final class ThemeGalleryCards {
         row.setAlignment(Pos.TOP_LEFT);
         row.setPadding(new Insets(16.0));
         row.setPrefSize(280.0, 110.0);
-        row.setMaxSize(280.0, 110.0);
+        row.setMaxSize(Double.MAX_VALUE, Region.USE_PREF_SIZE);
         return row;
-    }
-
-    private static Node buildRXSkeletonPane() {
-        RXSkeleton avatarBone = new RXSkeleton(Variant.CIRCULAR);
-        avatarBone.setMinSize(44.0, 44.0);
-        avatarBone.setPrefSize(44.0, 44.0);
-        avatarBone.setMaxSize(44.0, 44.0);
-
-        RXSkeleton titleBone = new RXSkeleton(Variant.ROUNDED_RECTANGLE);
-        titleBone.setPrefSize(110.0, 14.0);
-        titleBone.setMaxWidth(110.0);
-
-        RXSkeleton paragraphBone = new RXSkeleton(Variant.TEXT);
-        paragraphBone.setLineCount(2);
-        paragraphBone.setLineHeight(10.0);
-        paragraphBone.setLineSpacing(6.0);
-        paragraphBone.setLastLineFillPercent(70.0);
-
-        VBox boneColumn = new VBox(8.0, titleBone, paragraphBone);
-        HBox.setHgrow(boneColumn, Priority.ALWAYS);
-        HBox skeleton = new HBox(14.0, avatarBone, boneColumn);
-        skeleton.setAlignment(Pos.TOP_LEFT);
-
-        RXAvatar avatar = new RXAvatar();
-        avatar.setText("LW");
-        avatar.setPrefSize(44.0, 44.0);
-
-        Label name = new Label("Lee Wyatt");
-        Label body = new Label("Today's weather is great. Took a walk and met a neighbor who shared a few useful cafe tips.");
-        body.setWrapText(true);
-
-        VBox textColumn = new VBox(6.0, name, body);
-        HBox.setHgrow(textColumn, Priority.ALWAYS);
-        HBox content = new HBox(14.0, avatar, textColumn);
-        content.setAlignment(Pos.TOP_LEFT);
-
-        RXSkeletonPane pane = new RXSkeletonPane(skeleton, content, true);
-        pane.setPrefWidth(260.0);
-        pane.setMaxWidth(260.0);
-        return pane;
     }
 
     private static Node buildRXTextField() {
         RXTextField field = new RXTextField("Search query");
         field.setPromptText("Search...");
-        field.setPrefWidth(260);
-        field.setMaxWidth(260);
+        field.setMaxWidth(Double.MAX_VALUE);
 
         SVGPath path = new SVGPath();
         path.setContent("M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.012 1.012 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z");
@@ -842,7 +831,7 @@ final class ThemeGalleryCards {
         textView.setSelectedTextFill(Color.WHITE);
         textView.selectRange(0, 11);
         textView.setPrefWidth(280.0);
-        textView.setMaxWidth(Region.USE_PREF_SIZE);
+        textView.setMaxWidth(Double.MAX_VALUE);
         return textView;
     }
 
@@ -868,8 +857,38 @@ final class ThemeGalleryCards {
         notified.setOppositeContent(new Label("19:15"));
         RXTimelineView timeline = new RXTimelineView(placed, paid, stock, delayed, notified);
         timeline.setShowOppositeContent(true);
-        timeline.setMaxWidth(300);
-        timeline.setPrefWidth(300);
+        timeline.setPrefSize(300.0, 320.0);
+        timeline.setMaxWidth(Double.MAX_VALUE);
+        return timeline;
+    }
+
+    private static Node buildRXTimelineViewHorizontal() {
+        RXTimelineItem intake = new RXTimelineItem("Intake");
+        intake.setDescription("Request logged");
+        intake.setType(Type.PRIMARY);
+        intake.setOppositeContent(new Label("09:00"));
+
+        RXTimelineItem design = new RXTimelineItem("Design");
+        design.setDescription("Wireframe approved");
+        design.setType(Type.SUCCESS);
+        design.setOppositeContent(new Label("10:15"));
+
+        RXTimelineItem build = new RXTimelineItem("Build");
+        build.setDescription("Components wired");
+        build.setType(Type.WARNING);
+        build.setOppositeContent(new Label("13:40"));
+
+        RXTimelineItem review = new RXTimelineItem("Review");
+        review.setDescription("QA pass");
+        review.setType(Type.INFO);
+        review.setOppositeContent(new Label("16:20"));
+
+        RXTimelineView timeline = new RXTimelineView(intake, design, build, review);
+        timeline.setOrientation(Orientation.HORIZONTAL);
+        timeline.setPosition(Position.ALTERNATE);
+        timeline.setShowOppositeContent(true);
+        timeline.setPrefSize(640.0, 260.0);
+        timeline.setMaxSize(Double.MAX_VALUE, Region.USE_PREF_SIZE);
         return timeline;
     }
 
@@ -884,7 +903,7 @@ final class ThemeGalleryCards {
         list.setSelected(true);
         HBox box = new HBox(8.0, list, grid, gallery);
         box.setAlignment(Pos.CENTER);
-        box.setMaxWidth(300.0);
+        box.setMaxWidth(Double.MAX_VALUE);
         return box;
     }
 
