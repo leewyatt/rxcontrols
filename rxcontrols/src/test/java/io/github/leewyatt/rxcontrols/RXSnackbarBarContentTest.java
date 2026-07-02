@@ -205,6 +205,23 @@ public class RXSnackbarBarContentTest {
     }
 
     @Test
+    public void hostEmptySpaceIsClickThrough() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            host.show(RXSnackbarRequest.builder("bottom-left bar").build());
+            assertFalse(host.isPickOnBounds(),
+                    "a scene-filling host must not pick on bounds (Region defaults it to true)");
+            // Node.contains honors pickOnBounds=false and falls back to geometry;
+            // the host paints no background, so its empty space never picks and a
+            // click there reaches the scene content beneath.
+            assertFalse(host.contains(host.getWidth() - 5.0, 5.0),
+                    "empty overlay space clicks through");
+            Node bar = host.lookup(".snackbar");
+            assertTrue(bar.isPickOnBounds(), "the bar itself catches clicks across its bounds");
+        });
+    }
+
+    @Test
     public void escapeInsideBarDismisses() throws Exception {
         runOnFx(() -> {
             RXSnackbarHost host = skinnedHost();

@@ -158,6 +158,11 @@ public class RXSnackbarHost extends Control {
         setAccessibleRole(AccessibleRole.NODE);
         // A transparent overlay is not a Tab stop (Control defaults to true).
         setFocusTraversable(false);
+        // Region's constructor flips pickOnBounds to TRUE (unlike Node's false),
+        // so a scene-filling host would swallow every mouse event. With it off,
+        // picking falls back to geometry — this host paints no background, so
+        // empty space clicks through and only the bar (which has one) is hit.
+        setPickOnBounds(false);
         // Leaving the scene settles everything: pending requests are DISCARDED and a
         // displayed bar closes as PROGRAMMATIC, so no callback is ever left hanging.
         // Registered before any skin exists, so this runs ahead of the skin's own
