@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
-import io.github.leewyatt.rxcontrols.event.DrawerEvent;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
 import javafx.animation.Interpolator;
@@ -34,7 +34,7 @@ import java.util.function.Consumer;
  * and a control panel that drives every configurable property: side, mode,
  * backdrop group, animation, and drawer thickness, plus open/close/toggle
  * buttons and a live read-out of {@code showing} and the last
- * {@link DrawerEvent}.</p>
+ * {@link RXDrawerEvent}.</p>
  */
 public class RXDrawerPaneShowcase extends RXShowcaseApplication {
 
@@ -68,7 +68,7 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         drawer = new RXDrawerPane();
         drawer.setContent(createMainContent());
         drawer.setDrawerContent(createDrawerContent());
-        drawer.addEventHandler(DrawerEvent.ANY, e -> lastEvent.set(
+        drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
                 e.getEventType().getName()));
         return drawer;
     }

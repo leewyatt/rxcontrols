@@ -12,6 +12,11 @@ import java.util.Objects;
  * stays installed (a snackbar host repeatedly shows and hides bars, and
  * re-mounting per message would churn a WRAP-mode root). The layer renders
  * behind the dialog layer (higher viewOrder), so dialogs always cover snackbars.
+ *
+ * <p>A layer orphaned by a root swap uninstalls itself the moment it leaves the
+ * scene (see the base class), so the scene's property map never pins the old
+ * root tree; {@link #hostFor} additionally guards against a stale cache entry
+ * and rebuilds fresh.</p>
  */
 public final class RXSnackbarLayer extends RXSceneOverlayLayer {
 

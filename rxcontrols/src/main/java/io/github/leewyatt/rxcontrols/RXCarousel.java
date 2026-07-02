@@ -5,7 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
-import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
+import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.beans.property.BooleanProperty;
@@ -801,24 +801,24 @@ public class RXCarousel extends Control {
 
     // ==================== Page Lifecycle Event Handlers ====================
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageCached;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageCached;
 
     /**
      * Called when a page enters the cache. This is a convenience property
      * equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.CACHED, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.CACHED, handler)}, except
      * that it allows only a single handler (setting a new handler replaces
      * the previous one).
      *
      * @return the onPageCached handler property
-     * @see PageLifecycleEvent#CACHED
+     * @see RXPageLifecycleEvent#CACHED
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageCachedProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageCachedProperty() {
         if (onPageCached == null) {
             onPageCached = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.CACHED, get());
+                    setEventHandler(RXPageLifecycleEvent.CACHED, get());
                 }
 
                 @Override
@@ -840,7 +840,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageCached(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageCached(EventHandler<RXPageLifecycleEvent> handler) {
         onPageCachedProperty().set(handler);
     }
 
@@ -849,27 +849,27 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageCached() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageCached() {
         return onPageCached == null ? null : onPageCached.get();
     }
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageOpening;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageOpening;
 
     /**
      * Called when a page begins to appear. This is a convenience property
      * equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.OPENING, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.OPENING, handler)}, except
      * that it allows only a single handler.
      *
      * @return the onPageOpening handler property
-     * @see PageLifecycleEvent#OPENING
+     * @see RXPageLifecycleEvent#OPENING
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageOpeningProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageOpeningProperty() {
         if (onPageOpening == null) {
             onPageOpening = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.OPENING, get());
+                    setEventHandler(RXPageLifecycleEvent.OPENING, get());
                 }
 
                 @Override
@@ -891,7 +891,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageOpening(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageOpening(EventHandler<RXPageLifecycleEvent> handler) {
         onPageOpeningProperty().set(handler);
     }
 
@@ -900,27 +900,27 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageOpening() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageOpening() {
         return onPageOpening == null ? null : onPageOpening.get();
     }
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageOpened;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageOpened;
 
     /**
      * Called when a page has fully appeared and the transition is complete.
      * This is a convenience property equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.OPENED, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.OPENED, handler)}, except
      * that it allows only a single handler.
      *
      * @return the onPageOpened handler property
-     * @see PageLifecycleEvent#OPENED
+     * @see RXPageLifecycleEvent#OPENED
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageOpenedProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageOpenedProperty() {
         if (onPageOpened == null) {
             onPageOpened = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.OPENED, get());
+                    setEventHandler(RXPageLifecycleEvent.OPENED, get());
                 }
 
                 @Override
@@ -942,7 +942,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageOpened(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageOpened(EventHandler<RXPageLifecycleEvent> handler) {
         onPageOpenedProperty().set(handler);
     }
 
@@ -951,27 +951,27 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageOpened() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageOpened() {
         return onPageOpened == null ? null : onPageOpened.get();
     }
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageClosing;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageClosing;
 
     /**
      * Called when a page begins to disappear. This is a convenience property
      * equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.CLOSING, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.CLOSING, handler)}, except
      * that it allows only a single handler.
      *
      * @return the onPageClosing handler property
-     * @see PageLifecycleEvent#CLOSING
+     * @see RXPageLifecycleEvent#CLOSING
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageClosingProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageClosingProperty() {
         if (onPageClosing == null) {
             onPageClosing = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.CLOSING, get());
+                    setEventHandler(RXPageLifecycleEvent.CLOSING, get());
                 }
 
                 @Override
@@ -993,7 +993,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageClosing(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageClosing(EventHandler<RXPageLifecycleEvent> handler) {
         onPageClosingProperty().set(handler);
     }
 
@@ -1002,27 +1002,27 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageClosing() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageClosing() {
         return onPageClosing == null ? null : onPageClosing.get();
     }
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageClosed;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageClosed;
 
     /**
      * Called when a page has fully disappeared. This is a convenience property
      * equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.CLOSED, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.CLOSED, handler)}, except
      * that it allows only a single handler.
      *
      * @return the onPageClosed handler property
-     * @see PageLifecycleEvent#CLOSED
+     * @see RXPageLifecycleEvent#CLOSED
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageClosedProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageClosedProperty() {
         if (onPageClosed == null) {
             onPageClosed = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.CLOSED, get());
+                    setEventHandler(RXPageLifecycleEvent.CLOSED, get());
                 }
 
                 @Override
@@ -1044,7 +1044,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageClosed(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageClosed(EventHandler<RXPageLifecycleEvent> handler) {
         onPageClosedProperty().set(handler);
     }
 
@@ -1053,27 +1053,27 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageClosed() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageClosed() {
         return onPageClosed == null ? null : onPageClosed.get();
     }
 
-    private ObjectProperty<EventHandler<PageLifecycleEvent>> onPageEvicted;
+    private ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageEvicted;
 
     /**
      * Called when a page is evicted from the cache. This is a convenience
      * property equivalent to calling
-     * {@code addEventHandler(PageLifecycleEvent.EVICTED, handler)}, except
+     * {@code addEventHandler(RXPageLifecycleEvent.EVICTED, handler)}, except
      * that it allows only a single handler.
      *
      * @return the onPageEvicted handler property
-     * @see PageLifecycleEvent#EVICTED
+     * @see RXPageLifecycleEvent#EVICTED
      */
-    public final ObjectProperty<EventHandler<PageLifecycleEvent>> onPageEvictedProperty() {
+    public final ObjectProperty<EventHandler<RXPageLifecycleEvent>> onPageEvictedProperty() {
         if (onPageEvicted == null) {
             onPageEvicted = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(PageLifecycleEvent.EVICTED, get());
+                    setEventHandler(RXPageLifecycleEvent.EVICTED, get());
                 }
 
                 @Override
@@ -1095,7 +1095,7 @@ public class RXCarousel extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnPageEvicted(EventHandler<PageLifecycleEvent> handler) {
+    public final void setOnPageEvicted(EventHandler<RXPageLifecycleEvent> handler) {
         onPageEvictedProperty().set(handler);
     }
 
@@ -1104,7 +1104,7 @@ public class RXCarousel extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<PageLifecycleEvent> getOnPageEvicted() {
+    public final EventHandler<RXPageLifecycleEvent> getOnPageEvicted() {
         return onPageEvicted == null ? null : onPageEvicted.get();
     }
 
@@ -1112,7 +1112,7 @@ public class RXCarousel extends Control {
 
     /**
      * Clears the entire page cache. All cached page nodes will be removed and
-     * {@link PageLifecycleEvent#EVICTED} events will be fired.
+     * {@link RXPageLifecycleEvent#EVICTED} events will be fired.
      */
     public void clearPageCache() {
         if (getSkin() instanceof RXCarouselSkin) {
@@ -1122,7 +1122,7 @@ public class RXCarousel extends Control {
 
     /**
      * Clears the cached page at the given index. A
-     * {@link PageLifecycleEvent#EVICTED} event will be fired if the page
+     * {@link RXPageLifecycleEvent#EVICTED} event will be fired if the page
      * was cached.
      *
      * @param index the page index to clear

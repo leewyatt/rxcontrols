@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
-import io.github.leewyatt.rxcontrols.event.TimelineItemEvent;
+import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
@@ -335,8 +335,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         if (node == null || node.isDisabled()) {
             return;
         }
-        getSkinnable().fireEvent(new TimelineItemEvent(
-                getSkinnable(), TimelineItemEvent.ITEM_CLICKED, node.getItem(), node.getModelIndex()));
+        getSkinnable().fireEvent(new RXTimelineItemEvent(
+                getSkinnable(), RXTimelineItemEvent.ITEM_CLICKED, node.getItem(), node.getModelIndex()));
     }
 
     private ItemNode findItemNode(Object target) {

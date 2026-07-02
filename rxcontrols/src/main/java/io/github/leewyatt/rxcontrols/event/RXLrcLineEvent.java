@@ -9,17 +9,17 @@ import javafx.util.Duration;
 /**
  * Event fired when a lyric line is clicked in an {@link RXLrcView}.
  */
-public class LrcLineEvent extends Event {
+public class RXLrcLineEvent extends Event {
 
     /**
      * Base type for all LRC line events.
      */
-    public static final EventType<LrcLineEvent> ANY = new EventType<>(Event.ANY, "LRC_LINE");
+    public static final EventType<RXLrcLineEvent> ANY = new EventType<>(Event.ANY, "RX_LRC_LINE");
 
     /**
      * Fired when a lyric line is clicked.
      */
-    public static final EventType<LrcLineEvent> LINE_CLICKED = new EventType<>(ANY, "LINE_CLICKED");
+    public static final EventType<RXLrcLineEvent> LINE_CLICKED = new EventType<>(ANY, "RX_LRC_LINE_CLICKED");
 
     private final transient RXLrcView lrcView;
     private final transient LrcLine line;
@@ -35,7 +35,7 @@ public class LrcLineEvent extends Event {
      * @param index     the clicked line index
      * @param time      the clicked line start time
      */
-    public LrcLineEvent(RXLrcView source, EventType<LrcLineEvent> eventType, LrcLine line, int index, Duration time) {
+    public RXLrcLineEvent(RXLrcView source, EventType<RXLrcLineEvent> eventType, LrcLine line, int index, Duration time) {
         super(source, source, eventType);
         this.lrcView = source;
         this.line = line;

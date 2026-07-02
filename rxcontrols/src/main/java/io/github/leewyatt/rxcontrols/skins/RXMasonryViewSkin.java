@@ -6,7 +6,7 @@ import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
-import io.github.leewyatt.rxcontrols.event.MasonryViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXMasonryViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
@@ -600,7 +600,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             return;
         }
         T item = control.getItems().get(index);
-        control.fireEvent(new MasonryViewActionEvent<>(control, item, index));
+        control.fireEvent(new RXMasonryViewActionEvent<>(control, item, index));
     }
 
     // ==================== Mouse ====================

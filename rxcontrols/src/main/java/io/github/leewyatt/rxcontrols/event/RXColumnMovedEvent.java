@@ -19,13 +19,13 @@ import javafx.event.EventType;
  *
  * @param <T> the card type of the owning kanban view
  */
-public class ColumnMovedEvent<T> extends Event {
+public class RXColumnMovedEvent<T> extends Event {
 
     /**
      * The single event type for a column move. Use {@link #columnMovedType()} to
      * obtain it with the card type bound.
      */
-    public static final EventType<ColumnMovedEvent<?>> COLUMN_MOVED =
+    public static final EventType<RXColumnMovedEvent<?>> COLUMN_MOVED =
             new EventType<>(Event.ANY, "RX_KANBAN_COLUMN_MOVED");
 
     private final transient RXKanbanView<T> kanbanView;
@@ -41,7 +41,7 @@ public class ColumnMovedEvent<T> extends Event {
      * @param toIndex   the column's target index
      * @param column    the column being moved
      */
-    public ColumnMovedEvent(RXKanbanView<T> source, int fromIndex, int toIndex, RXKanbanColumn<T> column) {
+    public RXColumnMovedEvent(RXKanbanView<T> source, int fromIndex, int toIndex, RXKanbanColumn<T> column) {
         super(source, source, columnMovedType());
         this.kanbanView = source;
         this.fromIndex = fromIndex;
@@ -53,11 +53,11 @@ public class ColumnMovedEvent<T> extends Event {
      * Returns the column move event type with the given card type bound.
      *
      * @param <T> the card type
-     * @return the {@link #COLUMN_MOVED} type viewed as {@code EventType<ColumnMovedEvent<T>>}
+     * @return the {@link #COLUMN_MOVED} type viewed as {@code EventType<RXColumnMovedEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<ColumnMovedEvent<T>> columnMovedType() {
-        return (EventType<ColumnMovedEvent<T>>) (EventType<?>) COLUMN_MOVED;
+    public static <T> EventType<RXColumnMovedEvent<T>> columnMovedType() {
+        return (EventType<RXColumnMovedEvent<T>>) (EventType<?>) COLUMN_MOVED;
     }
 
     /**

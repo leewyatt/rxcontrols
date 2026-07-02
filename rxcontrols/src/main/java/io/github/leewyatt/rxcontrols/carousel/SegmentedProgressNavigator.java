@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
-import io.github.leewyatt.rxcontrols.event.SegmentInteractionEvent;
+import io.github.leewyatt.rxcontrols.event.RXSegmentInteractionEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
@@ -48,8 +48,8 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
             (obs, oldValue, newValue) -> updateProgress();
     private final ChangeListener<Boolean> pageTransitioningListener =
             (obs, oldValue, newValue) -> updateProgress();
-    private final EventHandler<SegmentInteractionEvent> segmentClickedHandler = this::handleSegmentClicked;
-    private final EventHandler<SegmentInteractionEvent> segmentEnteredHandler = this::handleSegmentEntered;
+    private final EventHandler<RXSegmentInteractionEvent> segmentClickedHandler = this::handleSegmentClicked;
+    private final EventHandler<RXSegmentInteractionEvent> segmentEnteredHandler = this::handleSegmentEntered;
 
     /**
      * Creates a segmented progress navigator.
@@ -264,11 +264,11 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
         indicator.setSegmentProgress(scaled - indicatorSelected);
     }
 
-    private void handleSegmentClicked(SegmentInteractionEvent event) {
+    private void handleSegmentClicked(RXSegmentInteractionEvent event) {
         navigateToSegment(event.getSegmentIndex());
     }
 
-    private void handleSegmentEntered(SegmentInteractionEvent event) {
+    private void handleSegmentEntered(RXSegmentInteractionEvent event) {
         navigateToSegment(event.getSegmentIndex());
     }
 

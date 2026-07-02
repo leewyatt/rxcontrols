@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.SegmentInteractionEvent;
+import io.github.leewyatt.rxcontrols.event.RXSegmentInteractionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSegmentedStepIndicatorSkin;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -32,8 +32,8 @@ import java.util.List;
  * {@link #segmentProgressProperty()}.
  *
  * <p>The indicator is intentionally passive: clicking a segment fires
- * {@link SegmentInteractionEvent#CLICKED}, entering a segment fires
- * {@link SegmentInteractionEvent#ENTERED}, and neither event updates
+ * {@link RXSegmentInteractionEvent#CLICKED}, entering a segment fires
+ * {@link RXSegmentInteractionEvent#ENTERED}, and neither event updates
  * {@code selectedIndex}. Applications decide how segment interaction maps to
  * their own state.</p>
  */
@@ -310,22 +310,22 @@ public class RXSegmentedStepIndicator extends Control {
 
     // ==================== Segment Clicked ====================
 
-    private ObjectProperty<EventHandler<SegmentInteractionEvent>> onSegmentClicked;
+    private ObjectProperty<EventHandler<RXSegmentInteractionEvent>> onSegmentClicked;
 
     /**
      * Called when a segment is clicked. This convenience property is equivalent
-     * to {@code addEventHandler(SegmentInteractionEvent.CLICKED, handler)},
+     * to {@code addEventHandler(RXSegmentInteractionEvent.CLICKED, handler)},
      * except that it allows only a single handler.
      *
      * @return the onSegmentClicked handler property
-     * @see SegmentInteractionEvent#CLICKED
+     * @see RXSegmentInteractionEvent#CLICKED
      */
-    public final ObjectProperty<EventHandler<SegmentInteractionEvent>> onSegmentClickedProperty() {
+    public final ObjectProperty<EventHandler<RXSegmentInteractionEvent>> onSegmentClickedProperty() {
         if (onSegmentClicked == null) {
             onSegmentClicked = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(SegmentInteractionEvent.CLICKED, get());
+                    setEventHandler(RXSegmentInteractionEvent.CLICKED, get());
                 }
 
                 @Override
@@ -347,7 +347,7 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnSegmentClicked(EventHandler<SegmentInteractionEvent> handler) {
+    public final void setOnSegmentClicked(EventHandler<RXSegmentInteractionEvent> handler) {
         onSegmentClickedProperty().set(handler);
     }
 
@@ -356,28 +356,28 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<SegmentInteractionEvent> getOnSegmentClicked() {
+    public final EventHandler<RXSegmentInteractionEvent> getOnSegmentClicked() {
         return onSegmentClicked == null ? null : onSegmentClicked.get();
     }
 
     // ==================== Segment Entered ====================
 
-    private ObjectProperty<EventHandler<SegmentInteractionEvent>> onSegmentEntered;
+    private ObjectProperty<EventHandler<RXSegmentInteractionEvent>> onSegmentEntered;
 
     /**
      * Called when the pointer enters a segment. This convenience property is
-     * equivalent to {@code addEventHandler(SegmentInteractionEvent.ENTERED, handler)},
+     * equivalent to {@code addEventHandler(RXSegmentInteractionEvent.ENTERED, handler)},
      * except that it allows only a single handler.
      *
      * @return the onSegmentEntered handler property
-     * @see SegmentInteractionEvent#ENTERED
+     * @see RXSegmentInteractionEvent#ENTERED
      */
-    public final ObjectProperty<EventHandler<SegmentInteractionEvent>> onSegmentEnteredProperty() {
+    public final ObjectProperty<EventHandler<RXSegmentInteractionEvent>> onSegmentEnteredProperty() {
         if (onSegmentEntered == null) {
             onSegmentEntered = new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(SegmentInteractionEvent.ENTERED, get());
+                    setEventHandler(RXSegmentInteractionEvent.ENTERED, get());
                 }
 
                 @Override
@@ -399,7 +399,7 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * @param handler the event handler
      */
-    public final void setOnSegmentEntered(EventHandler<SegmentInteractionEvent> handler) {
+    public final void setOnSegmentEntered(EventHandler<RXSegmentInteractionEvent> handler) {
         onSegmentEnteredProperty().set(handler);
     }
 
@@ -408,7 +408,7 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * @return the event handler
      */
-    public final EventHandler<SegmentInteractionEvent> getOnSegmentEntered() {
+    public final EventHandler<RXSegmentInteractionEvent> getOnSegmentEntered() {
         return onSegmentEntered == null ? null : onSegmentEntered.get();
     }
 

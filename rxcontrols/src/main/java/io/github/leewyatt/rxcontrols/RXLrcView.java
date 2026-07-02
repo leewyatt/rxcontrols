@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
+import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.LrcLine;
@@ -561,11 +561,11 @@ public class RXLrcView extends Control {
 
     // ==================== On Line Clicked ====================
 
-    private final ObjectProperty<EventHandler<LrcLineEvent>> onLineClicked =
+    private final ObjectProperty<EventHandler<RXLrcLineEvent>> onLineClicked =
             new SimpleObjectProperty<>(this, "onLineClicked", null) {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(LrcLineEvent.LINE_CLICKED, get());
+                    setEventHandler(RXLrcLineEvent.LINE_CLICKED, get());
                 }
             };
 
@@ -574,7 +574,7 @@ public class RXLrcView extends Control {
      *
      * @return the line-click handler property
      */
-    public final ObjectProperty<EventHandler<LrcLineEvent>> onLineClickedProperty() {
+    public final ObjectProperty<EventHandler<RXLrcLineEvent>> onLineClickedProperty() {
         return onLineClicked;
     }
 
@@ -583,7 +583,7 @@ public class RXLrcView extends Control {
      *
      * @return the line-click handler, or {@code null}
      */
-    public final EventHandler<LrcLineEvent> getOnLineClicked() {
+    public final EventHandler<RXLrcLineEvent> getOnLineClicked() {
         return onLineClicked.get();
     }
 
@@ -592,7 +592,7 @@ public class RXLrcView extends Control {
      *
      * @param value the line-click handler, or {@code null}
      */
-    public final void setOnLineClicked(EventHandler<LrcLineEvent> value) {
+    public final void setOnLineClicked(EventHandler<RXLrcLineEvent> value) {
         onLineClicked.set(value);
     }
 

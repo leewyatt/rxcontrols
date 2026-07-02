@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
+import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
@@ -59,7 +59,7 @@ public class LifecycleEventDemo extends Application {
         carousel.setCacheDistance(1);
 
         // --- Lifecycle event logging ---
-        carousel.addEventHandler(PageLifecycleEvent.ANY, e ->
+        carousel.addEventHandler(RXPageLifecycleEvent.ANY, e ->
                 System.out.println("[Event] " + e.getEventType().getName()
                         + "  index=" + e.getPageIndex()
                         + "  (" + TITLES[e.getPageIndex()] + ")"));

@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.MasonryViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXMasonryViewActionEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import javafx.animation.Interpolator;
@@ -222,18 +222,18 @@ public class RXMasonryViewTest {
 
     @Test
     public void onActionHandlerReceivesFiredEvent() throws Exception {
-        AtomicReference<MasonryViewActionEvent<String>> received = new AtomicReference<>();
+        AtomicReference<RXMasonryViewActionEvent<String>> received = new AtomicReference<>();
         runOnFx(() -> {
             RXMasonryView<String> view = new RXMasonryView<>(
                     javafx.collections.FXCollections.observableArrayList("a", "b"));
             view.setOnAction(received::set);
-            Event.fireEvent(view, new MasonryViewActionEvent<>(view, "b", 1));
+            Event.fireEvent(view, new RXMasonryViewActionEvent<>(view, "b", 1));
         });
-        MasonryViewActionEvent<String> event = received.get();
+        RXMasonryViewActionEvent<String> event = received.get();
         assertNotNull(event);
         assertEquals("b", event.getItem());
         assertEquals(1, event.getIndex());
-        assertSame(MasonryViewActionEvent.ACTION, event.getEventType());
+        assertSame(RXMasonryViewActionEvent.ACTION, event.getEventType());
     }
 
     // ==================== Empty render ====================

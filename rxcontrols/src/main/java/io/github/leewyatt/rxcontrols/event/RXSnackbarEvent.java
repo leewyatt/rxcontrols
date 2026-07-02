@@ -11,10 +11,16 @@ import javafx.event.EventType;
  * Events fired by an {@link RXSnackbarHost} across a snackbar's display
  * lifecycle.
  *
- * <p>Every displayed request fires {@link #SHOWING} when it becomes current and
+ * <p>Every displayed request fires {@link #SHOWING} just before it becomes
+ * current (a pre-current notification — read the request from
+ * {@link #getRequest()}) and
  * {@link #SHOWN} when its enter transition completes; every removed request fires
  * {@link #DISMISSED} exactly once, carrying the {@link #getReason() reason}. None
  * of these events is vetoable — a snackbar is a non-modal, transient notice.</p>
+ *
+ * <p>The event holds a strong reference to its {@link #getRequest() request}; do
+ * not keep events (or their requests) in long-lived structures, or the request —
+ * and whatever its graphic / content / handlers capture — lives on with them.</p>
  */
 public class RXSnackbarEvent extends Event {
 
@@ -24,8 +30,10 @@ public class RXSnackbarEvent extends Event {
     public static final EventType<RXSnackbarEvent> ANY = new EventType<>(Event.ANY, "RX_SNACKBAR");
 
     /**
-     * Fired when a request becomes the displayed snackbar (its enter transition
-     * starts).
+     * Fired when a request is about to become the displayed snackbar (its enter
+     * transition starts). A pre-current notification: read the request from
+     * {@link #getRequest()} — the host's {@code currentRequest} commits right
+     * after this event.
      */
     public static final EventType<RXSnackbarEvent> SHOWING = new EventType<>(ANY, "RX_SNACKBAR_SHOWING");
 
@@ -57,6 +65,15 @@ public class RXSnackbarEvent extends Event {
         super(host, host, eventType);
         this.request = request;
         this.reason = reason;
+    }
+
+    /**
+     * Returns the host that fired this event.
+     *
+     * @return the source host
+     */
+    public RXSnackbarHost getHost() {
+        return (RXSnackbarHost) getSource();
     }
 
     /**

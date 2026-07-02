@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.ripple;
 
-import io.github.leewyatt.rxcontrols.event.AnimationEvent;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ButtonBase;
@@ -94,7 +94,7 @@ public final class ArmedRippleTrigger {
     }
 
     /**
-     * Registers the {@link AnimationEvent#PLAY_RIPPLE} programmatic trigger: a
+     * Registers the {@link RXAnimationEvent#PLAY_RIPPLE} programmatic trigger: a
      * centered press and immediate release, gated by ripple-enabled and the
      * disabled state. Events bubbling up from a nested ripple host are passed
      * through (not consumed).
@@ -102,7 +102,7 @@ public final class ArmedRippleTrigger {
      * @param disposer the skin disposer that owns the registration
      */
     public void installPlayRipple(SkinDisposer disposer) {
-        disposer.registerEventHandler(control, AnimationEvent.PLAY_RIPPLE, event -> {
+        disposer.registerEventHandler(control, RXAnimationEvent.PLAY_RIPPLE, event -> {
             // Reject events bubbling up from a nested ripple host.
             if (event.getTarget() != control) {
                 return;

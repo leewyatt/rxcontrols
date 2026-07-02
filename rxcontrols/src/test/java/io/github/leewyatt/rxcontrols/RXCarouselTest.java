@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
-import io.github.leewyatt.rxcontrols.carousel.PageLifecycleEvent;
+import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -180,15 +180,15 @@ public class RXCarouselTest {
 
     private static List<String> recordLifecycle(RXCarousel carousel) {
         List<String> events = new ArrayList<>();
-        registerLifecycle(carousel, events, PageLifecycleEvent.CLOSING, "CLOSING");
-        registerLifecycle(carousel, events, PageLifecycleEvent.CLOSED, "CLOSED");
-        registerLifecycle(carousel, events, PageLifecycleEvent.OPENING, "OPENING");
-        registerLifecycle(carousel, events, PageLifecycleEvent.OPENED, "OPENED");
+        registerLifecycle(carousel, events, RXPageLifecycleEvent.CLOSING, "CLOSING");
+        registerLifecycle(carousel, events, RXPageLifecycleEvent.CLOSED, "CLOSED");
+        registerLifecycle(carousel, events, RXPageLifecycleEvent.OPENING, "OPENING");
+        registerLifecycle(carousel, events, RXPageLifecycleEvent.OPENED, "OPENED");
         return events;
     }
 
     private static void registerLifecycle(RXCarousel carousel, List<String> events,
-                                          EventType<PageLifecycleEvent> type, String name) {
+                                          EventType<RXPageLifecycleEvent> type, String name) {
         carousel.addEventHandler(type, event -> events.add(name + ":" + event.getPageIndex()));
     }
 

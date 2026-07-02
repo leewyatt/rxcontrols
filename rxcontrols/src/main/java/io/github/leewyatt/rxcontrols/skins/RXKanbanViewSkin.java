@@ -8,7 +8,7 @@ import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
-import io.github.leewyatt.rxcontrols.event.CardActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -657,7 +657,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             return;
         }
         T card = column.getCards().get(index);
-        getSkinnable().fireEvent(new CardActionEvent<>(getSkinnable(), column, card, index));
+        getSkinnable().fireEvent(new RXCardActionEvent<>(getSkinnable(), column, card, index));
     }
 
     private void reconcileSelectionFocus() {

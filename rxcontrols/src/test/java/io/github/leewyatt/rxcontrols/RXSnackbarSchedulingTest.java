@@ -10,6 +10,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -143,6 +145,28 @@ public class RXSnackbarSchedulingTest {
             Label message = (Label) host.lookup(".message");
             assertEquals("done", message.getText(), "the bar content swapped in place");
             assertTrue(host.isShowing());
+        });
+    }
+
+    @Test
+    public void sameKeyUpdateDuringEnterAnimationSnapsToShownPose() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            host.setAnimated(true);
+            host.setAnimationDuration(Duration.minutes(10.0));
+            host.show(RXSnackbarRequest.builder("loading").key("job").build());
+            javafx.scene.Node bar = host.lookup(".snackbar");
+            assertTrue(bar.getOpacity() < 1.0, "the enter is still animating");
+
+            RXSnackbarRequest done = RXSnackbarRequest.builder("done").key("job").build();
+            host.show(done);
+            assertEquals(1.0, bar.getOpacity(),
+                    "the in-place update supersedes the enter and snaps fully shown");
+            assertSame(done, host.getCurrentRequest());
+
+            host.setAnimated(false);
+            host.dismiss();
+            assertFalse(host.isShowing());
         });
     }
 
@@ -362,6 +386,66 @@ public class RXSnackbarSchedulingTest {
             assertNotSame(installed, reinstalled, "a caller-removed host is not resurrected");
             assertSame(container, reinstalled.getParent());
         });
+    }
+
+    @Test
+    public void rootSwapReleasesTheOrphanedLayerAndHost() throws Exception {
+        AtomicReference<WeakReference<RXSnackbarHost>> probe = new AtomicReference<>();
+        AtomicReference<Scene> liveScene = new AtomicReference<>();
+        runOnFx(() -> {
+            StackPane oldRoot = new StackPane();
+            Scene scene = new Scene(oldRoot, 400.0, 300.0);
+            liveScene.set(scene);
+            Label owner = new Label("owner");
+            oldRoot.getChildren().add(owner);
+            RXSnackbars.show(owner, "about to be orphaned");
+            probe.set(new WeakReference<>(RXSnackbars.hostFor(owner).orElseThrow()));
+            // The old root (carrying the overlay layer) leaves the scene; the layer
+            // must uninstall itself so the still-live scene's property map does not
+            // pin the old root tree and the host.
+            scene.setRoot(new StackPane());
+        });
+        assertReclaimable(probe.get(), "the orphaned host must be collectable while the scene lives");
+    }
+
+    @Test
+    public void reparentedInstallIntoHostReleasesTheOldContainer() throws Exception {
+        AtomicReference<WeakReference<Pane>> probe = new AtomicReference<>();
+        AtomicReference<RXSnackbarHost> liveHost = new AtomicReference<>();
+        runOnFx(() -> {
+            Pane oldContainer = new Pane();
+            RXSnackbarHost host = RXSnackbars.installInto(oldContainer);
+            liveHost.set(host);
+            probe.set(new WeakReference<>(oldContainer));
+            // Reparent: the host stays alive in the new container; the one-shot
+            // cleanup listener must not keep pinning the old container tree.
+            new StackPane().getChildren().add(host);
+        });
+        assertReclaimable(probe.get(), "a reparented host must not pin its old container");
+    }
+
+    @Test
+    public void removedInstallIntoHostIsReleased() throws Exception {
+        AtomicReference<WeakReference<RXSnackbarHost>> probe = new AtomicReference<>();
+        AtomicReference<Pane> liveContainer = new AtomicReference<>();
+        runOnFx(() -> {
+            Pane container = new Pane();
+            liveContainer.set(container);
+            RXSnackbarHost host = RXSnackbars.installInto(container);
+            probe.set(new WeakReference<>(host));
+            // The caller owns the lifecycle: removal must evict the idempotence
+            // cache and the size bindings, not leave the container pinning the host.
+            container.getChildren().remove(host);
+        });
+        assertReclaimable(probe.get(), "a caller-removed host must be collectable while the container lives");
+    }
+
+    private static void assertReclaimable(WeakReference<?> reference, String message) throws InterruptedException {
+        for (int i = 0; i < 50 && reference.get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(reference.get(), message);
     }
 
     // ==================== Helpers ====================

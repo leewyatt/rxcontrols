@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.AnimationEvent;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
 import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
@@ -119,7 +119,7 @@ public class RXToggleButton extends ToggleButton {
      * ripples are disabled or the host is disabled.
      */
     public final void playRipple() {
-        fireEvent(new AnimationEvent(AnimationEvent.PLAY_RIPPLE));
+        fireEvent(new RXAnimationEvent(RXAnimationEvent.PLAY_RIPPLE));
     }
 
     // ==================== Ripple Fill ====================

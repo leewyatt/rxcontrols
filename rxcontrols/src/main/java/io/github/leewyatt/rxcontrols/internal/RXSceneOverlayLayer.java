@@ -42,6 +42,12 @@ public abstract class RXSceneOverlayLayer extends StackPane {
     private Pane fillParent;
     private InvalidationListener fillListener;
     private Parent originalRoot;
+    // Guards uninstall against re-entry: removing this layer from its parent
+    // nulls the layer's scene DURING the removal (Parent pre-processes outgoing
+    // children before the index-based removal commits), so the scene listener
+    // below fires mid-removal — an unguarded nested uninstall would remove the
+    // layer first and the outer removal would then throw IndexOutOfBounds.
+    private boolean uninstalling;
 
     /**
      * Creates the layer with its per-scene cache key and fixed stacking priority.
@@ -55,6 +61,17 @@ public abstract class RXSceneOverlayLayer extends StackPane {
         // Empty areas of the layer stay click-through, so the rest of the scene
         // remains interactive; only the layer's own children can be picked.
         setPickOnBounds(false);
+        // Losing the scene means the mount point is gone (the app swapped the
+        // scene root, or an ancestor was removed): uninstall immediately so the
+        // scene's property map does not pin this layer — and through fillParent /
+        // originalRoot the entire old root tree — until some later attach happens
+        // to notice. Idempotent with the normal detach path: uninstall() clears
+        // its fields, so the second run is a no-op.
+        sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene == null) {
+                uninstall();
+            }
+        });
     }
 
     /**
@@ -134,25 +151,33 @@ public abstract class RXSceneOverlayLayer extends StackPane {
      * scene's property map. Safe to call on an already-uninstalled layer.
      */
     protected final void uninstall() {
-        if (scene != null) {
-            scene.getProperties().remove(sceneKey);
+        if (uninstalling) {
+            return;
         }
-        if (mode == InstallMode.PANE_CHILD && fillParent != null) {
-            fillParent.widthProperty().removeListener(fillListener);
-            fillParent.heightProperty().removeListener(fillListener);
-            fillParent.getChildren().remove(this);
-        } else if (mode == InstallMode.WRAP && scene != null && originalRoot != null) {
-            // Only restore if our wrapper is still the root: if the app swapped the
-            // scene root while this layer was mounted, leave its new root alone.
-            if (scene.getRoot() instanceof Pane wrapper && wrapper.getChildren().contains(originalRoot)) {
-                wrapper.getChildren().remove(originalRoot);
-                scene.setRoot(originalRoot);
+        uninstalling = true;
+        try {
+            if (scene != null) {
+                scene.getProperties().remove(sceneKey);
             }
+            if (mode == InstallMode.PANE_CHILD && fillParent != null) {
+                fillParent.widthProperty().removeListener(fillListener);
+                fillParent.heightProperty().removeListener(fillListener);
+                fillParent.getChildren().remove(this);
+            } else if (mode == InstallMode.WRAP && scene != null && originalRoot != null) {
+                // Only restore if our wrapper is still the root: if the app swapped the
+                // scene root while this layer was mounted, leave its new root alone.
+                if (scene.getRoot() instanceof Pane wrapper && wrapper.getChildren().contains(originalRoot)) {
+                    wrapper.getChildren().remove(originalRoot);
+                    scene.setRoot(originalRoot);
+                }
+            }
+            scene = null;
+            fillParent = null;
+            fillListener = null;
+            originalRoot = null;
+            mode = null;
+        } finally {
+            uninstalling = false;
         }
-        scene = null;
-        fillParent = null;
-        fillListener = null;
-        originalRoot = null;
-        mode = null;
     }
 }

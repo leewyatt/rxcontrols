@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
+import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.LrcLine;
 import io.github.leewyatt.rxcontrols.lrc.LrcParser;
@@ -168,11 +168,11 @@ public class RXLrcViewTest {
         RXLrcView view = new RXLrcView();
         LrcLine line = LrcParser.parse("[00:01.00]A").document().lines().get(0);
 
-        LrcLineEvent event = new LrcLineEvent(
-                view, LrcLineEvent.LINE_CLICKED, line, 0, line.time());
+        RXLrcLineEvent event = new RXLrcLineEvent(
+                view, RXLrcLineEvent.LINE_CLICKED, line, 0, line.time());
 
-        assertEquals(LrcLineEvent.ANY, LrcLineEvent.LINE_CLICKED.getSuperType());
-        assertEquals("LRC_LINE", LrcLineEvent.ANY.getName());
+        assertEquals(RXLrcLineEvent.ANY, RXLrcLineEvent.LINE_CLICKED.getSuperType());
+        assertEquals("RX_LRC_LINE", RXLrcLineEvent.ANY.getName());
         assertSame(view, event.getLrcView());
         assertSame(line, event.getLine());
         assertEquals(0, event.getIndex());
@@ -183,9 +183,9 @@ public class RXLrcViewTest {
     public void onLineClickedPropertyInstallsEventHandler() {
         RXLrcView view = new RXLrcView();
         LrcLine line = LrcParser.parse("[00:01.00]A").document().lines().get(0);
-        LrcLineEvent event = new LrcLineEvent(
-                view, LrcLineEvent.LINE_CLICKED, line, 0, line.time());
-        AtomicReference<LrcLineEvent> eventRef = new AtomicReference<>();
+        RXLrcLineEvent event = new RXLrcLineEvent(
+                view, RXLrcLineEvent.LINE_CLICKED, line, 0, line.time());
+        AtomicReference<RXLrcLineEvent> eventRef = new AtomicReference<>();
 
         view.setOnLineClicked(eventRef::set);
         view.fireEvent(event);

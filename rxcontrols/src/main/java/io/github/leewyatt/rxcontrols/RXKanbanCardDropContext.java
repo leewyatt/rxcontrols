@@ -4,7 +4,7 @@ package io.github.leewyatt.rxcontrols;
  * Immutable value object passed to a kanban {@code dropValidator} while a card is
  * dragged over a candidate drop position. It describes the tentative move so the
  * validator can accept or reject it. {@code targetIndex} shares the coordinate
- * system of {@link io.github.leewyatt.rxcontrols.event.CardMovedEvent#getToIndex()}
+ * system of {@link io.github.leewyatt.rxcontrols.event.RXCardMovedEvent#getToIndex()}
  * — the target column index after the source removal.
  *
  * @param <T> the card type

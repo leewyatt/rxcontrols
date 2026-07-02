@@ -21,13 +21,13 @@ import javafx.event.EventType;
  *
  * @param <T> the card type of the owning kanban view
  */
-public class CardMovedEvent<T> extends Event {
+public class RXCardMovedEvent<T> extends Event {
 
     /**
      * The single event type for a card move. Use {@link #cardMovedType()} to obtain
      * it with the card type bound.
      */
-    public static final EventType<CardMovedEvent<?>> CARD_MOVED =
+    public static final EventType<RXCardMovedEvent<?>> CARD_MOVED =
             new EventType<>(Event.ANY, "RX_KANBAN_CARD_MOVED");
 
     private final transient RXKanbanView<T> kanbanView;
@@ -47,7 +47,7 @@ public class CardMovedEvent<T> extends Event {
      * @param toIndex    the card's target index (source-removed coordinate system)
      * @param card       the card being moved, possibly {@code null}
      */
-    public CardMovedEvent(RXKanbanView<T> source,
+    public RXCardMovedEvent(RXKanbanView<T> source,
                           RXKanbanColumn<T> fromColumn, int fromIndex,
                           RXKanbanColumn<T> toColumn, int toIndex,
                           T card) {
@@ -64,11 +64,11 @@ public class CardMovedEvent<T> extends Event {
      * Returns the card move event type with the given card type bound.
      *
      * @param <T> the card type
-     * @return the {@link #CARD_MOVED} type viewed as {@code EventType<CardMovedEvent<T>>}
+     * @return the {@link #CARD_MOVED} type viewed as {@code EventType<RXCardMovedEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<CardMovedEvent<T>> cardMovedType() {
-        return (EventType<CardMovedEvent<T>>) (EventType<?>) CARD_MOVED;
+    public static <T> EventType<RXCardMovedEvent<T>> cardMovedType() {
+        return (EventType<RXCardMovedEvent<T>>) (EventType<?>) CARD_MOVED;
     }
 
     /**

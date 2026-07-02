@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
-import io.github.leewyatt.rxcontrols.event.AnimationEvent;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
@@ -32,7 +32,7 @@ import javafx.util.Duration;
  * it); leaving the scene snaps to the current trigger state without
  * animating.</p>
  *
- * <p>An {@link AnimationEvent#PLAY_ANIMATION} event targeted at the host
+ * <p>An {@link RXAnimationEvent#PLAY_ANIMATION} event targeted at the host
  * plays the decoration once: forward from the current progress to the end,
  * then convergence back to the live trigger state. Trigger state events are
  * gated while the pulse is in flight so it always completes visually;
@@ -105,7 +105,7 @@ public final class DecorationProgress {
                 animateTo(false);
             }
         });
-        disposer.registerEventHandler(host, AnimationEvent.PLAY_ANIMATION, event -> {
+        disposer.registerEventHandler(host, RXAnimationEvent.PLAY_ANIMATION, event -> {
             // Reject events bubbling up from a nested animated host.
             if (event.getTarget() != host) {
                 return;

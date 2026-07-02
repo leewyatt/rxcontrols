@@ -406,7 +406,12 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
             playClose();
         } else if (oldRequest != null && newRequest != null) {
             // Same-key in-place update: swap content and restart the timer without
-            // transitions. The host fires SHOWING / SHOWN itself on this path.
+            // transitions. The host fires SHOWING / SHOWN itself on this path. An
+            // enter still animating is superseded — snap to the fully-shown pose,
+            // or its finalizeOpen would fire late and restart the new bar's timer.
+            stopAnimation();
+            openInFlight = false;
+            progress.set(1.0);
             updateBarContent(newRequest);
             startAutoHide(newRequest);
         }
@@ -465,11 +470,22 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         progress.set(0.0);
         bar.setVisible(false);
         bar.setMouseTransparent(true);
+        resetBarContent();
         if (closeInFlight) {
             closeInFlight = false;
             // Last action: the host settles the request and promotes the next one.
             getSkinnable().notifyDismissed();
         }
+    }
+
+    // Returns the bar to a clean idle pose — only the reusable message child, no
+    // text, no severity, no trailing state — so an idle host holds no reference
+    // into the last request's subtree and the idle state is self-consistent.
+    private void resetBarContent() {
+        message.setText(null);
+        bar.getChildren().setAll(message);
+        bar.pseudoClassStateChanged(HAS_TRAILING_PSEUDO_CLASS, false);
+        applySeverity(RXSnackbarSeverity.NONE);
     }
 
     private void stopAnimation() {
@@ -513,6 +529,9 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         return value == null ? RXSnackbarHost.DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
+    // Kept the exact complement of RXSnackbarHost#isPersistent: a duration the
+    // host calls persistent is exactly one this skin starts no timer for, so the
+    // forced close icon and the missing timer can never disagree.
     private static boolean isPositiveFinite(Duration duration) {
         return duration != null && !duration.isUnknown() && !duration.isIndefinite()
                 && duration.greaterThan(Duration.ZERO);
@@ -621,6 +640,7 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
             applyPose(0.0);
             bar.setVisible(false);
             bar.setMouseTransparent(true);
+            resetBarContent();
         }
     }
 

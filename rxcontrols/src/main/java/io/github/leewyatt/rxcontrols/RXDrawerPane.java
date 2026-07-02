@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.DrawerEvent;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDrawerPaneSkin;
 
@@ -63,7 +63,7 @@ import java.util.List;
  * <p>The drawer can {@link DrawerMode#OVERLAY overlay} the content (optionally
  * over a dimming, click-catching backdrop that makes it modal) or
  * {@link DrawerMode#PUSH push} it aside. Closing flows through a vetoable
- * {@code CLOSE_REQUEST} {@link DrawerEvent}
+ * {@code CLOSE_REQUEST} {@link RXDrawerEvent}
  * before any close proceeds. Drawer content
  * is rendered directly; applications own any header, body, footer, scrolling, and
  * close-button layout they need.</p>
@@ -760,23 +760,23 @@ public class RXDrawerPane extends Control {
      * @return {@code true} if a handler consumed the event (close vetoed)
      */
     private boolean fireCloseRequest() {
-        DrawerEvent event = new DrawerEvent(DrawerEvent.CLOSE_REQUEST, this);
+        RXDrawerEvent event = new RXDrawerEvent(RXDrawerEvent.CLOSE_REQUEST, this);
         fireEvent(event);
         return event.isConsumed();
     }
 
     // ==================== Events ====================
 
-    private ObjectProperty<EventHandler<DrawerEvent>> onOpening;
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onOpening;
 
     /**
      * Handler called when an open slide starts.
      *
      * @return the onOpening property
      */
-    public final ObjectProperty<EventHandler<DrawerEvent>> onOpeningProperty() {
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onOpeningProperty() {
         if (onOpening == null) {
-            onOpening = newHandlerProperty("onOpening", DrawerEvent.OPENING);
+            onOpening = newHandlerProperty("onOpening", RXDrawerEvent.OPENING);
         }
         return onOpening;
     }
@@ -786,7 +786,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the onOpening handler, or {@code null}
      */
-    public final EventHandler<DrawerEvent> getOnOpening() {
+    public final EventHandler<RXDrawerEvent> getOnOpening() {
         return onOpening == null ? null : onOpening.get();
     }
 
@@ -795,20 +795,20 @@ public class RXDrawerPane extends Control {
      *
      * @param value the handler, or {@code null} to clear
      */
-    public final void setOnOpening(EventHandler<DrawerEvent> value) {
+    public final void setOnOpening(EventHandler<RXDrawerEvent> value) {
         onOpeningProperty().set(value);
     }
 
-    private ObjectProperty<EventHandler<DrawerEvent>> onOpened;
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onOpened;
 
     /**
      * Handler called when an open slide has fully completed.
      *
      * @return the onOpened property
      */
-    public final ObjectProperty<EventHandler<DrawerEvent>> onOpenedProperty() {
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onOpenedProperty() {
         if (onOpened == null) {
-            onOpened = newHandlerProperty("onOpened", DrawerEvent.OPENED);
+            onOpened = newHandlerProperty("onOpened", RXDrawerEvent.OPENED);
         }
         return onOpened;
     }
@@ -818,7 +818,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the onOpened handler, or {@code null}
      */
-    public final EventHandler<DrawerEvent> getOnOpened() {
+    public final EventHandler<RXDrawerEvent> getOnOpened() {
         return onOpened == null ? null : onOpened.get();
     }
 
@@ -827,11 +827,11 @@ public class RXDrawerPane extends Control {
      *
      * @param value the handler, or {@code null} to clear
      */
-    public final void setOnOpened(EventHandler<DrawerEvent> value) {
+    public final void setOnOpened(EventHandler<RXDrawerEvent> value) {
         onOpenedProperty().set(value);
     }
 
-    private ObjectProperty<EventHandler<DrawerEvent>> onCloseRequest;
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onCloseRequest;
 
     /**
      * Handler called before any close proceeds; {@link javafx.event.Event#consume()
@@ -839,9 +839,9 @@ public class RXDrawerPane extends Control {
      *
      * @return the onCloseRequest property
      */
-    public final ObjectProperty<EventHandler<DrawerEvent>> onCloseRequestProperty() {
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onCloseRequestProperty() {
         if (onCloseRequest == null) {
-            onCloseRequest = newHandlerProperty("onCloseRequest", DrawerEvent.CLOSE_REQUEST);
+            onCloseRequest = newHandlerProperty("onCloseRequest", RXDrawerEvent.CLOSE_REQUEST);
         }
         return onCloseRequest;
     }
@@ -851,7 +851,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the onCloseRequest handler, or {@code null}
      */
-    public final EventHandler<DrawerEvent> getOnCloseRequest() {
+    public final EventHandler<RXDrawerEvent> getOnCloseRequest() {
         return onCloseRequest == null ? null : onCloseRequest.get();
     }
 
@@ -860,20 +860,20 @@ public class RXDrawerPane extends Control {
      *
      * @param value the handler, or {@code null} to clear
      */
-    public final void setOnCloseRequest(EventHandler<DrawerEvent> value) {
+    public final void setOnCloseRequest(EventHandler<RXDrawerEvent> value) {
         onCloseRequestProperty().set(value);
     }
 
-    private ObjectProperty<EventHandler<DrawerEvent>> onClosing;
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onClosing;
 
     /**
      * Handler called when a close slide starts (the close was not vetoed).
      *
      * @return the onClosing property
      */
-    public final ObjectProperty<EventHandler<DrawerEvent>> onClosingProperty() {
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onClosingProperty() {
         if (onClosing == null) {
-            onClosing = newHandlerProperty("onClosing", DrawerEvent.CLOSING);
+            onClosing = newHandlerProperty("onClosing", RXDrawerEvent.CLOSING);
         }
         return onClosing;
     }
@@ -883,7 +883,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the onClosing handler, or {@code null}
      */
-    public final EventHandler<DrawerEvent> getOnClosing() {
+    public final EventHandler<RXDrawerEvent> getOnClosing() {
         return onClosing == null ? null : onClosing.get();
     }
 
@@ -892,20 +892,20 @@ public class RXDrawerPane extends Control {
      *
      * @param value the handler, or {@code null} to clear
      */
-    public final void setOnClosing(EventHandler<DrawerEvent> value) {
+    public final void setOnClosing(EventHandler<RXDrawerEvent> value) {
         onClosingProperty().set(value);
     }
 
-    private ObjectProperty<EventHandler<DrawerEvent>> onClosed;
+    private ObjectProperty<EventHandler<RXDrawerEvent>> onClosed;
 
     /**
      * Handler called when a close slide has fully completed.
      *
      * @return the onClosed property
      */
-    public final ObjectProperty<EventHandler<DrawerEvent>> onClosedProperty() {
+    public final ObjectProperty<EventHandler<RXDrawerEvent>> onClosedProperty() {
         if (onClosed == null) {
-            onClosed = newHandlerProperty("onClosed", DrawerEvent.CLOSED);
+            onClosed = newHandlerProperty("onClosed", RXDrawerEvent.CLOSED);
         }
         return onClosed;
     }
@@ -915,7 +915,7 @@ public class RXDrawerPane extends Control {
      *
      * @return the onClosed handler, or {@code null}
      */
-    public final EventHandler<DrawerEvent> getOnClosed() {
+    public final EventHandler<RXDrawerEvent> getOnClosed() {
         return onClosed == null ? null : onClosed.get();
     }
 
@@ -924,12 +924,12 @@ public class RXDrawerPane extends Control {
      *
      * @param value the handler, or {@code null} to clear
      */
-    public final void setOnClosed(EventHandler<DrawerEvent> value) {
+    public final void setOnClosed(EventHandler<RXDrawerEvent> value) {
         onClosedProperty().set(value);
     }
 
-    private ObjectProperty<EventHandler<DrawerEvent>> newHandlerProperty(String name,
-                                                                         EventType<DrawerEvent> type) {
+    private ObjectProperty<EventHandler<RXDrawerEvent>> newHandlerProperty(String name,
+                                                                         EventType<RXDrawerEvent> type) {
         return new ObjectPropertyBase<>() {
             @Override
             protected void invalidated() {

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
-import io.github.leewyatt.rxcontrols.event.SegmentInteractionEvent;
+import io.github.leewyatt.rxcontrols.event.RXSegmentInteractionEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
@@ -151,14 +151,14 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
     private void handleSegmentClicked(MouseEvent event) {
         int index = segmentIndexFrom(event);
         if (index >= 0) {
-            getSkinnable().fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.CLICKED, index));
+            getSkinnable().fireEvent(new RXSegmentInteractionEvent(RXSegmentInteractionEvent.CLICKED, index));
         }
     }
 
     private void handleSegmentEntered(MouseEvent event) {
         int index = segmentIndexFrom(event);
         if (index >= 0) {
-            getSkinnable().fireEvent(new SegmentInteractionEvent(SegmentInteractionEvent.ENTERED, index));
+            getSkinnable().fireEvent(new RXSegmentInteractionEvent(RXSegmentInteractionEvent.ENTERED, index));
         }
     }
 

@@ -8,17 +8,17 @@ import javafx.event.EventType;
  * Event fired when a tile is activated in an {@link RXTileView} — by pressing
  * {@code Enter} on the focused tile or double-clicking it. Install a handler via
  * {@link RXTileView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(TileViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(RXTileViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning tile view
  */
-public class TileViewActionEvent<T> extends Event {
+public class RXTileViewActionEvent<T> extends Event {
 
     /**
      * The single event type for tile activation. Use {@link #actionType()} to
      * obtain it with the item type bound.
      */
-    public static final EventType<TileViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "TILE_VIEW_ACTION");
+    public static final EventType<RXTileViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "RX_TILE_VIEW_ACTION");
 
     private final transient RXTileView<T> tileView;
     private final transient T item;
@@ -31,7 +31,7 @@ public class TileViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public TileViewActionEvent(RXTileView<T> source, T item, int index) {
+    public RXTileViewActionEvent(RXTileView<T> source, T item, int index) {
         super(source, source, actionType());
         this.tileView = source;
         this.item = item;
@@ -42,11 +42,11 @@ public class TileViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<TileViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<RXTileViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<TileViewActionEvent<T>> actionType() {
-        return (EventType<TileViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<RXTileViewActionEvent<T>> actionType() {
+        return (EventType<RXTileViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

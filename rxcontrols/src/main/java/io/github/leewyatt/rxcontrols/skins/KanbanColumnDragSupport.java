@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
-import io.github.leewyatt.rxcontrols.event.ColumnMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXColumnMovedEvent;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -20,7 +20,7 @@ import java.util.List;
  * {@link RXKanbanViewSkin}. Dragging a column's header translates the real column box
  * to follow the pointer (columns are all realized — no virtualization), computes an
  * insertion index from the other columns' centers, and on release fires a vetoable
- * {@link ColumnMovedEvent} before reordering the columns list by index. Boxes glide
+ * {@link RXColumnMovedEvent} before reordering the columns list by index. Boxes glide
  * (FLIP) from their pre-reorder positions to the new order.
  *
  * @param <T> the card type
@@ -172,7 +172,7 @@ final class KanbanColumnDragSupport<T> {
             List<RXKanbanColumn<T>> reordered = reorderVisibleColumns(columns, fromIndex, visibleTarget);
             if (reordered != null) {
                 int toIndex = reordered.indexOf(column);
-                ColumnMovedEvent<T> event = new ColumnMovedEvent<>(control, fromIndex, toIndex, column);
+                RXColumnMovedEvent<T> event = new RXColumnMovedEvent<>(control, fromIndex, toIndex, column);
                 control.fireEvent(event);
                 if (!event.isConsumed()) {
                     // Commit as a single atomic setAll, NOT remove(fromIndex)+add(toIndex):

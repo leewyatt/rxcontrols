@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.TileViewActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -568,18 +568,18 @@ public class RXTileViewTest {
 
     @Test
     public void onActionHandlerReceivesFiredEvent() throws Exception {
-        AtomicReference<TileViewActionEvent<String>> received = new AtomicReference<>();
+        AtomicReference<RXTileViewActionEvent<String>> received = new AtomicReference<>();
         runOnFx(() -> {
             RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
             view.setOnAction(received::set);
             assertNotNull(view.getOnAction());
-            Event.fireEvent(view, new TileViewActionEvent<>(view, "b", 1));
+            Event.fireEvent(view, new RXTileViewActionEvent<>(view, "b", 1));
         });
-        TileViewActionEvent<String> event = received.get();
+        RXTileViewActionEvent<String> event = received.get();
         assertNotNull(event, "onAction handler should have been invoked");
         assertEquals("b", event.getItem());
         assertEquals(1, event.getIndex());
-        assertSame(TileViewActionEvent.ACTION, event.getEventType());
+        assertSame(RXTileViewActionEvent.ACTION, event.getEventType());
     }
 
     @Test

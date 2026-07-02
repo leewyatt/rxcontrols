@@ -8,17 +8,17 @@ import javafx.event.EventType;
  * Event fired when an item is activated in an {@link RXListView} — by pressing
  * {@code Enter} on the focused row or double-clicking it. Install a handler via
  * {@link RXListView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(ListViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(RXListViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning list view
  */
-public class ListViewActionEvent<T> extends Event {
+public class RXListViewActionEvent<T> extends Event {
 
     /**
      * The single event type for item activation. Use {@link #actionType()} to
      * obtain it with the item type bound.
      */
-    public static final EventType<ListViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "LIST_VIEW_ACTION");
+    public static final EventType<RXListViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "RX_LIST_VIEW_ACTION");
 
     private final transient RXListView<T> listView;
     private final transient T item;
@@ -31,7 +31,7 @@ public class ListViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public ListViewActionEvent(RXListView<T> source, T item, int index) {
+    public RXListViewActionEvent(RXListView<T> source, T item, int index) {
         super(source, source, actionType());
         this.listView = source;
         this.item = item;
@@ -42,11 +42,11 @@ public class ListViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<ListViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<RXListViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<ListViewActionEvent<T>> actionType() {
-        return (EventType<ListViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<RXListViewActionEvent<T>> actionType() {
+        return (EventType<RXListViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

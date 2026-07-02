@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.DrawerEvent;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
 import javafx.event.Event;
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the PR2 surface of {@link RXDrawerPane}: the {@link DrawerEvent}
+ * Tests for the PR2 surface of {@link RXDrawerPane}: the {@link RXDrawerEvent}
  * lifecycle (OPENING/OPENED/CLOSING/CLOSED), the vetoable {@code CLOSE_REQUEST}
  * across all close paths, and the {@code onXxx} handler properties.
  */
@@ -64,8 +64,8 @@ public class DrawerEventTest {
             pane.close();
 
             assertEquals(List.of(
-                    "OPENING", "OPENED",
-                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
+                    "RX_DRAWER_OPENING", "RX_DRAWER_OPENED",
+                    "RX_DRAWER_CLOSE_REQUEST", "RX_DRAWER_CLOSING", "RX_DRAWER_CLOSED"), log);
         });
     }
 
@@ -98,16 +98,16 @@ public class DrawerEventTest {
             RXDrawerPane pane = new RXDrawerPane();
             pane.setPrefDrawerWidth(THICKNESS);
             pane.setAnimationDuration(Duration.millis(60.0));
-            pane.addEventHandler(DrawerEvent.ANY, e -> log.add(e.getEventType().getName()));
+            pane.addEventHandler(RXDrawerEvent.ANY, e -> log.add(e.getEventType().getName()));
             attach(pane);
-            pane.addEventHandler(DrawerEvent.OPENED, e -> opened.countDown());
+            pane.addEventHandler(RXDrawerEvent.OPENED, e -> opened.countDown());
 
             pane.open();
             // OPENING fires the instant the slide starts; OPENED waits for the Timeline.
-            assertEquals(List.of("OPENING"), List.copyOf(log));
+            assertEquals(List.of("RX_DRAWER_OPENING"), List.copyOf(log));
         });
         assertTrue(opened.await(3, TimeUnit.SECONDS), "animated open reaches OPENED");
-        runOnFx(() -> assertEquals(List.of("OPENING", "OPENED"), List.copyOf(log)));
+        runOnFx(() -> assertEquals(List.of("RX_DRAWER_OPENING", "RX_DRAWER_OPENED"), List.copyOf(log)));
     }
 
     // ==================== CLOSE_REQUEST veto ====================
@@ -126,7 +126,7 @@ public class DrawerEventTest {
             pane.close();
 
             assertTrue(pane.isShowing(), "vetoed close stays open");
-            assertEquals(List.of("CLOSE_REQUEST"), log, "no CLOSING/CLOSED after veto");
+            assertEquals(List.of("RX_DRAWER_CLOSE_REQUEST"), log, "no CLOSING/CLOSED after veto");
         });
     }
 
@@ -189,11 +189,11 @@ public class DrawerEventTest {
             pane.layout();
 
             pane.open();
-            assertEquals(List.of("OPENING"), log, "OPENING while the slide is animating");
+            assertEquals(List.of("RX_DRAWER_OPENING"), log, "OPENING while the slide is animating");
             // A side change mid-slide settles the open exactly once; it must not leave a
             // stale inFlight flag that a later detach would fire as a spurious OPENED.
             pane.setSide(Side.LEFT);
-            assertEquals(List.of("OPENING", "OPENED"), log, "side change settles the open");
+            assertEquals(List.of("RX_DRAWER_OPENING", "RX_DRAWER_OPENED"), log, "side change settles the open");
             log.clear();
             scene.setRoot(new Region());
             assertTrue(log.isEmpty(), "no spurious event on detach after a side change");
@@ -204,7 +204,7 @@ public class DrawerEventTest {
 
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
-        pane.addEventHandler(DrawerEvent.ANY,
+        pane.addEventHandler(RXDrawerEvent.ANY,
                 e -> log.add(e.getEventType().getName()));
         return log;
     }

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXLrcView;
-import io.github.leewyatt.rxcontrols.event.LrcLineEvent;
+import io.github.leewyatt.rxcontrols.event.RXLrcLineEvent;
 import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.LrcLine;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -836,9 +836,9 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
             return;
         }
         LrcLine line = lineNode.getLine();
-        getSkinnable().fireEvent(new LrcLineEvent(
+        getSkinnable().fireEvent(new RXLrcLineEvent(
                 getSkinnable(),
-                LrcLineEvent.LINE_CLICKED,
+                RXLrcLineEvent.LINE_CLICKED,
                 line,
                 line.index(),
                 line.time()));

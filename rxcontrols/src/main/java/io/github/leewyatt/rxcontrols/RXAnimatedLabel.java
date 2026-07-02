@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.AnimationEvent;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
@@ -99,7 +99,7 @@ public abstract class RXAnimatedLabel extends Label {
      * or when the duration is {@link Duration#ZERO}.
      */
     public final void playAnimation() {
-        fireEvent(new AnimationEvent(AnimationEvent.PLAY_ANIMATION));
+        fireEvent(new RXAnimationEvent(RXAnimationEvent.PLAY_ANIMATION));
     }
 
     // ==================== Animation Trigger ====================

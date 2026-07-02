@@ -9,17 +9,17 @@ import javafx.event.EventType;
  * Event fired when a card is activated in an {@link RXKanbanView} — by pressing
  * {@code Enter} on the focused card or double-clicking it. Install a handler via
  * {@link RXKanbanView#setOnCardAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(CardActionEvent.cardActionType(), ...)}.
+ * {@code addEventHandler(RXCardActionEvent.cardActionType(), ...)}.
  *
  * @param <T> the card type of the owning kanban view
  */
-public class CardActionEvent<T> extends Event {
+public class RXCardActionEvent<T> extends Event {
 
     /**
      * The single event type for card activation. Use {@link #cardActionType()} to
      * obtain it with the card type bound.
      */
-    public static final EventType<CardActionEvent<?>> CARD_ACTION =
+    public static final EventType<RXCardActionEvent<?>> CARD_ACTION =
             new EventType<>(Event.ANY, "RX_KANBAN_CARD_ACTION");
 
     private final transient RXKanbanView<T> kanbanView;
@@ -35,7 +35,7 @@ public class CardActionEvent<T> extends Event {
      * @param card   the activated card, possibly {@code null}
      * @param index  the activated card's index within its column
      */
-    public CardActionEvent(RXKanbanView<T> source, RXKanbanColumn<T> column, T card, int index) {
+    public RXCardActionEvent(RXKanbanView<T> source, RXKanbanColumn<T> column, T card, int index) {
         super(source, source, cardActionType());
         this.kanbanView = source;
         this.column = column;
@@ -47,11 +47,11 @@ public class CardActionEvent<T> extends Event {
      * Returns the card activation event type with the given card type bound.
      *
      * @param <T> the card type
-     * @return the {@link #CARD_ACTION} type viewed as {@code EventType<CardActionEvent<T>>}
+     * @return the {@link #CARD_ACTION} type viewed as {@code EventType<RXCardActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<CardActionEvent<T>> cardActionType() {
-        return (EventType<CardActionEvent<T>>) (EventType<?>) CARD_ACTION;
+    public static <T> EventType<RXCardActionEvent<T>> cardActionType() {
+        return (EventType<RXCardActionEvent<T>>) (EventType<?>) CARD_ACTION;
     }
 
     /**

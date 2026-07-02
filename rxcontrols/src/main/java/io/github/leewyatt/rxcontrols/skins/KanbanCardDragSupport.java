@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanCardDropContext;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
-import io.github.leewyatt.rxcontrols.event.CardMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXCardMovedEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -28,7 +28,7 @@ import javafx.util.Duration;
  * source card's slot ({@link KanbanColumnViewport#setLiftedIndex(int)}), opens a
  * make-way gap at the drop index ({@link KanbanColumnViewport#setDropGap(int)}),
  * auto-scrolls near the edges and, on release, fires a vetoable
- * {@link CardMovedEvent} before mutating the model by index.
+ * {@link RXCardMovedEvent} before mutating the model by index.
  *
  * @param <T> the card type
  */
@@ -290,7 +290,7 @@ final class KanbanCardDragSupport<T> {
     }
 
     private void commitMove(RXKanbanColumn<T> from, int fromIndex, RXKanbanColumn<T> to, int toIndex, T moved) {
-        CardMovedEvent<T> event = new CardMovedEvent<>(control, from, fromIndex, to, toIndex, moved);
+        RXCardMovedEvent<T> event = new RXCardMovedEvent<>(control, from, fromIndex, to, toIndex, moved);
         control.fireEvent(event);
         if (event.isConsumed()) {
             // Controlled / immutable data: the handler applies the change itself.

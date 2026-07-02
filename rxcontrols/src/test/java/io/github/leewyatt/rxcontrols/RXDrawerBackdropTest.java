@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.DrawerEvent;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 
 import javafx.application.Platform;
 import javafx.event.Event;
@@ -111,7 +111,7 @@ public class RXDrawerBackdropTest {
 
             assertFalse(pane.isShowing(), "backdrop click closes the drawer");
             assertEquals(List.of(
-                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
+                    "RX_DRAWER_CLOSE_REQUEST", "RX_DRAWER_CLOSING", "RX_DRAWER_CLOSED"), log);
         });
     }
 
@@ -162,7 +162,7 @@ public class RXDrawerBackdropTest {
 
             assertFalse(pane.isShowing(), "ESC closes the drawer");
             assertEquals(List.of(
-                    "CLOSE_REQUEST", "CLOSING", "CLOSED"), log);
+                    "RX_DRAWER_CLOSE_REQUEST", "RX_DRAWER_CLOSING", "RX_DRAWER_CLOSED"), log);
         });
     }
 
@@ -228,7 +228,7 @@ public class RXDrawerBackdropTest {
 
     private static List<String> recordEvents(RXDrawerPane pane) {
         List<String> log = new ArrayList<>();
-        pane.addEventHandler(DrawerEvent.ANY,
+        pane.addEventHandler(RXDrawerEvent.ANY,
                 e -> log.add(e.getEventType().getName()));
         return log;
     }

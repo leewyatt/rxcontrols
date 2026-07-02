@@ -510,9 +510,10 @@ public class RXSnackbarHost extends Control {
 
     /**
      * Whether a request that matches the displayed or a pending request is
-     * rejected with {@link DismissReason#DUPLICATE}. Matching prefers the
-     * request's {@code key} and falls back to its {@code message}. A same-key
-     * in-place update always wins over duplicate rejection. Default {@code false}.
+     * rejected with {@link DismissReason#DUPLICATE}. Only unkeyed requests match,
+     * by message text; a keyed request either hits its key (and updates in place —
+     * that always wins over rejection) or carries a distinct identity and is never
+     * a duplicate. Default {@code false}.
      *
      * @return the prevent-duplicate property
      */
@@ -673,8 +674,10 @@ public class RXSnackbarHost extends Control {
     private ObjectProperty<EventHandler<RXSnackbarEvent>> onShowing;
 
     /**
-     * Handler called when a request becomes the displayed snackbar (its enter
-     * transition starts).
+     * Handler called when a request is about to become the displayed snackbar
+     * (its enter transition starts). A pre-current notification: read the request
+     * from {@link RXSnackbarEvent#getRequest() the event} —
+     * {@link #getCurrentRequest()} still holds the previous value while it fires.
      *
      * @return the onShowing property
      */
@@ -866,7 +869,8 @@ public class RXSnackbarHost extends Control {
      * settles with {@link DismissReason#DISCARDED}.
      *
      * @param key the request key to match
-     * @return {@code true} if a displayed or pending request matched
+     * @return {@code true} if a displayed or pending request matched; matching a
+     *         displayed request that is already leaving does not dismiss it twice
      */
     public boolean dismiss(String key) {
         if (key == null) {
@@ -1000,6 +1004,9 @@ public class RXSnackbarHost extends Control {
         return isPersistent(effectiveDuration(request)) && !request.hasAction();
     }
 
+    // Kept the exact complement of RXSnackbarHostSkin#isPositiveFinite: a duration
+    // this method calls persistent is exactly one the skin starts no timer for, so
+    // the forced close icon and the missing timer can never disagree.
     private static boolean isPersistent(Duration duration) {
         return duration == null || duration.isUnknown() || duration.isIndefinite()
                 || duration.lessThanOrEqualTo(Duration.ZERO);

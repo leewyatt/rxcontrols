@@ -2,7 +2,10 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXSnackbarLayer;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 
@@ -176,6 +179,22 @@ public final class RXSnackbars {
         host.prefWidthProperty().bind(container.widthProperty());
         host.prefHeightProperty().bind(container.heightProperty());
         container.getProperties().put(INSTALL_KEY, host);
+        // The caller owns the host's lifecycle: when it leaves the container (a
+        // removal or reparent), evict the idempotence cache and drop the size
+        // bindings so the container does not pin the removed host. One-shot: the
+        // listener removes itself after cleaning up, so a reparented (still live)
+        // host does not keep pinning the old container tree through it.
+        host.parentProperty().addListener(new ChangeListener<Parent>() {
+            @Override
+            public void changed(ObservableValue<? extends Parent> observable, Parent oldParent, Parent newParent) {
+                if (newParent != container) {
+                    container.getProperties().remove(INSTALL_KEY, host);
+                    host.prefWidthProperty().unbind();
+                    host.prefHeightProperty().unbind();
+                    observable.removeListener(this);
+                }
+            }
+        });
         container.getChildren().add(host);
         return host;
     }

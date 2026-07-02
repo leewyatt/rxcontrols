@@ -8,17 +8,17 @@ import javafx.event.EventType;
  * Event fired when a cell is activated in an {@link RXMasonryView} — by pressing
  * {@code Enter} on the focused cell or double-clicking it. Install a handler via
  * {@link RXMasonryView#setOnAction(javafx.event.EventHandler)} or
- * {@code addEventHandler(MasonryViewActionEvent.actionType(), ...)}.
+ * {@code addEventHandler(RXMasonryViewActionEvent.actionType(), ...)}.
  *
  * @param <T> the item type of the owning masonry view
  */
-public class MasonryViewActionEvent<T> extends Event {
+public class RXMasonryViewActionEvent<T> extends Event {
 
     /**
      * The single event type for cell activation. Use {@link #actionType()} to obtain
      * it with the item type bound.
      */
-    public static final EventType<MasonryViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "MASONRY_VIEW_ACTION");
+    public static final EventType<RXMasonryViewActionEvent<?>> ACTION = new EventType<>(Event.ANY, "RX_MASONRY_VIEW_ACTION");
 
     private final transient RXMasonryView<T> masonryView;
     private final transient T item;
@@ -31,7 +31,7 @@ public class MasonryViewActionEvent<T> extends Event {
      * @param item   the activated item, possibly {@code null}
      * @param index  the activated item's index in the items list
      */
-    public MasonryViewActionEvent(RXMasonryView<T> source, T item, int index) {
+    public RXMasonryViewActionEvent(RXMasonryView<T> source, T item, int index) {
         super(source, source, actionType());
         this.masonryView = source;
         this.item = item;
@@ -42,11 +42,11 @@ public class MasonryViewActionEvent<T> extends Event {
      * Returns the activation event type with the given item type bound.
      *
      * @param <T> the item type
-     * @return the {@link #ACTION} type viewed as {@code EventType<MasonryViewActionEvent<T>>}
+     * @return the {@link #ACTION} type viewed as {@code EventType<RXMasonryViewActionEvent<T>>}
      */
     @SuppressWarnings("unchecked")
-    public static <T> EventType<MasonryViewActionEvent<T>> actionType() {
-        return (EventType<MasonryViewActionEvent<T>>) (EventType<?>) ACTION;
+    public static <T> EventType<RXMasonryViewActionEvent<T>> actionType() {
+        return (EventType<RXMasonryViewActionEvent<T>>) (EventType<?>) ACTION;
     }
 
     /**

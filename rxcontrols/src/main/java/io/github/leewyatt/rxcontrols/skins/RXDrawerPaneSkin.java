@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDrawerPane.DrawerMode;
-import io.github.leewyatt.rxcontrols.event.DrawerEvent;
+import io.github.leewyatt.rxcontrols.event.RXDrawerEvent;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -321,18 +321,18 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
             closeInFlight = false;
             applyDrawerWrapperRest(true);
             moveFocusIntoDrawer();
-            fireLifecycle(DrawerEvent.OPENING);
+            fireLifecycle(RXDrawerEvent.OPENING);
             playOpen();
         } else {
             closeInFlight = true;
             openInFlight = false;
-            fireLifecycle(DrawerEvent.CLOSING);
+            fireLifecycle(RXDrawerEvent.CLOSING);
             playClose();
         }
     }
 
-    private void fireLifecycle(EventType<DrawerEvent> type) {
-        getSkinnable().fireEvent(new DrawerEvent(type, getSkinnable()));
+    private void fireLifecycle(EventType<RXDrawerEvent> type) {
+        getSkinnable().fireEvent(new RXDrawerEvent(type, getSkinnable()));
     }
 
     private void playOpen() {
@@ -399,7 +399,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         applyBackdropRest(true);
         if (openInFlight) {
             openInFlight = false;
-            fireLifecycle(DrawerEvent.OPENED);
+            fireLifecycle(RXDrawerEvent.OPENED);
         }
     }
 
@@ -426,7 +426,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
         }
         applyDrawerWrapperRest(false);
         if (wasCloseInFlight) {
-            fireLifecycle(DrawerEvent.CLOSED);
+            fireLifecycle(RXDrawerEvent.CLOSED);
         }
     }
 

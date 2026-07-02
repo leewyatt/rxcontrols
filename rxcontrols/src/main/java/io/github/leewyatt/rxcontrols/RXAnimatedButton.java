@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.AnimationEvent;
+import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
@@ -86,7 +86,7 @@ public abstract class RXAnimatedButton extends RXButton {
      * or when the duration is {@link Duration#ZERO}.
      */
     public final void playAnimation() {
-        fireEvent(new AnimationEvent(AnimationEvent.PLAY_ANIMATION));
+        fireEvent(new RXAnimationEvent(RXAnimationEvent.PLAY_ANIMATION));
     }
 
     // ==================== Animation Trigger ====================

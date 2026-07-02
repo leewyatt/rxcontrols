@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
-import io.github.leewyatt.rxcontrols.event.TimelineItemEvent;
+import io.github.leewyatt.rxcontrols.event.RXTimelineItemEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -601,13 +601,13 @@ public class RXTimelineViewTest {
                 new RXTimelineItem("a"), new RXTimelineItem("b"), new RXTimelineItem("c"));
         showInScene(view);
 
-        AtomicReference<TimelineItemEvent> received = new AtomicReference<>();
+        AtomicReference<RXTimelineItemEvent> received = new AtomicReference<>();
         view.setOnItemClicked(received::set);
 
         Node second = itemNodes(view).get(1);
         Event.fireEvent(second, syntheticClick(second));
 
-        TimelineItemEvent event = received.get();
+        RXTimelineItemEvent event = received.get();
         assertNotNull(event);
         assertEquals(1, event.getIndex());
         assertSame(view.getItems().get(1), event.getItem());
@@ -625,14 +625,14 @@ public class RXTimelineViewTest {
         view.setReverse(true);
         showInScene(view);
 
-        AtomicReference<TimelineItemEvent> received = new AtomicReference<>();
+        AtomicReference<RXTimelineItemEvent> received = new AtomicReference<>();
         view.setOnItemClicked(received::set);
 
         // Display position 0 is model item "c" (index 2) under reverse.
         Node firstDisplayed = itemNodes(view).get(0);
         Event.fireEvent(firstDisplayed, syntheticClick(firstDisplayed));
 
-        TimelineItemEvent event = received.get();
+        RXTimelineItemEvent event = received.get();
         assertNotNull(event);
         assertEquals(2, event.getIndex());
         assertSame(c, event.getItem());
@@ -704,7 +704,7 @@ public class RXTimelineViewTest {
         assertTrue(disabledNode.getPseudoClassStates().contains(DISABLED));
         assertTrue(disabledNode.isDisabled());
 
-        AtomicReference<TimelineItemEvent> received = new AtomicReference<>();
+        AtomicReference<RXTimelineItemEvent> received = new AtomicReference<>();
         view.setOnItemClicked(received::set);
 
         // A disabled item must not fire onItemClicked, even on a directly dispatched click.
