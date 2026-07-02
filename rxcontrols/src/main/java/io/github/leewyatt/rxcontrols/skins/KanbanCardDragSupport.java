@@ -384,7 +384,7 @@ final class KanbanCardDragSupport<T> {
     }
 
     private boolean needsAutoScroll(double sceneX, double sceneY) {
-        Bounds board = overlay.localToScene(overlay.getBoundsInLocal());
+        Bounds board = overlay.localToScene(overlay.getLayoutBounds());
         boolean horizontal = sceneX < board.getMinX() + AUTO_SCROLL_EDGE || sceneX > board.getMaxX() - AUTO_SCROLL_EDGE;
         KanbanColumnBox<T> box = columnAt(sceneX, sceneY);
         boolean vertical = false;
@@ -416,7 +416,10 @@ final class KanbanCardDragSupport<T> {
             stopAutoScroll();
             return;
         }
-        Bounds board = overlay.localToScene(overlay.getBoundsInLocal());
+        // getLayoutBounds(), NOT getBoundsInLocal(): the latter grows with the ghost child,
+        // which sits at the pointer and would corrupt the board edge thresholds (same trap
+        // as columnAt).
+        Bounds board = overlay.localToScene(overlay.getLayoutBounds());
         double horizontalStep = edgeStep(lastPointerSceneX, board.getMinX(), board.getMaxX());
         if (horizontalStep != 0.0) {
             skin.scrollBoardBy(horizontalStep);

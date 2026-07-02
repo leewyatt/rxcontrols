@@ -442,6 +442,34 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void draggedGhostDoesNotExpandOverlayLayoutBounds() throws Exception {
+        // Board edge hit-testing AND horizontal auto-scroll read overlay.getLayoutBounds(),
+        // NOT getBoundsInLocal(): the ghost is an overlay child that follows the pointer off
+        // the board and would otherwise corrupt those bounds. This locks that invariant.
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            pump(host(board, 500, 400));
+            Region overlay = (Region) board.lookup(".drag-overlay");
+            assertNotNull(overlay, "drag overlay present");
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            Bounds sb = source.localToScene(source.getBoundsInLocal());
+            double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
+            double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));   // start drag
+            double layoutW = overlay.getLayoutBounds().getWidth();
+
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 4000.0, sy, board));   // fling ghost off-board
+            assertEquals(layoutW, overlay.getLayoutBounds().getWidth(), 0.5,
+                    "layout width is unaffected by the ghost position");
+            assertTrue(overlay.getBoundsInLocal().getWidth() > layoutW + 100.0,
+                    "getBoundsInLocal DID grow with the ghost — hence auto-scroll/hit-test use getLayoutBounds()");
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, sx + 4000.0, sy, board));   // cleanup
+        });
+    }
+
+    @Test
     public void sameColumnReorderCommits() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = twoColumnBoard();
@@ -1053,6 +1081,30 @@ public class RXKanbanViewSkinTest {
             assertEquals(List.of("H", "B", "A"),
                     board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
                     "visible [A,B] -> [B,A]; leading hidden H stays pinned at index 0");
+        });
+    }
+
+    @Test
+    public void columnMovedEventToIndexIsFinalAbsoluteSlotWithHiddenColumn() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1);
+            board.setColumnReorderEnabled(true);
+            board.setAnimated(false);
+            board.getColumns().get(1).setVisible(false);   // hide B (index 1)
+            AtomicReference<ColumnMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnColumnMoved(fired::set);
+            pump(host(board, 1200, 400));
+            dragColumn(board, "A", "C");   // commits [C, B, A, D]
+            pump(board);
+
+            ColumnMovedEvent<String> event = fired.get();
+            assertNotNull(event, "ColumnMovedEvent fired");
+            assertEquals(0, event.getFromIndex());
+            // toIndex is the moved column's FINAL absolute slot (A in [C,B,A,D]), NOT a plain
+            // remove/add target — the contract a consumer must reproduce.
+            assertEquals(2, event.getToIndex(), "toIndex is A's index in the committed order");
+            assertEquals(event.getToIndex(), board.getColumns().indexOf(event.getColumn()),
+                    "toIndex matches where the moved column actually landed");
         });
     }
 

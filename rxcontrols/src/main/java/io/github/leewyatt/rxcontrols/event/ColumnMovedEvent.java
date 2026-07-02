@@ -8,8 +8,14 @@ import javafx.event.EventType;
 /**
  * Event fired when a column is reordered in an {@link RXKanbanView} by dragging
  * its header. Fired <em>before</em> the built-in reorder and vetoable via
- * {@link #consume()}; when not consumed the control moves the column within
- * {@code getColumns()} by index.
+ * {@link #consume()}. When not consumed the control commits the new order, in which
+ * the moved column sits at {@link #getToIndex() toIndex}.
+ *
+ * <p>Only the <em>visible</em> columns are reordered; hidden columns stay pinned to
+ * their absolute slots. A consumer that reproduces the move on its own model should
+ * therefore rebuild the order by that rule (reorder the visible columns, keep hidden
+ * ones in place) rather than assuming a single-element remove/insert — the two differ
+ * once a hidden column sits between the source and the target.
  *
  * @param <T> the card type of the owning kanban view
  */
@@ -64,7 +70,7 @@ public class ColumnMovedEvent<T> extends Event {
     }
 
     /**
-     * Returns the column's current index.
+     * Returns the moved column's index in {@code getColumns()} before the reorder.
      *
      * @return the source index
      */
@@ -73,7 +79,8 @@ public class ColumnMovedEvent<T> extends Event {
     }
 
     /**
-     * Returns the column's target index.
+     * Returns the moved column's index in the committed column order — its final
+     * absolute position after the reorder (with hidden columns pinned to their slots).
      *
      * @return the target index
      */
