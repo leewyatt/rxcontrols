@@ -732,6 +732,29 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void shiftLineWheelOnColumnViewportScrollsBoardHorizontally() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 80, "B", 80, "C", 80, "D", 80, "E", 80);
+            board.setPrefColumnWidth(220.0);
+            board.setPrefCardHeight(28.0);
+            board.setCardSpacing(0.0);
+            board.setSmoothScrolling(false);
+            StackPane root = host(board, 360, 220);
+            pump(root);
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Node viewport = board.lookup(".viewport");
+
+            shiftLineWheel(viewport, -1.0);
+            pump(root);
+
+            assertTrue(horizontalScrollValue(board) > 100.0,
+                    "Shift+line wheel over a column scrolls the board horizontally");
+            assertEquals(0.0, verticalScrollValue(board), 0.001,
+                    "Shift+line wheel over a column is not consumed as vertical column scrolling");
+        });
+    }
+
+    @Test
     public void boardHorizontalWheelImmediatePathChainsAtBoundary() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);

@@ -150,6 +150,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationSettingsChanged);
         disposer.registerListener(control.smoothScrollingProperty(), this::stopSmoothScrolling);
         disposer.registerListener(control.smoothScrollModeProperty(), this::resetSmoothScrolling);
+        disposer.registerEventFilter(control, ScrollEvent.SCROLL, this::onBoardScrollFilter);
         disposer.registerEventHandler(control, ScrollEvent.SCROLL, this::onBoardScroll);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, dragSupport::onMousePressed);
@@ -342,6 +343,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
         stopBoardSmoothScrolling();
         setBoardScrollX(hbar.getValue());
+    }
+
+    private void onBoardScrollFilter(ScrollEvent event) {
+        if (event.isShiftDown()) {
+            onBoardScroll(event);
+        }
     }
 
     private void onBoardScroll(ScrollEvent event) {
