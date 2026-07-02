@@ -25,7 +25,7 @@
 .rx-masonry-pane, .rx-masonry-view, .rx-material-text-field, .rx-material-password-field,
 .rx-number-field, .rx-password-field, .rx-radio-button, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
-.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar,
+.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar, .rx-snackbar-host,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view,
@@ -132,4 +132,45 @@
 /* Avatar placeholder disc is a light-grey literal; the white glyph reads fine on a dark disc. */
 .rx-avatar > .default-icon-wrapper {
     -fx-background-color: -rx-surface-variant;
+}
+
+/* Snackbar is an inverse surface: on the dark theme the bar flips light with
+   dark text (Material inverse-surface convention); the action follows the raw
+   accent (bright enough on the light bar). */
+.rx-snackbar-host > .snackbar {
+    -fx-background-color: #e0e0e0;
+}
+
+.rx-snackbar-host > .snackbar > .message {
+    -fx-text-fill: rgba(0, 0, 0, 0.87);
+}
+
+.rx-snackbar-host > .snackbar > .actions .rx-button {
+    -fx-text-fill: -rx-primary;
+}
+
+.rx-snackbar-host > .snackbar > .actions .rx-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.08);
+}
+
+.rx-snackbar-host > .snackbar > .close-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.08);
+}
+
+.rx-snackbar-host > .snackbar > .close-button:focused {
+    -fx-background-color: rgba(0, 0, 0, 0.16);
+}
+
+.rx-snackbar-host > .snackbar > .close-button > .icon {
+    -fx-background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* Severity bars keep their baseline tinted background + white text in the dark
+   theme too, so their close icon must stay light (the dark re-point above only
+   fits the light default bar). */
+.rx-snackbar-host > .snackbar.rx-snackbar-info > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-success > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-warning > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-error > .close-button > .icon {
+    -fx-background-color: rgba(255, 255, 255, 0.7);
 }

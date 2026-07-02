@@ -1,0 +1,29 @@
+.preview-content {
+    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);
+    -fx-padding: 24;
+}
+
+.preview-heading {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.preview-hint {
+    -fx-font-size: 13px;
+    -fx-text-fill: #475569;
+    -fx-max-width: 420;
+}
+
+.preview-show {
+    -fx-font-size: 14px;
+    -fx-padding: 10 22;
+}
+
+.snackbar-area {
+    -fx-background-color: white;
+    -fx-border-color: #cbd5e1;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}

@@ -2,11 +2,8 @@ package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 
-import javafx.beans.InvalidationListener;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 
 /**
  * Per-scene overlay host for {@link RXDialog} instances. One layer per scene
@@ -15,37 +12,23 @@ import javafx.scene.layout.StackPane;
  * card), and stacking, focus, and ESC are scoped to the top-most dialog by the
  * dialogs' own skins.
  *
- * <p>Installation adapts to the root: if the scene root (or an explicit container) is
- * a {@link Pane}, the layer is added as a {@code managed = false} child sized to fill
- * it (so layout panes such as {@code BorderPane} do not reserve space for it); if
- * the root is not an addable {@code Pane}, the original root is wrapped in a
- * {@link StackPane} as a fallback. The layer uninstalls itself when its last dialog
- * detaches.</p>
+ * <p>Mounting, fill tracking, and empty-uninstall come from
+ * {@link RXSceneOverlayLayer}. The dialog layer renders in front of every other
+ * overlay layer type (its viewOrder is the lowest), so dialogs always cover, for
+ * example, snackbars — regardless of which layer was installed first.</p>
  *
  * <p>This class is driven by {@link RXDialog} (show attaches, hide-completed
  * detaches), not by the skin — keeping scene-graph mounting out of the skin.</p>
  */
-public final class RXDialogLayer extends StackPane {
-
-    private enum InstallMode {
-        /** Added as a managed=false overlay child of a container / root pane. */
-        PANE_CHILD,
-        /** The original root was wrapped in a StackPane holding it and this layer. */
-        WRAP
-    }
+public final class RXDialogLayer extends RXSceneOverlayLayer {
 
     private static final Object LAYER_KEY = new Object();
 
-    private Scene scene;
-    private InstallMode mode;
-    private Pane fillParent;
-    private InvalidationListener fillListener;
-    private Parent originalRoot;
+    // Dialogs stack above every other overlay layer (lower viewOrder = in front).
+    private static final double VIEW_ORDER = -20.0;
 
     private RXDialogLayer() {
-        // Empty areas (no scrim / card under the cursor) stay click-through, so a
-        // non-modal dialog leaves the rest of the scene interactive.
-        setPickOnBounds(false);
+        super(LAYER_KEY, VIEW_ORDER);
     }
 
     /**
@@ -64,10 +47,7 @@ public final class RXDialogLayer extends StackPane {
         // a still-running close transition, possibly onto a different scene), remove it
         // from there first — so it is never added twice and the old layer never leaks.
         if (dialog.getParent() instanceof RXDialogLayer current) {
-            current.getChildren().remove(dialog);
-            if (current.getChildren().isEmpty()) {
-                current.uninstall();
-            }
+            current.detachChild(dialog);
         }
         Scene targetScene = container != null
                 ? container.getScene()
@@ -79,9 +59,8 @@ public final class RXDialogLayer extends StackPane {
         RXDialogLayer layer = (RXDialogLayer) targetScene.getProperties().get(LAYER_KEY);
         if (layer == null) {
             layer = new RXDialogLayer();
-            layer.install(targetScene, container);
-            targetScene.getProperties().put(LAYER_KEY, layer);
-        } else if (container != null && container != layer.fillParent) {
+            layer.installInto(targetScene, container);
+        } else if (container != null && container != layer.getFillParent()) {
             // One overlay layer per scene carries all that scene's dialogs (so they stack,
             // share a single scrim, and trap focus together), so an explicit container is honored
             // only by the dialog that first installs the layer. Rather than silently mounting a
@@ -104,73 +83,7 @@ public final class RXDialogLayer extends StackPane {
      */
     public static void detach(RXDialog<?> dialog) {
         if (dialog.getParent() instanceof RXDialogLayer layer) {
-            layer.getChildren().remove(dialog);
-            if (layer.getChildren().isEmpty()) {
-                layer.uninstall();
-            }
+            layer.detachChild(dialog);
         }
-    }
-
-    private void install(Scene targetScene, Pane container) {
-        this.scene = targetScene;
-        if (container != null) {
-            installAsChildOf(container);
-            return;
-        }
-        Parent root = targetScene.getRoot();
-        if (root instanceof Pane pane) {
-            installAsChildOf(pane);
-        } else {
-            installByWrapping(targetScene, root);
-        }
-    }
-
-    private void installAsChildOf(Pane parent) {
-        this.mode = InstallMode.PANE_CHILD;
-        this.fillParent = parent;
-        setManaged(false);
-        // Track the parent's size manually: a managed=false child is ignored by the
-        // parent's layout, so it must fill the parent itself and follow resizes.
-        fillListener = observable -> fillToParent();
-        parent.widthProperty().addListener(fillListener);
-        parent.heightProperty().addListener(fillListener);
-        parent.getChildren().add(this);
-        fillToParent();
-    }
-
-    private void fillToParent() {
-        resizeRelocate(0.0, 0.0, fillParent.getWidth(), fillParent.getHeight());
-    }
-
-    private void installByWrapping(Scene targetScene, Parent root) {
-        this.mode = InstallMode.WRAP;
-        this.originalRoot = root;
-        // Inside the wrapping StackPane this layer is a normal, filled child.
-        setManaged(true);
-        StackPane wrapper = new StackPane(root, this);
-        targetScene.setRoot(wrapper);
-    }
-
-    private void uninstall() {
-        if (scene != null) {
-            scene.getProperties().remove(LAYER_KEY);
-        }
-        if (mode == InstallMode.PANE_CHILD && fillParent != null) {
-            fillParent.widthProperty().removeListener(fillListener);
-            fillParent.heightProperty().removeListener(fillListener);
-            fillParent.getChildren().remove(this);
-        } else if (mode == InstallMode.WRAP && scene != null && originalRoot != null) {
-            // Only restore if our wrapper is still the root: if the app swapped the
-            // scene root while a wrapped dialog was open, leave its new root alone.
-            if (scene.getRoot() instanceof Pane wrapper && wrapper.getChildren().contains(originalRoot)) {
-                wrapper.getChildren().remove(originalRoot);
-                scene.setRoot(originalRoot);
-            }
-        }
-        scene = null;
-        fillParent = null;
-        fillListener = null;
-        originalRoot = null;
-        mode = null;
     }
 }
