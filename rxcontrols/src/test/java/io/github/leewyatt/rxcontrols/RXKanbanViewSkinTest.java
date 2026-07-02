@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -130,6 +131,28 @@ public class RXKanbanViewSkinTest {
             RXKanbanCardCell<?> second = cellByText(board, "card-1");
             assertEquals(96.0, second.getLayoutY() - first.getLayoutY(), 1.0,
                     "row stride is the default height (96) with spacing clamped to 0");
+        });
+    }
+
+    @Test
+    public void cardHeightAndSpacingChangesRelayoutImmediately() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("Backlog", 50);
+            board.setPrefCardHeight(80.0);
+            board.setCardSpacing(10.0);
+            pump(host(board, 400, 600));
+            assertEquals(90.0, cardStride(board), 1.0, "initial stride = 80 + 10");
+
+            // Change ONLY the height: the stride must update on the next pulse, without
+            // needing some other property (column width, etc.) to nudge the viewport.
+            board.setPrefCardHeight(120.0);
+            pump(board);
+            assertEquals(130.0, cardStride(board), 1.0, "height change relayouts the viewport immediately");
+
+            // Likewise for spacing alone.
+            board.setCardSpacing(4.0);
+            pump(board);
+            assertEquals(124.0, cardStride(board), 1.0, "spacing change relayouts the viewport immediately");
         });
     }
 
@@ -234,6 +257,42 @@ public class RXKanbanViewSkinTest {
             assertNull(action.get(), "Enter on a hidden focused column fires no card action");
             key(board, KeyCode.SPACE);
             assertNull(board.getSelectedCard(), "Space does not select a hidden column's card");
+        });
+    }
+
+    @Test
+    public void arrowKeysRecoverFromHiddenFocusedColumn() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 3, "B", 3);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 500));
+            board.updateFocus(a, 1);
+            a.setVisible(false);   // the focused column becomes hidden after it was focused
+            pump(board);
+            key(board, KeyCode.DOWN);
+            assertSame(b, board.getFocusedColumn(), "DOWN recovers focus onto a visible column");
+            assertNotSame(a, board.getFocusedColumn(), "focus does not stay inside the hidden column");
+        });
+    }
+
+    @Test
+    public void inPlaceCardReplaceRefreshesSelectionProjection() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();   // A = [A0, A1, A2]
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            pump(host(board, 900, 500));
+            board.updateSelection(a, 1);
+            board.updateFocus(a, 1);
+            assertEquals("A1", board.getSelectedCard());
+            assertEquals("A1", board.getFocusedCard());
+
+            a.getCards().set(1, "A1-edited");   // in-place replace: size unchanged
+            pump(board);
+            assertEquals("A1-edited", board.getSelectedCard(),
+                    "selectedCard projection tracks an in-place replace at the selected index");
+            assertEquals("A1-edited", board.getFocusedCard(),
+                    "focusedCard projection tracks an in-place replace at the focused index");
         });
     }
 
@@ -357,6 +416,28 @@ public class RXKanbanViewSkinTest {
             assertEquals(List.of("A1", "A2"), a.getCards());
             assertEquals(List.of("B0", "A0", "B1"), b.getCards(), "A0 lands between B0 and B1");
             assertEquals(1, fired.get().getToIndex(), "cross-column toIndex is 1");
+        });
+    }
+
+    @Test
+    public void cardDropAboveBoardDoesNotCommit() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 900, 500));
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            double columnX = center(cellByText(board, "B0"))[0];   // x still over a column
+            double aboveBoard = board.localToScene(board.getBoundsInLocal()).getMinY() - 40.0;
+            dragTo(board, source, new double[]{columnX, aboveBoard});
+            pump(board);
+
+            assertNull(fired.get(), "releasing above the board (off it vertically) fires no move");
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "source column unchanged");
+            assertEquals(List.of("B0", "B1"), b.getCards(), "target column unchanged");
         });
     }
 
@@ -941,9 +1022,37 @@ public class RXKanbanViewSkinTest {
             pump(host(board, 1200, 400));
             dragColumn(board, "A", "C");   // drag A past visible C's center
             pump(board);
-            assertEquals(List.of("B", "C", "A", "D"),
+            assertEquals(List.of("C", "B", "A", "D"),
                     board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
-                    "A drops after visible C; hidden B keeps its slot and does not shift the drop");
+                    "visible [A,C,D] -> [C,A,D]; hidden B stays pinned at its absolute slot (index 1)");
+        });
+    }
+
+    @Test
+    public void columnReorderWithLeadingHiddenColumnPinsHiddenSlot() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("H", 1, "A", 1, "B", 1);
+            board.setColumnReorderEnabled(true);
+            board.setAnimated(false);
+            board.getColumns().get(0).setVisible(false);   // hide the LEADING column H
+            pump(host(board, 1000, 400));
+
+            // Drag B leftward, releasing left of A's centre so it lands before A.
+            Node headerB = headerOf(board, "B");
+            Bounds bb = headerB.localToScene(headerB.getBoundsInLocal());
+            Bounds ab = headerOf(board, "A").localToScene(headerOf(board, "A").getBoundsInLocal());
+            double sx = (bb.getMinX() + bb.getMaxX()) / 2.0;
+            double sy = (bb.getMinY() + bb.getMaxY()) / 2.0;
+            double targetX = ab.getMinX() + 5.0;   // inside A but left of its centre
+            headerB.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerB));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx - 12.0, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, targetX, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, targetX, sy, board));
+            pump(board);
+
+            assertEquals(List.of("H", "B", "A"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "visible [A,B] -> [B,A]; leading hidden H stays pinned at index 0");
         });
     }
 
@@ -1296,6 +1405,11 @@ public class RXKanbanViewSkinTest {
             }
         }
         return null;
+    }
+
+    // The vertical distance between two adjacent realized cards = the row stride.
+    private static double cardStride(RXKanbanView<?> board) {
+        return cellByText(board, "card-1").getLayoutY() - cellByText(board, "card-0").getLayoutY();
     }
 
     private static boolean hasVisibleHorizontalScrollBar(RXKanbanView<?> board) {

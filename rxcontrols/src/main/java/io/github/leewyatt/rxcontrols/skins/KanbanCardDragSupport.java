@@ -342,8 +342,14 @@ final class KanbanCardDragSupport<T> {
     // ==================== Hit testing ====================
 
     private KanbanColumnBox<T> columnAt(double sceneX, double sceneY) {
-        Bounds boardScene = overlay.localToScene(overlay.getBoundsInLocal());
-        if (sceneX < boardScene.getMinX() || sceneX > boardScene.getMaxX()) {
+        // Use the overlay's layout rectangle, NOT getBoundsInLocal(): the latter grows to
+        // include the ghost child, which follows the pointer off the board and would defeat
+        // the off-board check below.
+        Bounds boardScene = overlay.localToScene(overlay.getLayoutBounds());
+        if (sceneX < boardScene.getMinX() || sceneX > boardScene.getMaxX()
+                || sceneY < boardScene.getMinY() || sceneY > boardScene.getMaxY()) {
+            // Pointer is off the board (horizontally or vertically): no drop target, so a
+            // release here is a no-op rather than committing into the nearest column.
             return null;
         }
         KanbanColumnBox<T> best = null;

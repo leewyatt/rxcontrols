@@ -137,8 +137,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerListener(control.maxColumnWidthProperty(), this::requestLayout);
         disposer.registerListener(control.columnsJustifyProperty(), this::requestLayout);
         disposer.registerListener(control.columnSpacingProperty(), this::requestLayout);
-        disposer.registerListener(control.prefCardHeightProperty(), this::requestLayout);
-        disposer.registerListener(control.cardSpacingProperty(), this::requestLayout);
+        disposer.registerListener(control.prefCardHeightProperty(), this::onCardMetricsChanged);
+        disposer.registerListener(control.cardSpacingProperty(), this::onCardMetricsChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationSettingsChanged);
         disposer.registerEventHandler(control, ScrollEvent.SCROLL, this::onBoardScroll);
@@ -158,6 +158,17 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     }
 
     private void requestLayout() {
+        getSkinnable().requestLayout();
+    }
+
+    // The row stride (cardHeight + cardSpacing) is consumed inside each column viewport's
+    // layoutChildren, which the pulse skips while the viewport's own size is unchanged.
+    // Dirty every viewport explicitly so a stride change takes effect immediately, rather
+    // than waiting for another property (e.g. column width) to resize the boxes.
+    private void onCardMetricsChanged() {
+        for (KanbanColumnBox<T> box : boxes) {
+            box.getViewport().requestLayout();
+        }
         getSkinnable().requestLayout();
     }
 
@@ -411,7 +422,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     private void moveFocusInColumn(int delta) {
         RXKanbanView<T> control = getSkinnable();
         RXKanbanColumn<T> column = control.getFocusedColumn();
-        if (column == null) {
+        if (column == null || !column.isVisible()) {
+            // No focus, or the focused column was hidden after it was focused: recover onto
+            // a visible column instead of moving focus within an invisible one.
             focusFirstAvailable();
             return;
         }
@@ -429,7 +442,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     private void focusEdgeOfColumn(boolean first) {
         RXKanbanView<T> control = getSkinnable();
         RXKanbanColumn<T> column = control.getFocusedColumn();
-        if (column == null) {
+        if (column == null || !column.isVisible()) {
             focusFirstAvailable();
             return;
         }

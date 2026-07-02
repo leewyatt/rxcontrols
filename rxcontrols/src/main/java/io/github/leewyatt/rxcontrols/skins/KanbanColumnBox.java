@@ -94,6 +94,9 @@ final class KanbanColumnBox<T> extends Region {
             requestLayout();
         });
 
+        // cardCount is a Bindings.size(cards) binding, so this InvalidationListener fires on
+        // ANY cards change — add/remove AND same-size set()/permutation — which is what keeps
+        // the board's selected/focused card projection in sync (see reconcileSelectionFocus).
         column.cardCountProperty().addListener(columnListener);
         column.titleProperty().addListener(columnListener);
         column.wipLimitProperty().addListener(columnListener);
