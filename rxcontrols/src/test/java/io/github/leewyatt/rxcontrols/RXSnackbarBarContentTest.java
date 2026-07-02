@@ -63,7 +63,7 @@ public class RXSnackbarBarContentTest {
             host.show(RXSnackbarRequest.builder("saved")
                     .action("Undo", () -> order.add("handler"))
                     .build());
-            RXButton action = (RXButton) host.lookup(".rx-button");
+            RXButton action = (RXButton) host.lookup(".action");
             assertNotNull(action, "the action renders as an RXButton");
             assertEquals("Undo", action.getText());
             action.fire();
@@ -84,7 +84,7 @@ public class RXSnackbarBarContentTest {
                     })
                     .onDismissed((request, reason) -> reasons.add(reason))
                     .build());
-            RXButton action = (RXButton) host.lookup(".rx-button");
+            RXButton action = (RXButton) host.lookup(".action");
             assertThrows(IllegalStateException.class, action::fire,
                     "the handler exception propagates, not swallowed");
             assertEquals(List.of(DismissReason.ACTION), reasons, "the bar still dismisses exactly once");
@@ -97,8 +97,7 @@ public class RXSnackbarBarContentTest {
         runOnFx(() -> {
             RXSnackbarHost host = skinnedHost();
             host.show(RXSnackbarRequest.builder("plain").build());
-            assertNull(host.lookup(".rx-button"));
-            assertNull(host.lookup(".actions"));
+            assertNull(host.lookup(".action"), "no action, no button node");
         });
     }
 
@@ -225,7 +224,7 @@ public class RXSnackbarBarContentTest {
             assertSame(host, ancestorHost(custom), "custom content is mounted");
             assertNull(host.lookup(".message"), "the default message area is replaced");
             assertNotNull(host.lookup(".close-button"), "close stays host-managed around custom content");
-            RXButton action = (RXButton) host.lookup(".rx-button");
+            RXButton action = (RXButton) host.lookup(".action");
             assertNotNull(action, "the action stays host-managed around custom content");
             action.fire();
             assertEquals(List.of(DismissReason.ACTION), reasons);

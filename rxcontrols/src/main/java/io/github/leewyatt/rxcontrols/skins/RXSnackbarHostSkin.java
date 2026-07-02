@@ -183,13 +183,7 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
             children.add(message);
         }
         if (request.hasAction()) {
-            HBox actions = new HBox(createActionButton(request));
-            actions.getStyleClass().add("actions");
-            // Pin to pref height so the bar's fillHeight cannot stretch the wrapper
-            // (whose own TOP_LEFT alignment would pin the button up); the bar's
-            // center-left alignment then centers the whole block vertically.
-            actions.setMaxHeight(Region.USE_PREF_SIZE);
-            children.add(actions);
+            children.add(createActionButton(request));
         }
         boolean showClose = getSkinnable().effectiveShowCloseIcon(request);
         if (showClose) {
@@ -217,11 +211,16 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         bar.pseudoClassStateChanged(ERROR_PSEUDO_CLASS, effective == RXSnackbarSeverity.ERROR);
     }
 
-    // The action: a dogfooded RXButton (ripple + state overlay for free). Runs the
+    // The action: a dogfooded RXButton (ripple + state overlay for free), a direct
+    // bar child. The "action" class scopes author CSS to it (custom content may
+    // carry its own RXButtons); pref-height pinning keeps the bar's fillHeight
+    // from stretching it, so the bar's center-left alignment centers it. Runs the
     // request handler, then always dismisses with ACTION — a throwing handler
     // still closes the bar, and its exception propagates uncaught.
     private RXButton createActionButton(RXSnackbarRequest request) {
         RXButton button = new RXButton(request.getActionLabel());
+        button.getStyleClass().add("action");
+        button.setMaxHeight(Region.USE_PREF_SIZE);
         button.setOnAction(event -> {
             try {
                 Runnable handler = request.getActionHandler();

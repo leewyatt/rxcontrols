@@ -145,11 +145,11 @@
     -fx-text-fill: rgba(0, 0, 0, 0.87);
 }
 
-.rx-snackbar-host > .snackbar > .actions .rx-button {
+.rx-snackbar-host > .snackbar > .action {
     -fx-text-fill: -rx-primary;
 }
 
-.rx-snackbar-host > .snackbar > .actions .rx-button:hover {
+.rx-snackbar-host > .snackbar > .action:hover {
     -fx-background-color: rgba(0, 0, 0, 0.08);
 }
 
