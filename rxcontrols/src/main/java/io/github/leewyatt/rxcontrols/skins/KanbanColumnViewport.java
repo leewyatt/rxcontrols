@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.collections.ListChangeListener;
@@ -199,8 +200,9 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             return;
         }
         double target = targetScrollFor(index * rowStride(), rowHeight(), h, alignment);
-        scrollY = RXMath.clamp(target, 0.0, cachedMaxScroll);
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(RXMath.clamp(target, 0.0, cachedMaxScroll),
+                ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
     }
 
@@ -253,7 +255,12 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
         reorderPass = settleDirty && animationEnabled() && !explicitScrollPending;
         settleDirty = false;
         explicitScrollPending = false;
-        scrollY = RXMath.clamp(scrollY, 0.0, maxScroll);
+        double correctedScroll = RXMath.clamp(scrollY, 0.0, maxScroll);
+        double correction = correctedScroll - scrollY;
+        scrollY = correctedScroll;
+        if (correction != 0.0) {
+            shiftSmoothScrollBy(correction);
+        }
 
         double barBreadth = configureAndPositionScrollBar(maxScroll, w, h);
         double contentWidth = Math.max(0.0, w - barBreadth);
@@ -460,6 +467,16 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     @Override
     protected double unitScrollIncrement() {
         return Math.max(1.0, snapSizeY(RXKanbanViewSkin.prefCardHeightOrDefault(control)));
+    }
+
+    @Override
+    protected boolean smoothScrollingEnabled() {
+        return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

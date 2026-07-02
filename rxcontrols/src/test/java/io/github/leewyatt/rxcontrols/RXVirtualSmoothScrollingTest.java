@@ -48,9 +48,11 @@ public class RXVirtualSmoothScrollingTest {
             assertTrue(new RXListView<>().isSmoothScrolling());
             assertTrue(new RXTileView<>().isSmoothScrolling());
             assertTrue(new RXMasonryView<>().isSmoothScrolling());
+            assertTrue(new RXKanbanView<>().isSmoothScrolling());
             assertEquals(SmoothScrollMode.MOMENTUM, new RXListView<>().getSmoothScrollMode());
             assertEquals(SmoothScrollMode.MOMENTUM, new RXTileView<>().getSmoothScrollMode());
             assertEquals(SmoothScrollMode.MOMENTUM, new RXMasonryView<>().getSmoothScrollMode());
+            assertEquals(SmoothScrollMode.MOMENTUM, new RXKanbanView<>().getSmoothScrollMode());
         });
     }
 
@@ -127,6 +129,30 @@ public class RXVirtualSmoothScrollingTest {
             pump(rootRef.get());
             assertTrue(viewRef.get().getFirstVisibleIndex() > 0,
                     "masonry smooth animation is not cancelled by anchor correction");
+        });
+    }
+
+    @Test
+    public void kanbanSmoothWheelAdvancesAfterPulse() throws Exception {
+        AtomicReference<RXKanbanView<String>> viewRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> view = kanban(200);
+            StackPane root = host(view, 300.0, 200.0);
+            pump(root);
+            fireWheel(view.lookup(".viewport"), -180.0);
+            assertEquals(0, firstVisibleKanbanIndex(view),
+                    "smooth scrolling does not jump in the same event turn");
+            viewRef.set(view);
+            rootRef.set(root);
+        });
+
+        waitForFx(260.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(firstVisibleKanbanIndex(viewRef.get()) > 0,
+                    "kanban column smooth animation advances the visible cards on later pulses");
         });
     }
 
@@ -242,6 +268,28 @@ public class RXVirtualSmoothScrollingTest {
         });
     }
 
+    @Test
+    public void kanbanImmediatePathChainsAtBoundary() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> view = kanban(200);
+            view.setSmoothScrolling(false);
+            StackPane root = host(view, 300.0, 200.0);
+            pump(root);
+            AtomicInteger bubbled = new AtomicInteger();
+            root.addEventHandler(ScrollEvent.SCROLL, event -> bubbled.incrementAndGet());
+            Node viewport = view.lookup(".viewport");
+
+            ScrollEvent boundary = fireWheel(viewport, 80.0);
+            assertFalse(boundary.isConsumed(), "top boundary chains to parent");
+            assertEquals(1, bubbled.get());
+
+            fireWheel(viewport, -120.0);
+            pump(root);
+            assertEquals(1, bubbled.get(), "usable immediate wheel input is consumed");
+            assertTrue(firstVisibleKanbanIndex(view) > 0);
+        });
+    }
+
     private static RXListView<String> list(int count) {
         ObservableList<String> items = FXCollections.observableArrayList();
         for (int i = 0; i < count; i++) {
@@ -266,6 +314,28 @@ public class RXVirtualSmoothScrollingTest {
         RXMasonryView<Integer> view = new RXMasonryView<>(items);
         view.setCellHeightProvider(context -> 120.0);
         return view;
+    }
+
+    private static RXKanbanView<String> kanban(int count) {
+        RXKanbanColumn<String> column = new RXKanbanColumn<>("Backlog");
+        for (int i = 0; i < count; i++) {
+            column.getCards().add("card-" + i);
+        }
+        RXKanbanView<String> view = new RXKanbanView<>(FXCollections.observableArrayList(column));
+        view.setPrefCardHeight(20.0);
+        view.setCardSpacing(0.0);
+        return view;
+    }
+
+    private static int firstVisibleKanbanIndex(RXKanbanView<String> view) {
+        int first = Integer.MAX_VALUE;
+        for (Node node : view.lookupAll(".rx-kanban-card-cell")) {
+            if (node instanceof RXKanbanCardCell<?> cell && cell.isVisible() && !cell.isEmpty()
+                    && cell.getIndex() >= 0) {
+                first = Math.min(first, cell.getIndex());
+            }
+        }
+        return first == Integer.MAX_VALUE ? -1 : first;
     }
 
     private static StackPane host(Node node, double w, double h) {

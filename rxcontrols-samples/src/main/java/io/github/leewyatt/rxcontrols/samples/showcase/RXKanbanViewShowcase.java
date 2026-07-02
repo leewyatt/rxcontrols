@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -64,6 +65,7 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         kanban.setCardSpacing(10.0);
         kanban.setPrefCardHeight(78.0);
         kanban.setColumnsJustify(ItemsJustify.CENTER);
+        kanban.setSmoothScrolling(true);
         kanban.setColumnHeaderFactory(this::createColumnHeader);
 
         // Each column footer adds a card, so the settle glide and the WIP pill react.
@@ -96,6 +98,9 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         done.getCards().addAll("Column model", "Virtualized viewport", "Board scroll");
         RXKanbanColumn<String> backlog = new RXKanbanColumn<>("BACKLOG");
         backlog.getCards().addAll("Swimlanes", "Keyboard DnD", "Multi-select", "Live regions", "Variable height");
+        for (int i = 1; i <= 18; i++) {
+            backlog.getCards().add("Backlog item " + i);
+        }
         return FXCollections.observableArrayList(todo, doing, done, backlog);
     }
 
@@ -152,6 +157,7 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
                 section("Layout", layoutGrid()),
                 section("Behavior", behaviorGrid()),
                 section("Animation", animationGrid()),
+                section("Smooth scroll", smoothScrollGrid()),
                 section("Activity", activityGrid()));
     }
 
@@ -229,6 +235,21 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row(animated),
                 row("Duration", duration, createValueLabel(duration, "%.0f ms")));
+    }
+
+    private Node smoothScrollGrid() {
+        CheckBox enabled = new CheckBox("Smooth wheel scrolling");
+        enabled.setSelected(kanban.isSmoothScrolling());
+        enabled.selectedProperty().addListener((o, ov, on) -> kanban.setSmoothScrolling(on));
+
+        ChoiceBox<SmoothScrollMode> mode = new ChoiceBox<>(
+                FXCollections.observableArrayList(SmoothScrollMode.values()));
+        mode.setValue(kanban.getSmoothScrollMode());
+        mode.valueProperty().addListener((o, ov, value) -> kanban.setSmoothScrollMode(value));
+
+        return createGrid(
+                row(enabled),
+                row("Mode", mode));
     }
 
     private Node activityGrid() {

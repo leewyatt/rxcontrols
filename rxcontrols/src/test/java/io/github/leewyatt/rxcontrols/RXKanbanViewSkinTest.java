@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -22,9 +23,11 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -538,6 +542,153 @@ public class RXKanbanViewSkinTest {
             pump(board);
 
             assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "no drag when cardDragEnabled=false");
+        });
+    }
+
+    @Test
+    public void cardAutoScrollUsesImmediateVerticalScrollWhileSmoothEnabled() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        AtomicReference<double[]> releaseRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 80);
+            board.setSmoothScrolling(true);
+            board.setPrefCardHeight(28.0);
+            board.setCardSpacing(0.0);
+            StackPane root = host(board, 320, 220);
+            pump(root);
+
+            RXKanbanCardCell<?> source = cellByText(board, "card-0");
+            Bounds sourceBounds = source.localToScene(source.getBoundsInLocal());
+            double sx = (sourceBounds.getMinX() + sourceBounds.getMaxX()) / 2.0;
+            double sy = (sourceBounds.getMinY() + sourceBounds.getMaxY()) / 2.0;
+            Node viewport = board.lookup(".viewport");
+            Bounds viewportBounds = viewport.localToScene(viewport.getBoundsInLocal());
+            double targetX = (viewportBounds.getMinX() + viewportBounds.getMaxX()) / 2.0;
+            double targetY = viewportBounds.getMaxY() - 2.0;
+
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, targetX, targetY, board));
+
+            boardRef.set(board);
+            rootRef.set(root);
+            releaseRef.set(new double[]{targetX, targetY});
+        });
+
+        waitForFx(80.0);
+
+        onFx(() -> {
+            RXKanbanView<String> board = boardRef.get();
+            pump(rootRef.get());
+            double value = verticalScrollValue(board);
+            double[] release = releaseRef.get();
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, release[0], release[1], board));
+            pump(rootRef.get());
+            assertTrue(value > 0.0, "drag auto-scroll writes the column offset immediately");
+        });
+    }
+
+    @Test
+    public void boardHorizontalWheelSmoothsWhenEnabled() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(220.0);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(hasVisibleHorizontalScrollBar(board), "horizontal scroll bar visible");
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Region columns = (Region) board.lookup(".columns");
+            AtomicInteger bubbled = new AtomicInteger();
+            root.addEventHandler(ScrollEvent.SCROLL, event -> bubbled.incrementAndGet());
+
+            horizontalWheel(columns, -180.0);
+
+            assertEquals(0, bubbled.get(), "usable horizontal wheel input is consumed");
+            assertEquals(0.0, horizontalScrollValue(board), 0.001,
+                    "smooth horizontal scrolling does not jump in the same event turn");
+            boardRef.set(board);
+            rootRef.set(root);
+        });
+
+        waitForFx(260.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(horizontalScrollValue(boardRef.get()) > 0.0,
+                    "horizontal smooth animation advances the board on later pulses");
+        });
+    }
+
+    @Test
+    public void boardHorizontalWheelImmediatePathChainsAtBoundary() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(220.0);
+            board.setSmoothScrolling(false);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(hasVisibleHorizontalScrollBar(board), "horizontal scroll bar visible");
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Region columns = (Region) board.lookup(".columns");
+            AtomicInteger bubbled = new AtomicInteger();
+            root.addEventHandler(ScrollEvent.SCROLL, event -> bubbled.incrementAndGet());
+
+            horizontalWheel(columns, 80.0);
+            assertEquals(1, bubbled.get(), "left boundary chains to parent");
+
+            horizontalWheel(columns, -180.0);
+            pump(root);
+
+            assertEquals(1, bubbled.get(), "usable immediate horizontal wheel input is consumed");
+            assertTrue(horizontalScrollValue(board) > 0.0, "immediate path advances after layout");
+        });
+    }
+
+    @Test
+    public void cardAutoScrollUsesImmediateHorizontalScrollWhileSmoothEnabled() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        AtomicReference<double[]> releaseRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2, "B", 2, "C", 2, "D", 2, "E", 2);
+            board.setSmoothScrolling(true);
+            board.setPrefColumnWidth(220.0);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(hasVisibleHorizontalScrollBar(board), "horizontal scroll bar visible");
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+
+            RXKanbanCardCell<?> source = cellByText(board, "card-0");
+            Bounds sourceBounds = source.localToScene(source.getBoundsInLocal());
+            double sx = (sourceBounds.getMinX() + sourceBounds.getMaxX()) / 2.0;
+            double sy = (sourceBounds.getMinY() + sourceBounds.getMaxY()) / 2.0;
+            Region columns = (Region) board.lookup(".columns");
+            Bounds columnsBounds = columns.localToScene(columns.getLayoutBounds());
+            double targetX = columnsBounds.getMaxX() - 2.0;
+            double targetY = sy;
+
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, targetX, targetY, board));
+
+            boardRef.set(board);
+            rootRef.set(root);
+            releaseRef.set(new double[]{targetX, targetY});
+        });
+
+        waitForFx(80.0);
+
+        onFx(() -> {
+            RXKanbanView<String> board = boardRef.get();
+            pump(rootRef.get());
+            double value = horizontalScrollValue(board);
+            double[] release = releaseRef.get();
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, release[0], release[1], board));
+            pump(rootRef.get());
+            assertTrue(value > 0.0, "drag auto-scroll writes the board offset immediately");
         });
     }
 
@@ -1471,6 +1622,36 @@ public class RXKanbanViewSkinTest {
         return false;
     }
 
+    private static double horizontalScrollValue(RXKanbanView<?> board) {
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar
+                    && bar.getOrientation() == Orientation.HORIZONTAL && bar.isVisible()) {
+                return bar.getValue();
+            }
+        }
+        return 0.0;
+    }
+
+    private static double horizontalScrollMax(RXKanbanView<?> board) {
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar
+                    && bar.getOrientation() == Orientation.HORIZONTAL && bar.isVisible()) {
+                return bar.getMax();
+            }
+        }
+        return 0.0;
+    }
+
+    private static double verticalScrollValue(RXKanbanView<?> board) {
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar
+                    && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible()) {
+                return bar.getValue();
+            }
+        }
+        return 0.0;
+    }
+
     private static StackPane host(RXKanbanView<?> board, double w, double h) {
         StackPane root = new StackPane(board);
         new Scene(root, w, h);
@@ -1505,6 +1686,32 @@ public class RXKanbanViewSkinTest {
         }
         if (t != null) {
             throw new AssertionError(t);
+        }
+    }
+
+    private static ScrollEvent horizontalWheel(Node target, double deltaX) {
+        ScrollEvent event = new ScrollEvent(ScrollEvent.SCROLL,
+                0.0, 0.0, 0.0, 0.0,
+                false, false, false, false,
+                false, false,
+                deltaX, 0.0, deltaX, 0.0,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0,
+                null);
+        target.fireEvent(event);
+        return event;
+    }
+
+    private static void waitForFx(double millis) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("Timed out waiting for JavaFX pulse");
         }
     }
 

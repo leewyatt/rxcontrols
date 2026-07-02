@@ -4,8 +4,13 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.ScrollAxis;
+import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
 import io.github.leewyatt.rxcontrols.event.CardActionEvent;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.collections.ListChangeListener;
@@ -64,6 +69,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     private final List<KanbanColumnBox<T>> boxes = new ArrayList<>();
     private final KanbanCardDragSupport<T> dragSupport;
+    private final RXSmoothScrollEngine boardSmoothScrollEngine =
+            new RXSmoothScrollEngine(new BoardSmoothScrollable());
 
     private double boardScrollX;
     private double cachedMaxBoardScrollX;
@@ -331,21 +338,118 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         if (adjustingHbar) {
             return;
         }
-        boardScrollX = hbar.getValue();
-        getSkinnable().requestLayout();
+        stopBoardSmoothScrolling();
+        setBoardScrollX(hbar.getValue());
     }
 
     private void onBoardScroll(ScrollEvent event) {
-        double deltaX = event.getDeltaX();
-        if (deltaX == 0.0 || cachedMaxBoardScrollX <= 0.0) {
+        if (event.isConsumed()) {
             return;
         }
-        double target = RXMath.clamp(boardScrollX - deltaX, 0.0, cachedMaxBoardScrollX);
+        RXKanbanView<T> control = getSkinnable();
+        boolean consume = boardSmoothScrollEngine.handleScroll(event, ScrollAxis.HORIZONTAL,
+                RXSmoothScrollOptions.DEFAULT_DURATION, RXSmoothScrollOptions.DEFAULT_INTERPOLATOR,
+                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, control.getSmoothScrollMode(),
+                ScrollBoundaryPolicy.CHAIN, true, false,
+                control.isSmoothScrolling() && !event.isDirect(), true);
+        if (consume) {
+            event.consume();
+        }
+    }
+
+    private boolean setBoardScrollX(double value) {
+        double target = RXMath.clamp(value, 0.0, cachedMaxBoardScrollX);
         if (target != boardScrollX) {
             boardScrollX = target;
             getSkinnable().requestLayout();
+            return true;
         }
-        event.consume();
+        return false;
+    }
+
+    private void stopBoardSmoothScrolling() {
+        boardSmoothScrollEngine.stop();
+    }
+
+    private final class BoardSmoothScrollable implements RXSmoothScrollable {
+
+        /** {@inheritDoc} */
+        @Override
+        public Node eventNode() {
+            return getSkinnable();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getOffsetX() {
+            return boardScrollX;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getOffsetY() {
+            return 0.0;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void setOffsetX(double value, boolean smoothFrame) {
+            setBoardScrollX(value);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void setOffsetY(double value, boolean smoothFrame) {
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getMaxOffsetX() {
+            return cachedMaxBoardScrollX;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getMaxOffsetY() {
+            return 0.0;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getViewportWidth() {
+            return cachedBoardWidth;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getViewportHeight() {
+            return getSkinnable().getHeight();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getHorizontalUnitIncrement() {
+            return Math.max(1.0, snapSizeX(prefColumnWidthOrDefault(getSkinnable())
+                    + columnSpacingOrDefault(getSkinnable())));
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double getVerticalUnitIncrement() {
+            return 0.0;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public boolean isHorizontalWritable() {
+            return cachedMaxBoardScrollX > 0.0;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public boolean isVerticalWritable() {
+            return false;
+        }
     }
 
     // ==================== Selection / focus ====================
@@ -615,11 +719,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     }
 
     void scrollBoardBy(double deltaX) {
-        double target = RXMath.clamp(boardScrollX + deltaX, 0.0, cachedMaxBoardScrollX);
-        if (target != boardScrollX) {
-            boardScrollX = target;
-            getSkinnable().requestLayout();
-        }
+        stopBoardSmoothScrolling();
+        setBoardScrollX(boardScrollX + deltaX);
     }
 
     private void scrollFocusedIntoView() {
@@ -637,13 +738,17 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
         double x = cachedColumnX[columnIndex];
         double width = cachedColumnW[columnIndex];
+        double target = boardScrollX;
         if (x < boardScrollX) {
-            boardScrollX = x;
+            target = x;
         } else if (x + width > boardScrollX + cachedBoardWidth) {
-            boardScrollX = x + width - cachedBoardWidth;
+            target = x + width - cachedBoardWidth;
         }
-        boardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
-        getSkinnable().requestLayout();
+        target = RXMath.clamp(target, 0.0, cachedMaxBoardScrollX);
+        if (target != boardScrollX) {
+            stopBoardSmoothScrolling();
+            setBoardScrollX(target);
+        }
     }
 
     KanbanColumnBox<T> boxFor(RXKanbanColumn<T> column) {
@@ -679,6 +784,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         if (isBoardEmpty()) {
             columnsBox.setVisible(false);
             hbar.setVisible(false);
+            stopBoardSmoothScrolling();
+            boardScrollX = 0.0;
             cachedMaxBoardScrollX = 0.0;
             return;
         }
@@ -788,7 +895,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double columnsAreaHeight = Math.max(0.0, contentHeight - hbarBreadth);
 
         cachedMaxBoardScrollX = needHbar ? Math.max(0.0, packedWidth - contentWidth) : 0.0;
-        boardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
+        double correctedBoardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
+        double boardScrollCorrection = correctedBoardScrollX - boardScrollX;
+        boardScrollX = correctedBoardScrollX;
+        if (boardScrollCorrection != 0.0) {
+            boardSmoothScrollEngine.shiftHorizontalBy(boardScrollCorrection);
+        }
         cachedBoardWidth = contentWidth;
 
         columnsBox.resizeRelocate(contentX, contentY, contentWidth, columnsAreaHeight);
@@ -941,6 +1053,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     @Override
     protected void disposeSkin() {
+        boardSmoothScrollEngine.dispose();
         dragSupport.dispose();
         columnDragSupport.dispose();
         columnAnimator.snapAll();
