@@ -23,7 +23,6 @@ import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
-import javafx.scene.control.Labeled;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -529,7 +528,7 @@ public class RXKanbanCardCell<T> extends IndexedCell<T> {
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
-                    new ArrayList<>(Labeled.getClassCssMetaData());
+                    new ArrayList<>(IndexedCell.getClassCssMetaData());
             Collections.addAll(styleables, RIPPLE_FILL, RIPPLE_OPACITY, RIPPLE_ENABLED, STATE_OVERLAY_ENABLED);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

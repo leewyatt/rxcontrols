@@ -97,10 +97,12 @@ final class KanbanCardDragSupport<T> {
             // button does not silently un-start it (which would strand the ghost).
             return;
         }
-        armed = false;
         if (event.getButton() != MouseButton.PRIMARY || !control.isEditable() || !control.isCardDragEnabled()) {
+            // Check the button BEFORE clearing `armed`: a non-primary press while a primary
+            // gesture is armed-but-not-yet-dragging must not disarm it.
             return;
         }
+        armed = false;
         RXKanbanCardCell<T> cell = skin.cardCellAt(event.getTarget());
         if (cell == null) {
             return;
@@ -150,6 +152,7 @@ final class KanbanCardDragSupport<T> {
 
     void cancel() {
         if (started) {
+            stopAutoScroll();
             cleanup();
         }
         armed = false;
@@ -293,7 +296,9 @@ final class KanbanCardDragSupport<T> {
             // Controlled / immutable data: the handler applies the change itself.
             return;
         }
-        if (fromIndex < 0 || fromIndex >= from.getCards().size()) {
+        // Guard by identity, not just bounds: if a listener mutated the source list during
+        // the gesture, fromIndex may now point at a different card — never remove the wrong one.
+        if (fromIndex < 0 || fromIndex >= from.getCards().size() || from.getCards().get(fromIndex) != moved) {
             return;
         }
         from.getCards().remove(fromIndex);

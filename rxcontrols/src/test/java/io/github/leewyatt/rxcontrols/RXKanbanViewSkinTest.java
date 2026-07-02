@@ -122,10 +122,14 @@ public class RXKanbanViewSkinTest {
     public void illegalCardHeightFallsBackToDefault() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("Backlog", 200);
-            board.setPrefCardHeight(0);       // non-positive -> fallback
+            board.setPrefCardHeight(0);       // non-positive -> fallback (96)
             board.setCardSpacing(-5);         // negative -> clamped to 0
             pump(host(board, 400, 400));
             assertTrue(realizedCards(board) > 0, "board still renders with fallback sizing");
+            RXKanbanCardCell<?> first = cellByText(board, "card-0");
+            RXKanbanCardCell<?> second = cellByText(board, "card-1");
+            assertEquals(96.0, second.getLayoutY() - first.getLayoutY(), 1.0,
+                    "row stride is the default height (96) with spacing clamped to 0");
         });
     }
 
@@ -298,6 +302,30 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void crossColumnMoveAtNonZeroIndex() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 900, 500));
+
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            RXKanbanCardCell<?> b0 = cellByText(board, "B0");
+            Bounds bb = b0.localToScene(b0.getBoundsInLocal());
+            // Drop one stride below B0's top -> lands A0 after B0 (target index 1).
+            double stride = bb.getHeight() + 8.0;
+            dragTo(board, source, new double[]{(bb.getMinX() + bb.getMaxX()) / 2.0, bb.getMinY() + stride});
+            pump(board);
+
+            assertEquals(List.of("A1", "A2"), a.getCards());
+            assertEquals(List.of("B0", "A0", "B1"), b.getCards(), "A0 lands between B0 and B1");
+            assertEquals(1, fired.get().getToIndex(), "cross-column toIndex is 1");
+        });
+    }
+
+    @Test
     public void sameColumnReorderCommits() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = twoColumnBoard();
@@ -453,6 +481,60 @@ public class RXKanbanViewSkinTest {
             Pane overlay = (Pane) board.lookup(".drag-overlay");
             assertNotNull(overlay, "drag overlay present");
             assertTrue(overlay.getChildrenUnmodifiable().isEmpty(), "no ghost stranded on the overlay");
+        });
+    }
+
+    @Test
+    public void cardDragSurvivesSecondaryButtonReleaseMidDrag() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 500));
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            double[] target = center(cellByText(board, "B0"));
+            Bounds sb = source.localToScene(source.getBoundsInLocal());
+            double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
+            double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
+
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, target[0], target[1], board));
+            // Releasing a SECONDARY button mid-drag must neither commit nor drop the gesture.
+            secondaryRelease(board, target[0], target[1]);
+            pump(board);
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "secondary release does not commit");
+            Pane overlay = (Pane) board.lookup(".drag-overlay");
+            assertFalse(overlay.getChildrenUnmodifiable().isEmpty(), "drag is still active (ghost present)");
+
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, target[0], target[1], board));
+            pump(board);
+            assertEquals(List.of("A1", "A2"), a.getCards(), "the primary release commits");
+            assertEquals(List.of("A0", "B0", "B1"), b.getCards());
+        });
+    }
+
+    @Test
+    public void secondaryPressBeforeThresholdKeepsCardGestureArmed() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = twoColumnBoard();
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 500));
+            RXKanbanCardCell<?> source = cellByText(board, "A0");
+            double[] target = center(cellByText(board, "B0"));
+            Bounds sb = source.localToScene(source.getBoundsInLocal());
+            double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
+            double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
+
+            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));   // arm, no motion yet
+            secondaryPress(board, sx, sy);   // a foreign press before the threshold must NOT disarm
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));   // now cross threshold
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, target[0], target[1], board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, target[0], target[1], board));
+            pump(board);
+            assertEquals(List.of("A1", "A2"), a.getCards(), "the gesture stayed armed through the foreign press");
+            assertEquals(List.of("A0", "B0", "B1"), b.getCards());
         });
     }
 
@@ -647,6 +729,111 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    @Test
+    public void endJustifyHugsRightEdge() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.END);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            double content = contentWidth(board);
+            double startX = content - (200.0 * 3.0 + 24.0);   // block pushed to the right
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertEquals(startX, a.getLayoutX(), 3.0, "END pushes the block to the right edge");
+            assertEquals(content, c.getLayoutX() + c.getWidth(), 3.0, "last column hugs the right edge");
+            assertEquals(200.0, a.getWidth(), 2.0, "END only positions, keeps pref width");
+        });
+    }
+
+    @Test
+    public void spaceBetweenSpreadsInnerGaps() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.SPACE_BETWEEN);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            double content = contentWidth(board);
+            Region a = boxOf(board, "A");
+            Region b = boxOf(board, "B");
+            Region c = boxOf(board, "C");
+            assertEquals(0.0, a.getLayoutX(), 1.0, "first column hugs the left edge");
+            assertEquals(content, c.getLayoutX() + c.getWidth(), 3.0, "last column hugs the right edge");
+            double gapAB = b.getLayoutX() - (a.getLayoutX() + a.getWidth());
+            double gapBC = c.getLayoutX() - (b.getLayoutX() + b.getWidth());
+            assertEquals(gapAB, gapBC, 1.0, "inner gaps are equal");
+            assertTrue(gapAB > 12.0, "inner gaps grew beyond the base spacing");
+        });
+    }
+
+    @Test
+    public void spaceEvenlyBalancesEdgeGaps() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.SPACE_EVENLY);
+            board.setAnimated(false);
+            pump(host(board, 900, 400));
+            double content = contentWidth(board);
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            double leading = a.getLayoutX();
+            double trailing = content - (c.getLayoutX() + c.getWidth());
+            assertEquals(leading, trailing, 1.5, "SPACE_EVENLY balances the two edge gaps");
+            assertTrue(leading > 1.0, "edge gaps are non-zero");
+            assertEquals(200.0, a.getWidth(), 2.0, "SPACE_EVENLY only positions, keeps pref width");
+        });
+    }
+
+    @Test
+    public void hidingLastColumnUnderStretchLeavesNoTrailingGap() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setAnimated(false);
+            RXKanbanColumn<String> c = board.getColumns().get(2);
+            pump(host(board, 900, 400));
+            c.setVisible(false);
+            pump(board);
+            double content = contentWidth(board);
+            double fill = (content - 12.0) / 2.0;   // 2 shown columns, ONE gap
+            Region a = boxOf(board, "A");
+            Region b = boxOf(board, "B");
+            assertEquals(fill, a.getWidth(), 2.0, "survivors fill the width across a single gap");
+            assertEquals(content, b.getLayoutX() + b.getWidth(), 3.0,
+                    "the last visible column hugs the right edge — no phantom trailing gap");
+        });
+    }
+
+    @Test
+    public void hidingColumnUnderStretchRefillsSurvivors() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setAnimated(false);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            pump(host(board, 900, 400));
+            double before = boxOf(board, "A").getWidth();
+            b.setVisible(false);
+            pump(board);
+            double content = contentWidth(board);
+            Region a = boxOf(board, "A");
+            Region c = boxOf(board, "C");
+            assertTrue(a.getWidth() > before + 100.0, "survivors grow to refill the freed space");
+            assertEquals((content - 12.0) / 2.0, a.getWidth(), 2.0, "two survivors share the width");
+            assertEquals(content, c.getLayoutX() + c.getWidth(), 3.0, "survivors still fill to the right edge");
+        });
+    }
+
     // ==================== Column level (hide / reorder) ====================
 
     @Test
@@ -706,6 +893,41 @@ public class RXKanbanViewSkinTest {
             pump(board);
             assertTrue(colC.isVisible(), "C re-shows by identity after reorder");
             assertTrue(colC.getWidth() > 200.0, "C width restored");
+        });
+    }
+
+    @Test
+    public void columnReorderWithHiddenColumnCommitsCorrectOrder() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1);
+            board.setColumnReorderEnabled(true);
+            board.setAnimated(false);
+            board.getColumns().get(1).setVisible(false);   // hide B (index 1)
+            pump(host(board, 1200, 400));
+            dragColumn(board, "A", "C");   // drag A past visible C's center
+            pump(board);
+            assertEquals(List.of("B", "C", "A", "D"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "A drops after visible C; hidden B keeps its slot and does not shift the drop");
+        });
+    }
+
+    @Test
+    public void wipOverLimitTogglesPseudoAndCountLabel() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("Doing", 3);
+            RXKanbanColumn<String> doing = board.getColumns().get(0);
+            doing.setWipLimit(2);
+            pump(host(board, 400, 400));
+            Region box = boxOf(board, "Doing");
+            Label wip = (Label) box.lookup(".wip-indicator");
+            assertNotNull(wip, "wip indicator present");
+            assertTrue(hasPseudo(box, "over-limit"), "3 cards over a limit of 2 sets :over-limit");
+            assertEquals("3/2", wip.getText());
+            doing.getCards().remove(0);
+            pump(board);
+            assertFalse(hasPseudo(box, "over-limit"), "2 cards at a limit of 2 is not over the limit");
+            assertEquals("2/2", wip.getText());
         });
     }
 
@@ -940,6 +1162,13 @@ public class RXKanbanViewSkinTest {
     private static void secondaryPress(Node target, double sceneX, double sceneY) {
         target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, sceneX, sceneY, sceneX, sceneY,
                 MouseButton.SECONDARY, 1, false, false, false, false, true, false, true, false, false, true,
+                new PickResult(target, sceneX, sceneY)));
+    }
+
+    // Release the secondary button while the primary is still held down.
+    private static void secondaryRelease(Node target, double sceneX, double sceneY) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_RELEASED, sceneX, sceneY, sceneX, sceneY,
+                MouseButton.SECONDARY, 1, false, false, false, false, true, false, false, false, false, true,
                 new PickResult(target, sceneX, sceneY)));
     }
 

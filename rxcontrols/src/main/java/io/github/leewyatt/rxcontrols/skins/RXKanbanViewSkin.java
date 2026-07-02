@@ -123,7 +123,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         // never clipped by a column.
         getChildren().addAll(columnsBox, placeholderHost, hbar, dragSupport.getOverlay());
 
-        hbar.valueProperty().addListener((obs, oldV, newV) -> onHbarValue());
+        disposer.registerListener(hbar.valueProperty(), this::onHbarValue);
 
         attachColumns(control.getColumns());
         disposer.registerListener(control.columnsProperty(), this::onColumnsPropertyChanged);
@@ -659,18 +659,27 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             cachedColumnW = new double[columnCount];
         }
 
+        // A gap sits between a column and the next SHOWN column, so it counts only to
+        // the degree that some later column is shown. shownAfter[i] = the largest shown
+        // fraction among columns after i; without it, hiding the LAST column would leave
+        // a phantom trailing gap (its left neighbor's gap never collapses).
+        double[] shownAfter = new double[columnCount];
+        double maxAfter = 0.0;
+        for (int i = columnCount - 1; i >= 0; i--) {
+            shownAfter[i] = maxAfter;
+            maxAfter = Math.max(maxAfter, 1.0 - boxes.get(i).getHideProgress());
+        }
+
         // Effective column / gap counts, weighted by each column's shown fraction: a
         // hiding column shrinks its width AND its trailing gap toward zero, so a fully
         // hidden column leaves no footprint and the board reflows to fill the gap.
-        double sumWeight = 0.0;      // Σ (1 - hideProgress): the effective column count
-        double sumGapWeight = 0.0;   // Σ over non-last columns: the effective gap count
+        double sumWeight = 0.0;      // sum of (1 - hideProgress): the effective column count
+        double sumGapWeight = 0.0;   // sum of weight_i * shownAfter[i]: the effective gap count
         int shownCount = 0;          // columns not fully hidden — justify denominators
         for (int i = 0; i < columnCount; i++) {
             double weight = 1.0 - boxes.get(i).getHideProgress();
             sumWeight += weight;
-            if (i < columnCount - 1) {
-                sumGapWeight += weight;
-            }
+            sumGapWeight += weight * shownAfter[i];
             if (weight > 0.0) {
                 shownCount++;
             }
@@ -730,9 +739,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
             cursorX += width;
-            if (i < columnCount - 1) {
-                cursorX += effectiveGap * weight;
-            }
+            // The trailing gap fades with this column AND collapses once nothing later
+            // is shown (shownAfter[last] == 0), so the last visible column hugs the edge.
+            cursorX += effectiveGap * weight * shownAfter[i];
         }
         layoutColumnStartX = startX;
         layoutColumnGap = effectiveGap;

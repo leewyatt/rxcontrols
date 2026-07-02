@@ -61,10 +61,12 @@ final class KanbanColumnDragSupport<T> {
             // button does not silently un-start it (which would strand the column).
             return;
         }
-        armed = false;
         if (event.getButton() != MouseButton.PRIMARY || !control.isColumnReorderEnabled()) {
+            // Check the button BEFORE clearing `armed`: a non-primary press while a primary
+            // gesture is armed-but-not-yet-dragging must not disarm it.
             return;
         }
+        armed = false;
         KanbanColumnBox<T> box = skin.headerBoxAt(event.getTarget());
         if (box == null) {
             return;
@@ -153,7 +155,7 @@ final class KanbanColumnDragSupport<T> {
 
     private void finishDrag(double sceneX) {
         stopAutoScroll();
-        int targetIndex = computeTargetIndex(sceneX);
+        int visibleTarget = computeTargetIndex(sceneX);
         int fromIndex = sourceIndex;
         RXKanbanColumn<T> column = sourceColumn;
 
@@ -164,24 +166,44 @@ final class KanbanColumnDragSupport<T> {
         sourceBox.setColumnDragging(false);
         sourceBox.setTranslateX(0.0);
 
-        if (targetIndex != fromIndex && targetIndex >= 0) {
-            ColumnMovedEvent<T> event = new ColumnMovedEvent<>(control, fromIndex, targetIndex, column);
-            control.fireEvent(event);
-            if (!event.isConsumed()) {
-                ObservableList<RXKanbanColumn<T>> columns = control.getColumns();
-                if (columns != null && fromIndex < columns.size() && columns.get(fromIndex) == column) {
+        ObservableList<RXKanbanColumn<T>> columns = control.getColumns();
+        if (columns != null && fromIndex >= 0 && fromIndex < columns.size()
+                && columns.get(fromIndex) == column) {
+            List<RXKanbanColumn<T>> reordered = new ArrayList<>(columns);
+            reordered.remove(fromIndex);
+            // computeTargetIndex counts VISIBLE non-source columns; translate that into an
+            // absolute index in the source-removed list so hidden columns keep their slots
+            // and never shift the drop position.
+            int toIndex = absoluteInsertionIndex(reordered, visibleTarget);
+            if (toIndex != fromIndex) {
+                ColumnMovedEvent<T> event = new ColumnMovedEvent<>(control, fromIndex, toIndex, column);
+                control.fireEvent(event);
+                if (!event.isConsumed()) {
                     // Commit as a single atomic setAll, NOT remove(fromIndex)+add(toIndex):
                     // the two-step form leaves the dragged column momentarily absent, which
                     // reconciles it away (disposing its viewport + clearing its selection).
-                    List<RXKanbanColumn<T>> reordered = new ArrayList<>(columns);
-                    reordered.remove(fromIndex);
-                    reordered.add(Math.min(targetIndex, reordered.size()), column);
+                    reordered.add(toIndex, column);
                     columns.setAll(reordered);
                 }
             }
         }
         reset();
         control.requestLayout();
+    }
+
+    // Map a visible-column insertion index (from computeTargetIndex) into an index in the
+    // source-removed list such that exactly `visibleTarget` visible columns precede the drop.
+    private int absoluteInsertionIndex(List<RXKanbanColumn<T>> withoutSource, int visibleTarget) {
+        int visibleSeen = 0;
+        for (int i = 0; i < withoutSource.size(); i++) {
+            if (visibleSeen == visibleTarget) {
+                return i;
+            }
+            if (withoutSource.get(i).isVisible()) {
+                visibleSeen++;
+            }
+        }
+        return withoutSource.size();
     }
 
     // Insertion index in the source-removed coordinate system: how many other columns'

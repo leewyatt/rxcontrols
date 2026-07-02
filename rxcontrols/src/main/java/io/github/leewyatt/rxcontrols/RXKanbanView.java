@@ -910,7 +910,8 @@ public class RXKanbanView<T> extends Control {
      * not fit does a horizontal scrollbar appear.
      *
      * <p>{@code 0} is a real bound: columns may shrink all the way to nothing, so the
-     * board effectively never scrolls. A negative value — {@link Region#USE_COMPUTED_SIZE}
+     * board never scrolls unless the inter-column gaps alone exceed the available width.
+     * A negative value — {@link Region#USE_COMPUTED_SIZE}
      * (the default) — disables shrinking, so columns keep their preferred width and the
      * board scrolls instead. A value at or above {@code prefColumnWidth} also disables
      * shrinking. Resolved at layout time.
