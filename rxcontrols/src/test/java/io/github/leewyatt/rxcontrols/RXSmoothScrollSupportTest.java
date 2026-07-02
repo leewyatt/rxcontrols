@@ -122,6 +122,106 @@ public class RXSmoothScrollSupportTest {
     }
 
     @Test
+    public void adapterValueWritesDoNotCancelMomentum() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(200.0, 1600.0);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScrollSupport.install(pane);
+
+            pane.getContent().fireEvent(scroll(0.0, -120.0, false));
+
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(80.0);
+
+        AtomicReference<Double> firstValue = new AtomicReference<>();
+        onFx(() -> {
+            pump(rootRef.get());
+            firstValue.set(paneRef.get().getVvalue());
+            assertTrue(firstValue.get() > paneRef.get().getVmin(), "momentum has started");
+        });
+
+        waitForFx(180.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(paneRef.get().getVvalue() > firstValue.get(),
+                    "adapter-owned value writes do not stop momentum");
+        });
+    }
+
+    @Test
+    public void externalVvalueChangeStopsMomentum() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(200.0, 1600.0);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScrollSupport.install(pane);
+
+            pane.getContent().fireEvent(scroll(0.0, -120.0, false));
+
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(80.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(paneRef.get().getVvalue() > paneRef.get().getVmin(), "momentum has started");
+            paneRef.get().setVvalue(0.65);
+        });
+
+        waitForFx(180.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(0.65, paneRef.get().getVvalue(), 0.0001,
+                    "external value writes cancel the active momentum");
+        });
+    }
+
+    @Test
+    public void externalHvalueChangeStopsMomentum() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(1600.0, 200.0);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScrollSupport.install(pane);
+
+            pane.getContent().fireEvent(scroll(-120.0, 0.0, false));
+
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(80.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(paneRef.get().getHvalue() > paneRef.get().getHmin(), "momentum has started");
+            paneRef.get().setHvalue(0.65);
+        });
+
+        waitForFx(180.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(0.65, paneRef.get().getHvalue(), 0.0001,
+                    "external value writes cancel the active momentum");
+        });
+    }
+
+    @Test
     public void axisChangeStopsMomentumOnDisabledAxis() throws Exception {
         AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
         AtomicReference<StackPane> rootRef = new AtomicReference<>();

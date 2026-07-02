@@ -39,6 +39,8 @@ public final class RXSmoothScroller implements AutoCloseable {
     private final ChangeListener<Parent> contentParentListener = (obs, oldParent, newParent) -> reattachEventNode();
     private final ChangeListener<Skin<?>> skinListener = (obs, oldSkin, newSkin) -> reattachEventNode();
     private final ChangeListener<Scene> sceneListener;
+    private final ChangeListener<Number> scrollValueListener =
+            (obs, oldValue, newValue) -> onExternalScrollValueChanged();
 
     private Node observedContent;
     private Node eventNode;
@@ -69,6 +71,8 @@ public final class RXSmoothScroller implements AutoCloseable {
         scrollPane.contentProperty().addListener(contentListener);
         scrollPane.skinProperty().addListener(skinListener);
         scrollPane.sceneProperty().addListener(sceneListener);
+        scrollPane.hvalueProperty().addListener(scrollValueListener);
+        scrollPane.vvalueProperty().addListener(scrollValueListener);
         attachContent(scrollPane.getContent());
         reattachEventNode();
     }
@@ -417,6 +421,8 @@ public final class RXSmoothScroller implements AutoCloseable {
         scrollPane.contentProperty().removeListener(contentListener);
         scrollPane.skinProperty().removeListener(skinListener);
         scrollPane.sceneProperty().removeListener(sceneListener);
+        scrollPane.hvalueProperty().removeListener(scrollValueListener);
+        scrollPane.vvalueProperty().removeListener(scrollValueListener);
         engine.dispose();
         if (scrollPane.getProperties().get(RXSmoothScrollSupport.SCROLLER_KEY) == this) {
             scrollPane.getProperties().remove(RXSmoothScrollSupport.SCROLLER_KEY);
@@ -452,6 +458,14 @@ public final class RXSmoothScroller implements AutoCloseable {
         if (consume) {
             event.consume();
         }
+    }
+
+    private void onExternalScrollValueChanged() {
+        if (disposed || adapter.isWritingScrollValue() || !engine.isRunning()) {
+            return;
+        }
+        engine.stop();
+        engine.snapToCurrentOffsets();
     }
 
     private void attachContent(Node content) {

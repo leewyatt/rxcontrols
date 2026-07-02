@@ -15,6 +15,7 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
     // ==================== State ====================
 
     private final ScrollPane scrollPane;
+    private int scrollValueWriteDepth;
 
     // ==================== Constructors ====================
 
@@ -25,6 +26,16 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
      */
     public ScrollPaneSmoothScrollable(ScrollPane scrollPane) {
         this.scrollPane = scrollPane;
+    }
+
+    /**
+     * Returns whether the adapter is currently writing the underlying
+     * {@code hvalue} or {@code vvalue}.
+     *
+     * @return {@code true} during an adapter-owned scroll value write
+     */
+    public boolean isWritingScrollValue() {
+        return scrollValueWriteDepth > 0;
     }
 
     // ==================== Event node ====================
@@ -76,14 +87,14 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
         double max = getMaxOffsetX();
         double range = horizontalRange();
         if (max <= 0.0 || range <= 0.0) {
-            scrollPane.setHvalue(scrollPane.getHmin());
+            setHvalueFromEngine(scrollPane.getHmin());
             return;
         }
         double normalized = clamp(value, 0.0, max) / max;
         if (isReverseNodeOrientation()) {
             normalized = 1.0 - normalized;
         }
-        scrollPane.setHvalue(scrollPane.getHmin() + normalized * range);
+        setHvalueFromEngine(scrollPane.getHmin() + normalized * range);
     }
 
     /** {@inheritDoc} */
@@ -95,11 +106,11 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
         double max = getMaxOffsetY();
         double range = verticalRange();
         if (max <= 0.0 || range <= 0.0) {
-            scrollPane.setVvalue(scrollPane.getVmin());
+            setVvalueFromEngine(scrollPane.getVmin());
             return;
         }
         double normalized = clamp(value, 0.0, max) / max;
-        scrollPane.setVvalue(scrollPane.getVmin() + normalized * range);
+        setVvalueFromEngine(scrollPane.getVmin() + normalized * range);
     }
 
     // ==================== Extents ====================
@@ -177,6 +188,24 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
             return laidOut;
         }
         return computeResizableWidth(content);
+    }
+
+    private void setHvalueFromEngine(double value) {
+        scrollValueWriteDepth++;
+        try {
+            scrollPane.setHvalue(value);
+        } finally {
+            scrollValueWriteDepth--;
+        }
+    }
+
+    private void setVvalueFromEngine(double value) {
+        scrollValueWriteDepth++;
+        try {
+            scrollPane.setVvalue(value);
+        } finally {
+            scrollValueWriteDepth--;
+        }
     }
 
     private double effectiveContentHeight() {
