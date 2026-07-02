@@ -265,7 +265,7 @@ final class KanbanColumnDragSupport<T> {
     }
 
     private Bounds boardBounds() {
-        return skin.getOverlayBoardBounds();
+        return skin.getColumnsAreaBounds();
     }
 
     private void startAutoScroll() {

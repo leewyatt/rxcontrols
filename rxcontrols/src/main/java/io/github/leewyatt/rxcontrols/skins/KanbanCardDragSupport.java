@@ -342,14 +342,13 @@ final class KanbanCardDragSupport<T> {
     // ==================== Hit testing ====================
 
     private KanbanColumnBox<T> columnAt(double sceneX, double sceneY) {
-        // Use the overlay's layout rectangle, NOT getBoundsInLocal(): the latter grows to
-        // include the ghost child, which follows the pointer off the board and would defeat
-        // the off-board check below.
-        Bounds boardScene = overlay.localToScene(overlay.getLayoutBounds());
+        // Test against the columns AREA (excludes the horizontal scroll bar strip below it),
+        // not the full-height overlay: a release on the scroll bar — or otherwise off the card
+        // area — is a no-op rather than committing into the nearest column. The columns-area
+        // rectangle is also ghost-independent (the ghost lives in the unclipped overlay).
+        Bounds boardScene = skin.getColumnsAreaBounds();
         if (sceneX < boardScene.getMinX() || sceneX > boardScene.getMaxX()
                 || sceneY < boardScene.getMinY() || sceneY > boardScene.getMaxY()) {
-            // Pointer is off the board (horizontally or vertically): no drop target, so a
-            // release here is a no-op rather than committing into the nearest column.
             return null;
         }
         KanbanColumnBox<T> best = null;
@@ -384,7 +383,7 @@ final class KanbanCardDragSupport<T> {
     }
 
     private boolean needsAutoScroll(double sceneX, double sceneY) {
-        Bounds board = overlay.localToScene(overlay.getLayoutBounds());
+        Bounds board = skin.getColumnsAreaBounds();
         boolean horizontal = sceneX < board.getMinX() + AUTO_SCROLL_EDGE || sceneX > board.getMaxX() - AUTO_SCROLL_EDGE;
         KanbanColumnBox<T> box = columnAt(sceneX, sceneY);
         boolean vertical = false;
@@ -416,10 +415,7 @@ final class KanbanCardDragSupport<T> {
             stopAutoScroll();
             return;
         }
-        // getLayoutBounds(), NOT getBoundsInLocal(): the latter grows with the ghost child,
-        // which sits at the pointer and would corrupt the board edge thresholds (same trap
-        // as columnAt).
-        Bounds board = overlay.localToScene(overlay.getLayoutBounds());
+        Bounds board = skin.getColumnsAreaBounds();
         double horizontalStep = edgeStep(lastPointerSceneX, board.getMinX(), board.getMaxX());
         if (horizontalStep != 0.0) {
             skin.scrollBoardBy(horizontalStep);

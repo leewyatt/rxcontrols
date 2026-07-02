@@ -596,8 +596,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
     }
 
-    Bounds getOverlayBoardBounds() {
-        return columnsBox.localToScene(columnsBox.getBoundsInLocal());
+    // Scene bounds of the card area (the columns host), excluding the horizontal scroll bar
+    // strip below it. getLayoutBounds() is the resized contentWidth x columnsAreaHeight rect,
+    // independent of children / clip / drag translation — the correct board rectangle for
+    // drop hit-testing and auto-scroll edge detection.
+    Bounds getColumnsAreaBounds() {
+        return columnsBox.localToScene(columnsBox.getLayoutBounds());
     }
 
     private void onAnimationSettingsChanged() {

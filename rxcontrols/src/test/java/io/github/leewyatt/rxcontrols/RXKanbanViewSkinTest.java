@@ -442,30 +442,27 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
-    public void draggedGhostDoesNotExpandOverlayLayoutBounds() throws Exception {
-        // Board edge hit-testing AND horizontal auto-scroll read overlay.getLayoutBounds(),
-        // NOT getBoundsInLocal(): the ghost is an overlay child that follows the pointer off
-        // the board and would otherwise corrupt those bounds. This locks that invariant.
+    public void cardDropOnHorizontalScrollBarDoesNotCommit() throws Exception {
+        // The drag overlay spans the full content height, but the card area stops above the
+        // horizontal scroll bar. Hit-testing must use the columns area, so a release on the
+        // hbar strip is a no-op — not a commit into the nearest column at a clamped index.
         onFx(() -> {
-            RXKanbanView<String> board = twoColumnBoard();
-            pump(host(board, 500, 400));
-            Region overlay = (Region) board.lookup(".drag-overlay");
-            assertNotNull(overlay, "drag overlay present");
+            RXKanbanView<String> board = board("A", 2, "B", 2, "C", 2, "D", 2, "E", 2);
+            board.setPrefColumnWidth(280);   // five 280px columns overflow a 400px board -> hbar visible
+            AtomicReference<CardMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnCardMoved(fired::set);
+            pump(host(board, 400, 400));
+            assertTrue(hasVisibleHorizontalScrollBar(board), "hbar visible (precondition)");
 
-            RXKanbanCardCell<?> source = cellByText(board, "A0");
-            Bounds sb = source.localToScene(source.getBoundsInLocal());
-            double sx = (sb.getMinX() + sb.getMaxX()) / 2.0;
-            double sy = (sb.getMinY() + sb.getMaxY()) / 2.0;
-            source.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, source));
-            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy + 12.0, board));   // start drag
-            double layoutW = overlay.getLayoutBounds().getWidth();
+            RXKanbanCardCell<?> source = cellByText(board, "card-0");   // leftmost realized card
+            Region columns = (Region) board.lookup(".columns");
+            Bounds area = columns.localToScene(columns.getLayoutBounds());
+            double x = (area.getMinX() + area.getMaxX()) / 2.0;   // over a column horizontally
+            double onScrollBar = area.getMaxY() + 3.0;            // just below the card area, on the hbar
+            dragTo(board, source, new double[]{x, onScrollBar});
+            pump(board);
 
-            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 4000.0, sy, board));   // fling ghost off-board
-            assertEquals(layoutW, overlay.getLayoutBounds().getWidth(), 0.5,
-                    "layout width is unaffected by the ghost position");
-            assertTrue(overlay.getBoundsInLocal().getWidth() > layoutW + 100.0,
-                    "getBoundsInLocal DID grow with the ghost — hence auto-scroll/hit-test use getLayoutBounds()");
-            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, sx + 4000.0, sy, board));   // cleanup
+            assertNull(fired.get(), "releasing on the horizontal scroll bar fires no move");
         });
     }
 
