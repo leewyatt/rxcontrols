@@ -203,6 +203,41 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void keyboardFocusSkipsHiddenColumn() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 3, "B", 3, "C", 3);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            RXKanbanColumn<String> b = board.getColumns().get(1);
+            RXKanbanColumn<String> c = board.getColumns().get(2);
+            b.setVisible(false);
+            pump(host(board, 1000, 500));
+            board.updateFocus(a, 1);
+            key(board, KeyCode.RIGHT);
+            assertSame(c, board.getFocusedColumn(), "RIGHT skips hidden B and lands on C");
+            key(board, KeyCode.LEFT);
+            assertSame(a, board.getFocusedColumn(), "LEFT skips hidden B back to A");
+        });
+    }
+
+    @Test
+    public void keyboardActionsIgnoreHiddenFocusedColumn() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 3, "B", 3);
+            RXKanbanColumn<String> a = board.getColumns().get(0);
+            AtomicReference<CardActionEvent<String>> action = new AtomicReference<>();
+            board.setOnCardAction(action::set);
+            pump(host(board, 900, 500));
+            board.updateFocus(a, 1);
+            a.setVisible(false);   // the focused column becomes hidden after it was focused
+            pump(board);
+            key(board, KeyCode.ENTER);
+            assertNull(action.get(), "Enter on a hidden focused column fires no card action");
+            key(board, KeyCode.SPACE);
+            assertNull(board.getSelectedCard(), "Space does not select a hidden column's card");
+        });
+    }
+
+    @Test
     public void enterFiresCardActionForFocusedCard() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("TODO", 4);
@@ -386,17 +421,17 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
-    public void dragDisabledWhenNotEditable() throws Exception {
+    public void dragDisabledWhenCardDragDisabled() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = twoColumnBoard();
             RXKanbanColumn<String> a = board.getColumns().get(0);
-            board.setEditable(false);
+            board.setCardDragEnabled(false);
             pump(host(board, 900, 500));
 
             dragTo(board, cellByText(board, "A0"), center(cellByText(board, "B0")));
             pump(board);
 
-            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "no drag when editable=false");
+            assertEquals(List.of("A0", "A1", "A2"), a.getCards(), "no drag when cardDragEnabled=false");
         });
     }
 
@@ -909,6 +944,36 @@ public class RXKanbanViewSkinTest {
             assertEquals(List.of("B", "C", "A", "D"),
                     board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
                     "A drops after visible C; hidden B keeps its slot and does not shift the drop");
+        });
+    }
+
+    @Test
+    public void columnReorderNoOpWithLeadingHiddenColumnDoesNotMutate() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("H", 1, "A", 1, "B", 1);
+            board.setColumnReorderEnabled(true);
+            board.setAnimated(false);
+            board.getColumns().get(0).setVisible(false);   // hide the LEADING column H
+            AtomicReference<ColumnMovedEvent<String>> fired = new AtomicReference<>();
+            board.setOnColumnMoved(fired::set);
+            pump(host(board, 1000, 400));
+
+            // Drag A a little (past the threshold) but drop it where it already sits among
+            // the visible columns (left of B's centre) -> a visible no-op.
+            Node headerA = headerOf(board, "A");
+            Bounds hb = headerA.localToScene(headerA.getBoundsInLocal());
+            double sx = (hb.getMinX() + hb.getMaxX()) / 2.0;
+            double sy = (hb.getMinY() + hb.getMaxY()) / 2.0;
+            headerA.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerA));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 20.0, sy, board));
+            board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, sx + 20.0, sy, board));
+            pump(board);
+
+            assertNull(fired.get(), "a visible no-op fires no ColumnMovedEvent");
+            assertEquals(List.of("H", "A", "B"),
+                    board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                    "the hidden leading column is not shuffled by a no-op drop");
         });
     }
 

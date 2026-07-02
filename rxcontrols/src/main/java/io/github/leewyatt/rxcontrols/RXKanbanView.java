@@ -55,10 +55,10 @@ import java.util.List;
  * ({@code focusedColumn} + {@code focusedCardIndex}); the {@code selectedCard} /
  * {@code focusedCard} properties are read-only projections of those keys.
  *
- * <p>Drag-and-drop is pointer-based and configured via {@link #editableProperty()
- * editable}, {@link #cardDragEnabledProperty() cardDragEnabled} and
- * {@link #columnReorderEnabledProperty() columnReorderEnabled}. A drop fires a
- * vetoable {@link CardMovedEvent} before the built-in list mutation.
+ * <p>Drag-and-drop is pointer-based and toggled via {@link #cardDragEnabledProperty()
+ * cardDragEnabled} and {@link #columnReorderEnabledProperty() columnReorderEnabled}
+ * (set both {@code false} for a read-only board). A drop fires a vetoable
+ * {@link CardMovedEvent} before the built-in list mutation.
  *
  * @param <T> the card type
  */
@@ -515,45 +515,12 @@ public class RXKanbanView<T> extends Control {
         return index < cards.size() ? cards.get(index) : null;
     }
 
-    // ==================== Editable ====================
-
-    private final BooleanProperty editable = new SimpleBooleanProperty(this, "editable", true);
-
-    /**
-     * Master drag-and-drop switch. When {@code false}, all card and column dragging
-     * is disabled and no move events are fired.
-     *
-     * @return the editable property
-     */
-    public final BooleanProperty editableProperty() {
-        return editable;
-    }
-
-    /**
-     * Returns whether drag-and-drop is enabled.
-     *
-     * @return whether the board is editable
-     */
-    public final boolean isEditable() {
-        return editable.get();
-    }
-
-    /**
-     * Sets whether drag-and-drop is enabled.
-     *
-     * @param value {@code true} to enable drag-and-drop
-     */
-    public final void setEditable(boolean value) {
-        editable.set(value);
-    }
-
     // ==================== Card Drag Enabled ====================
 
     private final BooleanProperty cardDragEnabled = new SimpleBooleanProperty(this, "cardDragEnabled", true);
 
     /**
      * Whether cards can be dragged (in-column reorder and cross-column move).
-     * Gated by {@link #editableProperty() editable}.
      *
      * @return the card-drag-enabled property
      */
@@ -585,8 +552,7 @@ public class RXKanbanView<T> extends Control {
             new SimpleBooleanProperty(this, "columnReorderEnabled", false);
 
     /**
-     * Whether columns can be reordered by dragging their headers. Gated by
-     * {@link #editableProperty() editable}. Off by default.
+     * Whether columns can be reordered by dragging their headers. Off by default.
      *
      * @return the column-reorder-enabled property
      */

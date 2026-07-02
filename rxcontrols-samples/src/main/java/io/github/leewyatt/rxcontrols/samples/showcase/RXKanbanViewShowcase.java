@@ -201,9 +201,6 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
     }
 
     private Node behaviorGrid() {
-        CheckBox editable = new CheckBox("Editable");
-        editable.setSelected(kanban.isEditable());
-        editable.selectedProperty().addListener((o, ov, on) -> kanban.setEditable(on));
         CheckBox cardDrag = new CheckBox("Card drag & drop");
         cardDrag.setSelected(kanban.isCardDragEnabled());
         cardDrag.selectedProperty().addListener((o, ov, on) -> kanban.setCardDragEnabled(on));
@@ -218,7 +215,6 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         CheckBox showDone = new CheckBox("Show DONE column");
         showDone.selectedProperty().bindBidirectional(doneColumn.visibleProperty());
         return createGrid(
-                row(editable),
                 row(cardDrag),
                 row(columnReorder),
                 row(showDone));

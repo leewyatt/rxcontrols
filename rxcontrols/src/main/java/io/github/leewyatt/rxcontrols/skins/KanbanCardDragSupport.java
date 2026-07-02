@@ -97,7 +97,7 @@ final class KanbanCardDragSupport<T> {
             // button does not silently un-start it (which would strand the ghost).
             return;
         }
-        if (event.getButton() != MouseButton.PRIMARY || !control.isEditable() || !control.isCardDragEnabled()) {
+        if (event.getButton() != MouseButton.PRIMARY || !control.isCardDragEnabled()) {
             // Check the button BEFORE clearing `armed`: a non-primary press while a primary
             // gesture is armed-but-not-yet-dragging must not disarm it.
             return;

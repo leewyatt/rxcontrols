@@ -400,7 +400,11 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     private void selectFocused() {
         RXKanbanView<T> control = getSkinnable();
-        control.updateSelection(control.getFocusedColumn(), control.getFocusedCardIndex());
+        RXKanbanColumn<T> column = control.getFocusedColumn();
+        if (column == null || !column.isVisible()) {
+            return;
+        }
+        control.updateSelection(column, control.getFocusedCardIndex());
         refreshCellStates();
     }
 
@@ -463,8 +467,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             focusFirstAvailable();
             return;
         }
-        int targetIndex = RXMath.clamp(columnIndex + direction, 0, columns.size() - 1);
-        if (targetIndex == columnIndex) {
+        int targetIndex = columnIndex + direction;
+        while (targetIndex >= 0 && targetIndex < columns.size() && !columns.get(targetIndex).isVisible()) {
+            // Skip hidden columns: they have no on-board presence, so focus jumps over them.
+            targetIndex += direction;
+        }
+        if (targetIndex < 0 || targetIndex >= columns.size()) {
             return;
         }
         RXKanbanColumn<T> target = columns.get(targetIndex);
@@ -482,7 +490,14 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         if (columns == null || columns.isEmpty()) {
             return;
         }
+        RXKanbanColumn<T> firstVisible = null;
         for (RXKanbanColumn<T> column : columns) {
+            if (!column.isVisible()) {
+                continue;
+            }
+            if (firstVisible == null) {
+                firstVisible = column;
+            }
             if (!column.getCards().isEmpty()) {
                 control.updateFocus(column, 0);
                 refreshCellStates();
@@ -490,12 +505,14 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
                 return;
             }
         }
-        control.updateFocus(columns.get(0), -1);
-        refreshCellStates();
+        if (firstVisible != null) {
+            control.updateFocus(firstVisible, -1);
+            refreshCellStates();
+        }
     }
 
     private void fireCardAction(RXKanbanColumn<T> column, int index) {
-        if (column == null || index < 0 || index >= column.getCards().size()) {
+        if (column == null || !column.isVisible() || index < 0 || index >= column.getCards().size()) {
             return;
         }
         T card = column.getCards().get(index);
