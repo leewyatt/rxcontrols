@@ -14,6 +14,9 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -53,9 +56,15 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         kanban = new RXKanbanView<>();
+        kanban.getStyleClass().add("kanban-showcase-board");
         kanban.setColumns(sampleColumns());
         kanban.setColumnReorderEnabled(true);
-        kanban.setPrefColumnWidth(200.0);
+        kanban.setPrefColumnWidth(208.0);
+        kanban.setColumnSpacing(16.0);
+        kanban.setCardSpacing(10.0);
+        kanban.setPrefCardHeight(78.0);
+        kanban.setColumnsJustify(ItemsJustify.CENTER);
+        kanban.setColumnHeaderFactory(this::createColumnHeader);
 
         // Each column footer adds a card, so the settle glide and the WIP pill react.
         kanban.setColumnFooterFactory(column -> {
@@ -81,13 +90,60 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         RXKanbanColumn<String> todo = new RXKanbanColumn<>("TODO");
         todo.getCards().addAll("Wire up API", "Draft docs", "Design icon set", "Review PR #42");
         RXKanbanColumn<String> doing = new RXKanbanColumn<>("DOING");
-        doing.getCards().addAll("Kanban DnD", "Settle animation");
+        doing.getCards().addAll("Kanban DnD", "Settle animation", "Interaction polish");
         doing.setWipLimit(3);
         RXKanbanColumn<String> done = new RXKanbanColumn<>("DONE");
         done.getCards().addAll("Column model", "Virtualized viewport", "Board scroll");
         RXKanbanColumn<String> backlog = new RXKanbanColumn<>("BACKLOG");
         backlog.getCards().addAll("Swimlanes", "Keyboard DnD", "Multi-select", "Live regions", "Variable height");
         return FXCollections.observableArrayList(todo, doing, done, backlog);
+    }
+
+    private Node createColumnHeader(RXKanbanColumn<String> column) {
+        HBox header = new HBox();
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Region dot = new Region();
+        dot.getStyleClass().addAll("status-dot", statusDotClass(column));
+        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        Label title = new Label();
+        title.getStyleClass().add("title");
+        title.textProperty().bind(column.titleProperty());
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label count = new Label();
+        count.getStyleClass().add("wip-indicator");
+        count.textProperty().bind(Bindings.createStringBinding(
+                () -> {
+                    int cardCount = column.getCardCount();
+                    int limit = column.getWipLimit();
+                    return limit > 0 ? cardCount + "/" + limit : Integer.toString(cardCount);
+                },
+                column.cardCountProperty(),
+                column.wipLimitProperty()));
+
+        header.getChildren().addAll(dot, title, spacer, count);
+        return header;
+    }
+
+    private String statusDotClass(RXKanbanColumn<String> column) {
+        String title = column.getTitle();
+        if ("TODO".equals(title)) {
+            return "todo";
+        }
+        if ("DOING".equals(title)) {
+            return "doing";
+        }
+        if ("DONE".equals(title)) {
+            return "done";
+        }
+        if ("BACKLOG".equals(title)) {
+            return "backlog";
+        }
+        return "neutral";
     }
 
     @Override

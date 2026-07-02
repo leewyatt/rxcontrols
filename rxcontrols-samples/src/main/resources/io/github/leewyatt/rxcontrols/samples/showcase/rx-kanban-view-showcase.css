@@ -1,13 +1,205 @@
-.rx-kanban-view {
-    -fx-padding: 12px;
+.kanban-showcase-board {
+    -rx-kanban-board-bg: #eef3f8;
+    -rx-kanban-column-bg: #f8fafc;
+    -rx-kanban-column-border: #dbe5ef;
+    -rx-kanban-column-header-bg: #ffffff;
+    -rx-kanban-card-bg: #ffffff;
+    -rx-kanban-card-border: #d9e3ee;
+    -rx-kanban-card-shadow: rgba(31, 42, 68, 0.10);
+    -rx-kanban-muted: #64748b;
+    -rx-kanban-title: #1e293b;
+    -rx-kanban-add-bg: #e8f5f2;
+    -rx-kanban-add-hover-bg: #d7f0ea;
+    -rx-kanban-add-text: #0f766e;
+    -rx-kanban-danger-bg: #fff0f0;
+    -fx-background-color: -rx-kanban-board-bg;
+    -fx-background-radius: 18px;
+    -fx-border-color: rgba(148, 163, 184, 0.28);
+    -fx-border-radius: 18px;
+    -fx-padding: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.12), 28, 0, 0, 12);
 }
 
-.rx-kanban-view > .columns > .column > .footer {
-    -fx-padding: 6px;
+.kanban-showcase-board > .columns > .column {
+    -fx-background-color: -rx-kanban-column-bg;
+    -fx-background-radius: 14px;
+    -fx-border-color: -rx-kanban-column-border;
+    -fx-border-radius: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 14, 0, 0, 5);
 }
 
-.rx-kanban-view > .columns > .column > .footer .button {
-    -fx-background-radius: 6;
+.kanban-showcase-board > .columns > .column:drop-target {
+    -fx-background-color: #edf8ff;
+    -fx-border-color: #38bdf8;
+    -fx-border-width: 1.5px;
+    -fx-border-insets: -1px;
+    -fx-effect: dropshadow(gaussian, rgba(14, 165, 233, 0.26), 20, 0, 0, 8);
+}
+
+.kanban-showcase-board > .columns > .column:over-limit {
+    -fx-background-color: -rx-kanban-danger-bg;
+    -fx-border-color: #fecaca;
+}
+
+.kanban-showcase-board > .columns > .column:dragging {
+    -fx-opacity: 0.9;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.24), 28, 0, 0, 12);
+}
+
+.kanban-showcase-board > .columns > .column > .header {
+    -fx-background-color: -rx-kanban-column-header-bg;
+    -fx-background-radius: 14px 14px 0 0;
+    -fx-border-color: transparent transparent -rx-kanban-column-border transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 12px 14px 11px 14px;
+    -fx-alignment: center-left;
+    -fx-spacing: 10px;
+    -fx-cursor: hand;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-kanban-title;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -rx-kanban-title;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot {
+    -fx-pref-width: 9px;
+    -fx-pref-height: 9px;
+    -fx-background-radius: 50%;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot.todo {
+    -fx-background-color: #64748b;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot.doing {
+    -fx-background-color: #f59e0b;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot.done {
+    -fx-background-color: #22c55e;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot.backlog {
+    -fx-background-color: #8b5cf6;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .status-dot.neutral {
+    -fx-background-color: -rx-kanban-muted;
+}
+
+.kanban-showcase-board > .columns > .column > .header > .wip-indicator {
+    -fx-background-color: #e7eff8;
+    -fx-background-radius: 999px;
+    -fx-padding: 3px 9px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-kanban-muted;
+}
+
+.kanban-showcase-board > .columns > .column:over-limit > .header > .wip-indicator {
+    -fx-background-color: #fee2e2;
+    -fx-text-fill: #b91c1c;
+}
+
+.kanban-showcase-board > .columns > .column > .content {
+    -fx-background-color: transparent;
+}
+
+.kanban-showcase-board > .columns > .column > .footer {
+    -fx-padding: 10px 12px 11px 12px;
+}
+
+.kanban-showcase-board > .columns > .column > .footer.button {
+    -fx-background-color: -rx-kanban-add-bg;
+    -fx-background-radius: 0 0 14px 14px;
+    -fx-border-color: -rx-kanban-column-border transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-kanban-add-text;
+    -fx-cursor: hand;
+}
+
+.kanban-showcase-board > .columns > .column > .footer.button:hover {
+    -fx-background-color: -rx-kanban-add-hover-bg;
+}
+
+.kanban-showcase-board > .columns > .column > .footer.button:pressed {
+    -fx-background-color: derive(-rx-kanban-add-hover-bg, -8%);
+}
+
+.kanban-showcase-board .rx-kanban-card-cell {
+    -fx-background-color: -rx-kanban-card-bg;
+    -fx-background-radius: 12px;
+    -fx-border-color: -rx-kanban-card-border;
+    -fx-border-radius: 12px;
+    -fx-padding: 11px 12px;
+    -fx-effect: dropshadow(gaussian, -rx-kanban-card-shadow, 12, 0, 0, 4);
+    -rx-ripple-fill: #0f172a;
+    -rx-ripple-opacity: 0.10;
+}
+
+.kanban-showcase-board .rx-kanban-card-cell:hover {
+    -fx-background-color: #fbfdff;
+    -fx-border-color: #bfd0e2;
+    -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.16), 18, 0, 0, 7);
+}
+
+.kanban-showcase-board .rx-kanban-card-cell > .content {
+    -fx-alignment: center-left;
+}
+
+.kanban-showcase-board .rx-kanban-card-cell > .content > .label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-kanban-title;
+    -fx-wrap-text: true;
+}
+
+.kanban-showcase-board .rx-kanban-card-cell:selected,
+.kanban-showcase-board .rx-kanban-card-cell:focused,
+.kanban-showcase-board .rx-kanban-card-cell:selected:focused {
+    -fx-background-color: -rx-kanban-card-bg;
+    -fx-background-radius: 12px;
+    -fx-border-color: #38bdf8;
+    -fx-border-radius: 12px;
+    -fx-border-width: 2px;
+    -fx-border-insets: -1px;
+}
+
+.kanban-showcase-board .scroll-bar:vertical,
+.kanban-showcase-board > .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-padding: 1px;
+}
+
+.kanban-showcase-board .scroll-bar:vertical {
+    -fx-pref-width: 8px;
+}
+
+.kanban-showcase-board > .scroll-bar:horizontal {
+    -fx-pref-height: 8px;
+}
+
+.kanban-showcase-board .scroll-bar .track {
+    -fx-background-color: transparent;
+}
+
+.kanban-showcase-board .scroll-bar .thumb {
+    -fx-background-color: rgba(100, 116, 139, 0.38);
+    -fx-background-radius: 999px;
+}
+
+.kanban-showcase-board .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(100, 116, 139, 0.58);
 }
 
 .hint {
