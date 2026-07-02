@@ -617,6 +617,36 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    @Test
+    public void minZeroShrinksToNothingWithoutScrolling() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setMinColumnWidth(0.0);   // 0 is a real floor: shrink freely, never scroll
+            board.setAnimated(false);
+            pump(host(board, 300, 400));
+            Region a = boxOf(board, "A");
+            assertTrue(a.getWidth() < 150.0, "columns shrink well below pref toward 0: " + a.getWidth());
+            assertFalse(horizontalScrollBarVisible(board), "min 0 never scrolls, it keeps shrinking");
+        });
+    }
+
+    @Test
+    public void defaultMinDoesNotShrinkAndScrolls() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setAnimated(false);
+            // Default minColumnWidth is USE_COMPUTED_SIZE (negative) — no shrink.
+            pump(host(board, 300, 400));
+            Region a = boxOf(board, "A");
+            assertEquals(200.0, a.getWidth(), 2.0, "default keeps columns at prefColumnWidth");
+            assertTrue(horizontalScrollBarVisible(board), "default scrolls instead of shrinking");
+        });
+    }
+
     // ==================== Column level (hide / reorder) ====================
 
     @Test

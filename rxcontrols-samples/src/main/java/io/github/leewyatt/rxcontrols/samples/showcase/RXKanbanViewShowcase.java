@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -104,11 +105,13 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(kanban.getColumnsJustify());
         justify.valueProperty().addListener((o, ov, v) -> kanban.setColumnsJustify(v));
-        // Min column width lets columns shrink to fit a narrow board before scrolling
-        // (0 = never shrink); max column width caps STRETCH growth (0 = uncapped).
-        Slider minWidth = createSlider(0.0, 280.0, kanban.getMinColumnWidth());
+        // Min column width sets the shrink floor for a narrow board: the far-left end is
+        // negative (USE_COMPUTED_SIZE = "auto", no shrink → scroll), 0 lets columns shrink
+        // to nothing (never scroll), a positive floor shrinks that far then scrolls. Max
+        // column width caps STRETCH growth; negative = "auto" (uncapped).
+        Slider minWidth = createSlider(-1.0, 280.0, kanban.getMinColumnWidth());
         minWidth.valueProperty().addListener((o, ov, v) -> kanban.setMinColumnWidth(v.doubleValue()));
-        Slider maxWidth = createSlider(0.0, 480.0, kanban.getMaxColumnWidth());
+        Slider maxWidth = createSlider(-1.0, 480.0, kanban.getMaxColumnWidth());
         maxWidth.valueProperty().addListener((o, ov, v) -> kanban.setMaxColumnWidth(v.doubleValue()));
         Slider cardHeight = createSlider(60.0, 160.0, kanban.getPrefCardHeight());
         cardHeight.valueProperty().addListener((o, ov, v) -> kanban.setPrefCardHeight(v.doubleValue()));
@@ -117,11 +120,24 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Column justify", justify),
                 row("Column width", columnWidth, createValueLabel(columnWidth, "%.0f px")),
-                row("Min column width", minWidth, createValueLabel(minWidth, "%.0f px")),
-                row("Max column width", maxWidth, createValueLabel(maxWidth, "%.0f px")),
+                row("Min column width", minWidth, sizeOrAutoLabel(minWidth)),
+                row("Max column width", maxWidth, sizeOrAutoLabel(maxWidth)),
                 row("Column spacing", columnSpacing, createValueLabel(columnSpacing, "%.0f px")),
                 row("Card height", cardHeight, createValueLabel(cardHeight, "%.0f px")),
                 row("Card spacing", cardSpacing, createValueLabel(cardSpacing, "%.0f px")));
+    }
+
+    // A value label that renders a negative slider value (USE_COMPUTED_SIZE) as "auto"
+    // and any non-negative value as pixels, so the sentinel reads clearly.
+    private Label sizeOrAutoLabel(Slider slider) {
+        Label label = new Label();
+        label.getStyleClass().add("value-label");
+        label.textProperty().bind(Bindings.createStringBinding(
+                () -> slider.getValue() < 0.0 ? "auto" : String.format("%.0f px", slider.getValue()),
+                slider.valueProperty()));
+        label.setMinWidth(VALUE_LABEL_MIN_WIDTH);
+        label.setAlignment(Pos.CENTER_RIGHT);
+        return label;
     }
 
     private Node behaviorGrid() {

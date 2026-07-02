@@ -33,6 +33,7 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
@@ -69,8 +70,11 @@ public class RXKanbanView<T> extends Control {
 
     private static final double DEFAULT_COLUMN_SPACING = 12.0;
     private static final double DEFAULT_PREF_COLUMN_WIDTH = 280.0;
-    private static final double DEFAULT_MIN_COLUMN_WIDTH = 0.0;
-    private static final double DEFAULT_MAX_COLUMN_WIDTH = 0.0;
+    // USE_COMPUTED_SIZE (-1) is the "unset" sentinel (mirrors Region min/max): a negative
+    // min disables shrinking, a negative max disables the stretch cap. 0 stays a real
+    // value (min 0 = shrink to nothing, never scroll).
+    private static final double DEFAULT_MIN_COLUMN_WIDTH = Region.USE_COMPUTED_SIZE;
+    private static final double DEFAULT_MAX_COLUMN_WIDTH = Region.USE_COMPUTED_SIZE;
     private static final ItemsJustify DEFAULT_COLUMNS_JUSTIFY = ItemsJustify.START;
     private static final double DEFAULT_CARD_SPACING = 8.0;
     private static final double DEFAULT_PREF_CARD_HEIGHT = 96.0;
@@ -903,9 +907,13 @@ public class RXKanbanView<T> extends Control {
      * Lower bound a column shrinks to when the board is too narrow to hold every
      * column at {@link #prefColumnWidthProperty() prefColumnWidth}. Columns shrink
      * evenly down to this width to stay on screen; only when even this width does
-     * not fit does a horizontal scrollbar appear. {@code 0} (the default) or any
-     * value at or above {@code prefColumnWidth} disables shrinking (columns keep
-     * their preferred width and the board scrolls instead), resolved at layout time.
+     * not fit does a horizontal scrollbar appear.
+     *
+     * <p>{@code 0} is a real bound: columns may shrink all the way to nothing, so the
+     * board effectively never scrolls. A negative value — {@link Region#USE_COMPUTED_SIZE}
+     * (the default) — disables shrinking, so columns keep their preferred width and the
+     * board scrolls instead. A value at or above {@code prefColumnWidth} also disables
+     * shrinking. Resolved at layout time.
      *
      * @return the min-column-width property
      */
@@ -953,11 +961,12 @@ public class RXKanbanView<T> extends Control {
     /**
      * Upper bound a column grows to when {@link #columnsJustifyProperty()
      * columnsJustify} is {@link ItemsJustify#STRETCH} and the board is wider than
-     * the columns need. {@code 0} (the default) or any non-positive value means no
-     * cap (columns grow to fill all spare width); once the cap is reached the filled
-     * block is centered. A cap below {@code prefColumnWidth} is degenerate and is
-     * treated as {@code prefColumnWidth}. Resolved at layout time; it has no effect
-     * unless {@code columnsJustify} is {@code STRETCH}.
+     * the columns need. A negative value — {@link Region#USE_COMPUTED_SIZE} (the
+     * default) — means no cap: columns grow to fill all spare width. With a cap set,
+     * once it is reached the filled block is centered. A cap below
+     * {@code prefColumnWidth} is degenerate and is treated as {@code prefColumnWidth}
+     * (so a cap of {@code 0} pins columns to their preferred width). Resolved at
+     * layout time; it has no effect unless {@code columnsJustify} is {@code STRETCH}.
      *
      * @return the max-column-width property
      */

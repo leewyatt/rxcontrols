@@ -186,21 +186,23 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         return value != null ? value : ItemsJustify.START;
     }
 
-    // Shrink floor: never above prefColumnWidth (min is a lower bound), and a
-    // non-positive / non-finite value disables shrinking (floor == pref).
+    // Shrink floor: a negative value (USE_COMPUTED_SIZE) or a non-finite value disables
+    // shrinking (floor == pref); 0 is a real floor (shrink to nothing). Never above pref,
+    // since min is a lower bound.
     static double minColumnWidthOrPref(RXKanbanView<?> control, double pref) {
         double value = control.getMinColumnWidth();
-        if (!Double.isFinite(value) || value <= 0.0) {
+        if (!Double.isFinite(value) || value < 0.0) {
             return pref;
         }
         return Math.min(value, pref);
     }
 
-    // STRETCH growth cap: 0 (or non-positive / non-finite) means unbounded; a cap
-    // below prefColumnWidth is degenerate and treated as pref.
+    // STRETCH growth cap: a negative value (USE_COMPUTED_SIZE) or a non-finite value means
+    // unbounded (returned as 0 — the caller's "no cap" sentinel); otherwise the cap, never
+    // below prefColumnWidth (a smaller cap is degenerate).
     static double maxColumnWidthOrUnbounded(RXKanbanView<?> control, double pref) {
         double value = control.getMaxColumnWidth();
-        if (!Double.isFinite(value) || value <= 0.0) {
+        if (!Double.isFinite(value) || value < 0.0) {
             return 0.0;
         }
         return Math.max(value, pref);
