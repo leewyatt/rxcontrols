@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.event;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
-import io.github.leewyatt.rxcontrols.CloseReason;
+import io.github.leewyatt.rxcontrols.RXDialog.CloseReason;
 
 import javafx.event.Event;
 import javafx.event.EventType;

@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.event;
 
-import io.github.leewyatt.rxcontrols.DismissReason;
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 

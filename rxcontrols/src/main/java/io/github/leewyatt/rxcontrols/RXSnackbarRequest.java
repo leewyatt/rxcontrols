@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
+
 import javafx.scene.Node;
 import javafx.util.Duration;
 

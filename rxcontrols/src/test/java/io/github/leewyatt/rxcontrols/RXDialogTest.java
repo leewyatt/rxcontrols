@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
+import io.github.leewyatt.rxcontrols.RXDialog.CloseReason;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.Event;

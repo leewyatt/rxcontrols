@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.DismissReason;
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;

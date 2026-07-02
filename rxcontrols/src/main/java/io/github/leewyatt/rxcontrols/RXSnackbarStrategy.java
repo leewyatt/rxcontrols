@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
+
 /**
  * How an {@link RXSnackbarHost} schedules a new request while another snackbar
  * is displayed. The host default is {@link #QUEUE}; a request may override it.

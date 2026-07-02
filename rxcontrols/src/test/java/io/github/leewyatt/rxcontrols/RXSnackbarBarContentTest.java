@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXSnackbarEvent;
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;

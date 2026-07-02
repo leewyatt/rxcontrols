@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.CloseReason;
+import io.github.leewyatt.rxcontrols.RXDialog.CloseReason;
 import io.github.leewyatt.rxcontrols.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.DialogTransition;
 import io.github.leewyatt.rxcontrols.RXBackdrop;

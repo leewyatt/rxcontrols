@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXSnackbarLayer;
+import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
