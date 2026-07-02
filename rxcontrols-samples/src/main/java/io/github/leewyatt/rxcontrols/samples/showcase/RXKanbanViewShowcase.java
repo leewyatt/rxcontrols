@@ -46,12 +46,16 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
     }
 
     @Override
+    protected double sceneWidth() {
+        return 1440;
+    }
+
+    @Override
     protected Node createPreview() {
         kanban = new RXKanbanView<>();
         kanban.setColumns(sampleColumns());
         kanban.setColumnReorderEnabled(true);
-        kanban.setPrefColumnWidth(240.0);
-        kanban.setStyle("-fx-background-color: #f0ffff;");
+        kanban.setPrefColumnWidth(200.0);
 
         // Each column footer adds a card, so the settle glide and the WIP pill react.
         kanban.setColumnFooterFactory(column -> {
