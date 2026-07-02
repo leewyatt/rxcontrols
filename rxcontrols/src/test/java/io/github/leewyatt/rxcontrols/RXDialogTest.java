@@ -1039,6 +1039,54 @@ public class RXDialogTest {
         });
     }
 
+    @Test
+    public void nonModalEmptySpaceIsClickThrough() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
+            dialog.setModal(false);
+            Region owner = new Region();
+            new Scene(new StackPane(owner), 400, 300);
+            dialog.show(owner);
+
+            assertFalse(dialog.isPickOnBounds(),
+                    "a scene-filling dialog must not pick on bounds (Region defaults it to true)");
+            // Node.contains honors pickOnBounds=false and falls back to geometry; the
+            // control paints no background, so the space outside the card never picks
+            // and a non-modal dialog leaves the rest of the scene interactive.
+            assertFalse(dialog.contains(2.0, 2.0), "empty overlay space clicks through");
+            Node scrim = dialog.lookup(".scrim");
+            assertTrue(scrim.isMouseTransparent(), "the non-modal scrim does not block either");
+
+            dialog.setModal(true);
+            assertFalse(scrim.isMouseTransparent(), "the modal scrim owns the blocking");
+
+            dialog.close();
+        });
+    }
+
+    @Test
+    public void cardShadowRingDoesNotSwallowScrimClicks() throws Exception {
+        runOnFx(() -> {
+            RXDialog<ButtonType> dialog = gestureDialog();
+            Region owner = new Region();
+            StackPane root = new StackPane(owner);
+            new Scene(root, 400, 300);
+            dialog.show(owner);
+            layoutTree(root, 400, 300);
+
+            Region card = card(dialog);
+            assertTrue(card.getWidth() > 0, "the card is laid out");
+            assertFalse(card.isPickOnBounds(),
+                    "the card picks by geometry, not by its shadow-inflated bounds");
+            assertTrue(card.contains(card.getWidth() / 2, card.getHeight() / 2),
+                    "the card body still catches clicks");
+            // The drop shadow inflates boundsInLocal past the background; a point in
+            // that ring must not pick the card, so the click reaches the scrim.
+            assertFalse(card.contains(-4.0, -4.0), "the shadow ring clicks through to the scrim");
+            dialog.close();
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXDialog<ButtonType> newDialog(ButtonType... types) {

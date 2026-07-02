@@ -176,9 +176,11 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         dialogCard.getStyleClass().add("dialog-card");
         contentWrapper.getStyleClass().add("content-wrapper");
 
-        // The card catches clicks across its whole bounds so a click on it never
-        // falls through to the scrim (which would request a close).
-        dialogCard.setPickOnBounds(true);
+        // Pick by the card's painted geometry (its opaque background), not by its
+        // bounds: the drop shadow inflates boundsInLocal, and bounds picking would
+        // swallow scrim clicks in the shadow ring around the card. The full-bleed
+        // background still catches every click on the card itself.
+        dialogCard.setPickOnBounds(false);
         // Last-resort focus target when modal and nothing inside is focusable.
         dialogCard.setFocusTraversable(true);
 

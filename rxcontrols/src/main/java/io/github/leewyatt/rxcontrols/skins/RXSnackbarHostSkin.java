@@ -125,9 +125,10 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         super(control);
 
         bar.getStyleClass().add("snackbar");
-        // The bar catches clicks across its whole bounds so a click on it never
-        // falls through to the scene content beneath.
-        bar.setPickOnBounds(true);
+        // Pick by the bar's painted geometry (its opaque background), not by its
+        // bounds: the drop shadow inflates boundsInLocal, and bounds picking would
+        // turn the shadow ring into a dead zone over interactive scene content.
+        bar.setPickOnBounds(false);
         message.getStyleClass().add("message");
         message.setWrapText(true);
         HBox.setHgrow(message, Priority.ALWAYS);

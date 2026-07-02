@@ -151,6 +151,12 @@ public class RXDialog<R> extends Control {
     public RXDialog() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAccessibleRole(AccessibleRole.DIALOG);
+        // Region's constructor flips pickOnBounds to TRUE (unlike Node's false), so
+        // this scene-filling control would swallow every mouse event even when
+        // non-modal. With it off, picking falls back to geometry — the control
+        // paints no background, so blocking is owned by the parts that should own
+        // it: the scrim (mouse-transparent unless modal + top-most) and the card.
+        setPickOnBounds(false);
     }
 
     /**

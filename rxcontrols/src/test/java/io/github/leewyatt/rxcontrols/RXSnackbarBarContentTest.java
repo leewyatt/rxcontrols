@@ -216,8 +216,27 @@ public class RXSnackbarBarContentTest {
             // click there reaches the scene content beneath.
             assertFalse(host.contains(host.getWidth() - 5.0, 5.0),
                     "empty overlay space clicks through");
+        });
+    }
+
+    @Test
+    public void barShadowRingDoesNotSwallowClicks() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            host.show(RXSnackbarRequest.builder("shadowed").build());
+            StackPane root = (StackPane) host.getScene().getRoot();
+            root.resize(400.0, 300.0);
+            root.applyCss();
+            root.layout();
+
             Node bar = host.lookup(".snackbar");
-            assertTrue(bar.isPickOnBounds(), "the bar itself catches clicks across its bounds");
+            assertTrue(bar.getLayoutBounds().getWidth() > 0, "the bar is laid out");
+            assertFalse(bar.isPickOnBounds(),
+                    "the bar picks by geometry, not by its shadow-inflated bounds");
+            assertTrue(bar.contains(bar.getLayoutBounds().getWidth() / 2,
+                    bar.getLayoutBounds().getHeight() / 2), "the bar body still catches clicks");
+            assertFalse(bar.contains(-4.0, -4.0),
+                    "the shadow ring clicks through to the content beneath");
         });
     }
 
