@@ -5,18 +5,13 @@ import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
-import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.css.PseudoClass;
-import javafx.event.EventHandler;
-import javafx.geometry.Bounds;
-import javafx.geometry.Rectangle2D;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.PopupControl;
 import javafx.scene.control.SelectionMode;
-import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -25,8 +20,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.stage.Screen;
-import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
 import java.util.ArrayList;
@@ -55,13 +48,14 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private final Region clearGraphic = new Region();
     private final StackPane arrowButton = new StackPane();
     private final Region arrow = new Region();
-    private final PopupControl popup = new PopupControl();
-    private final EventHandler<WindowEvent> popupHiddenHandler = this::handlePopupHidden;
 
     // ==================== State ====================
 
     /** The embedded view used as popup content, injected by the control. */
     private final RXCascaderView<T> view;
+
+    /** Positioning + lifecycle for the popup shell hosting {@link #view}. */
+    private final RXPopupSupport popupSupport;
 
     private boolean suppressReopen;
 
@@ -83,8 +77,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     public RXCascaderSkin(RXCascader<T> control, RXCascaderView<T> view) {
         super(control);
         this.view = view;
+        this.popupSupport = new RXPopupSupport(view);
         initializeNodes(control);
-        initializePopup();
+        initializePopupSupport();
         registerListeners(control);
         getChildren().setAll(display);
         // Observe the value of any selection that already existed before this skin
@@ -118,14 +113,19 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, event -> handleKeyPressed(control, event));
     }
 
-    private void initializePopup() {
-        popup.getStyleClass().add("rx-cascader-popup");
-        popup.setAutoHide(true);
-        popup.setAutoFix(true);
-        popup.setHideOnEscape(true);
-        popup.setSkin(new CascaderPopupSkin<>(popup, view));
-        popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
-        disposer.registerDisposeTask(() -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
+    private void initializePopupSupport() {
+        // The cascader popup width follows the view's own (multi-column) width, not
+        // the trigger width, so it uses PREF_CONTENT rather than the default
+        // anchor-width lower bound. The shell stays transparent and token-less.
+        popupSupport.setPopupStyleClass("rx-cascader-popup");
+        popupSupport.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+        // Preserve the cascader's historical close semantics: the event that
+        // auto-hides the popup is consumed (PopupWindow's own default), so it does
+        // not additionally act on whatever sits beneath the popup. RXPopupSupport
+        // defaults this to false (combo-box style) for other consumers.
+        popupSupport.setConsumeAutoHidingEvents(true);
+        popupSupport.setOnHidden(this::onPopupHidden);
+        disposer.registerDisposeTask(popupSupport::dispose);
     }
 
     private void registerListeners(RXCascader<T> control) {
@@ -144,18 +144,6 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.separatorProperty(), this::updateDisplay);
         disposer.registerListener(control.showAllLevelsProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
-        // Keep the popup glued to (and on-screen relative to) the control when
-        // layout moves it. Mirrors ComboBoxPopupControl, which reconfigures on the
-        // control's own layoutX/layoutY/width/height (these change when a sibling
-        // grows and a centering parent re-lays-out the control); the view size and
-        // localToSceneTransform are extra nets for content- and ancestor-driven moves.
-        disposer.registerListener(view.widthProperty(), this::reconfigurePopup);
-        disposer.registerListener(view.heightProperty(), this::reconfigurePopup);
-        disposer.registerListener(control.layoutXProperty(), this::reconfigurePopup);
-        disposer.registerListener(control.layoutYProperty(), this::reconfigurePopup);
-        disposer.registerListener(control.widthProperty(), this::reconfigurePopup);
-        disposer.registerListener(control.heightProperty(), this::reconfigurePopup);
-        disposer.registerListener(control.localToSceneTransformProperty(), this::reconfigurePopup);
         // The field mirrors the live value of the displayed path items; drop those
         // listeners on dispose.
         disposer.registerDisposeTask(this::clearPathValueListeners);
@@ -205,7 +193,12 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         }
     }
 
-    private void handlePopupHidden(WindowEvent event) {
+    /**
+     * Driven by the popup support on every hide path (auto-hide, Escape,
+     * programmatic hide, owner detach): pull the control's showing state back and
+     * arm the reopen guard for the current pulse.
+     */
+    private void onPopupHidden() {
         getSkinnable().hide();
         suppressReopen = true;
         Platform.runLater(() -> suppressReopen = false);
@@ -328,77 +321,10 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private void syncPopupShowing() {
         updateDisplay();
         if (getSkinnable().isShowing()) {
-            showPopup();
+            popupSupport.show(getSkinnable());
         } else {
-            hidePopup();
+            popupSupport.hide();
         }
-    }
-
-    private void showPopup() {
-        RXCascader<T> control = getSkinnable();
-        if (control.getScene() == null || control.getScene().getWindow() == null) {
-            control.hide();
-            return;
-        }
-        Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
-        if (screenBounds == null) {
-            control.hide();
-            return;
-        }
-        if (!popup.isShowing()) {
-            // Show at a provisional anchor below the control, then reconfigure once
-            // the popup has a measured size so flip-above / clamp can use it.
-            popup.show(control, screenBounds.getMinX(), screenBounds.getMaxY());
-        }
-        reconfigurePopup();
-    }
-
-    private void hidePopup() {
-        if (popup.isShowing()) {
-            popup.hide();
-        }
-    }
-
-    /**
-     * Anchors the popup to the control, flipping it above when it does not fit
-     * below and clamping horizontally so it stays within the screen's visual
-     * bounds. Uses only public {@link Screen} API (no internal positioning utils).
-     */
-    private void reconfigurePopup() {
-        RXCascader<T> control = getSkinnable();
-        if (!control.isShowing() || !popup.isShowing()) {
-            return;
-        }
-        Bounds screenBounds = control.localToScreen(control.getBoundsInLocal());
-        if (screenBounds == null) {
-            return;
-        }
-        Rectangle2D screen = screenVisualBounds(screenBounds);
-        double popupWidth = popup.getWidth();
-        double popupHeight = popup.getHeight();
-        // Prefer anchoring just below the control; flip above only when the popup
-        // does not fit below but does fit above.
-        double below = screenBounds.getMaxY();
-        double above = screenBounds.getMinY() - popupHeight;
-        boolean fitsBelow = below + popupHeight <= screen.getMaxY();
-        boolean fitsAbove = above >= screen.getMinY();
-        double anchorY = (!fitsBelow && fitsAbove) ? above : below;
-        // Clamp both axes so a popup larger than the available space is pinned to a
-        // screen edge instead of running off it. RXMath.clamp keeps the same
-        // lower-bound-first semantics when the popup is larger.
-        double anchorX = RXMath.clamp(screenBounds.getMinX(), screen.getMinX(), screen.getMaxX() - popupWidth);
-        double clampedY = RXMath.clamp(anchorY, screen.getMinY(), screen.getMaxY() - popupHeight);
-        popup.setAnchorX(anchorX);
-        popup.setAnchorY(clampedY);
-    }
-
-    private Rectangle2D screenVisualBounds(Bounds controlScreenBounds) {
-        List<Screen> screens = Screen.getScreensForRectangle(
-                controlScreenBounds.getMinX(), controlScreenBounds.getMinY(),
-                Math.max(1.0, controlScreenBounds.getWidth()),
-                Math.max(1.0, controlScreenBounds.getHeight()));
-        Screen screen = screens.isEmpty() ? Screen.getPrimary() : screens.get(0);
-        return screen.getVisualBounds();
     }
 
     // ==================== Layout ====================
@@ -418,40 +344,5 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         return topInset + Math.max(DEFAULT_PREF_HEIGHT, display.prefHeight(width)) + bottomInset;
-    }
-
-    @Override
-    protected void disposeSkin() {
-        popup.hide();
-        popup.setSkin(null);
-    }
-
-    // ==================== Popup Skin ====================
-
-    private static final class CascaderPopupSkin<T> implements Skin<PopupControl> {
-
-        private PopupControl popup;
-        private Node content;
-
-        private CascaderPopupSkin(PopupControl popup, RXCascaderView<T> panel) {
-            this.popup = popup;
-            this.content = panel;
-        }
-
-        @Override
-        public PopupControl getSkinnable() {
-            return popup;
-        }
-
-        @Override
-        public Node getNode() {
-            return content;
-        }
-
-        @Override
-        public void dispose() {
-            popup = null;
-            content = null;
-        }
     }
 }

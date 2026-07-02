@@ -11,7 +11,7 @@
  * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -1037,6 +1037,24 @@
 
 .rx-cascader-popup > .rx-cascader-view {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0.0, 0, 8);
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSuggestionPopup (RXAutoComplete)                                           *
+ *                                                                             *
+ * Transparent, token-less shell (added by the skin, not a control root, so it *
+ * is intentionally absent from the token baseline selector). The content is a *
+ * plain .rx-list-view, which carries its own tokens; the elevation shadow      *
+ * hangs on that content box, not the transparent shell.                        *
+ *                                                                             *
+ ******************************************************************************/
+.rx-suggestion-popup {
+    -fx-background-color: transparent;
+}
+
+.rx-suggestion-popup > .rx-list-view {
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
 }
 
 .rx-cascader-view > .columns {

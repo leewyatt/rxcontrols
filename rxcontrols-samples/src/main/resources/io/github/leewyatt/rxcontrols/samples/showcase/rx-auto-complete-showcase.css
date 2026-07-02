@@ -1,0 +1,15 @@
+.field-readout {
+    -fx-text-fill: derive(-fx-text-base-color, 18%);
+    -fx-font-size: 12px;
+    -fx-line-spacing: 4px;
+}
+
+.hint {
+    -fx-text-fill: derive(-fx-text-base-color, 45%);
+    -fx-font-size: 11px;
+}
+
+.auto-complete-preview {
+    -fx-alignment: top-center;
+    -fx-padding: 16px;
+}

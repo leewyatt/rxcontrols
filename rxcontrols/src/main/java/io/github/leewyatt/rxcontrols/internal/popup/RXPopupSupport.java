@@ -1,0 +1,494 @@
+package io.github.leewyatt.rxcontrols.internal.popup;
+
+import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
+import javafx.geometry.NodeOrientation;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.PopupControl;
+import javafx.scene.control.Skin;
+import javafx.scene.layout.Region;
+import javafx.stage.Screen;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
+
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Composition-based positioning and lifecycle helper for an anchored popup. Wraps
+ * a single {@link PopupControl} whose content is a fixed {@link Region}, anchors
+ * it to a (rebindable) {@link Node}, and keeps it glued on-screen as the anchor
+ * moves, resizes, or its window moves. Content-agnostic: the data model lives in
+ * consumers (e.g. a cascader view or a suggestion list).
+ *
+ * <p>Extracted from {@code RXCascaderSkin} so the cascader and future anchored
+ * popups (autocomplete, tag input, pickers) share one positioning + lifecycle
+ * implementation. Positioning uses only public {@link Screen} API and the pure
+ * {@link RXPopupGeometry} resolver; it never touches {@code com.sun.*} or popup
+ * skin internals.
+ *
+ * <h2>Lifecycle</h2>
+ * The support keeps its own logical {@link #showingProperty() showing} state,
+ * distinct from {@code PopupWindow.showing}: during an anchor rebind it hides and
+ * re-shows the underlying window while reporting a stable {@code true}. Two
+ * {@link SkinDisposer}s are held because {@code SkinDisposer} has no per-item
+ * unregister: {@code lifecycleDisposer} owns anchor-independent registrations,
+ * and {@code anchorDisposer} owns everything bound to the current anchor and is
+ * rebuilt on rebind.
+ *
+ * <p>Not thread-safe; use on the JavaFX Application Thread.
+ */
+public final class RXPopupSupport {
+
+    // ==================== Constants ====================
+
+    private static final RXPlacement DEFAULT_PLACEMENT = RXPlacement.BOTTOM_START;
+    private static final RXPopupWidthMode DEFAULT_WIDTH_MODE = RXPopupWidthMode.PREFER_ANCHOR_WIDTH;
+
+    // ==================== Fields ====================
+
+    private final Region content;
+    private final PopupControl popup = new PopupControl();
+    private final EventHandler<WindowEvent> popupHiddenHandler = this::handlePopupHidden;
+
+    /** Anchor-independent cleanup (WINDOW_HIDDEN handler, popup skin, content-size listeners). */
+    private final SkinDisposer lifecycleDisposer = new SkinDisposer();
+    /** Cleanup bound to the current anchor; rebuilt on each rebind. */
+    private SkinDisposer anchorDisposer;
+
+    private Node anchor;
+    // Window-move reposition is tracked separately from the anchor listeners: the
+    // anchor node's window can change without an anchor rebind, and SkinDisposer has
+    // no per-item unregister, so a stable listener + the tracked window are used.
+    private final InvalidationListener repositionListener = observable -> requestReposition();
+    private Window listenerWindow;
+
+    private RXPlacement placement = DEFAULT_PLACEMENT;
+    private RXPopupWidthMode widthMode = DEFAULT_WIDTH_MODE;
+    private double offsetX;
+    private double offsetY;
+
+    private Runnable onHidden;
+    private boolean suppressOnHidden;
+    private boolean disposed;
+
+    private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
+
+    // ==================== Constructor ====================
+
+    /**
+     * Creates a popup support hosting the given content region.
+     *
+     * @param content the popup content; must not be {@code null}
+     * @throws NullPointerException if {@code content} is {@code null}
+     */
+    public RXPopupSupport(Region content) {
+        this.content = Objects.requireNonNull(content, "content");
+        popup.setAutoFix(true);
+        popup.setAutoHide(true);
+        popup.setHideOnEscape(true);
+        popup.setConsumeAutoHidingEvents(false);
+        popup.setSkin(new ContentPopupSkin(popup, content));
+        popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
+        lifecycleDisposer.registerDisposeTask(
+                () -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
+        lifecycleDisposer.registerDisposeTask(() -> popup.setSkin(null));
+        // The popup tracks the content's size; a size change means re-clamp / re-flip.
+        lifecycleDisposer.registerListener(content.widthProperty(), this::requestReposition);
+        lifecycleDisposer.registerListener(content.heightProperty(), this::requestReposition);
+    }
+
+    // ==================== Lifecycle ====================
+
+    /**
+     * Binds the anchor (installing reposition + auto-close tracking) and shows the
+     * popup. A {@code null} anchor is ignored.
+     *
+     * @param anchor the node to anchor to
+     */
+    public void show(Node anchor) {
+        if (disposed || anchor == null) {
+            return;
+        }
+        bindAnchor(anchor);
+        showInternal();
+    }
+
+    /**
+     * Rebinds to a new anchor. A move of the same node is handled by the
+     * reposition listeners and is not a rebind. Rebinding a different node while
+     * showing hides and re-shows the popup with the new owner (the framework's
+     * {@code ownerNode} has no public setter and drives the CSS parent chain and
+     * the auto-hide owner exemption), keeping logical {@code showing} true across
+     * the transition.
+     *
+     * @param newAnchor the new anchor node
+     */
+    public void setAnchor(Node newAnchor) {
+        if (disposed || newAnchor == anchor) {
+            return;
+        }
+        boolean wasShowing = showing.get() && popup.isShowing();
+        if (wasShowing) {
+            suppressOnHidden = true;
+            popup.hide();
+            suppressOnHidden = false;
+        }
+        bindAnchor(newAnchor);
+        if (wasShowing) {
+            showInternal();
+        }
+    }
+
+    /**
+     * Hides the popup. Logical {@code showing} becomes {@code false} and, unless
+     * suppressed, the {@code onHidden} callback runs via the window's
+     * {@code WINDOW_HIDDEN} event.
+     */
+    public void hide() {
+        if (disposed) {
+            return;
+        }
+        showing.set(false);
+        if (popup.isShowing()) {
+            popup.hide();
+        }
+    }
+
+    /**
+     * Returns the logical showing state.
+     *
+     * @return {@code true} if the popup is logically showing
+     */
+    public boolean isShowing() {
+        return showing.get();
+    }
+
+    /**
+     * Returns the logical showing state as a read-only property. This is the
+     * support's own state, not a direct mirror of {@code PopupWindow.showing};
+     * an anchor rebind does not surface a transient {@code false}.
+     *
+     * @return the read-only showing property
+     */
+    public ReadOnlyBooleanProperty showingProperty() {
+        return showing.getReadOnlyProperty();
+    }
+
+    /**
+     * Recomputes the popup position and size for the current anchor. A no-op when
+     * not showing.
+     */
+    public void requestReposition() {
+        reconfigure();
+    }
+
+    /**
+     * Releases all resources. Unbinds the hidden callback first so hiding the
+     * window does not call back into the host, then hides the popup, then disposes
+     * the anchor and lifecycle registrations (the latter clears the popup skin).
+     */
+    public void dispose() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
+        onHidden = null;
+        suppressOnHidden = true;
+        if (popup.isShowing()) {
+            popup.hide();
+        }
+        if (anchorDisposer != null) {
+            anchorDisposer.dispose();
+            anchorDisposer = null;
+        }
+        detachWindowListeners();
+        lifecycleDisposer.dispose();
+        anchor = null;
+    }
+
+    // ==================== Positioning config ====================
+
+    /**
+     * Sets the preferred placement (default {@code BOTTOM_START}). {@code null}
+     * restores the default.
+     *
+     * @param placement the preferred placement
+     */
+    public void setPlacement(RXPlacement placement) {
+        this.placement = (placement == null) ? DEFAULT_PLACEMENT : placement;
+        requestReposition();
+    }
+
+    /**
+     * Sets the gap from the anchor. For the vertical placement family the gap is
+     * {@code offsetY} (with {@code offsetX} a horizontal nudge); for the side
+     * family the roles swap.
+     *
+     * @param offsetX horizontal offset
+     * @param offsetY vertical offset
+     */
+    public void setOffset(double offsetX, double offsetY) {
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+        requestReposition();
+    }
+
+    /**
+     * Sets the width strategy (default {@code PREFER_ANCHOR_WIDTH}). {@code null}
+     * restores the default.
+     *
+     * @param mode the width mode
+     */
+    public void setWidthMode(RXPopupWidthMode mode) {
+        this.widthMode = (mode == null) ? DEFAULT_WIDTH_MODE : mode;
+        requestReposition();
+    }
+
+    // ==================== Close semantics ====================
+
+    /**
+     * Sets whether the popup auto-hides on outside interaction (default
+     * {@code true}).
+     *
+     * @param value auto-hide flag
+     */
+    public void setAutoHide(boolean value) {
+        popup.setAutoHide(value);
+    }
+
+    /**
+     * Sets whether Escape hides the popup (default {@code true}).
+     *
+     * @param value hide-on-escape flag
+     */
+    public void setHideOnEscape(boolean value) {
+        popup.setHideOnEscape(value);
+    }
+
+    /**
+     * Sets whether auto-hiding events are consumed (default {@code false}, so the
+     * closing click still reaches the underlying content, matching combo box /
+     * context menu behavior).
+     *
+     * @param value consume flag
+     */
+    public void setConsumeAutoHidingEvents(boolean value) {
+        popup.setConsumeAutoHidingEvents(value);
+    }
+
+    /**
+     * Sets the callback invoked on every hide path (auto-hide, Escape, programmatic
+     * hide, owner detach), driven by the window's {@code WINDOW_HIDDEN} event. The
+     * host uses it to pull its own showing state back.
+     *
+     * @param callback the hidden callback, or {@code null}
+     */
+    public void setOnHidden(Runnable callback) {
+        this.onHidden = callback;
+    }
+
+    // ==================== Appearance ====================
+
+    /**
+     * Adds a style class to the transparent popup shell (e.g.
+     * {@code "rx-suggestion-popup"}). The shell is intentionally token-less; the
+     * content carries theming.
+     *
+     * @param styleClass the shell style class; {@code null} is ignored
+     */
+    public void setPopupStyleClass(String styleClass) {
+        if (styleClass != null && !popup.getStyleClass().contains(styleClass)) {
+            popup.getStyleClass().add(styleClass);
+        }
+    }
+
+    // ==================== Internal ====================
+
+    private void bindAnchor(Node newAnchor) {
+        if (newAnchor == anchor && anchorDisposer != null) {
+            return;
+        }
+        if (anchorDisposer != null) {
+            anchorDisposer.dispose();
+        }
+        detachWindowListeners();
+        anchorDisposer = new SkinDisposer();
+        anchor = newAnchor;
+        if (newAnchor == null) {
+            return;
+        }
+        // Keep the popup glued to the anchor as it moves / resizes within its scene
+        // (boundsInParent covers own position + size; localToSceneTransform covers
+        // ancestor-driven moves). Window x/y/size are tracked separately at show time.
+        anchorDisposer.registerListener(newAnchor.boundsInParentProperty(), this::requestReposition);
+        anchorDisposer.registerListener(newAnchor.localToSceneTransformProperty(), this::requestReposition);
+        // Auto-close when the anchor leaves the scene / its window hides. Explicit
+        // ownership (new + dispose), not the shared RXTreeShowingProperty.of(node).
+        RXTreeShowingProperty tracker = new RXTreeShowingProperty(newAnchor);
+        anchorDisposer.registerListener(tracker, () -> {
+            if (!tracker.get()) {
+                hide();
+            }
+        });
+        anchorDisposer.registerDisposeTask(tracker::dispose);
+    }
+
+    private void showInternal() {
+        if (anchor == null) {
+            return;
+        }
+        Scene scene = anchor.getScene();
+        if (scene == null || scene.getWindow() == null || anchor.localToScreen(anchor.getBoundsInLocal()) == null) {
+            // No window / not laid out: cannot show. Roll the host back via onHidden.
+            notifyHidden();
+            return;
+        }
+        // Flip logical showing on only once the show will actually proceed, so a
+        // failed show does not surface a transient true->false on showingProperty().
+        showing.set(true);
+        // Mirror the anchor's effective orientation so START/END and content flip under RTL.
+        content.setNodeOrientation(anchor.getEffectiveNodeOrientation());
+        if (!popup.isShowing()) {
+            Bounds anchorScreen = anchor.localToScreen(anchor.getBoundsInLocal());
+            // Provisional anchor below the node; reconfigure once the popup is measured.
+            popup.show(anchor, anchorScreen.getMinX(), anchorScreen.getMaxY());
+        }
+        installWindowListeners(scene.getWindow());
+        reconfigure();
+    }
+
+    private void reconfigure() {
+        if (disposed || !showing.get() || anchor == null || !popup.isShowing()) {
+            return;
+        }
+        Bounds anchorScreen = anchor.localToScreen(anchor.getBoundsInLocal());
+        if (anchorScreen == null) {
+            return;
+        }
+        Screen screen = screenFor(anchorScreen);
+        Rectangle2D visual = screen.getVisualBounds();
+        double naturalW = content.prefWidth(-1);
+        // Measure height at the width the popup will actually take, so width-dependent
+        // (wrapping) content still yields a correct flip / max-height decision.
+        double resolvedWidth = RXPopupGeometry.resolveWidth(widthMode, anchorScreen.getWidth(), naturalW);
+        double naturalH = content.prefHeight(resolvedWidth);
+        boolean rtl = anchor.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+        RXPopupGeometry.Result result = RXPopupGeometry.resolve(
+                anchorScreen.getMinX(), anchorScreen.getMinY(),
+                anchorScreen.getWidth(), anchorScreen.getHeight(),
+                naturalW, naturalH,
+                visual.getMinX(), visual.getMinY(), visual.getMaxX(), visual.getMaxY(),
+                placement, widthMode, offsetX, offsetY, rtl,
+                screen.getOutputScaleX(), screen.getOutputScaleY());
+        applyWidth(result.width);
+        // RXPopupGeometry.USE_COMPUTED_SIZE == PopupControl.USE_COMPUTED_SIZE (-1).
+        popup.setMaxHeight(result.maxHeight);
+        popup.setAnchorX(result.anchorX);
+        popup.setAnchorY(result.anchorY);
+    }
+
+    private void applyWidth(double width) {
+        switch (widthMode) {
+            case MATCH_ANCHOR_WIDTH:
+                popup.setMinWidth(width);
+                popup.setPrefWidth(width);
+                popup.setMaxWidth(width);
+                break;
+            case PREFER_ANCHOR_WIDTH:
+                // width already = max(anchorWidth, contentPref); a min floor is enough.
+                popup.setMinWidth(width);
+                popup.setPrefWidth(PopupControl.USE_COMPUTED_SIZE);
+                popup.setMaxWidth(PopupControl.USE_COMPUTED_SIZE);
+                break;
+            case PREF_CONTENT:
+            default:
+                popup.setMinWidth(PopupControl.USE_COMPUTED_SIZE);
+                popup.setPrefWidth(PopupControl.USE_COMPUTED_SIZE);
+                popup.setMaxWidth(PopupControl.USE_COMPUTED_SIZE);
+                break;
+        }
+    }
+
+    private void installWindowListeners(Window window) {
+        if (window == listenerWindow) {
+            return;
+        }
+        detachWindowListeners();
+        listenerWindow = window;
+        if (window != null) {
+            window.xProperty().addListener(repositionListener);
+            window.yProperty().addListener(repositionListener);
+            window.widthProperty().addListener(repositionListener);
+            window.heightProperty().addListener(repositionListener);
+        }
+    }
+
+    private void detachWindowListeners() {
+        if (listenerWindow != null) {
+            listenerWindow.xProperty().removeListener(repositionListener);
+            listenerWindow.yProperty().removeListener(repositionListener);
+            listenerWindow.widthProperty().removeListener(repositionListener);
+            listenerWindow.heightProperty().removeListener(repositionListener);
+            listenerWindow = null;
+        }
+    }
+
+    private void handlePopupHidden(WindowEvent event) {
+        if (suppressOnHidden) {
+            return;
+        }
+        notifyHidden();
+    }
+
+    private void notifyHidden() {
+        showing.set(false);
+        if (onHidden != null) {
+            onHidden.run();
+        }
+    }
+
+    private static Screen screenFor(Bounds anchorScreen) {
+        List<Screen> screens = Screen.getScreensForRectangle(
+                anchorScreen.getMinX(), anchorScreen.getMinY(),
+                Math.max(1.0, anchorScreen.getWidth()),
+                Math.max(1.0, anchorScreen.getHeight()));
+        return screens.isEmpty() ? Screen.getPrimary() : screens.get(0);
+    }
+
+    // ==================== Popup skin ====================
+
+    private static final class ContentPopupSkin implements Skin<PopupControl> {
+
+        private PopupControl popup;
+        private Region content;
+
+        private ContentPopupSkin(PopupControl popup, Region content) {
+            this.popup = popup;
+            this.content = content;
+        }
+
+        @Override
+        public PopupControl getSkinnable() {
+            return popup;
+        }
+
+        @Override
+        public Node getNode() {
+            return content;
+        }
+
+        @Override
+        public void dispose() {
+            popup = null;
+            content = null;
+        }
+    }
+}
