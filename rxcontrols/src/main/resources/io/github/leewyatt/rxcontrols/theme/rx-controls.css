@@ -2156,11 +2156,17 @@
 .rx-snackbar-host > .snackbar {
     -fx-background-color: #323232;
     -fx-background-radius: 4;
-    -fx-padding: 6 8 6 16;
+    -fx-padding: 6 16;
     -fx-spacing: 12;
     -fx-alignment: center-left;
     -fx-min-height: 48;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
+}
+
+/* Trailing controls (action / close) carry their own inner padding, so the
+   bar's right inset shrinks to keep the visual margin even. */
+.rx-snackbar-host > .snackbar:has-trailing {
+    -fx-padding: 6 8 6 16;
 }
 
 .rx-snackbar-host > .snackbar > .message {

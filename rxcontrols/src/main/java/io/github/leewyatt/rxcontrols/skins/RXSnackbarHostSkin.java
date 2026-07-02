@@ -64,6 +64,7 @@ import java.util.Locale;
  */
 public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
 
+    private static final PseudoClass HAS_TRAILING_PSEUDO_CLASS = PseudoClass.getPseudoClass("has-trailing");
     private static final PseudoClass INFO_PSEUDO_CLASS = PseudoClass.getPseudoClass("info");
     private static final PseudoClass SUCCESS_PSEUDO_CLASS = PseudoClass.getPseudoClass("success");
     private static final PseudoClass WARNING_PSEUDO_CLASS = PseudoClass.getPseudoClass("warning");
@@ -184,12 +185,21 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         if (request.hasAction()) {
             HBox actions = new HBox(createActionButton(request));
             actions.getStyleClass().add("actions");
+            // Pin to pref height so the bar's fillHeight cannot stretch the wrapper
+            // (whose own TOP_LEFT alignment would pin the button up); the bar's
+            // center-left alignment then centers the whole block vertically.
+            actions.setMaxHeight(Region.USE_PREF_SIZE);
             children.add(actions);
         }
-        if (getSkinnable().effectiveShowCloseIcon(request)) {
+        boolean showClose = getSkinnable().effectiveShowCloseIcon(request);
+        if (showClose) {
             children.add(createCloseButton());
         }
         bar.getChildren().setAll(children);
+        // Trailing controls carry their own inner padding, so the bar's right
+        // padding shrinks to keep the visual margin even (Material metrics); a
+        // text-only bar keeps the symmetric text inset instead.
+        bar.pseudoClassStateChanged(HAS_TRAILING_PSEUDO_CLASS, request.hasAction() || showClose);
         applySeverity(request.getSeverity());
     }
 

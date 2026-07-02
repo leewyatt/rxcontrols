@@ -102,6 +102,34 @@ public class RXSnackbarBarContentTest {
         });
     }
 
+    @Test
+    public void hasTrailingPseudoClassTracksActionAndCloseIcon() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            host.show(RXSnackbarRequest.builder("plain").build());
+            Node bar = host.lookup(".snackbar");
+            assertFalse(hasPseudoClass(bar, "has-trailing"), "a text-only bar keeps symmetric insets");
+
+            host.clear();
+            host.show(RXSnackbarRequest.builder("undoable").action("Undo", () -> {
+            }).build());
+            assertTrue(hasPseudoClass(bar, "has-trailing"), "an action is a trailing control");
+
+            host.clear();
+            host.show(RXSnackbarRequest.builder("closable").showCloseIcon(true).build());
+            assertTrue(hasPseudoClass(bar, "has-trailing"), "a close icon is a trailing control");
+
+            host.clear();
+            host.show(RXSnackbarRequest.builder("plain again").build());
+            assertFalse(hasPseudoClass(bar, "has-trailing"), "the state clears on a text-only bar");
+        });
+    }
+
+    private static boolean hasPseudoClass(Node node, String name) {
+        return node.getPseudoClassStates().stream()
+                .anyMatch(pseudoClass -> name.equals(pseudoClass.getPseudoClassName()));
+    }
+
     // ==================== Close icon ====================
 
     @Test

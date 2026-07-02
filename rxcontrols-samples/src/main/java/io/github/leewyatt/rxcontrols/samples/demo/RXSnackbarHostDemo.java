@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbars;
-
 import javafx.application.Application;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -12,6 +11,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
 /**
@@ -35,7 +36,9 @@ public class RXSnackbarHostDemo extends Application {
         deleteButton.setOnAction(event -> {
             status.set("myfile.txt deleted.");
             RXSnackbars.show(deleteButton, RXSnackbarRequest.builder("File deleted")
+                    .graphic(new Circle(5, Color.LIGHTBLUE))
                     .action("Undo", () -> status.set("myfile.txt restored."))
+                    .showCloseIcon(true)
                     .build());
         });
 
