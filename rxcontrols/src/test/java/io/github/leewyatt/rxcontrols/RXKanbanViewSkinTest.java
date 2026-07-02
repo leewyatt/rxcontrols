@@ -623,6 +623,115 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void smoothScrollingToggleStopsRunningHorizontalBoardAnimation() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(220.0);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Region columns = (Region) board.lookup(".columns");
+
+            horizontalWheel(columns, -180.0);
+            assertEquals(0.0, horizontalScrollValue(board), 0.001,
+                    "smooth horizontal scrolling does not jump in the same event turn");
+            board.setSmoothScrolling(false);
+
+            boardRef.set(board);
+            rootRef.set(root);
+        });
+
+        waitForFx(260.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(0.0, horizontalScrollValue(boardRef.get()), 0.001,
+                    "disabling smooth scrolling stops the running board animation");
+        });
+    }
+
+    @Test
+    public void smoothScrollingToggleStopsRunningVerticalColumnAnimation() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 80);
+            board.setPrefCardHeight(28.0);
+            board.setCardSpacing(0.0);
+            StackPane root = host(board, 320, 220);
+            pump(root);
+            Node viewport = board.lookup(".viewport");
+
+            verticalWheel(viewport, -180.0);
+            assertEquals(0.0, verticalScrollValue(board), 0.001,
+                    "smooth vertical scrolling does not jump in the same event turn");
+            board.setSmoothScrolling(false);
+
+            boardRef.set(board);
+            rootRef.set(root);
+        });
+
+        waitForFx(260.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(0.0, verticalScrollValue(boardRef.get()), 0.001,
+                    "disabling smooth scrolling stops the running column animation");
+        });
+    }
+
+    @Test
+    public void smoothScrollModeChangeResetsRunningHorizontalBoardAnimation() throws Exception {
+        AtomicReference<RXKanbanView<String>> boardRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(220.0);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Region columns = (Region) board.lookup(".columns");
+
+            horizontalWheel(columns, -180.0);
+            assertEquals(0.0, horizontalScrollValue(board), 0.001,
+                    "smooth horizontal scrolling does not jump in the same event turn");
+            board.setSmoothScrollMode(SmoothScrollMode.TARGET);
+
+            boardRef.set(board);
+            rootRef.set(root);
+        });
+
+        waitForFx(260.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertEquals(0.0, horizontalScrollValue(boardRef.get()), 0.001,
+                    "changing smooth mode resets the running board animation");
+        });
+    }
+
+    @Test
+    public void shiftLineWheelUsesHorizontalUnitForBoardScrolling() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
+            board.setPrefColumnWidth(220.0);
+            board.setSmoothScrolling(false);
+            StackPane root = host(board, 360, 260);
+            pump(root);
+            assertTrue(horizontalScrollMax(board) > 0.0, "horizontal scroll range present");
+            Region columns = (Region) board.lookup(".columns");
+
+            shiftLineWheel(columns, -1.0);
+            pump(root);
+
+            assertTrue(horizontalScrollValue(board) > 100.0,
+                    "Shift+line wheel uses the board's horizontal unit increment");
+        });
+    }
+
+    @Test
     public void boardHorizontalWheelImmediatePathChainsAtBoundary() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1, "E", 1);
@@ -1697,6 +1806,34 @@ public class RXKanbanViewSkinTest {
                 deltaX, 0.0, deltaX, 0.0,
                 ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
                 ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0,
+                null);
+        target.fireEvent(event);
+        return event;
+    }
+
+    private static ScrollEvent verticalWheel(Node target, double deltaY) {
+        ScrollEvent event = new ScrollEvent(ScrollEvent.SCROLL,
+                0.0, 0.0, 0.0, 0.0,
+                false, false, false, false,
+                false, false,
+                0.0, deltaY, 0.0, deltaY,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0,
+                null);
+        target.fireEvent(event);
+        return event;
+    }
+
+    private static ScrollEvent shiftLineWheel(Node target, double textDeltaY) {
+        ScrollEvent event = new ScrollEvent(ScrollEvent.SCROLL,
+                0.0, 0.0, 0.0, 0.0,
+                true, false, false, false,
+                false, false,
+                0.0, 0.0, 0.0, 0.0,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.LINES, textDeltaY,
                 0,
                 null);
         target.fireEvent(event);

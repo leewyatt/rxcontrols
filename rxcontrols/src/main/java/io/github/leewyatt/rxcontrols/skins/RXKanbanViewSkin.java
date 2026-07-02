@@ -148,6 +148,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerListener(control.cardSpacingProperty(), this::onCardMetricsChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationSettingsChanged);
+        disposer.registerListener(control.smoothScrollingProperty(), this::stopSmoothScrolling);
+        disposer.registerListener(control.smoothScrollModeProperty(), this::resetSmoothScrolling);
         disposer.registerEventHandler(control, ScrollEvent.SCROLL, this::onBoardScroll);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, dragSupport::onMousePressed);
@@ -371,6 +373,21 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         boardSmoothScrollEngine.stop();
     }
 
+    private void stopSmoothScrolling() {
+        stopBoardSmoothScrolling();
+        for (KanbanColumnBox<T> box : boxes) {
+            box.getViewport().stopSmoothScrolling();
+        }
+    }
+
+    private void resetSmoothScrolling() {
+        boardSmoothScrollEngine.stop();
+        boardSmoothScrollEngine.snapToCurrentOffsets();
+        for (KanbanColumnBox<T> box : boxes) {
+            box.getViewport().resetSmoothScrolling();
+        }
+    }
+
     private final class BoardSmoothScrollable implements RXSmoothScrollable {
 
         /** {@inheritDoc} */
@@ -436,7 +453,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         /** {@inheritDoc} */
         @Override
         public double getVerticalUnitIncrement() {
-            return 0.0;
+            return getHorizontalUnitIncrement();
         }
 
         /** {@inheritDoc} */
