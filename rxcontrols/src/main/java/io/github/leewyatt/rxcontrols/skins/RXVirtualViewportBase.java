@@ -1,6 +1,11 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
+import io.github.leewyatt.rxcontrols.ScrollAxis;
+import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
@@ -69,6 +74,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     // anchor pin for one pass after an explicit scroll).
     protected boolean explicitScrollPending;
     private boolean adjustingScrollBar;
+    private final RXSmoothScrollEngine smoothScrollEngine;
 
     // ==================== Chrome insets ====================
 
@@ -99,11 +105,12 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
 
     protected RXVirtualViewportBase() {
         getStyleClass().add("viewport");
+        setPickOnBounds(true);
         setClip(viewportClip);
 
         contentLayer.getStyleClass().add("content");
         contentLayer.setManaged(false);
-        contentLayer.setPickOnBounds(false);
+        contentLayer.setPickOnBounds(true);
         contentLayer.setClip(contentClip);
 
         vbar.setOrientation(Orientation.VERTICAL);
@@ -116,6 +123,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         scrollHandler = this::onScroll;
         vbar.valueProperty().addListener(scrollBarValueListener);
         addEventHandler(ScrollEvent.SCROLL, scrollHandler);
+        smoothScrollEngine = new RXSmoothScrollEngine(new VirtualViewportSmoothScrollable(this));
     }
 
     // ==================== Geometry hooks (control-specific) ====================
@@ -213,13 +221,8 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
             return false;
         }
         double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
-        if (target == scrollY) {
-            return false;
-        }
-        scrollY = target;
-        explicitScrollPending = true;
-        requestLayout();
-        return true;
+        stopSmoothScrolling();
+        return setVerticalScrollOffset(target, ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
     }
 
     /**
@@ -239,6 +242,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
      * first, then call {@code super.dispose()}.
      */
     protected void dispose() {
+        smoothScrollEngine.dispose();
         vbar.valueProperty().removeListener(scrollBarValueListener);
         removeEventHandler(ScrollEvent.SCROLL, scrollHandler);
         contentLayer.getChildren().removeAll(cellPool);
@@ -316,6 +320,51 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     }
 
     /**
+     * Returns the vertical pixel offset used by the smooth scrolling adapter.
+     *
+     * @return the vertical scroll offset
+     */
+    final double verticalScrollOffset() {
+        return scrollY;
+    }
+
+    /**
+     * Returns the maximum vertical pixel offset used by the smooth scrolling adapter.
+     *
+     * @return the maximum vertical scroll offset
+     */
+    final double maxVerticalScrollOffset() {
+        return Math.max(0.0, computeMaxVerticalScrollOffset());
+    }
+
+    /**
+     * Returns the line-sized vertical increment used for text-unit wheel deltas.
+     *
+     * @return the vertical unit increment
+     */
+    final double verticalUnitIncrement() {
+        return unitScrollIncrement();
+    }
+
+    /**
+     * Writes the vertical pixel offset and requests layout.
+     *
+     * @param value  the requested scroll offset
+     * @param reason why the offset is being written
+     * @return {@code true} if the offset changed
+     */
+    final boolean setVerticalScrollOffset(double value, ScrollOffsetWriteReason reason) {
+        double target = RXMath.clamp(value, 0.0, maxVerticalScrollOffset());
+        if (target == scrollY) {
+            return false;
+        }
+        scrollY = target;
+        explicitScrollPending = true;
+        requestLayout();
+        return true;
+    }
+
+    /**
      * The content area width (viewport width minus the bar column when shown),
      * derived from the cached scroll range so it is valid after a layout pass.
      *
@@ -369,30 +418,18 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         if (adjustingScrollBar) {
             return;
         }
-        scrollY = vbar.getValue();
-        explicitScrollPending = true;
-        // Dirties this viewport (so it re-fills) and propagates to the control (so
-        // the skin republishes the visible range).
-        requestLayout();
+        stopSmoothScrolling();
+        setVerticalScrollOffset(vbar.getValue(), ScrollOffsetWriteReason.SCROLL_BAR);
     }
 
     private void onScroll(ScrollEvent event) {
-        double maxScroll = cachedMaxScroll;
-        if (maxScroll <= 0.0) {
-            // Nothing to scroll; leave the event for an enclosing scroll surface.
-            return;
+        boolean consume = smoothScrollEngine.handleScroll(event, ScrollAxis.VERTICAL,
+                RXSmoothScrollOptions.DEFAULT_DURATION, RXSmoothScrollOptions.DEFAULT_INTERPOLATOR,
+                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, smoothScrollMode(), ScrollBoundaryPolicy.CHAIN,
+                true, false, smoothScrollingEnabled() && !event.isDirect(), true);
+        if (consume) {
+            event.consume();
         }
-        double deltaY = event.getDeltaY();
-        if (deltaY == 0.0) {
-            return;
-        }
-        double target = RXMath.clamp(scrollY - deltaY, 0.0, maxScroll);
-        if (target != scrollY) {
-            scrollY = target;
-            explicitScrollPending = true;
-            requestLayout();
-        }
-        event.consume();
     }
 
     // ==================== Layout helpers ====================
@@ -471,6 +508,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     protected final void resetToEmptyState(double contentWidth, double contentHeight, boolean resetScroll) {
         layoutContentLayer(contentWidth, contentHeight);
         if (resetScroll) {
+            stopSmoothScrolling();
             scrollY = 0.0;
         }
         cachedMaxScroll = 0.0;
@@ -551,6 +589,58 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
                 && (cell.isNeedsLayout() || !Objects.equals(oldInlineStyle, cell.getStyle()))) {
             cell.applyCss();
         }
+    }
+
+    /**
+     * Computes the current maximum vertical scroll offset.
+     *
+     * @return the maximum vertical scroll offset
+     */
+    protected double computeMaxVerticalScrollOffset() {
+        return cachedMaxScroll;
+    }
+
+    /**
+     * Returns whether wheel input should animate for this viewport.
+     *
+     * @return {@code true} to animate indirect wheel input
+     */
+    protected boolean smoothScrollingEnabled() {
+        return true;
+    }
+
+    /**
+     * Returns the smooth scroll animation mode for indirect wheel input.
+     *
+     * @return the smooth scroll mode
+     */
+    protected SmoothScrollMode smoothScrollMode() {
+        return RXSmoothScrollOptions.DEFAULT_MODE;
+    }
+
+    /**
+     * Stops the active smooth wheel animation without writing another offset.
+     */
+    protected final void stopSmoothScrolling() {
+        smoothScrollEngine.stop();
+    }
+
+    /**
+     * Stops and syncs the smooth wheel animation state to the current offset.
+     */
+    protected final void resetSmoothScrolling() {
+        smoothScrollEngine.stop();
+        smoothScrollEngine.snapToCurrentOffsets();
+    }
+
+    /**
+     * Shifts the active smooth vertical value by a correction already applied to
+     * {@link #scrollY}.
+     *
+     * @param delta the applied scroll correction
+     */
+    protected final void shiftSmoothScrollBy(double delta) {
+        smoothScrollEngine.shiftVerticalBy(delta);
     }
 
     // ==================== Cell pool ====================

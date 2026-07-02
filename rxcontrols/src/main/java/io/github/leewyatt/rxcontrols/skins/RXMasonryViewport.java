@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.skins.RXMasonryPlacement.Geometry;
 import javafx.animation.Interpolator;
@@ -178,9 +179,11 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
             return true;
         }
         double maxScroll = Math.max(0.0, current.contentHeight() - viewportHeight);
-        scrollY = RXMath.clamp(targetScrollFor(geometry.y(), geometry.height(), viewportHeight, alignment),
-                0.0, maxScroll);
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(
+                RXMath.clamp(targetScrollFor(geometry.y(), geometry.height(), viewportHeight, alignment),
+                        0.0, maxScroll),
+                ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
     }
@@ -233,7 +236,10 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
         if (!explicitScrollPending && anchorIndex >= 0 && anchorIndex < current.itemCount()) {
             Geometry anchor = current.geometryOf(anchorIndex);
             if (anchor != null) {
-                scrollY = anchor.y() - anchorOffset;
+                double corrected = RXMath.clamp(anchor.y() - anchorOffset, 0.0, maxScroll);
+                double correction = corrected - scrollY;
+                scrollY = corrected;
+                shiftSmoothScrollBy(correction);
             }
         }
         // A column-count change is the reorder-glide trigger when animation is on;
@@ -529,6 +535,16 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
         double estimated = RXMasonryViewSkin.estimatedCellHeightOrDefault(control);
         double step = snapSizeY(estimated / 3.0);
         return step > 0.0 ? step : 1.0;
+    }
+
+    @Override
+    protected boolean smoothScrollingEnabled() {
+        return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

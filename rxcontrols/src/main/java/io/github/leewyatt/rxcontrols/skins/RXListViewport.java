@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -166,9 +167,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // Land the item within the area below an active sticky header instead of under it.
         double target = targetScrollFor(info.top(), info.height(), viewportHeight,
                 stickyOverlayHeight(plan), alignment);
-        scrollY = RXMath.clamp(target, 0.0, maxScroll);
-        // An explicit scroll target overrides the variable-height anchor pin for this pass.
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(RXMath.clamp(target, 0.0, maxScroll), ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
     }
@@ -199,8 +199,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         RXListRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
         double target = targetScrollFor(info.top(), info.height(), viewportHeight, alignment);
-        scrollY = RXMath.clamp(target, 0.0, maxScroll);
-        explicitScrollPending = true;
+        stopSmoothScrolling();
+        setVerticalScrollOffset(RXMath.clamp(target, 0.0, maxScroll), ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
     }
@@ -229,9 +229,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
         double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
         if (target != scrollY) {
-            scrollY = target;
-            explicitScrollPending = true;
-            requestLayout();
+            stopSmoothScrolling();
+            setVerticalScrollOffset(target, ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         }
         return true;
     }
@@ -312,7 +311,10 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         if (plan.variable() && !explicitScrollPending && anchorIndex >= 0 && anchorIndex < plan.itemCount()) {
             double anchorTop = plan.itemTop(anchorIndex);
             if (anchorTop >= 0.0) {
-                scrollY = anchorTop - anchorOffset;
+                double corrected = RXMath.clamp(anchorTop - anchorOffset, 0.0, maxScroll);
+                double correction = corrected - scrollY;
+                scrollY = corrected;
+                shiftSmoothScrollBy(correction);
             }
         }
         explicitScrollPending = false;
@@ -561,6 +563,26 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             return RXListViewSkin.estimatedCellSizeOrDefault(control);
         }
         return plan != null ? plan.rowHeight() : RXListView.DEFAULT_FIXED_CELL_SIZE;
+    }
+
+    @Override
+    protected double computeMaxVerticalScrollOffset() {
+        double viewportHeight = getHeight();
+        RXListRowPlan plan = rowPlan;
+        if (viewportHeight <= 0.0 || plan == null || plan.totalVisualRows() == 0) {
+            return cachedMaxScroll;
+        }
+        return Math.max(0.0, plan.contentHeight() - viewportHeight);
+    }
+
+    @Override
+    protected boolean smoothScrollingEnabled() {
+        return control.isSmoothScrolling();
+    }
+
+    @Override
+    protected SmoothScrollMode smoothScrollMode() {
+        return control.getSmoothScrollMode();
     }
 
     @Override

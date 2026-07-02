@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -61,6 +62,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         }
 
         tile = new RXTileView<>(items);
+        tile.setSmoothScrolling(true);
         tile.setCellFactory(view -> new TileCell());
         tile.setSectionHeaderFactory(view -> new SectionHeader());
         applyGrouping("By 500s");
@@ -83,6 +85,7 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
                 section("Sections", sectionsGrid()),
                 section("Selection", selectionGrid()),
                 section("Animation", animationGrid()),
+                section("Smooth scroll", smoothScrollGrid()),
                 section("Scroll", scrollGrid()),
                 section("Metrics", metricsGrid()));
     }
@@ -193,6 +196,21 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row(animated),
                 row("Duration", duration, createValueLabel(duration, "%.0f ms")));
+    }
+
+    private Node smoothScrollGrid() {
+        CheckBox enabled = new CheckBox("Smooth wheel scrolling");
+        enabled.setSelected(tile.isSmoothScrolling());
+        enabled.selectedProperty().addListener((obs, old, value) -> tile.setSmoothScrolling(value));
+
+        ChoiceBox<SmoothScrollMode> mode = new ChoiceBox<>(
+                FXCollections.observableArrayList(SmoothScrollMode.values()));
+        mode.setValue(tile.getSmoothScrollMode());
+        mode.valueProperty().addListener((obs, old, value) -> tile.setSmoothScrollMode(value));
+
+        return createGrid(
+                row(enabled),
+                row("Mode", mode));
     }
 
     private Node scrollGrid() {

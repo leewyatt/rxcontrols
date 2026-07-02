@@ -175,6 +175,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
         disposer.registerListener(control.stickySectionHeaderProperty(), this::onStickyChanged);
+        disposer.registerListener(control.smoothScrollingProperty(), viewport::stopSmoothScrolling);
+        disposer.registerListener(control.smoothScrollModeProperty(), viewport::resetSmoothScrolling);
         // Reorder animation: snap any in-flight glide when it is turned off mid-flight.
         disposer.registerListener(control.animatedProperty(), viewport::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), viewport::onAnimationSettingsChanged);

@@ -1,0 +1,86 @@
+.scroller-preview {
+    -fx-padding: 14px;
+}
+
+.scroller-tabs {
+    -fx-pref-width: 700px;
+    -fx-pref-height: 560px;
+}
+
+.demo-scroll {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-box-border;
+    -fx-border-radius: 6px;
+}
+
+.vertical-content,
+.nested-content,
+.nested-inner-content,
+.horizontal-board {
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.scroll-card {
+    -fx-padding: 12px 14px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-box-border;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px 1px 1px 4px;
+}
+
+.scroll-card.accent-0 {
+    -fx-border-color: -fx-box-border -fx-box-border -fx-box-border #4a7c59;
+}
+
+.scroll-card.accent-1 {
+    -fx-border-color: -fx-box-border -fx-box-border -fx-box-border #3a7ca5;
+}
+
+.scroll-card.accent-2 {
+    -fx-border-color: -fx-box-border -fx-box-border -fx-box-border #b24c63;
+}
+
+.scroll-card.accent-3 {
+    -fx-border-color: -fx-box-border -fx-box-border -fx-box-border #9a6b2f;
+}
+
+.scroll-card.inner-accent {
+    -fx-border-color: -fx-box-border -fx-box-border -fx-box-border #6b5b95;
+}
+
+.card-title,
+.column-title {
+    -fx-font-weight: bold;
+}
+
+.card-detail {
+    -fx-opacity: 0.72;
+}
+
+.board-column {
+    -fx-pref-width: 220px;
+    -fx-padding: 12px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-box-border;
+    -fx-border-radius: 6px;
+}
+
+.board-item {
+    -fx-padding: 8px 10px;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 4px;
+    -fx-border-color: derive(-fx-box-border, 20%);
+    -fx-border-radius: 4px;
+}
+
+.nested-inner-scroll {
+    -fx-background-radius: 6px;
+    -fx-border-color: derive(-fx-accent, 25%);
+}
+
+.action-row > .button {
+    -fx-pref-width: 96px;
+}

@@ -624,6 +624,7 @@ public class RXTileViewSkinTest {
     public void wheelScrollMovesViewportAndClamps() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
+            view.setSmoothScrolling(false);
             view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
@@ -646,6 +647,7 @@ public class RXTileViewSkinTest {
     public void emptyViewportReleasesWheelAfterPreviouslyScrollable() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
+            view.setSmoothScrolling(false);
             view.setMaxColumns(2);
             StackPane root = host(view, 400, 300);
             pump(root);
@@ -2895,6 +2897,7 @@ public class RXTileViewSkinTest {
     public void stickyHandoffPushesUpAtBoundary() throws Exception {
         onFx(() -> {
             RXTileView<String> view = stickyGeometry();
+            view.setSmoothScrolling(false);
             StackPane root = host(view, 400, 60);
             pump(root);
             Node viewport = view.lookup(".viewport");
@@ -2912,6 +2915,7 @@ public class RXTileViewSkinTest {
     public void stickyHandoffSwitchesSection() throws Exception {
         onFx(() -> {
             RXTileView<String> view = stickyGeometry();
+            view.setSmoothScrolling(false);
             StackPane root = host(view, 400, 60);
             pump(root);
             Node viewport = view.lookup(".viewport");
@@ -2927,6 +2931,7 @@ public class RXTileViewSkinTest {
     public void stickyPinnedOnlyAfterScroll() throws Exception {
         onFx(() -> {
             RXTileView<String> view = stickyGeometry();
+            view.setSmoothScrolling(false);
             StackPane root = host(view, 400, 60);
             pump(root);
             RXTileSectionCell sticky = stickyHeader(view);
@@ -3064,6 +3069,7 @@ public class RXTileViewSkinTest {
             view.setVgap(0);
             view.setSectionHeaderHeight(20);
             view.setStickySectionHeader(true);
+            view.setSmoothScrolling(false);
             StackPane root = host(view, 400, 100);
             pump(root);
             RXTileSectionCell sticky = stickyHeader(view);
