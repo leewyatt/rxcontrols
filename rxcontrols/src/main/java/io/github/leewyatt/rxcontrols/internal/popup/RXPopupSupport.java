@@ -14,6 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Screen;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
@@ -43,6 +44,13 @@ import java.util.Objects;
  * and {@code anchorDisposer} owns everything bound to the current anchor and is
  * rebuilt on rebind.
  *
+ * <h2>Sizing</h2>
+ * The popup window follows its scene root's <em>preferred</em> size
+ * ({@code PopupControl}'s own min/pref/max properties have no layout consumer),
+ * so the resolved width and max-height are applied to an internal shell pane
+ * wrapped around the content — never to the content itself, whose min/pref/max
+ * stay under user / CSS control.
+ *
  * <p>Not thread-safe; use on the JavaFX Application Thread.
  */
 public final class RXPopupSupport {
@@ -55,6 +63,8 @@ public final class RXPopupSupport {
     // ==================== Fields ====================
 
     private final Region content;
+    // Resolved geometry lands on this wrapper (see the class-level Sizing note).
+    private final StackPane shell;
     private final PopupControl popup = new PopupControl();
     private final EventHandler<WindowEvent> popupHiddenHandler = this::handlePopupHidden;
 
@@ -91,15 +101,17 @@ public final class RXPopupSupport {
      */
     public RXPopupSupport(Region content) {
         this.content = Objects.requireNonNull(content, "content");
+        this.shell = new StackPane(content);
         popup.setAutoFix(true);
         popup.setAutoHide(true);
         popup.setHideOnEscape(true);
         popup.setConsumeAutoHidingEvents(false);
-        popup.setSkin(new ContentPopupSkin(popup, content));
+        popup.setSkin(new ContentPopupSkin(popup, shell));
         popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler);
         lifecycleDisposer.registerDisposeTask(
                 () -> popup.removeEventHandler(WindowEvent.WINDOW_HIDDEN, popupHiddenHandler));
         lifecycleDisposer.registerDisposeTask(() -> popup.setSkin(null));
+        lifecycleDisposer.registerDisposeTask(() -> shell.getChildren().remove(content));
         // The popup tracks the content's size; a size change means re-clamp / re-flip.
         lifecycleDisposer.registerListener(content.widthProperty(), this::requestReposition);
         lifecycleDisposer.registerListener(content.heightProperty(), this::requestReposition);
@@ -109,12 +121,21 @@ public final class RXPopupSupport {
 
     /**
      * Binds the anchor (installing reposition + auto-close tracking) and shows the
-     * popup. A {@code null} anchor is ignored.
+     * popup. When already showing on a different anchor this behaves like
+     * {@link #setAnchor(Node)} (hide + re-show with the new owner). A {@code null}
+     * anchor is ignored.
      *
      * @param anchor the node to anchor to
      */
     public void show(Node anchor) {
         if (disposed || anchor == null) {
+            return;
+        }
+        if (anchor != this.anchor && showing.get() && popup.isShowing()) {
+            // The framework ownerNode (CSS parent chain, auto-hide owner exemption,
+            // tree-showing tracking) has no public setter: migrating anchors while
+            // showing must go through the rebind's hide + re-show.
+            setAnchor(anchor);
             return;
         }
         bindAnchor(anchor);
@@ -343,11 +364,19 @@ public final class RXPopupSupport {
 
     private void showInternal() {
         if (anchor == null) {
+            // Reached when a rebind cleared the anchor while showing (the window
+            // hide was suppressed): roll the host back explicitly so logical
+            // showing and onHidden stay consistent with the other failure paths.
+            notifyHidden();
             return;
         }
         Scene scene = anchor.getScene();
-        if (scene == null || scene.getWindow() == null || anchor.localToScreen(anchor.getBoundsInLocal()) == null) {
-            // No window / not laid out: cannot show. Roll the host back via onHidden.
+        // The isShowing check matters: PopupWindow.showImpl silently refuses to
+        // show against a non-showing root window, which would leave logical
+        // showing stuck at true (localToScreen is non-null there, just NaN).
+        if (scene == null || scene.getWindow() == null || !scene.getWindow().isShowing()
+                || anchor.localToScreen(anchor.getBoundsInLocal()) == null) {
+            // Cannot show: roll the host back via onHidden.
             notifyHidden();
             return;
         }
@@ -389,8 +418,10 @@ public final class RXPopupSupport {
                 placement, widthMode, offsetX, offsetY, rtl,
                 screen.getOutputScaleX(), screen.getOutputScaleY());
         applyWidth(result.width);
-        // RXPopupGeometry.USE_COMPUTED_SIZE == PopupControl.USE_COMPUTED_SIZE (-1).
-        popup.setMaxHeight(result.maxHeight);
+        // The height cap flows through the shell's pref height; the window follows
+        // it. RXPopupGeometry.USE_COMPUTED_SIZE == Region.USE_COMPUTED_SIZE (-1),
+        // so an uncapped result clears the override.
+        shell.setPrefHeight(result.maxHeight);
         popup.setAnchorX(result.anchorX);
         popup.setAnchorY(result.anchorY);
     }
@@ -398,21 +429,23 @@ public final class RXPopupSupport {
     private void applyWidth(double width) {
         switch (widthMode) {
             case MATCH_ANCHOR_WIDTH:
-                popup.setMinWidth(width);
-                popup.setPrefWidth(width);
-                popup.setMaxWidth(width);
+                shell.setMinWidth(width);
+                shell.setPrefWidth(width);
+                shell.setMaxWidth(width);
                 break;
             case PREFER_ANCHOR_WIDTH:
-                // width already = max(anchorWidth, contentPref); a min floor is enough.
-                popup.setMinWidth(width);
-                popup.setPrefWidth(PopupControl.USE_COMPUTED_SIZE);
-                popup.setMaxWidth(PopupControl.USE_COMPUTED_SIZE);
+                // width already = max(anchorWidth, contentPref); a min floor is
+                // enough (the popup root's pref computation bounds the shell's
+                // pref by its min, so the floor reaches the window size).
+                shell.setMinWidth(width);
+                shell.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                shell.setMaxWidth(Region.USE_COMPUTED_SIZE);
                 break;
             case PREF_CONTENT:
             default:
-                popup.setMinWidth(PopupControl.USE_COMPUTED_SIZE);
-                popup.setPrefWidth(PopupControl.USE_COMPUTED_SIZE);
-                popup.setMaxWidth(PopupControl.USE_COMPUTED_SIZE);
+                shell.setMinWidth(Region.USE_COMPUTED_SIZE);
+                shell.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                shell.setMaxWidth(Region.USE_COMPUTED_SIZE);
                 break;
         }
     }
@@ -442,6 +475,11 @@ public final class RXPopupSupport {
     }
 
     private void handlePopupHidden(WindowEvent event) {
+        // Every hide path converges here; drop the owner-window listeners before
+        // the suppress check so even a rebind's hide releases the window and a
+        // hidden popup never pins this object island to a long-lived window
+        // (showInternal reinstalls them on the next show).
+        detachWindowListeners();
         if (suppressOnHidden) {
             return;
         }
@@ -468,11 +506,11 @@ public final class RXPopupSupport {
     private static final class ContentPopupSkin implements Skin<PopupControl> {
 
         private PopupControl popup;
-        private Region content;
+        private Region node;
 
-        private ContentPopupSkin(PopupControl popup, Region content) {
+        private ContentPopupSkin(PopupControl popup, Region node) {
             this.popup = popup;
-            this.content = content;
+            this.node = node;
         }
 
         @Override
@@ -482,13 +520,13 @@ public final class RXPopupSupport {
 
         @Override
         public Node getNode() {
-            return content;
+            return node;
         }
 
         @Override
         public void dispose() {
             popup = null;
-            content = null;
+            node = null;
         }
     }
 }

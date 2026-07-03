@@ -58,7 +58,7 @@
          level 2: 8  / 0.0 / 2     level 5: 16 / 0.0 / 12
          level 3: 12 / 0.0 / 8
        The RXDialog card consumes this token at level 4. Pre-existing structural
-       shadows (drawer / avatar / cascader / segmented) are not yet retrofitted onto
+       shadows (drawer / avatar / segmented) are not yet retrofitted onto
        the token — that is a separate visual pass. */
     -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
 }
@@ -1025,35 +1025,31 @@
     -fx-rotate: 180;
 }
 
-.rx-cascader-popup {
-    -fx-background-color: transparent;
-}
-
 .rx-cascader-view {
     -fx-background-color: -fx-control-inner-background;
     -fx-border-color: -fx-box-border;
     -fx-border-width: 1px;
 }
 
-.rx-cascader-popup > .rx-cascader-view {
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0.0, 0, 8);
+/* Descendant (not child) selector: RXPopupSupport wraps the content in an
+   internal sizing shell between the popup bridge and the view. The bridge and
+   shell are plain token-less panes outside this stylesheet's UA scope. */
+.rx-cascader-popup .rx-cascader-view {
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
 }
 
 /*******************************************************************************
  *                                                                             *
  * RXSuggestionPopup (RXAutoComplete)                                           *
  *                                                                             *
- * Transparent, token-less shell (added by the skin, not a control root, so it *
- * is intentionally absent from the token baseline selector). The content is a *
- * plain .rx-list-view, which carries its own tokens; the elevation shadow      *
- * hangs on that content box, not the transparent shell.                        *
+ * The popup bridge and RXPopupSupport's sizing shell above the content are    *
+ * plain token-less panes outside this stylesheet's UA scope (hence the        *
+ * descendant selector and no .rx-suggestion-popup token-baseline entry). The  *
+ * content is a plain .rx-list-view, which carries its own tokens; the         *
+ * elevation shadow hangs on that content box.                                 *
  *                                                                             *
  ******************************************************************************/
-.rx-suggestion-popup {
-    -fx-background-color: transparent;
-}
-
-.rx-suggestion-popup > .rx-list-view {
+.rx-suggestion-popup .rx-list-view {
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
 }
 

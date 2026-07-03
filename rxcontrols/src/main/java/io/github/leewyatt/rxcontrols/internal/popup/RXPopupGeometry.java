@@ -45,6 +45,11 @@ final class RXPopupGeometry {
     /**
      * Resolves the popup anchor point and size for the given inputs.
      *
+     * <p>The width is never capped to the screen: when the resolved width exceeds
+     * the visual bounds, the leading (screen-min-x) edge stays visible and the
+     * popup overflows past the opposite edge — the same degradation JavaFX's own
+     * {@code PopupWindow} autofix applies to over-wide popups.
+     *
      * @param anchorX    anchor left edge, screen coordinates
      * @param anchorY    anchor top edge, screen coordinates
      * @param anchorW    anchor width

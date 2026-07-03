@@ -1325,6 +1325,384 @@ public class RXCascaderViewTest {
         });
     }
 
+    /**
+     * Verifies the pending-check replay survives a {@code reload()} re-entered
+     * from a child's checked listener: no ConcurrentModificationException from
+     * the reset clearing the children mid-cascade (captured via the FX thread's
+     * uncaught-exception handler, where an async completion would surface it),
+     * and the reset owns the final state.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void replayReentrantReloadFromChildCheckedListenerDoesNotThrow() throws InterruptedException {
+        AtomicReference<Throwable> fxError = new AtomicReference<>();
+        runOnFx(() -> Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> fxError.set(error)));
+        try {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            RXCascaderItem<String> first = leaf("c1");
+            RXCascaderItem<String> second = leaf("c2");
+            boolean[] reloaded = {false};
+            first.checkedProperty().addListener((obs, old, now) -> {
+                if (now && !reloaded[0]) {
+                    reloaded[0] = true;
+                    panel.reload();
+                }
+            });
+            CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+            panel.setChildrenLoader(it -> gate);
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true);
+            gate.complete(List.of(first, second));
+            waitForFxCondition(() -> reloaded[0]);
+
+            assertNull(fxError.get(), "the replay must survive the re-entrant reset without throwing");
+            assertEquals(LoadState.NOT_LOADED, branch.getLoadState(), "the reset owns the final state");
+            assertTrue(branch.getChildren().isEmpty(), "the reset tree is not repopulated");
+            assertFalse(second.isChecked(), "the aborted replay does not re-check the remaining children");
+            assertTrue(panel.getCheckedPaths().isEmpty());
+        } finally {
+            runOnFx(() -> Thread.currentThread().setUncaughtExceptionHandler(null));
+        }
+    }
+
+    /**
+     * Verifies a {@code reload()} re-entered from the branch's own checked
+     * listener during the pending-check replay vetoes the LOADED commit: the
+     * branch ends NOT_LOADED and stays a re-expandable branch instead of being
+     * pinned as a LOADED empty leaf.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void replayReentrantReloadFromBranchCheckedListenerVetoesLoaded() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            RXCascaderItem<String> enabled = leaf("enabled");
+            RXCascaderItem<String> disabled = leaf("disabled");
+            disabled.setDisable(true);
+            boolean[] reloaded = {false};
+            // The replay's rollup drops the optimistic check (only 1 of 2
+            // children ends checked); reload on that transition, mid-completion.
+            branch.checkedProperty().addListener((obs, old, now) -> {
+                if (!now && !reloaded[0]) {
+                    reloaded[0] = true;
+                    panel.reload();
+                }
+            });
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of(enabled, disabled)));
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true);
+
+            assertTrue(reloaded[0], "the re-entrant reload ran");
+            assertEquals(LoadState.NOT_LOADED, branch.getLoadState(),
+                    "the reset is not overwritten with LOADED");
+            assertFalse(panel.isLeaf(branch), "the branch is not pinned as a LOADED empty leaf");
+            assertTrue(branch.getChildren().isEmpty());
+        });
+    }
+
+    /**
+     * Verifies a {@code clearSelection()} re-entered from a child's checked
+     * listener during the pending-check replay has the final say: the remaining
+     * replay is aborted instead of re-checking the siblings, while the load
+     * itself still completes.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void replayReentrantClearSelectionAbortsRemainingReplay() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            RXCascaderItem<String> first = leaf("c1");
+            RXCascaderItem<String> second = leaf("c2");
+            boolean[] cleared = {false};
+            first.checkedProperty().addListener((obs, old, now) -> {
+                if (now && !cleared[0]) {
+                    cleared[0] = true;
+                    panel.clearSelection();
+                }
+            });
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of(first, second)));
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true);
+
+            assertTrue(cleared[0], "the re-entrant clearSelection ran");
+            assertTrue(loaded(branch), "clearSelection drops the intent but the load still completes");
+            assertFalse(first.isChecked());
+            assertFalse(second.isChecked(), "the aborted replay does not re-check the remaining children");
+            assertFalse(branch.isChecked());
+            assertTrue(panel.getCheckedPaths().isEmpty());
+        });
+    }
+
+    /**
+     * Verifies a root-items change while a pending-checked lazy branch is in
+     * flight rolls the optimistic check back with the cancelled load, so a later
+     * expand cannot settle into a checked parent over all-unchecked children.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void rootChangeDuringPendingCheckRollsBackOptimisticCheck() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> a = item("a");
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        int[] calls = {0};
+        panel.setChildrenLoader(it -> {
+            calls[0]++;
+            return calls[0] == 1 ? gate
+                    : CompletableFuture.completedFuture(List.of(leaf("a1"), leaf("a2")));
+        });
+        panel.getRootItems().add(a);
+
+        panel.setCheckedCascade(a, true);
+        assertTrue(a.isChecked(), "the optimistic check is visible while loading");
+        assertTrue(loading(a));
+
+        panel.getRootItems().add(item("b"));
+        assertFalse(a.isChecked(), "cancelling the pending check rolls the optimistic check back");
+        assertFalse(a.isIndeterminate());
+
+        gate.complete(List.of(leaf("stale")));
+        flushFxEvents();
+        assertTrue(a.getChildren().isEmpty(), "the cancelled completion is dropped");
+
+        panel.expand(a);
+        waitForFxCondition(() -> loaded(a));
+        assertFalse(a.isChecked(), "no checked-parent-over-unchecked-children residue");
+        assertFalse(a.getChildren().get(0).isChecked());
+        assertFalse(a.getChildren().get(1).isChecked());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies replacing the whole root list while a pending-checked branch is
+     * in flight cancels the load: the detached branch is not populated or marked
+     * loaded, its optimistic check is rolled back, and no paths leak.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void rootReplacementDropsInFlightPendingCheck() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> oldRoot = item("old");
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        panel.setChildrenLoader(it -> gate);
+        panel.getRootItems().add(oldRoot);
+
+        panel.setCheckedCascade(oldRoot, true);
+        assertTrue(loading(oldRoot));
+
+        panel.getRootItems().setAll(List.of(item("new")));
+        assertEquals(LoadState.NOT_LOADED, oldRoot.getLoadState());
+        assertFalse(oldRoot.isChecked(), "the optimistic check is rolled back with the cancelled load");
+
+        gate.complete(List.of(leaf("stale")));
+        flushFxEvents();
+
+        assertTrue(oldRoot.getChildren().isEmpty(), "the stale completion must not populate the old root");
+        assertFalse(loaded(oldRoot));
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies a branch disabled while its pending-checked load is in flight has
+     * the optimistic check rolled back on completion, mirroring the failure
+     * path, instead of sticking as a checked parent over unchecked children.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void disableDuringPendingCheckLoadRollsBackCheck() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> b = item("b");
+        RXCascaderItem<String> sibling = leaf("sibling");
+        root.getChildren().setAll(List.of(b, sibling));
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        panel.setChildrenLoader(it -> gate);
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(b, true);
+        assertTrue(b.isChecked());
+        b.setDisable(true);
+
+        gate.complete(List.of(leaf("b1"), leaf("b2")));
+        waitForFxCondition(() -> loaded(b));
+
+        assertFalse(b.isChecked(), "the unfulfillable intent is rolled back, not left half-honored");
+        assertFalse(b.isIndeterminate());
+        assertFalse(b.getChildren().get(0).isChecked());
+        assertFalse(b.getChildren().get(1).isChecked());
+        assertFalse(root.isIndeterminate(), "ancestors are repaired by the rollback");
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies the ancestor variant of the disable-during-flight rollback: the
+     * loading branch itself stays enabled but an ancestor is disabled, making it
+     * effectively disabled at completion time.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void ancestorDisableDuringPendingCheckLoadRollsBackCheck() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> b = item("b");
+        root.getChildren().setAll(List.of(b));
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        panel.setChildrenLoader(it -> gate);
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(b, true);
+        assertTrue(b.isChecked());
+        root.setDisable(true);
+
+        gate.complete(List.of(leaf("b1")));
+        waitForFxCondition(() -> loaded(b));
+
+        assertFalse(b.isChecked(), "an ancestor disable also voids the pending intent");
+        assertFalse(b.isIndeterminate());
+        assertFalse(b.getChildren().get(0).isChecked());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies a retry issued from a loadState listener at the FAILED transition
+     * is not swallowed: the retry's pending check and optimistic state survive
+     * the outer failure frame and are replayed when the retry completes.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void failedListenerRetryPendingCheckSurvives() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> branch = item("branch");
+        CompletableFuture<List<RXCascaderItem<String>>> firstAttempt = new CompletableFuture<>();
+        CompletableFuture<List<RXCascaderItem<String>>> retryAttempt = new CompletableFuture<>();
+        int[] calls = {0};
+        panel.setChildrenLoader(it -> {
+            calls[0]++;
+            return calls[0] == 1 ? firstAttempt : retryAttempt;
+        });
+        boolean[] retried = {false};
+        branch.loadStateProperty().addListener((obs, old, now) -> {
+            if (now == LoadState.FAILED && !retried[0]) {
+                retried[0] = true;
+                panel.setCheckedCascade(branch, true);
+            }
+        });
+        panel.getRootItems().add(branch);
+
+        panel.expand(branch);
+        firstAttempt.completeExceptionally(new IllegalStateException("boom"));
+        waitForFxCondition(() -> retried[0] && loading(branch));
+
+        assertTrue(branch.isChecked(), "the retry's optimistic check survives the outer failure frame");
+
+        retryAttempt.complete(List.of(leaf("c1")));
+        waitForFxCondition(() -> loaded(branch));
+
+        assertTrue(branch.isChecked(), "the retry's pending check was replayed");
+        assertTrue(branch.getChildren().get(0).isChecked());
+        assertEquals(1, panel.getCheckedPaths().size());
+    }
+
+    /**
+     * Verifies a forced branch ({@code leafHint=false}) that loads to zero
+     * children under a pending check does not become a checked non-leaf: the
+     * rollup rule that an empty branch cannot be checked applies to the replay
+     * exactly as it does to the eager cascade.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void forcedBranchLoadedEmptyDoesNotBecomeCheckedNonLeaf() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> panel = new RXCascaderView<>();
+            panel.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> branch = item("branch");
+            branch.setLeafHint(false);
+            panel.setChildrenLoader(it -> CompletableFuture.completedFuture(List.of()));
+            panel.getRootItems().add(branch);
+
+            panel.setCheckedCascade(branch, true); // pending check + load, completes inline
+
+            assertTrue(loaded(branch));
+            assertFalse(panel.isLeaf(branch), "leafHint=false keeps the empty branch a non-leaf");
+            assertFalse(branch.isChecked(), "an empty forced branch cannot be checked");
+            assertFalse(branch.isIndeterminate());
+            assertNull(branch.getPendingCheck());
+            assertTrue(panel.getCheckedPaths().isEmpty());
+        });
+    }
+
+    /**
+     * Locks the null-stage contract: a loader returning {@code null} is treated
+     * as an empty successful result — the branch becomes a loaded leaf and the
+     * error callback is not invoked.
+     */
+    @Test
+    public void nullLoaderStageIsEmptySuccessfulResult() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> branch = item("branch");
+        int[] errors = {0};
+        panel.setOnChildrenLoadError((it, cause) -> errors[0]++);
+        panel.setChildrenLoader(it -> null);
+        panel.getRootItems().add(branch);
+
+        panel.expand(branch);
+
+        assertTrue(loaded(branch));
+        assertTrue(panel.isLeaf(branch), "a null stage yields a loaded leaf");
+        assertTrue(branch.getChildren().isEmpty());
+        assertEquals(0, errors[0], "a null stage is not an error");
+    }
+
+    /**
+     * Locks the symmetric null-children contract: a stage completing with
+     * {@code null} children is an empty successful result, and a pending check
+     * settles the branch as a checked leaf.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void nullCompletedChildrenIsEmptySuccessfulResult() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> branch = item("branch");
+        int[] errors = {0};
+        panel.setOnChildrenLoadError((it, cause) -> errors[0]++);
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        panel.setChildrenLoader(it -> gate);
+        panel.getRootItems().add(branch);
+
+        panel.setCheckedCascade(branch, true);
+        gate.complete(null);
+        waitForFxCondition(() -> loaded(branch));
+
+        assertTrue(panel.isLeaf(branch));
+        assertTrue(branch.isChecked(), "the pending check settles the empty-loaded branch as a checked leaf");
+        assertEquals(1, panel.getCheckedPaths().size());
+        assertEquals(0, errors[0]);
+    }
+
     private static RXCascaderItem<String> item(String text) {
         return new RXCascaderItem<>(text);
     }

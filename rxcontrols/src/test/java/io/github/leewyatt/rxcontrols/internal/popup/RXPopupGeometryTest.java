@@ -144,6 +144,25 @@ public class RXPopupGeometryTest {
     }
 
     @Test
+    public void overWideContentKeepsNaturalWidthAndPinsLeadingEdge() {
+        // Wider than the whole screen: width is not capped, the leading
+        // (screen-min-x) edge stays visible, the right side may overflow —
+        // matching the JavaFX PopupWindow autofix degradation.
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 1400, 100,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(1400, r.width, EPS, "width keeps the natural content width");
+        assertEquals(SCREEN_MIN_X, r.anchorX, EPS, "leading edge pinned to the screen minimum");
+    }
+
+    @Test
+    public void overWideContentSideFamilyKeepsNaturalWidthAndPinsLeadingEdge() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 1400, 100,
+                RXPlacement.RIGHT_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(1400, r.width, EPS, "width keeps the natural content width");
+        assertEquals(SCREEN_MIN_X, r.anchorX, EPS, "leading edge pinned to the screen minimum");
+    }
+
+    @Test
     public void sideFamilyRightStartPositionsRightOfAnchor() {
         RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 80,
                 RXPlacement.RIGHT_START, RXPopupWidthMode.PREF_CONTENT, 6, 0, false, 1, 1);

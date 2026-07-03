@@ -516,6 +516,9 @@ public class RXCascaderView<T> extends Control {
     /**
      * Optional asynchronous loader used when an unloaded branch is expanded or
      * checked. The returned stage should complete with the loaded child items.
+     * A {@code null} stage is treated as an empty successful result (the branch
+     * becomes a loaded leaf), as is a stage that completes with {@code null}
+     * children.
      *
      * @return children-loader property
      */
@@ -700,6 +703,10 @@ public class RXCascaderView<T> extends Control {
      * {@link #setCheckedCascade}. It is the multiple-selection counterpart of
      * {@link #select} and may be called before or after switching to
      * {@link SelectionMode#MULTIPLE} — a seed made before the switch survives it.
+     *
+     * <p>An effectively-disabled branch is ignored as a whole (the seed is a
+     * no-op for its entire subtree); to pre-seed a locked subtree, pass its
+     * leaves individually — a disabled leaf given directly is honored.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */
@@ -936,7 +943,9 @@ public class RXCascaderView<T> extends Control {
             recordPendingCheckAndLoad(item, checked);
             return;
         }
-        for (RXCascaderItem<T> child : item.getChildren()) {
+        // Snapshot: a checked listener fired from the cascade may re-enter a
+        // structural reset that clears this children list mid-iteration.
+        for (RXCascaderItem<T> child : List.copyOf(item.getChildren())) {
             applyDown(child, checked);
         }
         if (isLeaf(item)) {
@@ -955,22 +964,47 @@ public class RXCascaderView<T> extends Control {
      * #isUnresolvedLazyBranch} tests cannot drive the replay in this window: they
      * read a populated branch as unresolved and an empty result as not-yet-loaded.
      * The children are final, so discriminate on them directly — an empty result is
-     * the branch's own (new) leaf, otherwise cascade into the children, which carry
-     * their own independent load state.
+     * the branch's own (new) leaf unless {@code leafHint} forces a branch, otherwise
+     * cascade into the children, which carry their own independent load state.
+     *
+     * <p>The cascade iterates a snapshot and re-reads the pending intent around
+     * each child: a checked listener that re-enters a structural reset or
+     * {@link #clearSelection} revokes the intent (directly or via
+     * {@link #cancelInFlight}), which aborts the remaining replay instead of
+     * overwriting the listener's outcome or tripping over the mutated children.
+     *
+     * <p>A branch that became effectively disabled while loading cannot be
+     * half-honored: its optimistic check is rolled back, mirroring the failure
+     * path (the caller's updateUp / refreshCheckedPaths repair the ancestors).
      *
      * @param item    just-loaded branch
      * @param checked target checked state to replay
      */
     private void replayResolvedCheck(RXCascaderItem<T> item, boolean checked) {
         if (isEffectivelyDisabled(item)) {
+            item.setChecked(false);
+            item.setIndeterminate(false);
             return;
         }
-        for (RXCascaderItem<T> child : item.getChildren()) {
+        for (RXCascaderItem<T> child : List.copyOf(item.getChildren())) {
+            if (item.getPendingCheck() == null) {
+                return;
+            }
             applyDown(child, checked);
         }
+        if (item.getPendingCheck() == null) {
+            return;
+        }
         if (item.getChildren().isEmpty()) {
-            item.setChecked(checked);
-            item.setIndeterminate(false);
+            if (Boolean.FALSE.equals(item.getLeafHint())) {
+                // A forced branch with zero children cannot be checked — the same
+                // rule the eager rollup applies — or one later toggle would drop
+                // it into an unrecoverable unchecked state.
+                updateFromChildren(item);
+            } else {
+                item.setChecked(checked);
+                item.setIndeterminate(false);
+            }
         } else {
             updateFromChildren(item);
         }
@@ -1062,19 +1096,25 @@ public class RXCascaderView<T> extends Control {
         }
 
         if (error != null) {
-            // FAILED is retriable (re-expanding reloads). Read-then-null the
-            // pending intent on this terminal path so a later plain expand cannot
-            // replay it, then roll back any optimistic check and surface the
-            // failure through the callback.
+            // FAILED is retriable (re-expanding reloads). The FAILED write can
+            // fire a loadState listener that retries immediately; such a retry
+            // re-registers the item in liveLoads and then owns the pending intent
+            // and the optimistic check, so leave both to it. Only when no retry
+            // took over: read-then-null the pending intent on this terminal path
+            // so a later plain expand cannot replay it, then roll back any
+            // optimistic check. Either way the failure is surfaced through the
+            // callback.
             liveLoads.remove(item);
             item.setLoadState(LoadState.FAILED);
-            Boolean pendingCheck = item.getPendingCheck();
-            item.setPendingCheck(null);
-            if (pendingCheck != null) {
-                item.setChecked(false);
-                item.setIndeterminate(false);
-                updateUp(item.getParent());
-                refreshCheckedPaths();
+            if (!liveLoads.contains(item)) {
+                Boolean pendingCheck = item.getPendingCheck();
+                item.setPendingCheck(null);
+                if (pendingCheck != null) {
+                    item.setChecked(false);
+                    item.setIndeterminate(false);
+                    updateUp(item.getParent());
+                    refreshCheckedPaths();
+                }
             }
             BiConsumer<RXCascaderItem<T>, Throwable> handler = getOnChildrenLoadError();
             if (handler != null) {
@@ -1087,11 +1127,11 @@ public class RXCascaderView<T> extends Control {
         // Success: populate children first. children.setAll can fire a list
         // listener that re-enters (for example user code calling reload(), which
         // clears the children and resets the state). Re-validate token + membership
-        // afterward and only then commit LOADED, so a re-entrant reset is not
-        // overwritten with a LOADED-but-empty branch.
+        // afterward, but keep the item registered until the replay below is done,
+        // so the whole replay window stays cancellable by a re-entrant reset.
         List<RXCascaderItem<T>> loadedChildren = children == null ? Collections.emptyList() : children;
         item.getChildren().setAll(loadedChildren);
-        if (item.getLoadToken() != token || !liveLoads.remove(item)) {
+        if (item.getLoadToken() != token || !liveLoads.contains(item)) {
             return;
         }
         // Apply any pending check to the now-final children, then make LOADED the
@@ -1102,11 +1142,22 @@ public class RXCascaderView<T> extends Control {
         // isUnresolvedLazyBranch tests misread the branch as unresolved (and an
         // empty result as unloaded), which would re-record the pending intent rather
         // than consume it. replayResolvedCheck trusts the now-final children instead.
+        // The intent is consumed only after the replay: while the replay runs it
+        // doubles as the liveness ticket that a re-entrant clearSelection or
+        // cancelInFlight revokes to abort the remaining replay.
         Boolean pendingCheck = item.getPendingCheck();
-        item.setPendingCheck(null);
         if (pendingCheck != null) {
             replayResolvedCheck(item, pendingCheck);
             updateUp(item.getParent());
+            item.setPendingCheck(null);
+        }
+        // The deferred liveLoads removal is the LOADED commit gate: a checked /
+        // indeterminate listener that re-entered a structural reset (reload, a
+        // loader swap, a root change) during the replay went through
+        // cancelInFlight, which evicted this item — the reset then owns the final
+        // state and LOADED must not be pinned over it.
+        if (item.getLoadToken() != token || !liveLoads.remove(item)) {
+            return;
         }
         item.setLoadState(LoadState.LOADED);
         if (pendingCheck != null) {
@@ -1146,6 +1197,13 @@ public class RXCascaderView<T> extends Control {
      * state change fires, so a listener that re-enters (for example calling
      * {@link #reload()} from a {@code loadState} listener) sees an already
      * invalidated set and cannot corrupt the iteration.
+     *
+     * <p>A dropped pending check on a node that stays an unresolved lazy branch
+     * is rolled back like the failure path — the intent can never be replayed, so
+     * leaving the optimistic check would strand a checked parent over unchecked
+     * children once the branch is eventually loaded. When the loader was just
+     * cleared (eager switch) the node is about to become an eager leaf and keeps
+     * its check: {@link #isUnresolvedLazyBranch} is false without a loader.
      */
     private void cancelInFlight() {
         if (liveLoads.isEmpty()) {
@@ -1154,8 +1212,14 @@ public class RXCascaderView<T> extends Control {
         List<RXCascaderItem<T>> snapshot = new ArrayList<>(liveLoads);
         liveLoads.clear();
         for (RXCascaderItem<T> item : snapshot) {
+            Boolean pendingCheck = item.getPendingCheck();
             item.setPendingCheck(null);
             item.setLoadState(LoadState.NOT_LOADED);
+            if (pendingCheck != null && isUnresolvedLazyBranch(item)) {
+                item.setChecked(false);
+                item.setIndeterminate(false);
+                updateUp(item.getParent());
+            }
         }
     }
 
