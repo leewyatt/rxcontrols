@@ -1162,6 +1162,22 @@ public class RXCascaderView<T> extends Control {
     private record EnabledLeafSummary(boolean hasLeaf, boolean allChecked) {
     }
 
+    /**
+     * A {@link NullPointerException} if the loader result contains a {@code null}
+     * child (an illegal result routed to the failure path), otherwise {@code null}.
+     */
+    private Throwable firstNullChildError(List<RXCascaderItem<T>> children) {
+        if (children == null) {
+            return null;
+        }
+        for (RXCascaderItem<T> child : children) {
+            if (child == null) {
+                return new NullPointerException("child item must not be null");
+            }
+        }
+        return null;
+    }
+
     private void completeLoad(RXCascaderItem<T> item, long token,
                               List<RXCascaderItem<T>> children, Throwable error) {
         // Stale completion (token mismatch) or already-cancelled load (no longer a
@@ -1184,7 +1200,16 @@ public class RXCascaderView<T> extends Control {
             return;
         }
 
-        if (error != null) {
+        // A loader result carrying a null child is a loader-contract violation:
+        // treat it exactly like a load failure. Detecting it here (rather than
+        // letting the null-rejecting children list throw mid-populate) keeps the
+        // branch retriable instead of stranding it in LOADING with an uncaught NPE.
+        Throwable resolvedError = error;
+        if (resolvedError == null) {
+            resolvedError = firstNullChildError(children);
+        }
+
+        if (resolvedError != null) {
             // FAILED is retriable (re-expanding reloads). Consume this load's
             // pending intent and roll back the optimistic check BEFORE surfacing
             // FAILED, so a reentrant retry from the loadState listener starts
@@ -1204,7 +1229,7 @@ public class RXCascaderView<T> extends Control {
             item.setLoadState(LoadState.FAILED);
             BiConsumer<RXCascaderItem<T>, Throwable> handler = getOnChildrenLoadError();
             if (handler != null) {
-                handler.accept(item, error);
+                handler.accept(item, resolvedError);
             }
             requestLayout();
             return;

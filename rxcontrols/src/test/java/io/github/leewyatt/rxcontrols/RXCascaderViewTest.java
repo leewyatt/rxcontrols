@@ -8,6 +8,7 @@ import javafx.scene.control.SelectionMode;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -1680,6 +1681,48 @@ public class RXCascaderViewTest {
         assertEquals("暂无", view.getEmptyText());
         view.setEmptyText(null);
         assertNull(view.getEmptyText(), "null is accepted (renders a blank placeholder)");
+    }
+
+    /**
+     * Verifies a lazy loader returning a {@code children} list containing a
+     * {@code null} is treated as a retriable load failure — routed through the
+     * FAILED path with the error callback — rather than letting the null-rejecting
+     * list throw uncaught mid-populate and strand the branch in LOADING.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void loaderReturningNullChildIsTreatedAsRetriableFailure() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            List<RXCascaderItem<String>> withNull = new ArrayList<>();
+            withNull.add(leaf("valid"));
+            withNull.add(null);
+            int[] calls = {0};
+            view.setChildrenLoader(it -> {
+                calls[0]++;
+                return calls[0] == 1
+                        ? CompletableFuture.completedFuture(withNull)
+                        : CompletableFuture.completedFuture(List.of(leaf("ok")));
+            });
+            Throwable[] captured = {null};
+            view.setOnChildrenLoadError((it, cause) -> captured[0] = cause);
+            RXCascaderItem<String> branch = item("branch");
+            view.getRootItems().add(branch);
+
+            view.expand(branch); // completes inline: a null child must FAIL, not throw
+
+            assertEquals(LoadState.FAILED, branch.getLoadState(),
+                    "a loader result containing null is treated as a load failure");
+            assertTrue(captured[0] instanceof NullPointerException,
+                    "the error callback fires with an NPE cause");
+            assertTrue(branch.getChildren().isEmpty(), "no partial children are populated");
+
+            view.expand(branch); // retriable: the second attempt succeeds
+            assertEquals(LoadState.LOADED, branch.getLoadState(),
+                    "the branch is retriable after the null-child failure");
+            assertEquals(1, branch.getChildren().size());
+        });
     }
 
     /**
