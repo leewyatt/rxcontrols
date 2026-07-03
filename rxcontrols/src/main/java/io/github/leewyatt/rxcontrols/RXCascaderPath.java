@@ -64,24 +64,31 @@ public final class RXCascaderPath<T> {
     }
 
     /**
-     * Returns whether this path contains the given item instance.
+     * Returns whether this path contains the given item instance, compared by
+     * reference (identity).
      *
      * @param item item to test
-     * @return {@code true} if the item is in this path
+     * @return {@code true} if the item instance is in this path
      */
     public boolean contains(RXCascaderItem<T> item) {
-        return items.contains(item);
+        for (RXCascaderItem<T> candidate : items) {
+            if (candidate == item) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Two paths are equal when they traverse the same item instances in the same
-     * order. Equality is identity-based on the items (they do not override
-     * {@code equals}), matching this snapshot's identity-chain contract, so a
-     * re-selection of the same leaf compares equal and suppresses spurious change
-     * events.
+     * order. Item instances are compared by reference (identity), matching this
+     * snapshot's identity-chain contract: a subclass overriding {@code equals} does
+     * not affect path equality, so distinct nodes with equal values stay distinct
+     * and a re-selection of the same leaf compares equal (suppressing spurious
+     * change events).
      *
      * @param obj object to compare
-     * @return {@code true} if the other object is a path over the same items
+     * @return {@code true} if the other object is a path over the same item instances
      */
     @Override
     public boolean equals(Object obj) {
@@ -91,18 +98,30 @@ public final class RXCascaderPath<T> {
         if (!(obj instanceof RXCascaderPath<?> other)) {
             return false;
         }
-        return items.equals(other.items);
+        if (items.size() != other.items.size()) {
+            return false;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i) != other.items.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
      * Returns a hash code consistent with {@link #equals(Object)}, derived from the
-     * item identity chain.
+     * identity hash of each item in the chain.
      *
      * @return the path hash code
      */
     @Override
     public int hashCode() {
-        return items.hashCode();
+        int hash = 1;
+        for (RXCascaderItem<T> item : items) {
+            hash = 31 * hash + System.identityHashCode(item);
+        }
+        return hash;
     }
 
     /**

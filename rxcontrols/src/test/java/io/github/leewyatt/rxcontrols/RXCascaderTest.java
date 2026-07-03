@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -195,6 +196,46 @@ public class RXCascaderTest {
         assertEquals(a, b, "paths over the same item instances are equal");
         assertEquals(a.hashCode(), b.hashCode(), "equal paths share a hash code");
         assertNotEquals(a, c, "a different leaf instance is unequal even with an equal value");
+    }
+
+    /**
+     * Verifies path equality stays identity-based even when items override
+     * {@code equals}: a subclass with value-based equality must not make two
+     * distinct nodes' paths compare equal, which would suppress real selection
+     * changes and merge distinct paths.
+     */
+    @Test
+    public void pathEqualityIgnoresOverriddenItemEquals() {
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> a = new ValueEqualItem<>("same");
+        RXCascaderItem<String> b = new ValueEqualItem<>("same");
+        assertEquals(a, b, "precondition: the subclass makes equal-valued items compare equal");
+
+        RXCascaderPath<String> pathA = new RXCascaderPath<>(List.of(root, a));
+        RXCascaderPath<String> pathB = new RXCascaderPath<>(List.of(root, b));
+
+        assertNotEquals(pathA, pathB,
+                "distinct item instances must yield unequal paths despite value-based item equals");
+        assertTrue(pathA.contains(a), "contains finds the exact instance");
+        assertFalse(pathA.contains(b), "contains compares by identity, not value");
+    }
+
+    /** Item subclass with value-based equality, to prove path equality ignores it. */
+    private static final class ValueEqualItem<T> extends RXCascaderItem<T> {
+        ValueEqualItem(T value) {
+            super(value);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof RXCascaderItem<?> other
+                    && Objects.equals(getValue(), other.getValue());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(getValue());
+        }
     }
 
     /**

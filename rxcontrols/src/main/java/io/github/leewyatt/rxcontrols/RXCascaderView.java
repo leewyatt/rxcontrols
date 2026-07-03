@@ -1098,26 +1098,23 @@ public class RXCascaderView<T> extends Control {
         }
 
         if (error != null) {
-            // FAILED is retriable (re-expanding reloads). The FAILED write can
-            // fire a loadState listener that retries immediately; such a retry
-            // re-registers the item in liveLoads and then owns the pending intent
-            // and the optimistic check, so leave both to it. Only when no retry
-            // took over: read-then-null the pending intent on this terminal path
-            // so a later plain expand cannot replay it, then roll back any
-            // optimistic check. Either way the failure is surfaced through the
-            // callback.
+            // FAILED is retriable (re-expanding reloads). Consume this load's
+            // pending intent and roll back the optimistic check BEFORE surfacing
+            // FAILED, so a reentrant retry from the loadState listener starts
+            // clean: a plain expand carries no intent (must not resurrect the
+            // failed check), while an explicit re-check (setCheckedCascade)
+            // records its own fresh intent. The failure is surfaced through the
+            // callback afterward.
             liveLoads.remove(item);
-            item.setLoadState(LoadState.FAILED);
-            if (!liveLoads.contains(item)) {
-                Boolean pendingCheck = item.getPendingCheck();
-                item.setPendingCheck(null);
-                if (pendingCheck != null) {
-                    item.setChecked(false);
-                    item.setIndeterminate(false);
-                    updateUp(item.getParent());
-                    refreshCheckedPaths();
-                }
+            Boolean pendingCheck = item.getPendingCheck();
+            item.setPendingCheck(null);
+            if (pendingCheck != null) {
+                item.setChecked(false);
+                item.setIndeterminate(false);
+                updateUp(item.getParent());
+                refreshCheckedPaths();
             }
+            item.setLoadState(LoadState.FAILED);
             BiConsumer<RXCascaderItem<T>, Throwable> handler = getOnChildrenLoadError();
             if (handler != null) {
                 handler.accept(item, error);

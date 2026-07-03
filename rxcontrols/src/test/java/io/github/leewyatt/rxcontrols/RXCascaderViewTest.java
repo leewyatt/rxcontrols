@@ -1625,6 +1625,49 @@ public class RXCascaderViewTest {
     }
 
     /**
+     * Verifies a plain {@code expand} retry from the FAILED listener does not
+     * resurrect the failed attempt's pending check. A plain expand carries no
+     * check intent, so — like the non-reentrant case — it must leave the branch
+     * unchecked, even though it re-registers the item in the live-load set.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void failedListenerPlainExpandDoesNotReplayStalePendingCheck() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> branch = item("branch");
+        CompletableFuture<List<RXCascaderItem<String>>> firstAttempt = new CompletableFuture<>();
+        CompletableFuture<List<RXCascaderItem<String>>> retryAttempt = new CompletableFuture<>();
+        int[] calls = {0};
+        panel.setChildrenLoader(it -> {
+            calls[0]++;
+            return calls[0] == 1 ? firstAttempt : retryAttempt;
+        });
+        boolean[] retried = {false};
+        branch.loadStateProperty().addListener((obs, old, now) -> {
+            if (now == LoadState.FAILED && !retried[0]) {
+                retried[0] = true;
+                panel.expand(branch);
+            }
+        });
+        panel.getRootItems().add(branch);
+
+        panel.setCheckedCascade(branch, true);
+        assertTrue(branch.isChecked(), "branch is optimistically checked while loading");
+        firstAttempt.completeExceptionally(new IllegalStateException("boom"));
+        waitForFxCondition(() -> retried[0] && loading(branch));
+
+        retryAttempt.complete(List.of(leaf("c1")));
+        waitForFxCondition(() -> loaded(branch));
+
+        assertFalse(branch.isChecked(),
+                "a plain expand retry must not replay the failed attempt's pending check");
+        assertFalse(branch.getChildren().get(0).isChecked());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
      * Verifies a forced branch ({@code leafHint=false}) that loads to zero
      * children under a pending check does not become a checked non-leaf: the
      * rollup rule that an empty branch cannot be checked applies to the replay
