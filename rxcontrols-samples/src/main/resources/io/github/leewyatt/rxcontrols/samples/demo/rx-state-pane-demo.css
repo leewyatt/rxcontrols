@@ -1,0 +1,28 @@
+.rx-state-pane-demo {
+    -fx-background-color: #f8fafc;
+}
+
+.rx-state-pane-demo > .toolbar {
+    -fx-padding: 12 16;
+    -fx-spacing: 10;
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #e2e8f0 transparent;
+}
+
+.rx-state-pane-demo .row {
+    -fx-padding: 10 14;
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 8;
+}
+
+.rx-state-pane-demo .row-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.rx-state-pane-demo .row-summary {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}

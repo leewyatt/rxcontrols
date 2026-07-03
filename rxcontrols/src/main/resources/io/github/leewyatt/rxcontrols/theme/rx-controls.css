@@ -19,11 +19,11 @@
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-lrc-line-view, .rx-lrc-view,
 .rx-masonry-pane, .rx-masonry-view, .rx-material-text-field, .rx-material-password-field,
-.rx-number-field, .rx-password-field, .rx-radio-button, .rx-radio-toggle-button,
+.rx-number-field, .rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar, .rx-snackbar-host,
 .rx-slider, .rx-range-slider,
-.rx-skeleton, .rx-skeleton-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
+.rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
@@ -2235,4 +2235,98 @@
 .rx-snackbar-host > .snackbar.rx-snackbar-warning > .action,
 .rx-snackbar-host > .snackbar.rx-snackbar-error > .action {
     -fx-text-fill: white;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXStatePane                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.rx-state-pane > .backdrop {
+    -fx-background-color: rgba(0, 0, 0, 0.32);
+}
+
+.rx-state-pane > .overlay > .loading-box {
+    -fx-alignment: center;
+    -fx-spacing: 8;
+}
+
+.rx-state-pane > .overlay > .loading-box > .loading-text {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXPlaceholder                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-placeholder {
+    -fx-padding: 16;
+}
+
+.rx-placeholder > .content {
+    -fx-spacing: 8;
+}
+
+.rx-placeholder > .content > .graphic > .icon {
+    -fx-pref-width: 48;
+    -fx-pref-height: 48;
+}
+
+.rx-placeholder > .content > .title {
+    -fx-font-size: 1.166em;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-placeholder > .content > .description > .text {
+    -fx-fill: -rx-on-surface-secondary;
+}
+
+.rx-placeholder > .content > .actions {
+    -fx-spacing: 8;
+    -fx-padding: 8 0 0 0;
+}
+
+/* Status icons: Material glyphs on a shared 24x24 view box; the degenerate
+   M0 0L0 0 / M24 24L24 24 anchors keep that box so scale-to-fit preserves
+   each glyph's proportions. */
+.rx-placeholder:empty > .content > .graphic > .icon {
+    -fx-background-color: -rx-outline-variant;
+    -fx-shape: "M0 0L0 0 M19 3H4.99c-1.1 0-1.98.9-1.98 2L3 19c0 1.1.89 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z M24 24L24 24";
+}
+
+.rx-placeholder:info > .content > .graphic > .icon {
+    -fx-background-color: -rx-info;
+    -fx-shape: "M0 0L0 0 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z M24 24L24 24";
+}
+
+.rx-placeholder:success > .content > .graphic > .icon {
+    -fx-background-color: -rx-success;
+    -fx-shape: "M0 0L0 0 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z M24 24L24 24";
+}
+
+.rx-placeholder:warning > .content > .graphic > .icon {
+    -fx-background-color: -rx-warning;
+    -fx-shape: "M0 0L0 0 M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z M24 24L24 24";
+}
+
+.rx-placeholder:error > .content > .graphic > .icon {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M0 0L0 0 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z M24 24L24 24";
+}
+
+.rx-placeholder:not-found > .content > .graphic > .icon {
+    -fx-background-color: -rx-info;
+    -fx-shape: "M0 0L0 0 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z M24 24L24 24";
+}
+
+.rx-placeholder:forbidden > .content > .graphic > .icon {
+    -fx-background-color: -rx-warning;
+    -fx-shape: "M0 0L0 0 M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z M24 24L24 24";
+}
+
+.rx-placeholder:server-error > .content > .graphic > .icon {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M0 0L0 0 M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z M24 24L24 24";
 }

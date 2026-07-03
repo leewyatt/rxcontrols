@@ -30,6 +30,7 @@ import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -42,6 +43,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
+import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
@@ -139,6 +141,7 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXLrcView", buildRXLrcView()));
         list.add(new NamedControl("RXNumberField", buildRXNumberField()));
         list.add(new NamedControl("RXPasswordField", buildRXPasswordField()));
+        list.add(new NamedControl("RXPlaceholder", buildRXPlaceholder()));
         list.add(new NamedControl("RXRadioToggleButton", buildRXRadioToggleButton()));
         list.add(new NamedControl("RXRipplePane", buildRXRipplePane()));
         list.add(new NamedControl("RXSeekBar", buildRXSeekBar()));
@@ -147,6 +150,7 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXSegmentedStepIndicator", buildRXSegmentedStepIndicator()));
         list.add(new NamedControl("RXSidebar", buildRXSidebar()));
         list.add(new NamedControl("RXSkeleton", buildRXSkeleton()));
+        list.add(new NamedControl("RXStatePane", buildRXStatePane()));
         list.add(new NamedControl("RXTextField", buildRXTextField()));
         list.add(new NamedControl("RXTextView", buildRXTextView()));
         list.add(new NamedControl("RXTimelineView", buildRXTimelineView()));
@@ -770,6 +774,24 @@ final class ThemeGalleryCards {
         sidebar.setAnimated(false);
         sidebar.setPrefHeight(460.0);
         return sidebar;
+    }
+
+    private static Node buildRXPlaceholder() {
+        RXPlaceholder placeholder = new RXPlaceholder(RXPlaceholder.Status.EMPTY, "No data");
+        placeholder.setDescription("Nothing to show yet.");
+        placeholder.getActions().add(new Button("Reload"));
+        placeholder.setPrefWidth(240.0);
+        return placeholder;
+    }
+
+    private static Node buildRXStatePane() {
+        RXStatePane pane = new RXStatePane();
+        pane.setContent(new Label("Content behind the overlay"));
+        pane.setLoadingText("Loading...");
+        pane.setLoading(true);
+        pane.setPrefSize(240.0, 170.0);
+        pane.setMaxSize(240.0, 170.0);
+        return pane;
     }
 
     private static Node buildRXSkeleton() {
