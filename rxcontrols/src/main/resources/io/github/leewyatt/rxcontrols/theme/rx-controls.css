@@ -1057,19 +1057,19 @@
     -fx-background-color: transparent;
 }
 
-.rx-cascader-column {
+.rx-cascader-view > .columns > .column {
     -fx-background-color: -fx-control-inner-background;
     -fx-padding: 0.333em 0 0.333em 0; /* 4 0 4 0 */
     -fx-border-color: transparent derive(-fx-color, -17%) transparent transparent;
     -fx-border-width: 0 1px 0 0;
 }
 
-.rx-cascader-column .list-cell {
+.rx-cascader-view > .columns > .column .list-cell {
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
-.rx-cascader-column .list-cell:filled:hover {
+.rx-cascader-view > .columns > .column .list-cell:filled:hover {
     -fx-background-color: derive(-fx-control-inner-background, -8%);
 }
 

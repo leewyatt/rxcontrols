@@ -406,7 +406,7 @@ public class RXCascaderView<T> extends Control {
      * Preferred width of each column, in pixels, settable via CSS
      * {@code -rx-column-width}. It is a discoverable default that the skin applies
      * to each column with USER origin, so author CSS targeting
-     * {@code .rx-cascader-column} still wins. Defaults to
+     * {@code .rx-cascader-view > .columns > .column} still wins. Defaults to
      * {@link #DEFAULT_COLUMN_WIDTH}.
      *
      * @return column-width property
@@ -455,7 +455,8 @@ public class RXCascaderView<T> extends Control {
     /**
      * Fixed height of each row, in pixels, settable via CSS {@code -rx-row-height}.
      * It is a discoverable default that the skin applies to each column with USER
-     * origin, so author CSS targeting {@code .rx-cascader-column} still wins.
+     * origin, so author CSS targeting
+     * {@code .rx-cascader-view > .columns > .column} still wins.
      * Defaults to {@link #DEFAULT_FIXED_CELL_SIZE}.
      *
      * @return row-height property

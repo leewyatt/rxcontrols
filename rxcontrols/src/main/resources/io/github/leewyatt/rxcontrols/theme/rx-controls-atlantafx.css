@@ -105,10 +105,10 @@
 .rx-cascader > .display > .label:empty {
     -fx-text-fill: -rx-on-surface-secondary;
 }
-.rx-cascader-column {
+.rx-cascader-view > .columns > .column {
     -fx-border-color: transparent -rx-outline transparent transparent;
 }
-.rx-cascader-column .list-cell:filled:hover,
+.rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-cascader-cell:in-active-path {
     -fx-background-color: -rx-surface-variant;
 }

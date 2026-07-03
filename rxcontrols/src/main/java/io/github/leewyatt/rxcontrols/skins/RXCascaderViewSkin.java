@@ -30,8 +30,8 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     // ==================== Constants ====================
 
-    private static final String COLUMN_STYLE_CLASS = "rx-cascader-column";
-    private static final String EMPTY_PLACEHOLDER_STYLE_CLASS = "rx-cascader-empty";
+    private static final String COLUMN_STYLE_CLASS = "column";
+    private static final String EMPTY_PLACEHOLDER_STYLE_CLASS = "placeholder";
     private static final int MIN_VISIBLE_ROW_COUNT = 1;
 
     // ==================== Nodes ====================
@@ -166,8 +166,9 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         listView.getStyleClass().add(COLUMN_STYLE_CLASS);
         listView.setFocusTraversable(false);
         // Discoverable defaults from the view's -rx-column-width / -rx-row-height;
-        // author CSS (-fx-pref-width / -fx-fixed-cell-size) on .rx-cascader-column
-        // still overrides because AUTHOR origin outranks the USER origin of these
+        // author CSS (-fx-pref-width / -fx-fixed-cell-size) on
+        // .rx-cascader-view > .columns > .column still overrides because AUTHOR
+        // origin outranks the USER origin of these
         // set calls. min/max are left unset so a single column can be widened via
         // CSS while HBox (hgrow=NEVER) keeps each column at its preferred width.
         listView.setPrefWidth(columnWidthOrDefault());
@@ -188,17 +189,36 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     }
 
     /**
-     * Stamps each column's positional ordinal style class
-     * ({@code rx-cascader-column-N}), removing any stale ordinal so a tail-diff
-     * always leaves lookups and author CSS targeting the column at that position.
+     * Stamps each column's positional ordinal style class ({@code columnN}, no
+     * hyphen, matching the chart-style {@code data0} / {@code seriesN} convention),
+     * removing any stale ordinal so a tail-diff always leaves lookups and author CSS
+     * targeting the column at that position.
      */
     private void restampOrdinals() {
-        String ordinalPrefix = COLUMN_STYLE_CLASS + "-";
         for (int i = 0; i < columns.size(); i++) {
             ListView<RXCascaderItem<T>> column = columns.get(i);
-            column.getStyleClass().removeIf(styleClass -> styleClass.startsWith(ordinalPrefix));
-            column.getStyleClass().add(ordinalPrefix + i);
+            column.getStyleClass().removeIf(RXCascaderViewSkin::isOrdinalStyleClass);
+            column.getStyleClass().add(COLUMN_STYLE_CLASS + i);
         }
+    }
+
+    /**
+     * Whether a style class is one of our positional ordinals ({@code column}
+     * followed by digits). Deliberately excludes the base {@code column} class and
+     * any author class that merely shares the prefix (e.g. {@code column-custom}),
+     * so restamping never strips those.
+     */
+    private static boolean isOrdinalStyleClass(String styleClass) {
+        if (!styleClass.startsWith(COLUMN_STYLE_CLASS)
+                || styleClass.length() == COLUMN_STYLE_CLASS.length()) {
+            return false;
+        }
+        for (int i = COLUMN_STYLE_CLASS.length(); i < styleClass.length(); i++) {
+            if (!Character.isDigit(styleClass.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void disposeColumn(ListView<RXCascaderItem<T>> column) {

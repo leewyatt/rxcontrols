@@ -45,7 +45,8 @@ import java.util.function.Function;
  * {@code xxxProperty()}, not observable): the embedded view holds the
  * CSS-settable {@code -rx-column-width} / {@code -rx-row-height} authority, and
  * binding a wrapper styleable property would stop CSS from reaching it. Style the
- * popup via {@code .rx-cascader-popup .rx-cascader-view} / {@code .rx-cascader-column}.
+ * popup via {@code .rx-cascader-popup .rx-cascader-view} /
+ * {@code .rx-cascader-view > .columns > .column}.
  *
  * <p><strong>Threading.</strong> All operation methods (select / setCheckedCascade
  * / seedChecked / reload / show / hide / clearSelection) must be invoked on the
