@@ -40,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * slot, live dimmed tracking, rest pose, degenerate min, cross-axis animation
  * independence), the input-blocking contract (base-layer disable, overlay
  * mouse interception, {@code :blocking}, focus evacuation and conditional
- * restore), the anti-flicker loadingDelay gate, the slot-conditional progress
+ * restore), the anti-flicker gates (the loadingDelay delay-in and the
+ * loadingMinDuration hold), the slot-conditional progress
  * drive, loadingText independence, the retry contract (default button tracks
  * {@code onRetry} membership and fires {@code RETRY}), and the axis-scoped
  * convenience methods.
@@ -597,6 +598,60 @@ public class RXStatePaneTest {
                     "presentation activates once the delay elapses");
             assertTrue(pane.lookup(".overlay").isVisible());
             assertTrue(innerRef.get().isDisabled());
+        });
+    }
+
+    @Test
+    public void minDurationDefersTheWithdrawal() throws Exception {
+        AtomicReference<RXStatePane> paneRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXStatePane pane = new RXStatePane();
+            pane.setAnimated(false);
+            pane.setLoadingMinDuration(Duration.millis(300.0));
+            pane.setContent(new Region());
+            attach(pane);
+            paneRef.set(pane);
+
+            // The fetch finishes right after the presentation appeared: the
+            // hide is parked until the minimum display time elapses.
+            pane.setLoading(true);
+            pane.setLoading(false);
+            assertTrue(pane.lookup(".overlay").isVisible(), "withdrawal deferred by the hold");
+            assertTrue(pane.getPseudoClassStates().contains(PseudoClass.getPseudoClass("loading")));
+        });
+        Thread.sleep(700);
+        runOnFx(() -> {
+            RXStatePane pane = paneRef.get();
+            assertFalse(pane.lookup(".overlay").isVisible(), "withdrawn once the hold expired");
+            assertFalse(pane.getPseudoClassStates().contains(PseudoClass.getPseudoClass("loading")));
+        });
+    }
+
+    @Test
+    public void reloadingDuringTheHoldCancelsTheDeferredWithdrawal() throws Exception {
+        AtomicReference<RXStatePane> paneRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXStatePane pane = new RXStatePane();
+            pane.setAnimated(false);
+            pane.setLoadingMinDuration(Duration.millis(300.0));
+            pane.setContent(new Region());
+            attach(pane);
+            paneRef.set(pane);
+
+            pane.setLoading(true);
+            pane.setLoading(false);
+            pane.setLoading(true);
+        });
+        Thread.sleep(700);
+        runOnFx(() -> {
+            RXStatePane pane = paneRef.get();
+            assertTrue(pane.isLoading());
+            assertTrue(pane.lookup(".overlay").isVisible(),
+                    "the stale deferred hide must not fire while loading is back on");
+
+            // The hold has long expired: a hide now withdraws immediately.
+            pane.setLoading(false);
+            assertFalse(pane.lookup(".overlay").isVisible());
         });
     }
 

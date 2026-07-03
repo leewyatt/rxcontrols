@@ -100,6 +100,11 @@ public class RXStatePane extends Control {
     private static final Duration DEFAULT_LOADING_DELAY = Duration.ZERO;
 
     /**
+     * Default minimum time a shown loading presentation stays up.
+     */
+    private static final Duration DEFAULT_LOADING_MIN_DURATION = Duration.ZERO;
+
+    /**
      * Default progress (indeterminate).
      */
     private static final double DEFAULT_PROGRESS = -1.0;
@@ -512,7 +517,9 @@ public class RXStatePane extends Control {
      * delay has elapsed. During the window the base view stays fully
      * interactive, and turning loading off within it means nothing ever shows.
      * A {@code null}, non-positive, unknown, or indefinite value is not
-     * rejected; it activates immediately.
+     * rejected; it activates immediately. Pairs with
+     * {@link #loadingMinDurationProperty() loadingMinDuration}, which prevents
+     * the flash on the withdrawal side.
      *
      * @return the loading delay property
      */
@@ -536,6 +543,47 @@ public class RXStatePane extends Control {
      */
     public final void setLoadingDelay(Duration value) {
         loadingDelay.set(value);
+    }
+
+    // ==================== Loading Min Duration ====================
+
+    private final ObjectProperty<Duration> loadingMinDuration =
+            new SimpleObjectProperty<>(this, "loadingMinDuration", DEFAULT_LOADING_MIN_DURATION);
+
+    /**
+     * Anti-flicker on the withdrawal side: once the loading presentation has
+     * actually shown, it stays up — including input blocking — for at least
+     * this long, and a hide request inside the window is deferred to the
+     * window's end, so a fetch that finishes just after the presentation
+     * appeared cannot flash the indicator. The window counts from the moment
+     * the presentation activates (after {@link #loadingDelayProperty()
+     * loadingDelay}); it never resurrects anything that never showed — hiding
+     * within the delay window still shows nothing. A {@code null},
+     * non-positive, unknown, or indefinite value is not rejected; it
+     * withdraws immediately.
+     *
+     * @return the loading min duration property
+     */
+    public final ObjectProperty<Duration> loadingMinDurationProperty() {
+        return loadingMinDuration;
+    }
+
+    /**
+     * Returns the minimum display time of a shown loading presentation.
+     *
+     * @return the loading min duration, possibly {@code null}
+     */
+    public final Duration getLoadingMinDuration() {
+        return loadingMinDuration.get();
+    }
+
+    /**
+     * Sets the minimum display time of a shown loading presentation.
+     *
+     * @param value the minimum display time; {@code null} or any non-positive value withdraws immediately
+     */
+    public final void setLoadingMinDuration(Duration value) {
+        loadingMinDuration.set(value);
     }
 
     // ==================== Blocking ====================

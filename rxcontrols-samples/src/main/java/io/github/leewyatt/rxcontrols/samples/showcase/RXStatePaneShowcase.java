@@ -128,6 +128,10 @@ public class RXStatePaneShowcase extends RXShowcaseApplication {
         delay.valueProperty().addListener(
                 (obs, old, value) -> pane.setLoadingDelay(Duration.millis(value.doubleValue())));
 
+        Slider minDuration = createSlider(0.0, 2000.0, 0.0);
+        minDuration.valueProperty().addListener(
+                (obs, old, value) -> pane.setLoadingMinDuration(Duration.millis(value.doubleValue())));
+
         TextField text = new TextField();
         text.setPromptText("loading text");
         text.textProperty().addListener((obs, old, value) -> pane.setLoadingText(value));
@@ -156,6 +160,7 @@ public class RXStatePaneShowcase extends RXShowcaseApplication {
                 row(dimmed),
                 row(blocking),
                 row("Delay", delay, createValueLabel(delay, "%.0f ms")),
+                row("Min duration", minDuration, createValueLabel(minDuration, "%.0f ms")),
                 row("Text", text),
                 row(determinate),
                 row("Progress", progress, createValueLabel(progress, "%.2f")),

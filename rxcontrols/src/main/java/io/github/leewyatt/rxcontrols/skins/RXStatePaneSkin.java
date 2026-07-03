@@ -62,6 +62,11 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
     private Timeline stateFade;
     // The loadingDelay gate; also rebuilt per use.
     private PauseTransition pendingActivation;
+    // The loadingMinDuration hold; rebuilt per activation.
+    private PauseTransition minDurationHold;
+    // True when a hide request arrived during the hold and the withdrawal is
+    // deferred to the hold's expiry.
+    private boolean pendingDeactivation;
 
     // Lazily created defaults for the null slots; cached so round-trips reuse
     // the same instances.
@@ -241,10 +246,18 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
 
     private void onLoadingChanged() {
         if (getSkinnable().isLoading()) {
+            // Loading back on while a deferred hide is parked: the presentation
+            // simply stays up.
+            pendingDeactivation = false;
             scheduleLoadingActivation(true);
         } else {
             cancelPendingActivation();
-            if (presentationActive) {
+            if (!presentationActive) {
+                return;
+            }
+            if (minDurationHold != null) {
+                pendingDeactivation = true;
+            } else {
                 deactivateLoadingPresentation();
             }
         }
@@ -279,6 +292,38 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
         }
     }
 
+    // Anti-flicker on the withdrawal side: once shown, the presentation stays
+    // up for at least loadingMinDuration; a hide inside the window is parked
+    // and executed at expiry.
+    private void startMinDurationHold() {
+        stopMinDurationHold();
+        Duration minDuration = loadingMinDurationOrZero();
+        if (minDuration.lessThanOrEqualTo(Duration.ZERO)) {
+            return;
+        }
+        PauseTransition hold = new PauseTransition(minDuration);
+        hold.setOnFinished(event -> {
+            minDurationHold = null;
+            if (pendingDeactivation) {
+                pendingDeactivation = false;
+                // The property is the truth: withdraw only if loading is still off.
+                if (!getSkinnable().isLoading() && presentationActive) {
+                    deactivateLoadingPresentation();
+                }
+            }
+        });
+        minDurationHold = hold;
+        hold.play();
+    }
+
+    private void stopMinDurationHold() {
+        if (minDurationHold != null) {
+            minDurationHold.stop();
+            minDurationHold = null;
+        }
+        pendingDeactivation = false;
+    }
+
     // The whole presentation activates atomically once the delay elapses:
     // scrim, indicator box, input blocking, and the :loading pseudo-class.
     private void activateLoadingPresentation(boolean animate) {
@@ -292,6 +337,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
         // so the fade (which flips visible on immediately) runs first.
         playOverlayFade(true, animate);
         applyBlocking(blockingEnabled());
+        startMinDurationHold();
         // The overlay's min only matters in the degenerate no-base-view case,
         // but the unmanaged layer never bubbles a layout request on its own.
         getSkinnable().requestLayout();
@@ -301,6 +347,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
     // visible scrim keeps catching mouse events until the backdrop settles —
     // the documented cost of reusing RXBackdrop unmodified.
     private void deactivateLoadingPresentation() {
+        stopMinDurationHold();
         presentationActive = false;
         getSkinnable().pseudoClassStateChanged(LOADING_PSEUDO_CLASS, false);
         applyBlocking(false);
@@ -540,6 +587,14 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
         return delay;
     }
 
+    private Duration loadingMinDurationOrZero() {
+        Duration minDuration = getSkinnable().getLoadingMinDuration();
+        if (minDuration == null || minDuration.isUnknown() || minDuration.isIndefinite()) {
+            return Duration.ZERO;
+        }
+        return minDuration;
+    }
+
     // ==================== Animation gating ====================
 
     private boolean shouldAnimate() {
@@ -687,6 +742,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
         // The repeatedly-rebuilt animation fields are stopped here explicitly
         // rather than via the disposer, which would hold stale references.
         cancelPendingActivation();
+        stopMinDurationHold();
         stopOverlayFade();
         stopStateFade();
         getSkinnable().pseudoClassStateChanged(LOADING_PSEUDO_CLASS, false);
