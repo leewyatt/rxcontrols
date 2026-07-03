@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
+import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import javafx.collections.ObservableList;
 import javafx.css.StyleOrigin;
@@ -268,6 +269,36 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         columnsBox.resizeRelocate(x, y, Math.max(0.0, w), Math.max(0.0, h));
+        // The columns are now laid out (their ListView skins exist), so a pending
+        // reveal can scroll each column to its selected node — doing this earlier
+        // (while building columns) would lose the scrollTo before the flow exists.
+        if (getSkinnable().consumeScrollToSelectionRequest()) {
+            scrollColumnsToSelection();
+        }
+    }
+
+    private void scrollColumnsToSelection() {
+        RXCascaderPath<T> path = getSkinnable().getSelectedPath();
+        if (path == null) {
+            return;
+        }
+        List<RXCascaderItem<T>> items = path.getItems();
+        for (int i = 0; i < columns.size() && i < items.size(); i++) {
+            ListView<RXCascaderItem<T>> column = columns.get(i);
+            int index = indexOfIdentity(column.getItems(), items.get(i));
+            if (index >= 0) {
+                column.scrollTo(index);
+            }
+        }
+    }
+
+    private static <T> int indexOfIdentity(List<RXCascaderItem<T>> items, RXCascaderItem<T> target) {
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i) == target) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override

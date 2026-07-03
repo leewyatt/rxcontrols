@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -515,6 +516,60 @@ public class RXCascaderViewSkinTest {
             assertEquals(1, checks.stream().filter(Node::isVisible).count(),
                     "the revealed selected leaf shows its selection mark");
         });
+    }
+
+    /**
+     * Verifies revealing scrolls tall columns so the active branch and the selected
+     * leaf become visible instead of staying below the fold. Each column has many
+     * siblings with the target row last, and a small visibleRowCount keeps the
+     * viewport short.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void revealScrollsTallColumnsToTheSelection() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setVisibleRowCount(3); // short viewport: deep rows fall below the fold
+
+            List<RXCascaderItem<String>> roots = new ArrayList<>();
+            for (int i = 0; i < 15; i++) {
+                roots.add(item("root" + i));
+            }
+            RXCascaderItem<String> europe = item("europe");
+            roots.add(europe); // last root, below the fold
+
+            List<RXCascaderItem<String>> leaves = new ArrayList<>();
+            for (int i = 0; i < 15; i++) {
+                leaves.add(item("city" + i));
+            }
+            RXCascaderItem<String> berlin = item("berlin");
+            leaves.add(berlin); // last leaf, below the fold
+            europe.getChildren().setAll(leaves);
+            view.getRootItems().setAll(roots);
+            view.select(berlin);
+
+            Scene scene = new Scene(new StackPane(view), 420, 150);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            view.revealSelectedPath();
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+            scene.getRoot().layout(); // second pass so the queued scroll renders its cells
+
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            ListView<?> leafColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertTrue(rendersItem(rootColumn, europe),
+                    "the root column scrolls so the active branch becomes visible");
+            assertTrue(rendersItem(leafColumn, berlin),
+                    "the leaf column scrolls so the selected leaf becomes visible");
+        });
+    }
+
+    private static boolean rendersItem(ListView<?> column, RXCascaderItem<?> target) {
+        return column.lookupAll(".rx-cascader-cell").stream()
+                .anyMatch(node -> node instanceof ListCell<?> cell && cell.getItem() == target);
     }
 
     /**

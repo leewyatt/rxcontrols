@@ -704,13 +704,16 @@ public class RXCascaderView<T> extends Control {
         selectedPath.set(createPath(leaf));
     }
 
+    private boolean scrollToSelectionRequested;
+
     /**
      * Navigates the columns to the current single selection so a freshly opened
      * popup reveals it: the selected path's ancestor branches become the active
      * path (expanding their columns and highlighting them), which brings the
-     * selected leaf into view with its selection mark. Since it reuses the path's
-     * own item instances, no lazy loading is triggered. A no-op when there is no
-     * selected path or the selection is no longer in the current tree.
+     * selected leaf into view with its selection mark, and requests the columns to
+     * scroll so the selected rows are visible even in tall columns. Since it reuses
+     * the path's own item instances, no lazy loading is triggered. A no-op when
+     * there is no selected path or the selection is no longer in the current tree.
      */
     public final void revealSelectedPath() {
         RXCascaderPath<T> path = getSelectedPath();
@@ -722,8 +725,23 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         activePath.setAll(items.subList(0, items.size() - 1));
+        scrollToSelectionRequested = true;
         bumpColumnsRevision();
         requestLayout();
+    }
+
+    /**
+     * Reads and clears the pending "scroll the columns to the current selection"
+     * request set by {@link #revealSelectedPath()}. The skin calls this once the
+     * revealed columns are laid out (so {@code scrollTo} takes effect), making the
+     * selected rows visible instead of leaving them below the fold in tall columns.
+     *
+     * @return {@code true} if a scroll-to-selection was pending
+     */
+    public final boolean consumeScrollToSelectionRequest() {
+        boolean requested = scrollToSelectionRequested;
+        scrollToSelectionRequested = false;
+        return requested;
     }
 
     /**
