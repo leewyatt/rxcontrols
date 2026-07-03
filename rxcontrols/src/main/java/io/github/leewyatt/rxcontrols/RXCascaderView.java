@@ -91,7 +91,7 @@ public class RXCascaderView<T> extends Control {
     private static final String DEFAULT_STYLE_CLASS = "rx-cascader-view";
 
     private final ObservableList<RXCascaderItem<T>> rootItems =
-            FXCollections.observableArrayList();
+            new NonNullObservableList<>("root item");
 
     private final ObservableList<RXCascaderItem<T>> activePath =
             FXCollections.observableArrayList();
@@ -165,9 +165,10 @@ public class RXCascaderView<T> extends Control {
     // ==================== Items ====================
 
     /**
-     * Root items shown in the first column. Null items are not permitted; inserting
-     * {@code null} leads to a {@link NullPointerException} while derived state is
-     * maintained.
+     * Root items shown in the first column. Null items are not permitted: inserting
+     * {@code null} (including via a bulk {@code addAll} / {@code setAll}) is rejected
+     * with a {@link NullPointerException} at the call site, leaving the list
+     * unchanged.
      *
      * @return mutable root item list
      */

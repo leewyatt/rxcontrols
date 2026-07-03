@@ -9,7 +9,6 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
@@ -55,7 +54,7 @@ public class RXCascaderItem<T> {
     // ==================== Children ====================
 
     private final ObservableList<RXCascaderItem<T>> children =
-            FXCollections.observableArrayList();
+            new NonNullObservableList<>("child item");
 
     // ==================== Constructors ====================
 
@@ -126,8 +125,9 @@ public class RXCascaderItem<T> {
      * Child items. Each node must have a single parent and the tree must be
      * acyclic (as with {@link javafx.scene.control.TreeItem}); adding a node to two
      * parents or introducing a cycle yields undefined path/recursion behavior. Null
-     * children are not permitted; inserting {@code null} leads to a
-     * {@link NullPointerException} while derived state is maintained.
+     * children are not permitted: inserting {@code null} (including via a bulk
+     * {@code addAll} / {@code setAll}) is rejected with a {@link NullPointerException}
+     * at the call site, leaving the list unchanged.
      *
      * @return mutable child list
      */

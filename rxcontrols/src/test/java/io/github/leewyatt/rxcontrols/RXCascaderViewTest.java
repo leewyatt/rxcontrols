@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -1679,6 +1680,51 @@ public class RXCascaderViewTest {
         assertEquals("暂无", view.getEmptyText());
         view.setEmptyText(null);
         assertNull(view.getEmptyText(), "null is accepted (renders a blank placeholder)");
+    }
+
+    /**
+     * Verifies a {@code null} root item is rejected at the call site with a clear
+     * message, not swallowed into a later obscure NPE.
+     */
+    @Test
+    public void nullRootItemIsRejectedAtInsertion() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+
+        NullPointerException ex = assertThrows(NullPointerException.class,
+                () -> view.getRootItems().add(null));
+        assertTrue(ex.getMessage() != null && ex.getMessage().contains("root item"),
+                "the rejection names the offending element");
+        assertTrue(view.getRootItems().isEmpty(), "a rejected add leaves the list empty");
+    }
+
+    /**
+     * Verifies a bulk {@code setAll} containing a {@code null} is rejected
+     * atomically — the list keeps its prior contents rather than partially applying.
+     */
+    @Test
+    public void nullInBulkRootItemsIsRejectedAtomically() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        RXCascaderItem<String> keep = item("keep");
+        view.getRootItems().add(keep);
+
+        assertThrows(NullPointerException.class,
+                () -> view.getRootItems().setAll(item("a"), null, item("b")));
+        assertEquals(List.of(keep), view.getRootItems(),
+                "a bulk set with a null must not partially mutate the list");
+    }
+
+    /**
+     * Verifies a {@code null} child item is likewise rejected at the call site.
+     */
+    @Test
+    public void nullChildItemIsRejectedAtInsertion() {
+        RXCascaderItem<String> parent = item("parent");
+
+        NullPointerException ex = assertThrows(NullPointerException.class,
+                () -> parent.getChildren().add(null));
+        assertTrue(ex.getMessage() != null && ex.getMessage().contains("child item"),
+                "the rejection names the offending element");
+        assertTrue(parent.getChildren().isEmpty(), "a rejected add leaves the list empty");
     }
 
     /**
