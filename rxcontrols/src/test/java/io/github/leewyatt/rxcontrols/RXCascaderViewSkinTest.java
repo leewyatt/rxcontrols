@@ -388,6 +388,96 @@ public class RXCascaderViewSkinTest {
     }
 
     /**
+     * Verifies the always-present root column shows the placeholder when the root
+     * item list is empty — the one empty-column case that needs no forced branch.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyRootColumnShowsPlaceholder() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setEmptyText("Nothing here"); // no root items at all
+
+            Scene scene = new Scene(new StackPane(view), 320, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".rx-cascader-column-0");
+            assertNotNull(rootColumn, "the root column always renders");
+            assertTrue(rootColumn.getItems().isEmpty(), "the root list is empty");
+            assertTrue(rootColumn.getPlaceholder() instanceof Label);
+            assertEquals("Nothing here", ((Label) rootColumn.getPlaceholder()).getText(),
+                    "an empty root column shows the placeholder");
+        });
+    }
+
+    /**
+     * Verifies a forced empty branch renders a frontier column whose placeholder
+     * shows the default empty text.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyColumnUsesDefaultPlaceholderText() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setChildrenLoader(branchItem -> CompletableFuture.completedFuture(List.of()));
+            RXCascaderItem<String> branch = item("branch");
+            branch.setLeafHint(false); // a forced branch stays a non-leaf when loaded empty
+            view.getRootItems().setAll(List.of(branch));
+
+            Scene scene = new Scene(new StackPane(view), 320, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            view.expand(branch); // completed loader resolves inline to an empty frontier column
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> emptyColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertNotNull(emptyColumn, "a forced empty branch renders a frontier column");
+            assertTrue(emptyColumn.getItems().isEmpty(), "the forced branch loaded to zero children");
+            assertTrue(emptyColumn.getPlaceholder() instanceof Label, "the empty column uses a label placeholder");
+            assertEquals("No data", ((Label) emptyColumn.getPlaceholder()).getText(),
+                    "the default empty text renders");
+        });
+    }
+
+    /**
+     * Verifies the empty-column placeholder honors a preset {@code emptyText} and
+     * updates reactively when it changes on an already-rendered column.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyColumnReflectsEmptyTextChange() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setEmptyText("暂无数据");
+            view.setChildrenLoader(branchItem -> CompletableFuture.completedFuture(List.of()));
+            RXCascaderItem<String> branch = item("branch");
+            branch.setLeafHint(false);
+            view.getRootItems().setAll(List.of(branch));
+
+            Scene scene = new Scene(new StackPane(view), 320, 240);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+            view.expand(branch);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            ListView<?> emptyColumn = (ListView<?>) view.lookup(".rx-cascader-column-1");
+            assertEquals("暂无数据", ((Label) emptyColumn.getPlaceholder()).getText(),
+                    "a preset empty text renders in the empty column");
+
+            view.setEmptyText("empty");
+            assertEquals("empty", ((Label) emptyColumn.getPlaceholder()).getText(),
+                    "changing empty text updates the existing column placeholder reactively");
+        });
+    }
+
+    /**
      * Verifies single-selection mode shows the check mark only on the selected
      * leaf, while the left slot stays reserved (managed) on every row.
      *

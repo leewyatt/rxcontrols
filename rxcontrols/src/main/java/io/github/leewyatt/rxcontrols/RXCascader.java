@@ -80,6 +80,7 @@ public class RXCascader<T> extends Control {
         view.selectionModeProperty().bind(selectionMode);
         view.itemTextFactoryProperty().bind(itemTextFactory);
         view.visibleRowCountProperty().bind(visibleRowCount);
+        view.emptyTextProperty().bind(emptyText);
         view.cellFactoryProperty().bind(cellFactory);
         view.childrenLoaderProperty().bind(childrenLoader);
         view.onChildrenLoadErrorProperty().bind(onChildrenLoadError);
@@ -470,6 +471,40 @@ public class RXCascader<T> extends Control {
      */
     public final void setVisibleRowCount(int value) {
         visibleRowCount.set(value);
+    }
+
+    // ==================== Empty Text ====================
+
+    private final StringProperty emptyText =
+            new SimpleStringProperty(this, "emptyText", RXCascaderView.DEFAULT_EMPTY_TEXT);
+
+    /**
+     * Placeholder text shown in an empty popup column — the root column when there
+     * are no root items, or a forced branch ({@code leafHint=false}) that resolved
+     * to zero children. A {@code null} value renders a blank placeholder.
+     *
+     * @return empty-column placeholder text property
+     */
+    public final StringProperty emptyTextProperty() {
+        return emptyText;
+    }
+
+    /**
+     * Returns the empty-column placeholder text.
+     *
+     * @return empty-column placeholder text
+     */
+    public final String getEmptyText() {
+        return emptyText.get();
+    }
+
+    /**
+     * Sets the empty-column placeholder text.
+     *
+     * @param value empty-column placeholder text
+     */
+    public final void setEmptyText(String value) {
+        emptyText.set(value);
     }
 
     // ==================== Column Width / Row Height ====================

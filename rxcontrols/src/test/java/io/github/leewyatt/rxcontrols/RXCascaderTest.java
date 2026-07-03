@@ -91,7 +91,21 @@ public class RXCascaderTest {
         assertSame(cascader, cascader.itemTextFactoryProperty().getBean());
         assertSame(cascader, cascader.visibleRowCountProperty().getBean());
         assertSame(cascader, cascader.cellFactoryProperty().getBean());
+        assertSame(cascader, cascader.emptyTextProperty().getBean());
         assertSame(cascader, cascader.selectedPathProperty().getBean());
+    }
+
+    /**
+     * Verifies the wrapper's {@code emptyText} defaults to "No data" and is a plain
+     * pass-through. The binding into the private popup view's placeholder rendering
+     * is covered in {@code RXCascaderViewSkinTest}.
+     */
+    @Test
+    public void emptyTextDefaultsToNoData() {
+        RXCascader<String> cascader = new RXCascader<>();
+        assertEquals("No data", cascader.getEmptyText(), "default empty-column placeholder text");
+        cascader.setEmptyText("暂无");
+        assertEquals("暂无", cascader.getEmptyText());
     }
 
     /**

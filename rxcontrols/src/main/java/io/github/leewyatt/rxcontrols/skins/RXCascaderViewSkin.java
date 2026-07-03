@@ -31,7 +31,6 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     private static final String COLUMN_STYLE_CLASS = "rx-cascader-column";
     private static final String EMPTY_PLACEHOLDER_STYLE_CLASS = "rx-cascader-empty";
-    private static final String EMPTY_PLACEHOLDER_TEXT = "No data";
     private static final int MIN_VISIBLE_ROW_COUNT = 1;
 
     // ==================== Nodes ====================
@@ -69,9 +68,19 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         disposer.registerListener(control.columnWidthProperty(), this::applyColumnSizing);
         disposer.registerListener(control.rowHeightProperty(), this::applyColumnSizing);
         disposer.registerListener(control.itemTextFactoryProperty(), this::refreshColumns);
+        disposer.registerListener(control.emptyTextProperty(), this::applyEmptyText);
         // A new cell factory changes the cell type, so every column must be rebuilt;
         // the tail-diff reuses by backing-list identity and would keep stale cells.
         disposer.registerListener(control.cellFactoryProperty(), this::rebuildAllColumns);
+    }
+
+    private void applyEmptyText() {
+        String text = getSkinnable().getEmptyText();
+        for (ListView<RXCascaderItem<T>> column : columns) {
+            if (column.getPlaceholder() instanceof Label label) {
+                label.setText(text);
+            }
+        }
     }
 
     // ==================== Columns ====================
@@ -156,10 +165,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // CSS while HBox (hgrow=NEVER) keeps each column at its preferred width.
         listView.setPrefWidth(columnWidthOrDefault());
         listView.setFixedCellSize(rowHeightOrDefault());
-        // Only a forced-branch (leafHint=false) column ends up empty; loading
-        // shows no column and a loaded-empty branch is a leaf, so this only ever
-        // renders for that one case.
-        Label placeholder = new Label(EMPTY_PLACEHOLDER_TEXT);
+        // A column shows this placeholder when its backing list is empty: the
+        // always-present root column when there are no root items, or a forced
+        // branch (leafHint=false) that resolved to zero children. A loading
+        // frontier shows no column and an ordinary loaded-empty branch is a leaf
+        // (no column), so those never reach the placeholder.
+        Label placeholder = new Label(getSkinnable().getEmptyText());
         placeholder.getStyleClass().add(EMPTY_PLACEHOLDER_STYLE_CLASS);
         listView.setPlaceholder(placeholder);
         Callback<RXCascaderView<T>, ListCell<RXCascaderItem<T>>> factory = getSkinnable().getCellFactory();

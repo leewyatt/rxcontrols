@@ -13,6 +13,8 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -80,6 +82,11 @@ public class RXCascaderView<T> extends Control {
      * Default visible row count.
      */
     public static final int DEFAULT_VISIBLE_ROW_COUNT = 6;
+
+    /**
+     * Default empty-column placeholder text.
+     */
+    public static final String DEFAULT_EMPTY_TEXT = "No data";
 
     private static final String DEFAULT_STYLE_CLASS = "rx-cascader-view";
 
@@ -338,6 +345,42 @@ public class RXCascaderView<T> extends Control {
      */
     public final void setVisibleRowCount(int value) {
         visibleRowCount.set(value);
+    }
+
+    // ==================== Empty Text ====================
+
+    private final StringProperty emptyText =
+            new SimpleStringProperty(this, "emptyText", DEFAULT_EMPTY_TEXT);
+
+    /**
+     * Placeholder text shown in a rendered column that has no items — the root
+     * column when there are no root items, or a forced branch
+     * ({@code leafHint=false}) that resolved to zero children. (An ordinary empty
+     * node is a leaf and simply ends the cascade, so it renders no column.) A
+     * {@code null} value renders a blank placeholder.
+     *
+     * @return empty-column placeholder text property
+     */
+    public final StringProperty emptyTextProperty() {
+        return emptyText;
+    }
+
+    /**
+     * Returns the empty-column placeholder text.
+     *
+     * @return empty-column placeholder text
+     */
+    public final String getEmptyText() {
+        return emptyText.get();
+    }
+
+    /**
+     * Sets the empty-column placeholder text.
+     *
+     * @param value empty-column placeholder text
+     */
+    public final void setEmptyText(String value) {
+        emptyText.set(value);
     }
 
     // ==================== Column Width ====================

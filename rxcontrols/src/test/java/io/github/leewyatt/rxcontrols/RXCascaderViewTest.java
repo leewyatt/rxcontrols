@@ -1668,6 +1668,20 @@ public class RXCascaderViewTest {
     }
 
     /**
+     * Verifies {@code emptyText} defaults to "No data" and is a plain pass-through
+     * property that also accepts {@code null}.
+     */
+    @Test
+    public void emptyTextDefaultsToNoData() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        assertEquals("No data", view.getEmptyText(), "default empty-column placeholder text");
+        view.setEmptyText("暂无");
+        assertEquals("暂无", view.getEmptyText());
+        view.setEmptyText(null);
+        assertNull(view.getEmptyText(), "null is accepted (renders a blank placeholder)");
+    }
+
+    /**
      * Verifies a forced branch ({@code leafHint=false}) that loads to zero
      * children under a pending check does not become a checked non-leaf: the
      * rollup rule that an empty branch cannot be checked applies to the replay

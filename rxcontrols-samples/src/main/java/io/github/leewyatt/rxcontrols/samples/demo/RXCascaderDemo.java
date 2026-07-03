@@ -16,7 +16,8 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Minimal sample application demonstrating {@link RXCascader} with single,
- * multiple, and lazy-loaded configurations.
+ * multiple, lazy-loaded, and forced-branch (empty-column placeholder)
+ * configurations.
  *
  * <p>The value type is a small {@link Option} record (a stand-in for a backend
  * object carrying both id and label); the visible text comes from
@@ -70,13 +71,25 @@ public class RXCascaderDemo extends Application {
         lazy.setChildrenLoader(item -> CompletableFuture.supplyAsync(() -> loadChildren(item)));
         lazy.getRootItems().setAll(lazyRoot());
 
+        // Forced-branch placeholder: "Antarctica" is declared a branch
+        // (leafHint=false) yet has no children, so activating it opens an empty
+        // frontier column showing the emptyText. An ordinary childless node is a
+        // terminal leaf and would open no column at all.
+        RXCascader<Option> forced = new RXCascader<>();
+        forced.setPromptText("Forced-branch placeholder");
+        forced.setClearable(true);
+        forced.setItemTextFactory(Option::label);
+        forced.setEmptyText("No cities yet");
+        forced.getRootItems().setAll(forcedBranchOptions());
+
         root.getChildren().setAll(
                 new Label("Single selection"), single,
                 new Label("Multiple selection"), multiple,
-                new Label("Lazy loading"), lazy
+                new Label("Lazy loading"), lazy,
+                new Label("Forced-branch placeholder (open \"Antarctica\")"), forced
         );
 
-        Scene scene = new Scene(root, 560, 420);
+        Scene scene = new Scene(root, 560, 520);
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXCascader Demo");
         primaryStage.show();
@@ -119,6 +132,22 @@ public class RXCascaderDemo extends Application {
         asia.getChildren().setAll(List.of(china, japan));
         europe.getChildren().add(germany);
         return List.of(asia, europe);
+    }
+
+    private static List<RXCascaderItem<Option>> forcedBranchOptions() {
+        // "Africa" is a normal branch with children; "Antarctica" is forced to a
+        // branch (leafHint=false) but has none, so opening it shows the empty-column
+        // placeholder instead of ending the cascade as a leaf.
+        RXCascaderItem<Option> africa = item("africa", "Africa");
+        africa.getChildren().setAll(List.of(
+                leaf("cairo", "Cairo"),
+                leaf("lagos", "Lagos")
+        ));
+
+        RXCascaderItem<Option> antarctica = item("antarctica", "Antarctica");
+        antarctica.setLeafHint(false);
+
+        return List.of(africa, antarctica);
     }
 
     private static List<RXCascaderItem<Option>> lazyRoot() {
