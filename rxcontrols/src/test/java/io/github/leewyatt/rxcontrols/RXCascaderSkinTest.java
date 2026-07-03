@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Skin-level tests for {@link io.github.leewyatt.rxcontrols.skins.RXCascaderSkin}:
@@ -249,6 +250,39 @@ public class RXCascaderSkinTest {
 
             assertFalse(escape.isConsumed(),
                     "Escape must bubble when no popup is open so a dialog still sees it");
+        });
+    }
+
+    /**
+     * Verifies Enter does not open the popup and is not consumed when the popup is
+     * closed, so it bubbles to an enclosing form's default / submit button (aligned
+     * with ComboBox, where Enter never opens the popup).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void enterIsNotConsumedWhenPopupClosed() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.getRootItems().add(new RXCascaderItem<>("root"));
+
+            StackPane parent = new StackPane(cascader);
+            Scene scene = new Scene(parent);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            // Probe an ancestor: an unconsumed key bubbles up to it (this stands in
+            // for an enclosing form's default button); a consumed one does not.
+            boolean[] reachedAncestor = {false};
+            parent.addEventHandler(KeyEvent.KEY_PRESSED, event -> reachedAncestor[0] = true);
+
+            assertFalse(cascader.isShowing(), "precondition: the popup is closed");
+            Event.fireEvent(cascader, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER,
+                    false, false, false, false));
+
+            assertFalse(cascader.isShowing(), "Enter must not open the popup");
+            assertTrue(reachedAncestor[0],
+                    "Enter must bubble to an ancestor when the popup is closed so a default button still sees it");
         });
     }
 

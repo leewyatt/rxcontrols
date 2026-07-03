@@ -186,20 +186,43 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         if (control.isDisabled()) {
             return;
         }
-        if (event.getCode() == KeyCode.ESCAPE) {
+        KeyCode code = event.getCode();
+        if (code == KeyCode.ESCAPE) {
             // Only consume Escape when there is a popup to close; otherwise let it
             // bubble so an enclosing dialog / cancel button still sees it.
             if (control.isShowing()) {
                 control.hide();
                 event.consume();
             }
-        } else if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+        } else if (isPopupToggleKey(code, event)) {
+            // Dedicated popup toggle keys, always consuming: F4 and Alt+Up/Down
+            // match ComboBox, and Space follows the common dropdown convention.
+            togglePopup(control);
+            event.consume();
+        } else if (code == KeyCode.ENTER) {
+            // Enter mirrors ComboBox: it closes an open popup (consuming, so the same
+            // keystroke does not also fire an enclosing dialog's default button —
+            // ComboBox's popup content consumes it for the same reason), but when the
+            // popup is closed it neither opens it nor consumes, letting Enter reach a
+            // default / submit button of an enclosing form.
             if (control.isShowing()) {
                 control.hide();
-            } else {
-                control.show();
+                event.consume();
             }
-            event.consume();
+        }
+    }
+
+    private static boolean isPopupToggleKey(KeyCode code, KeyEvent event) {
+        return code == KeyCode.SPACE
+                || code == KeyCode.F4
+                || ((code == KeyCode.UP || code == KeyCode.DOWN) && event.isAltDown());
+    }
+
+    private void togglePopup(RXCascader<T> control) {
+        if (control.isShowing()) {
+            control.hide();
+        } else {
+            control.show();
         }
     }
 

@@ -141,26 +141,93 @@ public class RXCascaderPopupTest {
     }
 
     /**
-     * Verifies ENTER and SPACE toggle the popup and ESCAPE closes it.
+     * Verifies Space toggles the popup (always consuming) and Escape closes it,
+     * aligned with ComboBox where Space is the dedicated popup key.
      *
      * @throws InterruptedException if the FX task is interrupted
      */
     @Test
-    public void keyboardEnterSpaceEscapeTogglePopup() throws InterruptedException {
+    public void keyboardSpaceTogglesAndEscapeCloses() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = newShownCascader();
+            // An ancestor probe: a consumed key does not bubble to it, an
+            // unconsumed one does (it stands in for an enclosing form).
+            boolean[] reachedAncestor = {false};
+            cascader.getParent().addEventHandler(KeyEvent.KEY_PRESSED, event -> reachedAncestor[0] = true);
+
+            reachedAncestor[0] = false;
+            fireKey(cascader, KeyCode.SPACE);
+            assertTrue(cascader.isShowing(), "SPACE opens the popup");
+            assertFalse(reachedAncestor[0], "SPACE consumes (does not bubble) when opening");
+
+            reachedAncestor[0] = false;
+            fireKey(cascader, KeyCode.SPACE);
+            assertFalse(cascader.isShowing(), "SPACE again closes the popup");
+            assertFalse(reachedAncestor[0], "SPACE consumes when closing");
+
+            fireKey(cascader, KeyCode.SPACE);
+            assertTrue(cascader.isShowing(), "precondition: SPACE reopened the popup");
+            fireKey(cascader, KeyCode.ESCAPE);
+            assertFalse(cascader.isShowing(), "ESCAPE closes the popup");
+        });
+    }
+
+    /**
+     * Verifies the ComboBox-style popup openers: F4 and Alt+Up/Down toggle the
+     * popup, while plain arrows (no Alt) do not.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardF4AndAltArrowsTogglePopup() throws InterruptedException {
         runOnFx(() -> {
             RXCascader<String> cascader = newShownCascader();
 
+            fireKey(cascader, KeyCode.DOWN);
+            assertFalse(cascader.isShowing(), "plain Down must not open the popup");
+            fireKey(cascader, KeyCode.UP);
+            assertFalse(cascader.isShowing(), "plain Up must not open the popup");
+
+            fireKey(cascader, KeyCode.F4);
+            assertTrue(cascader.isShowing(), "F4 opens the popup");
+            fireKey(cascader, KeyCode.F4);
+            assertFalse(cascader.isShowing(), "F4 again closes the popup");
+
+            fireAltKey(cascader, KeyCode.DOWN);
+            assertTrue(cascader.isShowing(), "Alt+Down opens the popup");
+            fireAltKey(cascader, KeyCode.UP);
+            assertFalse(cascader.isShowing(), "Alt+Up closes the popup");
+        });
+    }
+
+    /**
+     * Verifies Enter mirrors ComboBox: it closes an open popup and consumes the
+     * event, but when the popup is closed it neither opens it nor consumes, so the
+     * keystroke can reach an enclosing form's default / submit button.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardEnterClosesButDoesNotOpen() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = newShownCascader();
+            boolean[] reachedAncestor = {false};
+            cascader.getParent().addEventHandler(KeyEvent.KEY_PRESSED, event -> reachedAncestor[0] = true);
+
+            reachedAncestor[0] = false;
             fireKey(cascader, KeyCode.ENTER);
-            assertTrue(cascader.isShowing(), "ENTER opens the popup");
+            assertFalse(cascader.isShowing(), "ENTER must not open a closed popup");
+            assertTrue(reachedAncestor[0],
+                    "ENTER bubbles to an ancestor when closed so a default button still sees it");
 
+            fireKey(cascader, KeyCode.SPACE); // open it with the dedicated popup key
+            assertTrue(cascader.isShowing(), "precondition: popup is open");
+
+            reachedAncestor[0] = false;
             fireKey(cascader, KeyCode.ENTER);
-            assertFalse(cascader.isShowing(), "ENTER again closes the popup");
-
-            fireKey(cascader, KeyCode.SPACE);
-            assertTrue(cascader.isShowing(), "SPACE opens the popup");
-
-            fireKey(cascader, KeyCode.ESCAPE);
-            assertFalse(cascader.isShowing(), "ESCAPE closes the popup");
+            assertFalse(cascader.isShowing(), "ENTER closes the open popup");
+            assertFalse(reachedAncestor[0],
+                    "ENTER consumes while closing so it does not also reach a default button");
         });
     }
 
@@ -300,6 +367,12 @@ public class RXCascaderPopupTest {
     private static void fireKey(Node node, KeyCode code) {
         node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.CHAR_UNDEFINED, "", code,
                 false, false, false, false));
+    }
+
+    private static void fireAltKey(Node node, KeyCode code) {
+        // KeyEvent booleans are shift, control, alt, meta — set alt.
+        node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.CHAR_UNDEFINED, "", code,
+                false, false, true, false));
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {
