@@ -556,7 +556,7 @@ public class RXStatePaneTest {
         });
     }
 
-    // ==================== Anti-flicker delay ====================
+    // ==================== Anti-flicker gates ====================
 
     @Test
     public void loadingDelayGatesTheWholePresentation() throws Exception {

@@ -329,6 +329,11 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
     private void activateLoadingPresentation(boolean animate) {
         presentationActive = true;
         getSkinnable().pseudoClassStateChanged(LOADING_PSEUDO_CLASS, true);
+        // Armed before the focus evacuation below: requestFocus notifies the
+        // old owner's focus listeners synchronously, and a hide called from
+        // one of them must find the hold in place (and be parked), not
+        // deactivate in the middle of this activation.
+        startMinDurationHold();
         syncBackdropAnimationConfig();
         if (dimmedEnabled()) {
             backdrop.show(animate);
@@ -337,7 +342,6 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
         // so the fade (which flips visible on immediately) runs first.
         playOverlayFade(true, animate);
         applyBlocking(blockingEnabled());
-        startMinDurationHold();
         // The overlay's min only matters in the degenerate no-base-view case,
         // but the unmanaged layer never bubbles a layout request on its own.
         getSkinnable().requestLayout();

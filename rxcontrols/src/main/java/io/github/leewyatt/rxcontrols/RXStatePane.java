@@ -320,7 +320,9 @@ public class RXStatePane extends Control {
      * scrim, input interception) is stacked on the current base view. This is a
      * plain value — the whole presentation, including the {@code :loading}
      * pseudo-class, is activated by the skin only once the loading delay has
-     * elapsed, and is withdrawn on {@code false}. Orthogonal to
+     * elapsed, and is withdrawn on {@code false}; a withdrawal arriving inside
+     * the {@link #loadingMinDurationProperty() loadingMinDuration} window is
+     * deferred, presentation intact, to the window's end. Orthogonal to
      * {@link #stateProperty() state}: refreshing existing content is
      * {@code state == CONTENT && loading == true}.
      *
