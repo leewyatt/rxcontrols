@@ -125,7 +125,9 @@ public class RXCascaderItem<T> {
     /**
      * Child items. Each node must have a single parent and the tree must be
      * acyclic (as with {@link javafx.scene.control.TreeItem}); adding a node to two
-     * parents or introducing a cycle yields undefined path/recursion behavior.
+     * parents or introducing a cycle yields undefined path/recursion behavior. Null
+     * children are not permitted; inserting {@code null} leads to a
+     * {@link NullPointerException} while derived state is maintained.
      *
      * @return mutable child list
      */

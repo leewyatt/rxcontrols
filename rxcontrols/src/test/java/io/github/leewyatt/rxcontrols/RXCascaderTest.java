@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -175,5 +176,47 @@ public class RXCascaderTest {
         cascader.setSelectionMode(null);
 
         assertNull(cascader.getSelectionMode());
+    }
+
+    /**
+     * Verifies two paths over the same item instances are equal (identity-based on
+     * the items), while a different leaf instance with an equal value is not.
+     */
+    @Test
+    public void pathEqualityIsIdentityBasedOnItems() {
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> child = new RXCascaderItem<>("child");
+        RXCascaderItem<String> otherChild = new RXCascaderItem<>("child");
+
+        RXCascaderPath<String> a = new RXCascaderPath<>(List.of(root, child));
+        RXCascaderPath<String> b = new RXCascaderPath<>(List.of(root, child));
+        RXCascaderPath<String> c = new RXCascaderPath<>(List.of(root, otherChild));
+
+        assertEquals(a, b, "paths over the same item instances are equal");
+        assertEquals(a.hashCode(), b.hashCode(), "equal paths share a hash code");
+        assertNotEquals(a, c, "a different leaf instance is unequal even with an equal value");
+    }
+
+    /**
+     * Verifies re-selecting the same leaf fires no {@code selectedPath} change: the
+     * new snapshot compares equal to the current one, so the change event is
+     * suppressed (paths implement value equality on their item chain).
+     */
+    @Test
+    public void reselectingSameLeafFiresNoSelectedPathChange() {
+        RXCascader<String> cascader = new RXCascader<>();
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> child = new RXCascaderItem<>("child");
+        root.getChildren().add(child);
+        cascader.getRootItems().add(root);
+
+        cascader.select(child);
+        int[] changes = {0};
+        cascader.selectedPathProperty().addListener((obs, old, now) -> changes[0]++);
+
+        cascader.select(child);
+
+        assertEquals(0, changes[0],
+                "re-selecting the same leaf must not fire a selectedPath change");
     }
 }

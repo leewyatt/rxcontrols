@@ -27,8 +27,11 @@ public final class CascaderText {
      * @return display text, never {@code null}
      */
     public static <T> String resolve(Callback<T, String> factory, T value) {
+        if (value == null) {
+            return "";
+        }
         if (factory == null) {
-            return value == null ? "" : String.valueOf(value);
+            return String.valueOf(value);
         }
         String text = factory.call(value);
         return text == null ? "" : text;

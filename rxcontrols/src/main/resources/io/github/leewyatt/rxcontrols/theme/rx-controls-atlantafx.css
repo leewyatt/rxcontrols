@@ -98,6 +98,20 @@
     -rx-text-fill: -rx-on-surface;
     -rx-selected-text-fill: -rx-on-surface;
 }
+/* Cascader field / column / cell greys are baseline `derive(-fx-*, -N%)` formulas
+   tuned for the Modena light surface; under an AtlantaFX theme (light or dark) they
+   collapse into the background. Re-point to role tokens, which map to -color-* and
+   auto-flip for both. The active-path cell also keeps its accent + bold text. */
+.rx-cascader > .display > .label:empty {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+.rx-cascader-column {
+    -fx-border-color: transparent -rx-outline transparent transparent;
+}
+.rx-cascader-column .list-cell:filled:hover,
+.rx-cascader-cell:in-active-path {
+    -fx-background-color: -rx-surface-variant;
+}
 .rx-segmented-control > .segment .label {
     -fx-text-fill: -rx-on-surface;
 }

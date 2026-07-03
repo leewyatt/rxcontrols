@@ -99,7 +99,12 @@ public class RXCascader<T> extends Control {
     // ==================== Items ====================
 
     /**
-     * Root items shown in the first cascader column.
+     * Root items shown in the first cascader column. The supported reset entry
+     * points for the tree are replacing this list, switching the
+     * {@link #childrenLoaderProperty() childrenLoader}, and {@link #reload()};
+     * mutating already-loaded deep child lists at runtime is not tracked by the
+     * view. Null items are not permitted; inserting {@code null} leads to a
+     * {@link NullPointerException} while derived state is maintained.
      *
      * @return mutable root item list
      */
@@ -262,8 +267,9 @@ public class RXCascader<T> extends Control {
     /**
      * Optional formatter from a selected path to the single string shown in the
      * field. When {@code null}, the field shows the per-node display texts
-     * (resolved by {@link #getItemTextFactory() itemTextFactory}) joined with
-     * {@code " / "}.
+     * (resolved by {@link #getItemTextFactory() itemTextFactory}) joined with the
+     * {@link #separatorProperty() separator}, or only the last level when
+     * {@link #showAllLevelsProperty() showAllLevels} is {@code false}.
      *
      * <p>To keep the field consistent with the columns, resolve node text from
      * each item's value via the same {@link #getItemTextFactory() itemTextFactory}
@@ -546,7 +552,14 @@ public class RXCascader<T> extends Control {
             childrenLoader = new SimpleObjectProperty<>(this, "childrenLoader");
 
     /**
-     * Optional asynchronous loader used by unloaded branches.
+     * Optional asynchronous loader used by unloaded branches. The stage should
+     * complete with the loaded child items; a {@code null} stage, or a stage that
+     * completes with {@code null} children, is treated as an empty successful result
+     * (the branch becomes a loaded leaf).
+     *
+     * <p>Setting or swapping a non-{@code null} loader resets the tree: navigation,
+     * loaded children and all check state are cleared (the same effect as
+     * {@link #reload()}). Clearing the loader to {@code null} keeps the current tree.
      *
      * @return children-loader property
      */
@@ -656,6 +669,10 @@ public class RXCascader<T> extends Control {
      * checked state is read-only); for runtime check changes use
      * {@link #setCheckedCascade}. It may be called before or after switching to
      * {@link SelectionMode#MULTIPLE} — a seed made before the switch survives it.
+     *
+     * <p>An effectively-disabled branch given as a seed is ignored as a whole (the
+     * cascade skips disabled descendants); to lock a disabled subtree checked, pass
+     * its leaves individually — a disabled leaf given directly is honored.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */

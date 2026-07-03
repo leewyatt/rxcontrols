@@ -158,7 +158,9 @@ public class RXCascaderView<T> extends Control {
     // ==================== Items ====================
 
     /**
-     * Root items shown in the first column.
+     * Root items shown in the first column. Null items are not permitted; inserting
+     * {@code null} leads to a {@link NullPointerException} while derived state is
+     * maintained.
      *
      * @return mutable root item list
      */

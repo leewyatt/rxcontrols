@@ -192,6 +192,51 @@ public class RXCascaderViewSkinTest {
     }
 
     /**
+     * Verifies author CSS spacing / padding on the columns box is counted in the
+     * view's preferred size, so the popup (which follows the view's pref width) is
+     * sized correctly. Measured as a delta against the un-styled baseline.
+     *
+     * @throws Exception if the temp stylesheet cannot be created or the FX task fails
+     */
+    @Test
+    public void columnsBoxSpacingAndPaddingCountInViewPrefSize() throws Exception {
+        Path css = Files.createTempFile("rx-cascader-columns-box", ".css");
+        Files.writeString(css, ".rx-cascader-view > .columns { -fx-spacing: 8; -fx-padding: 6; }");
+        try {
+            runOnFx(() -> {
+                RXCascaderView<String> view = new RXCascaderView<>();
+                RXCascaderItem<String> asia = item("asia");
+                asia.getChildren().setAll(List.of(item("china"), item("japan")));
+                view.getRootItems().setAll(List.of(asia));
+
+                Scene scene = new Scene(new StackPane(view));
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+                view.expand(asia);
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+
+                double baseWidth = view.prefWidth(-1.0);
+                double baseHeight = view.prefHeight(-1.0);
+
+                scene.getStylesheets().add(css.toUri().toString());
+                scene.getRoot().applyCss();
+                scene.getRoot().layout();
+
+                // Two columns => one 8px spacing gap; 6px padding on all sides
+                // (12px per axis). The columns box css leaves the column widths
+                // unchanged, so the deltas isolate the spacing + padding.
+                assertEquals(baseWidth + 8.0 + 12.0, view.prefWidth(-1.0), 0.5,
+                        "columns box spacing + horizontal padding must count in view prefWidth");
+                assertEquals(baseHeight + 12.0, view.prefHeight(-1.0), 0.5,
+                        "columns box vertical padding must count in view prefHeight");
+            });
+        } finally {
+            Files.deleteIfExists(css);
+        }
+    }
+
+    /**
      * Verifies loading uses its own shape-backed region and hides the branch
      * arrow until loading finishes.
      *

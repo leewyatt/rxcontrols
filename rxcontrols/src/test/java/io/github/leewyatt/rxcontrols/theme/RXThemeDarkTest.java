@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
@@ -298,6 +299,33 @@ public class RXThemeDarkTest {
         });
         assertEquals(Color.web("#e6e7ee"), textFill.get(),
                 "RXTextView text must follow -rx-on-surface under dark (literal #1b1f2a would be unreadable)");
+    }
+
+    /**
+     * The cascader prompt uses a baseline {@code derive(-fx-control-inner-background,
+     * -30%)} grey tuned for the light surface; on the dark surface it collapses into
+     * the background. The dark overlay re-points it to {@code -rx-on-surface-secondary}
+     * so the prompt stays legible.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void darkOverlayMakesCascaderPromptLegible() throws Exception {
+        AtomicReference<Paint> promptFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.setPromptText("Select");
+            StackPane host = new StackPane(cascader);
+            Scene scene = new Scene(host, 240, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            host.layout();
+            Label prompt = (Label) cascader.lookup(".display .label");
+            assertNotNull(prompt, "the display label should exist");
+            promptFill.set(prompt.getTextFill());
+        });
+        assertEquals(Color.web("#a6a8b5"), promptFill.get(),
+                "cascader prompt must follow -rx-on-surface-secondary under dark");
     }
 
     /**

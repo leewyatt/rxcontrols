@@ -78,9 +78,17 @@ public class RXCascaderViewDemo extends Application {
     private static String pathText(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         StringJoiner joiner = new StringJoiner(" / ");
         for (Option value : path.getValues()) {
-            joiner.add(itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value));
+            joiner.add(displayText(itemTextFactory, value));
         }
         return joiner.toString();
+    }
+
+    private static String displayText(Callback<Option, String> itemTextFactory, Option value) {
+        if (value == null) {
+            return "";
+        }
+        String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
+        return text == null ? "" : text;
     }
 
     private static List<RXCascaderItem<Option>> sampleOptions() {

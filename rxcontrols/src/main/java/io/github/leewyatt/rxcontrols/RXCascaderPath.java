@@ -74,6 +74,38 @@ public final class RXCascaderPath<T> {
     }
 
     /**
+     * Two paths are equal when they traverse the same item instances in the same
+     * order. Equality is identity-based on the items (they do not override
+     * {@code equals}), matching this snapshot's identity-chain contract, so a
+     * re-selection of the same leaf compares equal and suppresses spurious change
+     * events.
+     *
+     * @param obj object to compare
+     * @return {@code true} if the other object is a path over the same items
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof RXCascaderPath<?> other)) {
+            return false;
+        }
+        return items.equals(other.items);
+    }
+
+    /**
+     * Returns a hash code consistent with {@link #equals(Object)}, derived from the
+     * item identity chain.
+     *
+     * @return the path hash code
+     */
+    @Override
+    public int hashCode() {
+        return items.hashCode();
+    }
+
+    /**
      * Returns a slash-separated value-based fallback representation. This uses
      * {@link RXCascaderItem#toString()} (the value), not the view's
      * {@code itemTextFactory}, so it is for debugging and not guaranteed to match the

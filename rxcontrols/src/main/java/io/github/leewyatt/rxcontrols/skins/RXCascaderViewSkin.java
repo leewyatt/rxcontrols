@@ -262,14 +262,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        double width = 0.0;
-        for (ListView<RXCascaderItem<T>> column : columns) {
-            width += column.prefWidth(-1.0);
-        }
         if (columns.isEmpty()) {
-            width = columnWidthOrDefault();
+            return leftInset + columnWidthOrDefault() + rightInset;
         }
-        return leftInset + width + rightInset;
+        // Delegate to the HBox so its -fx-spacing and -fx-padding (author-settable on
+        // .rx-cascader-view > .columns) are counted; the popup takes this width.
+        return leftInset + columnsBox.prefWidth(height) + rightInset;
     }
 
     @Override
@@ -282,7 +280,10 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         if (columns.isEmpty()) {
             content = rowHeightOrDefault() * sanitizedVisibleRowCount();
         }
-        return topInset + content + bottomInset;
+        // The row-slot height stays fixed (columnContentHeight), but the columns box
+        // may carry its own vertical padding that must be added.
+        Insets boxInsets = columnsBox.getInsets();
+        return topInset + boxInsets.getTop() + content + boxInsets.getBottom() + bottomInset;
     }
 
     /**

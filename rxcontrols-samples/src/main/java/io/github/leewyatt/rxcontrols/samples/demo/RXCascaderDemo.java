@@ -84,8 +84,16 @@ public class RXCascaderDemo extends Application {
 
     private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
         return path.getValues().stream()
-                .map(value -> itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value))
+                .map(value -> displayText(itemTextFactory, value))
                 .toList();
+    }
+
+    private static String displayText(Callback<Option, String> itemTextFactory, Option value) {
+        if (value == null) {
+            return "";
+        }
+        String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
+        return text == null ? "" : text;
     }
 
     private static List<RXCascaderItem<Option>> sampleOptions() {

@@ -74,6 +74,9 @@ final class CascaderShowcaseSupport {
     }
 
     private static String displayText(Callback<CascaderOption, String> itemTextFactory, CascaderOption value) {
+        if (value == null) {
+            return "";
+        }
         String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
         return text == null ? "" : text;
     }

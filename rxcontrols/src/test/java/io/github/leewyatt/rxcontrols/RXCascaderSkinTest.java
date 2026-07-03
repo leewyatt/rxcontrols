@@ -1,19 +1,26 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.event.Event;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Skin-level tests for {@link io.github.leewyatt.rxcontrols.skins.RXCascaderSkin}:
@@ -217,6 +224,75 @@ public class RXCascaderSkinTest {
             cascader.setShowAllLevels(false);
             assertEquals("b", field.getText(), "only the last level when showAllLevels is false");
         });
+    }
+
+    /**
+     * Verifies Escape is not consumed when no popup is open, so it bubbles to an
+     * enclosing dialog / cancel button (the skin only consumes it while showing).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void escapeIsNotConsumedWhenPopupClosed() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.getRootItems().add(new RXCascaderItem<>("root"));
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            assertFalse(cascader.isShowing(), "precondition: the popup is closed");
+            KeyEvent escape = new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE,
+                    false, false, false, false);
+            Event.fireEvent(cascader, escape);
+
+            assertFalse(escape.isConsumed(),
+                    "Escape must bubble when no popup is open so a dialog still sees it");
+        });
+    }
+
+    /**
+     * Verifies a discarded, never-disposed cascader is collectible while its item
+     * tree lives: the skin observes the displayed items' {@code valueProperty}
+     * weakly, so long-lived application items do not pin the control.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void discardedSkinIsCollectibleWhileItemTreeLives() throws InterruptedException {
+        RXCascaderItem<String> root = new RXCascaderItem<>("root");
+        RXCascaderItem<String> child = new RXCascaderItem<>("child");
+        root.getChildren().add(child);
+        // Strong references to the tree outlive the GC probe (held here); the
+        // cascader must not stay reachable through the items' value listeners.
+        List<RXCascaderItem<String>> tree = List.of(root, child);
+
+        AtomicReference<WeakReference<RXCascader<String>>> probe = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.getRootItems().add(root);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            cascader.select(child);
+            probe.set(new WeakReference<>(cascader));
+        });
+
+        assertReclaimable(probe.get(),
+                "a discarded cascader must be collectible while its item tree lives");
+        assertEquals(2, tree.size(), "the item tree stays strongly reachable past the probe");
+    }
+
+    private static void assertReclaimable(WeakReference<?> reference, String message)
+            throws InterruptedException {
+        for (int i = 0; i < 50 && reference.get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(reference.get(), message);
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

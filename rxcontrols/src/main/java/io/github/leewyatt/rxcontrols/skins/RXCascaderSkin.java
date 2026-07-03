@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.css.PseudoClass;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
@@ -61,7 +62,12 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     /** Items of the currently displayed path(s) whose value the field text mirrors. */
     private final List<RXCascaderItem<T>> observedPathItems = new ArrayList<>();
+    // Application items can outlive the skin (a cached option tree reused across
+    // dialogs); observe their value weakly so a discarded, never-disposed skin stays
+    // collectible. The strong delegate is kept as a field so the weak listener holds.
     private final InvalidationListener pathValueListener = observable -> updateDisplay();
+    private final WeakInvalidationListener weakPathValueListener =
+            new WeakInvalidationListener(pathValueListener);
 
     // ==================== Constructor ====================
 
@@ -181,8 +187,12 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             return;
         }
         if (event.getCode() == KeyCode.ESCAPE) {
-            control.hide();
-            event.consume();
+            // Only consume Escape when there is a popup to close; otherwise let it
+            // bubble so an enclosing dialog / cancel button still sees it.
+            if (control.isShowing()) {
+                control.hide();
+                event.consume();
+            }
         } else if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
             if (control.isShowing()) {
                 control.hide();
@@ -241,13 +251,13 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             }
         }
         for (RXCascaderItem<T> item : observedPathItems) {
-            item.valueProperty().addListener(pathValueListener);
+            item.valueProperty().addListener(weakPathValueListener);
         }
     }
 
     private void clearPathValueListeners() {
         for (RXCascaderItem<T> item : observedPathItems) {
-            item.valueProperty().removeListener(pathValueListener);
+            item.valueProperty().removeListener(weakPathValueListener);
         }
         observedPathItems.clear();
     }
