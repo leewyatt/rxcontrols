@@ -704,16 +704,17 @@ public class RXCascaderView<T> extends Control {
         selectedPath.set(createPath(leaf));
     }
 
-    private boolean scrollToSelectionRequested;
+    private int scrollToSelectionRevision;
 
     /**
      * Navigates the columns to the current single selection so a freshly opened
      * popup reveals it: the selected path's ancestor branches become the active
      * path (expanding their columns and highlighting them), which brings the
-     * selected leaf into view with its selection mark, and requests the columns to
-     * scroll so the selected rows are visible even in tall columns. Since it reuses
-     * the path's own item instances, no lazy loading is triggered. A no-op when
-     * there is no selected path or the selection is no longer in the current tree.
+     * selected leaf into view with its selection mark, and bumps
+     * {@link #getScrollToSelectionRevision()} so the skin scrolls the columns to the
+     * selected rows even in tall columns. Since it reuses the path's own item
+     * instances, no lazy loading is triggered. A no-op when there is no selected
+     * path or the selection is no longer in the current tree.
      */
     public final void revealSelectedPath() {
         RXCascaderPath<T> path = getSelectedPath();
@@ -725,23 +726,22 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         activePath.setAll(items.subList(0, items.size() - 1));
-        scrollToSelectionRequested = true;
+        scrollToSelectionRevision++;
         bumpColumnsRevision();
         requestLayout();
     }
 
     /**
-     * Reads and clears the pending "scroll the columns to the current selection"
-     * request set by {@link #revealSelectedPath()}. The skin calls this once the
-     * revealed columns are laid out (so {@code scrollTo} takes effect), making the
-     * selected rows visible instead of leaving them below the fold in tall columns.
+     * Monotonic counter bumped by {@link #revealSelectedPath()}. It is read-only and
+     * non-destructive: the skin remembers the last value it acted on and scrolls its
+     * columns to the selection when the counter advances, so a freshly revealed
+     * selection is visible instead of left below the fold in tall columns. Reading
+     * it never changes state, so it cannot disturb a pending scroll.
      *
-     * @return {@code true} if a scroll-to-selection was pending
+     * @return current reveal-scroll revision counter
      */
-    public final boolean consumeScrollToSelectionRequest() {
-        boolean requested = scrollToSelectionRequested;
-        scrollToSelectionRequested = false;
-        return requested;
+    public final int getScrollToSelectionRevision() {
+        return scrollToSelectionRevision;
     }
 
     /**

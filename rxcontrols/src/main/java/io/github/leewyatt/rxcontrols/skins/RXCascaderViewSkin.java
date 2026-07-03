@@ -39,6 +39,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     private final HBox columnsBox = new HBox();
     private final List<ListView<RXCascaderItem<T>>> columns = new ArrayList<>();
 
+    // Last reveal-scroll revision this skin acted on; the one-shot "already
+    // scrolled" state lives here, not on the view, so reading the view's counter
+    // stays non-destructive. Starts at 0 so a reveal that ran before this skin
+    // existed (first popup show) is still honored on the first layout.
+    private int lastScrollToSelectionRevision;
+
     // ==================== Constructor ====================
 
     /**
@@ -272,7 +278,11 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // The columns are now laid out (their ListView skins exist), so a pending
         // reveal can scroll each column to its selected node — doing this earlier
         // (while building columns) would lose the scrollTo before the flow exists.
-        if (getSkinnable().consumeScrollToSelectionRequest()) {
+        // Comparing the view's non-destructive counter against the last one we acted
+        // on keeps the one-shot state skin-side.
+        int revision = getSkinnable().getScrollToSelectionRevision();
+        if (revision != lastScrollToSelectionRevision) {
+            lastScrollToSelectionRevision = revision;
             scrollColumnsToSelection();
         }
     }
