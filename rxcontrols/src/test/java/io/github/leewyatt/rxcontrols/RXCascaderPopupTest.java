@@ -201,6 +201,32 @@ public class RXCascaderPopupTest {
     }
 
     /**
+     * Verifies the toggle keys require the exact ComboBox modifier set: Space and F4
+     * must be bare, and Alt+arrow must have Alt only. Combos such as Alt+F4 (OS close
+     * window), Ctrl+Space (IME), or Shift/Ctrl+Alt+arrow must not toggle the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void modifiedToggleKeysDoNotTogglePopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = newShownCascader();
+
+            // shift, ctrl, alt, meta
+            fireKey(cascader, KeyCode.F4, false, false, true, false); // Alt+F4
+            assertFalse(cascader.isShowing(), "Alt+F4 must not open the popup");
+            fireKey(cascader, KeyCode.SPACE, false, true, false, false); // Ctrl+Space
+            assertFalse(cascader.isShowing(), "Ctrl+Space must not open the popup");
+            fireKey(cascader, KeyCode.SPACE, false, false, true, false); // Alt+Space
+            assertFalse(cascader.isShowing(), "Alt+Space must not open the popup");
+            fireKey(cascader, KeyCode.DOWN, false, true, true, false); // Ctrl+Alt+Down
+            assertFalse(cascader.isShowing(), "Ctrl+Alt+Down must not open the popup");
+            fireKey(cascader, KeyCode.UP, true, false, true, false); // Shift+Alt+Up
+            assertFalse(cascader.isShowing(), "Shift+Alt+Up must not open the popup");
+        });
+    }
+
+    /**
      * Verifies Enter mirrors ComboBox: it closes an open popup and consumes the
      * event, but when the popup is closed it neither opens it nor consumes, so the
      * keystroke can reach an enclosing form's default / submit button.
@@ -373,6 +399,12 @@ public class RXCascaderPopupTest {
         // KeyEvent booleans are shift, control, alt, meta — set alt.
         node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.CHAR_UNDEFINED, "", code,
                 false, false, true, false));
+    }
+
+    private static void fireKey(Node node, KeyCode code, boolean shift, boolean ctrl,
+                                boolean alt, boolean meta) {
+        node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.CHAR_UNDEFINED, "", code,
+                shift, ctrl, alt, meta));
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

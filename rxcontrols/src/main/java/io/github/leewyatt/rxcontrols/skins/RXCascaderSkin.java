@@ -213,9 +213,21 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     }
 
     private static boolean isPopupToggleKey(KeyCode code, KeyEvent event) {
-        return code == KeyCode.SPACE
-                || code == KeyCode.F4
-                || ((code == KeyCode.UP || code == KeyCode.DOWN) && event.isAltDown());
+        // Match ComboBox's KeyBinding specificity exactly: bare Space / F4 (no other
+        // modifiers), and Alt+Up/Down with Alt only. Being stricter than "code plus
+        // altDown" avoids hijacking OS/app combos such as Alt+F4 (close window),
+        // Ctrl+Space (IME), or Shift+Alt+Down.
+        boolean noModifiers = !event.isShiftDown() && !event.isControlDown()
+                && !event.isAltDown() && !event.isMetaDown();
+        boolean altOnly = event.isAltDown() && !event.isShiftDown()
+                && !event.isControlDown() && !event.isMetaDown();
+        if (code == KeyCode.SPACE || code == KeyCode.F4) {
+            return noModifiers;
+        }
+        if (code == KeyCode.UP || code == KeyCode.DOWN) {
+            return altOnly;
+        }
+        return false;
     }
 
     private void togglePopup(RXCascader<T> control) {

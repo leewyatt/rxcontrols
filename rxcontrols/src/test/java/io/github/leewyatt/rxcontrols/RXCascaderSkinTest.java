@@ -287,6 +287,36 @@ public class RXCascaderSkinTest {
     }
 
     /**
+     * Verifies a modified toggle key (Alt+F4) is not consumed, so it bubbles to an
+     * ancestor — the skin must not hijack the OS window-close combo. The popup
+     * toggle keys require the bare / Alt-only ComboBox modifier set.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void altF4IsNotConsumed() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.getRootItems().add(new RXCascaderItem<>("root"));
+
+            StackPane parent = new StackPane(cascader);
+            Scene scene = new Scene(parent);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            boolean[] reachedAncestor = {false};
+            parent.addEventHandler(KeyEvent.KEY_PRESSED, event -> reachedAncestor[0] = true);
+
+            // shift, ctrl, alt, meta — Alt+F4
+            Event.fireEvent(cascader, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.F4,
+                    false, false, true, false));
+
+            assertTrue(reachedAncestor[0],
+                    "Alt+F4 must bubble so the OS window-close shortcut is not hijacked");
+        });
+    }
+
+    /**
      * Verifies a discarded, never-disposed cascader is collectible while its item
      * tree lives: the skin observes the displayed items' {@code valueProperty}
      * weakly, so long-lived application items do not pin the control.
