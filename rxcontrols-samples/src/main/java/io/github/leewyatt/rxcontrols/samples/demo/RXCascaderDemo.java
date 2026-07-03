@@ -50,7 +50,12 @@ public class RXCascaderDemo extends Application {
         single.setClearable(true);
         single.setItemTextFactory(Option::label);
         single.setPathTextFactory(path -> String.join(" -> ", pathTexts(single.getItemTextFactory(), path)));
-        single.getRootItems().setAll(sampleOptions());
+        List<RXCascaderItem<Option>> cities = sampleOptions();
+        single.getRootItems().setAll(cities);
+        // Real form-restore pattern: on reload you look the saved id back up in the
+        // tree and select that actual node (not a new detached item), so the field
+        // shows the full path and opening the popup reveals/highlights the selection.
+        single.select(findById(cities, "berlin"));
 
         RXCascader<Option> multiple = new RXCascader<>();
         multiple.setPromptText("Choose multiple cities");
@@ -132,6 +137,19 @@ public class RXCascaderDemo extends Application {
         asia.getChildren().setAll(List.of(china, japan));
         europe.getChildren().add(germany);
         return List.of(asia, europe);
+    }
+
+    private static RXCascaderItem<Option> findById(List<RXCascaderItem<Option>> items, String id) {
+        for (RXCascaderItem<Option> item : items) {
+            if (id.equals(item.getValue().id())) {
+                return item;
+            }
+            RXCascaderItem<Option> found = findById(item.getChildren(), id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     private static List<RXCascaderItem<Option>> forcedBranchOptions() {

@@ -478,6 +478,46 @@ public class RXCascaderViewSkinTest {
     }
 
     /**
+     * Verifies revealing the current selection navigates the columns down to the
+     * selected leaf and shows its mark (the popup-open behavior of M-08). Before
+     * reveal, select alone leaves the columns at the root.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void revealSelectedPathExpandsAndHighlights() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> europe = item("europe");
+            RXCascaderItem<String> germany = item("germany");
+            RXCascaderItem<String> berlin = item("berlin");
+            germany.getChildren().add(berlin);
+            europe.getChildren().add(germany);
+            view.getRootItems().setAll(List.of(europe));
+            view.select(berlin);
+
+            Scene scene = new Scene(new StackPane(view), 480, 260);
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+            assertEquals(0, view.lookupAll(".rx-cascader-column-1").size(),
+                    "select alone does not navigate the columns");
+
+            view.revealSelectedPath();
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            assertEquals(1, view.lookupAll(".rx-cascader-column-0").size());
+            assertEquals(1, view.lookupAll(".rx-cascader-column-1").size());
+            assertEquals(1, view.lookupAll(".rx-cascader-column-2").size(),
+                    "columns expand down to the selected leaf's column");
+
+            var checks = view.lookupAll(".rx-cascader-cell > .container > .selected-check");
+            assertEquals(1, checks.stream().filter(Node::isVisible).count(),
+                    "the revealed selected leaf shows its selection mark");
+        });
+    }
+
+    /**
      * Verifies single-selection mode shows the check mark only on the selected
      * leaf, while the left slot stays reserved (managed) on every row.
      *

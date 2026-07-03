@@ -690,7 +690,9 @@ public class RXCascaderView<T> extends Control {
      * leaf. Applies only in single-selection mode; ignored in multiple mode, or
      * when the item is {@code null}, effectively disabled, or not a leaf. Unlike
      * {@link #activate} it never expands a branch — it is the programmatic
-     * counterpart of clicking a leaf in single-selection mode.
+     * counterpart of clicking a leaf in single-selection mode. The columns are not
+     * navigated here; {@link #revealSelectedPath()} (invoked when the popup opens)
+     * expands to the selection.
      *
      * @param leaf leaf item to select
      */
@@ -700,6 +702,28 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         selectedPath.set(createPath(leaf));
+    }
+
+    /**
+     * Navigates the columns to the current single selection so a freshly opened
+     * popup reveals it: the selected path's ancestor branches become the active
+     * path (expanding their columns and highlighting them), which brings the
+     * selected leaf into view with its selection mark. Since it reuses the path's
+     * own item instances, no lazy loading is triggered. A no-op when there is no
+     * selected path or the selection is no longer in the current tree.
+     */
+    public final void revealSelectedPath() {
+        RXCascaderPath<T> path = getSelectedPath();
+        if (path == null) {
+            return;
+        }
+        List<RXCascaderItem<T>> items = path.getItems();
+        if (items.isEmpty() || !isInCurrentTree(path.getLeaf())) {
+            return;
+        }
+        activePath.setAll(items.subList(0, items.size() - 1));
+        bumpColumnsRevision();
+        requestLayout();
     }
 
     /**

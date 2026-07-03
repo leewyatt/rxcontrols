@@ -331,6 +331,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private void syncPopupShowing() {
         updateDisplay();
         if (getSkinnable().isShowing()) {
+            // Reveal the current selection before showing so the popup opens already
+            // expanded to (and highlighting) the selected path, at the right size.
+            view.revealSelectedPath();
             popupSupport.show(getSkinnable());
         } else {
             popupSupport.hide();

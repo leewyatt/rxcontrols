@@ -1682,6 +1682,62 @@ public class RXCascaderViewTest {
     }
 
     /**
+     * Verifies revealing the selection sets the active path to the selected leaf's
+     * ancestor branches (so its column opens), while {@code select} on its own does
+     * not navigate.
+     */
+    @Test
+    public void revealSelectedPathSetsActivePathToAncestors() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        RXCascaderItem<String> europe = item("europe");
+        RXCascaderItem<String> germany = item("germany");
+        RXCascaderItem<String> berlin = item("berlin");
+        germany.getChildren().add(berlin);
+        europe.getChildren().add(germany);
+        view.getRootItems().setAll(List.of(europe));
+
+        view.select(berlin);
+        assertTrue(view.getActivePath().isEmpty(), "select must not navigate on its own");
+
+        view.revealSelectedPath();
+
+        assertEquals(List.of(europe, germany), view.getActivePath(),
+                "reveal expands to the selection's ancestor branches");
+    }
+
+    /**
+     * Verifies reveal is a no-op when there is no current selection.
+     */
+    @Test
+    public void revealSelectedPathIsNoOpWithoutSelection() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        view.getRootItems().setAll(List.of(item("a")));
+
+        view.revealSelectedPath();
+
+        assertTrue(view.getActivePath().isEmpty(), "no selection means nothing to reveal");
+    }
+
+    /**
+     * Verifies a selection whose ancestor chain is not in the current tree is not
+     * revealed — the guard against a stale path.
+     */
+    @Test
+    public void revealSelectedPathIgnoresPathOutsideTree() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        view.getRootItems().setAll(List.of(item("a")));
+        RXCascaderItem<String> strayParent = item("strayParent");
+        RXCascaderItem<String> strayLeaf = item("strayLeaf");
+        strayParent.getChildren().add(strayLeaf);
+        view.select(strayLeaf); // select accepts a leaf regardless of tree membership
+
+        view.revealSelectedPath();
+
+        assertTrue(view.getActivePath().isEmpty(),
+                "a selection outside the current tree must not be revealed");
+    }
+
+    /**
      * Verifies a forced branch ({@code leafHint=false}) that loads to zero
      * children under a pending check does not become a checked non-leaf: the
      * rollup rule that an empty branch cannot be checked applies to the replay
