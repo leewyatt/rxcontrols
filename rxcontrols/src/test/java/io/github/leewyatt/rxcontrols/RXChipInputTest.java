@@ -79,10 +79,37 @@ public class RXChipInputTest {
             assertTrue(input.isEditable());
             assertEquals(RXChipInput.DEFAULT_EDITOR_MIN_WIDTH, input.getEditorMinWidth());
             assertEquals(RXChipInput.DEFAULT_MAX_ROWS, input.getMaxRows());
+            assertEquals(RXChipInput.DEFAULT_GAP, input.getHgap());
+            assertEquals(RXChipInput.DEFAULT_GAP, input.getVgap());
+            assertFalse(input.isAutoSelectFirstSuggestion());
             assertTrue(input.getChips().isEmpty());
             assertSame(Orientation.HORIZONTAL, input.getContentBias());
             assertNotNull(input.getUserAgentStylesheet());
             assertTrue(input.createDefaultSkin() instanceof RXChipInputSkin<?>);
+        });
+    }
+
+    /**
+     * The chip gaps are real styleable properties: they round-trip through the Java
+     * setters and expose {@code -rx-hgap} / {@code -rx-vgap} CSS metadata.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void gapsAreStyleableAndRoundTrip() throws Exception {
+        runOnFx(() -> {
+            RXChipInput<String> input = new RXChipInput<>();
+            input.setHgap(12.0);
+            input.setVgap(3.0);
+            assertEquals(12.0, input.getHgap());
+            assertEquals(3.0, input.getVgap());
+            assertSame(input.hgapProperty(), input.hgapProperty());
+
+            List<String> cssNames = RXChipInput.getClassCssMetaData().stream()
+                    .map(m -> m.getProperty())
+                    .collect(Collectors.toList());
+            assertTrue(cssNames.contains("-rx-hgap"), "hgap is settable from CSS");
+            assertTrue(cssNames.contains("-rx-vgap"), "vgap is settable from CSS");
         });
     }
 
@@ -459,12 +486,11 @@ public class RXChipInputTest {
         });
     }
 
-    // ==================== Keyboard cursor / separators (P5) ====================
+    // ==================== Chip-focus navigation ====================
 
     /**
-     * Verifies chip-cursor navigation: Left enters from the editor, Left/Right move
-     * between chips, Home jumps to the first, and Right past the last / End returns to
-     * the editor.
+     * Verifies chip-focus navigation: Left from the empty editor focuses the last chip,
+     * Left / Right / Home move focus between chips, and End returns focus to the editor.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -501,7 +527,8 @@ public class RXChipInputTest {
     }
 
     /**
-     * Verifies Delete on a focused chip removes it and keeps focus on a neighbour.
+     * Verifies Delete on a focused chip removes it and moves focus to the chip that shifts
+     * into its slot (the next one), so repeated Delete removes a run rightwards.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -519,30 +546,40 @@ public class RXChipInputTest {
             assertSame(nodes.get(1), scene.getFocusOwner());
 
             nodes.get(1).fireEvent(key(KeyCode.DELETE));
-            assertEquals(List.of("a", "c"), input.getChips());
+            assertEquals(List.of("a", "c"), input.getChips(), "Delete removes the focused chip");
             // Focus moved to the chip now occupying index 1 (the former "c").
             assertSame(chipNodesOf(input).get(1), scene.getFocusOwner());
+
+            chipNodesOf(input).get(1).fireEvent(key(KeyCode.DELETE));
+            assertEquals(List.of("a"), input.getChips(), "repeated Delete removes the run rightwards");
         });
     }
 
     /**
-     * Verifies Escape on a focused chip returns focus to the editor.
+     * Verifies Backspace on a focused chip removes it and moves focus to the previous chip,
+     * so repeated Backspace removes a run leftwards.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void escapeOnFocusedChipReturnsToEditor() throws Exception {
+    public void backspaceOnFocusedChipRemovesAndFocusesPrevious() throws Exception {
         runOnFx(() -> {
             RXChipInput<String> input = attach(new RXChipInput<>());
-            input.getChips().addAll("a", "b");
+            input.getChips().addAll("a", "b", "c");
             input.applyCss();
             input.layout();
             Scene scene = input.getScene();
-            TextField editor = (TextField) input.lookup(".editor");
+            List<RXChip> nodes = chipNodesOf(input);
 
-            chipNodesOf(input).get(0).requestFocus();
-            input.fireEvent(key(KeyCode.ESCAPE));
-            assertSame(editor, scene.getFocusOwner());
+            nodes.get(2).requestFocus();
+            nodes.get(2).fireEvent(key(KeyCode.BACK_SPACE));
+            assertEquals(List.of("a", "b"), input.getChips(), "Backspace removes the focused chip");
+            // Focus moved to the previous chip ("b").
+            assertSame(chipNodesOf(input).get(1), scene.getFocusOwner());
+
+            chipNodesOf(input).get(1).fireEvent(key(KeyCode.BACK_SPACE));
+            assertEquals(List.of("a"), input.getChips(), "repeated Backspace removes the run leftwards");
+            assertSame(chipNodesOf(input).get(0), scene.getFocusOwner());
         });
     }
 
@@ -568,32 +605,23 @@ public class RXChipInputTest {
     }
 
     /**
-     * Verifies chip-cursor navigation steps over a disabled chip (regression for the
-     * P5 review disabled-trap finding).
+     * Verifies Escape on a focused chip returns focus to the editor.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void chipCursorSkipsDisabledChip() throws Exception {
+    public void escapeOnFocusedChipReturnsToEditor() throws Exception {
         runOnFx(() -> {
             RXChipInput<String> input = attach(new RXChipInput<>());
-            input.setChipFactory(item -> {
-                RXChip chip = new RXChip(item, RXChip.ChipType.INPUT);
-                chip.setRemovable(true);
-                if (item.equals("b")) {
-                    chip.setDisable(true);
-                }
-                return chip;
-            });
-            input.getChips().addAll("a", "b", "c");
+            input.getChips().addAll("a", "b");
             input.applyCss();
             input.layout();
             Scene scene = input.getScene();
-            List<RXChip> nodes = chipNodesOf(input);
+            TextField editor = (TextField) input.lookup(".editor");
 
-            nodes.get(2).requestFocus();
-            input.fireEvent(key(KeyCode.LEFT));
-            assertSame(nodes.get(0), scene.getFocusOwner(), "Left steps over the disabled chip b to a");
+            chipNodesOf(input).get(0).requestFocus();
+            input.fireEvent(key(KeyCode.ESCAPE));
+            assertSame(editor, scene.getFocusOwner());
         });
     }
 

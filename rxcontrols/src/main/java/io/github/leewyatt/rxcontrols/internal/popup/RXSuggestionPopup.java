@@ -70,6 +70,10 @@ public final class RXSuggestionPopup<T> {
     // duplicates are off). null = nothing disabled — the RXAutoComplete default.
     private Predicate<T> disabledPredicate;
     private boolean usingDefaultCellFactory = true;
+    // When true, the first selectable row is highlighted on every refilter (and on
+    // show), so Enter commits the top suggestion. Default false: the highlight starts
+    // empty and only the arrow keys set it.
+    private boolean autoHighlightFirst;
 
     // ==================== Animation ====================
 
@@ -209,6 +213,34 @@ public final class RXSuggestionPopup<T> {
         }
         model.select(next);
         listView.scrollTo(next);
+    }
+
+    /**
+     * Sets whether the first selectable row is auto-highlighted on each refilter and
+     * on show (default {@code false}). Enabling it while the popup is already showing
+     * highlights the first selectable row immediately if none is highlighted yet.
+     *
+     * @param value the auto-highlight-first flag
+     */
+    public void setAutoHighlightFirst(boolean value) {
+        autoHighlightFirst = value;
+        if (value && isShowing() && highlightedItem() == null) {
+            highlightFirstSelectable();
+        }
+    }
+
+    /** Highlights the first selectable (non-disabled) row, if any. */
+    private void highlightFirstSelectable() {
+        MultipleSelectionModel<T> model = listView.getSelectionModel();
+        int count = filtered.size();
+        if (model == null || count == 0) {
+            return;
+        }
+        int first = nextSelectableIndex(0, 1, count);
+        if (first >= 0) {
+            model.select(first);
+            listView.scrollTo(first);
+        }
     }
 
     /** First index at or past {@code from} in the {@code step} direction whose item is
@@ -581,6 +613,7 @@ public final class RXSuggestionPopup<T> {
         } else {
             backing.setAll(source);
         }
+        afterFilteredSettled();
     }
 
     private void scheduleFilter() {
@@ -599,6 +632,7 @@ public final class RXSuggestionPopup<T> {
 
     private void applyFilter() {
         filtered.setPredicate(filterPredicate.get());
+        afterFilteredSettled();
     }
 
     private void onFilteredChanged() {
@@ -607,6 +641,18 @@ public final class RXSuggestionPopup<T> {
             model.clearSelection();
         }
         updatePopupHeight();
+    }
+
+    /**
+     * Re-applies the auto-highlight once the filtered list (and the list's own
+     * selection-model reset, which fires during the change) has fully settled. Called
+     * after {@code setPredicate}/{@code setAll} return, so the highlight is not wiped by
+     * that reset.
+     */
+    private void afterFilteredSettled() {
+        if (autoHighlightFirst) {
+            highlightFirstSelectable();
+        }
     }
 
     private void updatePopupHeight() {

@@ -16,6 +16,10 @@ import java.util.function.DoubleSupplier;
  * the current row. When that remainder is narrower than the editor's minimum width
  * the editor drops to a fresh row and spans it.
  *
+ * <p>The horizontal and vertical gaps come from suppliers (the control's styleable
+ * {@code hgap} / {@code vgap}); they are clamped at render time — never on the
+ * property — so a stray CSS value cannot break the layout.</p>
+ *
  * <p>Pure geometry: it never requests focus, changes managed state or scrolls during
  * layout (which are the classic re-entrancy traps of hand-written chip panes). It
  * reports a {@link Orientation#HORIZONTAL} content bias so its height is computed for
@@ -23,21 +27,30 @@ import java.util.function.DoubleSupplier;
  */
 public final class ChipFlowLayout extends Region {
 
-    private static final double HGAP = 6.0;
-    private static final double VGAP = 6.0;
+    /** The rendered horizontal gap never drops below this, so the editor always has room. */
+    private static final double MIN_HGAP = 1.0;
+    /** The rendered vertical gap never goes negative. */
+    private static final double MIN_VGAP = 0.0;
 
     private final ChipEditor editor;
     private final DoubleSupplier editorMinWidthSupplier;
+    private final DoubleSupplier hgapSupplier;
+    private final DoubleSupplier vgapSupplier;
 
     /**
      * Creates a chip-flow layout.
      *
      * @param editor                 the always-present trailing editor
      * @param editorMinWidthSupplier supplies the editor's minimum width in pixels
+     * @param hgapSupplier           supplies the horizontal gap in pixels (clamped to at least one)
+     * @param vgapSupplier           supplies the vertical gap in pixels (clamped to at least zero)
      */
-    public ChipFlowLayout(ChipEditor editor, DoubleSupplier editorMinWidthSupplier) {
+    public ChipFlowLayout(ChipEditor editor, DoubleSupplier editorMinWidthSupplier,
+                          DoubleSupplier hgapSupplier, DoubleSupplier vgapSupplier) {
         this.editor = editor;
         this.editorMinWidthSupplier = editorMinWidthSupplier;
+        this.hgapSupplier = hgapSupplier;
+        this.vgapSupplier = vgapSupplier;
         getChildren().add(editor);
     }
 
@@ -61,6 +74,14 @@ public final class ChipFlowLayout extends Region {
 
     // ==================== Item geometry ====================
 
+    private double hgap() {
+        return Math.max(MIN_HGAP, hgapSupplier.getAsDouble());
+    }
+
+    private double vgap() {
+        return Math.max(MIN_VGAP, vgapSupplier.getAsDouble());
+    }
+
     private double itemWidth(Node node) {
         if (node == editor) {
             return Math.max(0, editorMinWidthSupplier.getAsDouble());
@@ -76,6 +97,7 @@ public final class ChipFlowLayout extends Region {
     private List<int[]> buildRows(double contentWidth) {
         List<Node> items = getChildren();
         List<int[]> rows = new ArrayList<>();
+        double hgap = hgap();
         int rowStart = 0;
         double x = 0;
         for (int i = 0; i < items.size(); i++) {
@@ -85,7 +107,7 @@ public final class ChipFlowLayout extends Region {
                 rowStart = i;
                 x = 0;
             }
-            x += w + HGAP;
+            x += w + hgap;
         }
         rows.add(new int[]{rowStart, items.size()});
         return rows;
@@ -110,6 +132,8 @@ public final class ChipFlowLayout extends Region {
         double top = insets.getTop();
         double contentWidth = getWidth() - left - insets.getRight();
 
+        double hgap = hgap();
+        double vgap = vgap();
         double y = top;
         for (int[] row : buildRows(contentWidth)) {
             int start = row[0];
@@ -126,9 +150,9 @@ public final class ChipFlowLayout extends Region {
                 }
                 double iy = y + (rh - h) / 2.0;
                 node.resizeRelocate(x, iy, w, h);
-                x += w + HGAP;
+                x += w + hgap;
             }
-            y += rh + VGAP;
+            y += rh + vgap;
         }
     }
 
@@ -136,12 +160,13 @@ public final class ChipFlowLayout extends Region {
     protected double computePrefWidth(double height) {
         List<Node> items = getChildren();
         Insets insets = getInsets();
+        double hgap = hgap();
         double w = 0;
         for (Node node : items) {
-            w += itemWidth(node) + HGAP;
+            w += itemWidth(node) + hgap;
         }
         if (!items.isEmpty()) {
-            w -= HGAP;
+            w -= hgap;
         }
         return insets.getLeft() + w + insets.getRight();
     }
@@ -177,7 +202,7 @@ public final class ChipFlowLayout extends Region {
             h += rowHeight(row[0], row[1]);
         }
         if (rows.size() > 1) {
-            h += VGAP * (rows.size() - 1);
+            h += vgap() * (rows.size() - 1);
         }
         return insets.getTop() + h + insets.getBottom();
     }
@@ -203,6 +228,6 @@ public final class ChipFlowLayout extends Region {
      * @return the row gap in pixels
      */
     public double rowGap() {
-        return VGAP;
+        return vgap();
     }
 }

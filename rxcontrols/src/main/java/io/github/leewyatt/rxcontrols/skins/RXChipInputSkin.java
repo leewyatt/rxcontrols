@@ -58,6 +58,10 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
     private final RXSuggestionPopup<T> popup = new RXSuggestionPopup<>();
     private final PauseTransition filterDebounce = new PauseTransition(FILTER_DEBOUNCE);
 
+    // Direction hint for the refocus after a keyboard chip removal: +1 (Delete) focuses
+    // the next chip, -1 (Backspace) the previous; 0 (close-click) uses the default rule.
+    private int pendingRemoveFocusDir;
+
     // Set while a chosen suggestion is written back, so the resulting editor-text
     // change does not immediately re-open the just-dismissed popup.
     private boolean suppressAutoShow;
@@ -74,7 +78,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         super(control);
 
         editor = new ChipEditor(control::getEditorMinWidth);
-        flowLayout = new ChipFlowLayout(editor, control::getEditorMinWidth);
+        flowLayout = new ChipFlowLayout(editor, control::getEditorMinWidth, control::getHgap, control::getVgap);
         flowLayout.getStyleClass().add(CONTENT_STYLE_CLASS);
 
         // Editor <-> control wiring.
@@ -89,14 +93,15 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
 
         disposer.registerEventFilter(editor, KeyEvent.KEY_PRESSED, this::onEditorKeyPressed);
         disposer.registerEventFilter(editor, KeyEvent.KEY_TYPED, this::onEditorKeyTyped);
-        // Chip-cursor navigation: keys bubbling from a focused chip node.
-        disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onChipNavKeyPressed);
+        // Chip-focus navigation. A capturing filter so Delete / Backspace on a focused chip
+        // are steered here (with a focus direction) before the chip removes itself.
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::onChipNavKey);
 
         // Removal veto flow: a REMOVE bubbling from a chip node removes its item.
         disposer.registerEventHandler(control, RXChipEvent.REMOVE, this::onChipRemoveRequested);
 
-        // Click anywhere that is not a chip or the editor focuses the editor, so the
-        // whole field behaves like a text input, not just the sliver after the last chip.
+        // A press on empty space focuses the editor, so the whole field behaves like a text
+        // input; a press on a chip body is handled by the chip itself (which takes focus).
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onContentMousePressed);
 
         // Chip model -> nodes, kept index-aligned.
@@ -107,6 +112,8 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
 
         disposer.registerListener(control.maxRowsProperty(), this::updateContentStructure);
         disposer.registerListener(control.editorMinWidthProperty(), flowLayout::requestLayout);
+        disposer.registerListener(control.hgapProperty(), flowLayout::requestLayout);
+        disposer.registerListener(control.vgapProperty(), flowLayout::requestLayout);
 
         // Suggestion popup wiring (reuses the shared RXSuggestionPopup).
         popup.setSuggestions(control.getSuggestions());
@@ -122,6 +129,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         // Already-chosen options are shown greyed and non-selectable when they cannot be
         // added again (duplicates off); allowDuplicates on leaves them selectable.
         popup.setDisabledPredicate(item -> !control.isAllowDuplicates() && control.getChips().contains(item));
+        popup.setAutoHighlightFirst(control.isAutoSelectFirstSuggestion());
         popup.setOnSuggestionSelected(this::commitSuggestion);
         popup.setOnHidden(filterDebounce::stop);
         filterDebounce.setOnFinished(event -> applyFilterAndMaybeShow(false));
@@ -131,6 +139,8 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         disposer.registerListener(control.filterFunctionProperty(), this::onEditorTextChanged);
         disposer.registerListener(control.filterSelectedOptionsProperty(), this::refilterOpenPopup);
         disposer.registerListener(control.allowDuplicatesProperty(), this::refilterOpenPopup);
+        disposer.registerListener(control.autoSelectFirstSuggestionProperty(),
+                () -> popup.setAutoHighlightFirst(control.isAutoSelectFirstSuggestion()));
         disposer.registerListener(control.converterProperty(),
                 () -> popup.setConverter(control.getConverter()));
         disposer.registerListener(control.suggestionCellFactoryProperty(),
@@ -232,23 +242,39 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
     private void onChipRemoveRequested(RXChipEvent event) {
         RXChip chip = event.getChip();
         int index = chipNodes.indexOf(chip);
-        if (index >= 0) {
-            boolean wasFocused = isChipFocused(chip);
-            getSkinnable().getChips().remove(index);
-            event.consume();
-            if (wasFocused) {
-                // Keep keyboard focus in the input: the nearest focusable chip at or
-                // after the removed slot, else before it, else the editor.
-                int target = nextFocusableChip(index - 1, 1);
-                if (target < 0) {
-                    target = nextFocusableChip(index, -1);
-                }
-                if (target >= 0) {
-                    chipNodes.get(target).requestFocus();
-                } else {
-                    editor.requestFocus();
-                }
+        if (index < 0) {
+            return;
+        }
+        boolean wasFocused = isChipFocused(chip);
+        int dir = pendingRemoveFocusDir;
+        getSkinnable().getChips().remove(index);
+        event.consume();
+        if (wasFocused) {
+            // Keep keyboard focus in the input rather than losing it with the removed node.
+            refocusAfterRemoval(index, dir);
+        }
+    }
+
+    // Moves focus after a removal at removedIndex: Backspace (dir < 0) prefers the previous
+    // chip, Delete / close-click (dir >= 0) the chip that shifted into the slot; the editor
+    // when no chip remains to take focus.
+    private void refocusAfterRemoval(int removedIndex, int dir) {
+        int target;
+        if (dir < 0) {
+            target = nextFocusableChip(removedIndex, -1);
+            if (target < 0) {
+                target = nextFocusableChip(removedIndex - 1, 1);
             }
+        } else {
+            target = nextFocusableChip(removedIndex - 1, 1);
+            if (target < 0) {
+                target = nextFocusableChip(removedIndex, -1);
+            }
+        }
+        if (target >= 0) {
+            chipNodes.get(target).requestFocus();
+        } else {
+            editor.requestFocus();
         }
     }
 
@@ -322,8 +348,9 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         }
     }
 
-    // Entering chip-cursor mode from the editor: LEFT (RIGHT under RTL) with an empty
-    // editor moves focus to the last chip; HOME jumps to the first chip.
+    // Entering chip-focus mode from the editor: LEFT (RIGHT under RTL) with an empty editor
+    // moves focus to the last chip; HOME jumps to the first chip. With text in the editor
+    // the keys fall through so the TextField moves its own text caret.
     private void handleEditorCursorInto(KeyEvent event, boolean rightKey) {
         if (!editor.getText().isEmpty() || chipNodes.isEmpty()) {
             return;
@@ -363,53 +390,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         return characters;
     }
 
-    // ==================== Chip-cursor navigation ====================
-
-    private void onChipNavKeyPressed(KeyEvent event) {
-        Scene scene = getSkinnable().getScene();
-        if (scene == null) {
-            return;
-        }
-        int current = chipNodes.indexOf(scene.getFocusOwner());
-        if (current < 0) {
-            // Focus is on the editor (handled by its own filter) or elsewhere.
-            return;
-        }
-        boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
-        switch (event.getCode()) {
-            case LEFT -> moveChipCursor(current, rtl ? 1 : -1, event);
-            case RIGHT -> moveChipCursor(current, rtl ? -1 : 1, event);
-            case HOME -> {
-                int first = nextFocusableChip(-1, 1);
-                if (first >= 0) {
-                    chipNodes.get(first).requestFocus();
-                    event.consume();
-                }
-            }
-            case END, ESCAPE -> {
-                editor.requestFocus();
-                event.consume();
-            }
-            default -> {
-                // DELETE / BACK_SPACE are handled by the chip's own skin.
-            }
-        }
-    }
-
-    private void moveChipCursor(int current, int step, KeyEvent event) {
-        int target = nextFocusableChip(current, step);
-        if (target >= 0) {
-            chipNodes.get(target).requestFocus();
-            event.consume();
-        } else if (step > 0) {
-            // Past the last focusable chip: return to the editor.
-            editor.requestFocus();
-            event.consume();
-        }
-        // step < 0 with no focusable chip to the left: leave focus and do not consume,
-        // so platform traversal can move out of the input.
-    }
-
     private static boolean hasModifier(KeyEvent event) {
         return event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown();
     }
@@ -440,7 +420,10 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
             popup.moveHighlight(1);
         } else {
             applyFilterAndMaybeShow(true);
-            if (popup.isShowing()) {
+            // DOWN-to-open lands on the first row. With autoSelectFirstSuggestion the
+            // popup already opens with row 0 highlighted, so only advance when nothing is
+            // highlighted yet — otherwise DOWN would skip the auto-highlighted first row.
+            if (popup.isShowing() && popup.highlightedItem() == null) {
                 popup.moveHighlight(1);
             }
         }
@@ -465,9 +448,76 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
     }
 
     private void handleBackspace(KeyEvent event) {
+        // Backspace on an empty editor removes the last chip (fast trailing delete).
         if (editor.getText().isEmpty() && !chipNodes.isEmpty()) {
             chipNodes.get(chipNodes.size() - 1).remove();
             event.consume();
+        }
+    }
+
+    // ==================== Chip-focus navigation ====================
+
+    // Keys while a chip is focused. Registered as a capturing filter so Delete / Backspace
+    // are handled here (with a focus direction) before the chip's own removal handler.
+    private void onChipNavKey(KeyEvent event) {
+        Scene scene = getSkinnable().getScene();
+        if (scene == null) {
+            return;
+        }
+        int current = chipNodes.indexOf(scene.getFocusOwner());
+        if (current < 0) {
+            // Focus is on the editor (handled by its own filter) or elsewhere.
+            return;
+        }
+        boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+        switch (event.getCode()) {
+            case LEFT -> moveChipCursor(current, rtl ? 1 : -1, event);
+            case RIGHT -> moveChipCursor(current, rtl ? -1 : 1, event);
+            case HOME -> {
+                int first = nextFocusableChip(-1, 1);
+                if (first >= 0) {
+                    chipNodes.get(first).requestFocus();
+                    event.consume();
+                }
+            }
+            case END, ESCAPE -> {
+                editor.requestFocus();
+                event.consume();
+            }
+            case DELETE -> removeFocusedChip(current, 1, event);
+            case BACK_SPACE -> removeFocusedChip(current, -1, event);
+            default -> {
+            }
+        }
+    }
+
+    private void moveChipCursor(int current, int step, KeyEvent event) {
+        int target = nextFocusableChip(current, step);
+        if (target >= 0) {
+            chipNodes.get(target).requestFocus();
+            event.consume();
+        } else if (step > 0) {
+            // Past the last focusable chip: return to the editor.
+            editor.requestFocus();
+            event.consume();
+        }
+        // step < 0 with no focusable chip to the left: leave focus and do not consume,
+        // so platform traversal can move out of the input.
+    }
+
+    // Removes the focused chip and records which way focus should move afterwards: Delete
+    // (dir +1) toward the next chip, Backspace (dir -1) toward the previous.
+    private void removeFocusedChip(int index, int dir, KeyEvent event) {
+        RXChip chip = chipNodes.get(index);
+        if (!chip.isRemovable()) {
+            return;
+        }
+        event.consume();
+        pendingRemoveFocusDir = dir;
+        try {
+            chip.remove();
+        } finally {
+            pendingRemoveFocusDir = 0;
         }
     }
 
@@ -564,7 +614,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
             return;
         }
         if (event.getTarget() instanceof Node target && isInChipOrEditor(target)) {
-            // A chip or the editor itself will handle its own press.
+            // A chip (which takes focus) or the editor itself handles its own press.
             return;
         }
         editor.requestFocus();

@@ -200,6 +200,29 @@ public class RXSuggestionPopupTest {
     }
 
     @Test
+    public void autoHighlightFirstHighlightsTopOnEachFilter() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setAutoHighlightFirst(true);
+            popup.setSuggestions(FXCollections.observableArrayList("apple", "banana", "berry"));
+            assertEquals("apple", popup.highlightedItem(), "first selectable row is highlighted on load");
+            popup.setFilterPredicate(s -> s.startsWith("b"));
+            assertEquals("banana", popup.highlightedItem(), "refilter re-highlights the new top row");
+        });
+    }
+
+    @Test
+    public void autoHighlightFirstSkipsDisabledTop() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setAutoHighlightFirst(true);
+            popup.setDisabledPredicate(s -> s.equals("a"));
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b", "c"));
+            assertEquals("b", popup.highlightedItem(), "auto-highlight lands on the first selectable row");
+        });
+    }
+
+    @Test
     public void disposeIsSafe() throws InterruptedException {
         runOnFx(() -> {
             RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();

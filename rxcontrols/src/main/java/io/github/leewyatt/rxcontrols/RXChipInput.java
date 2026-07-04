@@ -67,6 +67,9 @@ public class RXChipInput<T> extends Control {
     /** Default {@link #editorMinWidthProperty() editor min width}, in pixels. */
     public static final double DEFAULT_EDITOR_MIN_WIDTH = 60.0;
 
+    /** Default {@link #hgapProperty() horizontal} and {@link #vgapProperty() vertical} chip gap, in pixels. */
+    public static final double DEFAULT_GAP = 6.0;
+
     /** Default {@link #maxRowsProperty() maxRows}: unlimited. */
     public static final int DEFAULT_MAX_ROWS = -1;
 
@@ -297,6 +300,51 @@ public class RXChipInput<T> extends Control {
         allowDuplicates.set(value);
     }
 
+    // ==================== Auto-select first suggestion ====================
+
+    private final BooleanProperty autoSelectFirstSuggestion = new BooleanPropertyBase(false) {
+        @Override
+        public Object getBean() {
+            return RXChipInput.this;
+        }
+
+        @Override
+        public String getName() {
+            return "autoSelectFirstSuggestion";
+        }
+    };
+
+    /**
+     * Whether the suggestion popup automatically highlights its first selectable
+     * (non-disabled) row as soon as it opens or refilters, so pressing {@code Enter}
+     * commits that suggestion instead of the raw typed text. Default {@code false}:
+     * {@code Enter} commits the typed text unless a row was highlighted with the arrow
+     * keys, matching the desktop-autocomplete default of MUI and Angular Material.
+     *
+     * @return the auto-select-first-suggestion property
+     */
+    public final BooleanProperty autoSelectFirstSuggestionProperty() {
+        return autoSelectFirstSuggestion;
+    }
+
+    /**
+     * Returns whether the first selectable suggestion is auto-highlighted.
+     *
+     * @return whether the first selectable suggestion is auto-highlighted
+     */
+    public final boolean isAutoSelectFirstSuggestion() {
+        return autoSelectFirstSuggestion.get();
+    }
+
+    /**
+     * Sets whether the first selectable suggestion is auto-highlighted.
+     *
+     * @param value {@code true} to auto-highlight the first selectable suggestion
+     */
+    public final void setAutoSelectFirstSuggestion(boolean value) {
+        autoSelectFirstSuggestion.set(value);
+    }
+
     // ==================== Editable ====================
 
     private final BooleanProperty editable = new BooleanPropertyBase(true) {
@@ -475,6 +523,73 @@ public class RXChipInput<T> extends Control {
      */
     public final void setEditorMinWidth(double value) {
         editorMinWidth.set(value);
+    }
+
+    // ==================== Chip gaps (styleable) ====================
+
+    private final DoubleProperty hgap = new SimpleStyleableDoubleProperty(
+            StyleableProperties.HGAP, this, "hgap", DEFAULT_GAP);
+
+    private final DoubleProperty vgap = new SimpleStyleableDoubleProperty(
+            StyleableProperties.VGAP, this, "vgap", DEFAULT_GAP);
+
+    /**
+     * The horizontal gap between chips (and between a chip and the editor caret), in
+     * pixels. Settable from CSS via {@code -rx-hgap}. Non-positive values are not
+     * rejected here; the layout clamps the rendered gap to at least one pixel so the
+     * caret always has room.
+     *
+     * @return the horizontal-gap property
+     */
+    public final DoubleProperty hgapProperty() {
+        return hgap;
+    }
+
+    /**
+     * Returns the horizontal chip gap.
+     *
+     * @return the horizontal chip gap in pixels
+     */
+    public final double getHgap() {
+        return hgap.get();
+    }
+
+    /**
+     * Sets the horizontal chip gap.
+     *
+     * @param value the horizontal chip gap in pixels
+     */
+    public final void setHgap(double value) {
+        hgap.set(value);
+    }
+
+    /**
+     * The vertical gap between wrapped chip rows, in pixels. Settable from CSS via
+     * {@code -rx-vgap}. Negative values are not rejected here; the layout clamps the
+     * rendered gap to zero.
+     *
+     * @return the vertical-gap property
+     */
+    public final DoubleProperty vgapProperty() {
+        return vgap;
+    }
+
+    /**
+     * Returns the vertical chip-row gap.
+     *
+     * @return the vertical chip-row gap in pixels
+     */
+    public final double getVgap() {
+        return vgap.get();
+    }
+
+    /**
+     * Sets the vertical chip-row gap.
+     *
+     * @param value the vertical chip-row gap in pixels
+     */
+    public final void setVgap(double value) {
+        vgap.set(value);
     }
 
     // ==================== Max Rows (styleable) ====================
@@ -992,6 +1107,34 @@ public class RXChipInput<T> extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXChipInput<?>, Number> HGAP =
+                new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_GAP) {
+                    @Override
+                    public boolean isSettable(RXChipInput<?> input) {
+                        return !input.hgap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXChipInput<?> input) {
+                        return (StyleableProperty<Number>) input.hgapProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXChipInput<?>, Number> VGAP =
+                new CssMetaData<>("-rx-vgap", SizeConverter.getInstance(), DEFAULT_GAP) {
+                    @Override
+                    public boolean isSettable(RXChipInput<?> input) {
+                        return !input.vgap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXChipInput<?> input) {
+                        return (StyleableProperty<Number>) input.vgapProperty();
+                    }
+                };
+
         private static final CssMetaData<RXChipInput<?>, Number> MAX_ROWS =
                 new CssMetaData<>("-rx-max-rows", SizeConverter.getInstance(), DEFAULT_MAX_ROWS) {
                     @Override
@@ -1012,6 +1155,8 @@ public class RXChipInput<T> extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(EDITOR_MIN_WIDTH);
+            styleables.add(HGAP);
+            styleables.add(VGAP);
             styleables.add(MAX_ROWS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

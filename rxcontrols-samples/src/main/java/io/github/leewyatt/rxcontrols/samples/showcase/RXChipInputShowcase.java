@@ -70,8 +70,6 @@ public class RXChipInputShowcase extends RXShowcaseApplication {
         input.setCustomInputPolicy(CustomInputPolicy.FREE);
         input.setOnChipAdded(this::onChipAdded);
         input.setOnChipRemoved(this::onChipRemoved);
-        input.setMaxWidth(460.0);
-        input.setMaxHeight(600);
 
         StackPane host = new StackPane(input);
         host.getStyleClass().add("chip-input-preview");
