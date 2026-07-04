@@ -153,6 +153,53 @@ public class RXSuggestionPopupTest {
     }
 
     @Test
+    public void moveHighlightSkipsDisabledItems() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b", "c", "d"));
+            popup.setDisabledPredicate(s -> s.equals("b") || s.equals("c"));
+
+            popup.moveHighlight(1);
+            assertEquals("a", popup.highlightedItem(), "first down lands on the first enabled item");
+            popup.moveHighlight(1);
+            assertEquals("d", popup.highlightedItem(), "down skips the disabled b and c");
+            popup.moveHighlight(1);
+            assertEquals("d", popup.highlightedItem(), "no enabled item past d: highlight stays");
+            popup.moveHighlight(-1);
+            assertEquals("a", popup.highlightedItem(), "up skips c and b back to a");
+        });
+    }
+
+    @Test
+    public void allDisabledYieldsNoHighlightNorCommit() throws InterruptedException {
+        AtomicReference<String> committed = new AtomicReference<>();
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setOnSuggestionSelected(committed::set);
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b"));
+            popup.setDisabledPredicate(s -> true);
+
+            popup.moveHighlight(1);
+            assertNull(popup.highlightedItem(), "no selectable item can be highlighted");
+            assertNull(popup.selectHighlighted(), "nothing to commit");
+        });
+        assertNull(committed.get(), "no callback for an all-disabled list");
+    }
+
+    @Test
+    public void nullDisabledPredicateSelectsEveryItem() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b", "c"));
+
+            popup.moveHighlight(1);
+            assertEquals("a", popup.highlightedItem());
+            popup.moveHighlight(1);
+            assertEquals("b", popup.highlightedItem(), "with no disabled predicate nothing is skipped");
+        });
+    }
+
+    @Test
     public void disposeIsSafe() throws InterruptedException {
         runOnFx(() -> {
             RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();

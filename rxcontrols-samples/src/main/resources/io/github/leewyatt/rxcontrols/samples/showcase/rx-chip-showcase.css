@@ -1,0 +1,8 @@
+.chip-preview {
+    -fx-padding: 48px 56px;
+}
+
+.chip-preview .preview-caption {
+    -fx-font-size: 12px;
+    -fx-text-fill: #52606d;
+}

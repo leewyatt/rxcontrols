@@ -66,6 +66,10 @@ public final class RXSuggestionPopup<T> {
     private Duration animationDuration = DEFAULT_ANIMATION_DURATION;
     private Duration filterDelay = Duration.ZERO;
     private Consumer<T> onSuggestionSelected;
+    // Marks items that are shown but not selectable (e.g. already-chosen chips when
+    // duplicates are off). null = nothing disabled — the RXAutoComplete default.
+    private Predicate<T> disabledPredicate;
+    private boolean usingDefaultCellFactory = true;
 
     // ==================== Animation ====================
 
@@ -82,6 +86,7 @@ public final class RXSuggestionPopup<T> {
         // Focus stays on the host editor; the list is a passive highlight surface.
         listView.setFocusTraversable(false);
         listView.setItems(filtered);
+        listView.setCellFactory(disabledAwareCellFactory());
         listView.getTransforms().add(entranceScale);
 
         support = new RXPopupSupport(listView);
@@ -189,16 +194,32 @@ public final class RXSuggestionPopup<T> {
         if (model == null || count == 0) {
             return;
         }
+        int step = delta >= 0 ? 1 : -1;
         int current = model.getSelectedIndex();
-        int next = (current < 0) ? (delta >= 0 ? 0 : count - 1) : current + delta;
-        if (next < 0) {
-            next = 0;
+        int from;
+        if (current < 0) {
+            from = delta >= 0 ? 0 : count - 1;
+        } else {
+            from = Math.max(0, Math.min(count - 1, current + delta));
         }
-        if (next > count - 1) {
-            next = count - 1;
+        int next = nextSelectableIndex(from, step, count);
+        if (next < 0) {
+            // No selectable row in that direction: leave the highlight where it is.
+            return;
         }
         model.select(next);
         listView.scrollTo(next);
+    }
+
+    /** First index at or past {@code from} in the {@code step} direction whose item is
+     * selectable (not disabled); {@code -1} if none. */
+    private int nextSelectableIndex(int from, int step, int count) {
+        for (int i = from; i >= 0 && i < count; i += step) {
+            if (!isItemDisabled(filtered.get(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -336,12 +357,56 @@ public final class RXSuggestionPopup<T> {
     }
 
     /**
-     * Sets a custom cell factory.
+     * Sets a custom cell factory. A custom factory renders its own content and is
+     * responsible for reflecting {@link #setDisabledPredicate disabled} items visually;
+     * non-selectability is still enforced by the popup regardless. Passing {@code null}
+     * restores the built-in default cell (which greys disabled items).
      *
      * @param cellFactory the cell factory, or {@code null} for the default
      */
     public void setCellFactory(Callback<RXListView<T>, RXListCell<T>> cellFactory) {
-        listView.setCellFactory(cellFactory);
+        usingDefaultCellFactory = cellFactory == null;
+        listView.setCellFactory(cellFactory != null ? cellFactory : disabledAwareCellFactory());
+    }
+
+    /**
+     * Sets the predicate marking items that are shown but not selectable (greyed,
+     * skipped by keyboard, ignored by mouse). {@code null} (the default) disables
+     * nothing. Call {@link #refreshDisabledState()} after the predicate's inputs change
+     * while the popup is open.
+     *
+     * @param predicate the disabled predicate, or {@code null} for none
+     */
+    public void setDisabledPredicate(Predicate<T> predicate) {
+        this.disabledPredicate = predicate;
+        refreshDisabledState();
+    }
+
+    /**
+     * Re-evaluates the {@link #setDisabledPredicate disabled} state of the visible
+     * cells (the default cell factory only). A no-op under a custom cell factory.
+     */
+    public void refreshDisabledState() {
+        if (usingDefaultCellFactory) {
+            // A fresh factory instance forces the list skin to recreate its cells, which
+            // re-runs updateItem and thus re-reads the predicate; RXListView has no
+            // lighter refresh hook.
+            listView.setCellFactory(disabledAwareCellFactory());
+        }
+    }
+
+    private Callback<RXListView<T>, RXListCell<T>> disabledAwareCellFactory() {
+        return view -> new RXListCell<T>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                setDisable(!empty && isItemDisabled(item));
+            }
+        };
+    }
+
+    private boolean isItemDisabled(T item) {
+        return disabledPredicate != null && item != null && disabledPredicate.test(item);
     }
 
     /**
@@ -559,6 +624,10 @@ public final class RXSuggestionPopup<T> {
     }
 
     private void commit(T item) {
+        if (isItemDisabled(item)) {
+            // Single funnel for keyboard and mouse: a disabled item is never committed.
+            return;
+        }
         if (hideOnSelect) {
             hide();
         }
@@ -572,7 +641,7 @@ public final class RXSuggestionPopup<T> {
             return;
         }
         RXListCell<T> cell = enclosingCell(event.getTarget());
-        if (cell != null && !cell.isEmpty()) {
+        if (cell != null && !cell.isEmpty() && !isItemDisabled(cell.getItem())) {
             T item = cell.getItem();
             MultipleSelectionModel<T> model = listView.getSelectionModel();
             if (model != null) {

@@ -12,7 +12,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-auto-complete, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
-.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-circular-progress-indicator,
+.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-formatted-number-field, .rx-highlight-text-view,
@@ -797,6 +797,127 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXChip                                                                       *
+ *                                                                             *
+ ******************************************************************************/
+
+/* A capsule (stadium) pill: 999px radius, not 50% (a non-square node renders 50%
+   as an ellipse). The state overlay + press ripple fill comes from -rx-ripple-fill
+   (set in Java from this token); tier opacity comes from the global .state-overlay
+   rule. */
+.rx-chip {
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.18;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
+    -fx-padding: 0.5em 0.833em;
+    -fx-background-radius: 999px;
+    -fx-background-color: -rx-surface-variant;
+    /* A hairline outline so the pill stays legible even when its fill is close to the
+       surface behind it (e.g. a chip on a same-family field background). */
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1px;
+    -fx-border-radius: 999px;
+}
+
+.rx-chip > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/* Filter chip selected: a primary-tinted pill with primary label. */
+.rx-chip:filter:selected {
+    -fx-background-color: -rx-primary-bg;
+    -fx-border-color: -rx-primary-bg;
+}
+.rx-chip:filter:selected > .label {
+    -fx-text-fill: -rx-primary;
+}
+
+/* Close affordance: a transparent (pickable) enlarged hit area holding a
+   shape-backed X. The left padding is the visual gap from the label. */
+.rx-chip > .close-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+    -fx-padding: 0 0 0 0.333em;
+    -fx-cursor: hand;
+}
+.rx-chip > .close-button > .close-icon {
+    -fx-pref-width: 0.75em;
+    -fx-pref-height: 0.75em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+}
+.rx-chip > .close-button:hover > .close-icon {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-chip:disabled {
+    -fx-opacity: 0.4;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXChipSet                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+
+/* A transparent group of chips; the wrap layout, gaps and alignment come from the
+   composed .rx-flow-pane (bound to the set's hgap / vgap / alignment). */
+.rx-chip-set {
+    -fx-background-color: transparent;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXChipInput                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+
+.rx-chip-input {
+    /* The white text-input surface (not the grey app surface), so chips read against
+       it — themed correctly: white in light, -rx-surface in dark, bg-default in AtlantaFX. */
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 4px;
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 0.25em 0.5em;
+}
+
+/* Highlight the input while its suggestion dropdown is open (JavaFX 17 has no
+   :focus-within, so this mirrors the popup state instead). Placed before :error so
+   the error border wins at equal specificity when both states are active. */
+.rx-chip-input:popup-showing {
+    -fx-border-color: -rx-primary;
+}
+
+.rx-chip-input:error {
+    -fx-border-color: -rx-danger;
+}
+
+/* .content (the chip-flow pane) and .editor are descendants because a maxRows input
+   nests them inside a scroll pane; the direct-child form would miss that structure. */
+.rx-chip-input .content {
+    -fx-padding: 0.25em 0;
+}
+
+.rx-chip-input .editor {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.2em 0;
+    -fx-text-fill: -rx-on-surface;
+}
+
+/* The optional maxRows scroll wrapper stays transparent so only the input's own
+   border shows. */
+.rx-chip-input > .chip-scroll-pane,
+.rx-chip-input > .chip-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXTextField   RXPasswordField                                               *
  *                                                                             *
  ******************************************************************************/
@@ -1051,6 +1172,13 @@
  ******************************************************************************/
 .rx-suggestion-popup .rx-list-view {
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
+}
+
+/* Options shown but not selectable (e.g. a chip input's already-chosen items when
+   duplicates are off): greyed and inert. The cell is Node-disabled, so :hover never
+   applies and the keyboard/mouse skip it. */
+.rx-suggestion-popup .rx-list-view .rx-list-cell:disabled {
+    -fx-opacity: 0.38;
 }
 
 .rx-cascader-view > .columns {

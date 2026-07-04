@@ -11,6 +11,10 @@ import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXChip;
+import io.github.leewyatt.rxcontrols.RXChip.ChipType;
+import io.github.leewyatt.rxcontrols.RXChipInput;
+import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.RXDigit;
@@ -122,6 +126,9 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXCarousel", buildRXCarousel()));
         list.add(new NamedControl("RXCascader", buildRXCascader()));
         list.add(new NamedControl("RXCascaderView", buildRXCascaderView()));
+        list.add(new NamedControl("RXChip", buildRXChip()));
+        list.add(new NamedControl("RXChipInput", buildRXChipInput()));
+        list.add(new NamedControl("RXChipSet", buildRXChipSet()));
         list.add(new NamedControl("RXCircularProgressIndicator", buildRXCircularProgressIndicator()));
         list.add(new NamedControl("RXClipPathImageView", buildRXClipPathImageView()));
         list.add(new NamedControl("RXDigit", buildRXDigit()));
@@ -312,6 +319,40 @@ final class ThemeGalleryCards {
         view.activate(china);
         view.setMaxWidth(Double.MAX_VALUE);
         return view;
+    }
+
+    private static Node buildRXChip() {
+        RXChip assist = new RXChip("Assist", ChipType.ASSIST);
+        RXChip filter = new RXChip("Filter", ChipType.FILTER);
+        filter.setSelected(true);
+        RXChip input = new RXChip("Input", ChipType.INPUT);
+        input.setRemovable(true);
+        RXChip suggestion = new RXChip("Suggestion", ChipType.SUGGESTION);
+        HBox row = new HBox(8.0, assist, filter, input, suggestion);
+        row.setAlignment(Pos.CENTER);
+        return row;
+    }
+
+    private static Node buildRXChipSet() {
+        RXChipSet set = new RXChipSet(
+                new RXChip("Design", ChipType.FILTER),
+                new RXChip("Engineering", ChipType.FILTER),
+                new RXChip("Product", ChipType.FILTER),
+                new RXChip("Research", ChipType.FILTER));
+        set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
+        set.getChips().get(0).setSelected(true);
+        set.getChips().get(2).setSelected(true);
+        set.setMaxWidth(Double.MAX_VALUE);
+        return set;
+    }
+
+    private static Node buildRXChipInput() {
+        RXChipInput<String> input = new RXChipInput<>();
+        input.getSuggestions().setAll(List.of("Java", "Kotlin", "Scala", "Rust", "Go"));
+        input.getChips().setAll("Java", "Kotlin");
+        input.setPromptText("Add a language…");
+        input.setMaxWidth(Double.MAX_VALUE);
+        return input;
     }
 
     private static Node buildRXCircularProgressIndicator() {
