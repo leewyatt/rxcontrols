@@ -1,0 +1,14 @@
+.bbcode-preview {
+    -fx-padding: 24px 28px;
+    -fx-spacing: 12px;
+}
+
+.bbcode-preview .bbcode-preview-scroll {
+    -fx-background-color: transparent;
+    -fx-pref-height: 460px;
+}
+
+.content-area {
+    -fx-font-family: monospace;
+    -fx-pref-width: 320px;
+}

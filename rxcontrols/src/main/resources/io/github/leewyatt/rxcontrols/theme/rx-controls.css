@@ -11,7 +11,7 @@
  * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-bbcode-view, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -2453,4 +2453,129 @@
 .rx-placeholder:server-error > .content > .graphic > .icon {
     -fx-background-color: -rx-danger;
     -fx-shape: "M0 0L0 0 M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBBCodeView                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.rx-bbcode-view {
+    -rx-paragraph-spacing: 8;
+    -fx-background-color: transparent;
+}
+
+.rx-bbcode-view .text {
+    -fx-fill: -rx-on-surface;
+}
+
+/* .link and .text tie on specificity, so .link is placed later to win the fill. */
+.rx-bbcode-view .link {
+    -fx-fill: -rx-primary;
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.rx-bbcode-view .link:hover {
+    -fx-fill: derive(-rx-primary, -20%);
+}
+
+.rx-bbcode-view .code,
+.rx-bbcode-view .code-block .text {
+    -fx-font-family: monospace;
+}
+
+.rx-bbcode-view .heading {
+    -fx-font-weight: bold;
+    -fx-padding: 6 0 2 0;
+}
+
+.rx-bbcode-view .quote {
+    -fx-spacing: 4;
+    -fx-padding: 4 12;
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 0 0 0 3px;
+}
+
+.rx-bbcode-view .quote > .author > .text {
+    -fx-fill: -rx-on-surface-secondary;
+    -fx-font-style: italic;
+}
+
+.rx-bbcode-view .background {
+    -fx-spacing: 4;
+    -fx-padding: 4 8;
+}
+
+.rx-bbcode-view .code-block {
+    -fx-padding: 8 12;
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 4;
+}
+
+.rx-bbcode-view .list {
+    -fx-spacing: 4;
+    -fx-hgap: 8;
+    -fx-vgap: 4;
+}
+
+.rx-bbcode-view .item {
+    -fx-spacing: 8;
+}
+
+.rx-bbcode-view .marker {
+    -fx-fill: -rx-on-surface-secondary;
+}
+
+.rx-bbcode-view .table {
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1;
+}
+
+.rx-bbcode-view .cell {
+    -fx-padding: 4 8;
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 0.5;
+}
+
+.rx-bbcode-view .cell.header {
+    -fx-font-weight: bold;
+    -fx-background-color: -rx-surface-variant;
+}
+
+/* The header needs a background fill to be pickable across its full area, not just on
+   the label glyphs. */
+.rx-bbcode-view .spoiler > .header {
+    -fx-padding: 4 8;
+    -fx-cursor: hand;
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 4;
+}
+
+.rx-bbcode-view .spoiler:revealed > .header {
+    -fx-background-radius: 4 4 0 0;
+}
+
+.rx-bbcode-view .spoiler > .content {
+    -fx-padding: 8;
+}
+
+.rx-bbcode-view .hr {
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-background-color: -rx-outline;
+}
+
+.rx-bbcode-view .image-placeholder {
+    -fx-padding: 4 8;
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1;
+    -fx-border-style: dashed;
+    -fx-border-radius: 4;
+}
+
+.rx-bbcode-view > .placeholder {
+    -fx-opacity: 0.62;
+    -fx-text-fill: -rx-on-surface-secondary;
 }
