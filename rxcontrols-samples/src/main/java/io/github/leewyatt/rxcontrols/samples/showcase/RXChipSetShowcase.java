@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXChip;
-import io.github.leewyatt.rxcontrols.RXChip.ChipType;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXChipSet.SelectionMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -68,7 +67,9 @@ public class RXChipSetShowcase extends RXShowcaseApplication {
     }
 
     private static RXChip filterChip(String text) {
-        return new RXChip(text, ChipType.FILTER);
+        RXChip chip = new RXChip(text);
+        chip.setSelectable(true);
+        return chip;
     }
 
     @Override

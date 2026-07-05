@@ -824,12 +824,12 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* Filter chip selected: a primary-tinted pill with primary label. */
-.rx-chip:filter:selected {
+/* Selectable (filter) chip selected: a primary-tinted pill with primary label. */
+.rx-chip:selectable:selected {
     -fx-background-color: -rx-primary-bg;
     -fx-border-color: -rx-primary-bg;
 }
-.rx-chip:filter:selected > .label {
+.rx-chip:selectable:selected > .label {
     -fx-text-fill: -rx-primary;
 }
 

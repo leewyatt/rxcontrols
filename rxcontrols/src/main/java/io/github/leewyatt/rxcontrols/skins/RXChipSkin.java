@@ -26,8 +26,8 @@ import java.util.Locale;
  * {@code com.sun} {@code ButtonBehavior}), matching {@code ButtonBase}
  * semantics: a valid primary press arms, release fires; SPACE (and ENTER off
  * macOS) arms on press and fires on release; DELETE / BACKSPACE on a focused
- * removable chip requests removal. A {@link RXChip.ChipType#FILTER} chip toggles
- * its selected state through {@link RXChip#fire()}. The close button consumes its
+ * removable chip requests removal. A {@link RXChip#selectableProperty() selectable}
+ * chip toggles its selected state through {@link RXChip#fire()}. The close button consumes its
  * own press so it never arms or ripples the pill.</p>
  */
 public class RXChipSkin extends RXSkinBase<RXChip> {

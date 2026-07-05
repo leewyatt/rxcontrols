@@ -227,7 +227,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         if (factory != null) {
             return factory.call(item);
         }
-        RXChip chip = new RXChip(textFor(item), RXChip.ChipType.INPUT);
+        RXChip chip = new RXChip(textFor(item));
         chip.setRemovable(true);
         return chip;
     }

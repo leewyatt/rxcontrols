@@ -36,9 +36,9 @@ import java.util.List;
 /**
  * A compact, interactive entity — a "chip" (a.k.a. tag / token): an optional
  * leading graphic or avatar, a text label, and an optional trailing remove
- * (close) affordance. A chip has a primary action (like a button) and, for the
- * {@link ChipType#FILTER} type, a persistent {@link #selectedProperty() selected}
- * state.
+ * (close) affordance. A chip has a primary action (like a button) and, when
+ * {@link #selectableProperty() selectable}, a persistent
+ * {@link #selectedProperty() selected} state.
  *
  * <p>{@code RXChip} extends {@link ButtonBase}, inheriting {@code onAction} /
  * {@code armed} / {@code fire()} and (through {@code Labeled}) {@code text} /
@@ -60,95 +60,49 @@ public class RXChip extends ButtonBase {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-chip";
 
-    /**
-     * Default chip type. Public because the skin reads it to default a
-     * {@code null} {@link #typeProperty() type}.
-     */
-    public static final ChipType DEFAULT_TYPE = ChipType.ASSIST;
-
-    private static final PseudoClass ASSIST_PSEUDO_CLASS = PseudoClass.getPseudoClass("assist");
-    private static final PseudoClass FILTER_PSEUDO_CLASS = PseudoClass.getPseudoClass("filter");
-    private static final PseudoClass INPUT_PSEUDO_CLASS = PseudoClass.getPseudoClass("input");
-    private static final PseudoClass SUGGESTION_PSEUDO_CLASS = PseudoClass.getPseudoClass("suggestion");
+    private static final PseudoClass SELECTABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("selectable");
     private static final PseudoClass SELECTED_PSEUDO_CLASS = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass REMOVABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("removable");
-
-    // ==================== Chip Type ====================
-
-    /**
-     * The four Material chip types. The type is the primary switch: it drives the
-     * {@code :assist} / {@code :filter} / {@code :input} / {@code :suggestion}
-     * pseudo-classes and the accessible role, and seeds the default
-     * {@link #removableProperty() removable} affordance at construction.
-     */
-    public enum ChipType {
-        /** Momentary action (e.g. "Add to calendar"). Not selectable, not removable by default. Role BUTTON. */
-        ASSIST,
-        /** Toggle within a set (filter). Selectable ({@code selected}); removable optional. Role TOGGLE_BUTTON. */
-        FILTER,
-        /** A discrete data token entered by a user. Removable by default. Role BUTTON. */
-        INPUT,
-        /** A dynamically generated suggestion; clicking inserts it. Not selectable / removable. Role BUTTON. */
-        SUGGESTION
-    }
 
     // ==================== Constructors ====================
 
     /**
-     * Creates an assist chip with an empty text caption.
+     * Creates a chip with an empty text caption.
      */
     public RXChip() {
-        this("", ChipType.ASSIST);
+        this("");
     }
 
     /**
-     * Creates an assist chip with the given text caption.
+     * Creates a chip with the given text caption.
      *
      * @param text the text caption, or {@code null}
      */
     public RXChip(@NamedArg("text") String text) {
-        this(text, ChipType.ASSIST);
-    }
-
-    /**
-     * Creates a chip with the given text caption and type.
-     *
-     * @param text the text caption, or {@code null}
-     * @param type the chip type, or {@code null} (treated as {@link ChipType#ASSIST})
-     */
-    public RXChip(@NamedArg("text") String text, @NamedArg("type") ChipType type) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(true);
         setText(text);
-        setType(type);
-        // Seed the type-driven removable default once, at construction: an input
-        // chip is removable by default. Changing the type later does not silently
-        // clobber an explicit removable set by the user.
-        if (type == ChipType.INPUT) {
-            setRemovable(true);
-        }
-        // invalidated() only fires on a change; sync the type-driven pseudo-classes
-        // and accessible role explicitly for the initial (possibly unchanged) value.
-        applyType(getType());
+        setAccessibleRole(AccessibleRole.BUTTON);
     }
 
     /**
-     * Creates an assist chip with the given text caption and leading graphic.
+     * Creates a chip with the given text caption and leading graphic.
      *
      * @param text    the text caption, or {@code null}
      * @param graphic the leading graphic node, or {@code null}
      */
     public RXChip(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
-        this(text, ChipType.ASSIST);
+        this(text);
         setGraphic(graphic);
     }
 
-    // ==================== Type ====================
+    // ==================== Selectable ====================
 
-    private final ObjectProperty<ChipType> type = new ObjectPropertyBase<>(DEFAULT_TYPE) {
+    private final BooleanProperty selectable = new BooleanPropertyBase(false) {
         @Override
         protected void invalidated() {
-            applyType(get());
+            pseudoClassStateChanged(SELECTABLE_PSEUDO_CLASS, get());
+            setAccessibleRole(get() ? AccessibleRole.TOGGLE_BUTTON : AccessibleRole.BUTTON);
         }
 
         @Override
@@ -158,48 +112,41 @@ public class RXChip extends ButtonBase {
 
         @Override
         public String getName() {
-            return "type";
+            return "selectable";
         }
     };
 
     /**
-     * The chip type. Drives the {@code :assist} / {@code :filter} / {@code :input}
-     * / {@code :suggestion} pseudo-classes and the accessible role
-     * ({@link ChipType#FILTER} → {@code TOGGLE_BUTTON}, others → {@code BUTTON}).
-     * {@code null} is treated as {@link #DEFAULT_TYPE}.
+     * Whether this chip is a toggle (a "filter" chip). When {@code true}, activating
+     * the chip (mouse, Space / Enter off macOS, {@link #fire()}) flips
+     * {@link #selectedProperty() selected} and the chip reports
+     * {@link AccessibleRole#TOGGLE_BUTTON}. When {@code false} (the default) the chip
+     * is a momentary action — an assist / input / suggestion chip — that fires its
+     * action without keeping a selected state and reports {@link AccessibleRole#BUTTON}.
+     * Drives the {@code :selectable} pseudo-class.
      *
-     * @return the type property
+     * @return the selectable property
      */
-    public final ObjectProperty<ChipType> typeProperty() {
-        return type;
+    public final BooleanProperty selectableProperty() {
+        return selectable;
     }
 
     /**
-     * Returns the chip type.
+     * Returns whether this chip is a toggle.
      *
-     * @return the chip type, or {@code null}
+     * @return whether this chip is selectable
      */
-    public final ChipType getType() {
-        return type.get();
+    public final boolean isSelectable() {
+        return selectable.get();
     }
 
     /**
-     * Sets the chip type.
+     * Sets whether this chip is a toggle.
      *
-     * @param value the chip type, or {@code null} for the default
+     * @param value {@code true} to make the chip a selectable toggle
      */
-    public final void setType(ChipType value) {
-        type.set(value);
-    }
-
-    private void applyType(ChipType value) {
-        ChipType resolved = value == null ? DEFAULT_TYPE : value;
-        pseudoClassStateChanged(ASSIST_PSEUDO_CLASS, resolved == ChipType.ASSIST);
-        pseudoClassStateChanged(FILTER_PSEUDO_CLASS, resolved == ChipType.FILTER);
-        pseudoClassStateChanged(INPUT_PSEUDO_CLASS, resolved == ChipType.INPUT);
-        pseudoClassStateChanged(SUGGESTION_PSEUDO_CLASS, resolved == ChipType.SUGGESTION);
-        setAccessibleRole(resolved == ChipType.FILTER
-                ? AccessibleRole.TOGGLE_BUTTON : AccessibleRole.BUTTON);
+    public final void setSelectable(boolean value) {
+        selectable.set(value);
     }
 
     // ==================== Selected ====================
@@ -223,11 +170,11 @@ public class RXChip extends ButtonBase {
     };
 
     /**
-     * Whether this chip is selected. Meaningful for {@link ChipType#FILTER} chips
-     * (a persistent single toggle); the property is writable for any type but only
-     * a filter chip toggles it on activation. Drives the {@code :selected}
-     * pseudo-class. This is a single on/off switch, unrelated to how many chips a
-     * {@code RXChipSet} lets you select at once.
+     * Whether this chip is selected. Meaningful for a
+     * {@link #selectableProperty() selectable} chip (a persistent single toggle); the
+     * property is writable for any chip but only a selectable chip toggles it on
+     * activation. Drives the {@code :selected} pseudo-class. This is a single on/off
+     * switch, unrelated to how many chips a {@code RXChipSet} lets you select at once.
      *
      * @return the selected property
      */
@@ -277,8 +224,7 @@ public class RXChip extends ButtonBase {
 
     /**
      * Whether the chip shows a trailing remove (close) affordance. Defaults to
-     * {@code true} for a chip created as {@link ChipType#INPUT}, {@code false}
-     * otherwise. Drives the {@code :removable} pseudo-class and the skin's close
+     * {@code false}. Drives the {@code :removable} pseudo-class and the skin's close
      * button.
      *
      * @return the removable property
@@ -368,15 +314,16 @@ public class RXChip extends ButtonBase {
     }
 
     /**
-     * Fires the chip's primary action. A {@link ChipType#FILTER} chip also toggles
-     * {@link #selectedProperty() selected}. A disabled chip ignores it.
+     * Fires the chip's primary action. A {@link #selectableProperty() selectable}
+     * chip also toggles {@link #selectedProperty() selected}. A disabled chip ignores
+     * it.
      */
     @Override
     public void fire() {
         if (isDisabled()) {
             return;
         }
-        if (getType() == ChipType.FILTER) {
+        if (isSelectable()) {
             setSelected(!isSelected());
         }
         fireEvent(new ActionEvent());

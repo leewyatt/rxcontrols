@@ -1,14 +1,11 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXChip;
-import io.github.leewyatt.rxcontrols.RXChip.ChipType;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
-import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
@@ -22,12 +19,12 @@ import java.util.function.Consumer;
 /**
  * Showcase application for {@link RXChip}.
  *
- * <p>Drives a single configurable chip across every axis — the four
- * {@link ChipType} personas (assist / filter / input / suggestion), the
- * {@code selected}, {@code removable} and {@code disabled} states, the ripple and
- * state-overlay toggles with their opacity, and the {@code maxLabelWidth} cap — and
- * shows one static chip of each type for comparison. For the everyday tag-entry use
- * see {@link RXChipInputShowcase}.</p>
+ * <p>Drives a single configurable chip across every axis — the {@code selectable}
+ * toggle (a filter chip) and {@code removable} affordance that compose the assist /
+ * filter / input / suggestion personas, the {@code selected} and {@code disabled}
+ * states, the ripple and state-overlay toggles with their opacity, and the
+ * {@code maxLabelWidth} cap — and shows one static chip of each persona for
+ * comparison. For the everyday tag-entry use see {@link RXChipInputShowcase}.</p>
  */
 public class RXChipShowcase extends RXShowcaseApplication {
 
@@ -50,17 +47,17 @@ public class RXChipShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        chip = new RXChip("Configurable chip", ChipType.ASSIST);
+        chip = new RXChip("Configurable chip");
         chip.setMaxLabelWidth(320.0);
 
         HBox personas = new HBox(10.0,
-                new RXChip("Assist", ChipType.ASSIST),
+                new RXChip("Assist"),
                 filter("Filter", true),
-                removableChip("Input", ChipType.INPUT),
-                new RXChip("Suggestion", ChipType.SUGGESTION));
+                removableChip("Input"),
+                new RXChip("Suggestion"));
         personas.setAlignment(Pos.CENTER);
 
-        Label personaCaption = new Label("The four chip types");
+        Label personaCaption = new Label("The four chip personas");
         personaCaption.getStyleClass().add("preview-caption");
 
         VBox box = new VBox(28.0, chip, new VBox(8.0, personas, personaCaption));
@@ -73,13 +70,14 @@ public class RXChipShowcase extends RXShowcaseApplication {
     }
 
     private static RXChip filter(String text, boolean selected) {
-        RXChip filterChip = new RXChip(text, ChipType.FILTER);
+        RXChip filterChip = new RXChip(text);
+        filterChip.setSelectable(true);
         filterChip.setSelected(selected);
         return filterChip;
     }
 
-    private static RXChip removableChip(String text, ChipType type) {
-        RXChip removable = new RXChip(text, type);
+    private static RXChip removableChip(String text) {
+        RXChip removable = new RXChip(text);
         removable.setRemovable(true);
         return removable;
     }
@@ -94,16 +92,11 @@ public class RXChipShowcase extends RXShowcaseApplication {
     }
 
     private Node personaGrid() {
-        ComboBox<ChipType> type = new ComboBox<>(FXCollections.observableArrayList(ChipType.values()));
-        type.setValue(chip.getType());
-        type.valueProperty().addListener((obs, old, value) -> chip.setType(value));
-        type.setMaxWidth(Double.MAX_VALUE);
-
         TextField text = new TextField(chip.getText());
         text.textProperty().addListener((obs, old, value) -> chip.setText(value));
 
         return createGrid(
-                row("Type", type),
+                row(checkBox("Selectable (toggle / filter chip)", chip.isSelectable(), chip::setSelectable)),
                 row("Text", text));
     }
 

@@ -37,18 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXChip}: default state, chip-type pseudo-classes / accessible
- * role, selected / removable state, the {@code fire()} + filter-toggle contract,
- * the vetoable remove event, mouse and keyboard (SPACE / ENTER / DELETE)
+ * Tests for {@link RXChip}: default state, the {@code selectable} pseudo-class /
+ * accessible role, selected / removable state, the {@code fire()} + selectable-toggle
+ * contract, the vetoable remove event, mouse and keyboard (SPACE / ENTER / DELETE)
  * activation and removal, the ripple layer, {@code maxLabelWidth} truncation and
  * CSS metadata.
  */
 public class RXChipTest {
 
-    private static final PseudoClass ASSIST = PseudoClass.getPseudoClass("assist");
-    private static final PseudoClass FILTER = PseudoClass.getPseudoClass("filter");
-    private static final PseudoClass INPUT = PseudoClass.getPseudoClass("input");
-    private static final PseudoClass SUGGESTION = PseudoClass.getPseudoClass("suggestion");
+    private static final PseudoClass SELECTABLE = PseudoClass.getPseudoClass("selectable");
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass REMOVABLE = PseudoClass.getPseudoClass("removable");
 
@@ -83,7 +80,7 @@ public class RXChipTest {
             RXChip chip = new RXChip("Tag");
             assertTrue(chip.getStyleClass().contains("rx-chip"));
             assertEquals("Tag", chip.getText());
-            assertSame(RXChip.ChipType.ASSIST, chip.getType());
+            assertFalse(chip.isSelectable());
             assertFalse(chip.isSelected());
             assertFalse(chip.isRemovable());
             assertTrue(chip.isFocusTraversable());
@@ -94,48 +91,41 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies the constructors: empty text, type constructor, input default
-     * removable, and the graphic constructor.
+     * Verifies the constructors: empty text, text, and the graphic constructor —
+     * none of which is selectable or removable by default.
      */
     @Test
-    public void constructorsSetTextTypeGraphicAndInputRemovable() {
+    public void constructorsSetTextAndGraphic() {
         assertEquals("", new RXChip().getText());
-        assertSame(RXChip.ChipType.ASSIST, new RXChip("x").getType());
 
-        RXChip input = new RXChip("m@x.com", RXChip.ChipType.INPUT);
-        assertSame(RXChip.ChipType.INPUT, input.getType());
-        assertTrue(input.isRemovable(), "an input chip is removable by default");
+        RXChip text = new RXChip("m@x.com");
+        assertEquals("m@x.com", text.getText());
+        assertFalse(text.isSelectable());
+        assertFalse(text.isRemovable());
 
         Region graphic = new Region();
         RXChip withGraphic = new RXChip("g", graphic);
         assertSame(graphic, withGraphic.getGraphic());
-        assertSame(RXChip.ChipType.ASSIST, withGraphic.getType());
+        assertFalse(withGraphic.isSelectable());
     }
 
     /**
-     * Verifies the type drives the type pseudo-classes and the accessible role,
-     * and that a {@code null} type is treated as ASSIST.
+     * Verifies {@code selectable} drives the {@code :selectable} pseudo-class and the
+     * accessible role (TOGGLE_BUTTON when selectable, BUTTON otherwise).
      */
     @Test
-    public void typeDrivesPseudoClassesAndRole() {
+    public void selectableDrivesPseudoClassAndRole() {
         RXChip chip = new RXChip("x");
-        assertTrue(chip.getPseudoClassStates().contains(ASSIST));
+        assertFalse(chip.getPseudoClassStates().contains(SELECTABLE));
         assertSame(AccessibleRole.BUTTON, chip.getAccessibleRole());
 
-        chip.setType(RXChip.ChipType.FILTER);
-        assertTrue(chip.getPseudoClassStates().contains(FILTER));
-        assertFalse(chip.getPseudoClassStates().contains(ASSIST));
+        chip.setSelectable(true);
+        assertTrue(chip.getPseudoClassStates().contains(SELECTABLE));
         assertSame(AccessibleRole.TOGGLE_BUTTON, chip.getAccessibleRole());
 
-        chip.setType(RXChip.ChipType.INPUT);
-        assertTrue(chip.getPseudoClassStates().contains(INPUT));
+        chip.setSelectable(false);
+        assertFalse(chip.getPseudoClassStates().contains(SELECTABLE));
         assertSame(AccessibleRole.BUTTON, chip.getAccessibleRole());
-
-        chip.setType(RXChip.ChipType.SUGGESTION);
-        assertTrue(chip.getPseudoClassStates().contains(SUGGESTION));
-
-        chip.setType(null);
-        assertTrue(chip.getPseudoClassStates().contains(ASSIST), "null type is treated as ASSIST");
     }
 
     /**
@@ -147,7 +137,7 @@ public class RXChipTest {
     @Test
     public void selectedDrivesPseudoClassAndAccessibleAttribute() throws Exception {
         runOnFx(() -> {
-            RXChip chip = new RXChip("x", RXChip.ChipType.FILTER);
+            RXChip chip = selectableChip("x");
             assertFalse(chip.getPseudoClassStates().contains(SELECTED));
             assertEquals(Boolean.FALSE, chip.queryAccessibleAttribute(AccessibleAttribute.SELECTED));
 
@@ -202,13 +192,13 @@ public class RXChipTest {
     // ==================== fire() / remove event ====================
 
     /**
-     * Verifies a filter chip's {@code fire()} toggles selected and fires one
-     * {@link javafx.event.ActionEvent}, while an assist chip's fires the action
+     * Verifies a selectable chip's {@code fire()} toggles selected and fires one
+     * {@link javafx.event.ActionEvent}, while a non-selectable chip's fires the action
      * without toggling; a programmatic {@code setSelected} fires none.
      */
     @Test
-    public void fireTogglesFilterSelectedAndFiresAction() {
-        RXChip filter = new RXChip("x", RXChip.ChipType.FILTER);
+    public void fireTogglesSelectableSelectedAndFiresAction() {
+        RXChip filter = selectableChip("x");
         AtomicInteger fired = new AtomicInteger();
         filter.setOnAction(event -> fired.incrementAndGet());
 
@@ -219,11 +209,11 @@ public class RXChipTest {
         assertFalse(filter.isSelected());
         assertEquals(2, fired.get());
 
-        RXChip assist = new RXChip("a", RXChip.ChipType.ASSIST);
+        RXChip assist = new RXChip("a");
         AtomicInteger assistFired = new AtomicInteger();
         assist.setOnAction(event -> assistFired.incrementAndGet());
         assist.fire();
-        assertFalse(assist.isSelected(), "assist chip does not toggle selected");
+        assertFalse(assist.isSelected(), "a non-selectable chip does not toggle selected");
         assertEquals(1, assistFired.get());
     }
 
@@ -232,7 +222,7 @@ public class RXChipTest {
      */
     @Test
     public void disabledFireIsNoOp() {
-        RXChip chip = new RXChip("x", RXChip.ChipType.FILTER);
+        RXChip chip = selectableChip("x");
         chip.setDisable(true);
         AtomicInteger fired = new AtomicInteger();
         chip.setOnAction(event -> fired.incrementAndGet());
@@ -249,7 +239,7 @@ public class RXChipTest {
      */
     @Test
     public void removeFiresVetoableRemoveEvent() {
-        RXChip chip = new RXChip("x", RXChip.ChipType.INPUT);
+        RXChip chip = removableChip("x");
         AtomicReference<RXChipEvent> seen = new AtomicReference<>();
         chip.setOnRemove(event -> {
             seen.set(event);
@@ -299,7 +289,7 @@ public class RXChipTest {
     @Test
     public void closeButtonPressDoesNotArmAndClickRemoves() throws Exception {
         runOnFx(() -> {
-            RXChip chip = attach(new RXChip("x", RXChip.ChipType.INPUT));
+            RXChip chip = attach(removableChip("x"));
             Node closeButton = chip.lookup(".close-button");
             assertNotNull(closeButton);
             RippleLayer ripple = (RippleLayer) chip.lookup(".ripple-layer");
@@ -331,7 +321,7 @@ public class RXChipTest {
     @Test
     public void closeGestureDoesNotReArmPillOnDragBackIn() throws Exception {
         runOnFx(() -> {
-            RXChip chip = new RXChip("x", RXChip.ChipType.FILTER);
+            RXChip chip = selectableChip("x");
             chip.setRemovable(true);
             attach(chip);
             Node closeButton = chip.lookup(".close-button");
@@ -363,7 +353,7 @@ public class RXChipTest {
     @Test
     public void spaceArmsOnPressFiresOnRelease() throws Exception {
         runOnFx(() -> {
-            RXChip chip = attach(new RXChip("x", RXChip.ChipType.FILTER));
+            RXChip chip = attach(selectableChip("x"));
             AtomicInteger fired = new AtomicInteger();
             chip.setOnAction(event -> fired.incrementAndGet());
 
@@ -408,7 +398,7 @@ public class RXChipTest {
     @Test
     public void deleteRemovesRemovableChipOnly() throws Exception {
         runOnFx(() -> {
-            RXChip removable = attach(new RXChip("x", RXChip.ChipType.INPUT));
+            RXChip removable = attach(removableChip("x"));
             AtomicInteger removed = new AtomicInteger();
             removable.addEventHandler(RXChipEvent.REMOVE, event -> removed.incrementAndGet());
             removable.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.DELETE));
@@ -494,6 +484,18 @@ public class RXChipTest {
         new Scene(root, 240.0, 80.0);
         root.applyCss();
         root.layout();
+        return chip;
+    }
+
+    private static RXChip selectableChip(String text) {
+        RXChip chip = new RXChip(text);
+        chip.setSelectable(true);
+        return chip;
+    }
+
+    private static RXChip removableChip(String text) {
+        RXChip chip = new RXChip(text);
+        chip.setRemovable(true);
         return chip;
     }
 

@@ -12,7 +12,6 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXChip;
-import io.github.leewyatt.rxcontrols.RXChip.ChipType;
 import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
@@ -322,12 +321,13 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXChip() {
-        RXChip assist = new RXChip("Assist", ChipType.ASSIST);
-        RXChip filter = new RXChip("Filter", ChipType.FILTER);
+        RXChip assist = new RXChip("Assist");
+        RXChip filter = new RXChip("Filter");
+        filter.setSelectable(true);
         filter.setSelected(true);
-        RXChip input = new RXChip("Input", ChipType.INPUT);
+        RXChip input = new RXChip("Input");
         input.setRemovable(true);
-        RXChip suggestion = new RXChip("Suggestion", ChipType.SUGGESTION);
+        RXChip suggestion = new RXChip("Suggestion");
         HBox row = new HBox(8.0, assist, filter, input, suggestion);
         row.setAlignment(Pos.CENTER);
         return row;
@@ -335,15 +335,21 @@ final class ThemeGalleryCards {
 
     private static Node buildRXChipSet() {
         RXChipSet set = new RXChipSet(
-                new RXChip("Design", ChipType.FILTER),
-                new RXChip("Engineering", ChipType.FILTER),
-                new RXChip("Product", ChipType.FILTER),
-                new RXChip("Research", ChipType.FILTER));
+                selectableChip("Design"),
+                selectableChip("Engineering"),
+                selectableChip("Product"),
+                selectableChip("Research"));
         set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
         set.getChips().get(0).setSelected(true);
         set.getChips().get(2).setSelected(true);
         set.setMaxWidth(Double.MAX_VALUE);
         return set;
+    }
+
+    private static RXChip selectableChip(String text) {
+        RXChip chip = new RXChip(text);
+        chip.setSelectable(true);
+        return chip;
     }
 
     private static Node buildRXChipInput() {

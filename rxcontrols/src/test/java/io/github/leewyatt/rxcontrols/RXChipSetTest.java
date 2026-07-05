@@ -147,8 +147,8 @@ public class RXChipSetTest {
      */
     @Test
     public void singleModeIsMutuallyExclusive() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.SINGLE);
         AtomicInteger changes = new AtomicInteger();
@@ -170,9 +170,9 @@ public class RXChipSetTest {
      */
     @Test
     public void multipleModeAccumulatesInChipOrder() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
-        RXChip c = new RXChip("c", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
+        RXChip c = new RXChip("c");
         RXChipSet set = new RXChipSet(a, b, c);
         set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
 
@@ -186,8 +186,8 @@ public class RXChipSetTest {
      */
     @Test
     public void noneModeClearsAndRejectsSelection() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
         a.setSelected(true);
@@ -210,8 +210,8 @@ public class RXChipSetTest {
      */
     @Test
     public void switchingToSingleCollapsesSelection() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
         a.setSelected(true);
@@ -227,8 +227,8 @@ public class RXChipSetTest {
      */
     @Test
     public void requiredSelectionPreventsDeselectingTheLastChip() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.SINGLE);
         set.setAllowEmptySelection(false);
@@ -246,8 +246,8 @@ public class RXChipSetTest {
      */
     @Test
     public void removingSelectedChipUpdatesSelection() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
         a.setSelected(true);
@@ -324,8 +324,8 @@ public class RXChipSetTest {
      */
     @Test
     public void selectedChipsIsUnmodifiable() {
-        RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
-        RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
+        RXChip a = new RXChip("a");
+        RXChip b = new RXChip("b");
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.SINGLE);
         a.setSelected(true);
