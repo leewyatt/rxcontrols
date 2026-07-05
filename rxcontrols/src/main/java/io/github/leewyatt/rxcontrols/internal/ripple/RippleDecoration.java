@@ -121,6 +121,13 @@ public final class RippleDecoration {
                 pointerInside = false;
                 pressed = false;
                 clear();
+            } else {
+                // Re-entering a scene: clear() dropped the bounded clip on the way out and
+                // nothing else rebuilds it if the host is re-added at an unchanged size (so
+                // it is never re-laid-out). Request a layout so the clip is recomputed, which
+                // keeps the ripple / state overlay clipped after a reparent (e.g. a parent
+                // that rebuilds its children with setAll).
+                host.requestLayout();
             }
         });
 

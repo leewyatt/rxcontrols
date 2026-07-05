@@ -487,36 +487,36 @@ public class RXChipInputTest {
     }
 
     /**
-     * Verifies adding a chip does not tear down the pre-existing chips' ripple clips: the
-     * flow layout applies the change as a delta, so unchanged chips stay attached and keep
-     * the bounded clip their skin installed (regression for the real-machine report that a
-     * newly added chip left the others with a square overlay and an overflowing ripple).
+     * Verifies adding a chip does not detach the pre-existing chip nodes: the flow layout
+     * applies the change as an in-place delta, so unchanged chips are never removed from the
+     * scene. (Detaching a chip drops the bounded clip its skin installed for the ripple /
+     * state overlay, and it is not rebuilt if the chip is re-added at an unchanged size —
+     * the real-machine report of a square overlay and an overflowing ripple on the other
+     * chips after an add.)
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void addingChipKeepsExistingChipRippleClips() throws Exception {
+    public void addingChipDoesNotDetachExistingChipNodes() throws Exception {
         runOnFx(() -> {
             RXChipInput<String> input = attach(new RXChipInput<>());
             input.getChips().addAll("aaa", "bbb");
             input.applyCss();
             input.layout();
-            assertNotNull(rippleClipOf(chipNodesOf(input).get(0)), "chip has a bounded ripple clip initially");
+            RXChip first = chipNodesOf(input).get(0);
+            int[] detachCount = {0};
+            first.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene == null) {
+                    detachCount[0]++;
+                }
+            });
 
             input.getChips().add("ccc");
-            input.applyCss();
-            input.layout();
 
-            List<RXChip> chips = chipNodesOf(input);
-            assertNotNull(rippleClipOf(chips.get(0)), "an existing chip keeps its ripple clip after an add");
-            assertNotNull(rippleClipOf(chips.get(1)), "an existing chip keeps its ripple clip after an add");
-            assertNotNull(rippleClipOf(chips.get(2)), "the newly added chip has its ripple clip");
+            assertEquals(0, detachCount[0],
+                    "adding a chip must not detach an existing chip node (which would drop its ripple clip)");
+            assertEquals(3, chipNodesOf(input).size(), "the new chip is added");
         });
-    }
-
-    // The chip skin's first child is the ripple layer, which owns the bounded pill clip.
-    private static Node rippleClipOf(RXChip chip) {
-        return chip.getChildrenUnmodifiable().get(0).getClip();
     }
 
     // ==================== Chip-focus navigation ====================
