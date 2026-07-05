@@ -111,6 +111,35 @@ public class RXChipSetTest {
         });
     }
 
+    /**
+     * Verifies mutating the chips does not detach the chip nodes already in place: the skin
+     * reconciles the flow pane's children in place rather than rebuilding them with a full
+     * {@code setAll}, so an unchanged chip is never removed from the scene — which would
+     * drop the bounded ripple clip its skin installed and reset its hover / press state.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void mutatingChipsDoesNotDetachExistingChipNodes() throws Exception {
+        runOnFx(() -> {
+            RXChip a = new RXChip("a");
+            RXChip b = new RXChip("b");
+            RXChipSet set = attach(new RXChipSet(a, b));
+            int[] aDetach = {0};
+            a.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene == null) {
+                    aDetach[0]++;
+                }
+            });
+
+            set.getChips().add(new RXChip("c"));
+            set.getChips().remove(b);
+
+            assertEquals(0, aDetach[0],
+                    "an unchanged chip must not be detached when other chips are added or removed");
+        });
+    }
+
     // ==================== Selection model ====================
 
     /**

@@ -44,7 +44,21 @@ public class RXChipSetSkin extends RXSkinBase<RXChipSet> {
     }
 
     private void syncChips() {
-        flowPane.getChildren().setAll(getSkinnable().getChips());
+        // Reconcile the flow pane's children against the set's chips in place rather than
+        // rebuilding them with setAll: chips already in position are left attached, so their
+        // skins (and the ripple clip a chip skin installs on layout) are not torn down and
+        // rebuilt — and their hover / press state and in-flight ripple are not reset — on
+        // every add or remove.
+        List<Node> children = flowPane.getChildren();
+        List<RXChip> chips = getSkinnable().getChips();
+        children.removeIf(node -> !chips.contains(node));
+        for (int i = 0; i < chips.size(); i++) {
+            RXChip chip = chips.get(i);
+            if (i >= children.size() || children.get(i) != chip) {
+                children.remove(chip);
+                children.add(i, chip);
+            }
+        }
     }
 
     // ==================== Layout ====================
