@@ -851,6 +851,14 @@
     -fx-background-color: -rx-on-surface;
 }
 
+/* Keyboard-focus ring: recolour the pill's outline to the focus colour, kept at the
+   resting 1px width so focus never reflows the chip. The chip-focus navigation relies on
+   this to show which chip Delete / Backspace will act on; the border is already pill-radius,
+   so the ring follows the chip shape instead of the square platform default. */
+.rx-chip:focused {
+    -fx-border-color: -rx-focus;
+}
+
 .rx-chip:disabled {
     -fx-opacity: 0.4;
 }
