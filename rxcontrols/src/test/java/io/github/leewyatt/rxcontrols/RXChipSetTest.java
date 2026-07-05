@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link RXChipSet}: defaults, chip-list mirroring into the composed
- * flow pane, the single / multiple / none / mandatory selection model, the
+ * flow pane, the single / multiple / none / allow-empty selection model, the
  * derived {@code selectedChips} and selection event, wrap sizing (horizontal
  * content bias) and arrow-key roving focus.
  */
@@ -64,7 +64,7 @@ public class RXChipSetTest {
             RXChipSet set = new RXChipSet();
             assertTrue(set.getStyleClass().contains("rx-chip-set"));
             assertSame(RXChipSet.SelectionMode.NONE, set.getSelectionMode());
-            assertFalse(set.isMandatory());
+            assertTrue(set.isAllowEmptySelection());
             assertEquals(RXChipSet.DEFAULT_GAP, set.getHgap());
             assertEquals(RXChipSet.DEFAULT_GAP, set.getVgap());
             assertSame(Pos.TOP_LEFT, set.getAlignment());
@@ -222,21 +222,22 @@ public class RXChipSetTest {
     }
 
     /**
-     * Verifies mandatory prevents deselecting the last selected chip.
+     * Verifies a required selection (allowEmptySelection = false) prevents deselecting
+     * the last selected chip.
      */
     @Test
-    public void mandatoryPreventsDeselectingTheLastChip() {
+    public void requiredSelectionPreventsDeselectingTheLastChip() {
         RXChip a = new RXChip("a", RXChip.ChipType.FILTER);
         RXChip b = new RXChip("b", RXChip.ChipType.FILTER);
         RXChipSet set = new RXChipSet(a, b);
         set.setSelectionMode(RXChipSet.SelectionMode.SINGLE);
-        set.setMandatory(true);
+        set.setAllowEmptySelection(false);
 
         a.setSelected(true);
         assertTrue(a.isSelected());
 
         a.setSelected(false);
-        assertTrue(a.isSelected(), "mandatory reverts deselecting the last selected chip");
+        assertTrue(a.isSelected(), "a required selection reverts deselecting the last selected chip");
         assertEquals(List.of(a), set.getSelectedChips());
     }
 

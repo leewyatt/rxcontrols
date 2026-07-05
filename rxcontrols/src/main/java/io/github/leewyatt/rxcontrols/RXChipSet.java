@@ -36,7 +36,7 @@ import java.util.Map;
 
 /**
  * A wrapping group of {@link RXChip} nodes with an optional selection model
- * (none / single / multiple, optionally mandatory). Display-and-select only — it
+ * (none / single / multiple, optionally requiring a selection). Display-and-select only — it
  * has no text editor and no autocomplete; for tag entry use {@code RXChipInput}.
  *
  * <p>A {@link Control} whose skin composes an
@@ -44,8 +44,9 @@ import java.util.Map;
  * Selection is coordinated at the control layer from each chip's
  * {@link RXChip#selectedProperty() selected} state (no JavaFX {@code ToggleGroup}):
  * in {@link SelectionMode#SINGLE} selecting one chip deselects the rest; in
- * {@link SelectionMode#MULTIPLE} any number may be selected; {@link #mandatoryProperty()
- * mandatory} prevents deselecting the last selected chip. The read-only
+ * {@link SelectionMode#MULTIPLE} any number may be selected;
+ * {@link #allowEmptySelectionProperty() allowEmptySelection}{@code =false} prevents
+ * deselecting the last selected chip. The read-only
  * {@link #selectedChipsProperty() selectedChips} tracks the current selection and a
  * {@link RXChipEvent#SELECTION_CHANGED} event fires when it changes.</p>
  */
@@ -168,9 +169,9 @@ public class RXChipSet extends Control {
         return value == null ? SelectionMode.NONE : value;
     }
 
-    // ==================== Mandatory ====================
+    // ==================== Allow empty selection ====================
 
-    private final BooleanProperty mandatory = new BooleanPropertyBase(false) {
+    private final BooleanProperty allowEmptySelection = new BooleanPropertyBase(true) {
         @Override
         public Object getBean() {
             return RXChipSet.this;
@@ -178,37 +179,40 @@ public class RXChipSet extends Control {
 
         @Override
         public String getName() {
-            return "mandatory";
+            return "allowEmptySelection";
         }
     };
 
     /**
-     * Whether at least one chip must stay selected once a selection exists: with
-     * {@code mandatory} true, deselecting the last selected chip is reverted. It
-     * does not force an initial selection. Ignored in {@link SelectionMode#NONE}.
+     * Whether the selection may become empty. With {@code allowEmptySelection}
+     * {@code false}, deselecting the last selected chip is reverted so at least one
+     * chip stays selected once a selection exists. This is a lazy guard: it only
+     * vetoes emptying an existing selection and never seeds an initial one — an
+     * {@code allowEmptySelection=false} set can still legitimately sit fully empty.
+     * Ignored in {@link SelectionMode#NONE}.
      *
-     * @return the mandatory property
+     * @return the allow-empty-selection property
      */
-    public final BooleanProperty mandatoryProperty() {
-        return mandatory;
+    public final BooleanProperty allowEmptySelectionProperty() {
+        return allowEmptySelection;
     }
 
     /**
-     * Returns whether a selection is mandatory.
+     * Returns whether the selection may become empty.
      *
-     * @return whether a selection is mandatory
+     * @return whether an empty selection is allowed
      */
-    public final boolean isMandatory() {
-        return mandatory.get();
+    public final boolean isAllowEmptySelection() {
+        return allowEmptySelection.get();
     }
 
     /**
-     * Sets whether a selection is mandatory.
+     * Sets whether the selection may become empty.
      *
-     * @param value {@code true} to prevent deselecting the last chip
+     * @param value {@code false} to prevent deselecting the last selected chip
      */
-    public final void setMandatory(boolean value) {
-        mandatory.set(value);
+    public final void setAllowEmptySelection(boolean value) {
+        allowEmptySelection.set(value);
     }
 
     // ==================== Selected Chips (read-only) ====================
@@ -328,8 +332,8 @@ public class RXChipSet extends Control {
                         }
                     }
                 }
-            } else if (mode != SelectionMode.NONE && isMandatory() && noneSelected()) {
-                // Reverting a deselection that would empty a mandatory selection.
+            } else if (mode != SelectionMode.NONE && !isAllowEmptySelection() && noneSelected()) {
+                // Reverting a deselection that would empty a selection where empty is not allowed.
                 chip.setSelected(true);
             }
         } finally {
