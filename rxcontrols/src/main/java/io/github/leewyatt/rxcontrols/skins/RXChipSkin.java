@@ -16,10 +16,7 @@ import java.util.Locale;
  * Default skin for {@link RXChip}.
  *
  * <p>Renders a pill holding an inner {@code .label} (the chip's text and leading
- * graphic, ellipsis-truncated), an optional leading {@code .check} wrapper around a
- * shape-backed {@code .check-icon} (shown only while a
- * {@link RXChip#selectableProperty() selectable} chip is
- * {@link RXChip#selectedProperty() selected}) and, when the chip is
+ * graphic, ellipsis-truncated) and, when the chip is
  * {@link RXChip#removableProperty() removable}, a trailing {@code .close-button}
  * wrapper around a shape-backed {@code .close-icon}. A bounded
  * {@link RippleDecoration} sits below the content, clipped to the pill geometry;
@@ -44,8 +41,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     // ==================== Fields ====================
 
     private final Label label = new Label();
-    private final StackPane checkGraphic = new StackPane();
-    private final Region checkIcon = new Region();
     private final StackPane closeButton = new StackPane();
     private final Region closeIcon = new Region();
     private final RippleDecoration ripple;
@@ -84,16 +79,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
         disposer.registerBinding(label.wrapTextProperty(), control.wrapTextProperty());
         disposer.registerBinding(label.alignmentProperty(), control.alignmentProperty());
 
-        // Leading check: a shape-backed icon shown only while a selectable chip is
-        // selected. Purely decorative (the selected state is conveyed to a11y through
-        // the SELECTED attribute + TOGGLE_BUTTON role), so it is mouse-transparent.
-        checkIcon.getStyleClass().add("check-icon");
-        checkIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        checkIcon.setMouseTransparent(true);
-        checkGraphic.getStyleClass().add("check");
-        checkGraphic.setMouseTransparent(true);
-        checkGraphic.getChildren().setAll(checkIcon);
-
         closeIcon.getStyleClass().add("close-icon");
         closeIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         closeIcon.setMouseTransparent(true);
@@ -105,12 +90,9 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
                 control::getRippleOpacity, null, null);
 
         getChildren().setAll(ripple.getLayer(), label);
-        updateCheckGraphic();
         updateCloseButton();
         updateCloseAccessibleText();
 
-        disposer.registerListener(control.selectableProperty(), this::updateCheckGraphic);
-        disposer.registerListener(control.selectedProperty(), this::updateCheckGraphic);
         disposer.registerListener(control.removableProperty(), this::updateCloseButton);
         disposer.registerListener(control.textProperty(), this::updateCloseAccessibleText);
         disposer.registerListener(control.maxLabelWidthProperty(), control::requestLayout);
@@ -127,20 +109,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     }
 
     // ==================== Children ====================
-
-    private void updateCheckGraphic() {
-        boolean shouldShow = isCheckShown();
-        boolean shown = getChildren().contains(checkGraphic);
-        if (shouldShow && !shown) {
-            getChildren().add(checkGraphic);
-        } else if (!shouldShow && shown) {
-            getChildren().remove(checkGraphic);
-        }
-    }
-
-    private boolean isCheckShown() {
-        return getSkinnable().isSelectable() && getSkinnable().isSelected();
-    }
 
     private void updateCloseButton() {
         boolean shouldShow = getSkinnable().isRemovable();
@@ -162,21 +130,13 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     @Override
     protected void layoutChildren(double contentX, double contentY,
                                   double contentWidth, double contentHeight) {
-        boolean checked = getChildren().contains(checkGraphic);
         boolean removable = getChildren().contains(closeButton);
-        double checkW = checked ? snapSizeX(checkGraphic.prefWidth(-1)) : 0.0;
-        double checkH = checked ? snapSizeY(checkGraphic.prefHeight(-1)) : 0.0;
         double closeW = removable ? snapSizeX(closeButton.prefWidth(-1)) : 0.0;
         double closeH = removable ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
 
-        if (checked) {
-            double checkY = contentY + (contentHeight - checkH) / 2.0;
-            checkGraphic.resizeRelocate(snapPositionX(contentX), snapPositionY(checkY), checkW, checkH);
-        }
-
-        double labelAvailable = Math.max(0.0, contentWidth - checkW - closeW);
+        double labelAvailable = Math.max(0.0, contentWidth - closeW);
         double labelWidth = Math.min(labelAvailable, cappedLabelWidth());
-        label.resizeRelocate(snapPositionX(contentX + checkW), snapPositionY(contentY),
+        label.resizeRelocate(snapPositionX(contentX), snapPositionY(contentY),
                 labelWidth, contentHeight);
 
         if (removable) {
@@ -197,13 +157,13 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + checkWidth() + snapSizeX(label.minWidth(-1)) + closeWidth() + rightInset;
+        return leftInset + snapSizeX(label.minWidth(-1)) + closeWidth() + rightInset;
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + checkWidth() + snapSizeX(cappedLabelWidth()) + closeWidth() + rightInset;
+        return leftInset + snapSizeX(cappedLabelWidth()) + closeWidth() + rightInset;
     }
 
     @Override
@@ -224,18 +184,13 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
                                        double bottomInset, double leftInset) {
         double labelH = snapSizeY(label.prefHeight(-1));
         double closeH = getSkinnable().isRemovable() ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
-        double checkH = isCheckShown() ? snapSizeY(checkGraphic.prefHeight(-1)) : 0.0;
-        return topInset + Math.max(Math.max(labelH, closeH), checkH) + bottomInset;
+        return topInset + Math.max(labelH, closeH) + bottomInset;
     }
 
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
-    }
-
-    private double checkWidth() {
-        return isCheckShown() ? snapSizeX(checkGraphic.prefWidth(-1)) : 0.0;
     }
 
     private double closeWidth() {

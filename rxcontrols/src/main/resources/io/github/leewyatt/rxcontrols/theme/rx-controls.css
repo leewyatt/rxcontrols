@@ -833,20 +833,6 @@
     -fx-text-fill: -rx-primary;
 }
 
-/* Leading check: a shape-backed tick the skin shows only while a selectable chip is
-   selected. Coloured to match the selected label; the right padding is the gap to it. */
-.rx-chip > .check {
-    -fx-padding: 0 0.333em 0 0;
-}
-.rx-chip > .check > .check-icon {
-    /* The tick glyph's tight bounds are ~1.31:1 (w:h); -fx-shape scales to fill, so
-       the pref box keeps that ratio to render it undistorted. */
-    -fx-pref-width: 1em;
-    -fx-pref-height: 0.75em;
-    -fx-background-color: -rx-primary;
-    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
-}
-
 /* Close affordance: a transparent (pickable) enlarged hit area holding a
    shape-backed X. The left padding is the visual gap from the label. */
 .rx-chip > .close-button {
