@@ -49,6 +49,14 @@ import java.util.Map;
  * deselecting the last selected chip. The read-only
  * {@link #selectedChipsProperty() selectedChips} tracks the current selection and a
  * {@link RXChipEvent#SELECTION_CHANGED} event fires when it changes.</p>
+ *
+ * <p>A member chip may also carry a remove affordance: setting a chip
+ * {@link RXChip#removableProperty() removable} lets the user delete it from the set
+ * (its close button, or DELETE / BACKSPACE on a focused chip). The set removes it from
+ * {@link #getChips() chips}; a {@link RXChipEvent#REMOVED} fires whenever a chip leaves
+ * the set (from the affordance or a direct {@code chips} mutation). Removal is
+ * structural, so it is allowed even for the sole selected chip under
+ * {@code allowEmptySelection=false} (that floor guards only user deselection).</p>
  */
 public class RXChipSet extends Control {
 
@@ -92,7 +100,10 @@ public class RXChipSet extends Control {
      */
     public RXChipSet() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        chips.addListener((ListChangeListener<RXChip>) change -> onChipsChanged());
+        chips.addListener((ListChangeListener<RXChip>) this::onChipsListChanged);
+        // Honor a removable chip's remove affordance: a REMOVE bubbling from a chip
+        // node deletes it from this set (unless a chip-level handler vetoed it).
+        addEventHandler(RXChipEvent.REMOVE, this::onChipRemoveRequested);
     }
 
     /**
@@ -186,9 +197,12 @@ public class RXChipSet extends Control {
     /**
      * Whether the selection may become empty. With {@code allowEmptySelection}
      * {@code false}, deselecting the last selected chip is reverted so at least one
-     * chip stays selected once a selection exists. This is a lazy guard: it only
-     * vetoes emptying an existing selection and never seeds an initial one — an
-     * {@code allowEmptySelection=false} set can still legitimately sit fully empty.
+     * chip stays selected once a selection exists. The guard applies to user
+     * <em>deselection</em> only: it never seeds an initial selection, and it does not
+     * block structural removal — deleting the sole selected chip (through its remove
+     * affordance or a {@link #getChips() chips} mutation) still leaves the selection
+     * empty. So an {@code allowEmptySelection=false} set can legitimately sit fully
+     * empty: before anything is selected, or after the last selected chip is removed.
      * Ignored in {@link SelectionMode#NONE}.
      *
      * @return the allow-empty-selection property
@@ -288,6 +302,96 @@ public class RXChipSet extends Control {
      */
     public final void setOnSelectionChange(EventHandler<RXChipEvent> value) {
         onSelectionChange.set(value);
+    }
+
+    // ==================== Removal ====================
+
+    /**
+     * Honors a chip's remove affordance. When a {@link RXChip#removableProperty()
+     * removable} chip in this set requests removal (its close button, or DELETE /
+     * BACKSPACE on a focused chip, fires a vetoable {@link RXChipEvent#REMOVE}), the
+     * set removes it from {@link #getChips() chips} — which fires
+     * {@link RXChipEvent#REMOVED} and reconciles the selection. A handler that
+     * {@link javafx.event.Event#consume() consumes} the {@code REMOVE} on the chip
+     * vetoes it — this handler never runs. Removal is structural and ignores
+     * {@link #allowEmptySelectionProperty() allowEmptySelection}: deleting the sole
+     * selected chip is allowed and simply leaves the selection empty (that floor only
+     * guards user deselection, not membership).
+     *
+     * @param event the remove request bubbling from a chip node
+     */
+    private void onChipRemoveRequested(RXChipEvent event) {
+        RXChip chip = event.getChip();
+        if (chip != null && chips.remove(chip)) {
+            // The chip-list listener fires REMOVED and reconciles the selection;
+            // consume so the request does not bubble past the set.
+            event.consume();
+        }
+    }
+
+    private void onChipsListChanged(ListChangeListener.Change<? extends RXChip> change) {
+        // Collect the chips leaving the set — from any cause (the remove affordance or a
+        // direct getChips() mutation) — so REMOVED fires for each, matching RXChipInput
+        // (the shared event then means the same thing on both controls).
+        List<RXChip> removed = new ArrayList<>();
+        while (change.next()) {
+            if (change.wasRemoved()) {
+                removed.addAll(change.getRemoved());
+            }
+        }
+        // Reconcile selection first so a REMOVED handler observes a consistent model
+        // (the removed chip already gone from both chips and selectedChips).
+        onChipsChanged();
+        for (RXChip chip : removed) {
+            fireEvent(new RXChipEvent(RXChipEvent.REMOVED, chip, null));
+        }
+    }
+
+    private final ObjectProperty<EventHandler<RXChipEvent>> onChipRemoved =
+            new ObjectPropertyBase<>() {
+                @Override
+                protected void invalidated() {
+                    setEventHandler(RXChipEvent.REMOVED, get());
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXChipSet.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "onChipRemoved";
+                }
+            };
+
+    /**
+     * The handler invoked after a chip is removed from the set — through its remove
+     * affordance or a direct {@link #getChips() chips} mutation (the
+     * {@link RXChipEvent#REMOVED} event).
+     *
+     * @return the on-chip-removed property
+     */
+    public final ObjectProperty<EventHandler<RXChipEvent>> onChipRemovedProperty() {
+        return onChipRemoved;
+    }
+
+    /**
+     * Returns the on-chip-removed handler.
+     *
+     * @return the on-chip-removed handler, or {@code null}
+     */
+    public final EventHandler<RXChipEvent> getOnChipRemoved() {
+        return onChipRemoved.get();
+    }
+
+    /**
+     * Sets the on-chip-removed handler.
+     *
+     * @param value the on-chip-removed handler, or {@code null}
+     */
+    public final void setOnChipRemoved(EventHandler<RXChipEvent> value) {
+        onChipRemoved.set(value);
     }
 
     // ==================== Selection coordination ====================

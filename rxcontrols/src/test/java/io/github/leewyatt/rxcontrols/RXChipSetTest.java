@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.event.RXChipEvent;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import io.github.leewyatt.rxcontrols.skins.RXChipSetSkin;
 import javafx.application.Platform;
@@ -137,6 +138,110 @@ public class RXChipSetTest {
 
             assertEquals(0, aDetach[0],
                     "an unchanged chip must not be detached when other chips are added or removed");
+        });
+    }
+
+    // ==================== Removal ====================
+
+    /**
+     * Verifies a removable chip's remove request (a bubbling {@link RXChipEvent#REMOVE})
+     * makes the set delete it from {@code chips} and fire {@link RXChipEvent#REMOVED}.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void removeRequestRemovesChipFromSetAndFiresRemoved() throws Exception {
+        runOnFx(() -> {
+            RXChip a = new RXChip("a");
+            RXChip b = new RXChip("b");
+            a.setRemovable(true);
+            b.setRemovable(true);
+            RXChipSet set = attach(new RXChipSet(a, b));
+            AtomicReference<RXChipEvent> removed = new AtomicReference<>();
+            set.setOnChipRemoved(removed::set);
+
+            a.remove();
+
+            assertEquals(List.of(b), set.getChips(), "the set removes the requesting chip");
+            assertNotNull(removed.get(), "the set fires REMOVED");
+            assertSame(a, removed.get().getChip());
+        });
+    }
+
+    /**
+     * Verifies a direct {@code getChips().remove(...)} also fires {@link RXChipEvent#REMOVED}
+     * — symmetric with {@code RXChipInput}, so the shared event means "a chip left the
+     * container" regardless of cause.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void programmaticRemovalAlsoFiresRemoved() throws Exception {
+        runOnFx(() -> {
+            RXChip a = new RXChip("a");
+            RXChip b = new RXChip("b");
+            RXChipSet set = attach(new RXChipSet(a, b));
+            AtomicReference<RXChipEvent> removed = new AtomicReference<>();
+            set.setOnChipRemoved(removed::set);
+
+            set.getChips().remove(a);
+
+            assertNotNull(removed.get(), "a direct getChips().remove fires REMOVED too");
+            assertSame(a, removed.get().getChip());
+        });
+    }
+
+    /**
+     * Verifies removal is structural and ignores the {@code allowEmptySelection=false}
+     * floor: deleting the sole selected chip is allowed and leaves the selection empty
+     * (that floor guards user deselection, not membership).
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void removingSoleSelectedChipIsAllowedUnderAllowEmptyFalse() throws Exception {
+        runOnFx(() -> {
+            RXChip a = new RXChip("a");
+            RXChip b = new RXChip("b");
+            a.setRemovable(true);
+            RXChipSet set = attach(new RXChipSet(a, b));
+            set.setSelectionMode(RXChipSet.SelectionMode.SINGLE);
+            set.setAllowEmptySelection(false);
+            a.setSelected(true);
+            assertEquals(List.of(a), set.getSelectedChips());
+
+            AtomicInteger selectionChanges = new AtomicInteger();
+            set.setOnSelectionChange(event -> selectionChanges.incrementAndGet());
+
+            a.remove();
+
+            assertFalse(set.getChips().contains(a), "the sole selected chip is removed");
+            assertTrue(set.getSelectedChips().isEmpty(),
+                    "allowEmptySelection=false does not block structural removal; selection is left empty");
+            assertEquals(1, selectionChanges.get(),
+                    "removing the selected chip fires one SELECTION_CHANGED");
+        });
+    }
+
+    /**
+     * Verifies a chip-level veto (a {@code onRemove} handler that consumes the
+     * {@link RXChipEvent#REMOVE}) stops the set from removing it.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void chipLevelVetoStopsSetRemoval() throws Exception {
+        runOnFx(() -> {
+            RXChip a = new RXChip("a");
+            a.setRemovable(true);
+            a.setOnRemove(RXChipEvent::consume);
+            RXChip b = new RXChip("b");
+            RXChipSet set = attach(new RXChipSet(a, b));
+
+            a.remove();
+
+            assertEquals(List.of(a, b), set.getChips(),
+                    "a chip-level consume vetoes the set removal");
         });
     }
 

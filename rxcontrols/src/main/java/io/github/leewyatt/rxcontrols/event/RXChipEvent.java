@@ -5,8 +5,8 @@ import javafx.event.Event;
 import javafx.event.EventType;
 
 /**
- * Event for the chip lifecycle: a chip is about to be removed, was added, or was
- * removed from a chip input, or a chip-set selection changed.
+ * Event for the chip lifecycle: a chip is about to be removed, was added to a chip
+ * input, was removed from a chip input or chip set, or a chip-set selection changed.
  *
  * <p>Removal is vetoable — a handler may {@link Event#consume() consume} the
  * {@link #REMOVE} event to cancel the removal (the chip-input equivalent of
@@ -36,7 +36,7 @@ public class RXChipEvent extends Event {
     public static final EventType<RXChipEvent> ADDED = new EventType<>(ANY, "RX_CHIP_ADDED");
 
     /**
-     * Fired after a chip (item) was removed from a chip input.
+     * Fired after a chip was removed from a chip input (its item) or a chip set.
      */
     public static final EventType<RXChipEvent> REMOVED = new EventType<>(ANY, "RX_CHIP_REMOVED");
 

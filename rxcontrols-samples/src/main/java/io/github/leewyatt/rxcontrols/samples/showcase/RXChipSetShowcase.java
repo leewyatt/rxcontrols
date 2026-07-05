@@ -39,7 +39,7 @@ public class RXChipSetShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "A group of filter chips with a shared selection model: NONE / SINGLE / MULTIPLE and an allow-empty-selection toggle.";
+        return "A group of filter chips with a shared selection model (NONE / SINGLE / MULTIPLE + allow-empty), optionally removable.";
     }
 
     @Override
@@ -95,7 +95,12 @@ public class RXChipSetShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Mode", mode),
                 row(checkBox("Allow empty selection", chipSet.isAllowEmptySelection(), chipSet::setAllowEmptySelection)),
+                row(checkBox("Removable chips (delete with ✕ / Delete)", false, this::setChipsRemovable)),
                 row(selected));
+    }
+
+    private void setChipsRemovable(boolean removable) {
+        chipSet.getChips().forEach(chip -> chip.setRemovable(removable));
     }
 
     private String describeSelection() {
