@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
  *
  * <p>Presents a set of filter chips (a category picker) and drives the group's
  * selection contract — {@link SelectionMode} NONE / SINGLE / MULTIPLE, the
- * {@code mandatory} floor that forbids clearing the last selection — plus the
- * {@code hgap} / {@code vgap} wrapping spacing and the {@code alignment} of the flow.
+ * {@code allowEmptySelection} toggle whose {@code false} state forbids clearing the
+ * last selection — plus the {@code hgap} / {@code vgap} wrapping spacing and the
+ * {@code alignment} of the flow.
  * A live readout lists the currently selected chips.</p>
  */
 public class RXChipSetShowcase extends RXShowcaseApplication {
@@ -39,7 +40,7 @@ public class RXChipSetShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "A group of filter chips with a shared selection model: NONE / SINGLE / MULTIPLE and a mandatory floor.";
+        return "A group of filter chips with a shared selection model: NONE / SINGLE / MULTIPLE and an allow-empty-selection toggle.";
     }
 
     @Override
@@ -92,7 +93,7 @@ public class RXChipSetShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Mode", mode),
-                row(checkBox("Mandatory (keep at least one selected)", chipSet.isMandatory(), chipSet::setMandatory)),
+                row(checkBox("Allow empty selection", chipSet.isAllowEmptySelection(), chipSet::setAllowEmptySelection)),
                 row(selected));
     }
 
