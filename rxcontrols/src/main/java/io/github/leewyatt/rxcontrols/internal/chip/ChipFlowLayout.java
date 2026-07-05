@@ -58,13 +58,29 @@ public final class ChipFlowLayout extends Region {
      * Sets the chip nodes shown before the editor. The children become the chips in
      * order followed by the editor.
      *
+     * <p>Applied as an in-place delta rather than a full {@code setAll}: chips that are
+     * already in place are left attached, so their skins (and the ripple clip a chip skin
+     * installs on layout) are not torn down and rebuilt as chips are added or removed.</p>
+     *
      * @param chipNodes the chip nodes, in model order
      */
     public void setChipNodes(List<RXChip> chipNodes) {
-        List<Node> children = new ArrayList<>(chipNodes.size() + 1);
-        children.addAll(chipNodes);
-        children.add(editor);
-        getChildren().setAll(children);
+        List<Node> children = getChildren();
+        // Drop chip nodes no longer present; the editor always stays.
+        children.removeIf(node -> node != editor && !chipNodes.contains(node));
+        // Position each chip at its index, touching only the ones not already there.
+        for (int i = 0; i < chipNodes.size(); i++) {
+            RXChip chip = chipNodes.get(i);
+            if (i >= children.size() || children.get(i) != chip) {
+                children.remove(chip);
+                children.add(i, chip);
+            }
+        }
+        // The editor trails the chips.
+        if (children.get(children.size() - 1) != editor) {
+            children.remove(editor);
+            children.add(editor);
+        }
     }
 
     @Override
