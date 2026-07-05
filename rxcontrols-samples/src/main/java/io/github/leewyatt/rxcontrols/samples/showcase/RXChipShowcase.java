@@ -48,6 +48,9 @@ public class RXChipShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         chip = new RXChip("Configurable chip");
+        // Selectable by default so the flagship selected-state visuals (leading check +
+        // primary tint) are reachable straight from the Selected toggle.
+        chip.setSelectable(true);
         chip.setMaxLabelWidth(320.0);
 
         HBox personas = new HBox(10.0,
@@ -106,8 +109,14 @@ public class RXChipShowcase extends RXShowcaseApplication {
         state.textProperty().bind(Bindings.createStringBinding(
                 () -> chip.isSelected() ? "selected" : "unselected", chip.selectedProperty()));
 
+        CheckBox selected = checkBox("Selected (a selectable chip shows a leading check)",
+                chip.isSelected(), chip::setSelected);
+        // Selected only renders (leading check + primary tint) on a selectable chip; grey
+        // the toggle out while the chip is not selectable so the dependency is visible.
+        selected.disableProperty().bind(chip.selectableProperty().not());
+
         return createGrid(
-                row(checkBox("Selected (filter shows a check)", chip.isSelected(), chip::setSelected)),
+                row(selected),
                 row(checkBox("Removable (trailing close button)", chip.isRemovable(), chip::setRemovable)),
                 row(checkBox("Disabled", chip.isDisabled(), chip::setDisable)),
                 row(state));

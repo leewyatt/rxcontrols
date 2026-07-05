@@ -148,6 +148,41 @@ public class RXChipTest {
     }
 
     /**
+     * Verifies the skin shows a leading {@code .check-icon} only while a selectable
+     * chip is selected, and never for a non-selectable chip.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void selectableSelectedShowsLeadingCheck() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = attach(new RXChip("x"));
+            assertNull(chip.lookup(".check-icon"), "no check by default");
+
+            chip.setSelectable(true);
+            chip.applyCss();
+            chip.layout();
+            assertNull(chip.lookup(".check-icon"), "selectable but unselected shows no check");
+
+            chip.setSelected(true);
+            chip.applyCss();
+            chip.layout();
+            assertNotNull(chip.lookup(".check-icon"), "a selected selectable chip shows a check");
+
+            chip.setSelected(false);
+            chip.applyCss();
+            chip.layout();
+            assertNull(chip.lookup(".check-icon"), "deselecting hides the check");
+
+            RXChip plain = attach(new RXChip("y"));
+            plain.setSelected(true);
+            plain.applyCss();
+            plain.layout();
+            assertNull(plain.lookup(".check-icon"), "a non-selectable selected chip shows no check");
+        });
+    }
+
+    /**
      * Verifies {@code removable} drives the {@code :removable} pseudo-class and the
      * skin's close button (added when removable, removed otherwise).
      *
