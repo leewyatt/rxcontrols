@@ -111,11 +111,19 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
+        Label keysHint = new Label("Keyboard: click or Tab to focus the panel "
+                + "(focused border turns accent); arrows navigate (Right expands, "
+                + "Left steps back, disabled rows are skipped), Enter or Space "
+                + "activates the focused item.");
+        keysHint.getStyleClass().add("hint");
+        keysHint.setWrapText(true);
+
         return createGrid(
                 row("Mode", modeBox),
                 row(clearButton),
                 row(customCell),
-                row(hint));
+                row(hint),
+                row(keysHint));
     }
 
     private Node buildDimensionGrid() {

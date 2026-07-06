@@ -117,11 +117,19 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
+        Label keysHint = new Label("Keyboard: Space / F4 / Alt+Down opens the popup; "
+                + "arrows then navigate the columns (Right expands, Left steps back, "
+                + "disabled rows are skipped), Enter picks the focused item, Escape "
+                + "closes.");
+        keysHint.getStyleClass().add("hint");
+        keysHint.setWrapText(true);
+
         return createGrid(
                 row("Mode", modeBox),
                 row(clearableBox),
                 row(customCell),
-                row(hint));
+                row(hint),
+                row(keysHint));
     }
 
     private Node buildDisplayGrid() {

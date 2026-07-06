@@ -1155,6 +1155,12 @@
     -fx-border-width: 1px;
 }
 
+/* Inline keyboard-focus signal; the popup never focuses the view (the field
+   shows :focused / :showing on its own display instead). */
+.rx-cascader-view:focused {
+    -fx-border-color: -fx-focus-color;
+}
+
 /* Descendant (not child) selector: RXPopupSupport wraps the content in an
    internal sizing shell between the popup bridge and the view. The bridge and
    shell are plain token-less panes outside this stylesheet's UA scope. */
