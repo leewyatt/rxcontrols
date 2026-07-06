@@ -84,6 +84,8 @@
     <li><a href="#rxAudioSpectrum">RXAudioSpectrum</a></li>
     <li><a href="#rxAvatar">RXAvatar</a></li>
     <li><a href="#rxCarousel">RXCarousel</a></li>
+    <li><a href="#rxCascader">RXCascader</a></li>
+    <li><a href="#rxCascaderView">RXCascaderView</a></li>
     <li><a href="#rxDigit">RXDigit</a></li>
     <li><a href="#rxDualPane">RXDualPane</a></li>
     <li><a href="#rxFillButton">RXFillButton</a></li>
@@ -390,6 +392,69 @@ nav-pane — Pane<br/>
     </tr>
     </tbody>
 </table>
+
+<h3 id="rxCascader">RXCascader</h3>
+<p class="fxClass">Style class: rx-cascader</p>
+<p>The control has all the properties of Control. The popup shell carries the
+style class <code>rx-cascader-popup</code>; the popup content is an
+RXCascaderView (see below), so style it via
+<code>.rx-cascader-popup .rx-cascader-view</code> (descendant selector — the
+popup bridge and sizing shell sit between the two).</p>
+<h4>Substructure</h4>
+display — HBox<br/>
+&emsp;&emsp;label — Label<br/>
+&emsp;&emsp;clear-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;graphic — Region<br/>
+&emsp;&emsp;arrow-button — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;arrow — Region<br/>
+<h4>Pseudo-classes</h4>
+<p>:empty (no selection), :showing (popup open)</p>
+
+<h3 id="rxCascaderView">RXCascaderView</h3>
+<p class="fxClass">Style class: rx-cascader-view</p>
+<p>Standalone multi-column cascader panel, also used as the RXCascader popup
+content. Each column is a ListView carrying the style class
+<code>column</code> plus a positional ordinal (<code>column0</code>,
+<code>column1</code>, …). The built-in cells carry the style class
+<code>rx-cascader-cell</code> with the state pseudo-classes :active,
+:in-active-path, :in-checked-path, :indeterminate, :loading, :load-failed
+and :leaf.</p>
+<h4>Substructure</h4>
+columns — HBox<br/>
+&emsp;&emsp;column, columnN — ListView (per rendered column)<br/>
+&emsp;&emsp;&emsp;&emsp;placeholder — Label (shown by an empty column)<br/>
+&emsp;&emsp;&emsp;&emsp;rx-cascader-cell — ListCell<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;container — HBox<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;check-box — CheckBox (multiple mode)<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;selected-check — Region (single mode)<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;content — StackPane<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;loading — Region<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;arrow — Region<br/><br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-column-width</td>
+        <td>Size (preferred width of each column)</td>
+        <td>180</td>
+    </tr>
+    <tr>
+        <td>-rx-row-height</td>
+        <td>Size (fixed row height of each column)</td>
+        <td>34</td>
+    </tr>
+    </tbody>
+</table>
+<p>Both are discoverable defaults the skin applies to each column with USER
+origin, so author CSS targeting
+<code>.rx-cascader-view &gt; .columns &gt; .column</code> (e.g.
+-fx-pref-width, -fx-fixed-cell-size) still wins.</p>
 
 <h3 id="rxFillButton">RXFillButton</h3>
 <p class="fxClass">Style class: rx-fill-button (also: button, rx-button)</p>

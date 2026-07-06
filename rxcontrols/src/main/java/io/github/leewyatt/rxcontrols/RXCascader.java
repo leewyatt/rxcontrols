@@ -52,6 +52,11 @@ import java.util.function.Function;
  * / seedChecked / reload / show / hide / clearSelection) must be invoked on the
  * JavaFX Application Thread.
  *
+ * <p><strong>Keyboard.</strong> Keyboard interaction currently covers the popup
+ * shell only: Space / F4 / Alt+Up / Alt+Down toggle it, Escape and Enter close
+ * it. The popup columns are not yet keyboard-navigable — items are activated
+ * with the mouse.
+ *
  * @param <T> application value type
  */
 public class RXCascader<T> extends Control {
@@ -597,6 +602,12 @@ public class RXCascader<T> extends Control {
      * loaded children and all check state are cleared (the same effect as
      * {@link #reload()}). Clearing the loader to {@code null} keeps the current tree.
      *
+     * <p>In multiple-selection mode, checking an unloaded branch resolves it
+     * eagerly: the loader runs for that branch and, as results arrive,
+     * recursively for its descendant branches until the checked paths resolve
+     * to leaves — budget the loader for that fan-out when deep lazy trees are
+     * checkable.
+     *
      * @return children-loader property
      */
     public final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
@@ -630,7 +641,8 @@ public class RXCascader<T> extends Control {
 
     /**
      * Optional callback invoked on the JavaFX thread when a lazy children load
-     * fails.
+     * fails. A failure delivered as a {@code CompletionException} (the standard
+     * async-supplier wrapper) is unwrapped to its cause.
      *
      * @return children-load-error callback property
      */
@@ -691,6 +703,11 @@ public class RXCascader<T> extends Control {
      * point for programmatic checking (an item's checked state is read-only); to
      * seed an initial selection before display use {@link #seedChecked}.
      *
+     * <p>Targeting an unresolved lazy branch records the intent, starts (or
+     * reuses) the branch's load, and replays the check once the children
+     * arrive; checking with {@code true} keeps resolving recursively until the
+     * checked paths reach leaves (see {@link #childrenLoaderProperty()}).
+     *
      * @param item    item to update
      * @param checked target checked state
      */
@@ -709,6 +726,11 @@ public class RXCascader<T> extends Control {
      * <p>An effectively-disabled branch given as a seed is ignored as a whole (the
      * cascade skips disabled descendants); to lock a disabled subtree checked, pass
      * its leaves individually — a disabled leaf given directly is honored.
+     *
+     * <p>In lazy mode, seeding an unresolved branch behaves like
+     * {@link #setCheckedCascade}: the intent is recorded and the branch's load
+     * starts immediately (recursively, until the seed resolves to leaves).
+     * Prefer seeding leaves or resolved branches when that fetch is unwanted.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */

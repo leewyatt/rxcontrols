@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -567,6 +568,13 @@ public class RXCascaderView<T> extends Control {
      * becomes a loaded leaf), as is a stage that completes with {@code null}
      * children.
      *
+     * <p>In multiple-selection mode, checking an unloaded branch resolves it
+     * eagerly: the loader runs for that branch and, as results arrive,
+     * recursively for its descendant branches (children not marked leaves via
+     * {@code leafHint}) until the checked paths resolve to leaves — see
+     * {@link #getCheckedPaths()}. Budget the loader for that fan-out when deep
+     * lazy trees are checkable.
+     *
      * @return children-loader property
      */
     public final ObjectProperty<Function<RXCascaderItem<T>, CompletionStage<List<RXCascaderItem<T>>>>>
@@ -601,9 +609,11 @@ public class RXCascaderView<T> extends Control {
     /**
      * Optional callback invoked on the JavaFX thread when a lazy children load
      * fails, either because the loader stage completes exceptionally or because
-     * {@code childrenLoader.apply} throws synchronously. The failing item stays a
-     * retriable branch (no column is added); expanding it again retries. When
-     * {@code null} the failure is silent.
+     * {@code childrenLoader.apply} throws synchronously. A failure delivered as
+     * a {@link CompletionException} (the standard async-supplier wrapper) is
+     * unwrapped to its cause. The failing item stays a retriable branch (no
+     * column is added); expanding it again retries. When {@code null} the
+     * failure is silent.
      *
      * @return children-load-error callback property
      */
@@ -763,6 +773,11 @@ public class RXCascaderView<T> extends Control {
      * ignored in single mode, or when the item is {@code null} or effectively
      * disabled.
      *
+     * <p>Targeting an unresolved lazy branch records the intent, starts (or
+     * reuses) the branch's load, and replays the check once the children
+     * arrive; checking with {@code true} keeps resolving recursively until the
+     * checked paths reach leaves (see {@link #childrenLoaderProperty()}).
+     *
      * @param item item to update
      * @param checked target checked state
      */
@@ -796,6 +811,11 @@ public class RXCascaderView<T> extends Control {
      * <p>An effectively-disabled branch is ignored as a whole (the seed is a
      * no-op for its entire subtree); to pre-seed a locked subtree, pass its
      * leaves individually — a disabled leaf given directly is honored.
+     *
+     * <p>In lazy mode, seeding an unresolved branch behaves like
+     * {@link #setCheckedCascade}: the intent is recorded and the branch's load
+     * starts immediately (recursively, until the seed resolves to leaves).
+     * Prefer seeding leaves or resolved branches when that fetch is unwanted.
      *
      * @param items items to mark checked (leaves, or branches with resolved children)
      */
@@ -1029,7 +1049,16 @@ public class RXCascaderView<T> extends Control {
             return;
         }
         if (isUnresolvedLazyBranch(item)) {
-            recordPendingCheckAndLoad(item, checked);
+            // Cascading "unchecked" into a never-checked branch with no load in
+            // flight is already satisfied: recording it would start a load (and,
+            // through the completion replay, recursively fetch the whole subtree)
+            // only to apply a no-op. A checked or in-flight branch still records
+            // the intent so the latest action wins over a pending or
+            // loader-supplied check; a directly targeted branch goes through
+            // setCheckedCascade's own lazy path, which always records.
+            if (checked || item.getLoadState() == LoadState.LOADING || item.isChecked()) {
+                recordPendingCheckAndLoad(item, checked);
+            }
             return;
         }
         // Snapshot: a checked listener fired from the cascade may re-enter a
@@ -1200,11 +1229,16 @@ public class RXCascaderView<T> extends Control {
             return;
         }
 
+        // Async loaders surface a throwing supplier as a CompletionException;
+        // hand the error callback the root cause, not the framework wrapper.
+        Throwable resolvedError = error;
+        if (resolvedError instanceof CompletionException && resolvedError.getCause() != null) {
+            resolvedError = resolvedError.getCause();
+        }
         // A loader result carrying a null child is a loader-contract violation:
         // treat it exactly like a load failure. Detecting it here (rather than
         // letting the null-rejecting children list throw mid-populate) keeps the
         // branch retriable instead of stranding it in LOADING with an uncaught NPE.
-        Throwable resolvedError = error;
         if (resolvedError == null) {
             resolvedError = firstNullChildError(children);
         }
@@ -1382,7 +1416,13 @@ public class RXCascaderView<T> extends Control {
         for (RXCascaderItem<T> root : rootItems) {
             collectCheckedLeafPaths(root, paths);
         }
-        checkedPaths.setAll(paths);
+        // Skip the setAll when the resolved set is unchanged (path equality is
+        // the identity chain): many operations re-derive an identical set, and
+        // an unconditional setAll would fire a spurious full-replace event on
+        // every one of them.
+        if (!paths.equals(checkedPaths)) {
+            checkedPaths.setAll(paths);
+        }
     }
 
     private void collectCheckedLeafPaths(RXCascaderItem<T> item, List<RXCascaderPath<T>> paths) {

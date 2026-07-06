@@ -9,11 +9,11 @@
     -fx-font-size: 11px;
 }
 
-.demo-wide-col2 .rx-cascader-column-1 {
+.rx-cascader-view.demo-wide-col2 > .columns > .column1 {
     -fx-pref-width: 300px;
 }
 
-.demo-tall .rx-cascader-column {
+.rx-cascader-view.demo-tall > .columns > .column {
     -fx-fixed-cell-size: 44px;
 }
 

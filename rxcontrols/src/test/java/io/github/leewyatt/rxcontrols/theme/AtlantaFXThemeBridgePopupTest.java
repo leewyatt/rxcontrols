@@ -131,9 +131,12 @@ public class AtlantaFXThemeBridgePopupTest {
         runOnFx(() -> {
             RXCascader<String> cascader = newCascader();
             StackPane root = new StackPane(cascader);
-            stage = show(root);
+            // Install the bridge before showing so the first CSS pass already
+            // resolves the Modena compat tokens (no unresolved-token warnings).
+            stage = stageFor(root);
             AtlantaFXThemeBridge.install(stage.getScene());
             stage.getScene().getStylesheets().add(probeUrl);
+            stage.show();
             cascader.applyCss();
             cascader.layout();
             cascader.show();
@@ -174,9 +177,10 @@ public class AtlantaFXThemeBridgePopupTest {
             RXCascader<String> cascader = newCascader();
             StackPane ancestor = new StackPane(cascader);
             StackPane root = new StackPane(ancestor);
-            stage = show(root);
+            stage = stageFor(root);
             AtlantaFXThemeBridge.install(ancestor);
             ancestor.getStylesheets().add(probeUrl);
+            stage.show();
             cascader.applyCss();
             cascader.layout();
             cascader.show();
@@ -209,9 +213,12 @@ public class AtlantaFXThemeBridgePopupTest {
             StackPane cascaderHolder = new StackPane(cascader);
             StackPane unrelated = new StackPane();
             StackPane root = new StackPane(cascaderHolder, unrelated);
-            stage = show(root);
+            // The cascader is deliberately unbridged here, so unresolved-Modena-
+            // token warnings during this test are expected noise.
+            stage = stageFor(root);
             AtlantaFXThemeBridge.install(unrelated);
             unrelated.getStylesheets().add(probeUrl);
+            stage.show();
             cascader.applyCss();
             cascader.layout();
             cascader.show();
@@ -233,10 +240,13 @@ public class AtlantaFXThemeBridgePopupTest {
         return cascader;
     }
 
-    private static Stage show(StackPane root) {
+    /**
+     * Creates the stage and scene without showing, so bridges can install
+     * before the first CSS pass.
+     */
+    private static Stage stageFor(StackPane root) {
         Stage stage = new Stage();
         stage.setScene(new Scene(root, 320, 200));
-        stage.show();
         return stage;
     }
 

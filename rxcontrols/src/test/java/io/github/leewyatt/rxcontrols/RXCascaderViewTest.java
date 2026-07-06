@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1903,6 +1905,125 @@ public class RXCascaderViewTest {
         assertTrue(branch.isChecked(), "the pending check settles the empty-loaded branch as a checked leaf");
         assertEquals(1, panel.getCheckedPaths().size());
         assertEquals(0, errors[0]);
+    }
+
+    /**
+     * Verifies an uncheck that resolves while a branch is loading does not
+     * cascade loads into the freshly loaded children: replaying {@code false}
+     * onto never-checked unresolved branches is a no-op, not a recursive
+     * subtree prefetch.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void uncheckReplayDoesNotRecursivelyLoadSubtree() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        // No leafHint: once loaded these children read as unresolved branches,
+        // the shape that used to amplify the replay into recursive loads.
+        RXCascaderItem<String> childA = item("childA");
+        RXCascaderItem<String> childB = item("childB");
+        CompletableFuture<List<RXCascaderItem<String>>> gate = new CompletableFuture<>();
+        ConcurrentHashMap<RXCascaderItem<String>, Integer> loaderCalls = new ConcurrentHashMap<>();
+        panel.setChildrenLoader(it -> {
+            loaderCalls.merge(it, 1, Integer::sum);
+            return it == root ? gate : new CompletableFuture<>();
+        });
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(root, true);
+        panel.setCheckedCascade(root, false);
+        gate.complete(List.of(childA, childB));
+        waitForFxCondition(() -> loaded(root));
+
+        assertEquals(1, loaderCalls.getOrDefault(root, 0));
+        assertEquals(0, loaderCalls.getOrDefault(childA, 0),
+                "replaying an uncheck must not load a never-checked fresh child");
+        assertEquals(0, loaderCalls.getOrDefault(childB, 0));
+        assertFalse(root.isChecked());
+        assertFalse(childA.isChecked());
+        assertTrue(panel.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Pins the intended deep resolve on check: checking an unloaded branch
+     * loads it and, through the replay, also loads its not-yet-resolved branch
+     * children until the checked paths resolve to leaves.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void checkReplayResolvesBranchChildrenRecursively() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> root = item("root");
+        RXCascaderItem<String> branchChild = item("branch");
+        RXCascaderItem<String> leafGrandchild = leaf("grandLeaf");
+        panel.setChildrenLoader(it -> it == root
+                ? CompletableFuture.completedFuture(List.of(branchChild))
+                : CompletableFuture.completedFuture(List.of(leafGrandchild)));
+        panel.getRootItems().add(root);
+
+        panel.setCheckedCascade(root, true);
+        waitForFxCondition(() -> loaded(branchChild) && panel.getCheckedPaths().size() == 1);
+
+        assertTrue(leafGrandchild.isChecked());
+        assertTrue(branchChild.isChecked());
+        assertTrue(root.isChecked());
+        assertFalse(root.isIndeterminate());
+        assertSame(leafGrandchild, panel.getCheckedPaths().get(0).getLeaf());
+    }
+
+    /**
+     * Verifies a stage failure delivered as a {@code CompletionException} (the
+     * standard wrapper for a throwing async supplier) surfaces the cause, not
+     * the wrapper, to the error callback.
+     *
+     * @throws InterruptedException if the FX event flush is interrupted
+     */
+    @Test
+    public void loadErrorCallbackUnwrapsCompletionException() throws InterruptedException {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        AtomicReference<Throwable> erroredCause = new AtomicReference<>();
+        panel.setOnChildrenLoadError((failedItem, cause) -> erroredCause.set(cause));
+        panel.setChildrenLoader(it -> CompletableFuture.failedFuture(
+                new CompletionException(new IllegalStateException("boom"))));
+        RXCascaderItem<String> root = item("root");
+        panel.getRootItems().add(root);
+
+        panel.expand(root);
+        waitForFxCondition(() -> erroredCause.get() != null);
+
+        assertTrue(erroredCause.get() instanceof IllegalStateException,
+                "callback should receive the cause, got " + erroredCause.get());
+        assertEquals("boom", erroredCause.get().getMessage());
+    }
+
+    /**
+     * Verifies derived checked-path refreshes fire no full-replace event when
+     * the resolved path set is unchanged.
+     */
+    @Test
+    public void unchangedCheckedPathsFireNoListChange() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        panel.setSelectionMode(SelectionMode.MULTIPLE);
+        RXCascaderItem<String> branch = item("branch");
+        RXCascaderItem<String> leafA = item("leafA");
+        RXCascaderItem<String> leafB = item("leafB");
+        branch.getChildren().setAll(List.of(leafA, leafB));
+        panel.getRootItems().add(branch);
+        panel.setCheckedCascade(leafA, true);
+
+        int[] changes = {0};
+        panel.getCheckedPaths().addListener(
+                (ListChangeListener<RXCascaderPath<String>>) change -> changes[0]++);
+
+        panel.setCheckedCascade(leafA, true);
+        assertEquals(0, changes[0], "re-deriving an identical path set must not fire");
+
+        panel.setCheckedCascade(leafB, true);
+        assertTrue(changes[0] > 0, "a real path-set change still fires");
     }
 
     private static RXCascaderItem<String> item(String text) {

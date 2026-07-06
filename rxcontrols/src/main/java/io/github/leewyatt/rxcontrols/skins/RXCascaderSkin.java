@@ -30,6 +30,13 @@ import java.util.StringJoiner;
 /**
  * Default skin for {@link RXCascader}.
  *
+ * <p>This skin is not an application extension point: the constructor needs the
+ * control's private embedded view, which only {@code RXCascader.createDefaultSkin()}
+ * can supply, so application code can neither construct a working instance nor
+ * replace it via CSS {@code -fx-skin}. Customize rendering through
+ * {@link RXCascader#cellFactoryProperty() cellFactory} and
+ * {@link RXCascader#pathTextFactoryProperty() pathTextFactory} instead.
+ *
  * @param <T> application value type
  */
 public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {

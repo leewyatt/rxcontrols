@@ -19,10 +19,11 @@ import java.util.List;
 /**
  * Showcase application for {@link RXCascaderView} — the standalone inline
  * cascader view (no input field, no popup). Exercises selection mode, the
- * visible-row-count, CSS sizing presets (column width / row height via
- * {@code .rx-cascader-column} CSS, not Java properties), and a clear action.
- * The sample tree contains a disabled leaf so the locked tri-state rollup is
- * directly observable.
+ * visible-row-count, CSS sizing presets (author CSS on the skin's
+ * {@code .column} / {@code .columnN} style classes overriding the view's
+ * columnWidth / rowHeight defaults), and a clear action. The sample tree
+ * contains a disabled leaf so the locked tri-state rollup is directly
+ * observable.
  *
  * <p>The value type is a {@link CascaderOption} record; visible node text comes
  * from {@code setItemTextFactory(CascaderOption::label)} and path text from the
@@ -129,9 +130,10 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
         presetBox.setMaxWidth(Double.MAX_VALUE);
         presetBox.valueProperty().addListener((obs, oldV, newV) -> applyPreset(newV));
 
-        Label hint = new Label("Column width / row height are controlled by CSS "
-                + "(.rx-cascader-column / .rx-cascader-column-N). The preset toggles "
-                + "demo style classes that override them.");
+        Label hint = new Label("Column width / row height default from the view's "
+                + "columnWidth / rowHeight; author CSS targeting the skin's .column "
+                + "/ .columnN classes overrides them. The preset toggles demo style "
+                + "classes that do exactly that.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
