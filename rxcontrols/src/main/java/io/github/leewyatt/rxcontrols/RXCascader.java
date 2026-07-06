@@ -52,10 +52,16 @@ import java.util.function.Function;
  * / seedChecked / reload / show / hide / clearSelection) must be invoked on the
  * JavaFX Application Thread.
  *
- * <p><strong>Keyboard.</strong> Keyboard interaction currently covers the popup
- * shell only: Space / F4 / Alt+Up / Alt+Down toggle it, Escape and Enter close
- * it. The popup columns are not yet keyboard-navigable — items are activated
- * with the mouse.
+ * <p><strong>Keyboard.</strong> Space / F4 / Alt+Up / Alt+Down toggle the popup
+ * and Escape closes it; plain arrows on a closed cascader deliberately stay
+ * inert (available for form focus traversal). While the popup is showing, the
+ * arrow keys navigate the columns — the first arrow seeds the keyboard focus
+ * (on the revealed selection when one exists), Up / Down move within the column
+ * skipping disabled items, Right expands into a branch, Left steps back,
+ * Home / End jump within the column — and Enter activates the focused item
+ * (selecting a leaf, or toggling its check box in multiple mode); an Enter
+ * without a keyboard focus closes the popup. Left / Right follow the effective
+ * node orientation.
  *
  * @param <T> application value type
  */

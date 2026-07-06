@@ -65,6 +65,13 @@ import java.util.function.Function;
  * loader's stage may complete on any thread; the view marshals the completion
  * back to the FX thread before touching the tree.
  *
+ * <p><strong>Keyboard.</strong> The view is focus-traversable. When focused,
+ * Up / Down move the keyboard focus within the current column (skipping
+ * disabled items), Right expands into a branch, Left steps back to the parent
+ * column, Home / End jump within the column, and Enter or Space activates the
+ * focused item (selecting a leaf, or toggling its check box in multiple mode).
+ * Left / Right follow the effective node orientation.
+ *
  * @param <T> application value type
  */
 public class RXCascaderView<T> extends Control {
@@ -126,6 +133,10 @@ public class RXCascaderView<T> extends Control {
      */
     public RXCascaderView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // List-like control: tab-focusable inline so the skin's keyboard
+        // navigation is reachable (inside the RXCascader popup the owner
+        // control keeps key focus and routes navigation instead).
+        setFocusTraversable(true);
         rootItems.addListener((ListChangeListener<RXCascaderItem<T>>) change -> {
             while (change.next()) {
                 for (RXCascaderItem<T> removed : change.getRemoved()) {

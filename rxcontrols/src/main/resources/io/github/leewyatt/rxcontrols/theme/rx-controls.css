@@ -1200,7 +1200,10 @@
     -fx-padding: 0;
 }
 
-.rx-cascader-view > .columns > .column .list-cell:filled:hover {
+/* :focused is the keyboard-navigation highlight (column focus model, not scene
+   focus), styled like hover per ElementUI. */
+.rx-cascader-view > .columns > .column .list-cell:filled:hover,
+.rx-cascader-view > .columns > .column .list-cell:filled:focused {
     -fx-background-color: derive(-fx-control-inner-background, -8%);
 }
 

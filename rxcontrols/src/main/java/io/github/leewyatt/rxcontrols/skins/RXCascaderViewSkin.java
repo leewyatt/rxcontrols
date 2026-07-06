@@ -9,10 +9,15 @@ import javafx.collections.ObservableList;
 import javafx.css.StyleOrigin;
 import javafx.css.StyleableProperty;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.stage.PopupWindow;
 import javafx.util.Callback;
 
 import java.util.ArrayList;
@@ -44,6 +49,11 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
     // stays non-destructive. Starts at 0 so a reveal that ran before this skin
     // existed (first popup show) is still honored on the first layout.
     private int lastScrollToSelectionRevision;
+
+    // Column the keyboard navigation currently acts on; -1 = no keyboard focus.
+    // The row lives in that column ListView's own focus model, which the cells
+    // render via the :focused pseudo class.
+    private int keyboardColumn = -1;
 
     // ==================== Constructor ====================
 
@@ -79,6 +89,23 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // A new cell factory changes the cell type, so every column must be rebuilt;
         // the tail-diff reuses by backing-list identity and would keep stale cells.
         disposer.registerListener(control.cellFactoryProperty(), this::rebuildAllColumns);
+        // Inline keyboard navigation: key events only reach this handler when the
+        // view itself is the focus owner (inline use; inside the RXCascader popup
+        // the owner window keeps key focus and RXCascaderSkin routes instead).
+        disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, event -> {
+            if (handleNavigationKey(event)) {
+                event.consume();
+            }
+        });
+        // List-like focus behavior: clicking the inline view focuses it. Inside a
+        // popup the click must not move the focus owner of the popup scene — the
+        // anchored control keeps driving the keyboard.
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+            if (control.getScene() != null
+                    && !(control.getScene().getWindow() instanceof PopupWindow)) {
+                control.requestFocus();
+            }
+        });
     }
 
     private void applyEmptyText() {
@@ -115,6 +142,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         }
         restampOrdinals();
         columnsBox.getChildren().setAll(columns);
+        // Keyboard focus rows live on the column focus models (rebuilt tail
+        // columns lose theirs naturally); only the active column index needs
+        // clamping when the tail was rebuilt away.
+        if (keyboardColumn >= columns.size()) {
+            keyboardColumn = columns.size() - 1;
+        }
         // Reused prefix columns (0..keep-1) keep their ListView (no teardown) but
         // their cells' active-path / selected / checked highlights derive from view
         // state, not item state, so the cells' own listeners do not catch a path
@@ -283,6 +316,208 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         }
         StyleOrigin origin = ((StyleableProperty<?>) property).getStyleOrigin();
         return origin == StyleOrigin.AUTHOR || origin == StyleOrigin.INLINE;
+    }
+
+    // ==================== Keyboard navigation ====================
+
+    /**
+     * Handles a column-navigation key: Up / Down move within the current column
+     * (skipping disabled items), Right expands into a branch, Left steps back,
+     * Home / End jump within the column, and Enter / Space activate the focused
+     * item. The first arrow-family key seeds the keyboard focus (on the revealed
+     * selection when present, else the first column). Left / Right follow the
+     * effective node orientation. Package-private so {@link RXCascaderSkin} can
+     * route keys from the popup owner control; the skin also consumes it
+     * directly when the inline view is focused.
+     *
+     * @param event key event to handle
+     * @return whether the event was handled (and should be consumed)
+     */
+    boolean handleNavigationKey(KeyEvent event) {
+        if (event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown()
+                || columns.isEmpty()) {
+            return false;
+        }
+        KeyCode code = logicalCode(event.getCode());
+        if (keyboardColumn < 0 || keyboardColumn >= columns.size() || focusedRow() < 0) {
+            // Only the arrow family seeds: Enter / Space without a keyboard focus
+            // keep their host semantics (the popup skin falls back to closing).
+            if (isArrowFamily(code)) {
+                seedKeyboardFocus();
+                return true;
+            }
+            return false;
+        }
+        switch (code) {
+            case UP:
+                return navigateVertical(-1);
+            case DOWN:
+                return navigateVertical(1);
+            case LEFT:
+                return navigateBack();
+            case RIGHT:
+                return navigateInto();
+            case HOME:
+                return navigateEdge(true);
+            case END:
+                return navigateEdge(false);
+            case ENTER:
+            case SPACE:
+                return activateFocused();
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Drops the keyboard focus entirely (all columns lose their focused row).
+     * The popup skin calls this on every show / hide so each popup session
+     * starts without a stale highlight.
+     */
+    void clearKeyboardFocus() {
+        keyboardColumn = -1;
+        for (ListView<RXCascaderItem<T>> column : columns) {
+            column.getFocusModel().focus(-1);
+        }
+    }
+
+    private static boolean isArrowFamily(KeyCode code) {
+        return code == KeyCode.UP || code == KeyCode.DOWN || code == KeyCode.LEFT
+                || code == KeyCode.RIGHT || code == KeyCode.HOME || code == KeyCode.END;
+    }
+
+    /** Mirrors Left / Right under a right-to-left effective orientation. */
+    private KeyCode logicalCode(KeyCode code) {
+        if (getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT) {
+            if (code == KeyCode.LEFT) {
+                return KeyCode.RIGHT;
+            }
+            if (code == KeyCode.RIGHT) {
+                return KeyCode.LEFT;
+            }
+        }
+        return code;
+    }
+
+    /**
+     * Seeds the initial keyboard focus: the revealed selection's leaf row in the
+     * last column when present, else the first column at its expanded branch row
+     * (or first enabled row).
+     */
+    private void seedKeyboardFocus() {
+        RXCascaderPath<T> selected = getSkinnable().getSelectedPath();
+        if (selected != null && selected.getLeaf() != null) {
+            int column = columns.size() - 1;
+            int row = indexOfIdentity(columns.get(column).getItems(), selected.getLeaf());
+            if (row >= 0) {
+                focusCell(column, row);
+                return;
+            }
+        }
+        ObservableList<RXCascaderItem<T>> roots = columns.get(0).getItems();
+        int row = getSkinnable().getActivePath().isEmpty() ? -1
+                : indexOfIdentity(roots, getSkinnable().getActivePath().get(0));
+        focusCell(0, row >= 0 ? row : edgeEnabledRow(roots, true));
+    }
+
+    private int focusedRow() {
+        return columns.get(keyboardColumn).getFocusModel().getFocusedIndex();
+    }
+
+    private RXCascaderItem<T> focusedItem() {
+        return columns.get(keyboardColumn).getFocusModel().getFocusedItem();
+    }
+
+    /** Focuses one row in one column, clearing every other column's focus. */
+    private void focusCell(int columnIndex, int row) {
+        keyboardColumn = columnIndex;
+        for (int i = 0; i < columns.size(); i++) {
+            columns.get(i).getFocusModel().focus(i == columnIndex ? row : -1);
+        }
+        if (row >= 0) {
+            columns.get(columnIndex).scrollTo(row);
+        }
+    }
+
+    /** Moves within the current column, skipping disabled items; clamps at the edges. */
+    private boolean navigateVertical(int direction) {
+        ObservableList<RXCascaderItem<T>> items = columns.get(keyboardColumn).getItems();
+        for (int i = focusedRow() + direction; i >= 0 && i < items.size(); i += direction) {
+            if (!getSkinnable().isEffectivelyDisabled(items.get(i))) {
+                focusCell(keyboardColumn, i);
+                break;
+            }
+        }
+        return true;
+    }
+
+    private boolean navigateEdge(boolean home) {
+        int row = edgeEnabledRow(columns.get(keyboardColumn).getItems(), home);
+        if (row >= 0) {
+            focusCell(keyboardColumn, row);
+        }
+        return true;
+    }
+
+    /** First ({@code home}) or last enabled row of a column, or -1 if none. */
+    private int edgeEnabledRow(ObservableList<RXCascaderItem<T>> items, boolean home) {
+        int direction = home ? 1 : -1;
+        for (int i = home ? 0 : items.size() - 1; i >= 0 && i < items.size(); i += direction) {
+            if (!getSkinnable().isEffectivelyDisabled(items.get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Expands the focused branch and moves the focus into its column when the
+     * children are already rendered; a loading frontier keeps the focus in place
+     * (press Right again once the column appears). A leaf is a consumed no-op.
+     */
+    private boolean navigateInto() {
+        RXCascaderItem<T> item = focusedItem();
+        if (item == null || getSkinnable().isLeaf(item) || getSkinnable().isEffectivelyDisabled(item)) {
+            return true;
+        }
+        getSkinnable().expand(item);
+        int next = keyboardColumn + 1;
+        if (next < columns.size() && columns.get(next).getItems() == item.getChildren()) {
+            focusCell(next, edgeEnabledRow(item.getChildren(), true));
+        }
+        return true;
+    }
+
+    /** Steps back to the parent column, focusing the expanded ancestor there. */
+    private boolean navigateBack() {
+        if (keyboardColumn == 0) {
+            return true;
+        }
+        int target = keyboardColumn - 1;
+        List<RXCascaderItem<T>> activePath = getSkinnable().getActivePath();
+        int row = target < activePath.size()
+                ? indexOfIdentity(columns.get(target).getItems(), activePath.get(target))
+                : -1;
+        focusCell(target, row >= 0 ? row : edgeEnabledRow(columns.get(target).getItems(), true));
+        return true;
+    }
+
+    /**
+     * Activates the focused item: a leaf goes through
+     * {@link RXCascaderView#activate} (single-selection select, multiple-mode
+     * check toggle), a branch expands like Right. Unhandled without a keyboard
+     * focus so the host's own Enter semantics apply.
+     */
+    private boolean activateFocused() {
+        RXCascaderItem<T> item = focusedItem();
+        if (item == null) {
+            return false;
+        }
+        if (getSkinnable().isLeaf(item)) {
+            getSkinnable().activate(item);
+            return true;
+        }
+        return navigateInto();
     }
 
     @Override

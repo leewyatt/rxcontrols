@@ -13,6 +13,7 @@ import javafx.beans.WeakInvalidationListener;
 import javafx.css.PseudoClass;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -206,6 +207,20 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
             // match ComboBox, and Space follows the common dropdown convention.
             togglePopup(control);
             event.consume();
+        } else if (control.isShowing() && isColumnNavigationKey(code, event)) {
+            // The popup never takes key focus, so column navigation is routed from
+            // here into the view skin: arrows / Home / End move the keyboard focus,
+            // Enter activates the focused item. An Enter with no keyboard focus
+            // falls back to the historical close-the-popup semantics below.
+            if (navigateColumns(event)) {
+                event.consume();
+            } else if (code == KeyCode.ENTER) {
+                control.hide();
+                event.consume();
+            }
+            // Note: plain arrows on a CLOSED cascader deliberately do nothing
+            // (pinned behavior) — they stay available for form focus traversal;
+            // the dedicated openers are Space / F4 / Alt+Up / Alt+Down.
         } else if (code == KeyCode.ENTER) {
             // Enter mirrors ComboBox: it closes an open popup (consuming, so the same
             // keystroke does not also fire an enclosing dialog's default button —
@@ -219,13 +234,50 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         }
     }
 
+    private static boolean hasNoModifiers(KeyEvent event) {
+        return !event.isShiftDown() && !event.isControlDown()
+                && !event.isAltDown() && !event.isMetaDown();
+    }
+
+    private static boolean isColumnNavigationKey(KeyCode code, KeyEvent event) {
+        if (!hasNoModifiers(event)) {
+            return false;
+        }
+        switch (code) {
+            case UP:
+            case DOWN:
+            case LEFT:
+            case RIGHT:
+            case HOME:
+            case END:
+            case ENTER:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean navigateColumns(KeyEvent event) {
+        Skin<?> skin = view.getSkin();
+        return skin instanceof RXCascaderViewSkin
+                && ((RXCascaderViewSkin<T>) skin).handleNavigationKey(event);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void clearViewKeyboardFocus() {
+        Skin<?> skin = view.getSkin();
+        if (skin instanceof RXCascaderViewSkin) {
+            ((RXCascaderViewSkin<T>) skin).clearKeyboardFocus();
+        }
+    }
+
     private static boolean isPopupToggleKey(KeyCode code, KeyEvent event) {
         // Match ComboBox's KeyBinding specificity exactly: bare Space / F4 (no other
         // modifiers), and Alt+Up/Down with Alt only. Being stricter than "code plus
         // altDown" avoids hijacking OS/app combos such as Alt+F4 (close window),
         // Ctrl+Space (IME), or Shift+Alt+Down.
-        boolean noModifiers = !event.isShiftDown() && !event.isControlDown()
-                && !event.isAltDown() && !event.isMetaDown();
+        boolean noModifiers = hasNoModifiers(event);
         boolean altOnly = event.isAltDown() && !event.isShiftDown()
                 && !event.isControlDown() && !event.isMetaDown();
         if (code == KeyCode.SPACE || code == KeyCode.F4) {
@@ -372,6 +424,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
 
     private void syncPopupShowing() {
         updateDisplay();
+        // Each popup session starts without a stale keyboard highlight; the first
+        // arrow key seeds it (on the revealed selection when one exists).
+        clearViewKeyboardFocus();
         if (getSkinnable().isShowing()) {
             // Reveal the current selection before showing so the popup opens already
             // expanded to (and highlighting) the selected path, at the right size.

@@ -258,6 +258,38 @@ public class RXCascaderPopupTest {
     }
 
     /**
+     * Verifies keyboard column navigation through the popup: after opening with
+     * the dedicated Space key, the first arrow seeds the keyboard focus, Right
+     * expands into the child column, and Enter on the focused leaf selects it
+     * and closes the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardNavigationSelectsLeafInPopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = newShownCascader();
+            RXCascaderItem<String> branch = new RXCascaderItem<>("branch");
+            branch.getChildren().add(new RXCascaderItem<>("leaf"));
+            cascader.getRootItems().setAll(List.of(branch));
+
+            fireKey(cascader, KeyCode.SPACE);
+            assertTrue(cascader.isShowing(), "precondition: SPACE opens the popup");
+            PopupControl popup = findCascaderPopup();
+            assertNotNull(popup, "popup window should be present");
+            layoutPopupContent(popup);
+
+            fireKey(cascader, KeyCode.DOWN);   // seeds keyboard focus on the root row
+            fireKey(cascader, KeyCode.RIGHT);  // expands the branch, focus enters the child column
+            layoutPopupContent(popup);
+            fireKey(cascader, KeyCode.ENTER);  // activates the focused leaf
+
+            assertNotNull(cascader.getSelectedPath(), "Enter selects the focused leaf");
+            assertFalse(cascader.isShowing(), "selecting a leaf closes the popup");
+        });
+    }
+
+    /**
      * Verifies the popup hides when its owning control leaves the scene. This is
      * provided by the JavaFX framework rather than the skin:
      * {@code PopupWindow.show(ownerNode, ...)} tracks the owner node's

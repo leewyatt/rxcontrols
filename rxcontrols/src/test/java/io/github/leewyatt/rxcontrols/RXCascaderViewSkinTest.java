@@ -9,6 +9,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -1063,6 +1065,109 @@ public class RXCascaderViewSkinTest {
             assertTrue(cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("load-failed")),
                     "a failed branch cell carries the :load-failed pseudo class");
         });
+    }
+
+    /**
+     * Verifies inline keyboard navigation: the first arrow seeds the keyboard
+     * focus, Right expands the focused branch and moves into its column, Down
+     * moves within the column, and Left steps back to the expanded ancestor.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardNavigationTraversesColumns() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> china = item("china");
+            china.getChildren().setAll(List.of(item("shanghai"), item("hangzhou")));
+            asia.getChildren().setAll(List.of(china, item("japan")));
+            view.getRootItems().setAll(List.of(asia));
+            Scene scene = new Scene(new StackPane(view));
+            relayout(scene);
+
+            fireKey(view, KeyCode.DOWN);
+            assertEquals(0, focusedIndex(view, ".column0"), "first arrow seeds the first row");
+
+            fireKey(view, KeyCode.RIGHT);
+            relayout(scene);
+            assertEquals(2, columnCount(view), "Right expands the focused branch");
+            assertEquals(0, focusedIndex(view, ".column1"), "focus moves into the child column");
+            assertEquals(-1, focusedIndex(view, ".column0"), "the parent column focus is cleared");
+
+            fireKey(view, KeyCode.DOWN);
+            assertEquals(1, focusedIndex(view, ".column1"));
+
+            fireKey(view, KeyCode.LEFT);
+            assertEquals(0, focusedIndex(view, ".column0"), "Left refocuses the expanded ancestor");
+            assertEquals(-1, focusedIndex(view, ".column1"));
+        });
+    }
+
+    /**
+     * Verifies Up / Down skip disabled rows and clamp at the enabled edges.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardVerticalNavigationSkipsDisabledItems() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> locked = item("locked");
+            locked.setDisable(true);
+            view.getRootItems().setAll(List.of(item("first"), locked, item("third")));
+            relayout(new Scene(new StackPane(view)));
+
+            fireKey(view, KeyCode.DOWN);
+            fireKey(view, KeyCode.DOWN);
+            assertEquals(2, focusedIndex(view, ".column0"), "Down skips the disabled row");
+            fireKey(view, KeyCode.UP);
+            assertEquals(0, focusedIndex(view, ".column0"), "Up skips it back");
+            fireKey(view, KeyCode.UP);
+            assertEquals(0, focusedIndex(view, ".column0"), "clamped at the first enabled row");
+        });
+    }
+
+    /**
+     * Verifies Enter selects the focused leaf in single mode and Space toggles
+     * its check in multiple mode.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardEnterAndSpaceActivateFocusedLeaf() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> single = new RXCascaderView<>();
+            RXCascaderItem<String> leafItem = item("leaf");
+            single.getRootItems().setAll(List.of(leafItem));
+            relayout(new Scene(new StackPane(single)));
+            fireKey(single, KeyCode.DOWN);
+            fireKey(single, KeyCode.ENTER);
+            assertNotNull(single.getSelectedPath(), "Enter selects the focused leaf");
+            assertSame(leafItem, single.getSelectedPath().getLeaf());
+
+            RXCascaderView<String> multiple = new RXCascaderView<>();
+            multiple.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> checkable = item("checkable");
+            multiple.getRootItems().setAll(List.of(checkable));
+            relayout(new Scene(new StackPane(multiple)));
+            fireKey(multiple, KeyCode.DOWN);
+            fireKey(multiple, KeyCode.SPACE);
+            assertTrue(checkable.isChecked(), "Space toggles the focused leaf's check on");
+            fireKey(multiple, KeyCode.SPACE);
+            assertFalse(checkable.isChecked(), "Space toggles it back off");
+        });
+    }
+
+    private static int focusedIndex(RXCascaderView<?> view, String columnSelector) {
+        ListView<?> column = (ListView<?>) view.lookup(columnSelector);
+        assertNotNull(column, columnSelector + " should exist");
+        return column.getFocusModel().getFocusedIndex();
+    }
+
+    private static void fireKey(Node node, KeyCode code) {
+        node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, KeyEvent.CHAR_UNDEFINED, "", code,
+                false, false, false, false));
     }
 
     private static RXCascaderItem<String> item(String text) {
