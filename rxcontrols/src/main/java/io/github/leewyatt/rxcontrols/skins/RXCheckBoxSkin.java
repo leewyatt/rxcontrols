@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -19,7 +20,6 @@ import javafx.geometry.NodeOrientation;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.Region;
@@ -363,7 +363,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();
         }
-        if (validPrimaryPress(event) && !control.isArmed()) {
+        if (RXMouse.isPlainPrimaryPress(event) && !control.isArmed()) {
             control.arm();
         }
     }
@@ -394,7 +394,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
     }
 
     private void onBoxPressed(MouseEvent event) {
-        if (validPrimaryPress(event) && !boxPressed) {
+        if (RXMouse.isPlainPrimaryPress(event) && !boxPressed) {
             boxPressed = true;
             // Centered press ink in the circular state-layer region, behind the box.
             rippleBehavior.press(0.0, 0.0, true);
@@ -450,13 +450,6 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
 
     private static boolean isActivationKey(KeyCode code) {
         return code == KeyCode.SPACE || (!MAC && code == KeyCode.ENTER);
-    }
-
-    private static boolean validPrimaryPress(MouseEvent event) {
-        return event.getButton() == MouseButton.PRIMARY
-                && !(event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown());
     }
 
     // ==================== Dispose ====================

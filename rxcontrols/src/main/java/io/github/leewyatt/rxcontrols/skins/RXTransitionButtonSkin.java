@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -18,7 +19,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
@@ -370,11 +370,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (button.isFocusTraversable()) {
             button.requestFocus();
         }
-        boolean valid = event.getButton() == MouseButton.PRIMARY
-                && !(event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown());
-        if (!button.isArmed() && valid) {
+        if (!button.isArmed() && RXMouse.isPlainPrimaryPress(event)) {
             button.arm();
         }
         event.consume();

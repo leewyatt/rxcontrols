@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -18,7 +19,6 @@ import javafx.geometry.HorizontalDirection;
 import javafx.scene.control.skin.RadioButtonSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.StackPane;
@@ -398,7 +398,7 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
     }
 
     private void onIndicatorPressed(MouseEvent event) {
-        if (validPrimaryPress(event) && !getControl().isDisabled() && !pressedOnIndicator) {
+        if (RXMouse.isPlainPrimaryPress(event) && !getControl().isDisabled() && !pressedOnIndicator) {
             // A press on the ring lights the pressed tier and a centred ink together; a
             // press on the label does not reach this handler, so it selects without either.
             pressedOnIndicator = true;
@@ -454,13 +454,6 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         if (background != null && !background.getFills().isEmpty()) {
             rippleFill.set(background.getFills().get(0).getFill());
         }
-    }
-
-    private static boolean validPrimaryPress(MouseEvent event) {
-        return event.getButton() == MouseButton.PRIMARY
-                && !(event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown());
     }
 
     // ==================== Dispose ====================

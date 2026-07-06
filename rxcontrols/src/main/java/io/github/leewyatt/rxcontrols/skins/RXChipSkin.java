@@ -2,11 +2,11 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -213,7 +213,7 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();
         }
-        if (validPrimaryPress(event) && !control.isArmed()) {
+        if (RXMouse.isPlainPrimaryPress(event) && !control.isArmed()) {
             // Reached only for a pill press: the close button consumes its own press,
             // so this handler never runs for a close gesture.
             pressedOnChip = true;
@@ -306,13 +306,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
 
     private static boolean isRemovalKey(KeyCode code) {
         return code == KeyCode.DELETE || code == KeyCode.BACK_SPACE;
-    }
-
-    private static boolean validPrimaryPress(MouseEvent event) {
-        return event.getButton() == MouseButton.PRIMARY
-                && !(event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown());
     }
 
     // ==================== Dispose ====================

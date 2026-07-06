@@ -2,9 +2,9 @@ package io.github.leewyatt.rxcontrols.internal.ripple;
 
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ButtonBase;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 import java.util.Objects;
@@ -116,12 +116,9 @@ public final class ArmedRippleTrigger {
     }
 
     private void recordPointerPress(MouseEvent event) {
-        // Mirrors the "valid" arming condition of ButtonBehavior.mousePressed, so
-        // stale coordinates are never left behind by presses that never arm.
-        if (event.getButton() != MouseButton.PRIMARY
-                || event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
+        // Only a plain primary press arms; a chorded / modified press must not leave
+        // stale coordinates behind (matches the RXMouse / ButtonBehavior condition).
+        if (!RXMouse.isPlainPrimaryPress(event)) {
             return;
         }
         Point2D local = control.sceneToLocal(event.getSceneX(), event.getSceneY());

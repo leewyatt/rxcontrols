@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -21,7 +22,6 @@ import javafx.scene.Node;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Background;
@@ -421,7 +421,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();
         }
-        if (validPrimaryPress(event) && !control.isArmed()) {
+        if (RXMouse.isPlainPrimaryPress(event) && !control.isArmed()) {
             // Scope the halo + ripple to the switch block: a press on the track / thumb
             // lights them up, a press on the label only toggles. Set before arm() so
             // the armed listener sees it.
@@ -534,13 +534,6 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
 
     private static boolean isActivationKey(KeyCode code) {
         return code == KeyCode.SPACE || (!MAC && code == KeyCode.ENTER);
-    }
-
-    private static boolean validPrimaryPress(MouseEvent event) {
-        return event.getButton() == MouseButton.PRIMARY
-                && !(event.isMiddleButtonDown() || event.isSecondaryButtonDown()
-                || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown());
     }
 
     // ==================== Dispose ====================
