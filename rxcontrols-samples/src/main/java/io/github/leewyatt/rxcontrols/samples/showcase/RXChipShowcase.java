@@ -22,9 +22,9 @@ import java.util.function.Consumer;
  * <p>Drives a single configurable chip across every axis — the {@code selectable}
  * toggle (a filter chip) and {@code removable} affordance that compose the assist /
  * filter / input / suggestion personas, the {@code selected} and {@code disabled}
- * states, the ripple and state-overlay toggles with their opacity, and the
- * {@code maxLabelWidth} cap — and shows one static chip of each persona for
- * comparison. For the everyday tag-entry use see {@link RXChipInputShowcase}.</p>
+ * states, and the ripple and state-overlay toggles with their opacity — and shows
+ * one static chip of each persona for comparison. For the everyday tag-entry use
+ * see {@link RXChipInputShowcase}.</p>
  */
 public class RXChipShowcase extends RXShowcaseApplication {
 
@@ -51,7 +51,6 @@ public class RXChipShowcase extends RXShowcaseApplication {
         // Selectable by default so the selected-state primary tint is reachable straight
         // from the Selected toggle.
         chip.setSelectable(true);
-        chip.setMaxLabelWidth(320.0);
 
         HBox personas = new HBox(10.0,
                 new RXChip("Assist"),
@@ -90,8 +89,7 @@ public class RXChipShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Persona & text", personaGrid()),
                 section("State", stateGrid()),
-                section("Ripple & overlay", rippleGrid()),
-                section("Sizing", sizingGrid()));
+                section("Ripple & overlay", rippleGrid()));
     }
 
     private Node personaGrid() {
@@ -130,14 +128,6 @@ public class RXChipShowcase extends RXShowcaseApplication {
                 row(checkBox("Ripple enabled", chip.isRippleEnabled(), chip::setRippleEnabled)),
                 row(checkBox("State overlay enabled", chip.isStateOverlayEnabled(), chip::setStateOverlayEnabled)),
                 row("Ripple opacity", opacity, createValueLabel(opacity, "%.2f")));
-    }
-
-    private Node sizingGrid() {
-        Slider maxLabel = createSlider(40.0, 320.0, chip.getMaxLabelWidth());
-        maxLabel.valueProperty().addListener((obs, old, value) -> chip.setMaxLabelWidth(value.doubleValue()));
-
-        return createGrid(
-                row("Max label width", maxLabel, createValueLabel(maxLabel, "%.0f px")));
     }
 
     private CheckBox checkBox(String text, boolean selected, Consumer<Boolean> onChange) {

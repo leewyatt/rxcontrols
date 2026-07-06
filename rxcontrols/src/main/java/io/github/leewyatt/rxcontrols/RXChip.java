@@ -26,7 +26,6 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Skin;
-import javafx.scene.layout.Region;
 import javafx.scene.paint.Paint;
 
 import java.util.ArrayList;
@@ -556,56 +555,6 @@ public class RXChip extends ButtonBase {
         stateOverlayEnabled.set(value);
     }
 
-    // ==================== Max Label Width ====================
-
-    private final DoubleProperty maxLabelWidth =
-            new StyleableDoubleProperty(Region.USE_COMPUTED_SIZE) {
-                @Override
-                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
-                    return StyleableProperties.MAX_LABEL_WIDTH;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXChip.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "maxLabelWidth";
-                }
-            };
-
-    /**
-     * Maximum width of the text label before it truncates with an ellipsis. The
-     * default {@link Region#USE_COMPUTED_SIZE} lets the label grow to its content;
-     * a positive value caps it (settable from CSS via
-     * {@code -rx-chip-max-label-width}).
-     *
-     * @return the max label width property
-     */
-    public final DoubleProperty maxLabelWidthProperty() {
-        return maxLabelWidth;
-    }
-
-    /**
-     * Returns the maximum label width.
-     *
-     * @return the maximum label width, or {@link Region#USE_COMPUTED_SIZE}
-     */
-    public final double getMaxLabelWidth() {
-        return maxLabelWidth.get();
-    }
-
-    /**
-     * Sets the maximum label width.
-     *
-     * @param value the maximum label width, or {@link Region#USE_COMPUTED_SIZE}
-     */
-    public final void setMaxLabelWidth(double value) {
-        maxLabelWidth.set(value);
-    }
-
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
@@ -670,21 +619,6 @@ public class RXChip extends ButtonBase {
                     }
                 };
 
-        private static final CssMetaData<RXChip, Number> MAX_LABEL_WIDTH =
-                new CssMetaData<>("-rx-chip-max-label-width",
-                        SizeConverter.getInstance(), Region.USE_COMPUTED_SIZE) {
-                    @Override
-                    public boolean isSettable(RXChip chip) {
-                        return !chip.maxLabelWidth.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Number> getStyleableProperty(RXChip chip) {
-                        return (StyleableProperty<Number>) chip.maxLabelWidthProperty();
-                    }
-                };
-
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -694,7 +628,6 @@ public class RXChip extends ButtonBase {
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
             styleables.add(STATE_OVERLAY_ENABLED);
-            styleables.add(MAX_LABEL_WIDTH);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

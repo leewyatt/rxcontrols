@@ -40,8 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for {@link RXChip}: default state, the {@code selectable} pseudo-class /
  * accessible role, selected / removable state, the {@code fire()} + selectable-toggle
  * contract, the vetoable remove event, mouse and keyboard (SPACE / ENTER / DELETE)
- * activation and removal, the ripple layer, {@code maxLabelWidth} truncation and
- * CSS metadata.
+ * activation and removal, the ripple layer and CSS metadata.
  */
 public class RXChipTest {
 
@@ -175,17 +174,15 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies CSS metadata exposes the ripple + max-label-width styleables and
-     * the inherited font.
+     * Verifies CSS metadata exposes the ripple styleables and the inherited font.
      */
     @Test
-    public void cssMetadataIncludesRippleAndMaxLabelWidth() {
+    public void cssMetadataIncludesRippleStyleables() {
         Set<String> properties = RXChip.getClassCssMetaData().stream()
                 .map(metadata -> metadata.getProperty())
                 .collect(Collectors.toSet());
         assertTrue(properties.contains("-rx-ripple-fill"));
         assertTrue(properties.contains("-rx-ripple-opacity"));
-        assertTrue(properties.contains("-rx-chip-max-label-width"));
         assertTrue(properties.contains("-fx-font"));
     }
 
@@ -415,28 +412,6 @@ public class RXChipTest {
     }
 
     // ==================== Size / dispose ====================
-
-    /**
-     * Verifies {@code maxLabelWidth} caps the label width and shrinks the chip's
-     * preferred width.
-     *
-     * @throws Exception if the FX-thread assertion fails
-     */
-    @Test
-    public void maxLabelWidthCapsLabel() throws Exception {
-        runOnFx(() -> {
-            RXChip wide = attach(new RXChip("A fairly long chip label that would overflow"));
-            RXChip capped = new RXChip("A fairly long chip label that would overflow");
-            capped.setMaxLabelWidth(40.0);
-            attach(capped);
-
-            assertTrue(capped.prefWidth(-1) < wide.prefWidth(-1),
-                    "a capped label shrinks the chip pref width");
-            Region cappedLabel = (Region) capped.lookup(".label");
-            assertNotNull(cappedLabel);
-            assertTrue(cappedLabel.getWidth() <= 41.0, "the label is capped to maxLabelWidth");
-        });
-    }
 
     /**
      * Verifies the chip pref height grows with the content (padding + label) and is

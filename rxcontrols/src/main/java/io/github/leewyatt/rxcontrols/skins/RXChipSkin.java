@@ -93,7 +93,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
 
         disposer.registerListener(control.removableProperty(), this::updateCloseButton);
         disposer.registerListener(control.textProperty(), this::updateCloseAccessibleText);
-        disposer.registerListener(control.maxLabelWidthProperty(), control::requestLayout);
 
         // The close button consumes its own press so it never arms / ripples the
         // pill, and removes the chip on a click.
@@ -133,7 +132,7 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
         double closeH = removable ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
 
         double labelAvailable = Math.max(0.0, contentWidth - closeW);
-        double labelWidth = Math.min(labelAvailable, cappedLabelWidth());
+        double labelWidth = Math.min(labelAvailable, label.prefWidth(-1));
         label.resizeRelocate(snapPositionX(contentX), snapPositionY(contentY),
                 labelWidth, contentHeight);
 
@@ -146,12 +145,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
         ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
     }
 
-    private double cappedLabelWidth() {
-        double pref = label.prefWidth(-1);
-        double cap = getSkinnable().getMaxLabelWidth();
-        return cap >= 0.0 ? Math.min(pref, cap) : pref;
-    }
-
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
@@ -161,7 +154,7 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + snapSizeX(cappedLabelWidth()) + closeWidth() + rightInset;
+        return leftInset + snapSizeX(label.prefWidth(-1)) + closeWidth() + rightInset;
     }
 
     @Override
