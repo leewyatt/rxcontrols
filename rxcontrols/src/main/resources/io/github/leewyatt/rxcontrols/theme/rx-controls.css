@@ -818,9 +818,6 @@
     -fx-border-color: -rx-outline;
     -fx-border-width: 1px;
     -fx-border-radius: 999px;
-}
-
-.rx-chip > .label {
     -fx-text-fill: -rx-on-surface;
 }
 
@@ -828,8 +825,6 @@
 .rx-chip:selectable:selected {
     -fx-background-color: -rx-primary-bg;
     -fx-border-color: -rx-primary-bg;
-}
-.rx-chip:selectable:selected > .label {
     -fx-text-fill: -rx-primary;
 }
 

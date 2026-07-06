@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
-import javafx.scene.control.Label;
+import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -14,12 +14,13 @@ import javafx.scene.layout.StackPane;
 /**
  * Default skin for {@link RXChip}.
  *
- * <p>Renders a pill holding an inner {@code .label} (the chip's text and leading
- * graphic, ellipsis-truncated) and, when the chip is
- * {@link RXChip#removableProperty() removable}, a trailing {@code .close-button}
- * wrapper around a shape-backed {@code .close-icon}. A bounded
- * {@link RippleDecoration} sits below the content, clipped to the pill geometry;
- * a press anywhere on the pill except the close button ripples.</p>
+ * <p>Renders a pill whose text and leading graphic are laid out by
+ * {@link LabeledSkinBase} (the built-in {@code .text} node, ellipsis-truncated)
+ * and, when the chip is {@link RXChip#removableProperty() removable}, a trailing
+ * {@code .close-button} wrapper around a shape-backed {@code .close-icon} placed
+ * beside the label. A bounded {@link RippleDecoration} sits below the content,
+ * clipped to the pill geometry; a press anywhere on the pill except the close
+ * button ripples.</p>
  *
  * <p>Mouse and keyboard interaction is installed directly (not via the internal
  * {@code com.sun} {@code ButtonBehavior}), matching {@code ButtonBase}
@@ -29,7 +30,7 @@ import javafx.scene.layout.StackPane;
  * chip toggles its selected state through {@link RXChip#fire()}. The close button consumes its
  * own press so it never arms or ripples the pill.</p>
  */
-public class RXChipSkin extends RXSkinBase<RXChip> {
+public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
     // ==================== Constants ====================
 
@@ -38,7 +39,8 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
 
     // ==================== Fields ====================
 
-    private final Label label = new Label();
+    private final SkinDisposer disposer = new SkinDisposer();
+
     private final StackPane closeButton = new StackPane();
     private final Region closeIcon = new Region();
     private final RippleDecoration ripple;
@@ -65,18 +67,6 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     public RXChipSkin(RXChip control) {
         super(control);
 
-        // Label carries the built-in .label style class; it renders text + leading
-        // graphic and is mouse-transparent so a click on the text arms the chip.
-        label.setMouseTransparent(true);
-        disposer.registerBinding(label.textProperty(), control.textProperty());
-        disposer.registerBinding(label.graphicProperty(), control.graphicProperty());
-        disposer.registerBinding(label.contentDisplayProperty(), control.contentDisplayProperty());
-        disposer.registerBinding(label.graphicTextGapProperty(), control.graphicTextGapProperty());
-        disposer.registerBinding(label.textOverrunProperty(), control.textOverrunProperty());
-        disposer.registerBinding(label.ellipsisStringProperty(), control.ellipsisStringProperty());
-        disposer.registerBinding(label.wrapTextProperty(), control.wrapTextProperty());
-        disposer.registerBinding(label.alignmentProperty(), control.alignmentProperty());
-
         closeIcon.getStyleClass().add("close-icon");
         closeIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         closeIcon.setMouseTransparent(true);
@@ -87,11 +77,13 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
                 control.stateOverlayEnabledProperty(), control.rippleFillProperty(),
                 control::getRippleOpacity, null, null);
 
-        getChildren().setAll(ripple.getLayer(), label);
-        updateCloseButton();
+        // Now that ripple + close button exist, rebuild the child list (the first
+        // updateChildren from the LabeledSkinBase constructor ran before they did).
+        updateChildren();
         updateCloseAccessibleText();
 
-        disposer.registerListener(control.removableProperty(), this::updateCloseButton);
+        // Toggling removable adds / removes the close button through updateChildren.
+        disposer.registerListener(control.removableProperty(), this::updateChildren);
         disposer.registerListener(control.textProperty(), this::updateCloseAccessibleText);
 
         // The close button consumes its own press so it never arms / ripples the
@@ -107,13 +99,16 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
 
     // ==================== Children ====================
 
-    private void updateCloseButton() {
-        boolean shouldShow = getSkinnable().isRemovable();
-        boolean shown = getChildren().contains(closeButton);
-        if (shouldShow && !shown) {
+    @Override
+    protected void updateChildren() {
+        // Rebuilds the label (text + graphic) via setAll, so the ripple layer and
+        // close button must be re-added after every call.
+        super.updateChildren();
+        if (ripple != null) {
+            getChildren().add(0, ripple.getLayer());
+        }
+        if (closeButton != null && getSkinnable().isRemovable()) {
             getChildren().add(closeButton);
-        } else if (!shouldShow && shown) {
-            getChildren().remove(closeButton);
         }
     }
 
@@ -125,36 +120,38 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     // ==================== Layout ====================
 
     @Override
-    protected void layoutChildren(double contentX, double contentY,
-                                  double contentWidth, double contentHeight) {
-        boolean removable = getChildren().contains(closeButton);
+    protected void layoutChildren(double x, double y, double w, double h) {
+        RXChip control = getSkinnable();
+        boolean removable = control.isRemovable();
         double closeW = removable ? snapSizeX(closeButton.prefWidth(-1)) : 0.0;
         double closeH = removable ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
 
-        double labelAvailable = Math.max(0.0, contentWidth - closeW);
-        double labelWidth = Math.min(labelAvailable, label.prefWidth(-1));
-        label.resizeRelocate(snapPositionX(contentX), snapPositionY(contentY),
-                labelWidth, contentHeight);
+        // The label (base-managed text + graphic) fills the area minus the trailing
+        // close button; layoutLabelInArea truncates the text within that width.
+        double labelW = Math.max(0.0, w - closeW);
+        layoutLabelInArea(x, y, labelW, h, control.getAlignment());
 
         if (removable) {
-            double closeX = contentX + contentWidth - closeW;
-            double closeY = contentY + (contentHeight - closeH) / 2.0;
+            double closeX = x + w - closeW;
+            double closeY = y + (h - closeH) / 2.0;
             closeButton.resizeRelocate(snapPositionX(closeX), snapPositionY(closeY), closeW, closeH);
         }
 
-        ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        ripple.layout(control.getWidth(), control.getHeight());
     }
 
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + snapSizeX(label.minWidth(-1)) + closeWidth() + rightInset;
+        return super.computeMinWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + closeWidth();
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return leftInset + snapSizeX(label.prefWidth(-1)) + closeWidth() + rightInset;
+        return super.computePrefWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + closeWidth();
     }
 
     @Override
@@ -173,9 +170,11 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        double labelH = snapSizeY(label.prefHeight(-1));
+        double labelWidth = width < 0.0 ? width : Math.max(0.0, width - closeWidth());
         double closeH = getSkinnable().isRemovable() ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
-        return topInset + Math.max(labelH, closeH) + bottomInset;
+        return Math.max(
+                super.computePrefHeight(labelWidth, topInset, rightInset, bottomInset, leftInset),
+                topInset + closeH + bottomInset);
     }
 
     @Override
@@ -304,12 +303,19 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     // ==================== Dispose ====================
 
     /**
-     * Stops the press ripple, removes the ripple layer and unregisters all
-     * ripple / interaction listeners before the standard {@link RXSkinBase}
-     * cleanup runs.
+     * Stops the press ripple, removes the ripple layer and unregisters all ripple /
+     * interaction listeners before the standard {@link LabeledSkinBase} cleanup runs.
+     * Safe to call more than once.
      */
     @Override
-    protected void disposeSkin() {
+    public void dispose() {
+        if (getSkinnable() == null) {
+            return;
+        }
+        SkinDisposer.disposeInOrder(this::disposeRipple, disposer::dispose, super::dispose);
+    }
+
+    private void disposeRipple() {
         ripple.dispose();
         getChildren().remove(ripple.getLayer());
     }
