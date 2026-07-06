@@ -393,4 +393,16 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
                                        double bottomInset, double leftInset) {
         return topInset + Math.max(DEFAULT_PREF_HEIGHT, display.prefHeight(width)) + bottomInset;
     }
+
+    @Override
+    protected double computeMaxWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return getSkinnable().prefWidth(height);
+    }
+
+    @Override
+    protected double computeMaxHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return getSkinnable().prefHeight(width);
+    }
 }

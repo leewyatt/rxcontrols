@@ -62,6 +62,7 @@ public class RXCascaderLazyShowcase extends RXShowcaseApplication {
         statusLabel.setWrapText(true);
 
         cascader = new RXCascader<>();
+        cascader.setMaxWidth(Double.MAX_VALUE);
         cascader.setPromptText("Expand to load");
         cascader.setClearable(true);
         cascader.setItemTextFactory(CascaderOption::label);

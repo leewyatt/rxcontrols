@@ -76,6 +76,33 @@ public class RXCascaderSkinTest {
     }
 
     /**
+     * Verifies the cascader follows ComboBox sizing: a fill container such as
+     * {@link StackPane} must not stretch the field beyond its preferred size by
+     * default.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void stackPaneDoesNotStretchCascaderBeyondPreferredSize() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.getRootItems().add(new RXCascaderItem<>("root"));
+
+            StackPane root = new StackPane(cascader);
+            new Scene(root, 480.0, 180.0);
+            root.applyCss();
+            root.layout();
+
+            assertEquals(cascader.prefWidth(-1), cascader.getWidth(), 0.5);
+            assertEquals(cascader.prefHeight(cascader.getWidth()), cascader.getHeight(), 0.5);
+            assertTrue(cascader.getWidth() < root.getWidth(),
+                    "cascader width must not fill the StackPane by default");
+            assertTrue(cascader.getHeight() < root.getHeight(),
+                    "cascader height must not fill the StackPane by default");
+        });
+    }
+
+    /**
      * Verifies the field's default path text (no {@code pathTextFactory} set)
      * joins each node's text via the item text factory, falling back to
      * {@code String.valueOf(value)} when none is set.

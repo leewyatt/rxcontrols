@@ -46,6 +46,7 @@ public class RXCascaderDemo extends Application {
         root.setStyle("-fx-padding: 24; -fx-background-color: white;");
 
         RXCascader<Option> single = new RXCascader<>();
+        single.setMaxWidth(Double.MAX_VALUE);
         single.setPromptText("Choose a city");
         single.setClearable(true);
         single.setItemTextFactory(Option::label);
@@ -58,6 +59,7 @@ public class RXCascaderDemo extends Application {
         single.select(findById(cities, "berlin"));
 
         RXCascader<Option> multiple = new RXCascader<>();
+        multiple.setMaxWidth(Double.MAX_VALUE);
         multiple.setPromptText("Choose multiple cities");
         multiple.setSelectionMode(SelectionMode.MULTIPLE);
         multiple.setClearable(true);
@@ -69,6 +71,7 @@ public class RXCascaderDemo extends Application {
         multiple.getRootItems().setAll(sampleOptions());
 
         RXCascader<Option> lazy = new RXCascader<>();
+        lazy.setMaxWidth(Double.MAX_VALUE);
         lazy.setPromptText("Lazy load children");
         lazy.setSelectionMode(SelectionMode.MULTIPLE);
         lazy.setClearable(true);
@@ -81,6 +84,7 @@ public class RXCascaderDemo extends Application {
         // frontier column showing the emptyText. An ordinary childless node is a
         // terminal leaf and would open no column at all.
         RXCascader<Option> forced = new RXCascader<>();
+        forced.setMaxWidth(Double.MAX_VALUE);
         forced.setPromptText("Forced-branch placeholder");
         forced.setClearable(true);
         forced.setItemTextFactory(Option::label);

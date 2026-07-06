@@ -66,6 +66,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         cascader = new RXCascader<>();
+        cascader.setMaxWidth(Double.MAX_VALUE);
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
         cascader.setItemTextFactory(CascaderOption::label);
