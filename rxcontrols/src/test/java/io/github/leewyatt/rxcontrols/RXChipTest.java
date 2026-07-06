@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXChipEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXChipSkin;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
@@ -21,7 +22,6 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -377,7 +377,7 @@ public class RXChipTest {
     @Test
     public void enterActivatesExceptOnMac() throws Exception {
         runOnFx(() -> {
-            boolean mac = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+            boolean mac = RXOS.isMacOS();
             RXChip chip = attach(new RXChip("x"));
             AtomicInteger fired = new AtomicInteger();
             chip.setOnAction(event -> fired.incrementAndGet());

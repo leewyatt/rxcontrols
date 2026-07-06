@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -27,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,8 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class RXTransitionButtonTest {
 
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.

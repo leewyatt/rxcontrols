@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.application.Platform;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
@@ -16,7 +17,6 @@ import javafx.scene.text.TextFlow;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,8 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class RXTextViewInteractionTest {
 
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {

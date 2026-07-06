@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -9,8 +10,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-
-import java.util.Locale;
 
 /**
  * Default skin for {@link RXChip}.
@@ -35,8 +34,7 @@ public class RXChipSkin extends RXSkinBase<RXChip> {
     // ==================== Constants ====================
 
     /** ENTER activates the chip everywhere except macOS (matching ButtonBehavior). */
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
 
     // ==================== Fields ====================
 

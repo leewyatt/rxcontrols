@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXRadioButtonSkin;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -30,7 +31,6 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -253,7 +253,7 @@ public class RXRadioButtonTest {
     @Test
     public void enterSelectsExceptOnMac() throws Exception {
         runOnFx(() -> {
-            boolean mac = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+            boolean mac = RXOS.isMacOS();
             RXRadioButton control = attach(new RXRadioButton("OK"));
 
             control.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.ENTER));

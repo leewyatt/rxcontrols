@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXCheckBoxSkin;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -28,7 +29,6 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -429,7 +429,7 @@ public class RXCheckBoxTest {
     @Test
     public void enterTogglesExceptOnMac() throws Exception {
         runOnFx(() -> {
-            boolean mac = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+            boolean mac = RXOS.isMacOS();
             RXCheckBox control = attach(new RXCheckBox("OK"));
             AtomicInteger fired = new AtomicInteger();
             control.setOnAction(event -> fired.incrementAndGet());

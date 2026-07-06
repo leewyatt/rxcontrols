@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -29,8 +30,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
-
-import java.util.Locale;
 
 /**
  * Default skin for {@link RXSwitchButton}.
@@ -64,8 +63,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
     private static final double DRAG_THRESHOLD = 4.0;
 
     /** ENTER activates the switch everywhere except macOS (matching ButtonBehavior). */
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
 
     /** Peak opacity of the press ripple ink. */
     private static final double RIPPLE_PEAK_OPACITY = 0.18;

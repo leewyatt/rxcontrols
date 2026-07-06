@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
@@ -21,13 +22,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Locale;
 import java.util.ResourceBundle;
 
 public class PaneMediaController {
 
-    private static final boolean MAC_OS =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC_OS = RXOS.isMacOS();
 
     /**
      * 歌词文件的编码格式

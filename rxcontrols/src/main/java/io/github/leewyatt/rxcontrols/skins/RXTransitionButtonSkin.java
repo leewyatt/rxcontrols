@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -21,8 +22,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
-
-import java.util.Locale;
 
 /**
  * Skin for {@link RXTransitionButton}: a ripple layer below a double-page
@@ -41,8 +40,7 @@ import java.util.Locale;
  */
 public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
     private static final KeyCombination DEFAULT_BUTTON_COMBO = new KeyCodeCombination(KeyCode.ENTER);
     private static final KeyCombination CANCEL_BUTTON_COMBO = new KeyCodeCombination(KeyCode.ESCAPE);
 

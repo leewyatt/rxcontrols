@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -18,7 +19,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.File;
-import java.util.Locale;
 
 /**
  * Media-player demo for {@link RXSeekBar}.
@@ -28,8 +28,7 @@ import java.util.Locale;
  */
 public class RXSeekBarMediaDemo extends Application {
 
-    private static final boolean MAC_OS =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC_OS = RXOS.isMacOS();
 
     private final FileChooser fileChooser = new FileChooser();
     private final RXSeekBar seekBar = new RXSeekBar();

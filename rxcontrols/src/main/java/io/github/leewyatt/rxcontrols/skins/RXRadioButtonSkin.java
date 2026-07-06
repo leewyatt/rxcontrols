@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -24,8 +25,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
-
-import java.util.Locale;
 
 /**
  * Default skin for {@link RXRadioButton}.
@@ -75,8 +74,7 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
     private static final String RADIO_STYLE_CLASS = "radio";
 
     /** ENTER activates the radio everywhere except macOS (matching the inherited ButtonBehavior). */
-    private static final boolean MAC =
-            System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("mac");
+    private static final boolean MAC = RXOS.isMacOS();
 
     // ==================== Fields ====================
 
