@@ -1339,6 +1339,11 @@ public class RXCascaderViewSkinTest {
             fireFullClick(checkBox);
 
             assertTrue(hangzhou.isChecked(), "the checkbox click still toggles the check");
+            // Inline focus acquisition must survive the checkbox press-consume
+            // too (capture filter): otherwise real key events would never reach
+            // the view after a checkbox click.
+            assertSame(view, scene.getFocusOwner(),
+                    "a checkbox click still gives the inline view the scene focus");
             assertEquals(1, column1.getFocusModel().getFocusedIndex(),
                     "the checked row carries the focus highlight");
             assertEquals(-1, column0.getFocusModel().getFocusedIndex(),

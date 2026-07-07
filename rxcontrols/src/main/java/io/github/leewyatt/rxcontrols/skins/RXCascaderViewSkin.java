@@ -101,8 +101,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         });
         // List-like focus behavior: clicking the inline view focuses it. Inside a
         // popup the click must not move the focus owner of the popup scene — the
-        // anchored control keeps driving the keyboard.
-        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+        // anchored control keeps driving the keyboard. A capture-phase filter for
+        // the same reason as the column highlight sync: the multiple-mode check
+        // box consumes the press in its own filter, which would starve a bubbling
+        // handler and leave the inline view unfocused after a checkbox click
+        // (arrow keys would then never reach it).
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> {
             if (control.getScene() != null
                     && !(control.getScene().getWindow() instanceof PopupWindow)) {
                 control.requestFocus();
