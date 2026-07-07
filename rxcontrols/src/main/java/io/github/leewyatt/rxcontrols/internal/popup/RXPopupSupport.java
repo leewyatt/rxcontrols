@@ -51,6 +51,19 @@ import java.util.Objects;
  * wrapped around the content — never to the content itself, whose min/pref/max
  * stay under user / CSS control.
  *
+ * <h2>Content bounds contract</h2>
+ * {@code PopupWindow} natively tracks the scene root's {@code boundsInLocal}:
+ * every invalidation immediately resizes and repositions the OS window. The
+ * content subtree must therefore never leak child bounds outside itself, even
+ * transiently — an un-laid-out skin created mid-event (a fresh {@code ListView}
+ * exposes its placeholder at negative y and default-sized scroll bars), an
+ * unbounded halo, or an animated transform all show up as a visible
+ * native-window jump. Consumers that rebuild content mid-event must clip the
+ * offending node or settle it ({@code applyCss()} + {@code layout()}) before
+ * returning to the event loop. Bounds-affecting animations on the content are
+ * legitimate only when the window following them is the intended effect (the
+ * suggestion popup's unfold entrance relies on exactly this tracking).
+ *
  * <p>Not thread-safe; use on the JavaFX Application Thread.
  */
 public final class RXPopupSupport {
@@ -102,6 +115,13 @@ public final class RXPopupSupport {
     public RXPopupSupport(Region content) {
         this.content = Objects.requireNonNull(content, "content");
         this.shell = new StackPane(content);
+        // Backstop only: reconfigure() already clamps the content into the anchor
+        // node's screen visual bounds using preferred sizes; the framework autofix
+        // re-clamps with the window's actual bounds against the anchor point's
+        // screen. On the normal path it is a no-op — it steps in when the actual
+        // size differs from the measured prefs (or a fullscreen stage changes the
+        // screen-bounds source). Its anchor rewrite does not feed back into
+        // reconfigure, so the two clamps cannot oscillate.
         popup.setAutoFix(true);
         popup.setAutoHide(true);
         popup.setHideOnEscape(true);
@@ -159,8 +179,13 @@ public final class RXPopupSupport {
         boolean wasShowing = showing.get() && popup.isShowing();
         if (wasShowing) {
             suppressOnHidden = true;
-            popup.hide();
-            suppressOnHidden = false;
+            try {
+                popup.hide();
+            } finally {
+                // A hide listener that throws must not leave the flag stuck,
+                // which would silently swallow every future onHidden.
+                suppressOnHidden = false;
+            }
         }
         bindAnchor(newAnchor);
         if (wasShowing) {
@@ -215,6 +240,13 @@ public final class RXPopupSupport {
      * Releases all resources. Unbinds the hidden callback first so hiding the
      * window does not call back into the host, then hides the popup, then disposes
      * the anchor and lifecycle registrations (the latter clears the popup skin).
+     *
+     * <p>The logical {@link #showingProperty() showing} state is deliberately
+     * <em>not</em> flipped to {@code false}: a disposed support fires no further
+     * callbacks, and a host being replaced (skin swap) keeps its control-level
+     * showing state so the next skin can re-open the popup from it. A host that
+     * mirrors this property into its own state must reset that mirror itself
+     * (see {@code RXChipInputSkin}).
      */
     public void dispose() {
         if (disposed) {
