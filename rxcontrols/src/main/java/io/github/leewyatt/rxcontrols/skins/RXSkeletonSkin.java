@@ -274,6 +274,12 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         }
 
         List<Block> blocks = computeBlocks(variantOrDefault(), contentWidth, contentHeight);
+        if (blocks.isEmpty()) {
+            // Nothing visible to shimmer over (e.g. no TEXT line fits) — an
+            // empty clip would hide the band while its timeline keeps running.
+            collapseAll();
+            return;
+        }
         syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor(),
                 BASE_BLOCK_STYLE_CLASS);
         syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK, CLIP_BLOCK_STYLE_CLASS);
@@ -307,12 +313,19 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 blocks.add(new Block(offsetX, offsetY, diameter, diameter, diameter, diameter));
             }
             case TEXT -> {
-                double lineHeight = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
-                double lineSpacing = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
+                // Finite sanitizing: an infinite line height / spacing would
+                // turn `0 * Infinity` into NaN geometry below.
+                double lineHeight = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineHeight());
+                double lineSpacing = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineSpacing());
                 double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
                 double lastPercent = RXMath.clamp(lastPercentSource, 0.0, FULL_PERCENT);
                 int lineCount = Math.max(1, getSkinnable().getLineCount());
                 double radius = lineHeight * HALF;
+                // Zero-height lines paint nothing; leave the block list empty
+                // so the shimmer collapses instead of animating invisibly.
+                if (lineHeight <= 0.0) {
+                    break;
+                }
                 for (int i = 0; i < lineCount; i++) {
                     double y = i * (lineHeight + lineSpacing);
                     if (y + lineHeight > ch) {
@@ -424,8 +437,8 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         double inner = switch (variant) {
             case TEXT -> {
                 int n = Math.max(1, getSkinnable().getLineCount());
-                double lh = RXMath.sanitizeNonNegative(getSkinnable().getLineHeight());
-                double sp = RXMath.sanitizeNonNegative(getSkinnable().getLineSpacing());
+                double lh = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineHeight());
+                double sp = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineSpacing());
                 yield n * lh + Math.max(0, n - 1) * sp;
             }
             case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;

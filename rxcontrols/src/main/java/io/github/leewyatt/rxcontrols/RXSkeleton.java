@@ -578,8 +578,8 @@ public class RXSkeleton extends Control {
 
     /**
      * Per-line height for {@link Variant#TEXT}, in pixels. Ignored for the
-     * other shapes. Negative values and {@code NaN} are treated as {@code 0}
-     * at render time.
+     * other shapes. Values that are negative, {@code NaN}, or infinite are
+     * treated as {@code 0} at render time — no lines are shown then.
      *
      * @return the line-height property
      */
@@ -626,8 +626,8 @@ public class RXSkeleton extends Control {
 
     /**
      * Vertical gap between adjacent lines for {@link Variant#TEXT}, in
-     * pixels. Ignored for the other shapes. Negative values and {@code NaN}
-     * are treated as {@code 0} at render time.
+     * pixels. Ignored for the other shapes. Values that are negative,
+     * {@code NaN}, or infinite are treated as {@code 0} at render time.
      *
      * @return the line-spacing property
      */

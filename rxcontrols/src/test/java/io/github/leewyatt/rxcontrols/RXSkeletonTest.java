@@ -282,11 +282,22 @@ public class RXSkeletonTest {
         assertEquals(2, rectanglesIn(baseLayer(skeleton)).size(),
                 "a line ending exactly at the content height fits");
 
-        // Degenerate: not even the first line fits — nothing is painted.
+        // Degenerate: not even the first line fits — nothing is painted and
+        // the shimmer collapses instead of animating invisibly.
         skeleton.setLineHeight(30.0);
         layout(skeleton, 200.0, 22.0);
         assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
                 "a 30px line cannot fit into 22px");
+        assertClose(0.0, shimmerBand(skeleton).getWidth(),
+                "shimmer collapses with no visible block");
+
+        // Infinite line height degrades to 0 — no lines, no shimmer.
+        skeleton.setLineHeight(Double.POSITIVE_INFINITY);
+        layout(skeleton, 200.0, 60.0);
+        assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
+                "infinite line height renders no lines");
+        assertClose(0.0, shimmerBand(skeleton).getWidth(),
+                "shimmer stays collapsed for infinite line height");
     }
 
     /**
