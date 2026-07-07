@@ -95,6 +95,36 @@ public class RXSkeletonPaneTest {
         assertNull(skeleton.getParent());
     }
 
+    /**
+     * Verifies replacing the hidden slot invalidates layout even though the
+     * displayed child is untouched — measurement reads both slots, and the
+     * detached node cannot bubble a layout request itself.
+     */
+    @Test
+    public void hiddenSlotReplacementInvalidatesLayout() {
+        FixedRegion skeleton = new FixedRegion(10.0, 10.0, 50.0, 20.0, null);
+        FixedRegion content = new FixedRegion(10.0, 10.0, 100.0, 40.0, null);
+        RXSkeletonPane pane = new RXSkeletonPane(skeleton, content, true);
+
+        layout(pane, 100.0, 40.0);
+        assertEquals(false, pane.isNeedsLayout(), "clean after layout");
+
+        // Loading: content is hidden yet drives pref — replacing it must
+        // schedule a re-measure.
+        pane.setContent(new FixedRegion(10.0, 10.0, 300.0, 80.0, null));
+        assertEquals(true, pane.isNeedsLayout(), "hidden content replaced");
+        assertClose(300.0, pane.prefWidth(-1.0), "pref follows new content");
+
+        layout(pane, 300.0, 80.0);
+        pane.setLoading(false);
+        layout(pane, 300.0, 80.0);
+
+        // Loaded: skeleton is hidden yet participates in min — same contract.
+        pane.setSkeleton(new FixedRegion(200.0, 90.0, 220.0, 100.0, null));
+        assertEquals(true, pane.isNeedsLayout(), "hidden skeleton replaced");
+        assertClose(200.0, pane.minWidth(-1.0), "min follows new skeleton");
+    }
+
     private static void layout(Region region, double width, double height) {
         region.resize(width, height);
         region.requestLayout();

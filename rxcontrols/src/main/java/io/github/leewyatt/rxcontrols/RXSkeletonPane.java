@@ -35,7 +35,11 @@ import javafx.scene.layout.Region;
  * the wrapper's own layout bounds stay constant across the {@code loading}
  * flip — preventing the surrounding layout from jumping when the swap occurs.
  * If only the skeleton is present (e.g. content not yet wired) the skeleton
- * drives the size instead.
+ * drives the size instead. Replacing either slot re-measures the pane; a
+ * known limitation of the detach model is that <em>internal</em> size changes
+ * of the currently hidden node (e.g. its text growing while detached) cannot
+ * reach the pane — such changes are picked up on the next swap or external
+ * layout pass.
  *
  * <p><b>Equally stretchable.</b> {@code maxWidth} / {@code maxHeight} report
  * {@link Double#MAX_VALUE}, so the pane behaves correctly under
@@ -197,6 +201,11 @@ public class RXSkeletonPane extends Region {
     // ==================== Child swap ====================
 
     private void invalidateChildren() {
+        // Measurement reads both slots (content-first pref, max-of-both min),
+        // so even a change that leaves the displayed child untouched must
+        // invalidate layout — the hidden node is not a child and cannot
+        // bubble a layout request itself.
+        requestLayout();
         Node target = isLoading() ? getSkeleton() : getContent();
         if (target == null) {
             // Clear instead of leaving the previous target in place — a null

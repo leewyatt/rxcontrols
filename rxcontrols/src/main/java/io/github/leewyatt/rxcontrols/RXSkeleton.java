@@ -50,15 +50,18 @@ import java.util.List;
  *       {@code min(width, height)}; intended for avatar placeholders</li>
  *   <li>{@link Variant#TEXT} — N stacked lines that simulate a paragraph;
  *       lines {@code 1 .. N-1} fill the full width, the last line is shortened
- *       by {@link #lastLineFillPercentProperty() lastLineFillPercent}; a single
- *       shimmer band sweeps across the union of all lines</li>
+ *       by {@link #lastLineFillPercentProperty() lastLineFillPercent}
+ *       (single-line skeletons are not shortened); lines that do not fit the
+ *       current height are omitted; a single shimmer band sweeps across the
+ *       union of all lines</li>
  * </ul>
  *
  * <p>The shimmer animation auto-pauses whenever the host window or any
  * ancestor of the skeleton is hidden, so off-screen placeholders do not waste
  * CPU. Setting {@link #cycleDurationProperty() cycleDuration} to
- * {@code Duration.ZERO} or any non-positive value suppresses the animation
- * entirely — the skeleton degrades to a static gray block.
+ * {@code Duration.ZERO}, any non-positive value, or an unknown / indefinite
+ * duration suppresses the animation entirely — the skeleton degrades to a
+ * static gray block.
  *
  * @see RXSkeletonPane
  */
@@ -86,7 +89,7 @@ public class RXSkeleton extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-skeleton";
 
-    // ==================== Public Defaults ====================
+    // ==================== Defaults ====================
 
     /**
      * Default {@link Variant}.
@@ -170,18 +173,24 @@ public class RXSkeleton extends Control {
      * Creates a skeleton with the {@linkplain #DEFAULT_VARIANT default variant}.
      */
     public RXSkeleton() {
-        this(DEFAULT_VARIANT);
+        this(null);
     }
 
     /**
      * Creates a skeleton with the given variant.
      *
-     * @param variant the initial variant; {@code null} falls back to
-     *                {@link #DEFAULT_VARIANT}
+     * @param variant the initial variant; {@code null} keeps the
+     *                {@link #DEFAULT_VARIANT default} and leaves the property
+     *                settable from CSS
      */
     public RXSkeleton(@NamedArg("variant") Variant variant) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setVariant(variant == null ? DEFAULT_VARIANT : variant);
+        // Only stamp the USER style origin for an explicit choice; calling
+        // the setter with the default would block -rx-variant from the
+        // user-agent stylesheet forever.
+        if (variant != null) {
+            setVariant(variant);
+        }
     }
 
     @Override
@@ -321,8 +330,8 @@ public class RXSkeleton extends Control {
 
     /**
      * Paint used for the base block under the shimmer band. Initial value is
-     * {@link #DEFAULT_BASE_COLOR}; setting {@code null} renders no base fill
-     * per the JavaFX {@code Shape.setFill} convention.
+     * a light gray ({@code #e0e0e0}); setting {@code null} renders no base
+     * fill per the JavaFX {@code Shape.setFill} convention.
      *
      * @return the base-color property
      */
@@ -368,9 +377,11 @@ public class RXSkeleton extends Control {
     };
 
     /**
-     * Fill paint used for the moving shimmer band. Initial value is
-     * {@link #DEFAULT_SHIMMER_FILL}; setting {@code null} renders no shimmer
-     * fill per the JavaFX {@code Shape.setFill} convention. A solid paint
+     * Fill paint used for the moving shimmer band. Initial value is the
+     * standard soft shimmer gradient produced by
+     * {@link #createShimmerGradient(Color)} from a translucent white
+     * highlight; setting {@code null} renders no shimmer fill per the JavaFX
+     * {@code Shape.setFill} convention. A solid paint
      * renders a solid, hard-edged moving band; use
      * {@link #createShimmerGradient(Color)} for the standard soft shimmer.
      *
@@ -420,9 +431,11 @@ public class RXSkeleton extends Control {
             };
 
     /**
-     * Duration of one full left-to-right shimmer sweep. A value of {@code null}
-     * or any {@code Duration} less than or equal to {@link Duration#ZERO}
-     * suppresses the animation — the placeholder stays a static gray block.
+     * Duration of one full left-to-right shimmer sweep. A value of {@code null},
+     * an {@linkplain Duration#isUnknown() unknown} or
+     * {@linkplain Duration#isIndefinite() indefinite} duration, or any
+     * {@code Duration} less than or equal to {@link Duration#ZERO} suppresses
+     * the animation — the placeholder stays a static gray block.
      *
      * @return the cycle-duration property
      */

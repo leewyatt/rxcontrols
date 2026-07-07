@@ -241,7 +241,8 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         stopProgressTween();
 
         Duration tweenDuration = getSkinnable().getProgressTransitionDuration();
-        if (tweenDuration == null || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
+        if (tweenDuration == null || tweenDuration.isUnknown() || tweenDuration.isIndefinite()
+                || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
             displayedProgress.set(target);
             return;
         }
@@ -313,7 +314,8 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
         double signedMinLen = sweepSign * INDETERMINATE_MIN_LENGTH;
 
         Duration cycle = control.getIndeterminateCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Suppress indeterminate animation, snap to the cycle's t=0 pose so
             // the ring shows a deterministic static frame instead of whatever
             // arc length / rotation was lingering from a previous animation.

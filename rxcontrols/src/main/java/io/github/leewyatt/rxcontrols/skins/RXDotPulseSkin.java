@@ -176,7 +176,8 @@ public class RXDotPulseSkin extends RXSkinBase<RXDotPulse> {
         }
 
         Duration cycle = getSkinnable().getCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Caller is responsible for following up with applyStaticRest()
             // — keeping that off this method lets dotCount/mode change
             // paths share a single "stop + reset" sequence (see registerListeners).

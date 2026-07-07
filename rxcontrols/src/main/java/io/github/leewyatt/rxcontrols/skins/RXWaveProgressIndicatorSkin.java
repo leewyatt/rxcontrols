@@ -369,7 +369,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         stopProgressTween();
 
         Duration tweenDuration = getSkinnable().getProgressTransitionDuration();
-        if (tweenDuration == null || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
+        if (tweenDuration == null || tweenDuration.isUnknown() || tweenDuration.isIndefinite()
+                || tweenDuration.lessThanOrEqualTo(Duration.ZERO)) {
             displayedProgress.set(target);
         } else {
             progressTween = new Timeline(new KeyFrame(
@@ -424,7 +425,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         }
 
         Duration cycle = getSkinnable().getIndeterminateCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Suppress breathing and snap to a deterministic mid-range pose so
             // a stale frame from a previous animation cannot linger.
             displayedProgress.set(INDETERMINATE_REST);
@@ -524,7 +526,10 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     private boolean scrollEnabled() {
         Duration cycle = getSkinnable().getWaveCycleDuration();
-        return cycle != null && cycle.greaterThan(Duration.ZERO);
+        // INDEFINITE passes greaterThan(ZERO) but resolves to omega 0 — the
+        // frame timer would keep running for a static wave forever.
+        return cycle != null && !cycle.isUnknown() && !cycle.isIndefinite()
+                && cycle.greaterThan(Duration.ZERO);
     }
 
     private void onTreeShowingChanged(boolean showing) {
@@ -559,7 +564,8 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
 
     private double resolveBaseOmega() {
         Duration cycle = getSkinnable().getWaveCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             return 0.0;
         }
         return TWO_PI / (cycle.toMillis() / 1000.0);

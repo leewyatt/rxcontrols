@@ -182,7 +182,11 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
      */
     private void rebuildShimmerTimeline() {
         Duration cycle = getSkinnable().getCycleDuration();
-        boolean disabled = cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO);
+        // isUnknown() must be checked here: KeyFrame only rejects the
+        // Duration.UNKNOWN singleton (equals-based), so a hand-made NaN
+        // duration would silently poison the timeline math instead.
+        boolean disabled = cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO);
         double bandWidth = cachedBandWidth;
         double span = cachedContentWidth + bandWidth;
 
@@ -311,6 +315,11 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 double radius = lineHeight * HALF;
                 for (int i = 0; i < lineCount; i++) {
                     double y = i * (lineHeight + lineSpacing);
+                    if (y >= ch) {
+                        // Control does not clip children; lines starting past
+                        // the content height would paint outside the bounds.
+                        break;
+                    }
                     double width = cw;
                     if (i == lineCount - 1 && lineCount > 1) {
                         width = cw * lastPercent / FULL_PERCENT;

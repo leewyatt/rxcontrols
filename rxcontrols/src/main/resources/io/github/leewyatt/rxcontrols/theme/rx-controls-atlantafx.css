@@ -132,3 +132,6 @@
 .rx-avatar > .default-icon-wrapper {
     -fx-background-color: -rx-surface-variant;
 }
+.rx-skeleton {
+    -rx-base-color: -rx-surface-variant;
+}

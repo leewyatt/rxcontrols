@@ -236,7 +236,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         stopProgressTween();
 
         Duration tween = getSkinnable().getProgressTransitionDuration();
-        if (tween == null || tween.lessThanOrEqualTo(Duration.ZERO)) {
+        if (tween == null || tween.isUnknown() || tween.isIndefinite()
+                || tween.lessThanOrEqualTo(Duration.ZERO)) {
             displayedProgress.set(target);
             return;
         }
@@ -288,7 +289,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         }
 
         Duration cycle = getSkinnable().getIndeterminateCycleDuration();
-        if (cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (cycle == null || cycle.isUnknown() || cycle.isIndefinite()
+                || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             indeterminatePhase.set(0.0);
             clearFills();
             return;

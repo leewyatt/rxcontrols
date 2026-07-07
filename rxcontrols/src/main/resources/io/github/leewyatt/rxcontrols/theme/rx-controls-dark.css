@@ -152,6 +152,12 @@
     -fx-background-color: -rx-surface-variant;
 }
 
+/* Skeleton base is a light-grey Java-side literal that would glare on the dark
+   surface; the translucent white shimmer stays and reads as a subtle sheen. */
+.rx-skeleton {
+    -rx-base-color: -rx-surface-variant;
+}
+
 /* Snackbar is an inverse surface: on the dark theme the bar flips light with
    dark text (Material inverse-surface convention); the action follows the raw
    accent (bright enough on the light bar). */

@@ -4,7 +4,9 @@ import io.github.leewyatt.rxcontrols.RXSkeleton.Variant;
 import io.github.leewyatt.rxcontrols.skins.RXSkeletonSkin;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.css.StyleOrigin;
 import javafx.css.Styleable;
+import javafx.css.StyleableProperty;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
@@ -221,6 +223,61 @@ public class RXSkeletonTest {
     }
 
     /**
+     * Verifies unknown and indefinite cycle durations disable the animation
+     * instead of crashing the layout pass. Covers the Duration.UNKNOWN
+     * singleton, a hand-made NaN duration (which KeyFrame's own equals-based
+     * check would not reject), and Duration.INDEFINITE.
+     */
+    @Test
+    public void unknownAndIndefiniteCycleDurationsDisableAnimation() {
+        for (Duration cycle : new Duration[]{
+                Duration.UNKNOWN, new Duration(Double.NaN), Duration.INDEFINITE}) {
+            RXSkeleton skeleton = new RXSkeleton();
+            skeleton.setCycleDuration(cycle);
+            installSkin(skeleton);
+
+            layout(skeleton, 120.0, 16.0);
+
+            Rectangle shimmerBand = shimmerBand(skeleton);
+            assertClose(56.0, shimmerBand.getWidth(), "band width for " + cycle);
+            assertClose(-56.0, shimmerBand.getTranslateX(),
+                    "band parked off-screen for " + cycle);
+        }
+    }
+
+    /**
+     * Verifies construction does not stamp the USER style origin on the
+     * variant property unless a variant was chosen explicitly, so the
+     * user-agent stylesheet can still set {@code -rx-variant}.
+     */
+    @Test
+    public void constructorsDoNotStampUserStyleOriginOnVariant() {
+        assertNull(variantOrigin(new RXSkeleton()), "no-arg constructor");
+        assertNull(variantOrigin(new RXSkeleton(null)), "null variant");
+        assertSame(StyleOrigin.USER, variantOrigin(new RXSkeleton(Variant.TEXT)),
+                "explicit variant is a deliberate user choice");
+    }
+
+    /**
+     * Verifies TEXT omits lines that start beyond the content height instead
+     * of painting outside the control's bounds.
+     */
+    @Test
+    public void textVariantSkipsLinesBeyondContentHeight() {
+        RXSkeleton skeleton = new RXSkeleton(Variant.TEXT);
+        skeleton.setLineCount(5);
+        skeleton.setLineHeight(10.0);
+        skeleton.setLineSpacing(5.0);
+        installSkin(skeleton);
+
+        layout(skeleton, 200.0, 22.0);
+
+        assertEquals(2, rectanglesIn(baseLayer(skeleton)).size(),
+                "lines at y=0 and y=15 fit; y=30 is beyond the 22px height");
+        assertEquals(2, rectanglesIn(clipLayer(skeleton)).size());
+    }
+
+    /**
      * Verifies the Skin exposes stable style classes for tests and diagnostics.
      */
     @Test
@@ -235,6 +292,10 @@ public class RXSkeletonTest {
         assertTrue(rectanglesIn(baseLayer(skeleton)).get(0).getStyleClass().contains("base-block"));
         assertTrue(rectanglesIn(clipLayer(skeleton)).get(0).getStyleClass().contains("clip-block"));
         assertTrue(shimmerBand(skeleton).getStyleClass().contains("shimmer-band"));
+    }
+
+    private static StyleOrigin variantOrigin(RXSkeleton skeleton) {
+        return ((StyleableProperty<?>) skeleton.variantProperty()).getStyleOrigin();
     }
 
     private static Set<String> cssPropertyNames() {

@@ -207,7 +207,8 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         }
 
         Duration cycle = getSkinnable().getCycleDuration();
-        if (renderedBarCount() == 0 || cycle == null || cycle.lessThanOrEqualTo(Duration.ZERO)) {
+        if (renderedBarCount() == 0 || cycle == null || cycle.isUnknown()
+                || cycle.isIndefinite() || cycle.lessThanOrEqualTo(Duration.ZERO)) {
             // Caller is responsible for following up with applyStaticRest()
             // — keeping that off this method lets barCount / duration change
             // paths share a single "stop + reset" sequence (see registerListeners).
