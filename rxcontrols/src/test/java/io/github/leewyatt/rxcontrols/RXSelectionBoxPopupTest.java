@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextInputControl;
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -231,6 +233,62 @@ public class RXSelectionBoxPopupTest {
             fireKey(field, KeyCode.ENTER); // activate
             assertEquals("banana", box.getSelectedItem(), "Down/Enter on the field select the row");
             assertFalse(box.isShowing(), "single-mode activation auto-hides");
+        });
+    }
+
+    @Test
+    public void clickingARowInSearchableMultiDoesNotStealFocusToTheControl() throws InterruptedException {
+        runOnFx(() -> {
+            // A sibling focusable node in the MAIN scene makes the control's own
+            // requestFocus() observable via the (deterministic) main-scene focus owner.
+            RXSelectionBox<String> box = new RXSelectionBox<>(
+                    FXCollections.observableArrayList("apple", "apricot", "banana"));
+            box.setSelectionMode(SelectionMode.MULTIPLE);
+            Button sibling = new Button("sibling");
+            stage = new Stage();
+            stage.setScene(new Scene(new StackPane(box, sibling), 320, 240));
+            stage.show();
+            box.applyCss();
+            box.layout();
+            sibling.requestFocus();
+            assertSame(sibling, box.getScene().getFocusOwner(), "precondition: sibling holds focus");
+
+            box.show();
+            RXListView<?> list = popupList();
+            Node firstCell = list.lookup(".rx-list-cell");
+            assertNotNull(firstCell, "a realized list cell should exist");
+            fireClick(firstCell);
+
+            assertTrue(box.getSelectedItems().contains("apple"), "the row click toggled the item");
+            assertTrue(box.isShowing(), "multi-select click keeps the popup open");
+            // Regression: onListClicked must NOT requestFocus() the control (that would
+            // pull window focus out of the popup search field and break type-to-filter).
+            assertSame(sibling, box.getScene().getFocusOwner(),
+                    "row click does not steal focus to the control");
+        });
+    }
+
+    @Test
+    public void turningSearchableOffWhileOpenReclaimsFocusToTheControl() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = new RXSelectionBox<>(
+                    FXCollections.observableArrayList("apple", "banana"));
+            Button sibling = new Button("sibling");
+            stage = new Stage();
+            stage.setScene(new Scene(new StackPane(box, sibling), 320, 240));
+            stage.show();
+            box.applyCss();
+            box.layout();
+            sibling.requestFocus();
+            assertSame(sibling, box.getScene().getFocusOwner(), "precondition: sibling holds focus");
+
+            box.show();
+            box.setSearchable(false);
+            // The search field (which may hold focus) is now hidden; the control must
+            // reclaim focus so its keyboard navigation stays reachable — otherwise focus
+            // is orphaned. Observable via the main-scene focus owner.
+            assertSame(box, box.getScene().getFocusOwner(),
+                    "control reclaims focus when search is turned off mid-open");
         });
     }
 

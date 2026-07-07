@@ -344,10 +344,16 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     }
 
     private void onSearchableChanged() {
-        // Turning search off must not leave a stale filter that the user can no
-        // longer reach (the search field is hidden): clear the query.
-        if (!getSkinnable().isSearchable()) {
-            getSkinnable().setSearchText("");
+        RXSelectionBox<T> control = getSkinnable();
+        if (!control.isSearchable()) {
+            // Turning search off must not leave a stale filter that the user can no
+            // longer reach (the search field is hidden): clear the query.
+            control.setSearchText("");
+            // The search field (which may hold key focus) is now hidden; hand focus to
+            // the control so the non-searchable keyboard-navigation path stays reachable.
+            if (control.isShowing()) {
+                control.requestFocus();
+            }
         }
         updatePseudoClasses();
     }
@@ -654,7 +660,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         if (cell == null || cell.isEmpty()) {
             return;
         }
-        getSkinnable().requestFocus();
+        // Do not pull focus back to the control here: a searchable popup keeps key
+        // focus in the search field (so multi-select stays type-to-filter after a
+        // click), and a non-searchable popup already holds focus on the control. The
+        // single-select close path returns focus to the control on hide.
         int viewIndex = cell.getIndex();
         MultipleSelectionModel<T> cursor = popupList.getSelectionModel();
         if (cursor != null && viewIndex >= 0) {
