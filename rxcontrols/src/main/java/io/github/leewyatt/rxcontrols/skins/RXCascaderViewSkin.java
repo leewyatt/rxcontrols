@@ -20,6 +20,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.PopupWindow;
 import javafx.util.Callback;
 
@@ -161,6 +162,13 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // code defaults before pref measurement); reused columns already have it.
         if (changed && getSkinnable().getScene() != null) {
             columnsBox.applyCss();
+            // Settle the freshly created skins in the same event: applyCss builds
+            // them un-laid-out (the empty-column placeholder label sits at
+            // negative y, scroll bars at their default size). Inside the popup
+            // those junk bounds would otherwise survive until the next pulse,
+            // where PopupWindow's native content-bounds tracking renders them as
+            // a visible window jump.
+            columnsBox.layout();
         }
     }
 
@@ -238,6 +246,16 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         listView.setCellFactory(view -> factory != null
                 ? factory.call(getSkinnable())
                 : new RXCascaderCell<>(getSkinnable()));
+        // Control does not clip its skin children, so a not-yet-laid-out column
+        // (placeholder label at negative y, scroll bars at their default size)
+        // leaks junk bounds into the ancestor chain — inside the popup that
+        // wiggles the native window, which tracks the content bounds. Nothing in
+        // a column intentionally renders outside its own bounds, so a plain
+        // rectangle clip is safe (0x0 before the first layout kills the leak).
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(listView.widthProperty());
+        clip.heightProperty().bind(listView.heightProperty());
+        listView.setClip(clip);
         return listView;
     }
 

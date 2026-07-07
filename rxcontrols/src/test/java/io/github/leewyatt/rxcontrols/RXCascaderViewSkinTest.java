@@ -1354,6 +1354,45 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    /**
+     * Verifies swapping in an empty forced-branch column leaks no transient
+     * child bounds outside the view at event time (before any manual layout
+     * pass). Inside the popup the window natively tracks the content bounds,
+     * so a pre-layout leak (placeholder label at negative y, default-sized
+     * scroll bars) shows up as a visible window jump on every swap.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyForcedBranchColumnLeaksNoTransientBounds() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> africa = item("africa");
+            RXCascaderItem<String> cairo = item("cairo");
+            cairo.setLeafHint(true);
+            africa.getChildren().setAll(List.of(cairo));
+            RXCascaderItem<String> antarctica = item("antarctica");
+            antarctica.setLeafHint(false);
+            view.getRootItems().setAll(List.of(africa, antarctica));
+
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            view.expand(africa);
+            relayout(scene);
+
+            // Swap the cities column for the empty-column placeholder and assert
+            // immediately — no relayout — matching the state the popup window
+            // would track when the expand runs inside a mouse event.
+            view.expand(antarctica);
+            assertTrue(view.getBoundsInLocal().getMinY() >= 0.0,
+                    "no child may leak above the view before the next layout pass, got minY="
+                            + view.getBoundsInLocal().getMinY());
+            assertTrue(view.getBoundsInLocal().getMinX() >= 0.0,
+                    "no child may leak left of the view before the next layout pass, got minX="
+                            + view.getBoundsInLocal().getMinX());
+        });
+    }
+
     /** Fires the full primary-button gesture (press, release, click) inside the node. */
     private static void fireFullClick(Node node) {
         for (EventType<MouseEvent> type : List.of(
