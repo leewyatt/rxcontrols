@@ -74,13 +74,12 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // Column structure: one explicit signal from the control replaces the old
         // active-path / root-list / loader listeners and the frontier monitor.
         disposer.registerListener(control.columnsRevisionProperty(), this::syncColumns);
-        // Cell rendering only (same columns, cells re-render):
-        disposer.registerListener(control.selectionModeProperty(), () -> {
-            refreshColumns();
-            control.requestLayout();
-        });
-        disposer.registerListener(control.selectedPathProperty(), this::refreshColumns);
-        disposer.registerListener(control.getCheckedPaths(), this::refreshColumns);
+        // Selection / navigation / checked-path / mode changes are observed by
+        // the cells themselves (see RXCascaderCell), so no ListView.refresh()
+        // here — refresh rebinds every cell (an updateItem storm that rebuilds
+        // custom content and flickers). The mode switch only needs a layout
+        // pass for the check-box slot swap.
+        disposer.registerListener(control.selectionModeProperty(), control::requestLayout);
         disposer.registerListener(control.visibleRowCountProperty(), control::requestLayout);
         disposer.registerListener(control.columnWidthProperty(), this::applyColumnSizing);
         disposer.registerListener(control.rowHeightProperty(), this::applyColumnSizing);
@@ -148,13 +147,9 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         if (keyboardColumn >= columns.size()) {
             keyboardColumn = columns.size() - 1;
         }
-        // Reused prefix columns (0..keep-1) keep their ListView (no teardown) but
-        // their cells' active-path / selected / checked highlights derive from view
-        // state, not item state, so the cells' own listeners do not catch a path
-        // change; refresh them. Newly created tail columns already render fresh.
-        for (int i = 0; i < keep; i++) {
-            columns.get(i).refresh();
-        }
+        // Reused prefix columns need no poke: their cells observe the view-level
+        // state (active path, selection, checked paths) themselves and have
+        // already re-rendered on the change that bumped the revision.
         // Only newly created columns need a CSS pass (so author CSS overrides the
         // code defaults before pref measurement); reused columns already have it.
         if (changed && getSkinnable().getScene() != null) {

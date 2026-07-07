@@ -77,7 +77,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
                 view.selectionModeProperty()));
 
         VBox box = new VBox(16.0, view, readout);
-        box.setAlignment(Pos.CENTER);
+        box.setAlignment(Pos.TOP_CENTER);
         return box;
     }
 

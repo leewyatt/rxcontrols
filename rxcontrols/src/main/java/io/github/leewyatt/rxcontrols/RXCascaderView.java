@@ -506,6 +506,9 @@ public class RXCascaderView<T> extends Control {
      * uses the built-in {@link RXCascaderCell}. The factory receives this view so
      * a custom cell can route interaction back to it; it may return an
      * {@link RXCascaderCell} subclass (recommended) or any {@link ListCell}.
+     * A plain {@code ListCell} must itself observe whatever view state it renders
+     * (selected path, active path, checked paths): the skin deliberately does not
+     * rebuild cells when that state changes.
      *
      * @return cell-factory property
      */

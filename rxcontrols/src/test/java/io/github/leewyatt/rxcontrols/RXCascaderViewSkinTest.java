@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1156,6 +1157,83 @@ public class RXCascaderViewSkinTest {
             assertTrue(checkable.isChecked(), "Space toggles the focused leaf's check on");
             fireKey(multiple, KeyCode.SPACE);
             assertFalse(checkable.isChecked(), "Space toggles it back off");
+        });
+    }
+
+    /**
+     * Verifies a selection change re-renders in place: no cell is rebound (no
+     * updateItem storm, no custom-content rebuild — the flicker bug), while the
+     * {@code :active} pseudo class still moves between the live cells through
+     * the cells' own view-state listeners.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void selectionChangeDoesNotRebindCells() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> shanghai = item("shanghai");
+            RXCascaderItem<String> hangzhou = item("hangzhou");
+            asia.getChildren().setAll(List.of(shanghai, hangzhou));
+            view.getRootItems().setAll(List.of(asia));
+            AtomicInteger contentBuilds = new AtomicInteger();
+            view.setCellFactory(v -> new RXCascaderCell<>(v) {
+                @Override
+                protected Node createContent(RXCascaderItem<String> item) {
+                    contentBuilds.incrementAndGet();
+                    return super.createContent(item);
+                }
+            });
+            // Sized scene: the virtual flow only materializes cells with a viewport.
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            view.expand(asia);
+            relayout(scene);
+
+            int builds = contentBuilds.get();
+            view.activate(shanghai);
+            relayout(scene);
+            assertEquals(builds, contentBuilds.get(),
+                    "selecting a leaf must not rebind or rebuild any cell content");
+            Node selected = filledCell((ListView<?>) view.lookup(".column1"), shanghai);
+            assertTrue(selected.getPseudoClassStates().contains(PseudoClass.getPseudoClass("active")),
+                    "the selected cell picks up :active through its own listener");
+
+            view.activate(hangzhou);
+            assertEquals(builds, contentBuilds.get(),
+                    "changing the selection must not rebind either");
+            Node previous = filledCell((ListView<?>) view.lookup(".column1"), shanghai);
+            assertFalse(previous.getPseudoClassStates().contains(PseudoClass.getPseudoClass("active")),
+                    "the previous cell clears :active without a rebuild");
+        });
+    }
+
+    /**
+     * Verifies the cells track loader-driven leaf semantics in place: clearing
+     * the children loader turns an unloaded childless branch back into a leaf
+     * on the live cell, without any column refresh.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void clearingLoaderFlipsCellLeafPseudoWithoutRebuild() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> root = item("root");
+            view.getRootItems().setAll(List.of(root));
+            view.setChildrenLoader(it -> new CompletableFuture<>());
+            // Sized scene: the virtual flow only materializes cells with a viewport.
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            Node cell = filledCell((ListView<?>) view.lookup(".column0"), root);
+            assertNotNull(cell, "root cell should exist");
+            assertFalse(cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("leaf")),
+                    "an unloaded childless item is a branch while a loader is set");
+
+            view.setChildrenLoader(null);
+            assertTrue(cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("leaf")),
+                    "clearing the loader flips the childless item back to a leaf in place");
         });
     }
 

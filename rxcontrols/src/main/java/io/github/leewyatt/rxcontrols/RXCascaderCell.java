@@ -147,6 +147,19 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         initializeNodes();
         registerHandlers();
         treeShowing.addListener(observable -> updateSpinner());
+        // View-level display state (selection, navigation, checked paths, mode,
+        // loader-driven leaf semantics) is not carried by the item, so observe
+        // the view directly: a change flips only this cell's pseudo classes and
+        // slot visibility. Without this the skin would have to rebuild every
+        // cell through ListView.refresh() on each selection change, which
+        // re-runs updateItem across all columns and rebuilds custom content
+        // (visible flicker). Weak listeners: the virtual flow discards cells
+        // without any dispose hook.
+        view.selectedPathProperty().addListener(weakStateListener);
+        view.selectionModeProperty().addListener(weakStateListener);
+        view.getActivePath().addListener(weakStateListener);
+        view.getCheckedPaths().addListener(weakStateListener);
+        view.childrenLoaderProperty().addListener(weakStateListener);
     }
 
     private void initializeNodes() {
