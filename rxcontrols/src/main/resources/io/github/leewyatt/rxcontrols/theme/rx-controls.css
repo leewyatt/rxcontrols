@@ -2482,24 +2482,27 @@
     -rx-ripple-opacity: 0.12;
 }
 
+/* A combo-box-like outlined surface (1px outline + rounded corners), not a sunken
+   text field: the whole box reads as a single clickable dropdown. */
 .rx-selection-box > .display {
     -fx-alignment: center-left;
-    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
-    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-color: -rx-outline, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 3, 2;
-    -fx-padding: 0.333333em 0.583em 0.333333em 0.583em; /* 4 7 4 7 */
+    -fx-background-radius: 6, 5;
+    -fx-padding: 0.5em 0.5em 0.5em 0.833em; /* 6 6 6 10 */
     -fx-spacing: 0.5em; /* 6 */
+    -fx-cursor: hand;
+}
+
+.rx-selection-box:hover > .display {
+    -fx-background-color: -rx-on-surface-secondary, -fx-control-inner-background;
 }
 
 .rx-selection-box:focused > .display,
 .rx-selection-box:showing > .display {
-    -fx-background-color: -fx-focus-color,
-    -fx-control-inner-background,
-    -fx-faint-focus-color,
-    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
-    -fx-background-insets: -0.2, 1, -1.4, 3;
-    -fx-background-radius: 3, 2, 4, 0;
+    -fx-background-color: -rx-primary, -fx-control-inner-background;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6, 4;
 }
 
 .rx-selection-box:readonly > .display {
@@ -2507,12 +2510,12 @@
 }
 
 .rx-selection-box > .display > .summary {
-    -fx-text-fill: -fx-text-inner-color;
+    -fx-text-fill: -rx-on-surface;
     -fx-text-overrun: ellipsis;
 }
 
 .rx-selection-box:empty > .display > .summary {
-    -fx-text-fill: derive(-fx-control-inner-background, -30%);
+    -fx-text-fill: -rx-on-surface-secondary;
 }
 
 .rx-selection-box > .display > .arrow-button {
@@ -2522,7 +2525,7 @@
 }
 
 .rx-selection-box > .display > .arrow-button > .arrow {
-    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-background-color: -rx-on-surface-secondary;
     -fx-pref-width: 0.666667em; /* 8 */
     -fx-pref-height: 0.416667em; /* 5 */
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
@@ -2538,15 +2541,32 @@
    therefore uses a literal color, like the other non-token popups above. */
 .rx-selection-box-popup .popup-content {
     -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 8;
     -fx-border-color: -fx-box-border;
     -fx-border-width: 1px;
-    -fx-padding: 0.333333em; /* 4 */
-    -fx-spacing: 0.333333em; /* 4 */
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0.0, 0, 8);
+    -fx-border-radius: 8;
+    -fx-padding: 0.5em; /* 6 */
+    -fx-spacing: 0.5em; /* 6 */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 16, 0.0, 0, 6);
+}
+
+/* A flat filled search box instead of modena's bordered text-field + blue focus ring
+   (.search-field is also .rx-text-field, a token root, so -rx-* resolve here). */
+.rx-selection-box-popup .search-field {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-width: 0;
+    -fx-padding: 0.416667em 0.5em; /* 5 6 */
+}
+
+.rx-selection-box-popup .search-field:focused {
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-insets: 0;
 }
 
 .rx-selection-box-popup .search-field .search-icon {
-    -fx-background-color: derive(-fx-text-base-color, 30%);
+    -fx-background-color: -rx-on-surface-secondary;
     -fx-pref-width: 1.166667em; /* 14 */
     -fx-pref-height: 1.166667em; /* 14 */
     -fx-shape: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z";
@@ -2561,9 +2581,20 @@
     -fx-padding: 0;
 }
 
+/* The popup list's SINGLE selection is the keyboard cursor; tint its row with the
+   primary palette (not the default blue -rx-selection) so it matches the checkboxes. */
+.rx-selection-box-popup .rx-list-cell {
+    -fx-background-radius: 6;
+}
+
+.rx-selection-box-popup .rx-list-cell:selected {
+    -fx-background-color: -rx-primary-bg;
+}
+
 .rx-selection-box-popup .rx-list-cell .select-content {
     -fx-alignment: center-left;
     -fx-spacing: 0.583em; /* 7 */
+    -fx-padding: 0.416667em 0.666667em; /* 5 8 */
 }
 
 .rx-selection-box-popup .rx-list-cell .label {

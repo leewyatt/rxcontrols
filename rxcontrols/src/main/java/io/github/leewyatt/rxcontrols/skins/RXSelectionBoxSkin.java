@@ -72,6 +72,7 @@ import java.util.function.BiPredicate;
 public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
     private static final double DEFAULT_PREF_WIDTH = 150.0;
+    private static final double POPUP_CELL_SIZE = 34.0;
     private static final Duration ENTRANCE_DURATION = Duration.millis(180);
     private static final double ENTRANCE_START_SCALE_Y = 0.92;
 
@@ -201,6 +202,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         footerHolder.getStyleClass().add("popup-footer");
 
         popupList.setFocusTraversable(false);
+        popupList.setFixedCellSize(POPUP_CELL_SIZE);
         popupList.setItems(filtered);
         popupList.setSelectionMode(SelectionMode.SINGLE);
         popupList.setSelectionVisualMode(RXListSelectionVisualMode.ROW);
