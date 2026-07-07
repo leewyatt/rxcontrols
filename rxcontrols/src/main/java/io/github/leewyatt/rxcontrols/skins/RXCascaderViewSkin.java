@@ -205,9 +205,14 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         // gets the focus highlight, the clicked column becomes the keyboard
         // column, and every other column drops its focused row — so arrows
         // continue from the clicked row and at most one column shows a
-        // highlight. (The inert selection model above also disabled the stock
-        // focus-on-click, which lives inside MultipleSelectionModelBase.)
-        listView.addEventHandler(MouseEvent.MOUSE_PRESSED,
+        // highlight. A capture-phase filter, not a bubbling handler: the
+        // multiple-mode check box consumes the press in its own filter, which
+        // would starve a handler and leave a stale highlight on checkbox
+        // clicks; this filter fires on the way down, before that consume, and
+        // does not consume anything itself. (The inert selection model above
+        // also disabled the stock focus-on-click living inside
+        // MultipleSelectionModelBase.)
+        listView.addEventFilter(MouseEvent.MOUSE_PRESSED,
                 event -> syncKeyboardFocusToPointer(listView, event));
         // Discoverable defaults from the view's -rx-column-width / -rx-row-height;
         // author CSS (-fx-pref-width / -fx-fixed-cell-size) on

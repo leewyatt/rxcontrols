@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -1305,9 +1306,52 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a multiple-mode CHECKBOX click also syncs the keyboard highlight:
+     * the check-box filter consumes the press, so the column-level sync must be
+     * a capture filter — a bubbling handler would be starved and leave a stale
+     * highlight in the previously navigated column.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void checkboxClickSyncsKeyboardHighlight() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> shanghai = item("shanghai");
+            RXCascaderItem<String> hangzhou = item("hangzhou");
+            asia.getChildren().setAll(List.of(shanghai, hangzhou));
+            view.getRootItems().setAll(List.of(asia));
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            view.expand(asia);
+            relayout(scene);
+
+            ListView<?> column0 = (ListView<?>) view.lookup(".column0");
+            ListView<?> column1 = (ListView<?>) view.lookup(".column1");
+            fireKey(view, KeyCode.DOWN); // keyboard highlight in the root column
+            assertEquals(0, column0.getFocusModel().getFocusedIndex());
+
+            Node checkBox = filledCell(column1, hangzhou).lookup(".check-box");
+            assertNotNull(checkBox, "multiple mode shows the check box");
+            fireFullClick(checkBox);
+
+            assertTrue(hangzhou.isChecked(), "the checkbox click still toggles the check");
+            assertEquals(1, column1.getFocusModel().getFocusedIndex(),
+                    "the checked row carries the focus highlight");
+            assertEquals(-1, column0.getFocusModel().getFocusedIndex(),
+                    "the previously navigated column drops its highlight");
+            fireKey(view, KeyCode.UP);
+            assertEquals(0, column1.getFocusModel().getFocusedIndex(),
+                    "keyboard navigation continues from the checked row");
+        });
+    }
+
     /** Fires the full primary-button gesture (press, release, click) inside the node. */
     private static void fireFullClick(Node node) {
-        for (javafx.event.EventType<MouseEvent> type : List.of(
+        for (EventType<MouseEvent> type : List.of(
                 MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_RELEASED, MouseEvent.MOUSE_CLICKED)) {
             node.fireEvent(new MouseEvent(type, 5, 5, 5, 5,
                     MouseButton.PRIMARY, 1,
