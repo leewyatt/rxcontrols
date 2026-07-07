@@ -943,7 +943,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
 
         Duration interval = carousel.getAutoPlayInterval();
-        if (interval == null || interval.lessThan(MIN_AUTOPLAY_INTERVAL)) {
+        // isUnknown()/isIndefinite() pass the lessThan clamp (NaN compares
+        // false, infinity is not less) and would feed NaN / a never-firing
+        // keyframe into the countdown timeline.
+        if (interval == null || interval.isUnknown() || interval.isIndefinite()
+                || interval.lessThan(MIN_AUTOPLAY_INTERVAL)) {
             interval = MIN_AUTOPLAY_INTERVAL;
         }
 

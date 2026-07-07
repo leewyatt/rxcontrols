@@ -513,7 +513,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
             return true;
         }
         Duration d = effectiveDuration();
-        return d.isUnknown() || d.lessThanOrEqualTo(Duration.ZERO);
+        // INDEFINITE would build a tween that never completes, leaving the
+        // float / accent / clear-fade stuck mid-animation.
+        return d.isUnknown() || d.isIndefinite() || d.lessThanOrEqualTo(Duration.ZERO);
     }
 
     private Duration effectiveDuration() {
