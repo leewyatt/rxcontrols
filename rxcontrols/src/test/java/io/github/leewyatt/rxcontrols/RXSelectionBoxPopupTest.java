@@ -199,6 +199,27 @@ public class RXSelectionBoxPopupTest {
     }
 
     @Test
+    public void activationMapsAFilteredViewRowToTheCorrectSourceIndex() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("xa", "xb", "ya", "yb");
+            box.show();
+            // Filter so view rows no longer line up with source indices: the filtered
+            // view is [ya (src 2), yb (src 3)]. This is the core scheme-B invariant —
+            // activation must go through getSourceIndex, not select the view index.
+            box.setSearchText("y");
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            assertEquals(2, list.getItems().size(), "only 'ya' and 'yb' match 'y'");
+
+            fireKey(popupSearchField(), KeyCode.ENTER); // activate view row 0 = ya
+            assertEquals("ya", box.getSelectedItem());
+            assertEquals(List.of(2),
+                    new java.util.ArrayList<>(box.getSelectionModel().getSelectedIndices()),
+                    "activation selects source index 2, not the view index 0");
+        });
+    }
+
+    @Test
     public void navigationKeysOnTheSearchFieldDriveTheCursor() throws InterruptedException {
         runOnFx(() -> {
             RXSelectionBox<String> box = newShownBox("apple", "banana", "avocado");

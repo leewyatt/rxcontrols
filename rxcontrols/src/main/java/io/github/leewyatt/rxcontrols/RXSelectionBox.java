@@ -25,6 +25,7 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
+import javafx.scene.AccessibleRole;
 import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
@@ -77,10 +78,10 @@ public class RXSelectionBox<T> extends Control {
     public RXSelectionBox() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(true);
-        // Keep the authoritative model's cardinality in step with selectionMode
-        // and with model swaps, so the model is always the single source of truth
-        // for the current selection.
-        setSelectionMode(getSelectionMode());
+        setAccessibleRole(AccessibleRole.COMBO_BOX);
+        // Align the authoritative model's cardinality with selectionMode up front; the
+        // selectionMode / selectionModel invalidated() blocks keep them in step after.
+        getSelectionModel().setSelectionMode(effectiveSelectionMode());
     }
 
     /**

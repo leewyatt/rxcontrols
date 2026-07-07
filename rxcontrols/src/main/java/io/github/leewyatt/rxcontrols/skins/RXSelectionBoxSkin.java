@@ -59,10 +59,13 @@ import java.util.function.BiPredicate;
  * to source indices. Because the cursor never writes the authoritative model and
  * the cells only read it, there is no bidirectional sync loop.</p>
  *
- * <p>Keyboard focus stays on the control while the popup is open (the popup
- * window is non-focusable): printable keys feed the search query, arrows move the
- * cursor, {@code Enter} activates it, {@code Backspace} edits the query, and
- * {@code Escape} closes.</p>
+ * <p>When searchable, opening the popup moves key focus into the editable search
+ * field (a real {@link RXTextField} bidirectionally bound to {@code searchText}, so
+ * it shows a caret and takes typed input natively); {@code Up}/{@code Down} move the
+ * list cursor, {@code Enter} activates it, and {@code Escape} closes, all intercepted
+ * on the field before its text behavior. When not searchable the popup has no
+ * focusable content, so focus stays on the control and the same navigation runs from
+ * the control's own key handler.</p>
  *
  * @param <T> the item type
  */
@@ -223,7 +226,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.selectionModeProperty(), this::onModeChanged);
         disposer.registerListener(control.searchTextProperty(), this::onSearchChanged);
         disposer.registerListener(control.filterPredicateProperty(), this::updateFilter);
-        disposer.registerListener(control.searchableProperty(), this::updatePseudoClasses);
+        disposer.registerListener(control.searchableProperty(), this::onSearchableChanged);
         disposer.registerListener(control.readOnlyProperty(), this::onReadOnlyChanged);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
         disposer.registerListener(control.converterProperty(), this::updateDisplay);
@@ -308,7 +311,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         detachModel();
         observedModel = getSkinnable().getSelectionModel();
         if (observedModel != null) {
-            observedModel.setSelectionMode(getSkinnable().getSelectionMode());
+            // Coerce null -> SINGLE like the control's own sync paths, so this
+            // attach/swap path never leaves the model with a null (MULTIPLE-behaving) mode.
+            SelectionMode mode = getSkinnable().getSelectionMode();
+            observedModel.setSelectionMode(mode == null ? SelectionMode.SINGLE : mode);
             observedModel.getSelectedItems().addListener(weakSelectionContentListener);
         }
         // Rebuild cells so their per-cell listeners re-attach to the new model.
@@ -334,6 +340,15 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
     private void onSearchChanged() {
         updateFilter();
+        updatePseudoClasses();
+    }
+
+    private void onSearchableChanged() {
+        // Turning search off must not leave a stale filter that the user can no
+        // longer reach (the search field is hidden): clear the query.
+        if (!getSkinnable().isSearchable()) {
+            getSkinnable().setSearchText("");
+        }
         updatePseudoClasses();
     }
 
@@ -421,6 +436,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             text = converter == null ? count + " selected" : nullToEmpty(converter.toString(selected));
         }
         summaryLabel.setText(text);
+        control.setAccessibleText(text);
         control.pseudoClassStateChanged(EMPTY, count == 0);
     }
 
@@ -579,8 +595,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         if (cursor == null) {
             return;
         }
-        T lead = model == null ? null : model.getSelectedItem();
-        int viewIndex = lead == null ? -1 : filtered.indexOf(lead);
+        // Reveal the lead selection by its exact source index (handles duplicate
+        // values correctly), mapped through the filter to a view row.
+        int sourceIndex = model == null ? -1 : model.getSelectedIndex();
+        int viewIndex = sourceIndex < 0 ? -1 : filtered.getViewIndex(sourceIndex);
         if (viewIndex >= 0) {
             cursor.select(viewIndex);
             popupList.scrollTo(viewIndex, ScrollAlignment.CENTER);
@@ -882,7 +900,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             indicator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             indicator.getChildren().add(check);
 
-            label.getStyleClass().add("label");
             label.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(label, Priority.ALWAYS);
 

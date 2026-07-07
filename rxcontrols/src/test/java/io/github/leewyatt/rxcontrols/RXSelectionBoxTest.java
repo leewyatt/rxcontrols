@@ -155,6 +155,21 @@ public class RXSelectionBoxTest {
     }
 
     @Test
+    public void nullSelectionModeCoercesToSingleOnModelSwapWithSkinAttached() throws Exception {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = attach(new RXSelectionBox<>());
+            box.setSelectionMode(null);
+
+            RXIndexedSelectionModel<String> replacement = new RXIndexedSelectionModel<>(box.itemsProperty());
+            box.setSelectionModel(replacement);
+            // With a skin attached, rebindModel also reacts to the swap; it must coerce
+            // null -> SINGLE rather than overwrite the control's coercion back to null.
+            assertEquals(SelectionMode.SINGLE, replacement.getSelectionMode(),
+                    "skin rebindModel coerces null mode to SINGLE on swap");
+        });
+    }
+
+    @Test
     public void clearSelectionEmptiesTheModel() {
         RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList("a", "b"));
         box.getSelectionModel().select(0);
