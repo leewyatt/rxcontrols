@@ -12,6 +12,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -177,6 +178,25 @@ public class RXSelectionBoxPopupTest {
             // and takes typed characters natively), not a display-only label.
             assertTrue(field.isEditable(), "the search field is editable");
             assertTrue(field.isFocusTraversable(), "the search field can take key focus");
+        });
+    }
+
+    @Test
+    public void popupContentReceivesCardChromeFromStylesheet() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "banana", "avocado");
+            box.show();
+            PopupControl popup = findPopup();
+            assertNotNull(popup, "popup should exist");
+            Node content = popup.getScene().getRoot().lookup(".popup-content");
+            assertTrue(content instanceof Region, "popup content should be a Region");
+            Region region = (Region) content;
+            region.applyCss();
+            assertNotNull(region.getBackground(), "popup content should receive its card background");
+            assertNotNull(region.getBorder(), "popup content should receive its card border");
+            assertNotNull(region.getEffect(), "popup content should receive its elevation shadow");
+            assertTrue(region.getPadding().getTop() > 0.0,
+                    "popup content should keep inner padding so the card border remains visible");
         });
     }
 

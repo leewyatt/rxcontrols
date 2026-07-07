@@ -2471,19 +2471,12 @@
  *                                                                             *
  * RXSelectionBox                                                              *
  *                                                                             *
- * The popup content root (.popup-content) sits under RXPopupSupport's         *
- * token-less sizing shell, reached by descendant selector. The embedded       *
- * .rx-list-view carries its own tokens; here it is flattened to blend into    *
- * the popup card.                                                             *
- *                                                                             *
  ******************************************************************************/
 .rx-selection-box {
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.12;
 }
 
-/* A combo-box-like outlined surface (1px outline + rounded corners), not a sunken
-   text field: the whole box reads as a single clickable dropdown. */
 .rx-selection-box > .display {
     -fx-alignment: center-left;
     -fx-background-color: -rx-outline, -fx-control-inner-background;
@@ -2535,34 +2528,34 @@
     -fx-rotate: 180;
 }
 
-/* The popup content root sits under RXPopupSupport's token-less sizing shell in a
-   separate popup window, so control-root -rx-* tokens do not resolve here (they are
-   declared only on control roots and looked-up colors walk upward). The card shadow
-   therefore uses a literal color, like the other non-token popups above. */
 .rx-selection-box-popup .popup-content {
     -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 8;
-    -fx-border-color: -fx-box-border;
+    -fx-background-radius: 4;
+    -fx-border-color: derive(-fx-text-box-border, -18%);
     -fx-border-width: 1px;
-    -fx-border-radius: 8;
-    -fx-padding: 0.5em; /* 6 */
-    -fx-spacing: 0.5em; /* 6 */
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 16, 0.0, 0, 6);
+    -fx-border-radius: 4;
+    -fx-padding: 1px;
+    -fx-spacing: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.0, 0, 6);
 }
 
-/* A flat filled search box instead of modena's bordered text-field + blue focus ring
-   (.search-field is also .rx-text-field, a token root, so -rx-* resolve here). */
 .rx-selection-box-popup .search-field {
-    -fx-background-color: -rx-surface-variant;
+    -rx-text-padding: 0 0 0 0.75em;
+    -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 6;
-    -fx-border-width: 0;
-    -fx-padding: 0.416667em 0.5em; /* 5 6 */
+    -fx-background-radius: 3 3 0 0;
+    -fx-border-color: transparent transparent derive(-fx-text-box-border, -8%) transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 0.416667em 0.666667em; /* 5 8 */
 }
 
 .rx-selection-box-popup .search-field:focused {
-    -fx-background-color: -rx-primary-bg;
-    -fx-background-insets: 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -rx-primary transparent;
+}
+
+.rx-selection-box-popup .search-field .left-wrapper {
+    -fx-padding: 0 0 0 0.583333em; /* 7 */
 }
 
 .rx-selection-box-popup .search-field .search-icon {
@@ -2574,17 +2567,17 @@
 
 .rx-selection-box-popup .rx-list-view,
 .rx-selection-box-popup .rx-list-view > .viewport {
-    -fx-background-color: transparent;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 0 0 3 3;
 }
 
 .rx-selection-box-popup .rx-list-view {
-    -fx-padding: 0;
+    -fx-padding: 0.25em 0 0.333333em 0; /* 3 0 4 0 */
 }
 
-/* The popup list's SINGLE selection is the keyboard cursor; tint its row with the
-   primary palette (not the default blue -rx-selection) so it matches the checkboxes. */
 .rx-selection-box-popup .rx-list-cell {
-    -fx-background-radius: 6;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
 }
 
 .rx-selection-box-popup .rx-list-cell:selected {
