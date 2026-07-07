@@ -291,13 +291,16 @@ public class RXSkeletonTest {
         assertClose(0.0, shimmerBand(skeleton).getWidth(),
                 "shimmer collapses with no visible block");
 
-        // Infinite line height degrades to 0 — no lines, no shimmer.
+        // Infinite line height degrades to 0 — no lines, no shimmer, and no
+        // spacing-only preferred height reserving blank space.
         skeleton.setLineHeight(Double.POSITIVE_INFINITY);
         layout(skeleton, 200.0, 60.0);
         assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
                 "infinite line height renders no lines");
         assertClose(0.0, shimmerBand(skeleton).getWidth(),
                 "shimmer stays collapsed for infinite line height");
+        assertClose(0.0, skeleton.prefHeight(-1.0),
+                "pref height must not keep (n-1) * spacing when nothing is shown");
     }
 
     /**

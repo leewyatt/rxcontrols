@@ -439,7 +439,9 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 int n = Math.max(1, getSkinnable().getLineCount());
                 double lh = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineHeight());
                 double sp = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineSpacing());
-                yield n * lh + Math.max(0, n - 1) * sp;
+                // Zero-height lines render nothing (see computeBlocks); do not
+                // reserve spacing-only blank space for an invisible skeleton.
+                yield lh <= 0.0 ? 0.0 : n * lh + Math.max(0, n - 1) * sp;
             }
             case CIRCULAR -> DEFAULT_CIRCULAR_SIZE;
             case ROUNDED_RECTANGLE -> DEFAULT_PREF_HEIGHT;
