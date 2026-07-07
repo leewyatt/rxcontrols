@@ -5,8 +5,17 @@ import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.event.Event;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.SkinBase;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,8 +23,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -89,15 +101,95 @@ public class RXFieldSkinLifecycleTest {
 
             field.setSkin(new RXTextFieldSkin(field));
             assertNotNull(left.getParent());
+            Node oldWrapper = left.getParent();
 
-            field.setSkin(new RXTextFieldSkin(field));
-            assertInstanceOf(StackPane.class, left.getParent());
+            // JFX17's Control.skin setter SHORT-CIRCUITS a replacement of the
+            // same skin class (the new instance is neither installed nor
+            // disposed), so the swap must use a distinct class to be real.
+            field.setSkin(new RXTextFieldSkin(field) { });
+            assertInstanceOf(StackPane.class, left.getParent(),
+                    "the side node must be re-parented into the new skin's wrapper");
+            assertNotSame(oldWrapper, left.getParent(),
+                    "a real swap must build a new wrapper");
+            long wrapperCount = field.getChildrenUnmodifiable().stream()
+                    .filter(n -> n.getStyleClass().contains("left-wrapper"))
+                    .count();
+            assertEquals(1, wrapperCount, "no ghost wrapper from the old skin may remain");
 
             Label replacement = new Label("L2");
             field.setLeft(replacement);
             assertNotNull(replacement.getParent());
             assertNull(left.getParent());
+            // A leaked old-skin listener would resurrect a ghost wrapper here.
+            long wrappersAfterSetLeft = field.getChildrenUnmodifiable().stream()
+                    .filter(n -> n.getStyleClass().contains("left-wrapper"))
+                    .count();
+            assertEquals(1, wrappersAfterSetLeft,
+                    "old-skin listeners must stay dead after dispose");
         });
+    }
+
+    /**
+     * Pins the skin-level mask guard: before the dynamic display binding is
+     * installed (the skin here is constructed but never attached), maskText
+     * must never reveal plain text, even while revealPassword is true.
+     */
+    @Test
+    public void maskTextNeverRevealsBeforeInstall() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
+            field.setRevealPassword(true);
+            RXMaterialPasswordFieldSkin skin = new RXMaterialPasswordFieldSkin(field);
+            assertEquals(String.valueOf(RXMaterialPasswordField.DEFAULT_ECHO_CHAR).repeat(6),
+                    skin.maskText("secret"),
+                    "an uninstalled skin must never reveal plain text");
+        });
+    }
+
+    /**
+     * Drives a real Material password skin into mask degradation (an injected
+     * decoy makes the text-node discovery ambiguous) and pins the degradation
+     * wiring: the reveal button is withdrawn and a click on it no longer flips
+     * revealPassword.
+     */
+    @Test
+    public void materialPasswordDegradationHidesRevealButtonAndGatesClicks() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
+            // Ghost SkinBase adds a decoy TextFieldSkin-lookalike (clipped pane
+            // + bound-layoutX text) into the control's children, so the real
+            // skin's discovery sees two candidates and fails closed.
+            Pane decoy = new Pane();
+            decoy.setClip(new Rectangle());
+            Text decoyText = new Text();
+            decoyText.layoutXProperty().bind(new SimpleDoubleProperty(0));
+            decoy.getChildren().add(decoyText);
+            new SkinBase<RXMaterialPasswordField>(field) {
+                {
+                    getChildren().add(decoy);
+                }
+            };
+
+            RXMaterialPasswordFieldSkin skin = new RXMaterialPasswordFieldSkin(field);
+            Node revealButton = field.lookup(".reveal-button");
+            assertNotNull(revealButton, "reveal button exists before the degraded attach");
+
+            field.setSkin(skin);
+
+            assertNull(field.lookup(".reveal-button"),
+                    "degradation must withdraw the reveal button");
+            // The handler is still on the detached button node; firing it must
+            // be a no-op because the dynamic binding never installed.
+            Event.fireEvent(revealButton, click());
+            assertFalse(field.isRevealPassword(),
+                    "a click must not flip revealPassword while the mask cannot be lifted");
+        });
+    }
+
+    private static MouseEvent click() {
+        return new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+                MouseButton.PRIMARY, 1, false, false, false, false,
+                true, false, false, false, false, true, null);
     }
 
     /**

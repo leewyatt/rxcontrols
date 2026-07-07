@@ -10,6 +10,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
@@ -17,6 +18,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -120,6 +122,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     // ==================== Animation state ====================
 
+    /** Pending hook that stamps labelFor once this skin actually attaches. */
+    private ChangeListener<Skin<?>> pendingLabelForListener;
+
     /** 0 = resting (placeholder), 1 = floated. */
     private final DoubleProperty floatProgress = new SimpleDoubleProperty(this, "floatProgress", 0.0);
     /** 0 = collapsed/hidden accent line, 1 = expanded/visible (focused). */
@@ -201,6 +206,28 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         labelNode.setManaged(false);
         labelNode.setMouseTransparent(true);
         labelNode.getTransforms().add(labelScale);
+        // Label the control for assistive technology via the LABELED_BY channel
+        // (labelFor stamps Node.labeledBy on the control). Deferred to the
+        // actual skin attach: on a skin replacement this constructor runs
+        // BEFORE the predecessor's dispose, whose setLabelFor(null) would wipe
+        // a constructor-time stamp (Node.labeledBy is one last-writer-wins
+        // field); change listeners fire after Control's invalidated(), i.e.
+        // after that teardown. A same-class ghost skin (JFX17 setSkin
+        // short-circuit) never attaches and so never stamps. The user-owned
+        // accessibleText property is deliberately left untouched: writing it
+        // would throw if the user bound it and clobber user values.
+        pendingLabelForListener = (obs, oldSkin, newSkin) -> {
+            if (newSkin == this) {
+                control.skinProperty().removeListener(pendingLabelForListener);
+                pendingLabelForListener = null;
+                labelNode.setLabelFor(control);
+            } else if (newSkin != null) {
+                // Another skin won; this instance will never attach.
+                control.skinProperty().removeListener(pendingLabelForListener);
+                pendingLabelForListener = null;
+            }
+        };
+        control.skinProperty().addListener(pendingLabelForListener);
 
         activationLine.getStyleClass().add(ACTIVATION_LINE_CLASS);
         activationLine.setManaged(false);
@@ -264,17 +291,23 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerDisposeTask(clearFade::stop);
         // Decoration nodes are added to the control's (shared) children, and
         // SkinBase.dispose() does not clear them. Remove them (and detach their
-        // transforms) on dispose so they don't linger — mirroring what
-        // RXFieldBaseSkin does for its wrappers. (builtinTrailing rides inside the
-        // base's right-wrapper, which the base releases.)
+        // transforms, the LABELED_BY hook, and the trailing box's children —
+        // including any user trailing node) on dispose so nothing lingers,
+        // mirroring what RXFieldBaseSkin does for its wrappers. (builtinTrailing
+        // itself rides inside the base's right-wrapper, which the base releases.)
         disposer.registerDisposeTask(() -> {
+            if (pendingLabelForListener != null) {
+                control.skinProperty().removeListener(pendingLabelForListener);
+                pendingLabelForListener = null;
+            }
+            labelNode.setLabelFor(null);
             labelNode.getTransforms().remove(labelScale);
             accentLine.getTransforms().remove(accentScale);
+            builtinTrailing.getChildren().clear();
             getChildren().removeAll(activationLine, accentLine, labelNode, supporting);
         });
 
         labelNode.setText(effectiveLabelText());
-        updateAccessibleName();
         updateSupporting();
         updateTrailing();
         // Initial state snaps (no opening animation). Apply the pose explicitly
@@ -293,7 +326,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private void onLabelSourceChanged() {
         labelNode.setText(effectiveLabelText());
-        updateAccessibleName();
         getSkinnable().requestLayout();
     }
 
@@ -414,11 +446,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private boolean isTextEmpty() {
         return str(getSkinnable().getText()).isEmpty();
-    }
-
-    private void updateAccessibleName() {
-        String name = effectiveLabelText();
-        getSkinnable().setAccessibleText(name.isEmpty() ? null : name);
     }
 
     private void updateSupporting() {

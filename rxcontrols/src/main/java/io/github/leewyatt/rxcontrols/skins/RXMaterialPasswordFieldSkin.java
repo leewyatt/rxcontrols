@@ -56,6 +56,10 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
 
         maskSupport = new PasswordMaskSupport(this, control, this::maskText,
                 control.revealPasswordProperty(), control.echoCharProperty());
+        // On degradation (text-node discovery / rebind failure) the mask can no
+        // longer be lifted; drop the reveal button so the UI stops offering a
+        // toggle that cannot change the display.
+        maskSupport.setOnDegraded(this::refreshTrailing);
         maskSupport.install();
 
         disposer.registerEventHandler(revealButton, MouseEvent.MOUSE_CLICKED, this::onRevealClicked);
@@ -69,8 +73,11 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
 
     @Override
     protected List<Node> builtinTrailingAffordances() {
-        // Present only when enabled; null during super() before the field exists.
-        if (revealButton == null || !showRevealButtonEnabled()) {
+        // Present only when enabled; null during super() before the field
+        // exists; withheld once the mask support has degraded (the toggle
+        // could no longer change the display).
+        if (revealButton == null || !showRevealButtonEnabled()
+                || (maskSupport != null && maskSupport.isFailed())) {
             return List.of();
         }
         return List.of(revealButton);
@@ -97,7 +104,10 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
 
     private void onRevealClicked(MouseEvent event) {
         RXMaterialPasswordField field = (RXMaterialPasswordField) getSkinnable();
-        if (field != null) {
+        // No-op unless the dynamic binding is live: flipping revealPassword
+        // while masked-for-good would switch the eye icon (:revealed) without
+        // changing the display — the UI would lie.
+        if (field != null && maskSupport != null && maskSupport.isInstalled()) {
             field.setRevealPassword(!field.isRevealPassword());
         }
         event.consume();

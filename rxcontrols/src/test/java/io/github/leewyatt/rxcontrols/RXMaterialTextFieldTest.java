@@ -3,8 +3,10 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.skins.RXMaterialTextFieldSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
+import javafx.scene.AccessibleAttribute;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -461,12 +464,58 @@ public class RXMaterialTextFieldTest {
     public void accessibleNameComesFromLabel() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
+            // Regression: a user-bound accessibleText must survive skin creation
+            // and label changes (the skin used to setAccessibleText and throw here).
+            field.accessibleTextProperty().bind(new SimpleStringProperty("user-owned"));
             inScene(field);
             field.setLabelText("Email");
             field.applyCss();
             field.layout();
-            assertEquals("Email", field.getAccessibleText(),
-                    "the floating label must supply the accessible name");
+
+            assertEquals("user-owned", field.getAccessibleText(),
+                    "accessibleText stays user-owned; the skin must not write it");
+            Object labeledBy = field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY);
+            assertInstanceOf(Label.class, labeledBy,
+                    "the control must be LABELED_BY the floating label");
+            assertEquals("Email", ((Label) labeledBy).getText());
+        });
+    }
+
+    @Test
+    public void skinReplacementKeepsLabeledByRelation() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Email");
+            inScene(field);
+            assertInstanceOf(Label.class,
+                    field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY));
+
+            // Real (cross-class) swap: the old skin's teardown runs AFTER the
+            // new skin's constructor, so the stamp must happen on attach.
+            field.setSkin(new RXMaterialTextFieldSkin(field) { });
+
+            Object labeledBy = field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY);
+            assertInstanceOf(Label.class, labeledBy,
+                    "a real skin swap must hand LABELED_BY over, not wipe it");
+            assertEquals("Email", ((Label) labeledBy).getText());
+        });
+    }
+
+    @Test
+    public void disposeDetachesUserTrailingNodeAndLabelFor() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            Label trailing = new Label("x");
+            field.setTrailingNode(trailing);
+            inScene(field);
+            assertNotNull(trailing.getParent(), "trailing node must be attached while skinned");
+
+            field.setSkin(null);
+            assertNull(trailing.getParent(),
+                    "dispose must fully detach the user trailing node (no dead HBox parent)");
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "dispose must clear the LABELED_BY relation");
         });
     }
 

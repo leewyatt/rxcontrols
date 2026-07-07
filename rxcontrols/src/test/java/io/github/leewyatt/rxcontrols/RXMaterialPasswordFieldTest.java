@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.scene.AccessibleAttribute;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,9 +38,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * display behavior (masked by default, plain when revealed, custom echo char),
  * and that the Material decoration (floating label) is inherited.
  * <p>
- * The mask degradation path (the helper failing to locate the editor text node and
- * staying permanently masked) is not headless-reproducible — it needs the JavaFX
- * internal lookup to fail — so it is left to manual / TestFX verification.
+ * The mask degradation paths (discovery failure / ambiguity / rebind failure)
+ * are unit-tested against stub skins in
+ * {@code io.github.leewyatt.rxcontrols.internal.PasswordMaskSupportTest}.
  */
 public class RXMaterialPasswordFieldTest {
 
@@ -234,9 +236,16 @@ public class RXMaterialPasswordFieldTest {
             RXMaterialPasswordField field = new RXMaterialPasswordField();
             inScene(field);
             field.setLabelText("Password");
-            // The native prompt is suppressed, so the floating label must restore the
-            // accessible name — most important for a password field (design §20 risk 12).
-            assertEquals("Password", field.getAccessibleText());
+            // The native prompt is suppressed, so the floating label must label the
+            // control for assistive tech — most important for a password field. The
+            // skin uses the LABELED_BY relation (labelFor); accessibleText stays
+            // user-owned and untouched.
+            Object labeledBy = field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY);
+            assertInstanceOf(Label.class, labeledBy,
+                    "the control must be LABELED_BY the floating label");
+            assertEquals("Password", ((Label) labeledBy).getText());
+            assertNull(field.getAccessibleText(),
+                    "the skin must not write the user-owned accessibleText");
         });
     }
 
