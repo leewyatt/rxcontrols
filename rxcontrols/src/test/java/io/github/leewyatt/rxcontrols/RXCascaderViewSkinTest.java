@@ -11,6 +11,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
@@ -1235,6 +1237,84 @@ public class RXCascaderViewSkinTest {
             assertTrue(cell.getPseudoClassStates().contains(PseudoClass.getPseudoClass("leaf")),
                     "clearing the loader flips the childless item back to a leaf in place");
         });
+    }
+
+    /**
+     * Verifies MOUSE-driven selection (full press / release / click gesture, the
+     * real-app path) does not rebind the clicked cells either: the column
+     * ListView's own selection machinery must stay out of the way — our model
+     * is the cascader view, not the ListView selection model.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void clickSelectionDoesNotRebindCells() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            RXCascaderItem<String> asia = item("asia");
+            RXCascaderItem<String> shanghai = item("shanghai");
+            RXCascaderItem<String> hangzhou = item("hangzhou");
+            asia.getChildren().setAll(List.of(shanghai, hangzhou));
+            view.getRootItems().setAll(List.of(asia));
+            AtomicInteger contentBuilds = new AtomicInteger();
+            view.setCellFactory(v -> new RXCascaderCell<>(v) {
+                @Override
+                protected Node createContent(RXCascaderItem<String> item) {
+                    contentBuilds.incrementAndGet();
+                    return super.createContent(item);
+                }
+            });
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            view.expand(asia);
+            relayout(scene);
+
+            ListView<?> column0 = (ListView<?>) view.lookup(".column0");
+            ListView<?> column1 = (ListView<?>) view.lookup(".column1");
+            fireKey(view, KeyCode.DOWN); // keyboard highlight in the root column
+            assertEquals(0, column0.getFocusModel().getFocusedIndex());
+
+            fireFullClick(filledCell(column1, shanghai));
+            relayout(scene);
+            assertSame(shanghai, view.getSelectedPath().getLeaf(),
+                    "clicking still selects through the cascader model");
+            int builds = contentBuilds.get();
+
+            fireFullClick(filledCell(column1, hangzhou));
+            relayout(scene);
+            assertSame(hangzhou, view.getSelectedPath().getLeaf());
+            assertEquals(builds, contentBuilds.get(),
+                    "a mouse selection change must not rebind the clicked cells");
+            // The list-view row-selection channel is inert (the cascader view is
+            // the selection model): even a direct select is a no-op. (The click
+            // path cannot be exercised headlessly — cell behaviors need a live
+            // skin — so the inert model itself is pinned instead.)
+            column1.getSelectionModel().select(0);
+            assertTrue(column1.getSelectionModel().isEmpty(),
+                    "the column's own selection model must never select");
+            // ...while click-to-focus unifies with the keyboard highlight: the
+            // clicked row is focused, every other column dropped its highlight,
+            // and arrows continue from the clicked row.
+            assertEquals(1, column1.getFocusModel().getFocusedIndex(),
+                    "the clicked row carries the focus highlight");
+            assertEquals(-1, column0.getFocusModel().getFocusedIndex(),
+                    "a click drops the highlight of the other columns");
+            fireKey(view, KeyCode.UP);
+            assertEquals(0, column1.getFocusModel().getFocusedIndex(),
+                    "keyboard navigation continues from the clicked row");
+        });
+    }
+
+    /** Fires the full primary-button gesture (press, release, click) inside the node. */
+    private static void fireFullClick(Node node) {
+        for (javafx.event.EventType<MouseEvent> type : List.of(
+                MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_RELEASED, MouseEvent.MOUSE_CLICKED)) {
+            node.fireEvent(new MouseEvent(type, 5, 5, 5, 5,
+                    MouseButton.PRIMARY, 1,
+                    false, false, false, false,
+                    true, false, false,
+                    false, false, true, null));
+        }
     }
 
     private static int focusedIndex(RXCascaderView<?> view, String columnSelector) {

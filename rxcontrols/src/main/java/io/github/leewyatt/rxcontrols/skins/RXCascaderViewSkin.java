@@ -5,14 +5,17 @@ import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.StyleOrigin;
 import javafx.css.StyleableProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -193,6 +196,19 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         ListView<RXCascaderItem<T>> listView = new ListView<>(items);
         listView.getStyleClass().add(COLUMN_STYLE_CLASS);
         listView.setFocusTraversable(false);
+        // The cascader view is the selection model; the ListView's own would add
+        // a dead per-click row-selection channel (:selected churn on the clicked
+        // cells). Inert stand-in rather than null: ListViewBehavior.mousePressed
+        // dereferences the model without a null guard.
+        listView.setSelectionModel(new NoOpSelectionModel<>());
+        // Click-to-focus, unified with the keyboard highlight: the clicked row
+        // gets the focus highlight, the clicked column becomes the keyboard
+        // column, and every other column drops its focused row — so arrows
+        // continue from the clicked row and at most one column shows a
+        // highlight. (The inert selection model above also disabled the stock
+        // focus-on-click, which lives inside MultipleSelectionModelBase.)
+        listView.addEventHandler(MouseEvent.MOUSE_PRESSED,
+                event -> syncKeyboardFocusToPointer(listView, event));
         // Discoverable defaults from the view's -rx-column-width / -rx-row-height;
         // author CSS (-fx-pref-width / -fx-fixed-cell-size) on
         // .rx-cascader-view > .columns > .column still overrides because AUTHOR
@@ -362,6 +378,36 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             default:
                 return false;
         }
+    }
+
+    /**
+     * Makes the clicked column the keyboard column, focuses the clicked row, and
+     * drops every other column's highlight.
+     */
+    private void syncKeyboardFocusToPointer(ListView<RXCascaderItem<T>> column, MouseEvent event) {
+        int index = columns.indexOf(column);
+        if (index < 0) {
+            return;
+        }
+        keyboardColumn = index;
+        for (int i = 0; i < columns.size(); i++) {
+            if (i != index) {
+                columns.get(i).getFocusModel().focus(-1);
+            }
+        }
+        ListCell<?> cell = pressedCell(event);
+        if (cell != null && !cell.isEmpty()) {
+            column.getFocusModel().focus(cell.getIndex());
+        }
+    }
+
+    /** The list cell containing the press target, or {@code null} for an empty-area press. */
+    private static ListCell<?> pressedCell(MouseEvent event) {
+        Node node = event.getTarget() instanceof Node n ? n : null;
+        while (node != null && !(node instanceof ListCell)) {
+            node = node.getParent();
+        }
+        return (ListCell<?>) node;
     }
 
     /**
@@ -606,5 +652,81 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
 
     private int sanitizedVisibleRowCount() {
         return Math.max(MIN_VISIBLE_ROW_COUNT, getSkinnable().getVisibleRowCount());
+    }
+
+    /**
+     * Inert selection model for the column ListViews: the cascader view owns
+     * selection, so the list-view row-selection channel must never fire. It
+     * cannot simply be {@code null} — parts of the JavaFX ListView behavior
+     * (e.g. {@code ListViewBehavior.mousePressed}) dereference the model without
+     * a null guard. Every mutator is a no-op and the exposed lists stay empty,
+     * so cells never receive list-view selection state; click-to-focus is
+     * unaffected (the cell behavior drives the focus model independently).
+     */
+    private static final class NoOpSelectionModel<E> extends MultipleSelectionModel<E> {
+
+        @Override
+        public ObservableList<Integer> getSelectedIndices() {
+            return FXCollections.emptyObservableList();
+        }
+
+        @Override
+        public ObservableList<E> getSelectedItems() {
+            return FXCollections.emptyObservableList();
+        }
+
+        @Override
+        public void selectIndices(int index, int... indices) {
+        }
+
+        @Override
+        public void selectAll() {
+        }
+
+        @Override
+        public void selectFirst() {
+        }
+
+        @Override
+        public void selectLast() {
+        }
+
+        @Override
+        public void clearAndSelect(int index) {
+        }
+
+        @Override
+        public void select(int index) {
+        }
+
+        @Override
+        public void select(E item) {
+        }
+
+        @Override
+        public void clearSelection(int index) {
+        }
+
+        @Override
+        public void clearSelection() {
+        }
+
+        @Override
+        public boolean isSelected(int index) {
+            return false;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public void selectPrevious() {
+        }
+
+        @Override
+        public void selectNext() {
+        }
     }
 }
