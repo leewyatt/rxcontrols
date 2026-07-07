@@ -2,14 +2,17 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import org.scenicview.ScenicView;
 
 import java.util.List;
 
@@ -67,6 +70,12 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 section("Content", buildContentGrid()),
                 section("State", buildStateGrid()),
                 section("Animation", buildAnimationGrid()));
+    }
+
+    @Override
+    protected void configureScene(Scene scene) {
+        // Open Scenic View once the stage is shown, to inspect the live node tree.
+        Platform.runLater(() -> ScenicView.show(scene));
     }
 
     // ==================== Sections ====================

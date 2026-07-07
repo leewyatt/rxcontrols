@@ -553,25 +553,23 @@ public class RXMaterialTextFieldTest {
             field.setHelperText("required");
             field.setErrorText("too short");
             inScene(field);
-            Label helper = (Label) field.lookup(".helper");
-            Label error = (Label) field.lookup(".error");
-            assertNotNull(helper, "helper label missing");
-            assertNotNull(error, "error label missing");
+            Label supporting = (Label) field.lookup(".supporting");
+            assertNotNull(supporting, "supporting label missing");
 
-            // valid -> helper shown, error hidden
-            assertTrue(helper.isVisible() && helper.isManaged(), "valid: helper visible");
-            assertFalse(error.isVisible(), "valid: error hidden");
+            // valid -> helper text shown
+            assertTrue(supporting.isVisible(), "valid: supporting visible");
+            assertEquals("required", supporting.getText(), "valid: shows helper text");
 
-            // invalid + errorText -> error replaces helper in the same slot
+            // invalid + errorText -> error text replaces helper in the same label
             field.setInvalid(true);
-            assertTrue(error.isVisible() && error.isManaged(), "invalid: error visible");
-            assertFalse(helper.isVisible(), "invalid: helper hidden");
-            assertEquals("too short", error.getText());
+            assertTrue(supporting.isVisible(), "invalid: supporting visible");
+            assertEquals("too short", supporting.getText(), "invalid: shows error text");
 
-            // invalid + no errorText -> helper stays (it turns red via :invalid CSS)
+            // invalid + no errorText -> falls back to helper text (turns red via :invalid CSS)
             field.setErrorText("");
-            assertTrue(helper.isVisible(), "invalid without errorText: helper shown");
-            assertFalse(error.isVisible(), "invalid without errorText: error hidden");
+            assertTrue(supporting.isVisible(), "invalid without errorText: supporting visible");
+            assertEquals("required", supporting.getText(),
+                    "invalid without errorText: shows helper text");
         });
     }
 
@@ -688,8 +686,9 @@ public class RXMaterialTextFieldTest {
     // ==================== Helpers ====================
 
     private static Label floatingLabel(RXMaterialTextField field) {
-        // helper / error are also Labels (built-in ".label"); the floating label
-        // is the direct child of the control, never under ".supporting".
+        // The floating label is the control's direct-child ".label"; the supporting
+        // text carries ".supporting" (its default ".label" is stripped), so the
+        // inSupporting guard is belt-and-suspenders against any nested graphic label.
         for (Node node : field.lookupAll(".label")) {
             if (node instanceof Label label && !inSupporting(node)) {
                 return label;

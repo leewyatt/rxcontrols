@@ -1010,20 +1010,14 @@
     -fx-background-color: -rx-danger;
 }
 
-.rx-material-text-field > .supporting > .helper,
-.rx-material-password-field > .supporting > .helper {
+.rx-material-text-field > .supporting,
+.rx-material-password-field > .supporting {
     -fx-text-fill: -rx-on-surface-secondary;
     -fx-font-size: 0.75em;
 }
 
-.rx-material-text-field > .supporting > .error,
-.rx-material-password-field > .supporting > .error {
-    -fx-text-fill: -rx-danger;
-    -fx-font-size: 0.75em;
-}
-
-.rx-material-text-field:invalid > .supporting > .helper,
-.rx-material-password-field:invalid > .supporting > .helper {
+.rx-material-text-field:invalid > .supporting,
+.rx-material-password-field:invalid > .supporting {
     -fx-text-fill: -rx-danger;
 }
 

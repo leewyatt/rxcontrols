@@ -2,8 +2,10 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
@@ -11,6 +13,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import org.scenicview.ScenicView;
 
 import java.util.List;
 
@@ -71,6 +74,12 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
                 section("State", buildStateGrid()),
                 section("Animation", buildAnimationGrid()),
                 section("Password", buildPasswordGrid()));
+    }
+
+    @Override
+    protected void configureScene(Scene scene) {
+        // Open Scenic View once the stage is shown, to inspect the live node tree.
+        Platform.runLater(() -> ScenicView.show(scene));
     }
 
     // ==================== Sections ====================

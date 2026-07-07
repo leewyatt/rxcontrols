@@ -72,8 +72,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private static final String ACTIVATION_LINE_CLASS = "activation-line";
     private static final String ACCENT_LINE_CLASS = "accent-line";
     private static final String SUPPORTING_CLASS = "supporting";
-    private static final String HELPER_CLASS = "helper";
-    private static final String ERROR_CLASS = "error";
     private static final String CLEAR_BUTTON_CLASS = "clear-button";
     private static final String GRAPHIC_CLASS = "graphic";
 
@@ -104,9 +102,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private final Region activationLine = new Region();
     private final Region accentLine = new Region();
     private final Scale accentScale = new Scale(ACCENT_REST_SCALE_X, 1.0, 0.0, 0.0);
-    private final StackPane supporting = new StackPane();
-    private final Label helperLabel = new Label();
-    private final Label errorLabel = new Label();
+    private final Label supporting = new Label();
 
     // Internal trailing container = [userTrailing] [clearButton]; fed to the base
     // as the effective-right node so user and built-in affordances coexist.
@@ -211,13 +207,14 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         accentLine.setMouseTransparent(true);
         accentLine.getTransforms().add(accentScale);
 
-        supporting.getStyleClass().add(SUPPORTING_CLASS);
+        // Single supporting-text label showing helper or error text (mutually
+        // exclusive, no cross-fade). setAll (not add) drops the Label's default
+        // ".label" class so the floating-label "> .label" selectors (focused ->
+        // primary, invalid -> danger) do not bleed onto it now that it is a direct
+        // child of the control; its colours come from the ".supporting" rules.
+        supporting.getStyleClass().setAll(SUPPORTING_CLASS);
         supporting.setManaged(false);
         supporting.setMouseTransparent(true);
-        supporting.setAlignment(Pos.CENTER_LEFT);
-        helperLabel.getStyleClass().add(HELPER_CLASS);
-        errorLabel.getStyleClass().add(ERROR_CLASS);
-        supporting.getChildren().addAll(helperLabel, errorLabel);
 
         // Built-in clear affordance: a shape-backed Region inside a transparent
         // StackPane wrapper (AGENTS §2.9). The wrapper is the click target; the
@@ -423,14 +420,13 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private void updateSupporting() {
         String err = str(errorText.getValue());
         String help = str(helperText.getValue());
+        // Error text replaces helper text in the same slot when invalid; otherwise
+        // the helper text shows. The :invalid pseudo-class recolours it (see CSS), so
+        // an invalid field with no error message keeps the helper text but turns red.
         boolean showError = Boolean.TRUE.equals(invalid.getValue()) && !err.isEmpty();
-        errorLabel.setText(err);
-        helperLabel.setText(help);
-        errorLabel.setVisible(showError);
-        errorLabel.setManaged(showError);
-        boolean showHelper = !showError && !help.isEmpty();
-        helperLabel.setVisible(showHelper);
-        helperLabel.setManaged(showHelper);
+        String text = showError ? err : help;
+        supporting.setText(text);
+        supporting.setVisible(!text.isEmpty());
     }
 
     // ==================== Animation ====================
@@ -574,9 +570,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         return Math.max(0.0, s);
     }
 
-    private boolean hasSupportingContent() {
-        return !str(helperText.getValue()).isEmpty() || !str(errorText.getValue()).isEmpty();
-    }
 
     // ==================== Bands ====================
 
@@ -608,10 +601,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private double supportingBand() {
-        if (!hasSupportingContent()) {
+        if (supporting.getText().isEmpty()) {
             return 0.0;
         }
-        return snapSizeY(Math.max(helperLabel.prefHeight(-1), errorLabel.prefHeight(-1)));
+        return snapSizeY(supporting.prefHeight(-1));
     }
 
     // ==================== Layout ====================
