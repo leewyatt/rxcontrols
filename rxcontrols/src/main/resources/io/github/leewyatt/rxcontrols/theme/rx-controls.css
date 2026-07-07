@@ -21,7 +21,7 @@
 .rx-masonry-pane, .rx-masonry-view, .rx-material-text-field, .rx-material-password-field,
 .rx-number-field, .rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
-.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-sidebar, .rx-snackbar-host,
+.rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view,
@@ -2465,4 +2465,148 @@
 .rx-placeholder:server-error > .content > .graphic > .icon {
     -fx-background-color: -rx-danger;
     -fx-shape: "M0 0L0 0 M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSelectionBox                                                              *
+ *                                                                             *
+ * The popup content root (.popup-content) sits under RXPopupSupport's         *
+ * token-less sizing shell, reached by descendant selector. The embedded       *
+ * .rx-list-view carries its own tokens; here it is flattened to blend into    *
+ * the popup card.                                                             *
+ *                                                                             *
+ ******************************************************************************/
+.rx-selection-box {
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.12;
+}
+
+.rx-selection-box > .display {
+    -fx-alignment: center-left;
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0.333333em 0.583em 0.333333em 0.583em; /* 4 7 4 7 */
+    -fx-spacing: 0.5em; /* 6 */
+}
+
+.rx-selection-box:focused > .display,
+.rx-selection-box:showing > .display {
+    -fx-background-color: -fx-focus-color,
+    -fx-control-inner-background,
+    -fx-faint-focus-color,
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: -0.2, 1, -1.4, 3;
+    -fx-background-radius: 3, 2, 4, 0;
+}
+
+.rx-selection-box:readonly > .display {
+    -fx-opacity: 0.75;
+}
+
+.rx-selection-box > .display > .summary {
+    -fx-text-fill: -fx-text-inner-color;
+    -fx-text-overrun: ellipsis;
+}
+
+.rx-selection-box:empty > .display > .summary {
+    -fx-text-fill: derive(-fx-control-inner-background, -30%);
+}
+
+.rx-selection-box > .display > .arrow-button {
+    -fx-alignment: center;
+    -fx-padding: 0.333333em; /* 4 */
+    -fx-background-color: transparent;
+}
+
+.rx-selection-box > .display > .arrow-button > .arrow {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.416667em; /* 5 */
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+.rx-selection-box:showing > .display > .arrow-button > .arrow {
+    -fx-rotate: 180;
+}
+
+/* The popup content root sits under RXPopupSupport's token-less sizing shell in a
+   separate popup window, so control-root -rx-* tokens do not resolve here (they are
+   declared only on control roots and looked-up colors walk upward). The card shadow
+   therefore uses a literal color, like the other non-token popups above. */
+.rx-selection-box-popup .popup-content {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-box-border;
+    -fx-border-width: 1px;
+    -fx-padding: 0.333333em; /* 4 */
+    -fx-spacing: 0.333333em; /* 4 */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0.0, 0, 8);
+}
+
+.rx-selection-box-popup .search-field .search-icon {
+    -fx-background-color: derive(-fx-text-base-color, 30%);
+    -fx-pref-width: 1.166667em; /* 14 */
+    -fx-pref-height: 1.166667em; /* 14 */
+    -fx-shape: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z";
+}
+
+.rx-selection-box-popup .rx-list-view,
+.rx-selection-box-popup .rx-list-view > .viewport {
+    -fx-background-color: transparent;
+}
+
+.rx-selection-box-popup .rx-list-view {
+    -fx-padding: 0;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-content {
+    -fx-alignment: center-left;
+    -fx-spacing: 0.583em; /* 7 */
+}
+
+.rx-selection-box-popup .rx-list-cell .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box {
+    -fx-alignment: center;
+    -fx-pref-width: 1.166667em; /* 14 */
+    -fx-pref-height: 1.166667em; /* 14 */
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box > .check {
+    -fx-background-color: -rx-primary;
+    -fx-pref-width: 1em; /* 12 */
+    -fx-pref-height: 1em; /* 12 */
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    -fx-opacity: 0;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box:checked > .check {
+    -fx-opacity: 1;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box:multiple {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -rx-outline;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box:multiple:checked {
+    -fx-background-color: -rx-primary;
+    -fx-border-color: -rx-primary;
+}
+
+.rx-selection-box-popup .rx-list-cell .select-box:multiple:checked > .check {
+    -fx-background-color: -rx-on-primary;
+}
+
+.rx-selection-box-popup .actions-box {
+    -fx-alignment: center-right;
+    -fx-spacing: 0.5em; /* 6 */
+    -fx-padding: 0.25em 0 0 0;
 }

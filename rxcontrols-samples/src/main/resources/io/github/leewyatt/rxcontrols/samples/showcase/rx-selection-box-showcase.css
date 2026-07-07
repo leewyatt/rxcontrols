@@ -1,0 +1,10 @@
+.selection-box-preview {
+    -fx-padding: 42px 56px;
+    -fx-spacing: 20px;
+}
+
+.selection-box-preview .state-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #52606d;
+    -fx-max-width: 260px;
+}
