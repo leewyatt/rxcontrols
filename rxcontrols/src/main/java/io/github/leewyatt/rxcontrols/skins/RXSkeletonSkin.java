@@ -315,9 +315,10 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 double radius = lineHeight * HALF;
                 for (int i = 0; i < lineCount; i++) {
                     double y = i * (lineHeight + lineSpacing);
-                    if (y >= ch) {
-                        // Control does not clip children; lines starting past
-                        // the content height would paint outside the bounds.
+                    if (y + lineHeight > ch) {
+                        // Control does not clip children; a line whose bottom
+                        // edge passes the content height would paint outside
+                        // the bounds. Whole lines that do not fit are omitted.
                         break;
                     }
                     double width = cw;

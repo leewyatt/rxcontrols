@@ -259,22 +259,34 @@ public class RXSkeletonTest {
     }
 
     /**
-     * Verifies TEXT omits lines that start beyond the content height instead
-     * of painting outside the control's bounds.
+     * Verifies TEXT omits whole lines that do not fit the content height —
+     * including lines whose bottom edge would cross it — instead of painting
+     * outside the control's bounds.
      */
     @Test
-    public void textVariantSkipsLinesBeyondContentHeight() {
+    public void textVariantOmitsLinesThatDoNotFitContentHeight() {
         RXSkeleton skeleton = new RXSkeleton(Variant.TEXT);
         skeleton.setLineCount(5);
         skeleton.setLineHeight(10.0);
         skeleton.setLineSpacing(5.0);
         installSkin(skeleton);
 
+        // Line 2 spans y=15..25 — its bottom edge crosses the 22px height.
         layout(skeleton, 200.0, 22.0);
+        assertEquals(1, rectanglesIn(baseLayer(skeleton)).size(),
+                "only the line at y=0..10 fits into 22px");
+        assertEquals(1, rectanglesIn(clipLayer(skeleton)).size());
 
+        // Exact fit is inclusive: y=15..25 with ch=25 is kept.
+        layout(skeleton, 200.0, 25.0);
         assertEquals(2, rectanglesIn(baseLayer(skeleton)).size(),
-                "lines at y=0 and y=15 fit; y=30 is beyond the 22px height");
-        assertEquals(2, rectanglesIn(clipLayer(skeleton)).size());
+                "a line ending exactly at the content height fits");
+
+        // Degenerate: not even the first line fits — nothing is painted.
+        skeleton.setLineHeight(30.0);
+        layout(skeleton, 200.0, 22.0);
+        assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
+                "a 30px line cannot fit into 22px");
     }
 
     /**
