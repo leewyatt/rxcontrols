@@ -746,6 +746,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         boolean accumulate = isAccumulateMode();
         focusModel.focus(target);
         if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+            // Persist the fallback anchor so consecutive Shift-extends keep growing
+            // from the same origin (mirrors ListViewBehavior.alsoSelectNextRow).
+            setAnchor(anchor);
             clearAndSelectRange(sm, anchor, target);
         } else if (shortcut || accumulate) {
             // Move focus only; selection is unchanged.
@@ -897,6 +900,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             toggleAt(sm, index);
             setAnchor(index);
         } else if (event.isShiftDown() && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+            setAnchor(anchor);
             clearAndSelectRange(sm, anchor, index);
         } else if (accumulate) {
             toggleAt(sm, index);

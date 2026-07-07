@@ -781,12 +781,20 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         if (sm == null) {
             return;
         }
+        // Capture the range anchor from the CURRENT focus before moving it.
+        // getAnchor() falls back to the focused index, so reading it after
+        // focus(target) would collapse a Shift-extend to a single item whenever no
+        // explicit anchor is stored (mirrors CellBehaviorBase, which records the
+        // anchor before fm.focus).
+        int anchor = clampIndex(getAnchor(), itemCount());
         focusModel.focus(target);
         if (shortcut) {
             // Ctrl/Cmd + navigation moves focus only; selection is unchanged.
             setAnchor(target);
         } else if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
-            int anchor = clampIndex(getAnchor(), itemCount());
+            // Persist the fallback anchor so consecutive Shift-extends keep growing
+            // from the same origin (mirrors ListViewBehavior.alsoSelectNextRow).
+            setAnchor(anchor);
             clearAndSelectRange(sm, anchor, target);
         } else {
             setAnchor(target);
@@ -851,6 +859,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         }
         finishMarquee();
         int index = cell.getIndex();
+        // Capture the range anchor from the current focus before moving it (see moveTo).
+        int anchor = clampIndex(getAnchor(), itemCount());
         focusModel.focus(index);
         resetPreferredColumnToItem(index);
         if (event.isShortcutDown()) {
@@ -861,7 +871,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             }
             setAnchor(index);
         } else if (event.isShiftDown() && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
-            int anchor = clampIndex(getAnchor(), itemCount());
+            setAnchor(anchor);
             clearAndSelectRange(sm, anchor, index);
         } else {
             setAnchor(index);

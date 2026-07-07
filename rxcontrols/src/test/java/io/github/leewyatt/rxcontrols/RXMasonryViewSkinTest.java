@@ -317,6 +317,32 @@ public class RXMasonryViewSkinTest {
     }
 
     @Test
+    public void shiftArrowExtendsRangeAfterAnchorReset() throws Exception {
+        // Regression: the anchor must be captured from the current focus BEFORE the
+        // arrow moves it, and the fallback anchor must be persisted, so Shift-extend
+        // works (and keeps one origin) after an item mutation resets the anchor.
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+            sm.setSelectionMode(SelectionMode.MULTIPLE);
+
+            fireCellPress(cellByIndex(view, 2), false, false); // focus=2, anchor stored
+            pump(root);
+            view.getItems().add(0, 999); // mutation: focus shifts to 3, the anchor resets
+            pump(root);
+            fireKey(view, KeyCode.DOWN, true, false); // shift + geometric down -> range 3..6
+            assertEquals(List.of(3, 4, 5, 6), List.copyOf(sm.getSelectedIndices()),
+                    "Shift extends from the (shifted) focus, not collapsing to the target");
+            fireKey(view, KeyCode.DOWN, true, false); // -> range 3..9
+            assertEquals(List.of(3, 4, 5, 6, 7, 8, 9), List.copyOf(sm.getSelectedIndices()),
+                    "consecutive Shift-extends keep growing from the same origin");
+        });
+    }
+
+    @Test
     public void shortcutArrowMovesFocusOnlyWithoutChangingSelection() throws Exception {
         onFx(() -> {
             RXMasonryView<Integer> view = uniformGallery(60);
@@ -386,6 +412,32 @@ public class RXMasonryViewSkinTest {
             fireCellPress(cellByIndex(view, 2), false, false); // anchor 2
             fireCellPress(cellByIndex(view, 6), true, false);  // shift -> range 2..6
             assertEquals(List.of(2, 3, 4, 5, 6), List.copyOf(sm.getSelectedIndices()));
+        });
+    }
+
+    @Test
+    public void shiftClickSelectsRangeAfterAnchorReset() throws Exception {
+        // Mouse-path variant of shiftArrowExtendsRangeAfterAnchorReset.
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(60);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 600);
+            pump(root);
+            MultipleSelectionModel<Integer> sm = view.getSelectionModel();
+            sm.setSelectionMode(SelectionMode.MULTIPLE);
+
+            fireCellPress(cellByIndex(view, 2), false, false); // focus=2, anchor stored
+            pump(root);
+            view.getItems().add(0, 999); // mutation: focus shifts to 3, the anchor resets
+            pump(root);
+            fireCellPress(cellByIndex(view, 6), true, false); // shift-click, no stored anchor
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6), List.copyOf(sm.getSelectedIndices()),
+                    "Shift-click extends from the (shifted) focus, not collapsing to the clicked cell");
+            fireCellPress(cellByIndex(view, 8), true, false); // the fallback anchor was persisted
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6, 7, 8), List.copyOf(sm.getSelectedIndices()),
+                    "consecutive Shift-clicks keep growing from the same origin");
         });
     }
 

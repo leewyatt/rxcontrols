@@ -1762,6 +1762,33 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void shiftArrowExtendsRangeAfterAnchorReset() throws Exception {
+        // Regression: the anchor must be captured from the current focus BEFORE the
+        // arrow moves it, and the fallback anchor must be persisted, so Shift-extend
+        // works (and keeps one origin) after an item mutation resets the anchor.
+        onFx(() -> {
+            RXTileView<String> view = tiles(30);
+            view.setMaxColumns(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            fireMousePressed(cellByIndex(view, 2), false, false); // focus=2, anchor stored
+            pump(root);
+            view.getItems().add(0, "x"); // mutation: focus shifts to 3, the anchor resets
+            pump(root);
+            fireKey(view, KeyCode.DOWN, true, false); // shift+down -> range 3..6
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6), sm.getSelectedIndices(),
+                    "Shift extends from the (shifted) focus, not collapsing to the target");
+            fireKey(view, KeyCode.DOWN, true, false); // shift+down -> range 3..9
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6, 7, 8, 9), sm.getSelectedIndices(),
+                    "consecutive Shift-extends keep growing from the same origin");
+        });
+    }
+
+    @Test
     public void shiftArrowReplacesRangeWithoutIntermediateClear() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(20);
@@ -2277,6 +2304,31 @@ public class RXTileViewSkinTest {
     }
 
     @Test
+    public void shiftClickSelectsRangeAfterAnchorReset() throws Exception {
+        // Mouse-path variant of shiftArrowExtendsRangeAfterAnchorReset.
+        onFx(() -> {
+            RXTileView<String> view = tiles(30);
+            view.setMaxColumns(3);
+            view.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            MultipleSelectionModel<String> sm = view.getSelectionModel();
+            fireMousePressed(cellByIndex(view, 2), false, false); // focus=2, anchor stored
+            pump(root);
+            view.getItems().add(0, "x"); // mutation: focus shifts to 3, the anchor resets
+            pump(root);
+            fireMousePressed(cellByIndex(view, 6), true, false); // shift-click, no stored anchor
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6), sm.getSelectedIndices(),
+                    "Shift-click extends from the (shifted) focus, not collapsing to the clicked tile");
+            fireMousePressed(cellByIndex(view, 8), true, false); // the fallback anchor was persisted
+            pump(root);
+            assertEquals(List.of(3, 4, 5, 6, 7, 8), sm.getSelectedIndices(),
+                    "consecutive Shift-clicks keep growing from the same origin");
+        });
+    }
+
+    @Test
     public void pageDownSinksToVisibleBottomThenPages() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(400);
@@ -2382,8 +2434,9 @@ public class RXTileViewSkinTest {
             fireMousePressed(cellByIndex(view, 3), true, false); // shift+click is the first post-swap action
             pump(root);
             // With the stale anchor 8 retained, this would extend to [3,4,5,6,7,8]. After the
-            // reset the anchor falls back to the just-focused click, so it stays a single cell.
-            assertEquals(List.of(3), view.getSelectionModel().getSelectedIndices(),
+            // reset the anchor falls back to the current focus — cleared by the disjoint swap,
+            // clamped to the list start — so the range grows from index 0.
+            assertEquals(List.of(0, 1, 2, 3), view.getSelectionModel().getSelectedIndices(),
                     "the stale anchor was dropped on swap; shift+click does not extend from index 8");
         });
     }
@@ -2400,12 +2453,14 @@ public class RXTileViewSkinTest {
 
             fireMousePressed(cellByIndex(view, 8), false, false); // anchor + focus at 8
             pump(root);
-            items.remove(0);
+            items.remove(0); // focus follows the item to 7; the anchor resets
             pump(root);
 
             fireMousePressed(cellByIndex(view, 3), true, false);
             pump(root);
-            assertEquals(List.of(3), view.getSelectionModel().getSelectedIndices(),
+            // With the stale anchor 8 retained, this would extend to [3..8]; instead the
+            // range grows from the (shifted) focus 7.
+            assertEquals(List.of(3, 4, 5, 6, 7), view.getSelectionModel().getSelectedIndices(),
                     "same-list mutations drop the stale anchor before the next shift gesture");
         });
     }
@@ -2419,7 +2474,8 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 400, 400);
             pump(root);
 
-            fireMousePressed(cellByIndex(view, 8), false, false); // anchor + focus at 8
+            fireMousePressed(cellByIndex(view, 2), false, false); // anchor at 2
+            fireMousePressed(cellByIndex(view, 8), true, false);  // range 2..8; anchor stays 2, focus 8
             pump(root);
 
             RXIndexedSelectionModel<String> newModel = new RXIndexedSelectionModel<>(view.itemsProperty());
@@ -2427,9 +2483,11 @@ public class RXTileViewSkinTest {
             view.setSelectionModel(newModel);
             pump(root);
 
-            fireMousePressed(cellByIndex(view, 3), true, false);
+            fireMousePressed(cellByIndex(view, 5), true, false);
             pump(root);
-            assertEquals(List.of(3), view.getSelectionModel().getSelectedIndices(),
+            // With the stale anchor 2 retained, this would select [2..5]; instead the range
+            // re-bases at the current focus 8.
+            assertEquals(List.of(5, 6, 7, 8), view.getSelectionModel().getSelectedIndices(),
                     "selection model swaps drop the stale range anchor");
         });
     }

@@ -226,6 +226,9 @@ public class RXListViewSkinTest {
             press(cellByIndex(view, 6), true, false); // shift-click with no stored anchor
             assertEquals(List.of(3, 4, 5, 6), new ArrayList<>(view.getSelectionModel().getSelectedIndices()),
                     "Shift extends from the (shifted) focus, not collapsing to the clicked row");
+            press(cellByIndex(view, 8), true, false); // the fallback anchor was persisted
+            assertEquals(List.of(3, 4, 5, 6, 7, 8), new ArrayList<>(view.getSelectionModel().getSelectedIndices()),
+                    "consecutive Shift-extends keep growing from the same origin");
         });
     }
 
@@ -299,6 +302,31 @@ public class RXListViewSkinTest {
             key(view, KeyCode.DOWN, true, false);
             key(view, KeyCode.DOWN, true, false);
             assertEquals(List.of(3, 4, 5), new ArrayList<>(view.getSelectionModel().getSelectedIndices()));
+        });
+    }
+
+    @Test
+    public void shiftArrowExtendsRangeAfterAnchorReset() throws Exception {
+        // Same regression as shiftExtendsRangeAfterAnchorReset, on the keyboard path:
+        // the fallback anchor must be read before the focus moves and then persisted,
+        // so consecutive Shift+arrow presses grow one range from the same origin.
+        onFx(() -> {
+            ObservableList<String> data = FXCollections.observableArrayList();
+            for (int i = 0; i < 20; i++) {
+                data.add("Item " + i);
+            }
+            RXListView<String> view = new RXListView<>(data);
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            view.setSelectionVisualMode(RXListSelectionVisualMode.ROW);
+            StackPane root = host(view, 300, 600);
+            pump(root);
+            press(cellByIndex(view, 2), false, false); // focus=2, anchor stored
+            data.add(0, "x"); // mutation: focus shifts to 3, ANCHOR_KEY is reset
+            pump(root);
+            key(view, KeyCode.DOWN, true, false);
+            key(view, KeyCode.DOWN, true, false);
+            assertEquals(List.of(3, 4, 5), new ArrayList<>(view.getSelectionModel().getSelectedIndices()),
+                    "consecutive Shift-extends grow from the same fallback anchor");
         });
     }
 
@@ -451,6 +479,31 @@ public class RXListViewSkinTest {
             assertEquals(0, view.getSelectionModel().getSelectedIndex());
             assertEquals("b", view.getSelectionModel().getSelectedItem());
             assertTrue(cellByIndex(view, 0).isSelected(), "the cell now rendering 'b' is selected");
+        });
+    }
+
+    @Test
+    public void focusFollowsRetainedItemOnSetAll() throws Exception {
+        // Regression: items.setAll(...) is a single replace; when it retains the
+        // focused item, the focus ring must re-resolve to the item's new position
+        // (like the selection model does) instead of clearing, so the next arrow
+        // press continues from the item rather than jumping to the top.
+        onFx(() -> {
+            ObservableList<String> data = FXCollections.observableArrayList("a", "b", "c", "d", "e");
+            RXListView<String> view = new RXListView<>(data);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            press(cellByIndex(view, 2), false, false); // focus + select "c"
+            data.setAll("x", "c", "y", "z"); // replace retains "c" at index 1
+            pump(root);
+            assertEquals(1, view.getSelectionModel().getSelectedIndex(),
+                    "selection re-resolves to the retained item");
+            assertTrue(cellByIndex(view, 1).getPseudoClassStates().stream()
+                            .anyMatch(pc -> pc.getPseudoClassName().equals("focused")),
+                    "the focus ring follows the retained item");
+            key(view, KeyCode.DOWN, false, false);
+            assertEquals(2, view.getSelectionModel().getSelectedIndex(),
+                    "DOWN continues from the retained item's position, not from the top");
         });
     }
 

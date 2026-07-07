@@ -101,6 +101,7 @@ class RXIndexedFocusModel<T> extends FocusModel<T> {
         }
         boolean removedFocusWasSelectionLead = focusedSelectionLead;
         int removedFocusedFrom = -1;
+        boolean replacedFocused = false;
         while (change.next()) {
             if (change.wasPermutated()) {
                 if (focusedIndex >= change.getFrom() && focusedIndex < change.getTo()) {
@@ -115,12 +116,24 @@ class RXIndexedFocusModel<T> extends FocusModel<T> {
                 } else if (focusedIndex >= from) {
                     if (removed > 0 && change.getAddedSize() == 0) {
                         removedFocusedFrom = from;
+                    } else {
+                        replacedFocused = true;
                     }
                     focusedIndex = -1;
                 }
             }
         }
         int itemCount = getItemCount();
+        if (focusedIndex < 0 && replacedFocused && itemCount > 0) {
+            // A replace (e.g. items.setAll) may retain the focused item; re-resolve it
+            // by item equality — like attachItems — so the focus ring follows the item,
+            // matching the selection model's re-resolution of its lead.
+            ObservableList<T> items = getItems();
+            int retained = items == null ? -1 : items.indexOf(getFocusedItem());
+            if (retained >= 0) {
+                focusedIndex = retained;
+            }
+        }
         if (focusedIndex < 0 && removedFocusedFrom >= 0 && itemCount > 0) {
             int selectionLead = selectionLead();
             if (removedFocusWasSelectionLead && selectionLead >= 0 && selectionLead < itemCount) {
