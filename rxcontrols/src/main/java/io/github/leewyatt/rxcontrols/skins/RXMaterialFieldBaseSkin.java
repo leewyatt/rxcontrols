@@ -58,6 +58,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     /** Gap between the editor text and the activation line. */
     private static final double LINE_GAP = 3.0;
+    /** Gap between the floated label and the editor text (M2 / MUI ≈ 4dp). */
+    private static final double LABEL_GAP = 4.0;
+    /** Gap between the activation line and the supporting text (M2: 4dp). */
+    private static final double SUPPORTING_GAP = 4.0;
     /** Collapsed horizontal scale of the accent line when unfocused. */
     private static final double ACCENT_REST_SCALE_X = 0.05;
     /** Fallback accent-line thickness before CSS resolves {@code -fx-pref-height}. */
@@ -585,7 +589,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         if (!hasLabelSource()) {
             return 0.0;
         }
-        return snapSizeY(unscaledLabelHeight() * floatScale());
+        // Floated label height plus a breathing gap above the editor text; the
+        // gap lives inside the band so pref/hit-test/baseline stay consistent.
+        return snapSizeY(unscaledLabelHeight() * floatScale()) + snapSizeY(LABEL_GAP);
     }
 
     private double unscaledLabelHeight() {
@@ -612,7 +618,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         if (supporting.getText().isEmpty()) {
             return 0.0;
         }
-        return snapSizeY(supporting.prefHeight(-1));
+        // Gap between the activation line and the supporting text, inside the
+        // band; layoutSupporting positions the text below the gap.
+        return snapSizeY(SUPPORTING_GAP) + snapSizeY(supporting.prefHeight(-1));
     }
 
     // ==================== Layout ====================
@@ -671,7 +679,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
             return;
         }
         supporting.setVisible(true);
-        supporting.resizeRelocate(x, top, w, supportingBand);
+        final double gap = snapSizeY(SUPPORTING_GAP);
+        supporting.resizeRelocate(x, top + gap, w, Math.max(0.0, supportingBand - gap));
     }
 
     /** {@inheritDoc} */
