@@ -135,20 +135,27 @@ final class CascaderShowcaseSupport {
      */
     static final class DotCell<T> extends RXCascaderCell<T> {
 
+        private final HBox box;
+        private final Label label;
+
         DotCell(RXCascaderView<T> view) {
             super(view);
-        }
-
-        @Override
-        protected Node createContent(RXCascaderItem<T> item) {
             Region dot = new Region();
             dot.getStyleClass().add("demo-cell-dot");
             dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
             dot.setMaxSize(8.0, 8.0);
-
-            HBox box = new HBox(8.0, dot, new Label(getDisplayText(item.getValue())));
+            label = new Label();
+            box = new HBox(8.0, dot, label);
             box.setAlignment(Pos.CENTER_LEFT);
+        }
+
+        @Override
+        protected Node createContent(RXCascaderItem<T> item) {
+            if (item == null) {
+                return null;
+            }
+            label.setText(getDisplayText(item.getValue()));
             return box;
         }
     }
