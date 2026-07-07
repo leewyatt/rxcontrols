@@ -539,7 +539,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         if (lt != null && !lt.isBlank()) {
             return lt;
         }
-        return str(getSkinnable().getPromptText());
+        // Blank prompt text is "no label source" too — otherwise a whitespace
+        // prompt reserves a label band and becomes the accessible name.
+        String pt = getSkinnable().getPromptText();
+        return (pt == null || pt.isBlank()) ? "" : pt;
     }
 
     private boolean hasLabelSource() {
@@ -567,6 +570,11 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private double floatScale() {
         Number n = labelFloatScale.getValue();
         double s = (n == null) ? RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE : n.doubleValue();
+        if (!Double.isFinite(s)) {
+            // NaN/Infinity would flow through the band math into pref height
+            // and the label transform; treat non-finite as "use the default".
+            return RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE;
+        }
         return Math.max(0.0, s);
     }
 
@@ -619,18 +627,22 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // Hand the band-trimmed editor sub-rect to the base skin.
         super.layoutChildren(x, y + labelBand, w, editorH);
 
-        layoutFloatingLabel(x, y, labelBand, editorH);
+        layoutFloatingLabel(x, y, w, labelBand, editorH);
         layoutActivationLines(x, y + labelBand + editorH, w);
         layoutSupporting(x, y + h - supportingBand, w, supportingBand);
     }
 
-    private void layoutFloatingLabel(double x, double y, double labelBand, double editorH) {
+    private void layoutFloatingLabel(double x, double y, double w, double labelBand, double editorH) {
         if (!hasLabelSource()) {
             labelNode.setVisible(false);
             return;
         }
         labelNode.setVisible(true);
-        final double labelWidth = snapSizeX(labelNode.prefWidth(-1));
+        // Clamp to the editor's inner width so a long label (or promptText
+        // fallback) ellipsizes like the native prompt instead of painting past
+        // the control onto its neighbours; the unmanaged label has no clip.
+        final double innerWidth = Math.max(0.0, w - editorLeftOffset() - editorRightOffset());
+        final double labelWidth = Math.min(snapSizeX(labelNode.prefWidth(-1)), snapSizeX(innerWidth));
         final double labelHeight = snapSizeY(labelNode.prefHeight(-1));
         // Align with the editor text: reuse the base skin's exact left offset
         // (past the left wrapper + left text padding) rather than re-deriving it.
@@ -677,12 +689,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                 + labelBand() + lineBand() + supportingBand();
     }
 
-    @Override
-    protected double computeMinHeight(double w, double topInset, double rightInset,
-                                      double bottomInset, double leftInset) {
-        return super.computeMinHeight(w, topInset, rightInset, bottomInset, leftInset)
-                + labelBand() + lineBand() + supportingBand();
-    }
+    // computeMinHeight is deliberately not overridden: TextFieldSkin maps min
+    // height to computePrefHeight via a virtual call that already lands on the
+    // band-inclusive override above — adding the bands here again would
+    // double-count them (min > pref). Same constraint in RXFieldBaseSkin.
 
     @Override
     protected double computeMaxHeight(double w, double topInset, double rightInset,

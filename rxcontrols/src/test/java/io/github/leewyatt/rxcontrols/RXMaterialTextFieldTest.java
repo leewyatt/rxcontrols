@@ -36,7 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Headless unit tests for {@link RXMaterialTextField} and its skin: property
  * plumbing, invalid / floated pseudo-classes, CSS metadata, the band
- * height contract (label + line + supporting, each counted once; max == pref),
+ * height contract (label + line + supporting, each counted once; min &lt;= pref == max),
+ * the label-band baseline shift, label width clamping to the editor inner width,
+ * labelFloatScale robustness to non-finite / negative values,
  * prompt-text label fallback, accessible name, hit-test correctness, snapped
  * animation end-values, and the built-in clear button (presence by editable +
  * showClearButton, opacity following text, stable reserved width, pickability,
@@ -306,6 +308,100 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
+    public void minHeightNeverExceedsPrefOrMaxHeight() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            field.setHelperText("required");
+            inScene(field);
+
+            double min = field.minHeight(-1);
+            double pref = field.prefHeight(-1);
+            double max = field.maxHeight(-1);
+            assertTrue(min <= pref, "min " + min + " must not exceed pref " + pref);
+            assertTrue(pref <= max, "pref " + pref + " must not exceed max " + max);
+            // The user-visible consequence: a managed parent with spare space
+            // lays the field out at its pref height, not above it. Parents ceil
+            // the resize (Region.snapSize), so allow [pref, ceil(pref)].
+            double h = field.getHeight();
+            assertTrue(h >= pref - 0.001 && h <= Math.ceil(pref) + 0.001,
+                    "settled height " + h + " must be pref " + pref + " snapped up");
+        });
+    }
+
+    @Test
+    public void baselineOffsetShiftsByLabelBand() {
+        runOnFx(() -> {
+            RXMaterialTextField noLabel = inScene(new RXMaterialTextField());
+            RXMaterialTextField withLabel = new RXMaterialTextField();
+            withLabel.setLabelText("Name");
+            inScene(withLabel);
+
+            double baselineDelta = withLabel.getBaselineOffset() - noLabel.getBaselineOffset();
+            double bandDelta = withLabel.prefHeight(-1) - noLabel.prefHeight(-1);
+            assertTrue(baselineDelta > 0, "the label band must push the baseline down");
+            assertEquals(bandDelta, baselineDelta, 0.5,
+                    "the baseline must shift by exactly the label band");
+        });
+    }
+
+    @Test
+    public void longLabelClampsToEditorInnerWidth() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setMaxWidth(140);
+            field.setLabelText("An exceedingly long floating label that cannot possibly fit here");
+            inScene(field, 320, 160);
+
+            Label label = floatingLabel(field);
+            assertNotNull(label, "floating label missing");
+            assertTrue(label.prefWidth(-1) > field.getWidth(),
+                    "precondition: label text must be wider than the field");
+            // Resting state (empty, unfocused): scale is 1, boundsInParent is honest.
+            assertTrue(label.getBoundsInParent().getMaxX() <= field.getWidth() + 1.0,
+                    "label must not paint past the control's right edge");
+            assertTrue(label.getWidth() < label.prefWidth(-1),
+                    "the label node must be resized below its pref so Label ellipsizes");
+            // The default field reserves a right wrapper (clear affordance); the
+            // clamp must stop short of it, not merely inside the control edge.
+            Region rightWrapper = (Region) field.lookup(".right-wrapper");
+            assertNotNull(rightWrapper, "default field reserves a right wrapper");
+            assertTrue(label.getBoundsInParent().getMaxX()
+                            <= rightWrapper.getBoundsInParent().getMinX() + 1.0,
+                    "label must clamp to the editor inner width, short of the right wrapper");
+        });
+    }
+
+    @Test
+    public void labelFloatScaleToleratesNonFiniteAndNegativeValues() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            inScene(field);
+            double defaultPref = field.prefHeight(-1);
+
+            field.setLabelFloatScale(Double.NaN);
+            double nanPref = field.prefHeight(-1);
+            assertTrue(Double.isFinite(nanPref), "NaN scale must not poison pref height");
+            assertEquals(defaultPref, nanPref, 0.001, "NaN scale must fall back to the default");
+
+            field.setLabelFloatScale(Double.POSITIVE_INFINITY);
+            double infPref = field.prefHeight(-1);
+            assertTrue(Double.isFinite(infPref), "infinite scale must not poison pref height");
+            assertEquals(defaultPref, infPref, 0.001, "infinite scale must fall back to the default");
+
+            field.setLabelFloatScale(0.0);
+            double zeroPref = field.prefHeight(-1);
+            assertTrue(zeroPref < defaultPref, "scale 0 must collapse the label band");
+
+            field.setLabelFloatScale(-1.0);
+            double negPref = field.prefHeight(-1);
+            assertEquals(zeroPref, negPref, 0.001,
+                    "a negative scale must clamp to 0 exactly (no negative band leak)");
+        });
+    }
+
+    @Test
     public void invalidToggleKeepsSupportingBandStable() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
@@ -339,6 +435,25 @@ public class RXMaterialTextFieldTest {
             field.layout();
             assertEquals("Query", floatingLabel(field).getText(),
                     "explicit labelText must win over promptText");
+        });
+    }
+
+    @Test
+    public void blankPromptTextIsNotALabelSource() {
+        runOnFx(() -> {
+            RXMaterialTextField noSource = inScene(new RXMaterialTextField());
+            RXMaterialTextField blankPrompt = new RXMaterialTextField();
+            blankPrompt.setPromptText("   ");
+            inScene(blankPrompt);
+
+            // Symmetric with blank labelText: a whitespace prompt must not
+            // reserve a label band, show a label, or become the accessible name.
+            assertEquals(noSource.prefHeight(-1), blankPrompt.prefHeight(-1), 0.001,
+                    "a blank promptText must not reserve a label band");
+            assertFalse(floatingLabel(blankPrompt).isVisible(),
+                    "a blank promptText must not show a floating label");
+            assertNull(blankPrompt.getAccessibleText(),
+                    "a blank promptText must not become the accessible name");
         });
     }
 

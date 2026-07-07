@@ -263,6 +263,21 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         return resolveLeftAdjust(leftInset, leftWidth);
     }
 
+    /**
+     * Trailing-side counterpart of {@link #editorLeftOffset()}: the horizontal
+     * offset, within the content area, from its right edge back to where the
+     * text editor ends — past any right wrapper and the right text padding.
+     * Reflects the most recent {@link #layoutChildren} pass, so call it after
+     * {@code super.layoutChildren}.
+     *
+     * @return the editor's right offset within the content area
+     */
+    protected final double editorRightOffset() {
+        final double rightInset = snappedRightInset();
+        final double rightWidth = rightWrapper == null ? 0.0 : rightWrapper.getWidth();
+        return resolveRightAdjust(rightInset, rightWidth);
+    }
+
     @Override
     public HitInfo getIndex(double x, double y) {
         // Use the last-laid-out wrapper width rather than prefWidth: a CSS
@@ -277,6 +292,15 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final Insets tp = getEffectiveTextPadding();
         final double tpTop = snapSizeY(tp.getTop());
         return super.getIndex(x - leftAdjust, y - tpTop);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public double computeBaselineOffset(double topInset, double rightInset, double bottomInset, double leftInset) {
+        // layoutChildren shifts the inner editor down by tpTop; the reported
+        // baseline must shift with it (getIndex applies the same correction).
+        return super.computeBaselineOffset(topInset, rightInset, bottomInset, leftInset)
+                + snapSizeY(getEffectiveTextPadding().getTop());
     }
 
     @Override
@@ -315,17 +339,12 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         return mw + leftAdjust + rightAdjust;
     }
 
-    @Override
-    protected double computeMinHeight(double w, double topInset, double rightInset, double bottomInset, double leftInset) {
-        final double mh = super.computeMinHeight(w, topInset, rightInset, bottomInset, leftInset);
-        final double leftHeight = leftWrapper == null ? 0.0 : snapSizeY(leftWrapper.minHeight(-1));
-        final double rightHeight = rightWrapper == null ? 0.0 : snapSizeY(rightWrapper.minHeight(-1));
-        final Insets tp = getEffectiveTextPadding();
-        final double tpTop = snapSizeY(tp.getTop());
-        final double tpBottom = snapSizeY(tp.getBottom());
-        final double sidesH = Math.max(leftHeight, rightHeight);
-        return Math.max(mh + tpTop + tpBottom, sidesH);
-    }
+    // computeMinHeight is deliberately not overridden: TextFieldSkin implements
+    // it as `return computePrefHeight(...)` — a virtual call that already lands
+    // on the most-derived, padding-inclusive override above. Re-adding the
+    // vertical text padding (or subclass bands) here would double-count it and
+    // break the min <= pref invariant, pushing every managed parent to lay the
+    // control out taller than its pref.
 
     // ==================== Lifecycle ====================
 
