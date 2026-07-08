@@ -29,12 +29,12 @@ public class RXMaterialPasswordFieldDemo extends Application {
         RXMaterialPasswordField password = new RXMaterialPasswordField();
         password.setLabelText("New password");
         password.setHelperText("At least 8 characters");
-        password.setLeadingNode(icon());
+        password.setLeading(icon());
 
         RXMaterialPasswordField confirm = new RXMaterialPasswordField();
         confirm.setLabelText("Confirm password");
         confirm.setHelperText("Re-enter the password");
-        confirm.setLeadingNode(icon());
+        confirm.setLeading(icon());
         // Display-only validation, app-driven: flag a mismatch on blur.
         confirm.focusedProperty().addListener((obs, was, focused) -> {
             if (!focused) {

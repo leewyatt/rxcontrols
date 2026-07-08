@@ -101,9 +101,9 @@ public class RXMaterialTextFieldTest {
             field.setLabelFloatScale(0.7);
             field.setShowClearButton(false);
             Label leading = new Label("@");
-            field.setLeadingNode(leading);
+            field.setLeading(leading);
             Label trailing = new Label("x");
-            field.setTrailingNode(trailing);
+            field.setTrailing(trailing);
             Insets padding = new Insets(0, 4, 0, 6);
             field.setTextPadding(padding);
 
@@ -115,8 +115,8 @@ public class RXMaterialTextFieldTest {
             assertEquals(Duration.millis(90), field.getAnimationDuration());
             assertEquals(0.7, field.getLabelFloatScale(), 0.0);
             assertFalse(field.isShowClearButton());
-            assertEquals(leading, field.getLeadingNode());
-            assertEquals(trailing, field.getTrailingNode());
+            assertEquals(leading, field.getLeading());
+            assertEquals(trailing, field.getTrailing());
             assertEquals(padding, field.getTextPadding());
         });
     }
@@ -126,13 +126,13 @@ public class RXMaterialTextFieldTest {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
             Label icon = new Label("@");
-            field.setTrailingNode(icon);
-            field.setLeadingNode(icon);
-            assertNull(field.getTrailingNode(), "same node must migrate out of the opposite slot");
-            assertSame(icon, field.getLeadingNode());
-            field.setTrailingNode(icon);
-            assertNull(field.getLeadingNode());
-            assertSame(icon, field.getTrailingNode());
+            field.setTrailing(icon);
+            field.setLeading(icon);
+            assertNull(field.getTrailing(), "same node must migrate out of the opposite slot");
+            assertSame(icon, field.getLeading());
+            field.setTrailing(icon);
+            assertNull(field.getLeading());
+            assertSame(icon, field.getTrailing());
         });
     }
 
@@ -388,10 +388,10 @@ public class RXMaterialTextFieldTest {
                     "the label node must be resized below its pref so Label ellipsizes");
             // The default field reserves a right wrapper (clear affordance); the
             // clamp must stop short of it, not merely inside the control edge.
-            Region rightWrapper = (Region) field.lookup(".right-wrapper");
-            assertNotNull(rightWrapper, "default field reserves a right wrapper");
+            Region trailingWrapper = (Region) field.lookup(".trailing-wrapper");
+            assertNotNull(trailingWrapper, "default field reserves a right wrapper");
             assertTrue(label.getBoundsInParent().getMaxX()
-                            <= rightWrapper.getBoundsInParent().getMinX() + 1.0,
+                            <= trailingWrapper.getBoundsInParent().getMinX() + 1.0,
                     "label must clamp to the editor inner width, short of the right wrapper");
         });
     }
@@ -489,7 +489,7 @@ public class RXMaterialTextFieldTest {
     public void bottomTextPaddingSuppliesTheTextToLineGap() {
         runOnFx(() -> {
             RXMaterialTextField ua = new RXMaterialTextField();
-            ua.setShowClearButton(false); // base tier: no :has-right-node
+            ua.setShowClearButton(false); // base tier: no :has-trailing
             inScene(ua);
             RXMaterialTextField zeroed = new RXMaterialTextField();
             zeroed.setShowClearButton(false);
@@ -510,9 +510,9 @@ public class RXMaterialTextFieldTest {
             RXMaterialTextField both = tierField(true, true);
             double expected = base.prefHeight(-1);
             assertEquals(expected, left.prefHeight(-1), 0.001,
-                    ":has-left-node must re-carry the bottom gap (the shorthand overwrites the base rule)");
+                    ":has-leading must re-carry the bottom gap (the shorthand overwrites the base rule)");
             assertEquals(expected, right.prefHeight(-1), 0.001,
-                    ":has-right-node must re-carry the bottom gap");
+                    ":has-trailing must re-carry the bottom gap");
             assertEquals(expected, both.prefHeight(-1), 0.001,
                     "the combined tier must re-carry the bottom gap");
         });
@@ -687,12 +687,12 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
-    public void disposeDetachesUserTrailingNodeAndLabelFor() {
+    public void disposeDetachesUserTrailingAndLabelFor() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
             field.setLabelText("Name");
             Label trailing = new Label("x");
-            field.setTrailingNode(trailing);
+            field.setTrailing(trailing);
             inScene(field);
             assertNotNull(trailing.getParent(), "trailing node must be attached while skinned");
 
@@ -748,7 +748,7 @@ public class RXMaterialTextFieldTest {
             leading.setMinSize(20, 20);
             leading.setPrefSize(20, 20);
             leading.setMaxSize(20, 20);
-            field.setLeadingNode(leading);
+            field.setLeading(leading);
             inScene(field, 320, 160);
 
             Label label = floatingLabel(field);
@@ -758,7 +758,7 @@ public class RXMaterialTextFieldTest {
 
             double labelX = field.sceneToLocal(label.localToScene(0, 0)).getX();
             double textX = field.sceneToLocal(textNode.localToScene(0, 0)).getX();
-            // Without the editorLeftOffset() fix the label would sit ~one left-inset
+            // Without the editorLeadingOffset() fix the label would sit ~one left-inset
             // (~7px) to the right of the editor text; the fix collapses that gap.
             assertEquals(textX, labelX, 2.0,
                     "with a leading node, the floating label must start where the editor text starts");
@@ -804,12 +804,12 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
-    public void clearButtonCoexistsWithTrailingNode() {
+    public void clearButtonCoexistsWithTrailing() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField("abc");
             field.setLabelText("Name");
             Label trailing = new Label("T");
-            field.setTrailingNode(trailing);
+            field.setTrailing(trailing);
             inScene(field);
 
             StackPane clear = clearButton(field);
@@ -847,15 +847,15 @@ public class RXMaterialTextFieldTest {
             RXMaterialTextField field = new RXMaterialTextField();
             field.setLabelText("Name");
             inScene(field, 320, 120);
-            Region rightWrapper = (Region) field.lookup(".right-wrapper");
-            assertNotNull(rightWrapper, "active clear button must reserve a right wrapper");
-            double emptyWidth = rightWrapper.getWidth();
+            Region trailingWrapper = (Region) field.lookup(".trailing-wrapper");
+            assertNotNull(trailingWrapper, "active clear button must reserve a right wrapper");
+            double emptyWidth = trailingWrapper.getWidth();
             assertTrue(emptyWidth > 0.0, "the clear button reserves space while active");
 
             field.setText("abc");
             field.applyCss();
             field.layout();
-            assertEquals(emptyWidth, rightWrapper.getWidth(), 0.5,
+            assertEquals(emptyWidth, trailingWrapper.getWidth(), 0.5,
                     "empty<->non-empty must not change the reserved width (no jump)");
         });
     }
@@ -865,7 +865,7 @@ public class RXMaterialTextFieldTest {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField("abc");
             field.setLabelText("Name");
-            field.setTrailingNode(new Label("T"));
+            field.setTrailing(new Label("T"));
             inScene(field, 320, 120);
             double withClear = field.prefWidth(-1);
 
@@ -961,23 +961,23 @@ public class RXMaterialTextFieldTest {
             RXMaterialTextField field = new RXMaterialTextField();
             field.setLabelText("Name");
             inScene(field);
-            PseudoClass hasLeft = PseudoClass.getPseudoClass("has-left-node");
-            PseudoClass hasRight = PseudoClass.getPseudoClass("has-right-node");
+            PseudoClass hasLeft = PseudoClass.getPseudoClass("has-leading");
+            PseudoClass hasRight = PseudoClass.getPseudoClass("has-trailing");
 
-            assertFalse(field.getPseudoClassStates().contains(hasLeft), "no leading node -> no :has-left-node");
-            field.setLeadingNode(new Label("@"));
-            assertTrue(field.getPseudoClassStates().contains(hasLeft), "leading node -> :has-left-node");
+            assertFalse(field.getPseudoClassStates().contains(hasLeft), "no leading node -> no :has-leading");
+            field.setLeading(new Label("@"));
+            assertTrue(field.getPseudoClassStates().contains(hasLeft), "leading node -> :has-leading");
 
             // The built-in trailing affordance container is the effective right slot,
-            // so a default (editable + showClearButton) field has :has-right-node.
+            // so a default (editable + showClearButton) field has :has-trailing.
             assertTrue(field.getPseudoClassStates().contains(hasRight),
-                    "active clear affordance occupies the right slot -> :has-right-node");
+                    "active clear affordance occupies the right slot -> :has-trailing");
             field.setShowClearButton(false);
             assertFalse(field.getPseudoClassStates().contains(hasRight),
-                    "no trailing node and no clear affordance -> no :has-right-node");
-            field.setTrailingNode(new Label("x"));
+                    "no trailing node and no clear affordance -> no :has-trailing");
+            field.setTrailing(new Label("x"));
             assertTrue(field.getPseudoClassStates().contains(hasRight),
-                    "user trailing node -> :has-right-node");
+                    "user trailing node -> :has-trailing");
         });
     }
 
@@ -1088,10 +1088,10 @@ public class RXMaterialTextFieldTest {
         RXMaterialTextField field = new RXMaterialTextField();
         field.setShowClearButton(false);
         if (leading) {
-            field.setLeadingNode(tinyNode());
+            field.setLeading(tinyNode());
         }
         if (trailing) {
-            field.setTrailingNode(tinyNode());
+            field.setTrailing(tinyNode());
         }
         return inScene(field);
     }

@@ -122,13 +122,13 @@ public class RXMaterialPasswordFieldTest {
         runOnFx(() -> {
             RXMaterialPasswordField field = new RXMaterialPasswordField();
             Label icon = new Label("@");
-            field.setTrailingNode(icon);
-            field.setLeadingNode(icon);
-            assertNull(field.getTrailingNode(), "same node must migrate out of the opposite slot");
-            assertSame(icon, field.getLeadingNode());
-            field.setTrailingNode(icon);
-            assertNull(field.getLeadingNode());
-            assertSame(icon, field.getTrailingNode());
+            field.setTrailing(icon);
+            field.setLeading(icon);
+            assertNull(field.getTrailing(), "same node must migrate out of the opposite slot");
+            assertSame(icon, field.getLeading());
+            field.setTrailing(icon);
+            assertNull(field.getLeading());
+            assertSame(icon, field.getTrailing());
         });
     }
 

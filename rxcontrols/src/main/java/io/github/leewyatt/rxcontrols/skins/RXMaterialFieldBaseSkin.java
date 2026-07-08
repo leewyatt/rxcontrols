@@ -103,7 +103,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * to the internal trailing container when there is trailing content, else
      * {@code null}. Created before {@code super(...)}; populated after.
      */
-    private final ObjectProperty<Node> effectiveRight;
+    private final ObjectProperty<Node> effectiveTrailing;
 
     // ==================== Decoration nodes ====================
 
@@ -198,9 +198,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                     ObservableValue<Number> labelGap,
                                     ObservableValue<Number> supportingGap,
                                     ObservableValue<Boolean> showClearButton,
-                                    ObjectProperty<Node> effectiveRight) {
-        super(control, userLeading, effectiveRight, userTextPadding);
-        this.effectiveRight = effectiveRight;
+                                    ObjectProperty<Node> effectiveTrailing) {
+        super(control, userLeading, effectiveTrailing, userTextPadding);
+        this.effectiveTrailing = effectiveTrailing;
         this.userTrailing = userTrailing;
         this.showClearButton = showClearButton;
         this.labelText = labelText;
@@ -263,7 +263,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // Built-in clear affordance: a shape-backed Region inside a transparent
         // StackPane wrapper (AGENTS §2.9). The wrapper is the click target; the
         // graphic is mouse-transparent and size-locked to its pref. The trailing
-        // container is laid out by the base (via the effectiveRight relay), not
+        // container is laid out by the base (via the effectiveTrailing relay), not
         // added to getChildren() here.
         clearGraphic.getStyleClass().add(GRAPHIC_CLASS);
         clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -309,7 +309,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // transforms, the LABELED_BY hook, and the trailing box's children —
         // including any user trailing node) on dispose so nothing lingers,
         // mirroring what RXFieldBaseSkin does for its wrappers. (builtinTrailing
-        // itself rides inside the base's right-wrapper, which the base releases.)
+        // itself rides inside the base's trailing-wrapper, which the base releases.)
         disposer.registerDisposeTask(() -> {
             if (pendingLabelForListener != null) {
                 control.skinProperty().removeListener(pendingLabelForListener);
@@ -430,9 +430,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         updateClearVisual(); // sets the clear button's managed state
         // Reserve the right wrapper only when the box holds space-reserving
         // (managed) content; an empty box would otherwise reserve width and flip
-        // :has-right-node needlessly.
+        // :has-trailing needlessly.
         boolean hasContent = builtinTrailing.getChildren().stream().anyMatch(Node::isManaged);
-        effectiveRight.set(hasContent ? builtinTrailing : null);
+        effectiveTrailing.set(hasContent ? builtinTrailing : null);
     }
 
     private void updateClearVisual() {
@@ -442,7 +442,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         clearButton.setVisible(active);
         if (wasManaged != active) {
             // The relay may keep pointing at the same container (a user trailing
-            // node is present), so the base's effectiveRight listener does not
+            // node is present), so the base's effectiveTrailing listener does not
             // fire; invalidate the control size to reclaim / grant the clear
             // button's reserved width.
             getSkinnable().requestLayout();
@@ -740,12 +740,12 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // Clamp to the editor's inner width so a long label (or promptText
         // fallback) ellipsizes like the native prompt instead of painting past
         // the control onto its neighbours; the unmanaged label has no clip.
-        final double innerWidth = Math.max(0.0, w - editorLeftOffset() - editorRightOffset());
+        final double innerWidth = Math.max(0.0, w - editorLeadingOffset() - editorTrailingOffset());
         final double labelWidth = Math.min(snapSizeX(labelNode.prefWidth(-1)), snapSizeX(innerWidth));
         final double labelHeight = snapSizeY(labelNode.prefHeight(-1));
         // Align with the editor text: reuse the base skin's exact left offset
         // (past the left wrapper + left text padding) rather than re-deriving it.
-        final double textStartX = x + editorLeftOffset();
+        final double textStartX = x + editorLeadingOffset();
         final double restingY = y + labelBand + Math.max(0.0, (editorH - labelHeight) / 2.0);
         labelNode.resizeRelocate(textStartX, restingY, labelWidth, labelHeight);
         // Floated position sits at the top of the content area; progress maps
@@ -778,7 +778,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     @Override
     public HitInfo getIndex(double x, double y) {
         // Cancel the editor's downward labelBand shift before delegating to the
-        // base (which further removes its own leftAdjust / tpTop).
+        // base (which further removes its own leadingAdjust / tpTop).
         return super.getIndex(x, y - labelBand());
     }
 

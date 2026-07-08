@@ -27,12 +27,12 @@ public class RXMaterialTextFieldDemo extends Application {
         RXMaterialTextField name = new RXMaterialTextField();
         name.setLabelText("Full name");
         name.setHelperText("As it appears on your ID");
-        name.setLeadingNode(icon(PERSON_SHAPE));
+        name.setLeading(icon(PERSON_SHAPE));
 
         RXMaterialTextField email = new RXMaterialTextField();
         email.setLabelText("Email");
         email.setHelperText("We'll send a confirmation link");
-        email.setLeadingNode(icon(MAIL_SHAPE));
+        email.setLeading(icon(MAIL_SHAPE));
         // Display-only validation, app-driven (the control bundles no validator):
         // flag an invalid email on blur, clear the flag once it looks valid.
         email.focusedProperty().addListener((obs, was, focused) -> {

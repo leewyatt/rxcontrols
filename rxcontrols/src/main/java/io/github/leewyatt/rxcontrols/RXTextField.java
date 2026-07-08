@@ -20,13 +20,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Text-field control with optional {@code left} and {@code right} slots for
+ * Text-field control with optional {@code leading} and {@code trailing} slots for
  * user-supplied nodes (icons, buttons, HBoxes, etc.). Behaves as a plain
  * {@link TextField} when both slots are unset.
  * <p>
  * The control intentionally does not bundle a default action button or any
  * "clear" / "reveal" affordance — callers compose those with
- * {@link #setLeft(Node)} / {@link #setRight(Node)}.
+ * {@link #setLeading(Node)} / {@link #setTrailing(Node)}.
  * <p>
  * <b>Slot migration semantics.</b> A single {@link Node} instance is moved
  * between slots rather than displayed in both: assigning a node to one slot
@@ -38,12 +38,12 @@ import java.util.List;
  * unsupported — callers using bindings must arrange uniqueness themselves.
  * <p>
  * <b>Side node geometry.</b> Side nodes are laid out flush against the
- * control's outer edges (top, bottom, and the outer left or right edge),
+ * control's outer edges (top, bottom, and the outer leading or trailing edge),
  * spanning the full control height. The rationale is a larger click target
  * for interactive side nodes such as a clear button. The default left and
  * right wrappers have no background, so the physical overlap with the
  * control's border is invisible unless the caller explicitly styles
- * {@code .left-wrapper} / {@code .right-wrapper}.
+ * {@code .leading-wrapper} / {@code .trailing-wrapper}.
  * <p>
  * <b>Padding semantics.</b>
  *
@@ -64,7 +64,7 @@ import java.util.List;
  *       so the text is not clipped (i.e. enlarging {@code textPadding.top} /
  *       {@code .bottom} will increase the control's preferred height
  *       accordingly).</li>
- *   <li>{@code .left-wrapper} / {@code .right-wrapper} accept their own
+ *   <li>{@code .leading-wrapper} / {@code .trailing-wrapper} accept their own
  *       {@code -fx-padding} (StackPane API) for internal breathing around
  *       the child node. This is independent of {@code -rx-text-padding} —
  *       wrapper-internal padding only changes the wrapper's preferred width,
@@ -72,7 +72,7 @@ import java.util.List;
  * </ul>
  *
  * The user-agent stylesheet provides a sensible default {@code -rx-text-padding}
- * via the {@code :has-left-node} / {@code :has-right-node} pseudo-classes
+ * via the {@code :has-leading} / {@code :has-trailing} pseudo-classes
  * (≈ 7px, matching modena's horizontal TextField padding). Author stylesheets
  * override UA defaults — if you set {@code -rx-text-padding} in your own
  * stylesheet, the UA pseudo-class rules no longer apply; write the same
@@ -82,12 +82,12 @@ import java.util.List;
  * the user-agent tiers for good (standard JavaFX CSS semantics — no setter
  * value, including {@code null}, hands control back to the stylesheet).
  *
- * <p><b>Pseudo-class semantics.</b> {@code :has-left-node} /
- * {@code :has-right-node} reflect whether {@link #leftProperty()} /
- * {@link #rightProperty()} hold a non-null value, NOT whether the node is
- * visually rendered. A node set via {@code setLeft(node)} with
+ * <p><b>Pseudo-class semantics.</b> {@code :has-leading} /
+ * {@code :has-trailing} reflect whether {@link #leadingProperty()} /
+ * {@link #trailingProperty()} hold a non-null value, NOT whether the node is
+ * visually rendered. A node set via {@code setLeading(node)} with
  * {@code node.setVisible(false)} (or {@code setOpacity(0)} /
- * {@code setManaged(false)}) keeps {@code :has-left-node} active — the slot
+ * {@code setManaged(false)}) keeps {@code :has-leading} active — the slot
  * is occupied even though the user does not see it. This matches the layout
  * behavior: the wrapper continues to reserve space for the (possibly
  * invisible) node. If you need a "visually present" predicate, combine the
@@ -113,14 +113,14 @@ public class RXTextField extends TextField {
     public RXTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        left.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == right.get() && !right.isBound()) {
-                right.set(null);
+        leading.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == trailing.get() && !trailing.isBound()) {
+                trailing.set(null);
             }
         });
-        right.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == left.get() && !left.isBound()) {
-                left.set(null);
+        trailing.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == leading.get() && !leading.isBound()) {
+                leading.set(null);
             }
         });
     }
@@ -141,66 +141,70 @@ public class RXTextField extends TextField {
         return new RXTextFieldSkin(this);
     }
 
-    // ==================== left ====================
+    // ==================== leading ====================
 
-    private final ObjectProperty<Node> left = new SimpleObjectProperty<>(this, "left");
+    private final ObjectProperty<Node> leading = new SimpleObjectProperty<>(this, "leading");
 
     /**
-     * Node rendered inside the field, before the text area.
+     * Node rendered inside the field, on the leading side of the text area
+     * (the visual left in a left-to-right orientation, the visual right in a
+     * right-to-left one — the control mirrors automatically).
      *
-     * @return the left-slot property
+     * @return the leading-slot property
      */
-    public final ObjectProperty<Node> leftProperty() {
-        return left;
+    public final ObjectProperty<Node> leadingProperty() {
+        return leading;
     }
 
     /**
-     * Returns the left-slot node.
+     * Returns the leading-slot node.
      *
-     * @return the left node, or {@code null}
+     * @return the leading node, or {@code null}
      */
-    public final Node getLeft() {
-        return left.get();
+    public final Node getLeading() {
+        return leading.get();
     }
 
     /**
-     * Sets the node rendered inside the field, before the text area (the same instance assigned to both slots migrates out of the right slot).
+     * Sets the node rendered on the leading side of the text area (the same instance assigned to both slots migrates out of the trailing slot).
      *
-     * @param value the left node, may be {@code null}
+     * @param value the leading node, may be {@code null}
      */
-    public final void setLeft(Node value) {
-        left.set(value);
+    public final void setLeading(Node value) {
+        leading.set(value);
     }
 
-    // ==================== right ====================
+    // ==================== trailing ====================
 
-    private final ObjectProperty<Node> right = new SimpleObjectProperty<>(this, "right");
-
-    /**
-     * Node rendered inside the field, after the text area.
-     *
-     * @return the right-slot property
-     */
-    public final ObjectProperty<Node> rightProperty() {
-        return right;
-    }
+    private final ObjectProperty<Node> trailing = new SimpleObjectProperty<>(this, "trailing");
 
     /**
-     * Returns the right-slot node.
+     * Node rendered inside the field, on the trailing side of the text area
+     * (the visual right in a left-to-right orientation, the visual left in a
+     * right-to-left one — the control mirrors automatically).
      *
-     * @return the right node, or {@code null}
+     * @return the trailing-slot property
      */
-    public final Node getRight() {
-        return right.get();
+    public final ObjectProperty<Node> trailingProperty() {
+        return trailing;
     }
 
     /**
-     * Sets the node rendered inside the field, after the text area (the same instance assigned to both slots migrates out of the left slot).
+     * Returns the trailing-slot node.
      *
-     * @param value the right node, may be {@code null}
+     * @return the trailing node, or {@code null}
      */
-    public final void setRight(Node value) {
-        right.set(value);
+    public final Node getTrailing() {
+        return trailing.get();
+    }
+
+    /**
+     * Sets the node rendered on the trailing side of the text area (the same instance assigned to both slots migrates out of the leading slot).
+     *
+     * @param value the trailing node, may be {@code null}
+     */
+    public final void setTrailing(Node value) {
+        trailing.set(value);
     }
 
     // ==================== textPadding ====================

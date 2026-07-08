@@ -36,8 +36,8 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
      */
     public RXMaterialPasswordFieldSkin(RXMaterialPasswordField control) {
         super(control,
-                control.leadingNodeProperty(),
-                control.trailingNodeProperty(),
+                control.leadingProperty(),
+                control.trailingProperty(),
                 control.textPaddingProperty(),
                 control.labelTextProperty(),
                 control.helperTextProperty(),

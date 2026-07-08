@@ -55,7 +55,7 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
         field = new RXMaterialPasswordField("s3cr3t-pw");
         field.setLabelText("Password");
         field.setHelperText("At least 8 characters");
-        field.setLeadingNode(icon("lock-icon"));
+        field.setLeading(icon("lock-icon"));
         field.setPrefColumnCount(18);
 
         VBox preview = new VBox(22.0, field);
@@ -108,13 +108,13 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
         field.showClearButtonProperty().bind(clearBox.selectedProperty());
 
         CheckBox leadingBox = new CheckBox();
-        leadingBox.setSelected(field.getLeadingNode() != null);
+        leadingBox.setSelected(field.getLeading() != null);
         leadingBox.selectedProperty().addListener((obs, oldV, newV) ->
-                field.setLeadingNode(newV ? icon("lock-icon") : null));
+                field.setLeading(newV ? icon("lock-icon") : null));
 
         CheckBox trailingBox = new CheckBox();
         trailingBox.selectedProperty().addListener((obs, oldV, newV) ->
-                field.setTrailingNode(newV ? icon("lock-icon") : null));
+                field.setTrailing(newV ? icon("lock-icon") : null));
 
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());

@@ -34,20 +34,20 @@ public class RXTextFieldDemo extends Application {
         search.setPromptText("Search...");
         search.setPrefWidth(360);
         search.getStyleClass().add("search-field");
-        search.setLeft(magnifierIcon());
+        search.setLeading(magnifierIcon());
 
         RXTextField clearable = new RXTextField("clear me");
         clearable.setPrefWidth(360);
         Button clear = new Button("✕");
         clear.setFocusTraversable(false);
         clear.setOnAction(e -> clearable.clear());
-        clearable.setRight(clear);
+        clearable.setTrailing(clear);
 
         RXTextField both = new RXTextField();
         both.setPromptText("Both slots");
         both.setPrefWidth(360);
         both.getStyleClass().add("search-field");
-        both.setLeft(magnifierIcon());
+        both.setLeading(magnifierIcon());
         Button clearBtn = new Button("✕");
         Button submitBtn = new Button("⏎");
         clearBtn.setFocusTraversable(false);
@@ -56,7 +56,7 @@ public class RXTextFieldDemo extends Application {
         submitBtn.setOnAction(e -> System.out.println("Submitted: " + both.getText()));
         HBox actions = new HBox(4, clearBtn, submitBtn);
         actions.setAlignment(Pos.CENTER);
-        both.setRight(actions);
+        both.setTrailing(actions);
 
         TextField reference = new TextField();
         reference.setPromptText("Plain javafx.scene.control.TextField");

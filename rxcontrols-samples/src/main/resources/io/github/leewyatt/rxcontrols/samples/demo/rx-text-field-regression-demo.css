@@ -2,12 +2,12 @@
     -fx-pref-height: 36;
 }
 
-.regression-field > .left-wrapper {
+.regression-field > .leading-wrapper {
     -fx-padding: 0 6 0 6;
     -fx-background-color: rgba(0, 128, 255, 0.45);
 }
 
-.regression-field > .right-wrapper {
+.regression-field > .trailing-wrapper {
     -fx-padding: 0 6 0 6;
     -fx-background-color: rgba(255, 0, 128, 0.45);
 }
@@ -18,7 +18,7 @@
     -fx-font-weight: bold;
 }
 
-.hit-check > .left-wrapper:hover {
+.hit-check > .leading-wrapper:hover {
     -fx-padding: 0 24 0 6;
 }
 

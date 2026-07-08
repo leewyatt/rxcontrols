@@ -16,8 +16,8 @@ import javafx.event.EventHandler;
  * The skin does not handle format-property re-rendering — that lives on
  * {@link RXNumberField} itself so it survives skin replacement. It also does
  * not render stepper buttons or interfere with the
- * {@link RXNumberField#leftProperty() left} /
- * {@link RXNumberField#rightProperty() right} slots — those are subclass
+ * {@link RXNumberField#leadingProperty() leading} /
+ * {@link RXNumberField#trailingProperty() trailing} slots — those are subclass
  * concerns (see the design doc's "Subclass extension candidates").
  */
 public class RXNumberFieldSkin extends RXFieldBaseSkin {
@@ -28,7 +28,7 @@ public class RXNumberFieldSkin extends RXFieldBaseSkin {
      * @param control the number field to skin
      */
     public RXNumberFieldSkin(RXNumberField control) {
-        super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
+        super(control, control.leadingProperty(), control.trailingProperty(), control.textPaddingProperty());
         EventHandler<ActionEvent> enterCommitHandler = e -> control.commitValue();
         disposer.registerEventHandler(control, ActionEvent.ACTION, enterCommitHandler);
     }

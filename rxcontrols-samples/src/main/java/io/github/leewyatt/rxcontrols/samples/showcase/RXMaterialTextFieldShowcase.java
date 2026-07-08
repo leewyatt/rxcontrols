@@ -105,11 +105,11 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
 
         CheckBox leadingBox = new CheckBox();
         leadingBox.selectedProperty().addListener((obs, oldV, newV) ->
-                field.setLeadingNode(newV ? icon("person-icon") : null));
+                field.setLeading(newV ? icon("person-icon") : null));
 
         CheckBox trailingBox = new CheckBox();
         trailingBox.selectedProperty().addListener((obs, oldV, newV) ->
-                field.setTrailingNode(newV ? icon("person-icon") : null));
+                field.setTrailing(newV ? icon("person-icon") : null));
 
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());

@@ -39,7 +39,7 @@ public class RXPasswordFieldDemo extends Application {
         reveal.setPrefWidth(360);
         ToggleButton eye = eyeToggle();
         reveal.revealPasswordProperty().bind(eye.selectedProperty());
-        reveal.setRight(eye);
+        reveal.setTrailing(eye);
 
         RXPasswordField asterisk = new RXPasswordField("asterisk-mask");
         asterisk.setPrefWidth(360);
@@ -48,10 +48,10 @@ public class RXPasswordFieldDemo extends Application {
         RXPasswordField full = new RXPasswordField("secret");
         full.setPrefWidth(360);
         full.getStyleClass().add("lock-field");
-        full.setLeft(lockIcon());
+        full.setLeading(lockIcon());
         ToggleButton eye2 = eyeToggle();
         full.revealPasswordProperty().bind(eye2.selectedProperty());
-        full.setRight(eye2);
+        full.setTrailing(eye2);
 
         RXPasswordField cssEcho = new RXPasswordField("css-styled");
         cssEcho.setPrefWidth(360);

@@ -200,7 +200,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         searchIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         searchIcon.setMouseTransparent(true);
         searchField.getStyleClass().add("search-field");
-        searchField.setLeft(searchIcon);
+        searchField.setLeading(searchIcon);
 
         headerHolder.getStyleClass().add("popup-header");
         footerHolder.getStyleClass().add("popup-footer");

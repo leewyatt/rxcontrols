@@ -10,6 +10,6 @@ import io.github.leewyatt.rxcontrols.RXTextField;
 public class RXTextFieldSkin extends RXFieldBaseSkin {
 
     public RXTextFieldSkin(RXTextField control) {
-        super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
+        super(control, control.leadingProperty(), control.trailingProperty(), control.textPaddingProperty());
     }
 }

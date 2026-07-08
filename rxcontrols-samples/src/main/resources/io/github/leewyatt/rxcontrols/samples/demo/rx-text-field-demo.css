@@ -1,11 +1,11 @@
-.rx-text-field.search-field > .left-wrapper {
+.rx-text-field.search-field > .leading-wrapper {
     -fx-background-color: #f3f5f7;
     -fx-background-insets: 1 0 1 1;
     -fx-background-radius: 3 0 0 3;
     -fx-padding: 0 10;
 }
 
-.rx-text-field > .right-wrapper .button {
+.rx-text-field > .trailing-wrapper .button {
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -fx-padding: 3 8;
@@ -14,11 +14,11 @@
     -fx-cursor: hand;
 }
 
-.rx-text-field > .right-wrapper .button:hover {
+.rx-text-field > .trailing-wrapper .button:hover {
     -fx-background-color: rgba(0, 0, 0, 0.06);
     -fx-text-fill: #1f2933;
 }
 
-.rx-text-field > .right-wrapper .button:pressed {
+.rx-text-field > .trailing-wrapper .button:pressed {
     -fx-background-color: rgba(0, 0, 0, 0.12);
 }

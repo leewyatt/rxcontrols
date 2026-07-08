@@ -99,14 +99,14 @@ public class RXMaterialPasswordField extends PasswordField {
         // Match TextField(String): a null initial text yields getText() == null.
         setText(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        leadingNode.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == trailingNode.get() && !trailingNode.isBound()) {
-                trailingNode.set(null);
+        leading.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == trailing.get() && !trailing.isBound()) {
+                trailing.set(null);
             }
         });
-        trailingNode.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == leadingNode.get() && !leadingNode.isBound()) {
-                leadingNode.set(null);
+        trailing.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == leading.get() && !leading.isBound()) {
+                leading.set(null);
             }
         });
     }
@@ -477,9 +477,9 @@ public class RXMaterialPasswordField extends PasswordField {
         supportingGap.set(value);
     }
 
-    // ==================== leadingNode ====================
+    // ==================== leading ====================
 
-    private final ObjectProperty<Node> leadingNode = new SimpleObjectProperty<>(this, "leadingNode");
+    private final ObjectProperty<Node> leading = new SimpleObjectProperty<>(this, "leading");
 
     /**
      * Custom node rendered before the text area (e.g. a leading icon). Coexists
@@ -489,8 +489,8 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @return the leading-node property
      */
-    public final ObjectProperty<Node> leadingNodeProperty() {
-        return leadingNode;
+    public final ObjectProperty<Node> leadingProperty() {
+        return leading;
     }
 
     /**
@@ -498,8 +498,8 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @return the leading node, or {@code null}
      */
-    public final Node getLeadingNode() {
-        return leadingNode.get();
+    public final Node getLeading() {
+        return leading.get();
     }
 
     /**
@@ -507,13 +507,13 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @param value the leading node, may be {@code null}
      */
-    public final void setLeadingNode(Node value) {
-        leadingNode.set(value);
+    public final void setLeading(Node value) {
+        leading.set(value);
     }
 
-    // ==================== trailingNode ====================
+    // ==================== trailing ====================
 
-    private final ObjectProperty<Node> trailingNode = new SimpleObjectProperty<>(this, "trailingNode");
+    private final ObjectProperty<Node> trailing = new SimpleObjectProperty<>(this, "trailing");
 
     /**
      * Custom node rendered after the text area. Coexists with the built-in reveal
@@ -523,8 +523,8 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @return the trailing-node property
      */
-    public final ObjectProperty<Node> trailingNodeProperty() {
-        return trailingNode;
+    public final ObjectProperty<Node> trailingProperty() {
+        return trailing;
     }
 
     /**
@@ -532,8 +532,8 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @return the trailing node, or {@code null}
      */
-    public final Node getTrailingNode() {
-        return trailingNode.get();
+    public final Node getTrailing() {
+        return trailing.get();
     }
 
     /**
@@ -541,8 +541,8 @@ public class RXMaterialPasswordField extends PasswordField {
      *
      * @param value the trailing node, may be {@code null}
      */
-    public final void setTrailingNode(Node value) {
-        trailingNode.set(value);
+    public final void setTrailing(Node value) {
+        trailing.set(value);
     }
 
     // ==================== showClearButton ====================

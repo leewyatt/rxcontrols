@@ -51,8 +51,8 @@ import javafx.scene.text.HitInfo;
  * during development; production code should prefer subclassing or using
  * one of the rxcontrols {@code RX*FieldSkin} classes.
  * <p>
- * Contract for the supplied observables: {@code effectiveLeft} and
- * {@code effectiveRight} should not resolve to the same {@link Node} instance
+ * Contract for the supplied observables: {@code effectiveLeading} and
+ * {@code effectiveTrailing} should not resolve to the same {@link Node} instance
  * at the same time. {@link io.github.leewyatt.rxcontrols.RXTextField}
  * enforces this for its own setters by clearing the opposite slot when the
  * same node is moved across — see its slot migration semantics. Subclasses
@@ -76,12 +76,12 @@ import javafx.scene.text.HitInfo;
  */
 public class RXFieldBaseSkin extends TextFieldSkin {
 
-    private static final PseudoClass HAS_LEFT_NODE = PseudoClass.getPseudoClass("has-left-node");
-    private static final PseudoClass HAS_RIGHT_NODE = PseudoClass.getPseudoClass("has-right-node");
-    private static final PseudoClass HAS_NO_SIDE_NODES = PseudoClass.getPseudoClass("has-no-side-nodes");
+    private static final PseudoClass HAS_LEADING = PseudoClass.getPseudoClass("has-leading");
+    private static final PseudoClass HAS_TRAILING = PseudoClass.getPseudoClass("has-trailing");
+    private static final PseudoClass HAS_NO_SLOTS = PseudoClass.getPseudoClass("has-no-slots");
 
-    private static final String LEFT_WRAPPER_CLASS = "left-wrapper";
-    private static final String RIGHT_WRAPPER_CLASS = "right-wrapper";
+    private static final String LEADING_WRAPPER_CLASS = "leading-wrapper";
+    private static final String TRAILING_WRAPPER_CLASS = "trailing-wrapper";
 
     /**
      * Single cleanup channel for this skin and its subclasses. Subclasses
@@ -92,12 +92,12 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     protected final SkinDisposer disposer = new SkinDisposer();
 
     private final TextField control;
-    private final ObservableValue<Node> effectiveLeft;
-    private final ObservableValue<Node> effectiveRight;
+    private final ObservableValue<Node> effectiveLeading;
+    private final ObservableValue<Node> effectiveTrailing;
     private final ObservableValue<Insets> effectiveTextPadding;
 
-    private StackPane leftWrapper;
-    private StackPane rightWrapper;
+    private StackPane leadingWrapper;
+    private StackPane trailingWrapper;
 
     private final ChangeListener<Boolean> wrapperNeedsLayoutListener = (obs, oldVal, newVal) -> {
         if (Boolean.TRUE.equals(newVal)) {
@@ -106,17 +106,17 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     };
 
     public RXFieldBaseSkin(TextField control,
-                           ObservableValue<Node> effectiveLeft,
-                           ObservableValue<Node> effectiveRight,
+                           ObservableValue<Node> effectiveLeading,
+                           ObservableValue<Node> effectiveTrailing,
                            ObservableValue<Insets> effectiveTextPadding) {
         super(control);
         this.control = control;
-        this.effectiveLeft = effectiveLeft;
-        this.effectiveRight = effectiveRight;
+        this.effectiveLeading = effectiveLeading;
+        this.effectiveTrailing = effectiveTrailing;
         this.effectiveTextPadding = effectiveTextPadding;
 
-        disposer.registerListener(effectiveLeft, (obs, oldVal, newVal) -> updateChildren());
-        disposer.registerListener(effectiveRight, (obs, oldVal, newVal) -> updateChildren());
+        disposer.registerListener(effectiveLeading, (obs, oldVal, newVal) -> updateChildren());
+        disposer.registerListener(effectiveTrailing, (obs, oldVal, newVal) -> updateChildren());
         disposer.registerListener(effectiveTextPadding,
                 (obs, oldVal, newVal) -> getSkinnable().requestLayout());
         // Wrappers are rebuilt over the skin's lifetime, so the disposer reads
@@ -125,8 +125,8 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         // the control, so every skin must detach its own nodes — otherwise on
         // skin replacement the old wrappers linger in the children as ghosts.
         disposer.registerDisposeTask(() -> {
-            leftWrapper = releaseWrapper(leftWrapper);
-            rightWrapper = releaseWrapper(rightWrapper);
+            leadingWrapper = releaseWrapper(leadingWrapper);
+            trailingWrapper = releaseWrapper(trailingWrapper);
         });
 
         updateChildren();
@@ -135,25 +135,25 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     // ==================== Children / pseudo-class wiring ====================
 
     private void updateChildren() {
-        Node newLeft = effectiveLeft.getValue();
-        Node newRight = effectiveRight.getValue();
+        Node newLeading = effectiveLeading.getValue();
+        Node newTrailing = effectiveTrailing.getValue();
 
         // Release both wrappers before constructing any new wrapper, so that
         // user nodes are fully detached from old parents before being
         // re-parented into freshly created wrappers below.
-        leftWrapper = releaseWrapper(leftWrapper);
-        rightWrapper = releaseWrapper(rightWrapper);
+        leadingWrapper = releaseWrapper(leadingWrapper);
+        trailingWrapper = releaseWrapper(trailingWrapper);
 
-        if (newLeft != null) {
-            leftWrapper = createWrapper(newLeft, Pos.CENTER_LEFT, LEFT_WRAPPER_CLASS);
+        if (newLeading != null) {
+            leadingWrapper = createWrapper(newLeading, Pos.CENTER_LEFT, LEADING_WRAPPER_CLASS);
         }
-        if (newRight != null) {
-            rightWrapper = createWrapper(newRight, Pos.CENTER_RIGHT, RIGHT_WRAPPER_CLASS);
+        if (newTrailing != null) {
+            trailingWrapper = createWrapper(newTrailing, Pos.CENTER_RIGHT, TRAILING_WRAPPER_CLASS);
         }
 
-        control.pseudoClassStateChanged(HAS_LEFT_NODE, newLeft != null);
-        control.pseudoClassStateChanged(HAS_RIGHT_NODE, newRight != null);
-        control.pseudoClassStateChanged(HAS_NO_SIDE_NODES, newLeft == null && newRight == null);
+        control.pseudoClassStateChanged(HAS_LEADING, newLeading != null);
+        control.pseudoClassStateChanged(HAS_TRAILING, newTrailing != null);
+        control.pseudoClassStateChanged(HAS_NO_SLOTS, newLeading == null && newTrailing == null);
         // Removing an unmanaged child (releaseWrapper above) does not invalidate
         // the skin's layout on its own, so the text node would stay at its
         // previous left offset until something else triggered a layout pass.
@@ -193,22 +193,22 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         return padding == null ? Insets.EMPTY : padding;
     }
 
-    private double resolveLeftAdjust(double leftInset, double leftWidth) {
+    private double resolveLeadingAdjust(double leftInset, double leadingWidth) {
         Insets tp = getEffectiveTextPadding();
         double tpLeft = snapSizeX(tp.getLeft());
-        if (leftWrapper == null) {
+        if (leadingWrapper == null) {
             return tpLeft;
         }
-        return leftWidth + tpLeft - leftInset;
+        return leadingWidth + tpLeft - leftInset;
     }
 
-    private double resolveRightAdjust(double rightInset, double rightWidth) {
+    private double resolveTrailingAdjust(double rightInset, double trailingWidth) {
         Insets tp = getEffectiveTextPadding();
         double tpRight = snapSizeX(tp.getRight());
-        if (rightWrapper == null) {
+        if (trailingWrapper == null) {
             return tpRight;
         }
-        return rightWidth + tpRight - rightInset;
+        return trailingWidth + tpRight - rightInset;
     }
 
     @Override
@@ -219,30 +219,30 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double rightInset = snappedRightInset();
         final double fullH = h + topInset + bottomInset;
 
-        final double leftWidth = leftWrapper == null
-                ? 0.0 : snapSizeX(leftWrapper.prefWidth(fullH));
-        final double rightWidth = rightWrapper == null
-                ? 0.0 : snapSizeX(rightWrapper.prefWidth(fullH));
+        final double leadingWidth = leadingWrapper == null
+                ? 0.0 : snapSizeX(leadingWrapper.prefWidth(fullH));
+        final double trailingWidth = trailingWrapper == null
+                ? 0.0 : snapSizeX(trailingWrapper.prefWidth(fullH));
 
         final Insets tp = getEffectiveTextPadding();
         final double tpTop = snapSizeY(tp.getTop());
         final double tpBottom = snapSizeY(tp.getBottom());
 
-        final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
-        final double rightAdjust = resolveRightAdjust(rightInset, rightWidth);
+        final double leadingAdjust = resolveLeadingAdjust(leftInset, leadingWidth);
+        final double trailingAdjust = resolveTrailingAdjust(rightInset, trailingWidth);
 
-        final double innerWidth = Math.max(0.0, w - leftAdjust - rightAdjust);
+        final double innerWidth = Math.max(0.0, w - leadingAdjust - trailingAdjust);
         final double innerHeight = Math.max(0.0, h - tpTop - tpBottom);
 
-        super.layoutChildren(x + leftAdjust, y + tpTop, innerWidth, innerHeight);
+        super.layoutChildren(x + leadingAdjust, y + tpTop, innerWidth, innerHeight);
 
         // Wrappers sit flush against the control's outer bounds and span the
         // full control height — independent of -fx-padding and -rx-text-padding.
-        if (leftWrapper != null) {
-            leftWrapper.resizeRelocate(x - leftInset, y - topInset, leftWidth, fullH);
+        if (leadingWrapper != null) {
+            leadingWrapper.resizeRelocate(x - leftInset, y - topInset, leadingWidth, fullH);
         }
-        if (rightWrapper != null) {
-            rightWrapper.resizeRelocate(x + w + rightInset - rightWidth, y - topInset, rightWidth, fullH);
+        if (trailingWrapper != null) {
+            trailingWrapper.resizeRelocate(x + w + rightInset - trailingWidth, y - topInset, trailingWidth, fullH);
         }
     }
 
@@ -250,21 +250,21 @@ public class RXFieldBaseSkin extends TextFieldSkin {
      * Horizontal offset, within the content area, from its left edge to where
      * the text editor begins — past any left wrapper and the left text padding.
      * Reflects the most recent {@link #layoutChildren} pass (it reads the
-     * laid-out left-wrapper width), so call it after {@code super.layoutChildren}.
+     * laid-out leading-wrapper width), so call it after {@code super.layoutChildren}.
      * Subclasses that position content which must line up with the editor text
      * (for example a floating label) use this so they track the editor exactly
      * in both the wrapper-present and wrapper-absent cases.
      *
      * @return the editor's left offset within the content area
      */
-    protected final double editorLeftOffset() {
+    protected final double editorLeadingOffset() {
         final double leftInset = snappedLeftInset();
-        final double leftWidth = leftWrapper == null ? 0.0 : leftWrapper.getWidth();
-        return resolveLeftAdjust(leftInset, leftWidth);
+        final double leadingWidth = leadingWrapper == null ? 0.0 : leadingWrapper.getWidth();
+        return resolveLeadingAdjust(leftInset, leadingWidth);
     }
 
     /**
-     * Trailing-side counterpart of {@link #editorLeftOffset()}: the horizontal
+     * Trailing-side counterpart of {@link #editorLeadingOffset()}: the horizontal
      * offset, within the content area, from its right edge back to where the
      * text editor ends — past any right wrapper and the right text padding.
      * Reflects the most recent {@link #layoutChildren} pass, so call it after
@@ -272,10 +272,10 @@ public class RXFieldBaseSkin extends TextFieldSkin {
      *
      * @return the editor's right offset within the content area
      */
-    protected final double editorRightOffset() {
+    protected final double editorTrailingOffset() {
         final double rightInset = snappedRightInset();
-        final double rightWidth = rightWrapper == null ? 0.0 : rightWrapper.getWidth();
-        return resolveRightAdjust(rightInset, rightWidth);
+        final double trailingWidth = trailingWrapper == null ? 0.0 : trailingWrapper.getWidth();
+        return resolveTrailingAdjust(rightInset, trailingWidth);
     }
 
     @Override
@@ -284,14 +284,14 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         // state change (e.g. :hover bumping padding) can shift prefWidth before
         // relayout, which makes hit-testing drift by a few pixels.
         final double leftInset = snappedLeftInset();
-        final double leftWidth = leftWrapper == null ? 0.0 : leftWrapper.getWidth();
-        final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
+        final double leadingWidth = leadingWrapper == null ? 0.0 : leadingWrapper.getWidth();
+        final double leadingAdjust = resolveLeadingAdjust(leftInset, leadingWidth);
         // layoutChildren shifts the inner editor by +tpTop; getIndex must
         // subtract the same offset so click / drag-select hit-tests land on
         // the visible glyph instead of tpTop pixels above it.
         final Insets tp = getEffectiveTextPadding();
         final double tpTop = snapSizeY(tp.getTop());
-        return super.getIndex(x - leftAdjust, y - tpTop);
+        return super.getIndex(x - leadingAdjust, y - tpTop);
     }
 
     /** {@inheritDoc} */
@@ -306,18 +306,18 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     @Override
     protected double computePrefWidth(double h, double topInset, double rightInset, double bottomInset, double leftInset) {
         final double pw = super.computePrefWidth(h, topInset, rightInset, bottomInset, leftInset);
-        final double leftWidth = leftWrapper == null ? 0.0 : snapSizeX(leftWrapper.prefWidth(h));
-        final double rightWidth = rightWrapper == null ? 0.0 : snapSizeX(rightWrapper.prefWidth(h));
-        final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
-        final double rightAdjust = resolveRightAdjust(rightInset, rightWidth);
-        return pw + leftAdjust + rightAdjust;
+        final double leadingWidth = leadingWrapper == null ? 0.0 : snapSizeX(leadingWrapper.prefWidth(h));
+        final double trailingWidth = trailingWrapper == null ? 0.0 : snapSizeX(trailingWrapper.prefWidth(h));
+        final double leadingAdjust = resolveLeadingAdjust(leftInset, leadingWidth);
+        final double trailingAdjust = resolveTrailingAdjust(rightInset, trailingWidth);
+        return pw + leadingAdjust + trailingAdjust;
     }
 
     @Override
     protected double computePrefHeight(double w, double topInset, double rightInset, double bottomInset, double leftInset) {
         final double ph = super.computePrefHeight(w, topInset, rightInset, bottomInset, leftInset);
-        final double leftHeight = leftWrapper == null ? 0.0 : snapSizeY(leftWrapper.prefHeight(-1));
-        final double rightHeight = rightWrapper == null ? 0.0 : snapSizeY(rightWrapper.prefHeight(-1));
+        final double leadingHeight = leadingWrapper == null ? 0.0 : snapSizeY(leadingWrapper.prefHeight(-1));
+        final double trailingHeight = trailingWrapper == null ? 0.0 : snapSizeY(trailingWrapper.prefHeight(-1));
         final Insets tp = getEffectiveTextPadding();
         final double tpTop = snapSizeY(tp.getTop());
         final double tpBottom = snapSizeY(tp.getBottom());
@@ -325,18 +325,18 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         // so bare wrapper heights already represent the wrapper region without
         // needing the vertical insets added back. textPadding adds height to
         // the text-editor region only — it stacks on ph but not on sidesH.
-        final double sidesH = Math.max(leftHeight, rightHeight);
+        final double sidesH = Math.max(leadingHeight, trailingHeight);
         return Math.max(ph + tpTop + tpBottom, sidesH);
     }
 
     @Override
     protected double computeMinWidth(double h, double topInset, double rightInset, double bottomInset, double leftInset) {
         final double mw = super.computeMinWidth(h, topInset, rightInset, bottomInset, leftInset);
-        final double leftWidth = leftWrapper == null ? 0.0 : snapSizeX(leftWrapper.minWidth(h));
-        final double rightWidth = rightWrapper == null ? 0.0 : snapSizeX(rightWrapper.minWidth(h));
-        final double leftAdjust = resolveLeftAdjust(leftInset, leftWidth);
-        final double rightAdjust = resolveRightAdjust(rightInset, rightWidth);
-        return mw + leftAdjust + rightAdjust;
+        final double leadingWidth = leadingWrapper == null ? 0.0 : snapSizeX(leadingWrapper.minWidth(h));
+        final double trailingWidth = trailingWrapper == null ? 0.0 : snapSizeX(trailingWrapper.minWidth(h));
+        final double leadingAdjust = resolveLeadingAdjust(leftInset, leadingWidth);
+        final double trailingAdjust = resolveTrailingAdjust(rightInset, trailingWidth);
+        return mw + leadingAdjust + trailingAdjust;
     }
 
     // computeMinHeight is deliberately not overridden: TextFieldSkin implements

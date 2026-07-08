@@ -957,8 +957,8 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 <p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds left and right slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>left</code> / <code>right</code> with any Node, and bind your toggle's selected state to <code>revealPasswordProperty()</code> to switch between masked and plain text.</p>
 <h4>Substructure</h4>
 .rx-password-field — extends PasswordField<br/>
-&emsp;&emsp;.left-wrapper — StackPane (present only when left is set)<br/>
-&emsp;&emsp;.right-wrapper — StackPane (present only when right is set)<br/><br/>
+&emsp;&emsp;.leading-wrapper — StackPane (present only when left is set)<br/>
+&emsp;&emsp;.trailing-wrapper — StackPane (present only when right is set)<br/><br/>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -973,15 +973,15 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
         <td>applies when <code>revealPassword</code> is <code>true</code>; CSS hook for adjusting the reveal-toggle's visual</td>
     </tr>
     <tr>
-        <td>has-left-node</td>
+        <td>has-leading</td>
         <td>applies when the left property is non-null</td>
     </tr>
     <tr>
-        <td>has-right-node</td>
+        <td>has-trailing</td>
         <td>applies when the right property is non-null</td>
     </tr>
     <tr>
-        <td>has-no-side-nodes</td>
+        <td>has-no-slots</td>
         <td>applies when both left and right are null (mutually exclusive with the two above)</td>
     </tr>
     </tbody>
@@ -1005,12 +1005,12 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     <tr>
         <td>-rx-text-padding</td>
         <td>Insets</td>
-        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-left-node</code> / <code>:has-right-node</code> is active)</td>
+        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-leading</code> / <code>:has-trailing</code> is active)</td>
     </tr>
     </tbody>
 </table>
 <br/>
-<p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
+<p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.leading-wrapper</code> / <code>.trailing-wrapper</code> internal padding).</p>
 <p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>revealPassword</code> is <code>true</code>.</p>
 
 <h3 id="rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField</h3>
@@ -1039,8 +1039,8 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
         <td>password field only; applies when <code>revealPassword</code> is <code>true</code> (swaps the eye icon)</td>
     </tr>
     <tr>
-        <td>has-left-node / has-right-node / has-no-side-nodes</td>
-        <td>reflect the effective side slots; the built-in clear / reveal buttons occupy the right slot, so <code>:has-right-node</code> is active on a default field</td>
+        <td>has-leading / has-trailing / has-no-slots</td>
+        <td>reflect the effective side slots; the built-in clear / reveal buttons occupy the right slot, so <code>:has-trailing</code> is active on a default field</td>
     </tr>
     </tbody>
 </table>
@@ -1088,7 +1088,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     <tr>
         <td>-rx-text-padding</td>
         <td>Insets — the bottom inset doubles as the text-to-activation-line gap; overriding without a bottom value removes that gap</td>
-        <td>0 0 0.25em 0 (the UA <code>:has-left-node</code> / <code>:has-right-node</code> tiers add 0.583em horizontally and re-carry the 0.25em bottom)</td>
+        <td>0 0 0.25em 0 (the UA <code>:has-leading</code> / <code>:has-trailing</code> tiers add 0.583em horizontally and re-carry the 0.25em bottom)</td>
     </tr>
     <tr>
         <td>-rx-echo-char</td>
@@ -1098,7 +1098,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </tbody>
 </table>
 
-<p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base right wrapper: <code>.right-wrapper .clear-button &gt; .graphic</code> and (password) <code>.right-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
+<p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base right wrapper: <code>.trailing-wrapper .clear-button &gt; .graphic</code> and (password) <code>.trailing-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
 
 <h3 id="rxRipplePane">RXRipplePane</h3>
 <p class="fxClass">Style class: rx-ripple-pane</p>
@@ -1279,8 +1279,8 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
 <p>A base text-field control that adds left and right slots for user-supplied nodes. It does not bundle any built-in buttons or actions — set <code>left</code> / <code>right</code> with any Node (Label, Button, HBox, etc.).</p>
 <h4>Substructure</h4>
 .rx-text-field — extends TextField<br/>
-&emsp;&emsp;.left-wrapper — StackPane (present only when left is set)<br/>
-&emsp;&emsp;.right-wrapper — StackPane (present only when right is set)<br/><br/>
+&emsp;&emsp;.leading-wrapper — StackPane (present only when left is set)<br/>
+&emsp;&emsp;.trailing-wrapper — StackPane (present only when right is set)<br/><br/>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -1291,15 +1291,15 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     </thead>
     <tbody>
     <tr>
-        <td>has-left-node</td>
+        <td>has-leading</td>
         <td>applies when the left property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
-        <td>has-right-node</td>
+        <td>has-trailing</td>
         <td>applies when the right property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
-        <td>has-no-side-nodes</td>
+        <td>has-no-slots</td>
         <td>applies when both left and right are null (mutually exclusive with the two above)</td>
     </tr>
     </tbody>
@@ -1318,7 +1318,7 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     <tr>
         <td>-rx-text-padding</td>
         <td>Insets</td>
-        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-left-node</code> / <code>:has-right-node</code> is active)</td>
+        <td>0 (UA stylesheet sets 0.583em horizontally when <code>:has-leading</code> / <code>:has-trailing</code> is active)</td>
     </tr>
     </tbody>
 </table>
@@ -1327,9 +1327,9 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
 <ul>
     <li><code>-fx-padding</code> (inherited from Region) sizes the control's outer dimensions and gives the text vertical breathing room. When no side node is present it also gives horizontal padding between the text and the outer border; when a side node is present it does NOT control the wrapper-to-text gap.</li>
     <li><code>-rx-text-padding</code> is the inner padding of the text editor region, applied after the left / right wrapper widths are excluded. Horizontal values are the exact gap between a present wrapper and the text. Vertical values add inner padding to the text region and participate in min/pref height (enlarging vertical textPadding increases the control's preferred height so the text is not clipped).</li>
-    <li><code>.left-wrapper</code> / <code>.right-wrapper</code> accept their own <code>-fx-padding</code> (StackPane API) for internal breathing around the child node — independent of <code>-rx-text-padding</code>.</li>
+    <li><code>.leading-wrapper</code> / <code>.trailing-wrapper</code> accept their own <code>-fx-padding</code> (StackPane API) for internal breathing around the child node — independent of <code>-rx-text-padding</code>.</li>
 </ul>
-<p><b>Note:</b> The user-agent stylesheet provides differential <code>-rx-text-padding</code> defaults via <code>:has-left-node</code> / <code>:has-right-node</code>. If you override <code>-rx-text-padding</code> in an author stylesheet without using these pseudo-classes, the UA defaults no longer apply.</p>
+<p><b>Note:</b> The user-agent stylesheet provides differential <code>-rx-text-padding</code> defaults via <code>:has-leading</code> / <code>:has-trailing</code>. If you override <code>-rx-text-padding</code> in an author stylesheet without using these pseudo-classes, the UA defaults no longer apply.</p>
 
 <h3 id="rxToggleButton">RXToggleButton</h3>
 <p class="fxClass">Style class: rx-toggle-button (also: toggle-button)</p>

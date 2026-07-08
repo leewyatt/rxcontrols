@@ -32,17 +32,17 @@
  * regression demo's comparison fairness only — RX does NOT ship this
  * padding in rx-controls.css.
  */
-.bug-demo > .left-wrapper {
+.bug-demo > .leading-wrapper {
     -fx-background-color: rgba(0, 128, 255, 0.45);
     -fx-padding: 0 3 0 3;
 }
 
-.bug-demo > .right-wrapper {
+.bug-demo > .trailing-wrapper {
     -fx-background-color: rgba(255, 0, 128, 0.45);
     -fx-padding: 0 3 0 3;
 }
 
-.bug-demo > .right-wrapper .button {
+.bug-demo > .trailing-wrapper .button {
     -fx-background-color: transparent;
     -fx-text-fill: white;
     -fx-font-weight: bold;

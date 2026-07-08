@@ -11,33 +11,33 @@
     -fx-effect:dropshadow(gaussian,rgba(255.0,255.0,255.0,0.5),0.0,0.0,0.0,1.0);
 }
 
-.rx-text-field > .right-wrapper,
-.rx-password-field > .right-wrapper {
+.rx-text-field > .trailing-wrapper,
+.rx-password-field > .trailing-wrapper {
     -fx-padding: 0 3 0 0;
 }
 
-.rx-text-field > .right-wrapper .field-icon-button,
-.rx-password-field > .right-wrapper .field-icon-button {
+.rx-text-field > .trailing-wrapper .field-icon-button,
+.rx-password-field > .trailing-wrapper .field-icon-button {
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -fx-padding: 4 6;
     -fx-cursor: hand;
 }
 
-.rx-text-field > .right-wrapper .field-icon-button:hover,
-.rx-password-field > .right-wrapper .field-icon-button:hover {
+.rx-text-field > .trailing-wrapper .field-icon-button:hover,
+.rx-password-field > .trailing-wrapper .field-icon-button:hover {
     -fx-background-color: rgba(0, 0, 0, 0.06);
 }
 
-.rx-text-field > .right-wrapper .field-icon-button:pressed,
-.rx-password-field > .right-wrapper .field-icon-button:pressed {
+.rx-text-field > .trailing-wrapper .field-icon-button:pressed,
+.rx-password-field > .trailing-wrapper .field-icon-button:pressed {
     -fx-background-color: rgba(0, 0, 0, 0.12);
 }
 
-.rx-password-field > .right-wrapper .eye-toggle:selected {
+.rx-password-field > .trailing-wrapper .eye-toggle:selected {
     -fx-background-color: rgba(3, 158, 211, 0.12);
 }
 
-.rx-password-field > .right-wrapper .eye-toggle:selected:hover {
+.rx-password-field > .trailing-wrapper .eye-toggle:selected:hover {
     -fx-background-color: rgba(3, 158, 211, 0.2);
 }

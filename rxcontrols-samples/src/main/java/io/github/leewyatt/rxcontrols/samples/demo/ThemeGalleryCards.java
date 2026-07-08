@@ -517,7 +517,7 @@ final class ThemeGalleryCards {
         field.setPrefColumnCount(14);
         Label badge = new Label("$");
         badge.setPadding(new Insets(0, 6, 0, 8));
-        field.setLeft(badge);
+        field.setLeading(badge);
         field.setAlignment(Pos.CENTER_RIGHT);
         field.setMaxWidth(Double.MAX_VALUE);
         return field;
@@ -585,8 +585,8 @@ final class ThemeGalleryCards {
         badge.getStyleClass().add("slot-badge");
         Label unit = new Label("pcs");
         unit.getStyleClass().add("slot-unit");
-        field.setLeft(badge);
-        field.setRight(unit);
+        field.setLeading(badge);
+        field.setTrailing(unit);
         field.setMaxWidth(Double.MAX_VALUE);
         return field;
     }
@@ -672,7 +672,7 @@ final class ThemeGalleryCards {
         field.setPrefColumnCount(12);
         Label unit = new Label("USD");
         unit.setPadding(new Insets(0, 8, 0, 8));
-        field.setRight(unit);
+        field.setTrailing(unit);
         field.setMaxWidth(Double.MAX_VALUE);
         return field;
     }
@@ -688,7 +688,7 @@ final class ThemeGalleryCards {
         StackPane lock = new StackPane(lockPath);
         lock.setMinWidth(Region.USE_PREF_SIZE);
         lock.setPrefWidth(16);
-        field.setLeft(lock);
+        field.setLeading(lock);
 
         ToggleButton eye = new ToggleButton();
         eye.setFocusTraversable(false);
@@ -698,7 +698,7 @@ final class ThemeGalleryCards {
         eyePath.setFill(Color.web("#495057"));
         eye.setGraphic(eyePath);
         field.revealPasswordProperty().bind(eye.selectedProperty());
-        field.setRight(eye);
+        field.setTrailing(eye);
 
         return field;
     }
@@ -880,12 +880,12 @@ final class ThemeGalleryCards {
         StackPane icon = new StackPane(path);
         icon.setMinWidth(Region.USE_PREF_SIZE);
         icon.setPrefWidth(16);
-        field.setLeft(icon);
+        field.setLeading(icon);
 
         Button clear = new Button("✕");
         clear.setFocusTraversable(false);
         clear.setOnAction(e -> field.clear());
-        field.setRight(clear);
+        field.setTrailing(clear);
 
         return field;
     }

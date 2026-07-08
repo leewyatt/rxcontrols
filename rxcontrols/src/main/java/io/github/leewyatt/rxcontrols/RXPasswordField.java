@@ -24,14 +24,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Password-entry control with optional {@code left} and {@code right} slots
+ * Password-entry control with optional {@code leading} and {@code trailing} slots
  * and a runtime "reveal" toggle. Extends the JavaFX {@link PasswordField} so
  * that accessibility ({@code AccessibleRole.PASSWORD_FIELD}, prompt-only
  * {@code queryAccessibleAttribute(TEXT)}) and {@code cut()} / {@code copy()}
  * no-op semantics are inherited unchanged.
  * <p>
  * The control does not bundle a reveal button — callers compose one via
- * {@link #setRight(Node)} and bind its selection state to
+ * {@link #setTrailing(Node)} and bind its selection state to
  * {@link #revealPasswordProperty()}.
  * <p>
  * <b>Slot migration semantics.</b> The same {@link Node} instance assigned to
@@ -78,14 +78,14 @@ public class RXPasswordField extends PasswordField {
         // Match TextField(String): a null initial text yields getText() == null.
         setText(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        left.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == right.get() && !right.isBound()) {
-                right.set(null);
+        leading.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == trailing.get() && !trailing.isBound()) {
+                trailing.set(null);
             }
         });
-        right.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == left.get() && !left.isBound()) {
-                left.set(null);
+        trailing.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == leading.get() && !leading.isBound()) {
+                leading.set(null);
             }
         });
         revealPassword.addListener((obs, oldVal, newVal) ->
@@ -109,67 +109,71 @@ public class RXPasswordField extends PasswordField {
         return new RXPasswordFieldSkin(this);
     }
 
-    // ==================== left ====================
+    // ==================== leading ====================
 
-    private final ObjectProperty<Node> left = new SimpleObjectProperty<>(this, "left");
+    private final ObjectProperty<Node> leading = new SimpleObjectProperty<>(this, "leading");
 
     /**
-     * Node rendered inside the field, before the text area.
+     * Node rendered inside the field, on the leading side of the text area
+     * (the visual left in a left-to-right orientation, the visual right in a
+     * right-to-left one — the control mirrors automatically).
      *
-     * @return the left-slot property
+     * @return the leading-slot property
      */
-    public final ObjectProperty<Node> leftProperty() {
-        return left;
+    public final ObjectProperty<Node> leadingProperty() {
+        return leading;
     }
 
     /**
-     * Returns the left-slot node.
+     * Returns the leading-slot node.
      *
-     * @return the left node, or {@code null}
+     * @return the leading node, or {@code null}
      */
-    public final Node getLeft() {
-        return left.get();
+    public final Node getLeading() {
+        return leading.get();
     }
 
     /**
-     * Sets the node rendered inside the field, before the text area (the same instance assigned to both slots migrates out of the right slot).
+     * Sets the node rendered on the leading side of the text area (the same instance assigned to both slots migrates out of the trailing slot).
      *
-     * @param value the left node, may be {@code null}
+     * @param value the leading node, may be {@code null}
      */
-    public final void setLeft(Node value) {
-        left.set(value);
+    public final void setLeading(Node value) {
+        leading.set(value);
     }
 
-    // ==================== right ====================
+    // ==================== trailing ====================
 
-    private final ObjectProperty<Node> right = new SimpleObjectProperty<>(this, "right");
-
-    /**
-     * Node rendered inside the field, after the text area. The typical place
-     * for a user-supplied reveal toggle.
-     *
-     * @return the right-slot property
-     */
-    public final ObjectProperty<Node> rightProperty() {
-        return right;
-    }
+    private final ObjectProperty<Node> trailing = new SimpleObjectProperty<>(this, "trailing");
 
     /**
-     * Returns the right-slot node.
+     * Node rendered inside the field, on the trailing side of the text area
+     * (the visual right in a left-to-right orientation, the visual left in a
+     * right-to-left one — the control mirrors automatically). The typical
+     * place for a user-supplied reveal toggle.
      *
-     * @return the right node, or {@code null}
+     * @return the trailing-slot property
      */
-    public final Node getRight() {
-        return right.get();
+    public final ObjectProperty<Node> trailingProperty() {
+        return trailing;
     }
 
     /**
-     * Sets the node rendered inside the field, after the text area (the same instance assigned to both slots migrates out of the left slot).
+     * Returns the trailing-slot node.
      *
-     * @param value the right node, may be {@code null}
+     * @return the trailing node, or {@code null}
      */
-    public final void setRight(Node value) {
-        right.set(value);
+    public final Node getTrailing() {
+        return trailing.get();
+    }
+
+    /**
+     * Sets the node rendered on the trailing side of the text area (the same instance assigned to both slots migrates out of the leading slot).
+     *
+     * @param value the trailing node, may be {@code null}
+     */
+    public final void setTrailing(Node value) {
+        trailing.set(value);
     }
 
     // ==================== revealPassword ====================

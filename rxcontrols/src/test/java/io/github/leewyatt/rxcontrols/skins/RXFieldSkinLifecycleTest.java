@@ -68,16 +68,16 @@ public class RXFieldSkinLifecycleTest {
             RXTextField field = new RXTextField();
             Label left = new Label("L");
             Label right = new Label("R");
-            field.setLeft(left);
-            field.setRight(right);
+            field.setLeading(left);
+            field.setTrailing(right);
 
             RXTextFieldSkin skin = new RXTextFieldSkin(field);
             field.setSkin(skin);
 
             assertInstanceOf(StackPane.class, left.getParent());
-            assertTrue(((StackPane) left.getParent()).getStyleClass().contains("left-wrapper"));
+            assertTrue(((StackPane) left.getParent()).getStyleClass().contains("leading-wrapper"));
             assertInstanceOf(StackPane.class, right.getParent());
-            assertTrue(((StackPane) right.getParent()).getStyleClass().contains("right-wrapper"));
+            assertTrue(((StackPane) right.getParent()).getStyleClass().contains("trailing-wrapper"));
 
             skin.dispose();
 
@@ -97,7 +97,7 @@ public class RXFieldSkinLifecycleTest {
         runOnFx(() -> {
             RXTextField field = new RXTextField();
             Label left = new Label("L");
-            field.setLeft(left);
+            field.setLeading(left);
 
             field.setSkin(new RXTextFieldSkin(field));
             assertNotNull(left.getParent());
@@ -112,17 +112,17 @@ public class RXFieldSkinLifecycleTest {
             assertNotSame(oldWrapper, left.getParent(),
                     "a real swap must build a new wrapper");
             long wrapperCount = field.getChildrenUnmodifiable().stream()
-                    .filter(n -> n.getStyleClass().contains("left-wrapper"))
+                    .filter(n -> n.getStyleClass().contains("leading-wrapper"))
                     .count();
             assertEquals(1, wrapperCount, "no ghost wrapper from the old skin may remain");
 
             Label replacement = new Label("L2");
-            field.setLeft(replacement);
+            field.setLeading(replacement);
             assertNotNull(replacement.getParent());
             assertNull(left.getParent());
             // A leaked old-skin listener would resurrect a ghost wrapper here.
             long wrappersAfterSetLeft = field.getChildrenUnmodifiable().stream()
-                    .filter(n -> n.getStyleClass().contains("left-wrapper"))
+                    .filter(n -> n.getStyleClass().contains("leading-wrapper"))
                     .count();
             assertEquals(1, wrappersAfterSetLeft,
                     "old-skin listeners must stay dead after dispose");
@@ -201,7 +201,7 @@ public class RXFieldSkinLifecycleTest {
     public void passwordFieldRevealLifecycleIsClean() {
         runOnFx(() -> {
             RXPasswordField field = new RXPasswordField("secret");
-            field.setRight(new Label("eye"));
+            field.setTrailing(new Label("eye"));
 
             RXPasswordFieldSkin skin = new RXPasswordFieldSkin(field);
             field.setSkin(skin);

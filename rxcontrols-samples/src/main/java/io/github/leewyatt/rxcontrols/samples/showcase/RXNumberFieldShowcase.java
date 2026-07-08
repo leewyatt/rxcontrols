@@ -182,16 +182,16 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
     private void applySlots(SlotPreset preset) {
         switch (preset) {
             case NONE -> {
-                field.setLeft(null);
-                field.setRight(null);
+                field.setLeading(null);
+                field.setTrailing(null);
             }
             case DECORATION -> {
-                field.setLeft(slotLabel("#", "slot-badge"));
-                field.setRight(slotLabel("units", "slot-unit"));
+                field.setLeading(slotLabel("#", "slot-badge"));
+                field.setTrailing(slotLabel("units", "slot-unit"));
             }
             case STEPPER -> {
-                field.setLeft(stepButton("−", STEP.negate()));
-                field.setRight(stepButton("+", STEP));
+                field.setLeading(stepButton("−", STEP.negate()));
+                field.setTrailing(stepButton("+", STEP));
             }
         }
     }

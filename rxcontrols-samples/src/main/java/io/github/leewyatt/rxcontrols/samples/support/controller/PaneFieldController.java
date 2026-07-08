@@ -59,18 +59,18 @@ public class PaneFieldController {
 
         Button clearButton = createIconButton(CLEAR_ICON, "清除");
         clearButton.setOnAction(event -> clearTextField.clear());
-        clearTextField.setRight(clearButton);
+        clearTextField.setTrailing(clearButton);
 
         ToggleButton revealButton = createEyeToggle();
         loginPasswordField.revealPasswordProperty().bind(revealButton.selectedProperty());
-        loginPasswordField.setRight(revealButton);
+        loginPasswordField.setTrailing(revealButton);
 
         Button copyButton = createIconButton(COPY_ICON, "复制");
         copyButton.setOnAction(event -> {
             copyTextField.selectAll();
             copyTextField.copy();
         });
-        copyTextField.setRight(copyButton);
+        copyTextField.setTrailing(copyButton);
 
         Button fileButton = createIconButton(FOLDER_ICON, "选择文件");
         fileButton.setOnAction(event -> {
@@ -80,7 +80,7 @@ public class PaneFieldController {
                 fileTextField.setText(file.getAbsolutePath());
             }
         });
-        fileTextField.setRight(fileButton);
+        fileTextField.setTrailing(fileButton);
     }
 
     private Button createIconButton(String iconPath, String tooltip) {

@@ -25,7 +25,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
      * @param control the password field being skinned
      */
     public RXPasswordFieldSkin(RXPasswordField control) {
-        super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
+        super(control, control.leadingProperty(), control.trailingProperty(), control.textPaddingProperty());
         maskSupport = new PasswordMaskSupport(this, control, this::maskText,
                 control.revealPasswordProperty(), control.echoCharProperty());
         maskSupport.install();

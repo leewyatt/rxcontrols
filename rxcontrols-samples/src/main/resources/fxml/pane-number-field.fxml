@@ -93,13 +93,13 @@
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
                                                 <RXFormattedNumberField fx:id="leftSlotField" prefColumnCount="11">
-                                                    <left>
+                                                    <leading>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
                                                                 <Label styleClass="slot-money" text="\$"/>
                                                             </children>
                                                         </StackPane>
-                                                    </left>
+                                                    </leading>
                                                 </RXFormattedNumberField>
                                                 <Label styleClass="field-caption" text="左插槽 · 货币前缀"/>
                                             </children>
@@ -107,13 +107,13 @@
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
                                                 <RXFormattedNumberField fx:id="rightSlotField" prefColumnCount="11">
-                                                    <right>
+                                                    <trailing>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
                                                                 <Label styleClass="slot-unit" text="kg"/>
                                                             </children>
                                                         </StackPane>
-                                                    </right>
+                                                    </trailing>
                                                 </RXFormattedNumberField>
                                                 <Label styleClass="field-caption" text="右插槽 · 单位后缀"/>
                                             </children>
@@ -121,20 +121,20 @@
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
                                                 <RXFormattedNumberField fx:id="dualSlotField" prefColumnCount="11">
-                                                    <left>
+                                                    <leading>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
                                                                 <Label styleClass="slot-temp" text="T"/>
                                                             </children>
                                                         </StackPane>
-                                                    </left>
-                                                    <right>
+                                                    </leading>
+                                                    <trailing>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
                                                                 <Label styleClass="slot-unit" text="°C"/>
                                                             </children>
                                                         </StackPane>
-                                                    </right>
+                                                    </trailing>
                                                 </RXFormattedNumberField>
                                                 <Label styleClass="field-caption" text="左 + 右双插槽"/>
                                             </children>
