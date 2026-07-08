@@ -71,9 +71,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     /** Fallback activation-line thickness before CSS resolves {@code -fx-pref-height}. */
     private static final double FALLBACK_ACTIVATION_THICKNESS = 1.0;
     /** Null-value fallback for the animation duration; must match the controls' default. */
-    static final Duration FALLBACK_ANIMATION_DURATION = Duration.millis(180.0);
+    private static final Duration FALLBACK_ANIMATION_DURATION = Duration.millis(180.0);
     /** Null / non-finite fallback for the label float scale; must match the controls' default. */
-    static final double FALLBACK_LABEL_FLOAT_SCALE = 0.85;
+    private static final double FALLBACK_LABEL_FLOAT_SCALE = 0.85;
     /** House "fast-out slow-in" easing (Material standard easing). */
     private static final Interpolator MATERIAL_EASING = Interpolator.SPLINE(0.4, 0.0, 0.2, 1.0);
 

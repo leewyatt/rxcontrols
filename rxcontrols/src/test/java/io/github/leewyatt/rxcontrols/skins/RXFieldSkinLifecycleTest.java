@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
-import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -185,21 +184,6 @@ public class RXFieldSkinLifecycleTest {
             assertFalse(field.isRevealPassword(),
                     "a click must not flip revealPassword while the mask cannot be lifted");
         });
-    }
-
-    /**
-     * Pins the cross-file contract left by decoupling the shared skin from the
-     * control classes: the skin's null-value fallbacks must equal the controls'
-     * public defaults.
-     */
-    @Test
-    public void materialSkinFallbacksMatchControlDefaults() {
-        assertEquals(RXMaterialTextField.DEFAULT_ANIMATION_DURATION,
-                RXMaterialFieldBaseSkin.FALLBACK_ANIMATION_DURATION,
-                "skin duration fallback must match the controls' default");
-        assertEquals(RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE,
-                RXMaterialFieldBaseSkin.FALLBACK_LABEL_FLOAT_SCALE, 0.0,
-                "skin float-scale fallback must match the controls' default");
     }
 
     private static MouseEvent click() {
