@@ -62,7 +62,7 @@ public class PaneFieldController {
         clearTextField.setRight(clearButton);
 
         ToggleButton revealButton = createEyeToggle();
-        loginPasswordField.showPasswordProperty().bind(revealButton.selectedProperty());
+        loginPasswordField.revealPasswordProperty().bind(revealButton.selectedProperty());
         loginPasswordField.setRight(revealButton);
 
         Button copyButton = createIconButton(COPY_ICON, "复制");

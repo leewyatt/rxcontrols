@@ -121,9 +121,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
                 (obs, oldVal, newVal) -> getSkinnable().requestLayout());
         // Wrappers are rebuilt over the skin's lifetime, so the disposer reads
         // the live fields at dispose time instead of capturing a stale wrapper.
-        // TextFieldSkin.dispose() removes its own children explicitly; we do the
-        // same for ours, otherwise on skin replacement the old wrappers stay
-        // attached and the next setLeft/setRight fails to re-parent.
+        // JFX17's SkinBase / TextFieldSkin dispose() do NOT remove children from
+        // the control, so every skin must detach its own nodes — otherwise on
+        // skin replacement the old wrappers linger in the children as ghosts.
         disposer.registerDisposeTask(() -> {
             leftWrapper = releaseWrapper(leftWrapper);
             rightWrapper = releaseWrapper(rightWrapper);

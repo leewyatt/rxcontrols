@@ -38,7 +38,7 @@ public class RXPasswordFieldDemo extends Application {
         RXPasswordField reveal = new RXPasswordField("hunter2");
         reveal.setPrefWidth(360);
         ToggleButton eye = eyeToggle();
-        reveal.showPasswordProperty().bind(eye.selectedProperty());
+        reveal.revealPasswordProperty().bind(eye.selectedProperty());
         reveal.setRight(eye);
 
         RXPasswordField asterisk = new RXPasswordField("asterisk-mask");
@@ -50,7 +50,7 @@ public class RXPasswordFieldDemo extends Application {
         full.getStyleClass().add("lock-field");
         full.setLeft(lockIcon());
         ToggleButton eye2 = eyeToggle();
-        full.showPasswordProperty().bind(eye2.selectedProperty());
+        full.revealPasswordProperty().bind(eye2.selectedProperty());
         full.setRight(eye2);
 
         RXPasswordField cssEcho = new RXPasswordField("css-styled");
@@ -63,7 +63,7 @@ public class RXPasswordFieldDemo extends Application {
 
         root.getChildren().addAll(
                 new Label("Plain"), plain,
-                new Label("Reveal toggle (right slot bound to showPassword)"), reveal,
+                new Label("Reveal toggle (right slot bound to revealPassword)"), reveal,
                 new Label("Custom echo char via setEchoChar('☆')"), asterisk,
                 new Label("Left lock icon + reveal toggle"), full,
                 new Label("CSS-driven -rx-echo-char"), cssEcho,

@@ -32,15 +32,15 @@ import java.util.List;
  * <p>
  * The control does not bundle a reveal button — callers compose one via
  * {@link #setRight(Node)} and bind its selection state to
- * {@link #showPasswordProperty()}.
+ * {@link #revealPasswordProperty()}.
  * <p>
  * <b>Slot migration semantics.</b> The same {@link Node} instance assigned to
  * one slot is automatically cleared from the opposite slot, mirroring
  * {@link RXTextField}. Bound slots are left untouched.
  * <p>
- * <b>Mask rendering.</b> While {@link #isShowPassword()} is {@code false} the
+ * <b>Mask rendering.</b> While {@link #isRevealPassword()} is {@code false} the
  * control renders {@link #getEchoChar()} for every character of the text.
- * Toggling {@code showPassword} to {@code true} reveals the plain text
+ * Toggling {@code revealPassword} to {@code true} reveals the plain text
  * provided the skin successfully installed its dynamic display binding (see
  * {@link RXPasswordFieldSkin}); if the binding could not be installed (a
  * JavaFX internals change at runtime) the field gracefully degrades to a
@@ -50,7 +50,7 @@ import java.util.List;
 public class RXPasswordField extends PasswordField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-password-field";
-    private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
+    private static final PseudoClass REVEALED_PSEUDO_CLASS = PseudoClass.getPseudoClass("revealed");
 
     /**
      * Default echo character (U+25CF BULLET) used when {@link #echoCharProperty()}
@@ -60,15 +60,22 @@ public class RXPasswordField extends PasswordField {
      */
     public static final char DEFAULT_ECHO_CHAR = '●';
 
+    /**
+     * Creates an empty field.
+     */
     public RXPasswordField() {
         this(null);
     }
 
+    /**
+     * Creates a field with the given initial text.
+     *
+     * @param text the initial text, may be {@code null}
+     */
     public RXPasswordField(String text) {
         super();
-        if (text != null) {
-            setText(text);
-        }
+        // Match TextField(String): a null initial text yields getText() == null.
+        setText(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         left.addListener((obs, oldVal, newVal) -> {
             if (newVal != null && newVal == right.get() && !right.isBound()) {
@@ -80,9 +87,9 @@ public class RXPasswordField extends PasswordField {
                 left.set(null);
             }
         });
-        showPassword.addListener((obs, oldVal, newVal) ->
-                pseudoClassStateChanged(SHOWING_PSEUDO_CLASS, Boolean.TRUE.equals(newVal)));
-        pseudoClassStateChanged(SHOWING_PSEUDO_CLASS, isShowPassword());
+        revealPassword.addListener((obs, oldVal, newVal) ->
+                pseudoClassStateChanged(REVEALED_PSEUDO_CLASS, Boolean.TRUE.equals(newVal)));
+        pseudoClassStateChanged(REVEALED_PSEUDO_CLASS, isRevealPassword());
     }
 
     @Override
@@ -138,27 +145,27 @@ public class RXPasswordField extends PasswordField {
         right.set(value);
     }
 
-    // ==================== showPassword ====================
+    // ==================== revealPassword ====================
 
-    private final BooleanProperty showPassword = new SimpleBooleanProperty(this, "showPassword", false);
+    private final BooleanProperty revealPassword = new SimpleBooleanProperty(this, "revealPassword", false);
 
     /**
      * Whether the field displays the plain text instead of the masked echo
      * character. Not styleable — this is a runtime state, not a visual
      * preference that should be set from a stylesheet.
      *
-     * @return the show-password property
+     * @return the reveal-password property
      */
-    public final BooleanProperty showPasswordProperty() {
-        return showPassword;
+    public final BooleanProperty revealPasswordProperty() {
+        return revealPassword;
     }
 
-    public final boolean isShowPassword() {
-        return showPassword.get();
+    public final boolean isRevealPassword() {
+        return revealPassword.get();
     }
 
-    public final void setShowPassword(boolean value) {
-        showPassword.set(value);
+    public final void setRevealPassword(boolean value) {
+        revealPassword.set(value);
     }
 
     // ==================== echoChar ====================
@@ -166,7 +173,7 @@ public class RXPasswordField extends PasswordField {
     private ObjectProperty<Character> echoChar;
 
     /**
-     * The character used as the mask while {@link #isShowPassword()} is
+     * The character used as the mask while {@link #isRevealPassword()} is
      * {@code false}.
      * <p>
      * Tolerates {@code null} as an in-band "use the default" signal —

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
+import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -186,6 +187,21 @@ public class RXFieldSkinLifecycleTest {
         });
     }
 
+    /**
+     * Pins the cross-file contract left by decoupling the shared skin from the
+     * control classes: the skin's null-value fallbacks must equal the controls'
+     * public defaults.
+     */
+    @Test
+    public void materialSkinFallbacksMatchControlDefaults() {
+        assertEquals(RXMaterialTextField.DEFAULT_ANIMATION_DURATION,
+                RXMaterialFieldBaseSkin.FALLBACK_ANIMATION_DURATION,
+                "skin duration fallback must match the controls' default");
+        assertEquals(RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE,
+                RXMaterialFieldBaseSkin.FALLBACK_LABEL_FLOAT_SCALE, 0.0,
+                "skin float-scale fallback must match the controls' default");
+    }
+
     private static MouseEvent click() {
         return new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
                 MouseButton.PRIMARY, 1, false, false, false, false,
@@ -206,12 +222,12 @@ public class RXFieldSkinLifecycleTest {
             RXPasswordFieldSkin skin = new RXPasswordFieldSkin(field);
             field.setSkin(skin);
 
-            field.setShowPassword(true);
-            field.setShowPassword(false);
+            field.setRevealPassword(true);
+            field.setRevealPassword(false);
 
             skin.dispose();
             // Toggling after dispose must not reach a dangling listener.
-            field.setShowPassword(true);
+            field.setRevealPassword(true);
         });
     }
 

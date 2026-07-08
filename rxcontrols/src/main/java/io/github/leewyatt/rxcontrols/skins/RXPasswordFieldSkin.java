@@ -6,7 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.PasswordMaskSupport;
 /**
  * Skin for {@link RXPasswordField}. It keeps the left/right slot layout from
  * {@link RXFieldBaseSkin} and replaces JavaFX's internal text binding (via the
- * shared {@link PasswordMaskSupport}) so {@code showPassword} and
+ * shared {@link PasswordMaskSupport}) so {@code revealPassword} and
  * {@code echoChar} refresh the rendered text immediately.
  * <p>
  * Until that replacement binding is installed, {@link #maskText(String)} always
@@ -27,7 +27,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     public RXPasswordFieldSkin(RXPasswordField control) {
         super(control, control.leftProperty(), control.rightProperty(), control.textPaddingProperty());
         maskSupport = new PasswordMaskSupport(this, control, this::maskText,
-                control.showPasswordProperty(), control.echoCharProperty());
+                control.revealPasswordProperty(), control.echoCharProperty());
         maskSupport.install();
         disposer.registerDisposeTask(maskSupport::dispose);
     }
@@ -45,7 +45,7 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
         // Safe by default: before the replacement binding is installed (including
         // during super()'s construction, when maskSupport is not yet assigned and
         // JavaFX's original binding already calls this), never reveal plain text.
-        if (maskSupport == null || !maskSupport.isInstalled() || field == null || !field.isShowPassword()) {
+        if (maskSupport == null || !maskSupport.isInstalled() || field == null || !field.isRevealPassword()) {
             return String.valueOf(ch).repeat(txt.length());
         }
         return txt;

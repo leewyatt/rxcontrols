@@ -954,7 +954,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 
 <h3 id="rxPasswordField">RXPasswordField</h3>
 <p class="fxClass">Style class: rx-password-field</p>
-<p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds left and right slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>left</code> / <code>right</code> with any Node, and bind your toggle's selected state to <code>showPasswordProperty()</code> to switch between masked and plain text.</p>
+<p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds left and right slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>left</code> / <code>right</code> with any Node, and bind your toggle's selected state to <code>revealPasswordProperty()</code> to switch between masked and plain text.</p>
 <h4>Substructure</h4>
 .rx-password-field — extends PasswordField<br/>
 &emsp;&emsp;.left-wrapper — StackPane (present only when left is set)<br/>
@@ -969,8 +969,8 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </thead>
     <tbody>
     <tr>
-        <td>showing</td>
-        <td>applies when <code>showPassword</code> is <code>true</code>; CSS hook for adjusting the reveal-toggle's visual</td>
+        <td>revealed</td>
+        <td>applies when <code>revealPassword</code> is <code>true</code>; CSS hook for adjusting the reveal-toggle's visual</td>
     </tr>
     <tr>
         <td>has-left-node</td>
@@ -1011,7 +1011,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 </table>
 <br/>
 <p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
-<p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>showPassword</code> is <code>true</code>.</p>
+<p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>revealPassword</code> is <code>true</code>.</p>
 
 <h3 id="rxRipplePane">RXRipplePane</h3>
 <p class="fxClass">Style class: rx-ripple-pane</p>

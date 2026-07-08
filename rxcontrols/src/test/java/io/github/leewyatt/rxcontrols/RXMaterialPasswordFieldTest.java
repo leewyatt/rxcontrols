@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -69,6 +70,9 @@ public class RXMaterialPasswordFieldTest {
     public void defaultsAndPlumbing() {
         runOnFx(() -> {
             RXMaterialPasswordField field = new RXMaterialPasswordField();
+            assertNull(field.getText(),
+                    "no-arg construction yields null text, matching TextField(String) semantics");
+            assertEquals("x", new RXMaterialPasswordField("x").getText());
             // shared Material defaults — must stay in parity with RXMaterialTextField
             assertTrue(field.isFloatingLabel());
             assertTrue(field.isAnimated());
@@ -108,6 +112,21 @@ public class RXMaterialPasswordFieldTest {
             assertTrue(field.isRevealPassword());
             assertFalse(field.isShowRevealButton());
             assertEquals('*', field.getEchoChar());
+        });
+    }
+
+    @Test
+    public void sameNodeMigratesBetweenSlots() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField();
+            Label icon = new Label("@");
+            field.setTrailingNode(icon);
+            field.setLeadingNode(icon);
+            assertNull(field.getTrailingNode(), "same node must migrate out of the opposite slot");
+            assertSame(icon, field.getLeadingNode());
+            field.setTrailingNode(icon);
+            assertNull(field.getLeadingNode());
+            assertSame(icon, field.getTrailingNode());
         });
     }
 

@@ -10,6 +10,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.util.Objects;
+
 /**
  * Sample "set a new password" form demonstrating {@link RXMaterialPasswordField}:
  * the floating label, the built-in reveal (eye) toggle and clear button, a
@@ -36,7 +38,7 @@ public class RXMaterialPasswordFieldDemo extends Application {
         // Display-only validation, app-driven: flag a mismatch on blur.
         confirm.focusedProperty().addListener((obs, was, focused) -> {
             if (!focused) {
-                boolean match = confirm.getText().equals(password.getText());
+                boolean match = Objects.equals(confirm.getText(), password.getText());
                 confirm.setInvalid(!match);
                 confirm.setErrorText(match ? "" : "Passwords do not match");
             }

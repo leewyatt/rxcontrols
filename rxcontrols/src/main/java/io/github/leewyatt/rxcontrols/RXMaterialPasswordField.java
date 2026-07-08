@@ -17,7 +17,6 @@ import javafx.css.SimpleStyleableBooleanProperty;
 import javafx.css.SimpleStyleableDoubleProperty;
 import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
-import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
@@ -47,7 +46,8 @@ import java.util.List;
  * Adds a runtime {@link #revealPasswordProperty() revealPassword} toggle (driving
  * {@code :revealed}) and a built-in reveal (eye) button; revealing only shows the
  * plain text for visual confirmation — {@code cut()} / {@code copy()} stay
- * disabled.
+ * disabled. As in the text-field sibling, the {@code :floated} pseudo-class is
+ * active while the label sits in its floated (top) position.
  */
 public class RXMaterialPasswordField extends PasswordField {
 
@@ -56,13 +56,13 @@ public class RXMaterialPasswordField extends PasswordField {
     // ==================== Default-value constants (Control + Skin) ====================
 
     /** Default of {@link #floatingLabelProperty()}. */
-    public static final boolean DEFAULT_FLOATING_LABEL = true;
+    private static final boolean DEFAULT_FLOATING_LABEL = true;
     /** Default of {@link #animatedProperty()}. */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
     /** Default of {@link #showClearButtonProperty()}. */
-    public static final boolean DEFAULT_SHOW_CLEAR_BUTTON = true;
+    private static final boolean DEFAULT_SHOW_CLEAR_BUTTON = true;
     /** Default of {@link #showRevealButtonProperty()}. */
-    public static final boolean DEFAULT_SHOW_REVEAL_BUTTON = true;
+    private static final boolean DEFAULT_SHOW_REVEAL_BUTTON = true;
     /** Default of {@link #animationDurationProperty()}. */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180.0);
     /** Default of {@link #labelFloatScaleProperty()}. */
@@ -91,12 +91,26 @@ public class RXMaterialPasswordField extends PasswordField {
      */
     public RXMaterialPasswordField(String text) {
         super();
-        if (text != null) {
-            setText(text);
-        }
+        // Match TextField(String): a null initial text yields getText() == null.
+        setText(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        leadingNode.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == trailingNode.get() && !trailingNode.isBound()) {
+                trailingNode.set(null);
+            }
+        });
+        trailingNode.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == leadingNode.get() && !leadingNode.isBound()) {
+                leadingNode.set(null);
+            }
+        });
     }
 
+    /**
+     * Returns the user-agent stylesheet used by RXControls.
+     *
+     * @return the user-agent stylesheet URL
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -124,10 +138,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return labelText;
     }
 
+    /**
+     * Returns the floating-label text.
+     *
+     * @return the floating-label text
+     */
     public final String getLabelText() {
         return labelText.get();
     }
 
+    /**
+     * Sets the floating-label text.
+     *
+     * @param value the floating-label text; {@code null} is treated as empty
+     */
     public final void setLabelText(String value) {
         labelText.set(value);
     }
@@ -145,10 +169,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return helperText;
     }
 
+    /**
+     * Returns the supporting-row helper text.
+     *
+     * @return the helper text
+     */
     public final String getHelperText() {
         return helperText.get();
     }
 
+    /**
+     * Sets the supporting-row helper text.
+     *
+     * @param value the helper text; {@code null} is treated as empty
+     */
     public final void setHelperText(String value) {
         helperText.set(value);
     }
@@ -168,10 +202,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return errorText;
     }
 
+    /**
+     * Returns the supporting-row error text shown while invalid.
+     *
+     * @return the error text
+     */
     public final String getErrorText() {
         return errorText.get();
     }
 
+    /**
+     * Sets the supporting-row error text shown while invalid.
+     *
+     * @param value the error text; {@code null} is treated as empty
+     */
     public final void setErrorText(String value) {
         errorText.set(value);
     }
@@ -195,10 +239,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return invalid;
     }
 
+    /**
+     * Returns whether the field is in the display-only error state.
+     *
+     * @return whether the field is invalid
+     */
     public final boolean isInvalid() {
         return invalid.get();
     }
 
+    /**
+     * Sets the display-only error state.
+     *
+     * @param value whether the field is invalid
+     */
     public final void setInvalid(boolean value) {
         invalid.set(value);
     }
@@ -219,10 +273,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return floatingLabel;
     }
 
+    /**
+     * Returns whether the label floats on focus / non-empty text.
+     *
+     * @return whether the floating-label behavior is enabled
+     */
     public final boolean isFloatingLabel() {
         return floatingLabel.get();
     }
 
+    /**
+     * Sets whether the label floats on focus / non-empty text.
+     *
+     * @param value whether the floating-label behavior is enabled
+     */
     public final void setFloatingLabel(boolean value) {
         floatingLabel.set(value);
     }
@@ -243,10 +307,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return animated;
     }
 
+    /**
+     * Returns whether label / activation-line transitions animate.
+     *
+     * @return whether transitions animate
+     */
     public final boolean isAnimated() {
         return animated.get();
     }
 
+    /**
+     * Sets whether label / activation-line transitions animate.
+     *
+     * @param value whether transitions animate
+     */
     public final void setAnimated(boolean value) {
         animated.set(value);
     }
@@ -258,18 +332,32 @@ public class RXMaterialPasswordField extends PasswordField {
                     this, "animationDuration", DEFAULT_ANIMATION_DURATION);
 
     /**
-     * Duration of the label / activation-line transitions.
+     * Duration of the label / activation-line transitions. Tolerates
+     * {@code null} as a "use the default" signal — the skin falls back to
+     * {@link #DEFAULT_ANIMATION_DURATION}; non-positive, unknown or indefinite durations make
+     * transitions snap to their end values.
      *
      * @return the animation-duration property
+     * @defaultValue {@link #DEFAULT_ANIMATION_DURATION} (180ms)
      */
     public final ObjectProperty<Duration> animationDurationProperty() {
         return animationDuration;
     }
 
+    /**
+     * Returns the transition duration.
+     *
+     * @return the transition duration, or {@code null} (the skin falls back to {@link #DEFAULT_ANIMATION_DURATION})
+     */
     public final Duration getAnimationDuration() {
         return animationDuration.get();
     }
 
+    /**
+     * Sets the transition duration.
+     *
+     * @param value the transition duration; {@code null} means {@link #DEFAULT_ANIMATION_DURATION}
+     */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);
     }
@@ -281,18 +369,30 @@ public class RXMaterialPasswordField extends PasswordField {
                     this, "labelFloatScale", DEFAULT_LABEL_FLOAT_SCALE);
 
     /**
-     * Scale applied to the label in its floated position.
+     * Scale applied to the label in its floated position. Negative values are
+     * clamped to 0 by the skin; non-finite values fall back to {@link #DEFAULT_LABEL_FLOAT_SCALE}.
      *
      * @return the label-float-scale property
+     * @defaultValue {@link #DEFAULT_LABEL_FLOAT_SCALE} (0.85)
      */
     public final DoubleProperty labelFloatScaleProperty() {
         return labelFloatScale;
     }
 
+    /**
+     * Returns the scale applied to the floated label.
+     *
+     * @return the floated-label scale
+     */
     public final double getLabelFloatScale() {
         return labelFloatScale.get();
     }
 
+    /**
+     * Sets the scale applied to the floated label.
+     *
+     * @param value the floated-label scale; negatives clamp to 0, non-finite values fall back to {@link #DEFAULT_LABEL_FLOAT_SCALE}
+     */
     public final void setLabelFloatScale(double value) {
         labelFloatScale.set(value);
     }
@@ -303,7 +403,9 @@ public class RXMaterialPasswordField extends PasswordField {
 
     /**
      * Custom node rendered before the text area (e.g. a leading icon). Coexists
-     * with the built-in reveal / clear affordances.
+     * with the built-in reveal / clear affordances. The same {@link Node}
+     * instance assigned to both slots migrates: setting it here clears the
+     * trailing slot (bound slots are left untouched), mirroring {@link RXTextField}.
      *
      * @return the leading-node property
      */
@@ -311,10 +413,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return leadingNode;
     }
 
+    /**
+     * Returns the node rendered before the text area.
+     *
+     * @return the leading node, or {@code null}
+     */
     public final Node getLeadingNode() {
         return leadingNode.get();
     }
 
+    /**
+     * Sets the node rendered before the text area.
+     *
+     * @param value the leading node, may be {@code null}
+     */
     public final void setLeadingNode(Node value) {
         leadingNode.set(value);
     }
@@ -325,7 +437,9 @@ public class RXMaterialPasswordField extends PasswordField {
 
     /**
      * Custom node rendered after the text area. Coexists with the built-in reveal
-     * and clear affordances (the user node sits before the built-in icons).
+     * and clear affordances (the user node sits before the built-in icons). The
+     * same {@link Node} instance assigned to both slots migrates: setting it here
+     * clears the leading slot (bound slots are left untouched).
      *
      * @return the trailing-node property
      */
@@ -333,10 +447,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return trailingNode;
     }
 
+    /**
+     * Returns the node rendered after the text area.
+     *
+     * @return the trailing node, or {@code null}
+     */
     public final Node getTrailingNode() {
         return trailingNode.get();
     }
 
+    /**
+     * Sets the node rendered after the text area.
+     *
+     * @param value the trailing node, may be {@code null}
+     */
     public final void setTrailingNode(Node value) {
         trailingNode.set(value);
     }
@@ -356,10 +480,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return showClearButton;
     }
 
+    /**
+     * Returns whether the built-in clear button is offered.
+     *
+     * @return whether the clear button is offered
+     */
     public final boolean isShowClearButton() {
         return showClearButton.get();
     }
 
+    /**
+     * Sets whether the built-in clear button is offered.
+     *
+     * @param value whether the clear button is offered
+     */
     public final void setShowClearButton(boolean value) {
         showClearButton.set(value);
     }
@@ -378,10 +512,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return showRevealButton;
     }
 
+    /**
+     * Returns whether the built-in reveal (eye) button is offered.
+     *
+     * @return whether the reveal button is offered
+     */
     public final boolean isShowRevealButton() {
         return showRevealButton.get();
     }
 
+    /**
+     * Sets whether the built-in reveal (eye) button is offered.
+     *
+     * @param value whether the reveal button is offered
+     */
     public final void setShowRevealButton(boolean value) {
         showRevealButton.set(value);
     }
@@ -406,10 +550,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return revealPassword;
     }
 
+    /**
+     * Returns whether the plain text is shown instead of the mask.
+     *
+     * @return whether the password is revealed
+     */
     public final boolean isRevealPassword() {
         return revealPassword.get();
     }
 
+    /**
+     * Sets whether the plain text is shown instead of the mask.
+     *
+     * @param value whether the password is revealed
+     */
     public final void setRevealPassword(boolean value) {
         revealPassword.set(value);
     }
@@ -433,10 +587,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return echoChar;
     }
 
+    /**
+     * Returns the mask character.
+     *
+     * @return the mask character, or {@code null} (the skin renders {@link #DEFAULT_ECHO_CHAR})
+     */
     public final Character getEchoChar() {
         return echoChar.get();
     }
 
+    /**
+     * Sets the mask character.
+     *
+     * @param value the mask character; {@code null} means {@link #DEFAULT_ECHO_CHAR}
+     */
     public final void setEchoChar(Character value) {
         echoChar.set(value);
     }
@@ -459,10 +623,20 @@ public class RXMaterialPasswordField extends PasswordField {
         return textPadding;
     }
 
+    /**
+     * Returns the text-editor inner padding.
+     *
+     * @return the text padding, or {@code null} (treated as {@link Insets#EMPTY} by the skin)
+     */
     public final Insets getTextPadding() {
         return textPadding.get();
     }
 
+    /**
+     * Sets the text-editor inner padding.
+     *
+     * @param value the text padding; {@code null} is treated as {@link Insets#EMPTY}
+     */
     public final void setTextPadding(Insets value) {
         textPadding.set(value);
     }
@@ -581,6 +755,7 @@ public class RXMaterialPasswordField extends PasswordField {
         return StyleableProperties.STYLEABLES;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();

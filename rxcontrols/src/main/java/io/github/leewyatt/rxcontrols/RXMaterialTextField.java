@@ -16,7 +16,6 @@ import javafx.css.SimpleStyleableBooleanProperty;
 import javafx.css.SimpleStyleableDoubleProperty;
 import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
-import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
@@ -40,9 +39,12 @@ import java.util.List;
  * {@link RXMaterialTextFieldSkin}.
  * <p>
  * The floating label text comes from {@link #labelTextProperty()}, falling back
- * to the inherited {@code promptText} when {@code labelText} is blank — the
- * native prompt node is suppressed (via {@code -fx-prompt-text-fill: transparent})
- * so it does not compete with the floating label.
+ * to the inherited {@code promptText} when {@code labelText} is blank (a blank
+ * {@code promptText} is likewise ignored — the field then renders without a
+ * floating label). The native prompt node is suppressed (via
+ * {@code -fx-prompt-text-fill: transparent}) so it does not compete with the
+ * floating label. The {@code :floated} pseudo-class is active while the label
+ * sits in its floated (top) position.
  * <p>
  * Validation is display-only: set {@link #invalidProperty() invalid} (driving
  * the {@code :invalid} pseudo-class) and optionally {@link #errorTextProperty()
@@ -59,11 +61,11 @@ public class RXMaterialTextField extends TextField {
     // ==================== Default-value constants (Control + Skin) ====================
 
     /** Default of {@link #floatingLabelProperty()}. */
-    public static final boolean DEFAULT_FLOATING_LABEL = true;
+    private static final boolean DEFAULT_FLOATING_LABEL = true;
     /** Default of {@link #animatedProperty()}. */
-    public static final boolean DEFAULT_ANIMATED = true;
+    private static final boolean DEFAULT_ANIMATED = true;
     /** Default of {@link #showClearButtonProperty()}. */
-    public static final boolean DEFAULT_SHOW_CLEAR_BUTTON = true;
+    private static final boolean DEFAULT_SHOW_CLEAR_BUTTON = true;
     /** Default of {@link #animationDurationProperty()}. */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180.0);
     /** Default of {@link #labelFloatScaleProperty()}. */
@@ -90,8 +92,23 @@ public class RXMaterialTextField extends TextField {
     public RXMaterialTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        leadingNode.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == trailingNode.get() && !trailingNode.isBound()) {
+                trailingNode.set(null);
+            }
+        });
+        trailingNode.addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal == leadingNode.get() && !leadingNode.isBound()) {
+                leadingNode.set(null);
+            }
+        });
     }
 
+    /**
+     * Returns the user-agent stylesheet used by RXControls.
+     *
+     * @return the user-agent stylesheet URL
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -119,10 +136,20 @@ public class RXMaterialTextField extends TextField {
         return labelText;
     }
 
+    /**
+     * Returns the floating-label text.
+     *
+     * @return the floating-label text
+     */
     public final String getLabelText() {
         return labelText.get();
     }
 
+    /**
+     * Sets the floating-label text.
+     *
+     * @param value the floating-label text; {@code null} is treated as empty
+     */
     public final void setLabelText(String value) {
         labelText.set(value);
     }
@@ -140,10 +167,20 @@ public class RXMaterialTextField extends TextField {
         return helperText;
     }
 
+    /**
+     * Returns the supporting-row helper text.
+     *
+     * @return the helper text
+     */
     public final String getHelperText() {
         return helperText.get();
     }
 
+    /**
+     * Sets the supporting-row helper text.
+     *
+     * @param value the helper text; {@code null} is treated as empty
+     */
     public final void setHelperText(String value) {
         helperText.set(value);
     }
@@ -163,10 +200,20 @@ public class RXMaterialTextField extends TextField {
         return errorText;
     }
 
+    /**
+     * Returns the supporting-row error text shown while invalid.
+     *
+     * @return the error text
+     */
     public final String getErrorText() {
         return errorText.get();
     }
 
+    /**
+     * Sets the supporting-row error text shown while invalid.
+     *
+     * @param value the error text; {@code null} is treated as empty
+     */
     public final void setErrorText(String value) {
         errorText.set(value);
     }
@@ -190,10 +237,20 @@ public class RXMaterialTextField extends TextField {
         return invalid;
     }
 
+    /**
+     * Returns whether the field is in the display-only error state.
+     *
+     * @return whether the field is invalid
+     */
     public final boolean isInvalid() {
         return invalid.get();
     }
 
+    /**
+     * Sets the display-only error state.
+     *
+     * @param value whether the field is invalid
+     */
     public final void setInvalid(boolean value) {
         invalid.set(value);
     }
@@ -214,10 +271,20 @@ public class RXMaterialTextField extends TextField {
         return floatingLabel;
     }
 
+    /**
+     * Returns whether the label floats on focus / non-empty text.
+     *
+     * @return whether the floating-label behavior is enabled
+     */
     public final boolean isFloatingLabel() {
         return floatingLabel.get();
     }
 
+    /**
+     * Sets whether the label floats on focus / non-empty text.
+     *
+     * @param value whether the floating-label behavior is enabled
+     */
     public final void setFloatingLabel(boolean value) {
         floatingLabel.set(value);
     }
@@ -238,10 +305,20 @@ public class RXMaterialTextField extends TextField {
         return animated;
     }
 
+    /**
+     * Returns whether label / activation-line transitions animate.
+     *
+     * @return whether transitions animate
+     */
     public final boolean isAnimated() {
         return animated.get();
     }
 
+    /**
+     * Sets whether label / activation-line transitions animate.
+     *
+     * @param value whether transitions animate
+     */
     public final void setAnimated(boolean value) {
         animated.set(value);
     }
@@ -253,18 +330,32 @@ public class RXMaterialTextField extends TextField {
                     this, "animationDuration", DEFAULT_ANIMATION_DURATION);
 
     /**
-     * Duration of the label / activation-line transitions.
+     * Duration of the label / activation-line transitions. Tolerates
+     * {@code null} as a "use the default" signal — the skin falls back to
+     * {@link #DEFAULT_ANIMATION_DURATION}; non-positive, unknown or indefinite durations make
+     * transitions snap to their end values.
      *
      * @return the animation-duration property
+     * @defaultValue {@link #DEFAULT_ANIMATION_DURATION} (180ms)
      */
     public final ObjectProperty<Duration> animationDurationProperty() {
         return animationDuration;
     }
 
+    /**
+     * Returns the transition duration.
+     *
+     * @return the transition duration, or {@code null} (the skin falls back to {@link #DEFAULT_ANIMATION_DURATION})
+     */
     public final Duration getAnimationDuration() {
         return animationDuration.get();
     }
 
+    /**
+     * Sets the transition duration.
+     *
+     * @param value the transition duration; {@code null} means {@link #DEFAULT_ANIMATION_DURATION}
+     */
     public final void setAnimationDuration(Duration value) {
         animationDuration.set(value);
     }
@@ -276,18 +367,30 @@ public class RXMaterialTextField extends TextField {
                     this, "labelFloatScale", DEFAULT_LABEL_FLOAT_SCALE);
 
     /**
-     * Scale applied to the label in its floated position.
+     * Scale applied to the label in its floated position. Negative values are
+     * clamped to 0 by the skin; non-finite values fall back to {@link #DEFAULT_LABEL_FLOAT_SCALE}.
      *
      * @return the label-float-scale property
+     * @defaultValue {@link #DEFAULT_LABEL_FLOAT_SCALE} (0.85)
      */
     public final DoubleProperty labelFloatScaleProperty() {
         return labelFloatScale;
     }
 
+    /**
+     * Returns the scale applied to the floated label.
+     *
+     * @return the floated-label scale
+     */
     public final double getLabelFloatScale() {
         return labelFloatScale.get();
     }
 
+    /**
+     * Sets the scale applied to the floated label.
+     *
+     * @param value the floated-label scale; negatives clamp to 0, non-finite values fall back to {@link #DEFAULT_LABEL_FLOAT_SCALE}
+     */
     public final void setLabelFloatScale(double value) {
         labelFloatScale.set(value);
     }
@@ -298,7 +401,9 @@ public class RXMaterialTextField extends TextField {
 
     /**
      * Custom node rendered before the text area (e.g. a leading icon). Coexists
-     * with the built-in trailing affordances.
+     * with the built-in trailing affordances. The same {@link Node} instance
+     * assigned to both slots migrates: setting it here clears the trailing slot
+     * (bound slots are left untouched), mirroring {@link RXTextField}.
      *
      * @return the leading-node property
      */
@@ -306,10 +411,20 @@ public class RXMaterialTextField extends TextField {
         return leadingNode;
     }
 
+    /**
+     * Returns the node rendered before the text area.
+     *
+     * @return the leading node, or {@code null}
+     */
     public final Node getLeadingNode() {
         return leadingNode.get();
     }
 
+    /**
+     * Sets the node rendered before the text area.
+     *
+     * @param value the leading node, may be {@code null}
+     */
     public final void setLeadingNode(Node value) {
         leadingNode.set(value);
     }
@@ -320,7 +435,9 @@ public class RXMaterialTextField extends TextField {
 
     /**
      * Custom node rendered after the text area. Coexists with the built-in
-     * clear affordance (the user node sits before the built-in icons).
+     * clear affordance (the user node sits before the built-in icons). The same
+     * {@link Node} instance assigned to both slots migrates: setting it here
+     * clears the leading slot (bound slots are left untouched).
      *
      * @return the trailing-node property
      */
@@ -328,10 +445,20 @@ public class RXMaterialTextField extends TextField {
         return trailingNode;
     }
 
+    /**
+     * Returns the node rendered after the text area.
+     *
+     * @return the trailing node, or {@code null}
+     */
     public final Node getTrailingNode() {
         return trailingNode.get();
     }
 
+    /**
+     * Sets the node rendered after the text area.
+     *
+     * @param value the trailing node, may be {@code null}
+     */
     public final void setTrailingNode(Node value) {
         trailingNode.set(value);
     }
@@ -351,10 +478,20 @@ public class RXMaterialTextField extends TextField {
         return showClearButton;
     }
 
+    /**
+     * Returns whether the built-in clear button is offered.
+     *
+     * @return whether the clear button is offered
+     */
     public final boolean isShowClearButton() {
         return showClearButton.get();
     }
 
+    /**
+     * Sets whether the built-in clear button is offered.
+     *
+     * @param value whether the clear button is offered
+     */
     public final void setShowClearButton(boolean value) {
         showClearButton.set(value);
     }
@@ -378,10 +515,20 @@ public class RXMaterialTextField extends TextField {
         return textPadding;
     }
 
+    /**
+     * Returns the text-editor inner padding.
+     *
+     * @return the text padding, or {@code null} (treated as {@link Insets#EMPTY} by the skin)
+     */
     public final Insets getTextPadding() {
         return textPadding.get();
     }
 
+    /**
+     * Sets the text-editor inner padding.
+     *
+     * @param value the text padding; {@code null} is treated as {@link Insets#EMPTY}
+     */
     public final void setTextPadding(Insets value) {
         textPadding.set(value);
     }
@@ -485,6 +632,7 @@ public class RXMaterialTextField extends TextField {
         return StyleableProperties.STYLEABLES;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();

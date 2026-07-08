@@ -37,7 +37,8 @@ public class RXMaterialTextFieldDemo extends Application {
         // flag an invalid email on blur, clear the flag once it looks valid.
         email.focusedProperty().addListener((obs, was, focused) -> {
             if (!focused) {
-                boolean ok = email.getText().contains("@");
+                String value = email.getText();
+                boolean ok = value != null && value.contains("@");
                 email.setInvalid(!ok);
                 email.setErrorText(ok ? "" : "Enter a valid email address");
             }

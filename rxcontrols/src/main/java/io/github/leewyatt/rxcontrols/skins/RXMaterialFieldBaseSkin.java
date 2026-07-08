@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -71,6 +70,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private static final double FALLBACK_ACCENT_THICKNESS = 2.0;
     /** Fallback activation-line thickness before CSS resolves {@code -fx-pref-height}. */
     private static final double FALLBACK_ACTIVATION_THICKNESS = 1.0;
+    /** Null-value fallback for the animation duration; must match the controls' default. */
+    static final Duration FALLBACK_ANIMATION_DURATION = Duration.millis(180.0);
+    /** Null / non-finite fallback for the label float scale; must match the controls' default. */
+    static final double FALLBACK_LABEL_FLOAT_SCALE = 0.85;
     /** House "fast-out slow-in" easing (Material standard easing). */
     private static final Interpolator MATERIAL_EASING = Interpolator.SPLINE(0.4, 0.0, 0.2, 1.0);
 
@@ -154,19 +157,19 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * @param labelFloatScale   floated-label scale observable
      * @param showClearButton   built-in clear-button-enabled observable
      */
-    public RXMaterialFieldBaseSkin(TextField control,
-                                   ObservableValue<Node> userLeading,
-                                   ObservableValue<Node> userTrailing,
-                                   ObservableValue<Insets> userTextPadding,
-                                   ObservableValue<String> labelText,
-                                   ObservableValue<String> helperText,
-                                   ObservableValue<String> errorText,
-                                   ObservableValue<Boolean> invalid,
-                                   ObservableValue<Boolean> floatingLabel,
-                                   ObservableValue<Boolean> animated,
-                                   ObservableValue<Duration> animationDuration,
-                                   ObservableValue<Number> labelFloatScale,
-                                   ObservableValue<Boolean> showClearButton) {
+    protected RXMaterialFieldBaseSkin(TextField control,
+                                      ObservableValue<Node> userLeading,
+                                      ObservableValue<Node> userTrailing,
+                                      ObservableValue<Insets> userTextPadding,
+                                      ObservableValue<String> labelText,
+                                      ObservableValue<String> helperText,
+                                      ObservableValue<String> errorText,
+                                      ObservableValue<Boolean> invalid,
+                                      ObservableValue<Boolean> floatingLabel,
+                                      ObservableValue<Boolean> animated,
+                                      ObservableValue<Duration> animationDuration,
+                                      ObservableValue<Number> labelFloatScale,
+                                      ObservableValue<Boolean> showClearButton) {
         // The effective-right relay must exist before super(...) and cannot
         // reference this; a private constructor receives it and wires the
         // trailing composition afterward.
@@ -573,7 +576,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private Duration effectiveDuration() {
         Duration d = animationDuration.getValue();
-        return d == null ? RXMaterialTextField.DEFAULT_ANIMATION_DURATION : d;
+        return d == null ? FALLBACK_ANIMATION_DURATION : d;
     }
 
     private boolean isShowing() {
@@ -626,11 +629,11 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private double floatScale() {
         Number n = labelFloatScale.getValue();
-        double s = (n == null) ? RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE : n.doubleValue();
+        double s = (n == null) ? FALLBACK_LABEL_FLOAT_SCALE : n.doubleValue();
         if (!Double.isFinite(s)) {
             // NaN/Infinity would flow through the band math into pref height
             // and the label transform; treat non-finite as "use the default".
-            return RXMaterialTextField.DEFAULT_LABEL_FLOAT_SCALE;
+            return FALLBACK_LABEL_FLOAT_SCALE;
         }
         return Math.max(0.0, s);
     }

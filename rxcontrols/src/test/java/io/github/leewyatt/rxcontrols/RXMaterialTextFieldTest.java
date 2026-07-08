@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -114,6 +115,21 @@ public class RXMaterialTextFieldTest {
             assertEquals(leading, field.getLeadingNode());
             assertEquals(trailing, field.getTrailingNode());
             assertEquals(padding, field.getTextPadding());
+        });
+    }
+
+    @Test
+    public void sameNodeMigratesBetweenSlots() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            Label icon = new Label("@");
+            field.setTrailingNode(icon);
+            field.setLeadingNode(icon);
+            assertNull(field.getTrailingNode(), "same node must migrate out of the opposite slot");
+            assertSame(icon, field.getLeadingNode());
+            field.setTrailingNode(icon);
+            assertNull(field.getLeadingNode());
+            assertSame(icon, field.getTrailingNode());
         });
     }
 
