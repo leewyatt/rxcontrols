@@ -482,6 +482,45 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
+    public void labeledByAppearsOnlyWithALabelSource() {
+        runOnFx(() -> {
+            RXMaterialTextField field = inScene(new RXMaterialTextField());
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "no label source -> no LABELED_BY relation");
+
+            field.setPromptText("   ");
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "a blank promptText must not create a LABELED_BY relation");
+
+            field.setLabelText("Email");
+            assertInstanceOf(Label.class,
+                    field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "a label source appearing later must stamp the relation");
+
+            field.setLabelText("");
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "clearing the label source must withdraw the relation");
+        });
+    }
+
+    @Test
+    public void externalLabelForIsNotClobbered() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            Label external = new Label("External");
+            external.setLabelFor(field);
+            inScene(field);
+
+            assertEquals(external, field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "attaching without an internal label source must not steal LABELED_BY");
+
+            field.setSkin(null);
+            assertEquals(external, field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "dispose must not wipe an external label's relation");
+        });
+    }
+
+    @Test
     public void skinReplacementKeepsLabeledByRelation() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();

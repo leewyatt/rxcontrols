@@ -15,6 +15,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -220,7 +221,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
             if (newSkin == this) {
                 control.skinProperty().removeListener(pendingLabelForListener);
                 pendingLabelForListener = null;
-                labelNode.setLabelFor(control);
+                syncLabelFor();
             } else if (newSkin != null) {
                 // Another skin won; this instance will never attach.
                 control.skinProperty().removeListener(pendingLabelForListener);
@@ -300,7 +301,11 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                 control.skinProperty().removeListener(pendingLabelForListener);
                 pendingLabelForListener = null;
             }
-            labelNode.setLabelFor(null);
+            // Withdraw LABELED_BY only while the relation is still ours: an
+            // external Label.setLabelFor(field) stamp must survive our teardown.
+            if (control.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) == labelNode) {
+                labelNode.setLabelFor(null);
+            }
             labelNode.getTransforms().remove(labelScale);
             accentLine.getTransforms().remove(accentScale);
             builtinTrailing.getChildren().clear();
@@ -326,7 +331,28 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private void onLabelSourceChanged() {
         labelNode.setText(effectiveLabelText());
+        syncLabelFor();
         getSkinnable().requestLayout();
+    }
+
+    /**
+     * Keeps the LABELED_BY relation in step with the effective label source:
+     * stamped only while a label source exists, withdrawn when it goes blank.
+     * Gated on actual attach (stamping earlier races with a replaced
+     * predecessor's teardown) and, on withdrawal, on still owning the relation
+     * ({@code setLabelFor(null)} wipes {@code Node.labeledBy} unconditionally —
+     * an external {@code Label.setLabelFor(field)} stamp must survive us).
+     */
+    private void syncLabelFor() {
+        TextField control = getSkinnable();
+        if (control == null || control.getSkin() != this) {
+            return;
+        }
+        if (hasLabelSource()) {
+            labelNode.setLabelFor(control);
+        } else if (control.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) == labelNode) {
+            labelNode.setLabelFor(null);
+        }
     }
 
     private void onSupportingChanged() {
