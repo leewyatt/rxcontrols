@@ -99,7 +99,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private final ObservableValue<Boolean> showClearButton;
 
     /**
-     * Skin-controlled relay handed to the base as its effective-right node: set
+     * Skin-controlled relay handed to the base as its effective-trailing node: set
      * to the internal trailing container when there is trailing content, else
      * {@code null}. Created before {@code super(...)}; populated after.
      */
@@ -115,7 +115,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private final Label supporting = new Label();
 
     // Internal trailing container = [userTrailing] [clearButton]; fed to the base
-    // as the effective-right node so user and built-in affordances coexist.
+    // as the effective-trailing node so user and built-in affordances coexist.
     private final HBox builtinTrailing = new HBox();
     private final Region clearGraphic = new Region();
     private final StackPane clearButton = new StackPane(clearGraphic);

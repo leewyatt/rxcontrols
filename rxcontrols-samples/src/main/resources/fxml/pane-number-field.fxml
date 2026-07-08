@@ -87,7 +87,7 @@
 
                         <VBox spacing="10.0">
                             <children>
-                                <Label styleClass="section-title" text="左右插槽 · setLeft / setRight"/>
+                                <Label styleClass="section-title" text="前置 / 后置插槽 · setLeading / setTrailing"/>
                                 <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
                                     <children>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
@@ -101,7 +101,7 @@
                                                         </StackPane>
                                                     </leading>
                                                 </RXFormattedNumberField>
-                                                <Label styleClass="field-caption" text="左插槽 · 货币前缀"/>
+                                                <Label styleClass="field-caption" text="前置插槽 · 货币前缀"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
@@ -115,7 +115,7 @@
                                                         </StackPane>
                                                     </trailing>
                                                 </RXFormattedNumberField>
-                                                <Label styleClass="field-caption" text="右插槽 · 单位后缀"/>
+                                                <Label styleClass="field-caption" text="后置插槽 · 单位后缀"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
@@ -136,7 +136,7 @@
                                                         </StackPane>
                                                     </trailing>
                                                 </RXFormattedNumberField>
-                                                <Label styleClass="field-caption" text="左 + 右双插槽"/>
+                                                <Label styleClass="field-caption" text="前置 + 后置双插槽"/>
                                             </children>
                                         </VBox>
                                     </children>
@@ -145,7 +145,7 @@
                         </VBox>
 
                         <Label maxWidth="Infinity" styleClass="field-note"
-                               text="左 / 右插槽接受任意节点，可放符号、单位、图标或按钮；键入时非法字符被即时过滤，超出 min / max 的值在提交时自动夹紧。"/>
+                               text="前置 / 后置插槽接受任意节点，可放符号、单位、图标或按钮；键入时非法字符被即时过滤，超出 min / max 的值在提交时自动夹紧。"/>
                     </children>
                 </VBox>
             </content>

@@ -41,8 +41,8 @@ import javafx.scene.text.HitInfo;
 
 /**
  * Skin extension point — shared base for skins that need to render user-supplied
- * left and right nodes inside a {@link TextField}. The base skin reads the
- * "effective" left/right node and "effective" text padding from the three
+ * leading and trailing nodes inside a {@link TextField}. The base skin reads the
+ * "effective" leading/trailing node and "effective" text padding from the three
  * {@link ObservableValue}s passed by the subclass, so subclasses can layer
  * defaults on top of the user's selection without writing back to the
  * control's own properties.
@@ -58,8 +58,8 @@ import javafx.scene.text.HitInfo;
  * same node is moved across — see its slot migration semantics. Subclasses
  * that bypass {@code RXTextField}'s setters (or feed in custom effective
  * observables) are responsible for the same uniqueness; if both observables
- * resolve to the same node, only the right wrapper will keep it (JavaFX
- * reparents the node) and the left wrapper will render empty.
+ * resolve to the same node, only the trailing wrapper will keep it (JavaFX
+ * reparents the node) and the leading wrapper will render empty.
  * <p>
  * {@code effectiveTextPadding} resolves to the active text-editor inner
  * padding. A {@code null} value is treated as {@link Insets#EMPTY}.
@@ -69,7 +69,7 @@ import javafx.scene.text.HitInfo;
  * <p>
  * <b>Provenance:</b> this skin builds on the leading/trailing-node pattern from
  * ControlsFX's {@code CustomTextFieldSkin} — see the BSD-3-Clause notice in the
- * file header. Beyond that pattern it adds the effective left / right /
+ * file header. Beyond that pattern it adds the effective leading / trailing /
  * text-padding model, the laid-out-width hit-test correction in
  * {@code getIndex}, the wrapper relayout bridge, and the listener / dispose
  * handling.

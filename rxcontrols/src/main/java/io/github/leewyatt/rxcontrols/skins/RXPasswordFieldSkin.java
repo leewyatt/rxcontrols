@@ -4,7 +4,7 @@ import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.internal.PasswordMaskSupport;
 
 /**
- * Skin for {@link RXPasswordField}. It keeps the left/right slot layout from
+ * Skin for {@link RXPasswordField}. It keeps the leading/trailing slot layout from
  * {@link RXFieldBaseSkin} and replaces JavaFX's internal text binding (via the
  * shared {@link PasswordMaskSupport}) so {@code revealPassword} and
  * {@code echoChar} refresh the rendered text immediately.

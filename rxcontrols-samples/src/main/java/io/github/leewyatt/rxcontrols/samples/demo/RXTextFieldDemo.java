@@ -17,7 +17,7 @@ import javafx.stage.Stage;
 
 /**
  * Sample application demonstrating {@link RXTextField} — a text field with
- * optional left and right slots for user-supplied nodes.
+ * optional leading and trailing slots for user-supplied nodes.
  */
 public class RXTextFieldDemo extends Application {
 
@@ -64,9 +64,9 @@ public class RXTextFieldDemo extends Application {
 
         root.getChildren().addAll(
                 new Label("Plain"), plain,
-                new Label("Left slot only"), search,
-                new Label("Right slot only"), clearable,
-                new Label("Left + right slot"), both,
+                new Label("Leading slot only"), search,
+                new Label("Trailing slot only"), clearable,
+                new Label("Leading + trailing slot"), both,
                 new Label("Reference — JavaFX TextField"), reference
         );
 

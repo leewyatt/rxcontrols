@@ -954,11 +954,11 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 
 <h3 id="rxPasswordField">RXPasswordField</h3>
 <p class="fxClass">Style class: rx-password-field</p>
-<p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds left and right slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>left</code> / <code>right</code> with any Node, and bind your toggle's selected state to <code>revealPasswordProperty()</code> to switch between masked and plain text.</p>
+<p>A password-entry control that extends JavaFX <code>PasswordField</code> and adds leading and trailing slots for user-supplied nodes (typically a reveal toggle on the right). It does not bundle any built-in buttons — set <code>leading</code> / <code>trailing</code> with any Node, and bind your toggle's selected state to <code>revealPasswordProperty()</code> to switch between masked and plain text.</p>
 <h4>Substructure</h4>
 .rx-password-field — extends PasswordField<br/>
-&emsp;&emsp;.leading-wrapper — StackPane (present only when left is set)<br/>
-&emsp;&emsp;.trailing-wrapper — StackPane (present only when right is set)<br/><br/>
+&emsp;&emsp;.leading-wrapper — StackPane (present only when leading is set)<br/>
+&emsp;&emsp;.trailing-wrapper — StackPane (present only when trailing is set)<br/><br/>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -974,15 +974,15 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </tr>
     <tr>
         <td>has-leading</td>
-        <td>applies when the left property is non-null</td>
+        <td>applies when the leading property is non-null</td>
     </tr>
     <tr>
         <td>has-trailing</td>
-        <td>applies when the right property is non-null</td>
+        <td>applies when the trailing property is non-null</td>
     </tr>
     <tr>
         <td>has-no-slots</td>
-        <td>applies when both left and right are null (mutually exclusive with the two above)</td>
+        <td>applies when both leading and trailing are null (mutually exclusive with the two above)</td>
     </tr>
     </tbody>
 </table>
@@ -1040,7 +1040,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </tr>
     <tr>
         <td>has-leading / has-trailing / has-no-slots</td>
-        <td>reflect the effective side slots; the built-in clear / reveal buttons occupy the right slot, so <code>:has-trailing</code> is active on a default field</td>
+        <td>reflect the effective side slots; the built-in clear / reveal buttons occupy the trailing slot, so <code>:has-trailing</code> is active on a default field</td>
     </tr>
     </tbody>
 </table>
@@ -1098,7 +1098,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </tbody>
 </table>
 
-<p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base right wrapper: <code>.trailing-wrapper .clear-button &gt; .graphic</code> and (password) <code>.trailing-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
+<p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base trailing wrapper: <code>.trailing-wrapper .clear-button &gt; .graphic</code> and (password) <code>.trailing-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
 
 <h3 id="rxRipplePane">RXRipplePane</h3>
 <p class="fxClass">Style class: rx-ripple-pane</p>
@@ -1276,11 +1276,11 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
 
 <h3 id="rxTextField">RXTextField</h3>
 <p class="fxClass">Style class: rx-text-field</p>
-<p>A base text-field control that adds left and right slots for user-supplied nodes. It does not bundle any built-in buttons or actions — set <code>left</code> / <code>right</code> with any Node (Label, Button, HBox, etc.).</p>
+<p>A base text-field control that adds leading and trailing slots for user-supplied nodes. It does not bundle any built-in buttons or actions — set <code>leading</code> / <code>trailing</code> with any Node (Label, Button, HBox, etc.).</p>
 <h4>Substructure</h4>
 .rx-text-field — extends TextField<br/>
-&emsp;&emsp;.leading-wrapper — StackPane (present only when left is set)<br/>
-&emsp;&emsp;.trailing-wrapper — StackPane (present only when right is set)<br/><br/>
+&emsp;&emsp;.leading-wrapper — StackPane (present only when leading is set)<br/>
+&emsp;&emsp;.trailing-wrapper — StackPane (present only when trailing is set)<br/><br/>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -1292,15 +1292,15 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     <tbody>
     <tr>
         <td>has-leading</td>
-        <td>applies when the left property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
+        <td>applies when the leading property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
         <td>has-trailing</td>
-        <td>applies when the right property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
+        <td>applies when the trailing property is non-null (independent of the node's <code>visible</code> / <code>opacity</code> / <code>managed</code> state)</td>
     </tr>
     <tr>
         <td>has-no-slots</td>
-        <td>applies when both left and right are null (mutually exclusive with the two above)</td>
+        <td>applies when both leading and trailing are null (mutually exclusive with the two above)</td>
     </tr>
     </tbody>
 </table>

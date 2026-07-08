@@ -63,9 +63,9 @@ public class RXPasswordFieldDemo extends Application {
 
         root.getChildren().addAll(
                 new Label("Plain"), plain,
-                new Label("Reveal toggle (right slot bound to revealPassword)"), reveal,
+                new Label("Reveal toggle (trailing slot bound to revealPassword)"), reveal,
                 new Label("Custom echo char via setEchoChar('☆')"), asterisk,
-                new Label("Left lock icon + reveal toggle"), full,
+                new Label("Leading lock icon + reveal toggle"), full,
                 new Label("CSS-driven -rx-echo-char"), cssEcho,
                 new Label("Reference — JavaFX PasswordField"), reference
         );

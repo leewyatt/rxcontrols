@@ -968,10 +968,10 @@ public class RXMaterialTextFieldTest {
             field.setLeading(new Label("@"));
             assertTrue(field.getPseudoClassStates().contains(hasLeft), "leading node -> :has-leading");
 
-            // The built-in trailing affordance container is the effective right slot,
+            // The built-in trailing affordance container is the effective trailing slot,
             // so a default (editable + showClearButton) field has :has-trailing.
             assertTrue(field.getPseudoClassStates().contains(hasRight),
-                    "active clear affordance occupies the right slot -> :has-trailing");
+                    "active clear affordance occupies the trailing slot -> :has-trailing");
             field.setShowClearButton(false);
             assertFalse(field.getPseudoClassStates().contains(hasRight),
                     "no trailing node and no clear affordance -> no :has-trailing");

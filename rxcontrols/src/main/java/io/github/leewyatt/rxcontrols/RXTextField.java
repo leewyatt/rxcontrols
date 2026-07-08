@@ -40,8 +40,8 @@ import java.util.List;
  * <b>Side node geometry.</b> Side nodes are laid out flush against the
  * control's outer edges (top, bottom, and the outer leading or trailing edge),
  * spanning the full control height. The rationale is a larger click target
- * for interactive side nodes such as a clear button. The default left and
- * right wrappers have no background, so the physical overlap with the
+ * for interactive side nodes such as a clear button. The default leading and
+ * trailing wrappers have no background, so the physical overlap with the
  * control's border is invisible unless the caller explicitly styles
  * {@code .leading-wrapper} / {@code .trailing-wrapper}.
  * <p>
@@ -54,8 +54,8 @@ import java.util.List;
  *       (and horizontal padding when no side node is present). It does NOT
  *       control the gap between a side node and the text.</li>
  *   <li>{@code -rx-text-padding} ({@link #textPaddingProperty()}) is the
- *       inner padding of the text editor region, applied AFTER the left /
- *       right wrapper widths have been excluded. When a side node is present,
+ *       inner padding of the text editor region, applied AFTER the leading /
+ *       trailing wrapper widths have been excluded. When a side node is present,
  *       {@code textPadding.left} (or {@code .right}) is the exact gap between
  *       the wrapper and the text — the control's own horizontal padding on
  *       that side does not stack into the gap. Top and bottom of textPadding
@@ -212,8 +212,8 @@ public class RXTextField extends TextField {
     private ObjectProperty<Insets> textPadding;
 
     /**
-     * Inner padding of the text editor region. Applied after the left and
-     * right wrapper widths are excluded; the horizontal values are the actual
+     * Inner padding of the text editor region. Applied after the leading and
+     * trailing wrapper widths are excluded; the horizontal values are the actual
      * gap between the wrapper and the text. Vertical values stack on top of
      * the control's own vertical padding and increase the control's preferred
      * height so the text is not clipped.

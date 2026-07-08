@@ -51,6 +51,6 @@
       <RXPasswordField echoChar="\@" layoutX="523.0" layoutY="382.0" prefWidth="190.0" revealPassword="true" text="1232132" />
       <Label layoutX="522.0" layoutY="348.0" text="密码显示" />
       <RXPasswordField echoChar="#" layoutX="282.0" layoutY="382.0" prefWidth="190.0" text="defg123" />
-      <TextArea layoutX="37.0" layoutY="431.0" prefHeight="70.0" prefWidth="686.0" text="RXTextField 支持 left/right 插槽, 可组合自定义节点; &#10;RXPasswordField 支持密码的隐藏与显示状态, 并且可以自定义密码隐藏时候的字符;" />
+      <TextArea layoutX="37.0" layoutY="431.0" prefHeight="70.0" prefWidth="686.0" text="RXTextField 支持 leading/trailing（前置/后置）插槽, 可组合自定义节点; &#10;RXPasswordField 支持密码的隐藏与显示状态, 并且可以自定义密码隐藏时候的字符;" />
    </children>
 </AnchorPane>
