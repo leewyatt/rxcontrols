@@ -690,9 +690,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private double lineBand() {
         // Reserve the thicker of the two lines so a custom-styled activation
         // line cannot bleed past the band into the supporting row. The gap
-        // between the editor text and the line is NOT part of this band: it is
-        // the effective text padding's bottom inset (UA default 0.25em),
-        // matching how a plain text field spaces text off its bottom border.
+        // between the editor text and the line is the effective text padding's
+        // bottom inset, not part of this band.
         return snapSizeY(Math.max(accentThickness(), activationThickness()));
     }
 

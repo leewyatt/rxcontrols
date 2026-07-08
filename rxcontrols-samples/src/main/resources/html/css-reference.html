@@ -1013,6 +1013,93 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 <p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.left-wrapper</code> / <code>.right-wrapper</code> internal padding).</p>
 <p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>revealPassword</code> is <code>true</code>.</p>
 
+<h3 id="rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField</h3>
+
+<p>Material-style single-line inputs: a floating label, a bottom activation line with a focus (accent) line, a supporting (helper / error) row, and a built-in clear button. The password variant adds a reveal (eye) button, a runtime <code>revealPassword</code> toggle and an <code>echoChar</code> mask. The floating label falls back to <code>promptText</code> when <code>labelText</code> is blank (a blank promptText is likewise ignored); the native prompt node is suppressed via <code>-fx-prompt-text-fill: transparent</code>.</p>
+
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>Pseudo-class</th>
+        <th>Comment</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>floated</td>
+        <td>applies while the label sits in its floated (top) position</td>
+    </tr>
+    <tr>
+        <td>invalid</td>
+        <td>applies while <code>invalid</code> is <code>true</code>; recolours the label, the lines and the supporting text</td>
+    </tr>
+    <tr>
+        <td>revealed</td>
+        <td>password field only; applies when <code>revealPassword</code> is <code>true</code> (swaps the eye icon)</td>
+    </tr>
+    <tr>
+        <td>has-left-node / has-right-node / has-no-side-nodes</td>
+        <td>reflect the effective side slots; the built-in clear / reveal buttons occupy the right slot, so <code>:has-right-node</code> is active on a default field</td>
+    </tr>
+    </tbody>
+</table>
+
+<p>CSS Properties</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-floating-label</td>
+        <td>Boolean (<code>false</code> keeps the label statically floated)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-animated</td>
+        <td>Boolean (<code>false</code> snaps label / accent-line transitions)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration (label / accent-line transitions; null, non-positive or indefinite values snap)</td>
+        <td>180ms</td>
+    </tr>
+    <tr>
+        <td>-rx-label-float-scale</td>
+        <td>Number (scale of the floated label; negatives clamp to 0, non-finite values fall back)</td>
+        <td>0.85</td>
+    </tr>
+    <tr>
+        <td>-rx-label-gap</td>
+        <td>Number (vertical gap between the floated label and the editor text; negatives clamp to 0, non-finite values fall back)</td>
+        <td>4</td>
+    </tr>
+    <tr>
+        <td>-rx-supporting-gap</td>
+        <td>Number (vertical gap between the activation line and the supporting text; negatives clamp to 0, non-finite values fall back)</td>
+        <td>4</td>
+    </tr>
+    <tr>
+        <td>-rx-text-padding</td>
+        <td>Insets — the bottom inset doubles as the text-to-activation-line gap; overriding without a bottom value removes that gap</td>
+        <td>0 0 0.25em 0 (the UA <code>:has-left-node</code> / <code>:has-right-node</code> tiers add 0.583em horizontally and re-carry the 0.25em bottom)</td>
+    </tr>
+    <tr>
+        <td>-rx-echo-char</td>
+        <td>password field only; Character (single-quoted string literal; first character is used. A literal '#' cannot be expressed — the JavaFX CSS parser drops the whole declaration; set it via setEchoChar in code)</td>
+        <td>'●' (●)</td>
+    </tr>
+    </tbody>
+</table>
+
+<p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base right wrapper: <code>.right-wrapper .clear-button &gt; .graphic</code> and (password) <code>.right-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
+
 <h3 id="rxRipplePane">RXRipplePane</h3>
 <p class="fxClass">Style class: rx-ripple-pane</p>
 <p>The RXRipplePane control has all the properties of Region; it wraps a single content node (the FXML default property) and paints a bounded Material ripple on press plus a low-opacity state overlay, both clipped to the pane's shape or background geometry.</p>

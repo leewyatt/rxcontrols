@@ -954,10 +954,7 @@
     -rx-label-float-scale: 0.85;
     -rx-label-gap: 4px;
     -rx-supporting-gap: 4px;
-    /* the bottom inset is the text-to-activation-line gap (a plain field's
-       bottom padding); 0.25em = 3px @ default font size, the former skin
-       LINE_GAP. The :has-*-node tiers below must carry it too. */
-    -rx-text-padding: 0 0 0.25em 0;
+    -rx-text-padding: 0 0 0.25em 0; /* bottom = text-to-line gap, 3px; the :has-*-node tiers must carry it */
     /* no box, no native prompt — the floating label and the activation line
        carry the affordance */
     -fx-background-color: transparent;
