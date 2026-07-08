@@ -9,7 +9,6 @@ open module rxcontrols.samples {
     requires java.desktop;
     requires java.logging;
     requires org.controlsfx.controls;
-    requires org.scenicview.scenicview;
     requires atlantafx.base;
 
     exports io.github.leewyatt.rxcontrols.samples.demo.carousel;

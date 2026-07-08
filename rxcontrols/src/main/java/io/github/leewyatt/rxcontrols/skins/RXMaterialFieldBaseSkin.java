@@ -373,9 +373,14 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private void onAnimatedChanged() {
-        // Turning animation off mid-transition snaps to the current targets.
+        // Turning animation off mid-transition snaps to the current targets —
+        // including a clear-button fade in flight.
         retargetFloat();
         retargetAccent();
+        if (shouldSnap()) {
+            clearFade.stop();
+            clearButton.setOpacity(clearTarget);
+        }
     }
 
     private void onTextChanged() {

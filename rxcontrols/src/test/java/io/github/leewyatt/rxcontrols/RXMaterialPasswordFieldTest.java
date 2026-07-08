@@ -235,6 +235,35 @@ public class RXMaterialPasswordFieldTest {
             Text textNode = (Text) editorTextNode(field);
             assertNotNull(textNode);
             assertEquals("**", textNode.getText(), "custom echo char must drive the mask");
+
+            field.setEchoChar(null);
+            assertEquals("●●", textNode.getText(),
+                    "null echoChar must fall back to the default mask character");
+        });
+    }
+
+    @Test
+    public void cssDrivesEchoCharMask() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("ab");
+            // The password field duplicates all six CssMetaData wirings (own
+            // class), so exercise every one — not just echo-char. Deliberately
+            // not '#': a quoted hash does not survive the JavaFX CSS parser
+            // (the whole declaration is silently dropped).
+            field.setStyle("-rx-echo-char: 'x'; -rx-floating-label: false;"
+                    + " -rx-animated: false; -rx-animation-duration: 250ms;"
+                    + " -rx-label-float-scale: 0.9; -rx-text-padding: 1 2 3 4;");
+            inScene(field);
+            assertEquals('x', field.getEchoChar(),
+                    "-rx-echo-char must travel CSS -> converter -> property");
+            assertFalse(field.isFloatingLabel());
+            assertFalse(field.isAnimated());
+            assertEquals(Duration.millis(250), field.getAnimationDuration());
+            assertEquals(0.9, field.getLabelFloatScale(), 0.001);
+            assertEquals(new Insets(1, 2, 3, 4), field.getTextPadding());
+            Text textNode = (Text) editorTextNode(field);
+            assertNotNull(textNode);
+            assertEquals("xx", textNode.getText(), "the CSS-set echo char must drive the mask");
         });
     }
 

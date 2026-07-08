@@ -22,17 +22,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.raumzeitfalle.fx</groupId>
-            <artifactId>scenic-view</artifactId>
-            <version>11.0.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.controlsfx</groupId>
             <artifactId>controlsfx</artifactId>
             <version>11.2.3</version>

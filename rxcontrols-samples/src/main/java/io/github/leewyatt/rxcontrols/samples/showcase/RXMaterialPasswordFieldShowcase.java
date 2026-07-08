@@ -2,10 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
-import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
@@ -13,7 +11,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import org.scenicview.ScenicView;
 
 import java.util.List;
 
@@ -21,7 +18,7 @@ import java.util.List;
  * Showcase for {@link RXMaterialPasswordField}.
  *
  * <p>Exercises the shared Material properties (floating label + scale,
- * animation, invalid / helper / error, leading node, clear button) plus the
+ * animation, invalid / helper / error, toggleable leading / trailing nodes, clear button) plus the
  * password-specific reveal-button switch and echo character; reveal itself is
  * toggled via the in-pane eye button. The theme bar (Modena / dark / AtlantaFX)
  * shows the role-token theming; the text sibling has its own
@@ -76,12 +73,6 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
                 section("Password", buildPasswordGrid()));
     }
 
-    @Override
-    protected void configureScene(Scene scene) {
-        // Open Scenic View once the stage is shown, to inspect the live node tree.
-        Platform.runLater(() -> ScenicView.show(scene));
-    }
-
     // ==================== Sections ====================
 
     private Node buildContentGrid() {
@@ -116,6 +107,15 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
         clearBox.setSelected(field.isShowClearButton());
         field.showClearButtonProperty().bind(clearBox.selectedProperty());
 
+        CheckBox leadingBox = new CheckBox();
+        leadingBox.setSelected(field.getLeadingNode() != null);
+        leadingBox.selectedProperty().addListener((obs, oldV, newV) ->
+                field.setLeadingNode(newV ? icon("lock-icon") : null));
+
+        CheckBox trailingBox = new CheckBox();
+        trailingBox.selectedProperty().addListener((obs, oldV, newV) ->
+                field.setTrailingNode(newV ? icon("lock-icon") : null));
+
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());
         field.editableProperty().bind(editableBox.selectedProperty());
@@ -127,6 +127,8 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
                 row("Floating label", floatingBox),
                 row("Invalid", invalidBox),
                 row("Clear button", clearBox),
+                row("Leading icon", leadingBox),
+                row("Trailing icon", trailingBox),
                 row("Editable", editableBox),
                 row("Disabled", disableBox));
     }

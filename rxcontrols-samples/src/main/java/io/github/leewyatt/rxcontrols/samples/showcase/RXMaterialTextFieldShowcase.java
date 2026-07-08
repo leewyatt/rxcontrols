@@ -2,17 +2,14 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
-import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import org.scenicview.ScenicView;
 
 import java.util.List;
 
@@ -21,7 +18,7 @@ import java.util.List;
  *
  * <p>Exercises the text-field styleable + runtime properties: floating label +
  * scale, animation toggle + duration, invalid / helper / error supporting text,
- * a leading node, and the built-in clear button. The theme bar (Modena / dark /
+ * leading / trailing nodes, and the built-in clear button. The theme bar (Modena / dark /
  * AtlantaFX) shows the role-token theming. The password sibling has its own
  * {@link RXMaterialPasswordFieldShowcase}.</p>
  */
@@ -72,12 +69,6 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 section("Animation", buildAnimationGrid()));
     }
 
-    @Override
-    protected void configureScene(Scene scene) {
-        // Open Scenic View once the stage is shown, to inspect the live node tree.
-        Platform.runLater(() -> ScenicView.show(scene));
-    }
-
     // ==================== Sections ====================
 
     private Node buildContentGrid() {
@@ -116,6 +107,10 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         leadingBox.selectedProperty().addListener((obs, oldV, newV) ->
                 field.setLeadingNode(newV ? icon("person-icon") : null));
 
+        CheckBox trailingBox = new CheckBox();
+        trailingBox.selectedProperty().addListener((obs, oldV, newV) ->
+                field.setTrailingNode(newV ? icon("person-icon") : null));
+
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());
         field.editableProperty().bind(editableBox.selectedProperty());
@@ -128,6 +123,7 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 row("Invalid", invalidBox),
                 row("Clear button", clearBox),
                 row("Leading icon", leadingBox),
+                row("Trailing icon", trailingBox),
                 row("Editable", editableBox),
                 row("Disabled", disableBox));
     }

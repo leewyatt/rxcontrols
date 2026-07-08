@@ -77,6 +77,10 @@ import java.util.List;
  * override UA defaults — if you set {@code -rx-text-padding} in your own
  * stylesheet, the UA pseudo-class rules no longer apply; write the same
  * pseudo-class selectors yourself if you want differential side-node defaults.
+ * Setting the property from code has the same effect, permanently: a
+ * programmatic {@code setTextPadding(...)} takes USER origin, which outranks
+ * the user-agent tiers for good (standard JavaFX CSS semantics — no setter
+ * value, including {@code null}, hands control back to the stylesheet).
  *
  * <p><b>Pseudo-class semantics.</b> {@code :has-left-node} /
  * {@code :has-right-node} reflect whether {@link #leftProperty()} /

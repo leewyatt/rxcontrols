@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.skins.RXMaterialTextFieldSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -421,6 +422,58 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
+    public void disabledLabelIsNotDoubleDimmed() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            inScene(field);
+            field.setDisable(true);
+            field.applyCss();
+            assertEquals(1.0, floatingLabel(field).getOpacity(), 0.001,
+                    "modena's .label:disabled dim must be countered so the label"
+                            + " does not multiply with the control-level dim");
+        });
+    }
+
+    @Test
+    public void cssDrivesAllMaterialStyleables() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setStyle("-rx-floating-label: false; -rx-animated: false;"
+                    + " -rx-animation-duration: 250ms; -rx-label-float-scale: 0.9;"
+                    + " -rx-text-padding: 1 2 3 4;");
+            inScene(field);
+            assertFalse(field.isFloatingLabel(), "-rx-floating-label must reach the property");
+            assertFalse(field.isAnimated(), "-rx-animated must reach the property");
+            assertEquals(Duration.millis(250), field.getAnimationDuration(),
+                    "-rx-animation-duration must reach the property");
+            assertEquals(0.9, field.getLabelFloatScale(), 0.001,
+                    "-rx-label-float-scale must reach the property");
+            assertEquals(new Insets(1, 2, 3, 4), field.getTextPadding(),
+                    "-rx-text-padding must reach the property");
+
+            RXMaterialTextField bound = new RXMaterialTextField();
+            bound.animatedProperty().bind(new SimpleBooleanProperty(true));
+            bound.setStyle("-rx-animated: false;");
+            inScene(bound);
+            assertTrue(bound.isAnimated(), "a bound property must not be overwritten by CSS");
+        });
+    }
+
+    @Test
+    public void nullTextPaddingBehavesAsEmpty() {
+        runOnFx(() -> {
+            RXMaterialTextField def = inScene(new RXMaterialTextField());
+            RXMaterialTextField nulled = new RXMaterialTextField();
+            nulled.setTextPadding(null);
+            inScene(nulled);
+            assertNull(nulled.getTextPadding(), "the getter stays pass-through (B2)");
+            assertEquals(def.prefHeight(-1), nulled.prefHeight(-1), 0.001,
+                    "null textPadding must lay out exactly like Insets.EMPTY");
+        });
+    }
+
+    @Test
     public void invalidToggleKeepsSupportingBandStable() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();
@@ -454,6 +507,12 @@ public class RXMaterialTextFieldTest {
             field.layout();
             assertEquals("Query", floatingLabel(field).getText(),
                     "explicit labelText must win over promptText");
+
+            field.setLabelText(null);
+            field.applyCss();
+            field.layout();
+            assertEquals("Search", floatingLabel(field).getText(),
+                    "null labelText must fall back to promptText like blank does");
         });
     }
 

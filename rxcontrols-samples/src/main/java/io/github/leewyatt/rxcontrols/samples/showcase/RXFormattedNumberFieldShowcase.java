@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
 import io.github.leewyatt.rxcontrols.samples.demo.RXFormattedNumberFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -25,11 +24,13 @@ import java.util.Locale;
 /**
  * Showcase application for {@link RXFormattedNumberField}.
  *
- * <p>Exercises every public knob: the committed {@link BigDecimal} value
+ * <p>Exercises the main public knobs: the committed {@link BigDecimal} value
  * (edited in the preview field), the {@code numberFormat} that drives both
  * rendering and commit parsing, the inclusive {@code min} / {@code max}
- * bounds, the inherited left / right decoration slots, text padding,
- * alignment, and the editable flag. Switching the format never mutates the
+ * bounds, the inherited left / right decoration slots, alignment, and the
+ * editable flag (text padding is deliberately not
+ * showcased: a panel slider would take USER origin and permanently disable
+ * the UA side-node defaults). Switching the format never mutates the
  * stored value — only its presentation.
  *
  * <p>For a minimal "few lines of code" example see
@@ -39,7 +40,6 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
 
     private static final double BOUND_MIN = -10000.0;
     private static final double BOUND_MAX = 10000.0;
-    private static final double MAX_TEXT_PADDING = 24.0;
     private static final BigDecimal STEP = BigDecimal.ONE;
 
     private RXFormattedNumberField field;
@@ -163,11 +163,6 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildLayoutGrid() {
-        Slider paddingSlider = createSlider(0.0, MAX_TEXT_PADDING, 0.0);
-        paddingSlider.valueProperty().addListener((obs, oldV, newV) ->
-                field.setTextPadding(new Insets(0, newV.doubleValue(), 0, newV.doubleValue())));
-        Label paddingValue = createValueLabel(paddingSlider, "%.0f px");
-
         ComboBox<Pos> alignmentBox = new ComboBox<>();
         alignmentBox.getItems().addAll(Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT);
         alignmentBox.setValue(field.getAlignment());
@@ -178,7 +173,6 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
         editableBox.selectedProperty().bindBidirectional(field.editableProperty());
 
         return createGrid(
-                row("Text padding", paddingSlider, paddingValue),
                 row("Alignment", alignmentBox),
                 row(editableBox));
     }

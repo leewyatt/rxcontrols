@@ -116,6 +116,49 @@ public class RXMaterialTextFieldUITest {
     }
 
     /**
+     * The remaining duration guards are only reachable while showing: null falls
+     * back to the default and still animates, while negative / INDEFINITE /
+     * UNKNOWN durations must snap straight to the end value (an INDEFINITE tween
+     * would otherwise never complete and leave the label stuck mid-flight).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void durationEdgeValuesSnapWhenShowing() throws InterruptedException {
+        runOnFx(() -> {
+            RXMaterialTextField indefiniteField = floatedField(true, Duration.INDEFINITE);
+            RXMaterialTextField unknownField = floatedField(true, Duration.UNKNOWN);
+            RXMaterialTextField negativeField = floatedField(true, Duration.millis(-50));
+            RXMaterialTextField nullField = floatedField(true, null);
+            VBox root = new VBox(indefiniteField, unknownField, negativeField, nullField);
+            stage = new Stage();
+            stage.setScene(new Scene(root, 320, 320));
+            stage.show();
+            root.applyCss();
+            root.layout();
+
+            assertTrue(floatingLabel(indefiniteField).getTranslateY() < 0.0, "precondition: floated");
+            assertTrue(floatingLabel(unknownField).getTranslateY() < 0.0, "precondition: floated");
+            assertTrue(floatingLabel(negativeField).getTranslateY() < 0.0, "precondition: floated");
+            assertTrue(floatingLabel(nullField).getTranslateY() < 0.0, "precondition: floated");
+
+            indefiniteField.setText("");
+            unknownField.setText("");
+            negativeField.setText("");
+            nullField.setText("");
+
+            assertEquals(0.0, floatingLabel(indefiniteField).getTranslateY(), 0.001,
+                    "INDEFINITE duration must snap, not start a never-ending tween");
+            assertEquals(0.0, floatingLabel(unknownField).getTranslateY(), 0.001,
+                    "UNKNOWN (NaN) duration must snap");
+            assertEquals(0.0, floatingLabel(negativeField).getTranslateY(), 0.001,
+                    "negative duration must snap");
+            assertTrue(floatingLabel(nullField).getTranslateY() < 0.0,
+                    "null duration must fall back to the 180ms default and animate");
+        });
+    }
+
+    /**
      * Disposing the skin mid-transition stops the running Timeline cleanly and
      * detaches the float listener, so a later float-state change does not move
      * the orphaned label.
