@@ -79,6 +79,8 @@ public class RXMaterialPasswordFieldTest {
             assertTrue(field.isShowClearButton());
             assertEquals(Duration.millis(180.0), field.getAnimationDuration());
             assertEquals(0.85, field.getLabelFloatScale(), 0.0);
+            assertEquals(4.0, field.getLabelGap(), 0.0);
+            assertEquals(4.0, field.getSupportingGap(), 0.0);
             assertEquals("", field.getLabelText());
             assertEquals(Insets.EMPTY, field.getTextPadding());
             // password-specific defaults
@@ -252,7 +254,8 @@ public class RXMaterialPasswordFieldTest {
             // (the whole declaration is silently dropped).
             field.setStyle("-rx-echo-char: 'x'; -rx-floating-label: false;"
                     + " -rx-animated: false; -rx-animation-duration: 250ms;"
-                    + " -rx-label-float-scale: 0.9; -rx-text-padding: 1 2 3 4;");
+                    + " -rx-label-float-scale: 0.9; -rx-label-gap: 9;"
+                    + " -rx-supporting-gap: 7; -rx-text-padding: 1 2 3 4;");
             inScene(field);
             assertEquals('x', field.getEchoChar(),
                     "-rx-echo-char must travel CSS -> converter -> property");
@@ -260,6 +263,8 @@ public class RXMaterialPasswordFieldTest {
             assertFalse(field.isAnimated());
             assertEquals(Duration.millis(250), field.getAnimationDuration());
             assertEquals(0.9, field.getLabelFloatScale(), 0.001);
+            assertEquals(9.0, field.getLabelGap(), 0.001);
+            assertEquals(7.0, field.getSupportingGap(), 0.001);
             assertEquals(new Insets(1, 2, 3, 4), field.getTextPadding());
             Text textNode = (Text) editorTextNode(field);
             assertNotNull(textNode);

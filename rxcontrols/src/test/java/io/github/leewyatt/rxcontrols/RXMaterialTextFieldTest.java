@@ -87,6 +87,8 @@ public class RXMaterialTextFieldTest {
             assertFalse(field.isInvalid());
             assertEquals(Duration.millis(180.0), field.getAnimationDuration());
             assertEquals(0.85, field.getLabelFloatScale(), 0.0);
+            assertEquals(4.0, field.getLabelGap(), 0.0);
+            assertEquals(4.0, field.getSupportingGap(), 0.0);
             assertEquals("", field.getLabelText());
             assertEquals(Insets.EMPTY, field.getTextPadding());
 
@@ -181,6 +183,8 @@ public class RXMaterialTextFieldTest {
                 .map(CssMetaData::getProperty)
                 .collect(Collectors.toSet());
         assertTrue(names.contains("-rx-floating-label"), names::toString);
+        assertTrue(names.contains("-rx-label-gap"), names::toString);
+        assertTrue(names.contains("-rx-supporting-gap"), names::toString);
         assertTrue(names.contains("-rx-animated"), names::toString);
         assertTrue(names.contains("-rx-animation-duration"), names::toString);
         assertTrue(names.contains("-rx-label-float-scale"), names::toString);
@@ -441,6 +445,7 @@ public class RXMaterialTextFieldTest {
             RXMaterialTextField field = new RXMaterialTextField();
             field.setStyle("-rx-floating-label: false; -rx-animated: false;"
                     + " -rx-animation-duration: 250ms; -rx-label-float-scale: 0.9;"
+                    + " -rx-label-gap: 9; -rx-supporting-gap: 7;"
                     + " -rx-text-padding: 1 2 3 4;");
             inScene(field);
             assertFalse(field.isFloatingLabel(), "-rx-floating-label must reach the property");
@@ -449,6 +454,9 @@ public class RXMaterialTextFieldTest {
                     "-rx-animation-duration must reach the property");
             assertEquals(0.9, field.getLabelFloatScale(), 0.001,
                     "-rx-label-float-scale must reach the property");
+            assertEquals(9.0, field.getLabelGap(), 0.001, "-rx-label-gap must reach the property");
+            assertEquals(7.0, field.getSupportingGap(), 0.001,
+                    "-rx-supporting-gap must reach the property");
             assertEquals(new Insets(1, 2, 3, 4), field.getTextPadding(),
                     "-rx-text-padding must reach the property");
 
@@ -463,13 +471,76 @@ public class RXMaterialTextFieldTest {
     @Test
     public void nullTextPaddingBehavesAsEmpty() {
         runOnFx(() -> {
-            RXMaterialTextField def = inScene(new RXMaterialTextField());
+            // Compare against an explicit EMPTY (both USER origin): the UA
+            // default is no longer EMPTY — it carries the text-to-line bottom gap.
+            RXMaterialTextField empty = new RXMaterialTextField();
+            empty.setTextPadding(Insets.EMPTY);
+            inScene(empty);
             RXMaterialTextField nulled = new RXMaterialTextField();
             nulled.setTextPadding(null);
             inScene(nulled);
             assertNull(nulled.getTextPadding(), "the getter stays pass-through (B2)");
-            assertEquals(def.prefHeight(-1), nulled.prefHeight(-1), 0.001,
+            assertEquals(empty.prefHeight(-1), nulled.prefHeight(-1), 0.001,
                     "null textPadding must lay out exactly like Insets.EMPTY");
+        });
+    }
+
+    @Test
+    public void bottomTextPaddingSuppliesTheTextToLineGap() {
+        runOnFx(() -> {
+            RXMaterialTextField ua = new RXMaterialTextField();
+            ua.setShowClearButton(false); // base tier: no :has-right-node
+            inScene(ua);
+            RXMaterialTextField zeroed = new RXMaterialTextField();
+            zeroed.setShowClearButton(false);
+            zeroed.setTextPadding(Insets.EMPTY);
+            inScene(zeroed);
+            assertTrue(zeroed.prefHeight(-1) < ua.prefHeight(-1),
+                    "the text-to-line gap must come from the UA -rx-text-padding bottom"
+                            + " inset (a USER override without a bottom value removes it)");
+        });
+    }
+
+    @Test
+    public void textPaddingTiersAllCarryTheBottomGap() {
+        runOnFx(() -> {
+            RXMaterialTextField base = tierField(false, false);
+            RXMaterialTextField left = tierField(true, false);
+            RXMaterialTextField right = tierField(false, true);
+            RXMaterialTextField both = tierField(true, true);
+            double expected = base.prefHeight(-1);
+            assertEquals(expected, left.prefHeight(-1), 0.001,
+                    ":has-left-node must re-carry the bottom gap (the shorthand overwrites the base rule)");
+            assertEquals(expected, right.prefHeight(-1), 0.001,
+                    ":has-right-node must re-carry the bottom gap");
+            assertEquals(expected, both.prefHeight(-1), 0.001,
+                    "the combined tier must re-carry the bottom gap");
+        });
+    }
+
+    @Test
+    public void gapPropertiesDriveBands() {
+        runOnFx(() -> {
+            RXMaterialTextField narrow = new RXMaterialTextField();
+            narrow.setLabelText("Name");
+            narrow.setHelperText("required");
+            narrow.setLabelGap(0);
+            narrow.setSupportingGap(0);
+            inScene(narrow);
+            RXMaterialTextField wide = new RXMaterialTextField();
+            wide.setLabelText("Name");
+            wide.setHelperText("required");
+            wide.setLabelGap(8);
+            wide.setSupportingGap(8);
+            inScene(wide);
+
+            assertEquals(narrow.prefHeight(-1) + 16.0, wide.prefHeight(-1), 0.001,
+                    "each gap property must flow into its band exactly once");
+
+            wide.setLabelGap(-5);
+            wide.setSupportingGap(Double.NaN);
+            assertEquals(narrow.prefHeight(-1) + 4.0, wide.prefHeight(-1), 0.001,
+                    "negative gaps clamp to 0 and non-finite gaps fall back to the 4px default");
         });
     }
 
@@ -1011,6 +1082,26 @@ public class RXMaterialTextFieldTest {
             }
         }
         return null;
+    }
+
+    private static RXMaterialTextField tierField(boolean leading, boolean trailing) {
+        RXMaterialTextField field = new RXMaterialTextField();
+        field.setShowClearButton(false);
+        if (leading) {
+            field.setLeadingNode(tinyNode());
+        }
+        if (trailing) {
+            field.setTrailingNode(tinyNode());
+        }
+        return inScene(field);
+    }
+
+    private static Region tinyNode() {
+        Region node = new Region();
+        node.setMinSize(1, 1);
+        node.setPrefSize(1, 1);
+        node.setMaxSize(1, 1);
+        return node;
     }
 
     private static RXMaterialTextField inScene(RXMaterialTextField field) {

@@ -68,6 +68,10 @@ public class RXMaterialTextField extends TextField {
     private static final boolean DEFAULT_SHOW_CLEAR_BUTTON = true;
     /** Default of {@link #animationDurationProperty()}. */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180.0);
+    /** Default of {@link #labelGapProperty()}. */
+    private static final double DEFAULT_LABEL_GAP = 4.0;
+    /** Default of {@link #supportingGapProperty()}. */
+    private static final double DEFAULT_SUPPORTING_GAP = 4.0;
     /** Default of {@link #labelFloatScaleProperty()}. */
     public static final double DEFAULT_LABEL_FLOAT_SCALE = 0.85;
 
@@ -397,6 +401,80 @@ public class RXMaterialTextField extends TextField {
         labelFloatScale.set(value);
     }
 
+    // ==================== labelGap ====================
+
+    private final DoubleProperty labelGap =
+            new SimpleStyleableDoubleProperty(StyleableProperties.LABEL_GAP,
+                    this, "labelGap", DEFAULT_LABEL_GAP);
+
+    /**
+     * Vertical gap between the floated label and the editor text (M2 / MUI use
+     * about 4dp). Negative values are clamped to 0 by the skin; non-finite
+     * values fall back to the default.
+     *
+     * @return the label-gap property
+     * @defaultValue 4
+     */
+    public final DoubleProperty labelGapProperty() {
+        return labelGap;
+    }
+
+    /**
+     * Returns the gap between the floated label and the editor text.
+     *
+     * @return the label gap, in pixels
+     */
+    public final double getLabelGap() {
+        return labelGap.get();
+    }
+
+    /**
+     * Sets the gap between the floated label and the editor text.
+     *
+     * @param value the label gap; negatives clamp to 0, non-finite values fall
+     *              back to the 4px default
+     */
+    public final void setLabelGap(double value) {
+        labelGap.set(value);
+    }
+
+    // ==================== supportingGap ====================
+
+    private final DoubleProperty supportingGap =
+            new SimpleStyleableDoubleProperty(StyleableProperties.SUPPORTING_GAP,
+                    this, "supportingGap", DEFAULT_SUPPORTING_GAP);
+
+    /**
+     * Vertical gap between the activation line and the supporting
+     * (helper / error) text (M2: 4dp). Negative values are clamped to 0 by the
+     * skin; non-finite values fall back to the default.
+     *
+     * @return the supporting-gap property
+     * @defaultValue 4
+     */
+    public final DoubleProperty supportingGapProperty() {
+        return supportingGap;
+    }
+
+    /**
+     * Returns the gap between the activation line and the supporting text.
+     *
+     * @return the supporting gap, in pixels
+     */
+    public final double getSupportingGap() {
+        return supportingGap.get();
+    }
+
+    /**
+     * Sets the gap between the activation line and the supporting text.
+     *
+     * @param value the supporting gap; negatives clamp to 0, non-finite values
+     *              fall back to the 4px default
+     */
+    public final void setSupportingGap(double value) {
+        supportingGap.set(value);
+    }
+
     // ==================== leadingNode ====================
 
     private final ObjectProperty<Node> leadingNode = new SimpleObjectProperty<>(this, "leadingNode");
@@ -509,6 +587,10 @@ public class RXMaterialTextField extends TextField {
      * trailing widths are excluded. Same semantics as
      * {@link RXTextField#textPaddingProperty()}; {@code null} is treated as
      * {@link Insets#EMPTY} by the skin.
+     * <p>
+     * The bottom inset doubles as the gap between the editor text and the
+     * activation line (the user-agent stylesheet defaults it to 0.25em);
+     * overriding textPadding without a bottom value removes that gap.
      *
      * @return the text-padding property
      * @defaultValue {@link Insets#EMPTY}
@@ -599,6 +681,36 @@ public class RXMaterialTextField extends TextField {
                     }
                 };
 
+        private static final CssMetaData<RXMaterialTextField, Number> LABEL_GAP =
+                new CssMetaData<>("-rx-label-gap",
+                        SizeConverter.getInstance(), DEFAULT_LABEL_GAP) {
+                    @Override
+                    public boolean isSettable(RXMaterialTextField n) {
+                        return !n.labelGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXMaterialTextField n) {
+                        return (StyleableProperty<Number>) n.labelGapProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXMaterialTextField, Number> SUPPORTING_GAP =
+                new CssMetaData<>("-rx-supporting-gap",
+                        SizeConverter.getInstance(), DEFAULT_SUPPORTING_GAP) {
+                    @Override
+                    public boolean isSettable(RXMaterialTextField n) {
+                        return !n.supportingGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXMaterialTextField n) {
+                        return (StyleableProperty<Number>) n.supportingGapProperty();
+                    }
+                };
+
         private static final CssMetaData<RXMaterialTextField, Insets> TEXT_PADDING =
                 new CssMetaData<>("-rx-text-padding",
                         InsetsConverter.getInstance(), Insets.EMPTY) {
@@ -620,7 +732,7 @@ public class RXMaterialTextField extends TextField {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(TextField.getClassCssMetaData());
             Collections.addAll(styleables,
-                    FLOATING_LABEL, ANIMATED, ANIMATION_DURATION, LABEL_FLOAT_SCALE, TEXT_PADDING);
+                    FLOATING_LABEL, ANIMATED, ANIMATION_DURATION, LABEL_FLOAT_SCALE, LABEL_GAP, SUPPORTING_GAP, TEXT_PADDING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

@@ -952,6 +952,12 @@
     -rx-animated: true;
     -rx-animation-duration: 180ms;
     -rx-label-float-scale: 0.85;
+    -rx-label-gap: 4px;
+    -rx-supporting-gap: 4px;
+    /* the bottom inset is the text-to-activation-line gap (a plain field's
+       bottom padding); 0.25em = 3px @ default font size, the former skin
+       LINE_GAP. The :has-*-node tiers below must carry it too. */
+    -rx-text-padding: 0 0 0.25em 0;
     /* no box, no native prompt — the floating label and the activation line
        carry the affordance */
     -fx-background-color: transparent;
@@ -965,17 +971,17 @@
 
 .rx-material-text-field:has-left-node,
 .rx-material-password-field:has-left-node {
-    -rx-text-padding: 0 0 0 0.583em;
+    -rx-text-padding: 0 0 0.25em 0.583em;
 }
 
 .rx-material-text-field:has-right-node,
 .rx-material-password-field:has-right-node {
-    -rx-text-padding: 0 0.583em 0 0;
+    -rx-text-padding: 0 0.583em 0.25em 0;
 }
 
 .rx-material-text-field:has-left-node:has-right-node,
 .rx-material-password-field:has-left-node:has-right-node {
-    -rx-text-padding: 0 0.583em 0 0.583em;
+    -rx-text-padding: 0 0.583em 0.25em 0.583em;
 }
 
 .rx-material-text-field > .label,

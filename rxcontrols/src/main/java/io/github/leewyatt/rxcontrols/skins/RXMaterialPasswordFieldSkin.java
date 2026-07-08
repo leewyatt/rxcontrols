@@ -47,6 +47,8 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
                 control.animatedProperty(),
                 control.animationDurationProperty(),
                 control.labelFloatScaleProperty(),
+                control.labelGapProperty(),
+                control.supportingGapProperty(),
                 control.showClearButtonProperty());
 
         revealGraphic.getStyleClass().add(GRAPHIC_CLASS);

@@ -58,12 +58,10 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     // ==================== Constants ====================
 
-    /** Gap between the editor text and the activation line. */
-    private static final double LINE_GAP = 3.0;
-    /** Gap between the floated label and the editor text (M2 / MUI ≈ 4dp). */
-    private static final double LABEL_GAP = 4.0;
-    /** Gap between the activation line and the supporting text (M2: 4dp). */
-    private static final double SUPPORTING_GAP = 4.0;
+    /** Null / non-finite fallback for the label gap; must match the controls' default. */
+    private static final double FALLBACK_LABEL_GAP = 4.0;
+    /** Null / non-finite fallback for the supporting gap; must match the controls' default. */
+    private static final double FALLBACK_SUPPORTING_GAP = 4.0;
     /** Collapsed horizontal scale of the accent line when unfocused. */
     private static final double ACCENT_REST_SCALE_X = 0.05;
     /** Fallback accent-line thickness before CSS resolves {@code -fx-pref-height}. */
@@ -96,6 +94,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private final ObservableValue<Boolean> animated;
     private final ObservableValue<Duration> animationDuration;
     private final ObservableValue<Number> labelFloatScale;
+    private final ObservableValue<Number> labelGap;
+    private final ObservableValue<Number> supportingGap;
     private final ObservableValue<Boolean> showClearButton;
 
     /**
@@ -155,6 +155,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * @param animated          animation-enabled observable
      * @param animationDuration transition-duration observable
      * @param labelFloatScale   floated-label scale observable
+     * @param labelGap          floated-label-to-editor gap observable
+     * @param supportingGap     line-to-supporting-text gap observable
      * @param showClearButton   built-in clear-button-enabled observable
      */
     protected RXMaterialFieldBaseSkin(TextField control,
@@ -169,13 +171,16 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                       ObservableValue<Boolean> animated,
                                       ObservableValue<Duration> animationDuration,
                                       ObservableValue<Number> labelFloatScale,
+                                      ObservableValue<Number> labelGap,
+                                      ObservableValue<Number> supportingGap,
                                       ObservableValue<Boolean> showClearButton) {
         // The effective-right relay must exist before super(...) and cannot
         // reference this; a private constructor receives it and wires the
         // trailing composition afterward.
         this(control, userLeading, userTrailing, userTextPadding, labelText, helperText,
                 errorText, invalid, floatingLabel, animated, animationDuration,
-                labelFloatScale, showClearButton, new SimpleObjectProperty<>());
+                labelFloatScale, labelGap, supportingGap, showClearButton,
+                new SimpleObjectProperty<>());
     }
 
     private RXMaterialFieldBaseSkin(TextField control,
@@ -190,6 +195,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                     ObservableValue<Boolean> animated,
                                     ObservableValue<Duration> animationDuration,
                                     ObservableValue<Number> labelFloatScale,
+                                    ObservableValue<Number> labelGap,
+                                    ObservableValue<Number> supportingGap,
                                     ObservableValue<Boolean> showClearButton,
                                     ObjectProperty<Node> effectiveRight) {
         super(control, userLeading, effectiveRight, userTextPadding);
@@ -204,6 +211,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         this.animated = animated;
         this.animationDuration = animationDuration;
         this.labelFloatScale = labelFloatScale;
+        this.labelGap = labelGap;
+        this.supportingGap = supportingGap;
 
         // A Label already carries the built-in ".label" style class; the CSS
         // targets it through the direct-child path (AGENTS §2.4.4).
@@ -283,6 +292,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerListener(control.focusedProperty(), this::onFocusChanged);
         disposer.registerListener(animated, this::onAnimatedChanged);
         disposer.registerListener(labelFloatScale, this::onLayoutChanged);
+        disposer.registerListener(labelGap, this::onLayoutChanged);
+        disposer.registerListener(supportingGap, this::onLayoutChanged);
         disposer.registerListener(userTrailing, this::updateTrailing);
         disposer.registerListener(showClearButton, this::updateTrailing);
         disposer.registerListener(control.editableProperty(), this::updateTrailing);
@@ -644,6 +655,23 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
 
+    private double labelGap() {
+        return gapOrDefault(labelGap, FALLBACK_LABEL_GAP);
+    }
+
+    private double supportingGap() {
+        return gapOrDefault(supportingGap, FALLBACK_SUPPORTING_GAP);
+    }
+
+    private static double gapOrDefault(ObservableValue<Number> gap, double fallback) {
+        Number n = gap.getValue();
+        double v = (n == null) ? fallback : n.doubleValue();
+        if (!Double.isFinite(v)) {
+            return fallback;
+        }
+        return Math.max(0.0, v);
+    }
+
     // ==================== Bands ====================
 
     private double labelBand() {
@@ -652,7 +680,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         }
         // Floated label height plus a breathing gap above the editor text; the
         // gap lives inside the band so pref/hit-test/baseline stay consistent.
-        return snapSizeY(unscaledLabelHeight() * floatScale()) + snapSizeY(LABEL_GAP);
+        return snapSizeY(unscaledLabelHeight() * floatScale()) + snapSizeY(labelGap());
     }
 
     private double unscaledLabelHeight() {
@@ -661,8 +689,11 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private double lineBand() {
         // Reserve the thicker of the two lines so a custom-styled activation
-        // line cannot bleed past the band into the supporting row.
-        return snapSizeY(Math.max(accentThickness(), activationThickness())) + snapSizeY(LINE_GAP);
+        // line cannot bleed past the band into the supporting row. The gap
+        // between the editor text and the line is NOT part of this band: it is
+        // the effective text padding's bottom inset (UA default 0.25em),
+        // matching how a plain text field spaces text off its bottom border.
+        return snapSizeY(Math.max(accentThickness(), activationThickness()));
     }
 
     private double accentThickness() {
@@ -681,7 +712,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         }
         // Gap between the activation line and the supporting text, inside the
         // band; layoutSupporting positions the text below the gap.
-        return snapSizeY(SUPPORTING_GAP) + snapSizeY(supporting.prefHeight(-1));
+        return snapSizeY(supportingGap()) + snapSizeY(supporting.prefHeight(-1));
     }
 
     // ==================== Layout ====================
@@ -725,7 +756,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private void layoutActivationLines(double x, double lineRegionTop, double w) {
-        final double lineY = lineRegionTop + snapSizeY(LINE_GAP);
+        final double lineY = lineRegionTop;
         activationLine.resizeRelocate(x, lineY, w, snapSizeY(activationThickness()));
         accentLine.resizeRelocate(x, lineY, w, snapSizeY(accentThickness()));
 
@@ -740,7 +771,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
             return;
         }
         supporting.setVisible(true);
-        final double gap = snapSizeY(SUPPORTING_GAP);
+        final double gap = snapSizeY(supportingGap());
         supporting.resizeRelocate(x, top + gap, w, Math.max(0.0, supportingBand - gap));
     }
 

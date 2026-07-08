@@ -141,10 +141,20 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         scaleSlider.valueProperty().addListener((obs, oldV, newV) ->
                 field.setLabelFloatScale(newV.doubleValue()));
 
+        Slider labelGapSlider = createSlider(0.0, 16.0, field.getLabelGap());
+        labelGapSlider.valueProperty().addListener((obs, oldV, newV) ->
+                field.setLabelGap(newV.doubleValue()));
+
+        Slider supportingGapSlider = createSlider(0.0, 16.0, field.getSupportingGap());
+        supportingGapSlider.valueProperty().addListener((obs, oldV, newV) ->
+                field.setSupportingGap(newV.doubleValue()));
+
         return createGrid(
                 row("Animated", animatedBox),
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
-                row("Label scale", scaleSlider, createValueLabel(scaleSlider, "%.2f")));
+                row("Label scale", scaleSlider, createValueLabel(scaleSlider, "%.2f")),
+                row("Label gap", labelGapSlider, createValueLabel(labelGapSlider, "%.0f px")),
+                row("Supporting gap", supportingGapSlider, createValueLabel(supportingGapSlider, "%.0f px")));
     }
 
     // ==================== Helpers ====================
