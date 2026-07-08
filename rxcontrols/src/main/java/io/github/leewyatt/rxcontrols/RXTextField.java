@@ -93,10 +93,19 @@ public class RXTextField extends TextField {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-text-field";
 
+    /**
+     * Creates an empty field; the initial text is {@code null}, matching
+     * {@code TextField(String)}.
+     */
     public RXTextField() {
         this(null);
     }
 
+    /**
+     * Creates a field with the given initial text.
+     *
+     * @param text the initial text, may be {@code null}
+     */
     public RXTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
@@ -112,11 +121,17 @@ public class RXTextField extends TextField {
         });
     }
 
+    /**
+     * Returns the user-agent stylesheet used by RXControls.
+     *
+     * @return the user-agent stylesheet URL
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXTextFieldSkin(this);
@@ -135,10 +150,20 @@ public class RXTextField extends TextField {
         return left;
     }
 
+    /**
+     * Returns the left-slot node.
+     *
+     * @return the left node, or {@code null}
+     */
     public final Node getLeft() {
         return left.get();
     }
 
+    /**
+     * Sets the node rendered inside the field, before the text area (the same instance assigned to both slots migrates out of the right slot).
+     *
+     * @param value the left node, may be {@code null}
+     */
     public final void setLeft(Node value) {
         left.set(value);
     }
@@ -156,10 +181,20 @@ public class RXTextField extends TextField {
         return right;
     }
 
+    /**
+     * Returns the right-slot node.
+     *
+     * @return the right node, or {@code null}
+     */
     public final Node getRight() {
         return right.get();
     }
 
+    /**
+     * Sets the node rendered inside the field, after the text area (the same instance assigned to both slots migrates out of the left slot).
+     *
+     * @param value the right node, may be {@code null}
+     */
     public final void setRight(Node value) {
         right.set(value);
     }
@@ -209,10 +244,20 @@ public class RXTextField extends TextField {
         return textPadding;
     }
 
+    /**
+     * Returns the text-editor inner padding.
+     *
+     * @return the text padding, or {@code null} (treated as {@link Insets#EMPTY} by the skin)
+     */
     public final Insets getTextPadding() {
         return textPadding == null ? Insets.EMPTY : textPadding.get();
     }
 
+    /**
+     * Sets the text-editor inner padding.
+     *
+     * @param value the text padding; {@code null} is treated as {@link Insets#EMPTY}
+     */
     public final void setTextPadding(Insets value) {
         textPaddingProperty().set(value);
     }
@@ -255,6 +300,7 @@ public class RXTextField extends TextField {
         return StyleableProperties.STYLEABLES;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();

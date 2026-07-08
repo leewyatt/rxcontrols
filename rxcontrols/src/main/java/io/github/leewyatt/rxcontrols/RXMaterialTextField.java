@@ -78,7 +78,8 @@ public class RXMaterialTextField extends TextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty field.
+     * Creates an empty field; the initial text is {@code null}, matching
+     * {@code TextField(String)}.
      */
     public RXMaterialTextField() {
         this(null);
@@ -114,6 +115,7 @@ public class RXMaterialTextField extends TextField {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXMaterialTextFieldSkin(this);

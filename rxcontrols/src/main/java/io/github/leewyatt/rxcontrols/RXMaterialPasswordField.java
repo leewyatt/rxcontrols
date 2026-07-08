@@ -78,7 +78,8 @@ public class RXMaterialPasswordField extends PasswordField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty field.
+     * Creates an empty field; the initial text is {@code null}, matching
+     * {@code TextField(String)}.
      */
     public RXMaterialPasswordField() {
         this(null);
@@ -116,6 +117,7 @@ public class RXMaterialPasswordField extends PasswordField {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXMaterialPasswordFieldSkin(this);

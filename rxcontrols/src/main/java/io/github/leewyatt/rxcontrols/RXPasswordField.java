@@ -61,7 +61,8 @@ public class RXPasswordField extends PasswordField {
     public static final char DEFAULT_ECHO_CHAR = '●';
 
     /**
-     * Creates an empty field.
+     * Creates an empty field; the initial text is {@code null}, matching
+     * {@code TextField(String)}.
      */
     public RXPasswordField() {
         this(null);
@@ -92,11 +93,17 @@ public class RXPasswordField extends PasswordField {
         pseudoClassStateChanged(REVEALED_PSEUDO_CLASS, isRevealPassword());
     }
 
+    /**
+     * Returns the user-agent stylesheet used by RXControls.
+     *
+     * @return the user-agent stylesheet URL
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXPasswordFieldSkin(this);
@@ -115,10 +122,20 @@ public class RXPasswordField extends PasswordField {
         return left;
     }
 
+    /**
+     * Returns the left-slot node.
+     *
+     * @return the left node, or {@code null}
+     */
     public final Node getLeft() {
         return left.get();
     }
 
+    /**
+     * Sets the node rendered inside the field, before the text area (the same instance assigned to both slots migrates out of the right slot).
+     *
+     * @param value the left node, may be {@code null}
+     */
     public final void setLeft(Node value) {
         left.set(value);
     }
@@ -137,10 +154,20 @@ public class RXPasswordField extends PasswordField {
         return right;
     }
 
+    /**
+     * Returns the right-slot node.
+     *
+     * @return the right node, or {@code null}
+     */
     public final Node getRight() {
         return right.get();
     }
 
+    /**
+     * Sets the node rendered inside the field, after the text area (the same instance assigned to both slots migrates out of the left slot).
+     *
+     * @param value the right node, may be {@code null}
+     */
     public final void setRight(Node value) {
         right.set(value);
     }
@@ -160,10 +187,20 @@ public class RXPasswordField extends PasswordField {
         return revealPassword;
     }
 
+    /**
+     * Returns whether the plain text is shown instead of the mask.
+     *
+     * @return whether the password is revealed
+     */
     public final boolean isRevealPassword() {
         return revealPassword.get();
     }
 
+    /**
+     * Sets whether the plain text is shown instead of the mask.
+     *
+     * @param value whether the password is revealed
+     */
     public final void setRevealPassword(boolean value) {
         revealPassword.set(value);
     }
@@ -209,10 +246,20 @@ public class RXPasswordField extends PasswordField {
         return echoChar;
     }
 
+    /**
+     * Returns the mask character.
+     *
+     * @return the mask character, or {@code null} (the skin renders {@link #DEFAULT_ECHO_CHAR})
+     */
     public final Character getEchoChar() {
         return echoChar == null ? DEFAULT_ECHO_CHAR : echoChar.get();
     }
 
+    /**
+     * Sets the mask character.
+     *
+     * @param value the mask character; {@code null} means {@link #DEFAULT_ECHO_CHAR}
+     */
     public final void setEchoChar(Character value) {
         echoCharProperty().set(value);
     }
@@ -262,10 +309,20 @@ public class RXPasswordField extends PasswordField {
         return textPadding;
     }
 
+    /**
+     * Returns the text-editor inner padding.
+     *
+     * @return the text padding, or {@code null} (treated as {@link Insets#EMPTY} by the skin)
+     */
     public final Insets getTextPadding() {
         return textPadding == null ? Insets.EMPTY : textPadding.get();
     }
 
+    /**
+     * Sets the text-editor inner padding.
+     *
+     * @param value the text padding; {@code null} is treated as {@link Insets#EMPTY}
+     */
     public final void setTextPadding(Insets value) {
         textPaddingProperty().set(value);
     }
@@ -324,6 +381,7 @@ public class RXPasswordField extends PasswordField {
         return StyleableProperties.STYLEABLES;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
