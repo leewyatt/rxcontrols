@@ -140,7 +140,9 @@ public class RXNumberField extends RXTextField {
     // ==================== Subclass hooks ====================
 
     /**
-     * Creates the converter used by this field's internal formatter.
+     * Creates the converter used by this field's internal formatter. Called once
+     * during construction, so an override must return a fresh, self-contained
+     * instance and must not read subclass state initialized after {@code super()}.
      *
      * @return the converter, never {@code null}
      */
@@ -149,7 +151,9 @@ public class RXNumberField extends RXTextField {
     }
 
     /**
-     * Creates the edit filter used by this field's internal formatter.
+     * Creates the edit filter used by this field's internal formatter. Called once
+     * during construction, so an override must return a fresh, self-contained
+     * instance and must not read subclass state initialized after {@code super()}.
      *
      * @return the filter, never {@code null}
      */
@@ -160,7 +164,9 @@ public class RXNumberField extends RXTextField {
     /**
      * Normalizes a value written to {@link #valueProperty()},
      * {@link #minProperty()}, or {@link #maxProperty()} before range clamping.
-     * Subclasses override this to enforce a narrower numeric domain.
+     * Subclasses override this to enforce a narrower numeric domain. It may run
+     * during construction (while the initial value is applied), so an override
+     * must not depend on subclass state initialized after {@code super()}.
      *
      * @param value the candidate value, may be {@code null}
      * @return the normalized value
@@ -172,7 +178,9 @@ public class RXNumberField extends RXTextField {
     /**
      * Validates a normalized value written to {@link #valueProperty()},
      * {@link #minProperty()}, or {@link #maxProperty()} before range clamping.
-     * Subclasses throw to reject a value outside their numeric domain.
+     * Subclasses throw to reject a value outside their numeric domain. It may run
+     * during construction (while the initial value is applied), so an override
+     * must not depend on subclass state initialized after {@code super()}.
      *
      * @param value the normalized value, may be {@code null}
      * @throws RuntimeException if the value is invalid
