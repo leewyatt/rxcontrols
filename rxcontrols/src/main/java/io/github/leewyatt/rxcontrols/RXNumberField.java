@@ -30,7 +30,14 @@ import java.util.logging.Logger;
  * <ul>
  *   <li>{@link #valueProperty()} holds a {@link BigDecimal} (may be {@code null}).
  *   <li>{@link #minProperty()} / {@link #maxProperty()} are inclusive, default
- *       {@code null} (unbounded), and must satisfy {@code min <= max}.
+ *       {@code null} (unbounded). Setting one past the other converges the
+ *       opposite <em>unbound</em> bound to preserve {@code min <= max} (e.g.
+ *       {@code setMin} above {@code max} raises {@code max}); when the opposite
+ *       bound is itself bound and cannot move, the range is left inverted, a
+ *       {@code WARNING} is logged, and value clamping is suspended until the
+ *       caller restores the ordering.
+ *       {@link #setRange(BigDecimal, BigDecimal)} sets both at once and rejects
+ *       {@code min > max} instead of converging.
  *   <li>The value is committed on focus loss, ENTER, and {@link #commitValue()}.
  *   <li>The internal {@link TextFormatter} is not replaceable; customize
  *       parsing through {@link #createConverter()} / {@link #createFilter()}.
@@ -158,7 +165,9 @@ public class RXNumberField extends RXTextField {
     }
 
     /**
-     * Validates a normalized value before range clamping.
+     * Validates a normalized value written to {@link #valueProperty()},
+     * {@link #minProperty()}, or {@link #maxProperty()} before range clamping.
+     * Subclasses throw to reject a value outside their numeric domain.
      *
      * @param value the normalized value, may be {@code null}
      * @throws RuntimeException if the value is invalid
@@ -236,12 +245,23 @@ public class RXNumberField extends RXTextField {
                         updatingMin = false;
                     }
                 }
+                validateValue(get());
                 BigDecimal v = get();
                 BigDecimal hi = getMax();
                 if (v != null && hi != null && v.compareTo(hi) > 0) {
-                    throw new IllegalArgumentException(
-                            "min (" + v.toPlainString() + ") must be <= max ("
-                                    + hi.toPlainString() + ")");
+                    // min pushed above max: converge the opposite bound up to keep
+                    // min <= max (Slider-style). If max is bound and cannot move,
+                    // leave the range inverted, log it, and let clampValue suspend
+                    // clamping until the caller restores the ordering.
+                    if (!max.isBound()) {
+                        setMax(v);
+                    } else {
+                        LOGGER.log(Level.WARNING,
+                                "min ({0}) exceeds a bound max ({1}); the range is"
+                                        + " inverted and value clamping is suspended"
+                                        + " until the caller restores min <= max.",
+                                new Object[]{v.toPlainString(), hi.toPlainString()});
+                    }
                 }
                 coerceCurrentValueAfterConstraintChange();
                 lastValid = v;
@@ -310,12 +330,23 @@ public class RXNumberField extends RXTextField {
                         updatingMax = false;
                     }
                 }
+                validateValue(get());
                 BigDecimal v = get();
                 BigDecimal lo = getMin();
                 if (v != null && lo != null && v.compareTo(lo) < 0) {
-                    throw new IllegalArgumentException(
-                            "max (" + v.toPlainString() + ") must be >= min ("
-                                    + lo.toPlainString() + ")");
+                    // max pushed below min: converge the opposite bound down to
+                    // keep min <= max. If min is bound and cannot move, leave the
+                    // range inverted, log it, and let clampValue suspend clamping
+                    // until the caller restores the ordering.
+                    if (!min.isBound()) {
+                        setMin(v);
+                    } else {
+                        LOGGER.log(Level.WARNING,
+                                "max ({0}) is below a bound min ({1}); the range is"
+                                        + " inverted and value clamping is suspended"
+                                        + " until the caller restores min <= max.",
+                                new Object[]{v.toPlainString(), lo.toPlainString()});
+                    }
                 }
                 coerceCurrentValueAfterConstraintChange();
                 lastValid = v;
@@ -359,6 +390,49 @@ public class RXNumberField extends RXTextField {
      */
     public final void setMax(BigDecimal max) {
         this.max.set(max);
+    }
+
+    // ==================== range ====================
+
+    /**
+     * Convenience entry that sets {@link #minProperty()} and
+     * {@link #maxProperty()} together, rejecting an inverted pair up front. Both
+     * values are normalized and validated (see
+     * {@link #normalizeValue(BigDecimal)} / {@link #validateValue(BigDecimal)});
+     * unlike the individual setters — which converge the opposite bound — a
+     * {@code min > max} pair throws.
+     * <p>
+     * This is not an atomic update: JavaFX has no multi-property transaction, so
+     * a listener may observe one intermediate state. The two bounds are assigned
+     * in whichever order avoids a spurious convergence of the not-yet-updated
+     * side. A {@code null} bound means unbounded on that side.
+     *
+     * @param min the inclusive lower bound, or {@code null} for unbounded
+     * @param max the inclusive upper bound, or {@code null} for unbounded
+     * @throws IllegalArgumentException if both are non-null and {@code min > max}
+     *                                  after normalization, or a bound is rejected
+     *                                  by {@link #validateValue(BigDecimal)}
+     */
+    public final void setRange(BigDecimal min, BigDecimal max) {
+        BigDecimal nMin = normalizeValue(min);
+        BigDecimal nMax = normalizeValue(max);
+        validateValue(nMin);
+        validateValue(nMax);
+        if (nMin != null && nMax != null && nMin.compareTo(nMax) > 0) {
+            throw new IllegalArgumentException(
+                    "min (" + nMin.toPlainString() + ") must be <= max ("
+                            + nMax.toPlainString() + ")");
+        }
+        BigDecimal currentMax = getMax();
+        boolean minFirstSafe = currentMax == null || nMin == null
+                || nMin.compareTo(currentMax) <= 0;
+        if (minFirstSafe) {
+            setMin(nMin);
+            setMax(nMax);
+        } else {
+            setMax(nMax);
+            setMin(nMin);
+        }
     }
 
     // ==================== Synchronization ====================
@@ -427,8 +501,11 @@ public class RXNumberField extends RXTextField {
                 } finally {
                     updatingValue = false;
                 }
-                refreshTextFromValue();
             }
+            // Refresh unconditionally: a bound value cannot be reverted or
+            // clamped, but the text must still reflect the actual (bound) value
+            // rather than being left stale.
+            refreshTextFromValue();
             throw ex;
         }
     }
@@ -458,6 +535,14 @@ public class RXNumberField extends RXTextField {
         }
         BigDecimal lo = min.get();
         BigDecimal hi = max.get();
+        // A contradictory range (min > max) has no value satisfying both bounds.
+        // Unbound setMin/setMax converge the opposite bound to keep the range
+        // ordered, so this is only reachable when the bound that would need to
+        // move is itself bound. Clamping to either side would push the value
+        // further from the other, so leave the candidate untouched instead.
+        if (lo != null && hi != null && lo.compareTo(hi) > 0) {
+            return candidate;
+        }
         BigDecimal result = candidate;
         if (hi != null && result.compareTo(hi) > 0) {
             result = hi;
