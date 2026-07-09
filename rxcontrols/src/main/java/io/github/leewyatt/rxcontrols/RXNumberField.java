@@ -239,10 +239,9 @@ public class RXNumberField extends RXTextField {
             }
             try {
                 BigDecimal normalized = normalizeValue(get());
-                if (!Objects.equals(get(), normalized)) {
-                    if (isBound()) {
-                        throw new IllegalArgumentException("bound min cannot be normalized");
-                    }
+                // Apply normalization only when unbound: a bound min is owned by
+                // its binding and cannot be re-set, so its raw value is used as-is.
+                if (!isBound() && !Objects.equals(get(), normalized)) {
                     updatingMin = true;
                     try {
                         set(normalized);
@@ -332,10 +331,9 @@ public class RXNumberField extends RXTextField {
             }
             try {
                 BigDecimal normalized = normalizeValue(get());
-                if (!Objects.equals(get(), normalized)) {
-                    if (isBound()) {
-                        throw new IllegalArgumentException("bound max cannot be normalized");
-                    }
+                // Apply normalization only when unbound: a bound max is owned by
+                // its binding and cannot be re-set, so its raw value is used as-is.
+                if (!isBound() && !Objects.equals(get(), normalized)) {
                     updatingMax = true;
                     try {
                         set(normalized);
@@ -427,17 +425,17 @@ public class RXNumberField extends RXTextField {
      * a listener may observe one intermediate state during a successful call. The
      * two bounds are assigned in whichever order avoids a spurious convergence of
      * the not-yet-updated side. A {@code null} bound means unbounded on that side.
-     * A rejected call, however, leaves both bounds unchanged (invalid arguments
-     * are checked before any mutation, and a mid-way failure is rolled back).
+     * A rejected call leaves both bounds unchanged: every check runs before either
+     * bound is written. A bound value the new range excludes is not rejected; like
+     * the individual setters it is left to its binding (see the class notes).
      *
      * @param min the inclusive lower bound, or {@code null} for unbounded
      * @param max the inclusive upper bound, or {@code null} for unbounded
      * @throws IllegalStateException    if {@link #minProperty()} or
      *                                  {@link #maxProperty()} is bound
      * @throws IllegalArgumentException if both are non-null and {@code min > max}
-     *                                  after normalization, a bound is rejected by
-     *                                  {@link #validateValue(BigDecimal)}, or a
-     *                                  bound value does not fit the requested range
+     *                                  after normalization, or a bound is rejected
+     *                                  by {@link #validateValue(BigDecimal)}
      */
     public final void setRange(BigDecimal min, BigDecimal max) {
         BigDecimal nMin = normalizeValue(min);
@@ -449,47 +447,26 @@ public class RXNumberField extends RXTextField {
                     "min (" + nMin.toPlainString() + ") must be <= max ("
                             + nMax.toPlainString() + ")");
         }
-        // Reject up front, before mutating either bound, so a failed call never
-        // leaves a half-applied range: a bound min/max cannot be set, and a bound
-        // value that falls outside the requested range cannot be clamped.
+        // A bound min/max is owned by its binding and cannot be set here. Reject
+        // before mutating anything (this is the only way setRange can fail after
+        // the argument checks, so the two bounds below are then set unconditionally).
         if (this.min.isBound() || this.max.isBound()) {
             throw new IllegalStateException(
                     "setRange cannot be used while min or max is bound");
         }
-        if (value.isBound()) {
-            BigDecimal v = value.get();
-            if (v != null && ((nMin != null && v.compareTo(nMin) < 0)
-                    || (nMax != null && v.compareTo(nMax) > 0))) {
-                throw new IllegalArgumentException(
-                        "bound value (" + v.toPlainString()
-                                + ") does not fit the requested range");
-            }
-        }
-        BigDecimal oldMin = getMin();
-        BigDecimal oldMax = getMax();
-        boolean minFirstSafe = oldMax == null || nMin == null
-                || nMin.compareTo(oldMax) <= 0;
-        try {
-            if (minFirstSafe) {
-                setMin(nMin);
-                setMax(nMax);
-            } else {
-                setMax(nMax);
-                setMin(nMin);
-            }
-        } catch (RuntimeException ex) {
-            // Safety net for a starting state the up-front checks cannot see (a
-            // bound value already outside the prior range): restore the previously
-            // consistent pair so a failed call is not left half-applied. Best
-            // effort — if even the restore throws, the field was already
-            // inconsistent, so leave it and surface the original failure.
-            try {
-                setMin(oldMin);
-                setMax(oldMax);
-            } catch (RuntimeException ignore) {
-                // already-inconsistent starting state; nothing consistent to restore.
-            }
-            throw ex;
+        // Order the two writes so the not-yet-updated side is never transiently
+        // crossed (which would spuriously converge it). Neither setter can throw
+        // here: min/max are unbound, and an out-of-range bound value is left to its
+        // binding rather than rejected, so no rollback is needed.
+        BigDecimal currentMax = getMax();
+        boolean minFirstSafe = currentMax == null || nMin == null
+                || nMin.compareTo(currentMax) <= 0;
+        if (minFirstSafe) {
+            setMin(nMin);
+            setMax(nMax);
+        } else {
+            setMax(nMax);
+            setMin(nMin);
         }
     }
 

@@ -190,27 +190,25 @@ public class RXNumberFieldBoundConstraintTest {
         assertBig("50", (BigDecimal) r[2], "max left unchanged");
     }
 
-    /** setRange rejects a narrowing that would exclude a bound value, without mutating either bound. */
+    /**
+     * setRange narrows around a bound value the same way the individual setters do:
+     * both bounds are set and the now-out-of-range bound value is left to its
+     * binding (caller's responsibility), not rejected.
+     */
     @Test
-    public void setRangeWithBoundValueOutsideThrowsWithoutMutating() {
-        Object[] r = onFx(() -> {
+    public void setRangeLeavesAnExcludedBoundValueToItsBinding() {
+        BigDecimal[] r = onFx(() -> {
             RXNumberField f = new RXNumberField();
             f.setMin(new BigDecimal("100"));
             f.setMax(new BigDecimal("1000"));
             SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("500"));
             f.valueProperty().bind(src);
-            boolean threw = false;
-            try {
-                f.setRange(new BigDecimal("0"), new BigDecimal("100"));   // bound value 500 does not fit
-            } catch (IllegalArgumentException expected) {
-                threw = true;
-            }
-            return new Object[]{threw, f.getMin(), f.getMax(), f.getValue()};
+            f.setRange(new BigDecimal("0"), new BigDecimal("100"));   // 500 no longer fits, but is bound
+            return new BigDecimal[]{f.getMin(), f.getMax(), f.getValue()};
         });
-        assertTrue((Boolean) r[0], "setRange throws when the bound value does not fit the requested range");
-        assertBig("100", (BigDecimal) r[1], "min left unchanged (no half-apply)");
-        assertBig("1000", (BigDecimal) r[2], "max left unchanged");
-        assertBig("500", (BigDecimal) r[3], "bound value unchanged");
+        assertBig("0", r[0], "min set");
+        assertBig("100", r[1], "max set");
+        assertBig("500", r[2], "bound value left as-is (its binding owns it)");
     }
 
     /**
