@@ -49,7 +49,12 @@ import java.util.logging.Logger;
  * {@link IllegalStateException} before any listener runs.
  * <p>
  * Prefer bidirectional binding for the value property; one-way {@code bind}
- * blocks user edits from being committed.
+ * blocks user edits from being committed. A bound value, {@code min}, or
+ * {@code max} is owned by its binding: the field cannot normalize, clamp, or
+ * reject it, so the source value is displayed / applied as-is (an out-of-range
+ * bound value is not clamped, an unbound opposite bound still converges around
+ * it) and keeping it valid — integral where required, and {@code min <= max} —
+ * is the caller's responsibility.
  */
 public class RXNumberField extends RXTextField {
 
