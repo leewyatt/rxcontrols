@@ -53,10 +53,12 @@ import java.util.logging.Logger;
  * blocks user edits from being committed. The {@code value} follows Slider's
  * lenient rule: {@link #setValue(BigDecimal)} on a {@code bound} value is a
  * no-op and an out-of-range bound value is displayed as-is (never clamped or
- * reverted). {@code min} / {@code max} are not normalized or validated — a
- * subclass domain (e.g. integer) is enforced on the {@code value} only, so a
- * fractional {@code min} on an integer field is accepted and simply clamps the
- * value; keeping the bounds sensible is the caller's responsibility.
+ * reverted). {@code min} / {@code max} are stored leniently (not normalized or
+ * validated), but a subclass may snap the <em>clamp target</em> into its value
+ * domain through {@link #effectiveLowerBound(BigDecimal)} /
+ * {@link #effectiveUpperBound(BigDecimal)} so a clamped value stays in that
+ * domain — e.g. {@link RXIntegerField} rounds the lower bound up and the upper
+ * bound down, so the value stays integral.
  */
 public class RXNumberField extends RXTextField {
 
@@ -199,6 +201,37 @@ public class RXNumberField extends RXTextField {
      * @throws RuntimeException if the value is invalid
      */
     protected void validateValue(BigDecimal value) {
+    }
+
+    /**
+     * Returns the effective lower clamp target for the given raw {@code min}.
+     * Bounds are stored leniently (Slider-style), but a subclass can snap the
+     * bound into its value domain here so a clamped value stays in that domain —
+     * e.g. {@link RXIntegerField} rounds the lower bound up so the value stays an
+     * integer at or above {@code min}. The default returns the raw bound. Must be
+     * a pure, side-effect-free transform (it runs on every clamp, including during
+     * construction), and must not depend on subclass state initialized after
+     * {@code super()}.
+     *
+     * @param min the raw lower bound, or {@code null} for unbounded
+     * @return the effective lower clamp target, or {@code null} for unbounded
+     */
+    protected BigDecimal effectiveLowerBound(BigDecimal min) {
+        return min;
+    }
+
+    /**
+     * Returns the effective upper clamp target for the given raw {@code max}.
+     * The upper-bound counterpart of {@link #effectiveLowerBound(BigDecimal)} —
+     * {@link RXIntegerField} rounds the upper bound down so the value stays an
+     * integer at or below {@code max}. The default returns the raw bound; the same
+     * purity/construction-timing rules apply.
+     *
+     * @param max the raw upper bound, or {@code null} for unbounded
+     * @return the effective upper clamp target, or {@code null} for unbounded
+     */
+    protected BigDecimal effectiveUpperBound(BigDecimal max) {
+        return max;
     }
 
     /**
@@ -449,10 +482,11 @@ public class RXNumberField extends RXTextField {
             refreshTextFromValue();
         } catch (RuntimeException ex) {
             // The value violates a subclass domain rule (e.g. a fractional value in
-            // an integer field). Revert to the last value that passed, then rethrow.
+            // an integer field). Revert to the last value that passed, re-clamped so
+            // the revert can never land outside the current range, then rethrow.
             updatingValue = true;
             try {
-                value.set(lastValidValue);
+                value.set(clampValue(lastValidValue));
             } finally {
                 updatingValue = false;
             }
@@ -479,6 +513,10 @@ public class RXNumberField extends RXTextField {
                 updatingValue = false;
             }
         }
+        // The clamped value is the field's current in-range value: keep it as the
+        // revert target so a later domain-rejected edit does not rewind to a stale,
+        // now-out-of-range value (this path bypasses coerceValueProperty's update).
+        lastValidValue = clamped;
         refreshTextFromValue();
     }
 
@@ -492,11 +530,17 @@ public class RXNumberField extends RXTextField {
         if (candidate == null) {
             return null;
         }
-        BigDecimal lo = min.get();
-        BigDecimal hi = max.get();
-        // Matches Slider's Utils.clamp: pull up to min first, then down to max.
-        // For an inverted range — only reachable transiently after a bound
-        // convergence threw — this pins to min, exactly as Slider does.
+        BigDecimal lo = effectiveLowerBound(min.get());
+        BigDecimal hi = effectiveUpperBound(max.get());
+        // An empty effective interval (lo > hi) has no value satisfying it: either an
+        // inverted range (transient, after a bound-convergence throw) or a subclass
+        // snap with no member (e.g. an integer field with min=1.5, max=1.8 -> [2, 1]).
+        // Keep the candidate rather than pin it to a wrong bound (value-domain
+        // priority). For a normal (non-empty) range this matches Slider's Utils.clamp:
+        // pull up to the lower bound first, then down to the upper bound.
+        if (lo != null && hi != null && lo.compareTo(hi) > 0) {
+            return candidate;
+        }
         if (lo != null && candidate.compareTo(lo) < 0) {
             return lo;
         }

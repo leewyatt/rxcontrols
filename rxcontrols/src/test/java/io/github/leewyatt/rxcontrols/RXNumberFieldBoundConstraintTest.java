@@ -314,4 +314,95 @@ public class RXNumberFieldBoundConstraintTest {
         assertEquals(r[3], r[1], "text refreshed to the actual bound value (not stale '5')");
         assertNull(r[4], "no uncaught exception routed to the FX thread's handler");
     }
+
+    /**
+     * A bound-driven clamp must keep the domain-rejection revert target in range:
+     * after min/max clamps the value, a later rejected edit reverts to the clamped
+     * (in-range) value, not a stale out-of-range one. (Regression: the clamp path
+     * writes value under the reentrancy guard and must refresh lastValidValue.)
+     */
+    @Test
+    public void boundsClampThenRejectedEditRevertsInRange() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(new BigDecimal("5"));   // value = 5
+            f.setMax(new BigDecimal("3"));                                // clamps value 5 -> 3
+            boolean threw = false;
+            try {
+                f.setValue(new BigDecimal("2.5"));                        // rejected by the integer domain
+            } catch (IllegalArgumentException expected) {
+                threw = true;
+            }
+            return new Object[]{threw, f.getValue(), f.getMax()};
+        });
+        assertTrue((Boolean) r[0], "fractional value rejected by the integer domain");
+        assertBig("3", (BigDecimal) r[1], "value reverts to the clamped 3, not the stale 5");
+        assertTrue(((BigDecimal) r[1]).compareTo((BigDecimal) r[2]) <= 0, "reverted value stays within max (in range)");
+    }
+
+    /** With integer bounds an integer field's value always stays integral through a bound clamp. */
+    @Test
+    public void integerFieldWithIntegerBoundsStaysIntegral() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(new BigDecimal("50"));
+            f.setMin(new BigDecimal("10"));
+            f.setMax(new BigDecimal("100"));
+            f.setValue(new BigDecimal("5"));            // below min -> clamps up to 10
+            BigDecimal v = f.getValue();
+            return new Object[]{v.toPlainString(), v.scale()};
+        });
+        assertEquals("10", r[0], "value clamped to the integer min");
+        assertEquals(0, ((Integer) r[1]).intValue(), "value stays integral (scale 0)");
+    }
+
+    /**
+     * A fractional bound must never make the value fractional: the clamp target is
+     * snapped into the integer domain — lower bound up (ceil), upper bound down
+     * (floor) — so the value stays integral and still honours the raw bound.
+     */
+    @Test
+    public void integerFieldFractionalBoundsSnapClampTargetToInteger() {
+        Object[] r = onFx(() -> {
+            RXIntegerField lower = new RXIntegerField(new BigDecimal("1"));
+            lower.setMin(new BigDecimal("1.5"));            // effective lower limit 2
+            RXIntegerField upper = new RXIntegerField(new BigDecimal("9"));
+            upper.setMax(new BigDecimal("8.5"));            // effective upper limit 8
+            return new Object[]{lower.getValue(), upper.getValue()};
+        });
+        assertBig("2", (BigDecimal) r[0], "value clamped up to ceil(1.5) = 2, not left at fractional 1.5");
+        assertEquals(0, ((BigDecimal) r[0]).scale(), "lower-clamped value is integral");
+        assertBig("8", (BigDecimal) r[1], "value clamped down to floor(8.5) = 8");
+        assertEquals(0, ((BigDecimal) r[1]).scale(), "upper-clamped value is integral");
+    }
+
+    /** Negative fractional bounds snap toward the interior: ceil(-1.2) = -1, floor(-2.6) = -3. */
+    @Test
+    public void integerFieldNegativeFractionalBoundsSnapTowardInterior() {
+        Object[] r = onFx(() -> {
+            RXIntegerField lower = new RXIntegerField(new BigDecimal("-5"));
+            lower.setMin(new BigDecimal("-1.2"));           // effective lower limit -1
+            RXIntegerField upper = new RXIntegerField(new BigDecimal("0"));
+            upper.setMax(new BigDecimal("-2.6"));           // effective upper limit -3
+            return new Object[]{lower.getValue(), upper.getValue()};
+        });
+        assertBig("-1", (BigDecimal) r[0], "value clamped up to ceil(-1.2) = -1");
+        assertBig("-3", (BigDecimal) r[1], "value clamped down to floor(-2.6) = -3");
+    }
+
+    /**
+     * A range with no integer member (min = 1.5, max = 1.8 -> effective [2, 1]) has
+     * no solution: value-domain priority keeps the current integer value rather than
+     * making it fractional or pinning it to a wrong bound.
+     */
+    @Test
+    public void integerFieldEmptyEffectiveIntervalKeepsIntegerValue() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(new BigDecimal("5"));
+            f.setMin(new BigDecimal("1.5"));                // effective lower 2
+            f.setMax(new BigDecimal("1.8"));                // effective [2, 1] -> empty
+            BigDecimal v = f.getValue();
+            return new Object[]{v.toPlainString(), v.scale()};
+        });
+        assertEquals("5", r[0], "value kept at its current integer, not forced onto a fractional bound");
+        assertEquals(0, ((Integer) r[1]).intValue(), "value stays integral (scale 0)");
+    }
 }
