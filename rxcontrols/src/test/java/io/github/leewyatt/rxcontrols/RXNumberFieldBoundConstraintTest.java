@@ -146,6 +146,50 @@ public class RXNumberFieldBoundConstraintTest {
         assertEquals(List.of("30"), maxSeen, "max should change 10 -> 30 directly, not via a converged 20");
     }
 
+    /** setRange with a bound max rejects up front (IllegalStateException) without mutating either bound. */
+    @Test
+    public void setRangeWithBoundMaxThrowsWithoutMutating() {
+        Object[] r = onFx(() -> {
+            RXNumberField f = new RXNumberField();
+            f.setMin(new BigDecimal("0"));
+            SimpleObjectProperty<BigDecimal> maxSrc = new SimpleObjectProperty<>(new BigDecimal("50"));
+            f.maxProperty().bind(maxSrc);
+            boolean threw = false;
+            try {
+                f.setRange(new BigDecimal("10"), new BigDecimal("20"));
+            } catch (IllegalStateException expected) {
+                threw = true;
+            }
+            return new Object[]{threw, f.getMin(), f.getMax()};
+        });
+        assertTrue((Boolean) r[0], "setRange with a bound max throws IllegalStateException");
+        assertBig("0", (BigDecimal) r[1], "min left unchanged (no half-apply)");
+        assertBig("50", (BigDecimal) r[2], "max left unchanged");
+    }
+
+    /** setRange rejects a narrowing that would exclude a bound value, without mutating either bound. */
+    @Test
+    public void setRangeWithBoundValueOutsideThrowsWithoutMutating() {
+        Object[] r = onFx(() -> {
+            RXNumberField f = new RXNumberField();
+            f.setMin(new BigDecimal("100"));
+            f.setMax(new BigDecimal("1000"));
+            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("500"));
+            f.valueProperty().bind(src);
+            boolean threw = false;
+            try {
+                f.setRange(new BigDecimal("0"), new BigDecimal("100"));   // bound value 500 does not fit
+            } catch (IllegalArgumentException expected) {
+                threw = true;
+            }
+            return new Object[]{threw, f.getMin(), f.getMax(), f.getValue()};
+        });
+        assertTrue((Boolean) r[0], "setRange throws when the bound value does not fit the requested range");
+        assertBig("100", (BigDecimal) r[1], "min left unchanged (no half-apply)");
+        assertBig("1000", (BigDecimal) r[2], "max left unchanged");
+        assertBig("500", (BigDecimal) r[3], "bound value unchanged");
+    }
+
     /** validateValue gates min / max the same way it gates value. */
     @Test
     public void validateValueGatesMinAndMax() {
