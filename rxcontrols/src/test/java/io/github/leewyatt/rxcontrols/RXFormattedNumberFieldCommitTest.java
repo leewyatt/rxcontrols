@@ -93,6 +93,21 @@ public class RXFormattedNumberFieldCommitTest {
         assertBig("1.231", v, "committed $1.231 must set value 1.231, not stay 1.234");
     }
 
+    /** A deliberate scale-only edit in a plain field (scale is observable via toPlainString) must commit. */
+    @Test
+    public void committingScaleOnlyEditInPlainFieldIsPreserved() {
+        Object[] r = onFx(() -> {
+            RXNumberField f = new RXNumberField();               // plain, toPlainString converter
+            f.setValue(new BigDecimal("100"));                   // scale 0, displays "100"
+            f.replaceText(0, f.getText().length(), "100.00");    // user edits to scale 2
+            f.commitValue();
+            BigDecimal v = f.getValue();
+            return new Object[]{v.toPlainString(), v.scale()};
+        });
+        assertEquals("100.00", r[0], "committed 100.00 must preserve the scale-2 value, not collapse to 100");
+        assertEquals(2, ((Integer) r[1]).intValue(), "value scale must be 2");
+    }
+
     /** A no-op commit (no edit) of a scale-drifting render must not spuriously change the value. */
     @Test
     public void committingWithoutEditKeepsTheValueUnchanged() {

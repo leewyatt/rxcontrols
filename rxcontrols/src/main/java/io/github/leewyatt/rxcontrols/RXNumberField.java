@@ -70,6 +70,8 @@ public class RXNumberField extends RXTextField {
             (obs, oldValue, newValue) -> handleFormatterValueChanged(newValue);
     private final ChangeListener<TextFormatter<?>> textFormatterGuard =
             (obs, oldFormatter, newFormatter) -> guardTextFormatter(newFormatter);
+    private final ChangeListener<String> textChangeListener =
+            (obs, oldText, newText) -> markTextEdited();
 
     // Sync-direction lock: we are pushing value -> formatter/text;
     // ignore the reverse formatter.value listener while true.
@@ -88,6 +90,13 @@ public class RXNumberField extends RXTextField {
 
     // Reentrancy lock for max — same role as updatingValue.
     private boolean updatingMax;
+
+    // Edit-origin marker: set true when the text changes by user editing (not by
+    // our own render), stays set through a commit's internal re-render, and is
+    // cleared on the next render. Distinguishes a real user edit — which is
+    // committed to the value, preserving a deliberate scale change such as
+    // 100 -> 100.00 — from a formatter re-reading its own text on a no-op commit.
+    private boolean textEdited;
 
     private BigDecimal lastValidValue;
 
@@ -118,6 +127,7 @@ public class RXNumberField extends RXTextField {
         setTextFormatter(formatter);
         textFormatterProperty().addListener(textFormatterGuard);
         formatter.valueProperty().addListener(formatterValueListener);
+        textProperty().addListener(textChangeListener);
 
         setValue(initialValue);
         refreshTextFromValue();
@@ -479,21 +489,24 @@ public class RXNumberField extends RXTextField {
         if (updatingFormatter) {
             return;
         }
-        // A committed edit changed the formatter's value. Push it to the public
-        // value only when it is a genuinely different number: compare the values
-        // (not a text-edited flag, which the commit's own text re-render can clear
-        // for a lossy format, and not Objects.equals, which would treat a pure
-        // scale change such as 100 vs 100.00 as a real edit). A bound value cannot
-        // be set, so it is only re-rendered.
-        BigDecimal current = value.get();
-        boolean sameNumber = current == null
-                ? newValue == null
-                : newValue != null && current.compareTo(newValue) == 0;
-        if (sameNumber || value.isBound()) {
+        // Push a committed edit into the public value only when the text was
+        // actually edited by the user since the last render. A formatter that
+        // merely re-reads its own text on a no-op commit must not push, or a
+        // formatting round-trip (e.g. 100 rendered then re-parsed as 100.00) would
+        // spuriously change the value. For a real edit, Objects.equals decides so a
+        // deliberate scale-only edit (100 -> 100.00, observable through the plain
+        // toPlainString converter) is preserved. A bound value cannot be set.
+        if (!textEdited || value.isBound() || Objects.equals(newValue, value.get())) {
             refreshTextFromValue();
             return;
         }
         setValue(newValue);
+    }
+
+    private void markTextEdited() {
+        if (!updatingFormatter) {
+            textEdited = true;
+        }
     }
 
     private void guardTextFormatter(TextFormatter<?> newFormatter) {
@@ -615,6 +628,7 @@ public class RXNumberField extends RXTextField {
             if (getText() == null) {
                 setText("");
             }
+            textEdited = false;
         } finally {
             updatingFormatter = false;
         }
