@@ -63,6 +63,11 @@ public class FormattedNumberFieldConverterTest {
         assertValue("-0.75", conv.fromString("-75"));
         assertValue("-0.75", conv.fromString("-75%"));
 
+        // Explicit "+" must stay positive even though percent's positive and
+        // negative suffix are both "%" (regression guard for the affix order).
+        assertValue("0.75", conv.fromString("+75"));
+        assertValue("0.75", conv.fromString("+75%"));
+
         // Round trip through the format is stable.
         assertValue("0.75", conv.fromString(conv.toString(new BigDecimal("0.75"))));
     }
@@ -81,15 +86,44 @@ public class FormattedNumberFieldConverterTest {
     }
 
     @Test
-    public void affixOrSignOnlyIsNoValue() {
+    public void emptyOrNullIsNull() {
+        FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        assertNull(cur.fromString(null));
+        assertNull(cur.fromString(""));
+        assertNull(cur.fromString("   "));
+    }
+
+    @Test
+    public void incompleteInputThrows() {
         FormattedNumberFieldConverter pct = converterFor(NumberFormat.getPercentInstance(Locale.US));
         FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        // Affix / sign / separator only is incomplete (not empty text): must throw
+        // so the commit path reverts to the last valid value rather than clearing.
+        assertThrows(NumberFormatException.class, () -> pct.fromString("%"));
+        assertThrows(NumberFormatException.class, () -> pct.fromString("-"));
+        assertThrows(NumberFormatException.class, () -> pct.fromString("."));
+        assertThrows(NumberFormatException.class, () -> cur.fromString("$"));
+    }
 
-        assertNull(pct.fromString("%"));
-        assertNull(pct.fromString("-"));
-        assertNull(cur.fromString("$"));
-        assertNull(cur.fromString(""));
-        assertNull(cur.fromString(null));
+    @Test
+    public void groupingSeparatorsInBareBody() {
+        FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        FormattedNumberFieldConverter num = converterFor(NumberFormat.getNumberInstance(Locale.US));
+        // Bare / trailing grouping separators (the filter allows them mid-edit)
+        // must commit the digits, not get dropped on the full-consume check.
+        assertValue("5", num.fromString("5,"));
+        assertValue("1234", num.fromString("1,234"));
+        assertValue("1000", cur.fromString("1,000"));
+    }
+
+    @Test
+    public void germanSuffixCurrencySigns() {
+        FormattedNumberFieldConverter de = converterFor(NumberFormat.getCurrencyInstance(Locale.GERMANY));
+        // Currency symbol is a suffix and decimal separator is ',': a bare body
+        // plus an explicit sign must round-trip with the correct sign.
+        assertValue("100", de.fromString("100,00"));
+        assertValue("-100", de.fromString("-100,00"));
+        assertValue("100", de.fromString(de.toString(new BigDecimal("100"))));
     }
 
     @Test

@@ -5,6 +5,7 @@ import javafx.util.StringConverter;
 
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
 
@@ -87,20 +88,24 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
 
         boolean negative = false;
         String body = raw;
-        if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
+        // Mirror the edit filter's stripAffix order — positive affix first — so a
+        // format whose positive and negative affix coincide (percent's "%", suffix
+        // currencies) does not misread an explicit "+" as a negative suffix.
+        if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
+            body = body.substring(posPrefix.length());
+        } else if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
             body = body.substring(negPrefix.length());
             negative = true;
-        } else if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
-            body = body.substring(posPrefix.length());
         }
-        if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
+        if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
+            body = body.substring(0, body.length() - posSuffix.length());
+        } else if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
             body = body.substring(0, body.length() - negSuffix.length());
             negative = true;
-        } else if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
-            body = body.substring(0, body.length() - posSuffix.length());
         }
 
-        char minusSign = parser.getDecimalFormatSymbols().getMinusSign();
+        DecimalFormatSymbols symbols = parser.getDecimalFormatSymbols();
+        char minusSign = symbols.getMinusSign();
         if (!body.isEmpty()) {
             char first = body.charAt(0);
             if (first == '-' || first == minusSign) {
@@ -110,8 +115,18 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
                 body = body.substring(1);
             }
         }
+        // Grouping separators are cosmetic and the edit filter admits them in any
+        // position; drop them so a filter-accepted body such as a trailing "5,"
+        // re-parses instead of failing the DecimalFormat full-consume check.
+        char groupSep = symbols.getGroupingSeparator();
+        if (body.indexOf(groupSep) >= 0) {
+            body = body.replace(String.valueOf(groupSep), "");
+        }
         if (body.isEmpty()) {
-            return null;
+            // Affix / sign only ("$", "%", "-"): an incomplete entry, not a cleared
+            // field (empty text already returned null above). Throw so the commit
+            // path reverts to the last valid value instead of dropping it to null.
+            throw new NumberFormatException("Incomplete number: " + raw);
         }
 
         BigDecimal magnitude = strictParse(parser, posPrefix + body + posSuffix);
