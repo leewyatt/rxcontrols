@@ -71,8 +71,6 @@ public class RXNumberField extends RXTextField {
             obs -> handleFormatterValueChanged();
     private final ChangeListener<TextFormatter<?>> textFormatterGuard =
             (obs, oldFormatter, newFormatter) -> guardTextFormatter(newFormatter);
-    private final ChangeListener<String> textChangeListener =
-            (obs, oldText, newText) -> markTextEdited();
 
     // Sync-direction lock: we are pushing value -> formatter/text;
     // ignore the reverse formatter.value listener while true.
@@ -92,12 +90,13 @@ public class RXNumberField extends RXTextField {
     // Reentrancy lock for max — same role as updatingValue.
     private boolean updatingMax;
 
-    // Edit-origin marker: set true when the text changes by user editing (not by
-    // our own render), stays set through a commit's internal re-render, and is
-    // cleared on the next render. Distinguishes a real user edit — which is
-    // committed to the value, preserving a deliberate scale change such as
-    // 100 -> 100.00 — from a formatter re-reading its own text on a no-op commit.
-    private boolean textEdited;
+    // The delegate converter (from createConverter()); used to render the
+    // canonical text of the current value for the edit-origin check.
+    private final StringConverter<BigDecimal> converter;
+
+    // The text of the most recent commit, captured when the formatter parses it.
+    // Refreshed on every commit (success or failure), so it never goes stale.
+    private String committedText;
 
     private BigDecimal lastValidValue;
 
@@ -119,16 +118,30 @@ public class RXNumberField extends RXTextField {
         super();
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
-        StringConverter<BigDecimal> converter =
+        StringConverter<BigDecimal> delegate =
                 Objects.requireNonNull(createConverter(), "converter cannot be null");
+        this.converter = delegate;
+        // Wrap the converter to capture each committed text, so the edit-origin
+        // check compares what the user committed against the canonical rendering.
+        StringConverter<BigDecimal> capturingConverter = new StringConverter<>() {
+            @Override
+            public String toString(BigDecimal v) {
+                return delegate.toString(v);
+            }
+
+            @Override
+            public BigDecimal fromString(String s) {
+                committedText = s;
+                return delegate.fromString(s);
+            }
+        };
         UnaryOperator<TextFormatter.Change> filter =
                 Objects.requireNonNull(createFilter(), "filter cannot be null");
 
-        formatter = new TextFormatter<>(converter, null, filter);
+        formatter = new TextFormatter<>(capturingConverter, null, filter);
         setTextFormatter(formatter);
         textFormatterProperty().addListener(textFormatterGuard);
         formatter.valueProperty().addListener(formatterValueListener);
-        textProperty().addListener(textChangeListener);
 
         setValue(initialValue);
         refreshTextFromValue();
@@ -490,31 +503,24 @@ public class RXNumberField extends RXTextField {
         if (updatingFormatter) {
             return;
         }
-        // Invoked on every formatter-value invalidation (an InvalidationListener,
-        // not an equals-gated ChangeListener) so an equal-value commit — e.g.
-        // deleting the trailing ".00" of "$100.00" — still reaches here and clears
-        // textEdited via refreshTextFromValue; otherwise a stale flag would push a
-        // scale drift on a later no-edit commit.
-        //
-        // Push into the public value only when the text was actually edited by the
-        // user since the last render. A formatter merely re-reading its own text on
-        // a no-op commit must not push, or a formatting round-trip (100 rendered
-        // then re-parsed as 100.00) would spuriously change the value. For a real
-        // edit, Objects.equals decides, so a deliberate scale-only edit
-        // (100 -> 100.00, observable through the plain toPlainString converter) is
-        // preserved. A bound value cannot be set.
-        BigDecimal newValue = formatter.getValue();
-        if (!textEdited || value.isBound() || Objects.equals(newValue, value.get())) {
+        // Stateless edit-origin check. committedText is the exact string the
+        // formatter last parsed (captured by the capturing converter on every
+        // commit, success or failure). If it equals the canonical rendering of the
+        // current value, the commit carried no genuine edit — either a no-op commit
+        // re-reading our own render (100 rendered "$100.00" and re-parsed as 100.00)
+        // or a failed parse whose text reverted — so we re-render and return without
+        // touching the value. Otherwise the committed text differs from what the
+        // value renders to, which is a real user edit (including a deliberate
+        // scale-only edit like 100 -> 100.00, observable through the plain
+        // toPlainString converter), and we push it. A bound value cannot be set.
+        BigDecimal current = value.get();
+        if (value.isBound()
+                || committedText == null
+                || Objects.equals(committedText, converter.toString(current))) {
             refreshTextFromValue();
             return;
         }
-        setValue(newValue);
-    }
-
-    private void markTextEdited() {
-        if (!updatingFormatter) {
-            textEdited = true;
-        }
+        setValue(formatter.getValue());
     }
 
     private void guardTextFormatter(TextFormatter<?> newFormatter) {
@@ -636,7 +642,6 @@ public class RXNumberField extends RXTextField {
             if (getText() == null) {
                 setText("");
             }
-            textEdited = false;
         } finally {
             updatingFormatter = false;
         }

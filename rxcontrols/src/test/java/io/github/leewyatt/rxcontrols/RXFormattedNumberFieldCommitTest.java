@@ -141,4 +141,26 @@ public class RXFormattedNumberFieldCommitTest {
         assertEquals("100", r[0], "value stays 100 after an equal-value edit followed by a no-op commit");
         assertEquals(0, ((Integer) r[1]).intValue(), "no scale drift (stays scale 0)");
     }
+
+    /**
+     * A failed parse must not strand the edit-origin state. After an incomplete
+     * edit ("$") is committed and its text reverts, a subsequent no-op commit of
+     * the reverted text must leave the value exactly where it was (1.234, scale 3),
+     * not drift it to the display-precision render (1.23, scale 2).
+     */
+    @Test
+    public void invalidEditThenNoOpCommitDoesNotDriftValue() {
+        Object[] r = onFx(() -> {
+            RXFormattedNumberField f = new RXFormattedNumberField();
+            f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
+            f.setValue(new BigDecimal("1.234"));               // displays "$1.23", value keeps scale 3
+            f.replaceText(0, f.getText().length(), "$");       // incomplete edit; will fail to parse
+            f.commitValue();                                    // commit #1: parse fails, text reverts to "$1.23"
+            f.commitValue();                                    // commit #2: no edit
+            BigDecimal v = f.getValue();
+            return new Object[]{v.toPlainString(), v.scale()};
+        });
+        assertEquals("1.234", r[0], "a failed parse then no-op commit must keep the value 1.234, not drift to 1.23");
+        assertEquals(3, ((Integer) r[1]).intValue(), "value scale stays 3 (no drift to display precision)");
+    }
 }
