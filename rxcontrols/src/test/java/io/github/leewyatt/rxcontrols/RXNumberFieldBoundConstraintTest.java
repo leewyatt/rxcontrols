@@ -19,12 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Range-constraint behaviour for {@link RXNumberField}: unbound setters converge
- * the opposite bound to keep {@code min <= max}; when the opposite bound is bound
- * and cannot move, the inverted range suspends clamping instead of pushing the
- * value to a wrong bound; {@link RXNumberField#setRange} rejects an inverted pair
- * and sets both without a spurious convergence step; and the {@code validateValue}
- * hook gates {@code min} / {@code max}.
+ * Range-constraint behaviour for {@link RXNumberField}, aligned with
+ * {@link javafx.scene.control.Slider}: unbound setters converge the opposite
+ * bound to keep {@code min <= max}; converging into a {@code bound} opposite
+ * bound throws "A bound value cannot be set" (not swallowed); {@code setValue}
+ * on a bound value is a no-op; {@link RXNumberField#setRange} sets both bounds
+ * leniently (converging, not rejecting, an inverted pair) but rejects up front
+ * when a bound is {@code bound}; and {@code validateValue} gates the value only,
+ * not the bounds.
  */
 public class RXNumberFieldBoundConstraintTest {
 
@@ -123,31 +125,37 @@ public class RXNumberFieldBoundConstraintTest {
         assertBig("5", r[2], "bound value stays (its binding owns it), does not abort the converge");
     }
 
-    /** When the opposite bound is bound (cannot converge), the range stays inverted and clamping is suspended. */
+    /**
+     * Slider parity: converging into a {@code bound} opposite bound cannot move it,
+     * so the convergence {@code set()} throws "A bound value cannot be set" — the
+     * exception is surfaced, not swallowed with a WARNING.
+     */
     @Test
-    public void oppositeBoundInversionSuspendsClamp() {
-        BigDecimal[] r = onFx(() -> {
+    public void convergingIntoBoundOppositeThrows() {
+        onFx(() -> {
             RXNumberField f = new RXNumberField();
             SimpleObjectProperty<BigDecimal> maxSrc = new SimpleObjectProperty<>(new BigDecimal("10"));
             f.maxProperty().bind(maxSrc);
-            f.setMin(new BigDecimal("20"));           // cannot converge a bound max
-            f.setValue(new BigDecimal("15"));
-            return new BigDecimal[]{f.getMin(), f.getMax(), f.getValue()};
-        });
-        assertBig("20", r[0], "min set");
-        assertBig("10", r[1], "bound max unchanged");
-        assertBig("15", r[2], "value left unclamped, not pushed to a wrong bound");
-    }
-
-    /** setRange rejects an inverted pair instead of converging. */
-    @Test
-    public void setRangeRejectsInverted() {
-        onFx(() -> {
-            RXNumberField f = new RXNumberField();
-            assertThrows(IllegalArgumentException.class,
-                    () -> f.setRange(new BigDecimal("20"), new BigDecimal("10")));
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> f.setMin(new BigDecimal("20")));   // must raise a bound max -> throws
+            assertTrue(ex.getMessage() != null && ex.getMessage().contains("bound value cannot be set"),
+                    "Slider-style: a bound value cannot be set (was: " + ex.getMessage() + ")");
             return null;
         });
+    }
+
+    /** setRange no longer rejects an inverted pair; like the setters it converges. */
+    @Test
+    public void setRangeInvertedConverges() {
+        BigDecimal[] r = onFx(() -> {
+            RXNumberField f = new RXNumberField();
+            f.setRange(new BigDecimal("20"), new BigDecimal("10"));   // inverted input, lenient
+            return new BigDecimal[]{f.getMin(), f.getMax()};
+        });
+        // fresh field: min written first, then max=10 converges min down to 10.
+        assertBig("10", r[0], "min converged down to max");
+        assertBig("10", r[1], "max");
+        assertTrue(r[0].compareTo(r[1]) <= 0, "range ends up ordered (min <= max)");
     }
 
     /** setRange sets both bounds and orders the writes so no spurious convergence intermediate is observed. */
@@ -212,12 +220,12 @@ public class RXNumberFieldBoundConstraintTest {
     }
 
     /**
-     * A bound min whose source produces a value a subclass validateValue rejects
-     * cannot be reverted; it must log and be left as-is, not escape onto the FX
-     * thread's uncaught handler (symmetric with the bound-value handling).
+     * A bound min follows its source without validation (bounds are lenient) and
+     * without leaking anything onto the FX thread's uncaught handler — even for a
+     * value a subclass validateValue would reject on the value axis.
      */
     @Test
-    public void boundMinFailingValidateDoesNotEscape() {
+    public void boundMinFollowsSourceWithoutEscaping() {
         Object[] r = onFx(() -> {
             Thread fx = Thread.currentThread();
             Thread.UncaughtExceptionHandler prev = fx.getUncaughtExceptionHandler();
@@ -234,50 +242,24 @@ public class RXNumberFieldBoundConstraintTest {
                 };
                 SimpleObjectProperty<BigDecimal> minSrc = new SimpleObjectProperty<>(new BigDecimal("0"));
                 f.minProperty().bind(minSrc);
-                minSrc.set(new BigDecimal("-5"));       // bound min now fails validate
+                minSrc.set(new BigDecimal("-5"));       // bounds are not validated
                 return new Object[]{f.getMin(), uncaught.get()};
             } finally {
                 fx.setUncaughtExceptionHandler(prev);
             }
         });
-        assertBig("-5", (BigDecimal) r[0], "bound min follows its source even when it fails validate");
+        assertBig("-5", (BigDecimal) r[0], "bound min follows its source (bounds are lenient)");
         assertNull(r[1], "no uncaught exception escaped onto the FX thread");
     }
 
     /**
-     * The one case a setRange setter can still throw: the field already holds an
-     * illegal UNBOUND value (bound to a bad value, then unbound). setRange surfaces
-     * it, but the per-property lastValid revert keeps the bounds from half-applying
-     * — which is why the removed explicit rollback is unnecessary.
+     * validateValue gates the {@code value} only; {@code min} / {@code max} are
+     * lenient (Slider-style), so a negative bound is accepted while a negative
+     * value is rejected and reverted.
      */
     @Test
-    public void setRangeWithPreexistingIllegalUnboundValueDoesNotHalfApply() {
+    public void validateValueGatesValueNotBounds() {
         Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField();
-            f.setMin(new BigDecimal("0"));
-            f.setMax(new BigDecimal("100"));
-            // Leave an illegal unbound value (1.5) behind: a bound value is kept
-            // as-is, then unbind leaves it without ever being coerced.
-            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("1.5"));
-            f.valueProperty().bind(src);
-            f.valueProperty().unbind();
-            boolean threw = false;
-            try {
-                f.setRange(new BigDecimal("10"), new BigDecimal("20"));
-            } catch (IllegalArgumentException expected) {
-                threw = true;
-            }
-            return new Object[]{threw, f.getMin(), f.getMax()};
-        });
-        assertTrue((Boolean) r[0], "setRange surfaces the illegal unbound value's normalization failure");
-        assertBig("0", (BigDecimal) r[1], "min not half-applied (reverted by its own lastValid)");
-        assertBig("100", (BigDecimal) r[2], "max untouched");
-    }
-
-    /** validateValue gates min / max the same way it gates value. */
-    @Test
-    public void validateValueGatesMinAndMax() {
-        Boolean[] r = onFx(() -> {
             RXNumberField f = new RXNumberField() {
                 @Override
                 protected void validateValue(BigDecimal candidate) {
@@ -286,24 +268,20 @@ public class RXNumberFieldBoundConstraintTest {
                     }
                 }
             };
-            boolean minRejected = false;
+            f.setMin(new BigDecimal("-10"));   // bounds not validated: accepted
+            f.setMax(new BigDecimal("-1"));
+            boolean valueRejected = false;
             try {
-                f.setMin(new BigDecimal("-10"));
+                f.setValue(new BigDecimal("-5"));
             } catch (IllegalArgumentException expected) {
-                minRejected = true;
+                valueRejected = true;
             }
-            boolean maxRejected = false;
-            try {
-                f.setMax(new BigDecimal("-1"));
-            } catch (IllegalArgumentException expected) {
-                maxRejected = true;
-            }
-            return new Boolean[]{minRejected, f.getMin() == null, maxRejected, f.getMax() == null};
+            return new Object[]{f.getMin(), f.getMax(), valueRejected, f.getValue()};
         });
-        assertTrue(r[0], "setMin(-10) rejected by validateValue");
-        assertTrue(r[1], "min reverted to null");
-        assertTrue(r[2], "setMax(-1) rejected by validateValue");
-        assertTrue(r[3], "max reverted to null");
+        assertBig("-10", (BigDecimal) r[0], "min accepted (bounds are lenient)");
+        assertBig("-1", (BigDecimal) r[1], "max accepted (bounds are lenient)");
+        assertTrue((Boolean) r[2], "setValue(-5) rejected by validateValue");
+        assertNull(r[3], "value reverted to null after the rejection");
     }
 
     /**

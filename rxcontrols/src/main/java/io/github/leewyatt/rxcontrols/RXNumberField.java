@@ -31,14 +31,14 @@ import java.util.logging.Logger;
  * <ul>
  *   <li>{@link #valueProperty()} holds a {@link BigDecimal} (may be {@code null}).
  *   <li>{@link #minProperty()} / {@link #maxProperty()} are inclusive, default
- *       {@code null} (unbounded). Setting one past the other converges the
- *       opposite <em>unbound</em> bound to preserve {@code min <= max} (e.g.
- *       {@code setMin} above {@code max} raises {@code max}); when the opposite
- *       bound is itself bound and cannot move, the range is left inverted, a
- *       {@code WARNING} is logged, and value clamping is suspended until the
- *       caller restores the ordering.
- *       {@link #setRange(BigDecimal, BigDecimal)} sets both at once and rejects
- *       {@code min > max} instead of converging.
+ *       {@code null} (unbounded) and behave like {@link javafx.scene.control.Slider}:
+ *       setting one past the other converges the opposite bound to preserve
+ *       {@code min <= max} (e.g. {@code setMin} above {@code max} raises
+ *       {@code max}). If that opposite bound is itself {@code bound}, the
+ *       convergence {@code set()} throws {@code "A bound value cannot be set"},
+ *       exactly as Slider does. {@link #setRange(BigDecimal, BigDecimal)} sets
+ *       both at once with the same lenient convergence (it rejects only the up-front
+ *       case where a bound would have to be written while it is {@code bound}).
  *   <li>The value is committed on focus loss, ENTER, and {@link #commitValue()}.
  *   <li>The internal {@link TextFormatter} is not replaceable; customize
  *       parsing through {@link #createConverter()} / {@link #createFilter()}.
@@ -50,12 +50,13 @@ import java.util.logging.Logger;
  * {@link IllegalStateException} before any listener runs.
  * <p>
  * Prefer bidirectional binding for the value property; one-way {@code bind}
- * blocks user edits from being committed. A bound value, {@code min}, or
- * {@code max} is owned by its binding: the field cannot normalize, clamp, or
- * reject it, so the source value is displayed / applied as-is (an out-of-range
- * bound value is not clamped, an unbound opposite bound still converges around
- * it) and keeping it valid — integral where required, and {@code min <= max} —
- * is the caller's responsibility.
+ * blocks user edits from being committed. The {@code value} follows Slider's
+ * lenient rule: {@link #setValue(BigDecimal)} on a {@code bound} value is a
+ * no-op and an out-of-range bound value is displayed as-is (never clamped or
+ * reverted). {@code min} / {@code max} are not normalized or validated — a
+ * subclass domain (e.g. integer) is enforced on the {@code value} only, so a
+ * fractional {@code min} on an integer field is accepted and simply clamps the
+ * value; keeping the bounds sensible is the caller's responsibility.
  */
 public class RXNumberField extends RXTextField {
 
@@ -83,12 +84,6 @@ public class RXNumberField extends RXTextField {
     // Reentrancy lock: coerceValueProperty is rewriting value itself;
     // prevents value.invalidated from re-entering.
     private boolean updatingValue;
-
-    // Reentrancy lock for min — same role as updatingValue.
-    private boolean updatingMin;
-
-    // Reentrancy lock for max — same role as updatingValue.
-    private boolean updatingMax;
 
     // The delegate converter (from createConverter()); used to render the
     // canonical text of the current value for the edit-origin check.
@@ -177,11 +172,13 @@ public class RXNumberField extends RXTextField {
     }
 
     /**
-     * Normalizes a value written to {@link #valueProperty()},
-     * {@link #minProperty()}, or {@link #maxProperty()} before range clamping.
-     * Subclasses override this to enforce a narrower numeric domain. It may run
-     * during construction (while the initial value is applied), so an override
-     * must not depend on subclass state initialized after {@code super()}.
+     * Normalizes a value written to {@link #valueProperty()} before range
+     * clamping. Subclasses override this to enforce a narrower numeric domain.
+     * It applies to the {@code value} only — {@code min} / {@code max} are kept
+     * lenient (Slider-style), so a subclass domain constrains the value, not the
+     * bounds. It may run during construction (while the initial value is
+     * applied), so an override must not depend on subclass state initialized
+     * after {@code super()}.
      *
      * @param value the candidate value, may be {@code null}
      * @return the normalized value
@@ -191,11 +188,12 @@ public class RXNumberField extends RXTextField {
     }
 
     /**
-     * Validates a normalized value written to {@link #valueProperty()},
-     * {@link #minProperty()}, or {@link #maxProperty()} before range clamping.
-     * Subclasses throw to reject a value outside their numeric domain. It may run
-     * during construction (while the initial value is applied), so an override
-     * must not depend on subclass state initialized after {@code super()}.
+     * Validates a normalized value written to {@link #valueProperty()} before
+     * range clamping. Subclasses throw to reject a value outside their numeric
+     * domain. Like {@link #normalizeValue(BigDecimal)} it gates the {@code value}
+     * only, not {@code min} / {@code max}. It may run during construction (while
+     * the initial value is applied), so an override must not depend on subclass
+     * state initialized after {@code super()}.
      *
      * @param value the normalized value, may be {@code null}
      * @throws RuntimeException if the value is invalid
@@ -242,75 +240,31 @@ public class RXNumberField extends RXTextField {
     }
 
     /**
-     * Sets the committed numeric value.
+     * Sets the committed numeric value. Like {@link javafx.scene.control.Slider},
+     * this is a no-op when the value property is {@code bound}.
      *
      * @param value the value, or {@code null}
      */
     public final void setValue(BigDecimal value) {
-        this.value.set(value);
+        if (!this.value.isBound()) {
+            this.value.set(value);
+        }
     }
 
     // ==================== min ====================
 
     private final ObjectProperty<BigDecimal> min = new SimpleObjectProperty<>(this, "min") {
-        private BigDecimal lastValid;
-
         @Override
         protected void invalidated() {
-            if (updatingMin) {
-                return;
+            BigDecimal v = get();
+            BigDecimal hi = getMax();
+            // Slider-style convergence: raising min past max pulls max up so the
+            // range stays ordered. If max is bound and cannot move, its set()
+            // throws "A bound value cannot be set" — the same contract as Slider.
+            if (v != null && hi != null && v.compareTo(hi) > 0) {
+                setMax(v);
             }
-            try {
-                BigDecimal normalized = normalizeValue(get());
-                // Apply normalization only when unbound: a bound min is owned by
-                // its binding and cannot be re-set, so its raw value is used as-is.
-                if (!isBound() && !Objects.equals(get(), normalized)) {
-                    updatingMin = true;
-                    try {
-                        set(normalized);
-                    } finally {
-                        updatingMin = false;
-                    }
-                }
-                validateValue(get());
-                BigDecimal v = get();
-                BigDecimal hi = getMax();
-                if (v != null && hi != null && v.compareTo(hi) > 0) {
-                    // min pushed above max: converge the opposite bound up to keep
-                    // min <= max (Slider-style). If max is bound and cannot move,
-                    // leave the range inverted, log it, and let clampValue suspend
-                    // clamping until the caller restores the ordering.
-                    if (!max.isBound()) {
-                        setMax(v);
-                    } else {
-                        LOGGER.log(Level.WARNING,
-                                "min ({0}) exceeds a bound max ({1}); the range is"
-                                        + " inverted and value clamping is suspended"
-                                        + " until the caller restores min <= max.",
-                                new Object[]{v.toPlainString(), hi.toPlainString()});
-                    }
-                }
-                coerceCurrentValueAfterConstraintChange();
-                lastValid = v;
-            } catch (RuntimeException ex) {
-                if (!isBound()) {
-                    updatingMin = true;
-                    try {
-                        set(lastValid);
-                    } finally {
-                        updatingMin = false;
-                    }
-                    throw ex;
-                }
-                // A bound min cannot be reverted; rethrowing would only surface on
-                // the FX thread's uncaught handler (this runs inside the binding's
-                // invalidation). Log and leave the value to its binding, mirroring
-                // the bound-value handling in coerceValueProperty.
-                LOGGER.log(Level.WARNING,
-                        "bound min could not be normalized or validated; it is left"
-                                + " as-is and its binding is responsible for a valid"
-                                + " value.", ex);
-            }
+            adjustValues();
         }
     };
 
@@ -345,64 +299,17 @@ public class RXNumberField extends RXTextField {
     // ==================== max ====================
 
     private final ObjectProperty<BigDecimal> max = new SimpleObjectProperty<>(this, "max") {
-        private BigDecimal lastValid;
-
         @Override
         protected void invalidated() {
-            if (updatingMax) {
-                return;
+            BigDecimal v = get();
+            BigDecimal lo = getMin();
+            // Slider-style convergence: lowering max below min pulls min down so
+            // the range stays ordered. If min is bound and cannot move, its set()
+            // throws "A bound value cannot be set" — the same contract as Slider.
+            if (v != null && lo != null && v.compareTo(lo) < 0) {
+                setMin(v);
             }
-            try {
-                BigDecimal normalized = normalizeValue(get());
-                // Apply normalization only when unbound: a bound max is owned by
-                // its binding and cannot be re-set, so its raw value is used as-is.
-                if (!isBound() && !Objects.equals(get(), normalized)) {
-                    updatingMax = true;
-                    try {
-                        set(normalized);
-                    } finally {
-                        updatingMax = false;
-                    }
-                }
-                validateValue(get());
-                BigDecimal v = get();
-                BigDecimal lo = getMin();
-                if (v != null && lo != null && v.compareTo(lo) < 0) {
-                    // max pushed below min: converge the opposite bound down to
-                    // keep min <= max. If min is bound and cannot move, leave the
-                    // range inverted, log it, and let clampValue suspend clamping
-                    // until the caller restores the ordering.
-                    if (!min.isBound()) {
-                        setMin(v);
-                    } else {
-                        LOGGER.log(Level.WARNING,
-                                "max ({0}) is below a bound min ({1}); the range is"
-                                        + " inverted and value clamping is suspended"
-                                        + " until the caller restores min <= max.",
-                                new Object[]{v.toPlainString(), lo.toPlainString()});
-                    }
-                }
-                coerceCurrentValueAfterConstraintChange();
-                lastValid = v;
-            } catch (RuntimeException ex) {
-                if (!isBound()) {
-                    updatingMax = true;
-                    try {
-                        set(lastValid);
-                    } finally {
-                        updatingMax = false;
-                    }
-                    throw ex;
-                }
-                // A bound max cannot be reverted; rethrowing would only surface on
-                // the FX thread's uncaught handler (this runs inside the binding's
-                // invalidation). Log and leave the value to its binding, mirroring
-                // the bound-value handling in coerceValueProperty.
-                LOGGER.log(Level.WARNING,
-                        "bound max could not be normalized or validated; it is left"
-                                + " as-is and its binding is responsible for a valid"
-                                + " value.", ex);
-            }
+            adjustValues();
         }
     };
 
@@ -438,62 +345,41 @@ public class RXNumberField extends RXTextField {
 
     /**
      * Convenience entry that sets {@link #minProperty()} and
-     * {@link #maxProperty()} together, rejecting an inverted pair up front. Both
-     * values are normalized and validated (see
-     * {@link #normalizeValue(BigDecimal)} / {@link #validateValue(BigDecimal)});
-     * unlike the individual setters — which converge the opposite bound — a
-     * {@code min > max} pair throws.
+     * {@link #maxProperty()} together. The bounds are lenient, exactly like the
+     * individual setters: an inverted pair converges (it is not rejected), and a
+     * fractional bound on an integer subclass is accepted. To keep the call
+     * failure-atomic it rejects up front, before touching either bound, when
+     * {@code min} or {@code max} is {@code bound} (a bound value cannot be set).
      * <p>
-     * This is not an atomic update: JavaFX has no multi-property transaction, so
-     * a listener may observe one intermediate state during a successful call. The
-     * two bounds are assigned in whichever order avoids a spurious convergence of
-     * the not-yet-updated side. A {@code null} bound means unbounded on that side.
-     * A rejected call leaves both bounds unchanged: every check runs before either
-     * bound is written. A bound value the new range excludes is not rejected; like
-     * the individual setters it is left to its binding (see the class notes).
+     * This is not an atomic <em>update</em>: JavaFX has no multi-property
+     * transaction, so a listener may observe one intermediate state during a
+     * successful call. The two bounds are assigned in whichever order avoids a
+     * spurious convergence of the not-yet-updated side. A {@code null} bound means
+     * unbounded on that side.
      *
      * @param min the inclusive lower bound, or {@code null} for unbounded
      * @param max the inclusive upper bound, or {@code null} for unbounded
-     * @throws IllegalStateException    if {@link #minProperty()} or
-     *                                  {@link #maxProperty()} is bound
-     * @throws IllegalArgumentException if both are non-null and {@code min > max}
-     *                                  after normalization, or a bound is rejected
-     *                                  by {@link #validateValue(BigDecimal)}
+     * @throws IllegalStateException if {@link #minProperty()} or
+     *                               {@link #maxProperty()} is bound
      */
     public final void setRange(BigDecimal min, BigDecimal max) {
-        BigDecimal nMin = normalizeValue(min);
-        BigDecimal nMax = normalizeValue(max);
-        validateValue(nMin);
-        validateValue(nMax);
-        if (nMin != null && nMax != null && nMin.compareTo(nMax) > 0) {
-            throw new IllegalArgumentException(
-                    "min (" + nMin.toPlainString() + ") must be <= max ("
-                            + nMax.toPlainString() + ")");
-        }
-        // A bound min/max is owned by its binding and cannot be set here. Reject
-        // before mutating anything (this is the only way setRange can fail after
-        // the argument checks, so the two bounds below are then set unconditionally).
+        // Reject up front so a bound min/max leaves both bounds unchanged rather
+        // than half-applying (the individual setters would throw mid-way).
         if (this.min.isBound() || this.max.isBound()) {
             throw new IllegalStateException(
                     "setRange cannot be used while min or max is bound");
         }
         // Order the two writes so the not-yet-updated side is never transiently
-        // crossed (which would spuriously converge it). From a consistent state the
-        // setters do not throw — min/max are unbound and an out-of-range bound value
-        // is left to its binding rather than rejected — so no explicit rollback is
-        // added. If the field already holds an illegal *unbound* value (e.g. bound
-        // to a bad value then unbound) a setter's value-coercion may still throw,
-        // but that property's own lastValid revert keeps the two bounds from being
-        // left half-applied.
+        // crossed (which would spuriously converge it).
         BigDecimal currentMax = getMax();
-        boolean minFirstSafe = currentMax == null || nMin == null
-                || nMin.compareTo(currentMax) <= 0;
-        if (minFirstSafe) {
-            setMin(nMin);
-            setMax(nMax);
+        boolean minFirst = currentMax == null || min == null
+                || min.compareTo(currentMax) <= 0;
+        if (minFirst) {
+            setMin(min);
+            setMax(max);
         } else {
-            setMax(nMax);
-            setMin(nMin);
+            setMax(max);
+            setMin(min);
         }
     }
 
@@ -541,24 +427,14 @@ public class RXNumberField extends RXTextField {
     }
 
     private void coerceValueProperty() {
-        BigDecimal candidate = value.get();
         if (value.isBound()) {
             // A bound value is owned by its binding: it cannot be clamped or
-            // reverted here. Throwing would only reach the FX thread's uncaught
-            // handler (this runs inside the binding's invalidation) and could abort
-            // a constraint-change chain, so leave the value to the caller and just
-            // keep the text in sync. An out-of-range bound value is displayed as-is.
-            try {
-                BigDecimal coerced = coerceValue(candidate);
-                if (Objects.equals(candidate, coerced)) {
-                    lastValidValue = coerced;
-                }
-            } catch (RuntimeException ignore) {
-                // bound value violates a domain rule; nothing correctable here.
-            }
+            // reverted (Slider leaves a bound value as-is). Keep the text in sync
+            // and leave the value to its binding.
             refreshTextFromValue();
             return;
         }
+        BigDecimal candidate = value.get();
         try {
             BigDecimal coerced = coerceValue(candidate);
             if (!Objects.equals(candidate, coerced)) {
@@ -572,6 +448,8 @@ public class RXNumberField extends RXTextField {
             lastValidValue = coerced;
             refreshTextFromValue();
         } catch (RuntimeException ex) {
+            // The value violates a subclass domain rule (e.g. a fractional value in
+            // an integer field). Revert to the last value that passed, then rethrow.
             updatingValue = true;
             try {
                 value.set(lastValidValue);
@@ -583,22 +461,25 @@ public class RXNumberField extends RXTextField {
         }
     }
 
-    private void coerceCurrentValueAfterConstraintChange() {
+    private void adjustValues() {
+        // Re-clamp the value after a bound change (Slider's adjustValues). The value
+        // itself did not change, so it is only clamped, not re-normalized/validated.
         if (value.isBound()) {
-            // A bound value that a constraint change pushes out of range cannot be
-            // clamped (its binding owns it). The boundary change must still take
-            // effect — e.g. converging an unbound opposite bound — so this never
-            // throws; only the text is refreshed and the value is left to the caller.
+            // A bound value cannot be clamped; keep the text in sync and leave it.
             refreshTextFromValue();
             return;
         }
         BigDecimal current = value.get();
-        BigDecimal coerced = coerceValue(current);
-        if (Objects.equals(current, coerced)) {
-            refreshTextFromValue();
-            return;
+        BigDecimal clamped = clampValue(current);
+        if (!Objects.equals(current, clamped)) {
+            updatingValue = true;
+            try {
+                value.set(clamped);
+            } finally {
+                updatingValue = false;
+            }
         }
-        setValue(coerced);
+        refreshTextFromValue();
     }
 
     private BigDecimal coerceValue(BigDecimal candidate) {
@@ -613,22 +494,16 @@ public class RXNumberField extends RXTextField {
         }
         BigDecimal lo = min.get();
         BigDecimal hi = max.get();
-        // A contradictory range (min > max) has no value satisfying both bounds.
-        // Unbound setMin/setMax converge the opposite bound to keep the range
-        // ordered, so this is only reachable when the bound that would need to
-        // move is itself bound. Clamping to either side would push the value
-        // further from the other, so leave the candidate untouched instead.
-        if (lo != null && hi != null && lo.compareTo(hi) > 0) {
-            return candidate;
+        // Matches Slider's Utils.clamp: pull up to min first, then down to max.
+        // For an inverted range — only reachable transiently after a bound
+        // convergence threw — this pins to min, exactly as Slider does.
+        if (lo != null && candidate.compareTo(lo) < 0) {
+            return lo;
         }
-        BigDecimal result = candidate;
-        if (hi != null && result.compareTo(hi) > 0) {
-            result = hi;
+        if (hi != null && candidate.compareTo(hi) > 0) {
+            return hi;
         }
-        if (lo != null && result.compareTo(lo) < 0) {
-            result = lo;
-        }
-        return result;
+        return candidate;
     }
 
     private void refreshTextFromValue() {

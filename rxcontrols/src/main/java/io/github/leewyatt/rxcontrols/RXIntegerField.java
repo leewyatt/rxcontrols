@@ -9,12 +9,18 @@ import java.util.function.UnaryOperator;
 /**
  * Integer-only numeric text field.
  * <p>
- * User edits reject the decimal point. Direct programmatic writes go through
- * the same integer domain check: values such as {@code 1.0} normalize to
- * {@code 1}, while values such as {@code 1.5} are rejected. A value supplied
- * through a binding, however, is owned by that binding: the field cannot
- * normalize or reject it, so it is displayed as-is (e.g. a bound {@code 1.5}
- * stays {@code 1.5}) and keeping it integral is the caller's responsibility.
+ * User edits reject the decimal point. Direct programmatic writes to the
+ * {@link #valueProperty() value} go through the same integer domain check:
+ * values such as {@code 1.0} normalize to {@code 1}, while values such as
+ * {@code 1.5} are rejected. A value supplied through a binding, however, is
+ * owned by that binding: the field cannot normalize or reject it, so it is
+ * displayed as-is (e.g. a bound {@code 1.5} stays {@code 1.5}) and keeping it
+ * integral is the caller's responsibility.
+ * <p>
+ * The integer domain applies to the value only. {@link #minProperty() min} /
+ * {@link #maxProperty() max} are lenient like {@link RXNumberField}: a
+ * fractional bound (e.g. {@code min = 1.5}) is accepted and simply clamps the
+ * value, which stays integral through its own check.
  *
  * @see RXNumberField
  */
