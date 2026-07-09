@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -98,6 +99,28 @@ public class RXNumberFieldBoundConstraintTest {
         assertBig("5", r[0], "min converged down to max");
         assertBig("5", r[1], "max");
         assertBig("5", r[2], "value clamped into the converged range");
+    }
+
+    /**
+     * A bound value that ends up out of range must NOT abort the convergence of an
+     * unbound opposite bound: the boundary still moves (Plan A), the bound value is
+     * left to its binding, only the text is refreshed.
+     */
+    @Test
+    public void boundValueDoesNotAbortConvergence() {
+        BigDecimal[] r = onFx(() -> {
+            RXNumberField f = new RXNumberField();
+            f.setMax(new BigDecimal("10"));
+            SimpleObjectProperty<BigDecimal> valueSrc = new SimpleObjectProperty<>(new BigDecimal("5"));
+            f.valueProperty().bind(valueSrc);
+            SimpleObjectProperty<BigDecimal> minSrc = new SimpleObjectProperty<>(new BigDecimal("0"));
+            f.minProperty().bind(minSrc);
+            minSrc.set(new BigDecimal("20"));           // min -> 20; unbound max must converge up
+            return new BigDecimal[]{f.getMin(), f.getMax(), f.getValue()};
+        });
+        assertBig("20", r[0], "min followed its binding");
+        assertBig("20", r[1], "unbound max converged up to 20 (not left inverted at 10)");
+        assertBig("5", r[2], "bound value stays (its binding owns it), does not abort the converge");
     }
 
     /** When the opposite bound is bound (cannot converge), the range stays inverted and clamping is suspended. */
@@ -190,6 +213,39 @@ public class RXNumberFieldBoundConstraintTest {
         assertBig("500", (BigDecimal) r[3], "bound value unchanged");
     }
 
+    /**
+     * A bound min whose source produces a value a subclass validateValue rejects
+     * cannot be reverted; it must log and be left as-is, not escape onto the FX
+     * thread's uncaught handler (symmetric with the bound-value handling).
+     */
+    @Test
+    public void boundMinFailingValidateDoesNotEscape() {
+        Object[] r = onFx(() -> {
+            Thread fx = Thread.currentThread();
+            Thread.UncaughtExceptionHandler prev = fx.getUncaughtExceptionHandler();
+            AtomicReference<Throwable> uncaught = new AtomicReference<>();
+            fx.setUncaughtExceptionHandler((t, e) -> uncaught.set(e));
+            try {
+                RXNumberField f = new RXNumberField() {
+                    @Override
+                    protected void validateValue(BigDecimal candidate) {
+                        if (candidate != null && candidate.signum() < 0) {
+                            throw new IllegalArgumentException("negative not allowed");
+                        }
+                    }
+                };
+                SimpleObjectProperty<BigDecimal> minSrc = new SimpleObjectProperty<>(new BigDecimal("0"));
+                f.minProperty().bind(minSrc);
+                minSrc.set(new BigDecimal("-5"));       // bound min now fails validate
+                return new Object[]{f.getMin(), uncaught.get()};
+            } finally {
+                fx.setUncaughtExceptionHandler(prev);
+            }
+        });
+        assertBig("-5", (BigDecimal) r[0], "bound min follows its source even when it fails validate");
+        assertNull(r[1], "no uncaught exception escaped onto the FX thread");
+    }
+
     /** validateValue gates min / max the same way it gates value. */
     @Test
     public void validateValueGatesMinAndMax() {
@@ -222,26 +278,34 @@ public class RXNumberFieldBoundConstraintTest {
         assertTrue(r[3], "max reverted to null");
     }
 
-    /** A bound value pushed out of range cannot be clamped, but the text must not stay stale. */
+    /**
+     * A bound value pushed out of range cannot be clamped, but the text must not
+     * stay stale — and it must not leak an uncaught exception onto the FX thread.
+     */
     @Test
-    public void boundValueOutOfRangeRefreshesText() {
+    public void boundValueOutOfRangeRefreshesTextWithoutUncaughtException() {
         Object[] r = onFx(() -> {
-            RXNumberField field = new RXNumberField();
-            field.setMax(new BigDecimal("10"));
-            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("5"));
-            field.valueProperty().bind(src);
-            String textBefore = field.getText();
+            Thread fx = Thread.currentThread();
+            Thread.UncaughtExceptionHandler prev = fx.getUncaughtExceptionHandler();
+            AtomicReference<Throwable> uncaught = new AtomicReference<>();
+            fx.setUncaughtExceptionHandler((t, e) -> uncaught.set(e));
             try {
-                src.set(new BigDecimal("20"));
-            } catch (RuntimeException ignore) {
-                // ExpressionHelper may route or swallow; the end state is what we assert.
+                RXNumberField field = new RXNumberField();
+                field.setMax(new BigDecimal("10"));
+                SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("5"));
+                field.valueProperty().bind(src);
+                String textBefore = field.getText();
+                src.set(new BigDecimal("20"));          // bound value pushed out of range
+                RXNumberField ref = new RXNumberField();
+                ref.setValue(new BigDecimal("20"));
+                return new Object[]{field.getValue(), field.getText(), textBefore, ref.getText(), uncaught.get()};
+            } finally {
+                fx.setUncaughtExceptionHandler(prev);
             }
-            RXNumberField ref = new RXNumberField();
-            ref.setValue(new BigDecimal("20"));
-            return new Object[]{field.getValue(), field.getText(), textBefore, ref.getText()};
         });
         assertBig("20", (BigDecimal) r[0], "bound value stays 20");
         assertEquals("5", r[2], "text was '5' before the out-of-range push");
         assertEquals(r[3], r[1], "text refreshed to the actual bound value (not stale '5')");
+        assertNull(r[4], "no uncaught exception routed to the FX thread's handler");
     }
 }

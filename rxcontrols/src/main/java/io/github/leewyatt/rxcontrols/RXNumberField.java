@@ -273,8 +273,16 @@ public class RXNumberField extends RXTextField {
                     } finally {
                         updatingMin = false;
                     }
+                    throw ex;
                 }
-                throw ex;
+                // A bound min cannot be reverted; rethrowing would only surface on
+                // the FX thread's uncaught handler (this runs inside the binding's
+                // invalidation). Log and leave the value to its binding, mirroring
+                // the bound-value handling in coerceValueProperty.
+                LOGGER.log(Level.WARNING,
+                        "bound min could not be normalized or validated; it is left"
+                                + " as-is and its binding is responsible for a valid"
+                                + " value.", ex);
             }
         }
     };
@@ -358,8 +366,16 @@ public class RXNumberField extends RXTextField {
                     } finally {
                         updatingMax = false;
                     }
+                    throw ex;
                 }
-                throw ex;
+                // A bound max cannot be reverted; rethrowing would only surface on
+                // the FX thread's uncaught handler (this runs inside the binding's
+                // invalidation). Log and leave the value to its binding, mirroring
+                // the bound-value handling in coerceValueProperty.
+                LOGGER.log(Level.WARNING,
+                        "bound max could not be normalized or validated; it is left"
+                                + " as-is and its binding is responsible for a valid"
+                                + " value.", ex);
             }
         }
     };
@@ -515,12 +531,26 @@ public class RXNumberField extends RXTextField {
 
     private void coerceValueProperty() {
         BigDecimal candidate = value.get();
+        if (value.isBound()) {
+            // A bound value is owned by its binding: it cannot be clamped or
+            // reverted here. Throwing would only reach the FX thread's uncaught
+            // handler (this runs inside the binding's invalidation) and could abort
+            // a constraint-change chain, so leave the value to the caller and just
+            // keep the text in sync. An out-of-range bound value is displayed as-is.
+            try {
+                BigDecimal coerced = coerceValue(candidate);
+                if (Objects.equals(candidate, coerced)) {
+                    lastValidValue = coerced;
+                }
+            } catch (RuntimeException ignore) {
+                // bound value violates a domain rule; nothing correctable here.
+            }
+            refreshTextFromValue();
+            return;
+        }
         try {
             BigDecimal coerced = coerceValue(candidate);
             if (!Objects.equals(candidate, coerced)) {
-                if (value.isBound()) {
-                    throw new IllegalArgumentException("bound value cannot be normalized or clamped");
-                }
                 updatingValue = true;
                 try {
                     value.set(coerced);
@@ -531,31 +561,31 @@ public class RXNumberField extends RXTextField {
             lastValidValue = coerced;
             refreshTextFromValue();
         } catch (RuntimeException ex) {
-            if (!value.isBound()) {
-                updatingValue = true;
-                try {
-                    value.set(lastValidValue);
-                } finally {
-                    updatingValue = false;
-                }
+            updatingValue = true;
+            try {
+                value.set(lastValidValue);
+            } finally {
+                updatingValue = false;
             }
-            // Refresh unconditionally: a bound value cannot be reverted or
-            // clamped, but the text must still reflect the actual (bound) value
-            // rather than being left stale.
             refreshTextFromValue();
             throw ex;
         }
     }
 
     private void coerceCurrentValueAfterConstraintChange() {
+        if (value.isBound()) {
+            // A bound value that a constraint change pushes out of range cannot be
+            // clamped (its binding owns it). The boundary change must still take
+            // effect — e.g. converging an unbound opposite bound — so this never
+            // throws; only the text is refreshed and the value is left to the caller.
+            refreshTextFromValue();
+            return;
+        }
         BigDecimal current = value.get();
         BigDecimal coerced = coerceValue(current);
         if (Objects.equals(current, coerced)) {
             refreshTextFromValue();
             return;
-        }
-        if (value.isBound()) {
-            throw new IllegalArgumentException("bound value is outside the number field range");
         }
         setValue(coerced);
     }
