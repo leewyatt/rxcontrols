@@ -6,12 +6,14 @@ import javafx.event.EventHandler;
 
 /**
  * Default skin for {@link RXNumberField}. Inherits the {@link RXFieldBaseSkin}
- * layout machinery and adds a single interaction hook: ENTER triggers
- * {@link RXNumberField#commitValue() commitValue} so the parsed value is
- * pushed into the formatter immediately (the JavaFX focus-lost commit handles
- * the other path). Registered via {@code addEventHandler} so it coexists with
- * any user-provided {@link javafx.scene.control.TextField#setOnAction
- * onAction} handler.
+ * layout machinery and adds a single interaction hook: an {@link ActionEvent}
+ * handler that calls {@link RXNumberField#commitValue() commitValue}. JavaFX
+ * already commits on ENTER (its {@code TextField} behavior commits before firing
+ * the action) and on focus loss, so on those paths this handler is a harmless
+ * idempotent no-op; it exists only as a backstop for a purely programmatic
+ * {@code fireEvent(new ActionEvent())} that bypasses the behavior. Registered via
+ * {@code addEventHandler} so it coexists with any user-provided
+ * {@link javafx.scene.control.TextField#setOnAction onAction} handler.
  * <p>
  * The skin does not handle format-property re-rendering — that lives on
  * {@link RXNumberField} itself so it survives skin replacement. It also does

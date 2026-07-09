@@ -29,14 +29,6 @@ public final class NumberFieldStringConverter extends StringConverter<BigDecimal
         if (raw.isEmpty()) {
             return null;
         }
-        if (isIncompleteNumeric(raw)) {
-            throw new NumberFormatException("Incomplete number: " + raw);
-        }
-        return new BigDecimal(raw);
-    }
-
-    private static boolean isIncompleteNumeric(String s) {
-        return "-".equals(s) || "+".equals(s) || ".".equals(s)
-                || "-.".equals(s) || "+.".equals(s);
+        return NumberParsing.parsePlainDecimal(raw);
     }
 }

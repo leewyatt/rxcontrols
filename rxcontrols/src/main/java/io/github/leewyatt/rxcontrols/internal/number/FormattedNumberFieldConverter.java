@@ -146,10 +146,6 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
     }
 
     private static BigDecimal parsePlain(String raw) {
-        if ("-".equals(raw) || "+".equals(raw) || ".".equals(raw)
-                || "-.".equals(raw) || "+.".equals(raw)) {
-            throw new NumberFormatException("Incomplete number: " + raw);
-        }
-        return new BigDecimal(raw);
+        return NumberParsing.parsePlainDecimal(raw);
     }
 }
