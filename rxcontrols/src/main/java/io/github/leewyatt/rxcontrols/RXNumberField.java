@@ -455,9 +455,13 @@ public class RXNumberField extends RXTextField {
                     "setRange cannot be used while min or max is bound");
         }
         // Order the two writes so the not-yet-updated side is never transiently
-        // crossed (which would spuriously converge it). Neither setter can throw
-        // here: min/max are unbound, and an out-of-range bound value is left to its
-        // binding rather than rejected, so no rollback is needed.
+        // crossed (which would spuriously converge it). From a consistent state the
+        // setters do not throw — min/max are unbound and an out-of-range bound value
+        // is left to its binding rather than rejected — so no explicit rollback is
+        // added. If the field already holds an illegal *unbound* value (e.g. bound
+        // to a bad value then unbound) a setter's value-coercion may still throw,
+        // but that property's own lastValid revert keeps the two bounds from being
+        // left half-applied.
         BigDecimal currentMax = getMax();
         boolean minFirstSafe = currentMax == null || nMin == null
                 || nMin.compareTo(currentMax) <= 0;

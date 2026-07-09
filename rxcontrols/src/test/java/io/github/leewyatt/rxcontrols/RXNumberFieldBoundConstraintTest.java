@@ -244,6 +244,36 @@ public class RXNumberFieldBoundConstraintTest {
         assertNull(r[1], "no uncaught exception escaped onto the FX thread");
     }
 
+    /**
+     * The one case a setRange setter can still throw: the field already holds an
+     * illegal UNBOUND value (bound to a bad value, then unbound). setRange surfaces
+     * it, but the per-property lastValid revert keeps the bounds from half-applying
+     * — which is why the removed explicit rollback is unnecessary.
+     */
+    @Test
+    public void setRangeWithPreexistingIllegalUnboundValueDoesNotHalfApply() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField();
+            f.setMin(new BigDecimal("0"));
+            f.setMax(new BigDecimal("100"));
+            // Leave an illegal unbound value (1.5) behind: a bound value is kept
+            // as-is, then unbind leaves it without ever being coerced.
+            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("1.5"));
+            f.valueProperty().bind(src);
+            f.valueProperty().unbind();
+            boolean threw = false;
+            try {
+                f.setRange(new BigDecimal("10"), new BigDecimal("20"));
+            } catch (IllegalArgumentException expected) {
+                threw = true;
+            }
+            return new Object[]{threw, f.getMin(), f.getMax()};
+        });
+        assertTrue((Boolean) r[0], "setRange surfaces the illegal unbound value's normalization failure");
+        assertBig("0", (BigDecimal) r[1], "min not half-applied (reverted by its own lastValid)");
+        assertBig("100", (BigDecimal) r[2], "max untouched");
+    }
+
     /** validateValue gates min / max the same way it gates value. */
     @Test
     public void validateValueGatesMinAndMax() {
