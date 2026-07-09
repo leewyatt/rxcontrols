@@ -51,12 +51,7 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
         if (source instanceof DecimalFormat df) {
             DecimalFormat parser = (DecimalFormat) df.clone();
             parser.setParseBigDecimal(true);
-            ParsePosition pp = new ParsePosition(0);
-            Number parsed = parser.parse(raw, pp);
-            if (parsed == null || pp.getIndex() != raw.length()) {
-                throw new NumberFormatException("Unparseable number: " + raw);
-            }
-            return (BigDecimal) parsed;
+            return parseDecimal(parser, raw);
         }
 
         ParsePosition pp = new ParsePosition(0);
@@ -65,6 +60,74 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
             throw new NumberFormatException("Unparseable number: " + raw);
         }
         return new BigDecimal(n.toString());
+    }
+
+    /**
+     * Parses {@code raw} with a big-decimal-configured {@link DecimalFormat}.
+     * A strict parse is tried first; on failure the parse retries leniently so
+     * the converter accepts exactly what {@link FormattedNumberFieldChangeFilter}
+     * lets through. The filter treats the format's affix as optional (it strips
+     * the affix before validating the numeric body), so a bare body such as
+     * {@code "75"} under a percent format or {@code "100"} under a currency
+     * format must still commit rather than be silently dropped. The retry
+     * re-attaches the format's own positive affix around the sign-stripped body
+     * and re-parses, which preserves DecimalFormat semantics (grouping,
+     * decimals, and the percent multiplier); the sign is applied afterward.
+     */
+    private static BigDecimal parseDecimal(DecimalFormat parser, String raw) {
+        BigDecimal strict = strictParse(parser, raw);
+        if (strict != null) {
+            return strict;
+        }
+
+        String posPrefix = parser.getPositivePrefix();
+        String posSuffix = parser.getPositiveSuffix();
+        String negPrefix = parser.getNegativePrefix();
+        String negSuffix = parser.getNegativeSuffix();
+
+        boolean negative = false;
+        String body = raw;
+        if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
+            body = body.substring(negPrefix.length());
+            negative = true;
+        } else if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
+            body = body.substring(posPrefix.length());
+        }
+        if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
+            body = body.substring(0, body.length() - negSuffix.length());
+            negative = true;
+        } else if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
+            body = body.substring(0, body.length() - posSuffix.length());
+        }
+
+        char minusSign = parser.getDecimalFormatSymbols().getMinusSign();
+        if (!body.isEmpty()) {
+            char first = body.charAt(0);
+            if (first == '-' || first == minusSign) {
+                negative = true;
+                body = body.substring(1);
+            } else if (first == '+') {
+                body = body.substring(1);
+            }
+        }
+        if (body.isEmpty()) {
+            return null;
+        }
+
+        BigDecimal magnitude = strictParse(parser, posPrefix + body + posSuffix);
+        if (magnitude == null) {
+            throw new NumberFormatException("Unparseable number: " + raw);
+        }
+        return negative ? magnitude.negate() : magnitude;
+    }
+
+    private static BigDecimal strictParse(DecimalFormat parser, String text) {
+        ParsePosition pp = new ParsePosition(0);
+        Number parsed = parser.parse(text, pp);
+        if (parsed == null || pp.getIndex() != text.length()) {
+            return null;
+        }
+        return (BigDecimal) parsed;
     }
 
     private static BigDecimal parsePlain(String raw) {
