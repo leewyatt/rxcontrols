@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.number.NumberFieldChangeFilter;
 import io.github.leewyatt.rxcontrols.internal.number.NumberFieldStringConverter;
 import io.github.leewyatt.rxcontrols.skins.RXNumberFieldSkin;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -66,8 +67,8 @@ public class RXNumberField extends RXTextField {
     // ==================== Fields ====================
 
     private final TextFormatter<BigDecimal> formatter;
-    private final ChangeListener<BigDecimal> formatterValueListener =
-            (obs, oldValue, newValue) -> handleFormatterValueChanged(newValue);
+    private final InvalidationListener formatterValueListener =
+            obs -> handleFormatterValueChanged();
     private final ChangeListener<TextFormatter<?>> textFormatterGuard =
             (obs, oldFormatter, newFormatter) -> guardTextFormatter(newFormatter);
     private final ChangeListener<String> textChangeListener =
@@ -485,17 +486,24 @@ public class RXNumberField extends RXTextField {
 
     // ==================== Synchronization ====================
 
-    private void handleFormatterValueChanged(BigDecimal newValue) {
+    private void handleFormatterValueChanged() {
         if (updatingFormatter) {
             return;
         }
-        // Push a committed edit into the public value only when the text was
-        // actually edited by the user since the last render. A formatter that
-        // merely re-reads its own text on a no-op commit must not push, or a
-        // formatting round-trip (e.g. 100 rendered then re-parsed as 100.00) would
-        // spuriously change the value. For a real edit, Objects.equals decides so a
-        // deliberate scale-only edit (100 -> 100.00, observable through the plain
-        // toPlainString converter) is preserved. A bound value cannot be set.
+        // Invoked on every formatter-value invalidation (an InvalidationListener,
+        // not an equals-gated ChangeListener) so an equal-value commit — e.g.
+        // deleting the trailing ".00" of "$100.00" — still reaches here and clears
+        // textEdited via refreshTextFromValue; otherwise a stale flag would push a
+        // scale drift on a later no-edit commit.
+        //
+        // Push into the public value only when the text was actually edited by the
+        // user since the last render. A formatter merely re-reading its own text on
+        // a no-op commit must not push, or a formatting round-trip (100 rendered
+        // then re-parsed as 100.00) would spuriously change the value. For a real
+        // edit, Objects.equals decides, so a deliberate scale-only edit
+        // (100 -> 100.00, observable through the plain toPlainString converter) is
+        // preserved. A bound value cannot be set.
+        BigDecimal newValue = formatter.getValue();
         if (!textEdited || value.isBound() || Objects.equals(newValue, value.get())) {
             refreshTextFromValue();
             return;

@@ -120,4 +120,25 @@ public class RXFormattedNumberFieldCommitTest {
         });
         assertBig("100", v, "value stays 100 on a no-op commit (no spurious scale drift)");
     }
+
+    /**
+     * An equal-value edit (deleting trailing zeros that do not change the number)
+     * must not strand the edit-origin flag and let a later no-op commit drift the
+     * scale (100 -> 100.00 with no user edit).
+     */
+    @Test
+    public void equalValueEditThenNoOpCommitDoesNotDriftScale() {
+        Object[] r = onFx(() -> {
+            RXFormattedNumberField f = new RXFormattedNumberField();
+            f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
+            f.setValue(new BigDecimal("100"));                 // scale 0, displays "$100.00"
+            f.replaceText(0, f.getText().length(), "$100");    // equal-value edit (parses back to 100)
+            f.commitValue();                                    // commit #1: value unchanged
+            f.commitValue();                                    // commit #2: no edit
+            BigDecimal v = f.getValue();
+            return new Object[]{v.toPlainString(), v.scale()};
+        });
+        assertEquals("100", r[0], "value stays 100 after an equal-value edit followed by a no-op commit");
+        assertEquals(0, ((Integer) r[1]).intValue(), "no scale drift (stays scale 0)");
+    }
 }
