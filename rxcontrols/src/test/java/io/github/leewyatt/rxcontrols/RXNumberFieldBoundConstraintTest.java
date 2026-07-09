@@ -405,4 +405,30 @@ public class RXNumberFieldBoundConstraintTest {
         assertEquals("5", r[0], "value kept at its current integer, not forced onto a fractional bound");
         assertEquals(0, ((Integer) r[1]).intValue(), "value stays integral (scale 0)");
     }
+
+    /**
+     * A fractional value left behind by the JavaFX bind-then-unbind gotcha (a bound
+     * value is caller-owned and unbind never re-validates) must not be registered as
+     * the domain-rejection revert target: a later rejected edit must rewind to the
+     * last domain-valid value (here {@code null}), never to the {@code 1.5} residue.
+     */
+    @Test
+    public void integerFieldUnbindResidueIsNotRegisteredAsRevertTarget() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField();
+            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("1.5"));
+            f.valueProperty().bind(src);       // bound fractional value (caller-owned)
+            f.valueProperty().unbind();        // JavaFX leaves 1.5 as an unbound residue
+            f.setMax(new BigDecimal("10"));    // bound change must NOT register 1.5 as revert target
+            boolean threw = false;
+            try {
+                f.setValue(new BigDecimal("2.5"));   // integer domain rejects the fractional edit
+            } catch (IllegalArgumentException expected) {
+                threw = true;
+            }
+            return new Object[]{threw, f.getValue()};
+        });
+        assertTrue((Boolean) r[0], "fractional edit rejected by the integer domain");
+        assertNull(r[1], "rejected edit reverts to the last valid value (null), never the 1.5 unbind residue");
+    }
 }

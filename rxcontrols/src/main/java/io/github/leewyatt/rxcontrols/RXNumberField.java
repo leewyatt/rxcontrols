@@ -513,10 +513,15 @@ public class RXNumberField extends RXTextField {
                 updatingValue = false;
             }
         }
-        // The clamped value is the field's current in-range value: keep it as the
-        // revert target so a later domain-rejected edit does not rewind to a stale,
-        // now-out-of-range value (this path bypasses coerceValueProperty's update).
-        lastValidValue = clamped;
+        // Keep the revert target in range (this path bypasses coerceValueProperty's
+        // update), but only if it also passes the value domain: a bound change can
+        // leave an unbound value that never went through the domain check — a binding
+        // residue after unbind, e.g. 1.5 in an integer field — and that must not become
+        // the revert target, or a later domain-rejected edit would rewind onto it. It
+        // is left displayed (clamp-only, like Slider); only the bookkeeping skips it.
+        if (isDomainValid(clamped)) {
+            lastValidValue = clamped;
+        }
         refreshTextFromValue();
     }
 
@@ -524,6 +529,15 @@ public class RXNumberField extends RXTextField {
         BigDecimal normalized = normalizeValue(candidate);
         validateValue(normalized);
         return clampValue(normalized);
+    }
+
+    private boolean isDomainValid(BigDecimal candidate) {
+        try {
+            validateValue(normalizeValue(candidate));
+            return true;
+        } catch (RuntimeException ex) {
+            return false;
+        }
     }
 
     private BigDecimal clampValue(BigDecimal candidate) {
