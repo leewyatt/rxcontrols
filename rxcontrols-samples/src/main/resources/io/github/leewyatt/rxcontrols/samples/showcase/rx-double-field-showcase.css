@@ -47,3 +47,8 @@
     -fx-background-color: #4a55d6;
     -fx-text-fill: #ffffff;
 }
+
+.policy-result {
+    -fx-text-fill: #5a6072;
+    -fx-font-size: 11px;
+}

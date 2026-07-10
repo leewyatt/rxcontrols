@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -19,16 +20,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Range-constraint behaviour for {@link RXNumberField}, aligned with
+ * Range-constraint behaviour for {@link RXDecimalField}, aligned with
  * {@link javafx.scene.control.Slider}: unbound setters converge the opposite
  * bound to keep {@code min <= max}; converging into a {@code bound} opposite
  * bound throws "A bound value cannot be set" (not swallowed); {@code setValue}
- * on a bound value is a no-op; {@link RXNumberField#setRange} sets both bounds
+ * on a bound value is a no-op; {@link RXDecimalField#setRange} sets both bounds
  * leniently (converging, not rejecting, an inverted pair) but rejects up front
- * when a bound is {@code bound}; and {@code validateValue} gates the value only,
- * not the bounds.
+ * when a bound is {@code bound}. Bounds themselves are stored leniently and
+ * never validated.
  */
-public class RXNumberFieldBoundConstraintTest {
+public class RXDecimalFieldBoundConstraintTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -77,7 +78,7 @@ public class RXNumberFieldBoundConstraintTest {
     @Test
     public void unboundSetMinAboveMaxRaisesMax() {
         BigDecimal[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMax(new BigDecimal("10"));
             f.setValue(new BigDecimal("5"));
             f.setMin(new BigDecimal("20"));
@@ -92,7 +93,7 @@ public class RXNumberFieldBoundConstraintTest {
     @Test
     public void unboundSetMaxBelowMinLowersMin() {
         BigDecimal[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMin(new BigDecimal("10"));
             f.setValue(new BigDecimal("50"));
             f.setMax(new BigDecimal("5"));
@@ -105,13 +106,13 @@ public class RXNumberFieldBoundConstraintTest {
 
     /**
      * A bound value that ends up out of range must NOT abort the convergence of an
-     * unbound opposite bound: the boundary still moves (Plan A), the bound value is
+     * unbound opposite bound: the boundary still moves, the bound value is
      * left to its binding, only the text is refreshed.
      */
     @Test
     public void boundValueDoesNotAbortConvergence() {
         BigDecimal[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMax(new BigDecimal("10"));
             SimpleObjectProperty<BigDecimal> valueSrc = new SimpleObjectProperty<>(new BigDecimal("5"));
             f.valueProperty().bind(valueSrc);
@@ -133,7 +134,7 @@ public class RXNumberFieldBoundConstraintTest {
     @Test
     public void convergingIntoBoundOppositeThrows() {
         onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             SimpleObjectProperty<BigDecimal> maxSrc = new SimpleObjectProperty<>(new BigDecimal("10"));
             f.maxProperty().bind(maxSrc);
             RuntimeException ex = assertThrows(RuntimeException.class,
@@ -144,11 +145,11 @@ public class RXNumberFieldBoundConstraintTest {
         });
     }
 
-    /** setRange no longer rejects an inverted pair; like the setters it converges. */
+    /** setRange does not reject an inverted pair; like the setters it converges. */
     @Test
     public void setRangeInvertedConverges() {
         BigDecimal[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setRange(new BigDecimal("20"), new BigDecimal("10"));   // inverted input, lenient
             return new BigDecimal[]{f.getMin(), f.getMax()};
         });
@@ -158,11 +159,37 @@ public class RXNumberFieldBoundConstraintTest {
         assertTrue(r[0].compareTo(r[1]) <= 0, "range ends up ordered (min <= max)");
     }
 
+    /**
+     * An inverted pair converges to [max, max] deterministically, whatever the
+     * previous bounds were: the fixed min-first write order means the later max
+     * write always pulls min down onto it.
+     */
+    @Test
+    public void setRangeInvertedConvergesFromAnyPriorState() {
+        BigDecimal[][] r = onFx(() -> {
+            RXDecimalField wide = new RXDecimalField();
+            wide.setRange(new BigDecimal("0"), new BigDecimal("100"));
+            wide.setRange(new BigDecimal("20"), new BigDecimal("10"));
+
+            RXDecimalField narrow = new RXDecimalField();
+            narrow.setRange(new BigDecimal("0"), new BigDecimal("5"));
+            narrow.setRange(new BigDecimal("20"), new BigDecimal("10"));
+
+            return new BigDecimal[][]{
+                    {wide.getMin(), wide.getMax()},
+                    {narrow.getMin(), narrow.getMax()}};
+        });
+        assertBig("10", r[0][0], "min after inverted setRange from [0,100]");
+        assertBig("10", r[0][1], "max after inverted setRange from [0,100]");
+        assertBig("10", r[1][0], "min after inverted setRange from [0,5]");
+        assertBig("10", r[1][1], "max after inverted setRange from [0,5]");
+    }
+
     /** setRange sets both bounds and orders the writes so no spurious convergence intermediate is observed. */
     @Test
     public void setRangeSetsBothWithoutSpuriousConvergence() {
         Object[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMin(new BigDecimal("0"));
             f.setMax(new BigDecimal("10"));
             List<String> maxSeen = new ArrayList<>();
@@ -181,7 +208,7 @@ public class RXNumberFieldBoundConstraintTest {
     @Test
     public void setRangeWithBoundMaxThrowsWithoutMutating() {
         Object[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMin(new BigDecimal("0"));
             SimpleObjectProperty<BigDecimal> maxSrc = new SimpleObjectProperty<>(new BigDecimal("50"));
             f.maxProperty().bind(maxSrc);
@@ -206,7 +233,7 @@ public class RXNumberFieldBoundConstraintTest {
     @Test
     public void setRangeLeavesAnExcludedBoundValueToItsBinding() {
         BigDecimal[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setMin(new BigDecimal("100"));
             f.setMax(new BigDecimal("1000"));
             SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("500"));
@@ -221,8 +248,7 @@ public class RXNumberFieldBoundConstraintTest {
 
     /**
      * A bound min follows its source without validation (bounds are lenient) and
-     * without leaking anything onto the FX thread's uncaught handler — even for a
-     * value a subclass validateValue would reject on the value axis.
+     * without leaking anything onto the FX thread's uncaught handler.
      */
     @Test
     public void boundMinFollowsSourceWithoutEscaping() {
@@ -232,14 +258,7 @@ public class RXNumberFieldBoundConstraintTest {
             AtomicReference<Throwable> uncaught = new AtomicReference<>();
             fx.setUncaughtExceptionHandler((t, e) -> uncaught.set(e));
             try {
-                RXNumberField f = new RXNumberField() {
-                    @Override
-                    protected void validateValue(BigDecimal candidate) {
-                        if (candidate != null && candidate.signum() < 0) {
-                            throw new IllegalArgumentException("negative not allowed");
-                        }
-                    }
-                };
+                RXDecimalField f = new RXDecimalField();
                 SimpleObjectProperty<BigDecimal> minSrc = new SimpleObjectProperty<>(new BigDecimal("0"));
                 f.minProperty().bind(minSrc);
                 minSrc.set(new BigDecimal("-5"));       // bounds are not validated
@@ -250,38 +269,6 @@ public class RXNumberFieldBoundConstraintTest {
         });
         assertBig("-5", (BigDecimal) r[0], "bound min follows its source (bounds are lenient)");
         assertNull(r[1], "no uncaught exception escaped onto the FX thread");
-    }
-
-    /**
-     * validateValue gates the {@code value} only; {@code min} / {@code max} are
-     * lenient (Slider-style), so a negative bound is accepted while a negative
-     * value is rejected and reverted.
-     */
-    @Test
-    public void validateValueGatesValueNotBounds() {
-        Object[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField() {
-                @Override
-                protected void validateValue(BigDecimal candidate) {
-                    if (candidate != null && candidate.signum() < 0) {
-                        throw new IllegalArgumentException("negative not allowed");
-                    }
-                }
-            };
-            f.setMin(new BigDecimal("-10"));   // bounds not validated: accepted
-            f.setMax(new BigDecimal("-1"));
-            boolean valueRejected = false;
-            try {
-                f.setValue(new BigDecimal("-5"));
-            } catch (IllegalArgumentException expected) {
-                valueRejected = true;
-            }
-            return new Object[]{f.getMin(), f.getMax(), valueRejected, f.getValue()};
-        });
-        assertBig("-10", (BigDecimal) r[0], "min accepted (bounds are lenient)");
-        assertBig("-1", (BigDecimal) r[1], "max accepted (bounds are lenient)");
-        assertTrue((Boolean) r[2], "setValue(-5) rejected by validateValue");
-        assertNull(r[3], "value reverted to null after the rejection");
     }
 
     /**
@@ -296,13 +283,13 @@ public class RXNumberFieldBoundConstraintTest {
             AtomicReference<Throwable> uncaught = new AtomicReference<>();
             fx.setUncaughtExceptionHandler((t, e) -> uncaught.set(e));
             try {
-                RXNumberField field = new RXNumberField();
+                RXDecimalField field = new RXDecimalField();
                 field.setMax(new BigDecimal("10"));
                 SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("5"));
                 field.valueProperty().bind(src);
                 String textBefore = field.getText();
                 src.set(new BigDecimal("20"));          // bound value pushed out of range
-                RXNumberField ref = new RXNumberField();
+                RXDecimalField ref = new RXDecimalField();
                 ref.setValue(new BigDecimal("20"));
                 return new Object[]{field.getValue(), field.getText(), textBefore, ref.getText(), uncaught.get()};
             } finally {
@@ -316,119 +303,27 @@ public class RXNumberFieldBoundConstraintTest {
     }
 
     /**
-     * A bound-driven clamp must keep the domain-rejection revert target in range:
-     * after min/max clamps the value, a later rejected edit reverts to the clamped
-     * (in-range) value, not a stale out-of-range one. (Regression: the clamp path
-     * writes value under the reentrancy guard and must refresh lastValidValue.)
+     * A bound text property bypasses the edit filter (TextInputControl only
+     * filters unbound text), handing raw strings straight to the converter: a
+     * scientific-notation or garbage string must fail the parse inside
+     * TextFormatter.updateValue (which catches and re-renders) and must never
+     * pollute the value.
      */
     @Test
-    public void boundsClampThenRejectedEditRevertsInRange() {
+    public void boundTextBypassingFilterCannotPolluteValue() {
         Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField(new BigDecimal("5"));   // value = 5
-            f.setMax(new BigDecimal("3"));                                // clamps value 5 -> 3
-            boolean threw = false;
-            try {
-                f.setValue(new BigDecimal("2.5"));                        // rejected by the integer domain
-            } catch (IllegalArgumentException expected) {
-                threw = true;
-            }
-            return new Object[]{threw, f.getValue(), f.getMax()};
+            RXDecimalField f = new RXDecimalField(new BigDecimal("7"));
+            SimpleStringProperty textSrc = new SimpleStringProperty("7");
+            f.textProperty().bind(textSrc);
+            textSrc.set("1e5");                  // bypasses the filter, reaches the converter
+            f.commitValue();
+            BigDecimal afterScientific = f.getValue();
+            textSrc.set("abc");
+            f.commitValue();
+            BigDecimal afterGarbage = f.getValue();
+            return new Object[]{afterScientific, afterGarbage};
         });
-        assertTrue((Boolean) r[0], "fractional value rejected by the integer domain");
-        assertBig("3", (BigDecimal) r[1], "value reverts to the clamped 3, not the stale 5");
-        assertTrue(((BigDecimal) r[1]).compareTo((BigDecimal) r[2]) <= 0, "reverted value stays within max (in range)");
-    }
-
-    /** With integer bounds an integer field's value always stays integral through a bound clamp. */
-    @Test
-    public void integerFieldWithIntegerBoundsStaysIntegral() {
-        Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField(new BigDecimal("50"));
-            f.setMin(new BigDecimal("10"));
-            f.setMax(new BigDecimal("100"));
-            f.setValue(new BigDecimal("5"));            // below min -> clamps up to 10
-            BigDecimal v = f.getValue();
-            return new Object[]{v.toPlainString(), v.scale()};
-        });
-        assertEquals("10", r[0], "value clamped to the integer min");
-        assertEquals(0, ((Integer) r[1]).intValue(), "value stays integral (scale 0)");
-    }
-
-    /**
-     * A fractional bound must never make the value fractional: the clamp target is
-     * snapped into the integer domain — lower bound up (ceil), upper bound down
-     * (floor) — so the value stays integral and still honours the raw bound.
-     */
-    @Test
-    public void integerFieldFractionalBoundsSnapClampTargetToInteger() {
-        Object[] r = onFx(() -> {
-            RXIntegerField lower = new RXIntegerField(new BigDecimal("1"));
-            lower.setMin(new BigDecimal("1.5"));            // effective lower limit 2
-            RXIntegerField upper = new RXIntegerField(new BigDecimal("9"));
-            upper.setMax(new BigDecimal("8.5"));            // effective upper limit 8
-            return new Object[]{lower.getValue(), upper.getValue()};
-        });
-        assertBig("2", (BigDecimal) r[0], "value clamped up to ceil(1.5) = 2, not left at fractional 1.5");
-        assertEquals(0, ((BigDecimal) r[0]).scale(), "lower-clamped value is integral");
-        assertBig("8", (BigDecimal) r[1], "value clamped down to floor(8.5) = 8");
-        assertEquals(0, ((BigDecimal) r[1]).scale(), "upper-clamped value is integral");
-    }
-
-    /** Negative fractional bounds snap toward the interior: ceil(-1.2) = -1, floor(-2.6) = -3. */
-    @Test
-    public void integerFieldNegativeFractionalBoundsSnapTowardInterior() {
-        Object[] r = onFx(() -> {
-            RXIntegerField lower = new RXIntegerField(new BigDecimal("-5"));
-            lower.setMin(new BigDecimal("-1.2"));           // effective lower limit -1
-            RXIntegerField upper = new RXIntegerField(new BigDecimal("0"));
-            upper.setMax(new BigDecimal("-2.6"));           // effective upper limit -3
-            return new Object[]{lower.getValue(), upper.getValue()};
-        });
-        assertBig("-1", (BigDecimal) r[0], "value clamped up to ceil(-1.2) = -1");
-        assertBig("-3", (BigDecimal) r[1], "value clamped down to floor(-2.6) = -3");
-    }
-
-    /**
-     * A range with no integer member (min = 1.5, max = 1.8 -> effective [2, 1]) has
-     * no solution: value-domain priority keeps the current integer value rather than
-     * making it fractional or pinning it to a wrong bound.
-     */
-    @Test
-    public void integerFieldEmptyEffectiveIntervalKeepsIntegerValue() {
-        Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField(new BigDecimal("5"));
-            f.setMin(new BigDecimal("1.5"));                // effective lower 2
-            f.setMax(new BigDecimal("1.8"));                // effective [2, 1] -> empty
-            BigDecimal v = f.getValue();
-            return new Object[]{v.toPlainString(), v.scale()};
-        });
-        assertEquals("5", r[0], "value kept at its current integer, not forced onto a fractional bound");
-        assertEquals(0, ((Integer) r[1]).intValue(), "value stays integral (scale 0)");
-    }
-
-    /**
-     * A fractional value left behind by the JavaFX bind-then-unbind gotcha (a bound
-     * value is caller-owned and unbind never re-validates) must not be registered as
-     * the domain-rejection revert target: a later rejected edit must rewind to the
-     * last domain-valid value (here {@code null}), never to the {@code 1.5} residue.
-     */
-    @Test
-    public void integerFieldUnbindResidueIsNotRegisteredAsRevertTarget() {
-        Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField();
-            SimpleObjectProperty<BigDecimal> src = new SimpleObjectProperty<>(new BigDecimal("1.5"));
-            f.valueProperty().bind(src);       // bound fractional value (caller-owned)
-            f.valueProperty().unbind();        // JavaFX leaves 1.5 as an unbound residue
-            f.setMax(new BigDecimal("10"));    // bound change must NOT register 1.5 as revert target
-            boolean threw = false;
-            try {
-                f.setValue(new BigDecimal("2.5"));   // integer domain rejects the fractional edit
-            } catch (IllegalArgumentException expected) {
-                threw = true;
-            }
-            return new Object[]{threw, f.getValue()};
-        });
-        assertTrue((Boolean) r[0], "fractional edit rejected by the integer domain");
-        assertNull(r[1], "rejected edit reverts to the last valid value (null), never the 1.5 unbind residue");
+        assertBig("7", (BigDecimal) r[0], "scientific notation must not reach the value");
+        assertBig("7", (BigDecimal) r[1], "garbage text must not reach the value");
     }
 }

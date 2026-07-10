@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXNumberField;
-import io.github.leewyatt.rxcontrols.samples.demo.RXNumberFieldDemo;
+import io.github.leewyatt.rxcontrols.RXDoubleField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXDoubleFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -15,29 +15,28 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Showcase application for {@link RXNumberField}.
+ * Showcase application for {@link RXDoubleField}.
  *
- * <p>Exercises the main public knobs: the committed {@link BigDecimal} value
- * (edited directly in the preview field), the inclusive {@code min} /
- * {@code max} bounds, the inherited left / right decoration slots, alignment,
- * and the editable flag (text padding is deliberately not
- * showcased: a panel slider would take USER origin and permanently disable
- * the UA side-node defaults). Out-of-range edits clamp to the
- * active bound so the clamping semantic is directly observable.
+ * <p>Exercises the main public knobs: the committed {@link Double} value
+ * (edited directly in the preview field), the inclusive primitive {@code min}
+ * / {@code max} bounds with Slider-style convergence, the inherited leading /
+ * trailing decoration slots, alignment, and the editable flag (text padding is
+ * deliberately not showcased: a panel slider would take USER origin and
+ * permanently disable the UA side-node defaults). A dedicated section
+ * demonstrates the finiteness policy — a programmatic {@code NaN} / infinity
+ * is rejected and the field coerced to empty.
  *
- * <p>For a minimal "few lines of code" example see {@link RXNumberFieldDemo}.
+ * <p>For a minimal "few lines of code" example see {@link RXDoubleFieldDemo}.
  */
-public class RXNumberFieldShowcase extends RXShowcaseApplication {
+public class RXDoubleFieldShowcase extends RXShowcaseApplication {
 
     private static final double BOUND_MIN = -100.0;
     private static final double BOUND_MAX = 100.0;
-    private static final BigDecimal STEP = BigDecimal.ONE;
 
-    private RXNumberField field;
+    private RXDoubleField field;
     private Slider minSlider;
     private Slider maxSlider;
     private CheckBox minEnabled;
@@ -47,27 +46,27 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXNumberField";
+        return "RXDoubleField";
     }
 
     @Override
     protected String subtitle() {
-        return "BigDecimal numeric text field";
+        return "Double numeric text field";
     }
 
     @Override
     protected String windowTitle() {
-        return "RXNumberField Showcase";
+        return "RXDoubleField Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-number-field-showcase.css").toExternalForm();
+        return getClass().getResource("rx-double-field-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXNumberField(new BigDecimal("12.50"));
+        field = new RXDoubleField(12.5);
         field.setPromptText("Type a number");
         field.setPrefColumnCount(14);
 
@@ -86,6 +85,7 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Range", buildRangeGrid()),
+                section("Finiteness policy", buildPolicyGrid()),
                 section("Decoration slots", buildSlotGrid()),
                 section("Layout & state", buildLayoutGrid()));
     }
@@ -117,7 +117,9 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
         toggleRow.getStyleClass().add("toggle-row");
 
         Label hint = new Label("Out-of-range edits clamp to the active bound. "
-                + "min is kept <= max; dragging one past the other is rejected.");
+                + "Dragging one bound past the other converges the opposite bound "
+                + "(Slider-style, min <= max). Disabling a bound resets it to "
+                + "±Infinity (unbounded).");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
@@ -126,6 +128,36 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
                 row("Max", maxSlider, maxValue),
                 row(toggleRow),
                 row(hint));
+    }
+
+    private Node buildPolicyGrid() {
+        Label result = new Label("Press a button to test the finiteness policy.");
+        result.getStyleClass().add("policy-result");
+        result.setWrapText(true);
+
+        Button nan = new Button("setValue(NaN)");
+        nan.setOnAction(e -> {
+            try {
+                field.setValue(Double.NaN);
+                result.setText("Unexpected: NaN was accepted.");
+            } catch (IllegalArgumentException ex) {
+                result.setText("Rejected — " + ex.getMessage()
+                        + ". The field was coerced to empty (value = " + field.getValue() + ").");
+            }
+        });
+
+        Button representation = new Button("setValue(0.1 + 0.2)");
+        representation.setOnAction(e -> {
+            field.setValue(0.1 + 0.2);
+            result.setText("Committed " + field.getValue()
+                    + " — binary floating point renders its exact representation; "
+                    + "use RXDecimalField for exact decimal.");
+        });
+
+        HBox buttons = new HBox(8.0, nan, representation);
+        buttons.setAlignment(Pos.CENTER_LEFT);
+
+        return createGrid(row(buttons), row(result));
     }
 
     private Node buildSlotGrid() {
@@ -156,27 +188,15 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
     // ==================== Behaviour ====================
 
     private void applyMin() {
-        applyBound(minEnabled, minSlider, true);
+        field.setMin(minEnabled.isSelected()
+                ? Math.round(minSlider.getValue())
+                : Double.NEGATIVE_INFINITY);
     }
 
     private void applyMax() {
-        applyBound(maxEnabled, maxSlider, false);
-    }
-
-    private void applyBound(CheckBox enabled, Slider slider, boolean isMin) {
-        BigDecimal value = enabled.isSelected()
-                ? BigDecimal.valueOf(Math.round(slider.getValue()))
-                : null;
-        try {
-            if (isMin) {
-                field.setMin(value);
-            } else {
-                field.setMax(value);
-            }
-        } catch (IllegalArgumentException ignored) {
-            // min must stay <= max; a violating bound is rejected and the
-            // property keeps its previous value.
-        }
+        field.setMax(maxEnabled.isSelected()
+                ? Math.round(maxSlider.getValue())
+                : Double.POSITIVE_INFINITY);
     }
 
     private void applySlots(SlotPreset preset) {
@@ -186,23 +206,23 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
                 field.setTrailing(null);
             }
             case DECORATION -> {
-                field.setLeading(slotLabel("#", "slot-badge"));
-                field.setTrailing(slotLabel("units", "slot-unit"));
+                field.setLeading(slotLabel("×", "slot-badge"));
+                field.setTrailing(slotLabel("ratio", "slot-unit"));
             }
             case STEPPER -> {
-                field.setLeading(stepButton("−", STEP.negate()));
-                field.setTrailing(stepButton("+", STEP));
+                field.setLeading(stepButton("−", -1.0));
+                field.setTrailing(stepButton("+", 1.0));
             }
         }
     }
 
-    private void step(BigDecimal delta) {
+    private void step(double delta) {
         field.commitValue();
-        BigDecimal current = field.getValue() == null ? BigDecimal.ZERO : field.getValue();
-        field.setValue(current.add(delta));
+        double current = field.getValue() == null ? 0.0 : field.getValue();
+        field.setValue(current + delta);
     }
 
-    private Node stepButton(String text, BigDecimal delta) {
+    private Node stepButton(String text, double delta) {
         Button button = new Button(text);
         button.getStyleClass().add("slot-button");
         button.setFocusTraversable(false);
@@ -221,15 +241,13 @@ public class RXNumberFieldShowcase extends RXShowcaseApplication {
         return label;
     }
 
-    private static String describe(RXNumberField field) {
-        BigDecimal v = field.getValue();
-        String value = (v == null) ? "null" : v.toPlainString() + "  (scale " + v.scale() + ")";
-        return "value = " + value
+    private static String describe(RXDoubleField field) {
+        return "value = " + field.getValue()
                 + "\nmin = " + bound(field.getMin()) + "      max = " + bound(field.getMax());
     }
 
-    private static String bound(BigDecimal value) {
-        return value == null ? "unbounded" : value.toPlainString();
+    private static String bound(double value) {
+        return Double.isInfinite(value) ? "unbounded" : Double.toString(value);
     }
 
     // ==================== Slot preset ====================

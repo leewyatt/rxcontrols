@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import io.github.leewyatt.rxcontrols.RXFormattedNumberField?>
+<?import io.github.leewyatt.rxcontrols.RXDecimalField?>
+<?import io.github.leewyatt.rxcontrols.RXDoubleField?>
 <?import io.github.leewyatt.rxcontrols.RXIntegerField?>
-<?import io.github.leewyatt.rxcontrols.RXNumberField?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -25,7 +25,7 @@
                             <children>
                                 <Label styleClass="page-title" text="数字输入框"/>
                                 <Label styleClass="page-subtitle"
-                                       text="基于 BigDecimal 的数字文本框：精度无损、可设上下限、支持 NumberFormat 格式化。"/>
+                                       text="强类型数字文本框：Integer / Double / BigDecimal 各归其位，可设上下限，BigDecimal 版支持 NumberFormat 格式化。"/>
                             </children>
                         </VBox>
 
@@ -36,20 +36,23 @@
                                     <children>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXNumberField fx:id="numberField" prefColumnCount="14"/>
-                                                <Label styleClass="field-caption" text="RXNumberField · 任意精度小数"/>
+                                                <RXIntegerField fx:id="integerField" prefColumnCount="14"
+                                                                value="2048" min="0"/>
+                                                <Label styleClass="field-caption" text="RXIntegerField · Integer 整数"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXIntegerField fx:id="integerField" prefColumnCount="14"/>
-                                                <Label styleClass="field-caption" text="RXIntegerField · 仅整数"/>
+                                                <RXDoubleField fx:id="doubleField" prefColumnCount="14"
+                                                               value="3.14159"/>
+                                                <Label styleClass="field-caption" text="RXDoubleField · Double 浮点"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="formattedField" prefColumnCount="14"/>
-                                                <Label styleClass="field-caption" text="RXFormattedNumberField · 格式化"/>
+                                                <RXDecimalField fx:id="decimalField" prefColumnCount="14"
+                                                                value="1234567.89"/>
+                                                <Label styleClass="field-caption" text="RXDecimalField · 精确十进制"/>
                                             </children>
                                         </VBox>
                                     </children>
@@ -59,24 +62,24 @@
 
                         <VBox spacing="10.0">
                             <children>
-                                <Label styleClass="section-title" text="RXFormattedNumberField · 多种格式"/>
+                                <Label styleClass="section-title" text="RXDecimalField · 多种格式"/>
                                 <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
                                     <children>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="groupingField" prefColumnCount="14"/>
+                                                <RXDecimalField fx:id="groupingField" prefColumnCount="14"/>
                                                 <Label styleClass="field-caption" text="千分位分组"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="currencyField" prefColumnCount="14"/>
+                                                <RXDecimalField fx:id="currencyField" prefColumnCount="14"/>
                                                 <Label styleClass="field-caption" text="货币 (en-US)"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="percentField" prefColumnCount="14"/>
+                                                <RXDecimalField fx:id="percentField" prefColumnCount="14"/>
                                                 <Label styleClass="field-caption" text="百分比"/>
                                             </children>
                                         </VBox>
@@ -92,7 +95,7 @@
                                     <children>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="leftSlotField" prefColumnCount="11">
+                                                <RXDecimalField fx:id="leftSlotField" prefColumnCount="11">
                                                     <leading>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
@@ -100,13 +103,13 @@
                                                             </children>
                                                         </StackPane>
                                                     </leading>
-                                                </RXFormattedNumberField>
+                                                </RXDecimalField>
                                                 <Label styleClass="field-caption" text="前置插槽 · 货币前缀"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="rightSlotField" prefColumnCount="11">
+                                                <RXDecimalField fx:id="rightSlotField" prefColumnCount="11">
                                                     <trailing>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
@@ -114,13 +117,13 @@
                                                             </children>
                                                         </StackPane>
                                                     </trailing>
-                                                </RXFormattedNumberField>
+                                                </RXDecimalField>
                                                 <Label styleClass="field-caption" text="后置插槽 · 单位后缀"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXFormattedNumberField fx:id="dualSlotField" prefColumnCount="11">
+                                                <RXDecimalField fx:id="dualSlotField" prefColumnCount="11">
                                                     <leading>
                                                         <StackPane styleClass="slot-box">
                                                             <children>
@@ -135,7 +138,7 @@
                                                             </children>
                                                         </StackPane>
                                                     </trailing>
-                                                </RXFormattedNumberField>
+                                                </RXDecimalField>
                                                 <Label styleClass="field-caption" text="前置 + 后置双插槽"/>
                                             </children>
                                         </VBox>

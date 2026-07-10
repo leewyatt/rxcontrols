@@ -15,12 +15,13 @@ import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Commit behaviour for {@link RXFormattedNumberField} under a lossy display
- * format (percent / currency with fixed fraction digits): an edit whose parsed
- * value re-renders to the currently-displayed text must still be committed to the
- * value property, not silently dropped.
+ * Commit behaviour for {@link RXDecimalField} under a lossy display format
+ * (percent / currency with fixed fraction digits): an edit whose parsed value
+ * re-renders to the currently-displayed text must still be committed to the
+ * value property, not silently dropped. Also pins the plain (null-format)
+ * scale semantics and the numberFormat re-rendering contract.
  */
-public class RXFormattedNumberFieldCommitTest {
+public class RXDecimalFieldCommitTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -69,7 +70,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void committingSubDisplayPrecisionPercentKeepsTheEdit() {
         BigDecimal v = onFx(() -> {
-            RXFormattedNumberField f = new RXFormattedNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setNumberFormat(NumberFormat.getPercentInstance(Locale.US));
             f.setValue(new BigDecimal("0.33"));               // displays "33%"
             f.replaceText(0, f.getText().length(), "33.4%");  // uncommitted user edit (like typing)
@@ -83,7 +84,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void committingSubDisplayPrecisionCurrencyKeepsTheEdit() {
         BigDecimal v = onFx(() -> {
-            RXFormattedNumberField f = new RXFormattedNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
             f.setValue(new BigDecimal("1.234"));               // displays "$1.23"
             f.replaceText(0, f.getText().length(), "$1.231");  // uncommitted user edit within the same bucket
@@ -97,7 +98,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void committingScaleOnlyEditInPlainFieldIsPreserved() {
         Object[] r = onFx(() -> {
-            RXNumberField f = new RXNumberField();               // plain, toPlainString converter
+            RXDecimalField f = new RXDecimalField();             // plain, toPlainString rendering
             f.setValue(new BigDecimal("100"));                   // scale 0, displays "100"
             f.replaceText(0, f.getText().length(), "100.00");    // user edits to scale 2
             f.commitValue();
@@ -112,7 +113,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void committingWithoutEditKeepsTheValueUnchanged() {
         BigDecimal v = onFx(() -> {
-            RXFormattedNumberField f = new RXFormattedNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
             f.setValue(new BigDecimal("100"));   // scale 0, displays "$100.00" (parses back scale 2)
             f.commitValue();                     // focus-loss / ENTER with no edit
@@ -129,7 +130,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void equalValueEditThenNoOpCommitDoesNotDriftScale() {
         Object[] r = onFx(() -> {
-            RXFormattedNumberField f = new RXFormattedNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
             f.setValue(new BigDecimal("100"));                 // scale 0, displays "$100.00"
             f.replaceText(0, f.getText().length(), "$100");    // equal-value edit (parses back to 100)
@@ -151,7 +152,7 @@ public class RXFormattedNumberFieldCommitTest {
     @Test
     public void invalidEditThenNoOpCommitDoesNotDriftValue() {
         Object[] r = onFx(() -> {
-            RXFormattedNumberField f = new RXFormattedNumberField();
+            RXDecimalField f = new RXDecimalField();
             f.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
             f.setValue(new BigDecimal("1.234"));               // displays "$1.23", value keeps scale 3
             f.replaceText(0, f.getText().length(), "$");       // incomplete edit; will fail to parse
@@ -162,5 +163,23 @@ public class RXFormattedNumberFieldCommitTest {
         });
         assertEquals("1.234", r[0], "a failed parse then no-op commit must keep the value 1.234, not drift to 1.23");
         assertEquals(3, ((Integer) r[1]).intValue(), "value scale stays 3 (no drift to display precision)");
+    }
+
+    /** Assigning another numberFormat instance re-renders; null falls back to plain text. */
+    @Test
+    public void numberFormatSwapReRendersAndNullFallsBackToPlain() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField(new BigDecimal("1234.5"));
+            String plain = f.getText();
+            f.setNumberFormat(NumberFormat.getNumberInstance(Locale.US));
+            String grouped = f.getText();
+            f.setNumberFormat(null);
+            String backToPlain = f.getText();
+            return new Object[]{plain, grouped, backToPlain, f.getValue()};
+        });
+        assertEquals("1234.5", r[0], "default null format renders toPlainString");
+        assertEquals("1,234.5", r[1], "assigning a format re-renders the text");
+        assertEquals("1234.5", r[2], "null format falls back to plain rendering");
+        assertBig("1234.5", (BigDecimal) r[3], "format switches never mutate the value");
     }
 }

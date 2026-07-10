@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
-import io.github.leewyatt.rxcontrols.samples.showcase.RXFormattedNumberFieldShowcase;
+import io.github.leewyatt.rxcontrols.RXDecimalField;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXDecimalFieldShowcase;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -12,20 +12,24 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 /**
- * Minimal "out-of-the-box" demo for {@link RXFormattedNumberField}.
+ * Minimal "out-of-the-box" demo for {@link RXDecimalField}.
  *
- * <p>With its default {@code NumberFormat} the field renders grouped digits
- * while keeping the exact {@link BigDecimal} value. For a full property
- * explorer (locale / currency / percent formats, min/max bounds, slots) see
- * {@link RXFormattedNumberFieldShowcase}.
+ * <p>Shows the exact-decimal money scenario: a currency format drives the
+ * display while the committed {@link BigDecimal} keeps its exact value and
+ * scale. For a full property explorer (formats, min/max bounds, decoration
+ * slots) see {@link RXDecimalFieldShowcase}.
  */
-public class RXFormattedNumberFieldDemo extends Application {
+public class RXDecimalFieldDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        RXFormattedNumberField field = new RXFormattedNumberField(new BigDecimal("1234567.89"));
+        RXDecimalField field = new RXDecimalField(new BigDecimal("1234.50"));
+        field.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
+        field.setPromptText("Amount");
         field.setPrefColumnCount(16);
 
         Label valueLabel = new Label();
@@ -44,7 +48,7 @@ public class RXFormattedNumberFieldDemo extends Application {
         root.setPadding(new Insets(40.0));
 
         primaryStage.setScene(new Scene(root, 380.0, 240.0));
-        primaryStage.setTitle("RXFormattedNumberField Demo");
+        primaryStage.setTitle("RXDecimalField Demo");
         primaryStage.show();
     }
 

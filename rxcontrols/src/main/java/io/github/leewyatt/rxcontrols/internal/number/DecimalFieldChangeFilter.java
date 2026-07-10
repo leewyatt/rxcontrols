@@ -1,27 +1,31 @@
 package io.github.leewyatt.rxcontrols.internal.number;
 
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
 import javafx.scene.control.TextFormatter;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /**
- * Edit filter for ordinary localized number formats.
+ * Edit filter for decimal fields. With a {@code null} (or non-decimal)
+ * {@link NumberFormat} it validates plain decimal text; a {@link DecimalFormat}
+ * makes the filter format-aware (optional affix, localized separators and
+ * minus sign).
  */
-public final class FormattedNumberFieldChangeFilter implements UnaryOperator<TextFormatter.Change> {
+public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatter.Change> {
 
-    private final RXFormattedNumberField field;
+    private final Supplier<NumberFormat> numberFormat;
 
     /**
-     * Creates a filter bound to a formatted number field.
+     * Creates a filter reading the active format from the given supplier.
      *
-     * @param field the owning field
+     * @param numberFormat supplies the current format; may supply {@code null}
+     *                     for plain decimal filtering
      */
-    public FormattedNumberFieldChangeFilter(RXFormattedNumberField field) {
-        this.field = field;
+    public DecimalFieldChangeFilter(Supplier<NumberFormat> numberFormat) {
+        this.numberFormat = numberFormat;
     }
 
     @Override
@@ -34,7 +38,7 @@ public final class FormattedNumberFieldChangeFilter implements UnaryOperator<Tex
     }
 
     private boolean isAcceptable(String text) {
-        NumberFormat nf = field.getNumberFormat();
+        NumberFormat nf = numberFormat.get();
         if (!(nf instanceof DecimalFormat df)) {
             return baseAcceptable(text);
         }

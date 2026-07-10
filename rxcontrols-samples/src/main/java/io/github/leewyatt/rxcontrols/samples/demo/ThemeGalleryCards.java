@@ -16,13 +16,14 @@ import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXClipPathImageView;
+import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
+import io.github.leewyatt.rxcontrols.RXDoubleField;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDualPane;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXFillLabel;
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.RXImageView;
@@ -31,7 +32,6 @@ import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXLineLabel;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXLrcView;
-import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
@@ -130,13 +130,14 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXChipSet", buildRXChipSet()));
         list.add(new NamedControl("RXCircularProgressIndicator", buildRXCircularProgressIndicator()));
         list.add(new NamedControl("RXClipPathImageView", buildRXClipPathImageView()));
+        list.add(new NamedControl("RXDecimalField", buildRXDecimalField()));
         list.add(new NamedControl("RXDigit", buildRXDigit()));
         list.add(new NamedControl("RXDotPulse", buildRXDotPulse()));
+        list.add(new NamedControl("RXDoubleField", buildRXDoubleField()));
         list.add(new NamedControl("RXDrawerPane", buildRXDrawerPane()));
         list.add(new NamedControl("RXDualPane", buildRXDualPane()));
         list.add(new NamedControl("RXFillButton", buildRXFillButton()));
         list.add(new NamedControl("RXFillLabel", buildRXFillLabel()));
-        list.add(new NamedControl("RXFormattedNumberField", buildRXFormattedNumberField()));
         list.add(new NamedControl("RXHighlightTextView", buildRXHighlightTextView()));
         list.add(new NamedControl("RXImagePane", buildRXImagePane()));
         list.add(new NamedControl("RXImageView", buildRXImageView()));
@@ -145,7 +146,6 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXLineLabel", buildRXLineLabel()));
         list.add(new NamedControl("RXLrcLineView", buildRXLrcLineView()));
         list.add(new NamedControl("RXLrcView", buildRXLrcView()));
-        list.add(new NamedControl("RXNumberField", buildRXNumberField()));
         list.add(new NamedControl("RXPasswordField", buildRXPasswordField()));
         list.add(new NamedControl("RXPlaceholder", buildRXPlaceholder()));
         list.add(new NamedControl("RXRadioToggleButton", buildRXRadioToggleButton()));
@@ -511,8 +511,8 @@ final class ThemeGalleryCards {
         return tags;
     }
 
-    private static Node buildRXFormattedNumberField() {
-        RXFormattedNumberField field = new RXFormattedNumberField(new BigDecimal("1234567.89"));
+    private static Node buildRXDecimalField() {
+        RXDecimalField field = new RXDecimalField(new BigDecimal("1234567.89"));
         field.setNumberFormat(NumberFormat.getNumberInstance(Locale.US));
         field.setPrefColumnCount(14);
         Label badge = new Label("$");
@@ -576,11 +576,11 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXIntegerField() {
-        RXIntegerField field = new RXIntegerField(new BigDecimal("25"));
+        RXIntegerField field = new RXIntegerField(25);
         field.setPromptText("Whole numbers only");
         field.setPrefColumnCount(10);
-        field.setMin(new BigDecimal("0"));
-        field.setMax(new BigDecimal("999"));
+        field.setMin(0);
+        field.setMax(999);
         Label badge = new Label("#");
         badge.getStyleClass().add("slot-badge");
         Label unit = new Label("pcs");
@@ -664,11 +664,11 @@ final class ThemeGalleryCards {
         return lrcView;
     }
 
-    private static Node buildRXNumberField() {
-        RXNumberField field = new RXNumberField(new BigDecimal("42.50"));
+    private static Node buildRXDoubleField() {
+        RXDoubleField field = new RXDoubleField(42.5);
         field.setPromptText("Type a number");
-        field.setMin(new BigDecimal("-100"));
-        field.setMax(new BigDecimal("100"));
+        field.setMin(-100.0);
+        field.setMax(100.0);
         field.setPrefColumnCount(12);
         Label unit = new Label("USD");
         unit.setPadding(new Insets(0, 8, 0, 8));

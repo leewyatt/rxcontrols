@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
-import io.github.leewyatt.rxcontrols.RXNumberField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.application.Platform;
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the construct → populate slots → skin-replacement → dispose lifecycle. These
  * lock in the shared {@link SkinDisposer} cleanup: side-node wrappers are
  * released on dispose, skin replacement re-parents side nodes without leaking,
- * and the password / number skins tear down their extra resources cleanly.
+ * and the password skin tears down its extra resources cleanly.
  */
 public class RXFieldSkinLifecycleTest {
 
@@ -243,14 +243,15 @@ public class RXFieldSkinLifecycleTest {
     }
 
     /**
-     * Verifies the number-field skin (ENTER handler registered through the
-     * shared disposer) constructs and disposes cleanly.
+     * Verifies a typed number field rides the plain {@link RXTextFieldSkin}
+     * (there is no dedicated number skin — the commit backstop lives on the
+     * control) and that the skin constructs and disposes cleanly.
      */
     @Test
-    public void numberFieldDisposeIsClean() {
+    public void numberFieldUsesTextFieldSkinAndDisposeIsClean() {
         runOnFx(() -> {
-            RXNumberField field = new RXNumberField();
-            RXNumberFieldSkin skin = new RXNumberFieldSkin(field);
+            RXDecimalField field = new RXDecimalField();
+            RXTextFieldSkin skin = new RXTextFieldSkin(field);
             field.setSkin(skin);
             skin.dispose();
         });

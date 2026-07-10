@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.internal.number;
 
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
 import javafx.util.StringConverter;
 
 import java.math.BigDecimal;
@@ -8,21 +7,26 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+import java.util.function.Supplier;
 
 /**
- * {@link NumberFormat}-driven converter for formatted number fields.
+ * {@link BigDecimal} converter for decimal fields. With a {@code null}
+ * {@link NumberFormat} it renders {@link BigDecimal#toPlainString()} and
+ * parses plain decimal text; a non-null format drives both rendering and
+ * commit parsing.
  */
-public final class FormattedNumberFieldConverter extends StringConverter<BigDecimal> {
+public final class DecimalFieldConverter extends StringConverter<BigDecimal> {
 
-    private final RXFormattedNumberField field;
+    private final Supplier<NumberFormat> numberFormat;
 
     /**
-     * Creates a converter bound to a formatted number field.
+     * Creates a converter reading the active format from the given supplier.
      *
-     * @param field the owning field
+     * @param numberFormat supplies the current format; may supply {@code null}
+     *                     for plain decimal rendering and parsing
      */
-    public FormattedNumberFieldConverter(RXFormattedNumberField field) {
-        this.field = field;
+    public DecimalFieldConverter(Supplier<NumberFormat> numberFormat) {
+        this.numberFormat = numberFormat;
     }
 
     @Override
@@ -30,7 +34,7 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
         if (value == null) {
             return "";
         }
-        NumberFormat nf = field.getNumberFormat();
+        NumberFormat nf = numberFormat.get();
         return nf == null ? value.toPlainString() : nf.format(value);
     }
 
@@ -44,9 +48,9 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
             return null;
         }
 
-        NumberFormat source = field.getNumberFormat();
+        NumberFormat source = numberFormat.get();
         if (source == null) {
-            return parsePlain(raw);
+            return NumberParsing.parsePlainDecimal(raw);
         }
 
         if (source instanceof DecimalFormat df) {
@@ -66,7 +70,7 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
     /**
      * Parses {@code raw} with a big-decimal-configured {@link DecimalFormat}.
      * A strict parse is tried first; on failure the parse retries leniently so
-     * the converter accepts exactly what {@link FormattedNumberFieldChangeFilter}
+     * the converter accepts exactly what {@link DecimalFieldChangeFilter}
      * lets through. The filter treats the format's affix as optional (it strips
      * the affix before validating the numeric body), so a bare body such as
      * {@code "75"} under a percent format or {@code "100"} under a currency
@@ -142,10 +146,9 @@ public final class FormattedNumberFieldConverter extends StringConverter<BigDeci
         if (parsed == null || pp.getIndex() != text.length()) {
             return null;
         }
-        return (BigDecimal) parsed;
-    }
-
-    private static BigDecimal parsePlain(String raw) {
-        return NumberParsing.parsePlainDecimal(raw);
+        // Even with setParseBigDecimal(true), DecimalFormat returns NaN and the
+        // infinities as Double; treat them as a parse failure (a bound text
+        // property can feed the infinity symbol past the edit filter).
+        return parsed instanceof BigDecimal decimal ? decimal : null;
     }
 }

@@ -15,20 +15,20 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
  * Showcase application for {@link RXIntegerField}.
  *
- * <p>Exercises the main public knobs: the committed integer value (edited in
- * the preview field, which rejects the decimal point), the inclusive
- * {@code min} / {@code max} bounds, the inherited left / right decoration
- * slots, alignment, and the editable flag (text padding is deliberately not
- * showcased: a panel slider would take USER origin and permanently disable
- * the UA side-node defaults). A dedicated section demonstrates
- * the strict integer-domain policy — a fractional programmatic value is
- * rejected, while a whole value carrying a non-zero scale is normalized.
+ * <p>Exercises the main public knobs: the committed {@link Integer} value
+ * (edited in the preview field, which rejects the decimal point), the
+ * inclusive primitive {@code min} / {@code max} bounds with Slider-style
+ * convergence, the inherited leading / trailing decoration slots, alignment,
+ * and the editable flag (text padding is deliberately not showcased: a panel
+ * slider would take USER origin and permanently disable the UA side-node
+ * defaults). A dedicated section demonstrates the 32-bit overflow policy —
+ * an out-of-range magnitude rolls the text back instead of corrupting the
+ * value.
  *
  * <p>For a minimal "few lines of code" example see {@link RXIntegerFieldDemo}.
  */
@@ -36,7 +36,6 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
 
     private static final double BOUND_MIN = -100.0;
     private static final double BOUND_MAX = 100.0;
-    private static final BigDecimal STEP = BigDecimal.ONE;
 
     private RXIntegerField field;
     private Slider minSlider;
@@ -68,7 +67,7 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        field = new RXIntegerField(new BigDecimal("25"));
+        field = new RXIntegerField(25);
         field.setPromptText("Whole numbers only");
         field.setPrefColumnCount(14);
 
@@ -87,7 +86,7 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Range", buildRangeGrid()),
-                section("Integer policy", buildPolicyGrid()),
+                section("Overflow policy", buildPolicyGrid()),
                 section("Decoration slots", buildSlotGrid()),
                 section("Layout & state", buildLayoutGrid()));
     }
@@ -119,7 +118,9 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
         toggleRow.getStyleClass().add("toggle-row");
 
         Label hint = new Label("Out-of-range edits clamp to the active bound. "
-                + "min is kept <= max; dragging one past the other is rejected.");
+                + "Dragging one bound past the other converges the opposite bound "
+                + "(Slider-style, min <= max). Disabling a bound resets it to the "
+                + "full int domain.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
@@ -131,32 +132,19 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildPolicyGrid() {
-        Label result = new Label("Press a button to test the integer-domain check.");
+        Label result = new Label("Press the button to feed 2147483648 (Integer.MAX_VALUE + 1) into the text.");
         result.getStyleClass().add("policy-result");
         result.setWrapText(true);
 
-        Button fractional = new Button("setValue(3.14)");
-        fractional.setOnAction(e -> {
-            try {
-                field.setValue(new BigDecimal("3.14"));
-                result.setText("Unexpected: 3.14 was accepted.");
-            } catch (IllegalArgumentException ex) {
-                result.setText("Rejected — " + ex.getMessage());
-            }
+        Button overflow = new Button("Commit 2147483648");
+        overflow.setOnAction(e -> {
+            field.setText("2147483648");
+            field.commitValue();
+            result.setText("Overflow rolled the text back; value = " + field.getValue()
+                    + ". Whole numbers beyond 32-bit belong in RXDecimalField.");
         });
 
-        Button scaledWhole = new Button("setValue(3.0)");
-        scaledWhole.setOnAction(e -> {
-            field.setValue(new BigDecimal("3.0"));
-            BigDecimal v = field.getValue();
-            result.setText("Accepted — 3.0 normalized to " + v.toPlainString()
-                    + " (scale " + v.scale() + ").");
-        });
-
-        HBox buttons = new HBox(8.0, fractional, scaledWhole);
-        buttons.setAlignment(Pos.CENTER_LEFT);
-
-        return createGrid(row(buttons), row(result));
+        return createGrid(row(overflow), row(result));
     }
 
     private Node buildSlotGrid() {
@@ -187,27 +175,15 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
     // ==================== Behaviour ====================
 
     private void applyMin() {
-        applyBound(minEnabled, minSlider, true);
+        field.setMin(minEnabled.isSelected()
+                ? (int) Math.round(minSlider.getValue())
+                : Integer.MIN_VALUE);
     }
 
     private void applyMax() {
-        applyBound(maxEnabled, maxSlider, false);
-    }
-
-    private void applyBound(CheckBox enabled, Slider slider, boolean isMin) {
-        BigDecimal value = enabled.isSelected()
-                ? BigDecimal.valueOf(Math.round(slider.getValue()))
-                : null;
-        try {
-            if (isMin) {
-                field.setMin(value);
-            } else {
-                field.setMax(value);
-            }
-        } catch (IllegalArgumentException ignored) {
-            // min must stay <= max; a violating bound is rejected and the
-            // property keeps its previous value.
-        }
+        field.setMax(maxEnabled.isSelected()
+                ? (int) Math.round(maxSlider.getValue())
+                : Integer.MAX_VALUE);
     }
 
     private void applySlots(SlotPreset preset) {
@@ -221,19 +197,19 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
                 field.setTrailing(slotLabel("pcs", "slot-unit"));
             }
             case STEPPER -> {
-                field.setLeading(stepButton("−", STEP.negate()));
-                field.setTrailing(stepButton("+", STEP));
+                field.setLeading(stepButton("−", -1));
+                field.setTrailing(stepButton("+", 1));
             }
         }
     }
 
-    private void step(BigDecimal delta) {
+    private void step(int delta) {
         field.commitValue();
-        BigDecimal current = field.getValue() == null ? BigDecimal.ZERO : field.getValue();
-        field.setValue(current.add(delta));
+        int current = field.getValue() == null ? 0 : field.getValue();
+        field.setValue(current + delta);
     }
 
-    private Node stepButton(String text, BigDecimal delta) {
+    private Node stepButton(String text, int delta) {
         Button button = new Button(text);
         button.getStyleClass().add("slot-button");
         button.setFocusTraversable(false);
@@ -253,14 +229,13 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
     }
 
     private static String describe(RXIntegerField field) {
-        BigDecimal v = field.getValue();
-        String value = (v == null) ? "null" : v.toPlainString();
-        return "value = " + value
-                + "\nmin = " + bound(field.getMin()) + "      max = " + bound(field.getMax());
+        return "value = " + field.getValue()
+                + "\nmin = " + bound(field.getMin(), Integer.MIN_VALUE)
+                + "      max = " + bound(field.getMax(), Integer.MAX_VALUE);
     }
 
-    private static String bound(BigDecimal value) {
-        return value == null ? "unbounded" : value.toPlainString();
+    private static String bound(int value, int unboundedSentinel) {
+        return value == unboundedSentinel ? "unbounded" : Integer.toString(value);
     }
 
     // ==================== Slot preset ====================

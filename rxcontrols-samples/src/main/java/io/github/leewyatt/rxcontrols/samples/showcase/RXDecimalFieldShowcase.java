@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
-import io.github.leewyatt.rxcontrols.samples.demo.RXFormattedNumberFieldDemo;
+import io.github.leewyatt.rxcontrols.RXDecimalField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXDecimalFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -22,27 +22,26 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Showcase application for {@link RXFormattedNumberField}.
+ * Showcase application for {@link RXDecimalField}.
  *
  * <p>Exercises the main public knobs: the committed {@link BigDecimal} value
  * (edited in the preview field), the {@code numberFormat} that drives both
- * rendering and commit parsing, the inclusive {@code min} / {@code max}
- * bounds, the inherited left / right decoration slots, alignment, and the
- * editable flag (text padding is deliberately not
- * showcased: a panel slider would take USER origin and permanently disable
- * the UA side-node defaults). Switching the format never mutates the
- * stored value — only its presentation.
+ * rendering and commit parsing ({@code null} = plain {@code toPlainString}),
+ * the inclusive {@code min} / {@code max} bounds, the inherited leading /
+ * trailing decoration slots, alignment, and the editable flag (text padding is
+ * deliberately not showcased: a panel slider would take USER origin and
+ * permanently disable the UA side-node defaults). Switching the format never
+ * mutates the stored value — only its presentation.
  *
- * <p>For a minimal "few lines of code" example see
- * {@link RXFormattedNumberFieldDemo}.
+ * <p>For a minimal "few lines of code" example see {@link RXDecimalFieldDemo}.
  */
-public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
+public class RXDecimalFieldShowcase extends RXShowcaseApplication {
 
     private static final double BOUND_MIN = -10000.0;
     private static final double BOUND_MAX = 10000.0;
     private static final BigDecimal STEP = BigDecimal.ONE;
 
-    private RXFormattedNumberField field;
+    private RXDecimalField field;
     private Slider minSlider;
     private Slider maxSlider;
     private CheckBox minEnabled;
@@ -52,27 +51,27 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXFormattedNumberField";
+        return "RXDecimalField";
     }
 
     @Override
     protected String subtitle() {
-        return "NumberFormat-driven numeric field";
+        return "Exact-decimal (BigDecimal) numeric field";
     }
 
     @Override
     protected String windowTitle() {
-        return "RXFormattedNumberField Showcase";
+        return "RXDecimalField Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-formatted-number-field-showcase.css").toExternalForm();
+        return getClass().getResource("rx-decimal-field-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXFormattedNumberField(new BigDecimal("1234.5"));
+        field = new RXDecimalField(new BigDecimal("1234.5"));
         field.setPrefColumnCount(16);
 
         Label readout = new Label();
@@ -107,7 +106,8 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
                 field.setNumberFormat(newV.create()));
 
         Label hint = new Label("The format drives display and commit parsing; "
-                + "the stored value keeps its full precision across switches.");
+                + "null renders plain toPlainString. The stored value keeps its "
+                + "full precision across switches.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
@@ -141,7 +141,8 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
         toggleRow.getStyleClass().add("toggle-row");
 
         Label hint = new Label("Out-of-range edits clamp to the active bound. "
-                + "min is kept <= max; dragging one past the other is rejected.");
+                + "Dragging one bound past the other converges the opposite bound "
+                + "(Slider-style, min <= max).");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
@@ -191,15 +192,10 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
         BigDecimal value = enabled.isSelected()
                 ? BigDecimal.valueOf(Math.round(slider.getValue()))
                 : null;
-        try {
-            if (isMin) {
-                field.setMin(value);
-            } else {
-                field.setMax(value);
-            }
-        } catch (IllegalArgumentException ignored) {
-            // min must stay <= max; a violating bound is rejected and the
-            // property keeps its previous value.
+        if (isMin) {
+            field.setMin(value);
+        } else {
+            field.setMax(value);
         }
     }
 
@@ -245,7 +241,7 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
         return label;
     }
 
-    private static String describe(RXFormattedNumberField field) {
+    private static String describe(RXDecimalField field) {
         BigDecimal v = field.getValue();
         String value = (v == null) ? "null" : v.toPlainString() + "  (scale " + v.scale() + ")";
         return "value = " + value
@@ -287,7 +283,13 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
     }
 
     private enum FormatPreset {
-        PLAIN("Plain (default grouping)") {
+        PLAIN("Plain (null format)") {
+            @Override
+            NumberFormat create() {
+                return null;
+            }
+        },
+        DEFAULT_GROUPING("Locale default grouping") {
             @Override
             NumberFormat create() {
                 return NumberFormat.getNumberInstance();
@@ -305,13 +307,19 @@ public class RXFormattedNumberFieldShowcase extends RXShowcaseApplication {
                 return NumberFormat.getNumberInstance(Locale.GERMANY);
             }
         },
+        US_CURRENCY("US dollar currency") {
+            @Override
+            NumberFormat create() {
+                return NumberFormat.getCurrencyInstance(Locale.US);
+            }
+        },
         JP_CURRENCY("JP yen currency") {
             @Override
             NumberFormat create() {
                 return NumberFormat.getCurrencyInstance(Locale.JAPAN);
             }
         },
-        PERCENT("Percent") {
+        PERCENT("Percent (note the multiplier)") {
             @Override
             NumberFormat create() {
                 return NumberFormat.getPercentInstance(Locale.US);

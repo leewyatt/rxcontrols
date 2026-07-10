@@ -1,46 +1,28 @@
 package io.github.leewyatt.rxcontrols.internal.number;
 
-import io.github.leewyatt.rxcontrols.RXFormattedNumberField;
-import javafx.application.Platform;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Parsing tests for {@link FormattedNumberFieldConverter}, focused on review
- * finding F1: under a currency / percent format the edit filter accepts a bare
- * (affix-less) numeric body, so the converter must accept it too instead of
- * throwing and silently dropping the committed value. Also pins the default
- * number-format path against regression.
+ * Parsing tests for {@link DecimalFieldConverter}: under a currency / percent
+ * format the edit filter accepts a bare (affix-less) numeric body, so the
+ * converter must accept it too instead of throwing and silently dropping the
+ * committed value. Also pins the plain (null-format) path and the terminal
+ * parser's scientific-notation rejection across the typed converters — the
+ * edit filters never admit an 'e', but a bound text property bypasses the
+ * filter and hands raw strings straight to the converter.
  */
-public class FormattedNumberFieldConverterTest {
+public class DecimalFieldConverterTest {
 
-    @BeforeAll
-    public static void startToolkit() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException ex) {
-            latch.countDown();
-        }
-        if (!latch.await(5, TimeUnit.SECONDS)) {
-            throw new AssertionError("JavaFX toolkit did not start");
-        }
-    }
-
-    private static FormattedNumberFieldConverter converterFor(NumberFormat format) {
-        RXFormattedNumberField field = new RXFormattedNumberField();
-        field.setNumberFormat(format);
-        return new FormattedNumberFieldConverter(field);
+    private static DecimalFieldConverter converterFor(NumberFormat format) {
+        return new DecimalFieldConverter(() -> format);
     }
 
     /** Asserts numeric (scale-agnostic) equality. */
@@ -51,14 +33,14 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void percentAcceptsBareBody() {
-        FormattedNumberFieldConverter conv = converterFor(NumberFormat.getPercentInstance(Locale.US));
+        DecimalFieldConverter conv = converterFor(NumberFormat.getPercentInstance(Locale.US));
 
-        // F1 core: bare digits typed into a percent field must commit, not vanish.
+        // Bare digits typed into a percent field must commit, not vanish.
         assertValue("0.75", conv.fromString("75"));
         assertValue("0.07", conv.fromString("7"));
         assertValue("0.0075", conv.fromString("0.75"));
 
-        // Explicit affix and signs still work (and now agree with the bare form).
+        // Explicit affix and signs still work (and agree with the bare form).
         assertValue("0.75", conv.fromString("75%"));
         assertValue("-0.75", conv.fromString("-75"));
         assertValue("-0.75", conv.fromString("-75%"));
@@ -74,7 +56,7 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void currencyAcceptsBareBody() {
-        FormattedNumberFieldConverter conv = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        DecimalFieldConverter conv = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
 
         assertValue("100", conv.fromString("100"));
         assertValue("100", conv.fromString("$100"));
@@ -87,7 +69,7 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void emptyOrNullIsNull() {
-        FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        DecimalFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
         assertNull(cur.fromString(null));
         assertNull(cur.fromString(""));
         assertNull(cur.fromString("   "));
@@ -95,8 +77,8 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void incompleteInputThrows() {
-        FormattedNumberFieldConverter pct = converterFor(NumberFormat.getPercentInstance(Locale.US));
-        FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        DecimalFieldConverter pct = converterFor(NumberFormat.getPercentInstance(Locale.US));
+        DecimalFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
         // Affix / sign / separator only is incomplete (not empty text): must throw
         // so the commit path reverts to the last valid value rather than clearing.
         assertThrows(NumberFormatException.class, () -> pct.fromString("%"));
@@ -107,8 +89,8 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void groupingSeparatorsInBareBody() {
-        FormattedNumberFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
-        FormattedNumberFieldConverter num = converterFor(NumberFormat.getNumberInstance(Locale.US));
+        DecimalFieldConverter cur = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        DecimalFieldConverter num = converterFor(NumberFormat.getNumberInstance(Locale.US));
         // Bare / trailing grouping separators (the filter allows them mid-edit)
         // must commit the digits, not get dropped on the full-consume check.
         assertValue("5", num.fromString("5,"));
@@ -118,7 +100,7 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void germanSuffixCurrencySigns() {
-        FormattedNumberFieldConverter de = converterFor(NumberFormat.getCurrencyInstance(Locale.GERMANY));
+        DecimalFieldConverter de = converterFor(NumberFormat.getCurrencyInstance(Locale.GERMANY));
         // Currency symbol is a suffix and decimal separator is ',': a bare body
         // plus an explicit sign must round-trip with the correct sign.
         assertValue("100", de.fromString("100,00"));
@@ -128,17 +110,55 @@ public class FormattedNumberFieldConverterTest {
 
     @Test
     public void garbageStillThrows() {
-        FormattedNumberFieldConverter conv = converterFor(NumberFormat.getPercentInstance(Locale.US));
+        DecimalFieldConverter conv = converterFor(NumberFormat.getPercentInstance(Locale.US));
         assertThrows(NumberFormatException.class, () -> conv.fromString("abc"));
     }
 
     @Test
+    public void nullFormatParsesPlainAndRendersPlain() {
+        DecimalFieldConverter conv = converterFor(null);
+
+        assertValue("75", conv.fromString("75"));
+        assertValue("-1.5", conv.fromString("-1.5"));
+        assertEquals("1234.50", conv.toString(new BigDecimal("1234.50")));
+        assertThrows(NumberFormatException.class, () -> conv.fromString("-"));
+        assertThrows(NumberFormatException.class, () -> conv.fromString("1,234"));
+    }
+
+    @Test
     public void defaultNumberFormatUnchanged() {
-        FormattedNumberFieldConverter conv = converterFor(NumberFormat.getNumberInstance(Locale.US));
+        DecimalFieldConverter conv = converterFor(NumberFormat.getNumberInstance(Locale.US));
 
         assertValue("75", conv.fromString("75"));
         assertValue("1234", conv.fromString("1,234"));
         assertValue("-75", conv.fromString("-75"));
         assertValue("1.5", conv.fromString("1.5"));
+    }
+
+    /**
+     * DecimalFormat returns NaN / infinity as Double even with
+     * setParseBigDecimal(true); the converter must treat them as a parse
+     * failure (NumberFormatException), not blow up on the BigDecimal cast.
+     */
+    @Test
+    public void infinitySymbolIsAParseFailureNotAClassCastException() {
+        DecimalFieldConverter conv = converterFor(NumberFormat.getNumberInstance(Locale.US));
+        assertThrows(NumberFormatException.class, () -> conv.fromString("∞"));
+        assertThrows(NumberFormatException.class, () -> conv.fromString("-∞"));
+    }
+
+    /** The terminal parsers reject scientific notation across the typed converters. */
+    @Test
+    public void scientificNotationIsRejectedByAllTypedConverters() {
+        DecimalFieldConverter plain = converterFor(null);
+        assertThrows(NumberFormatException.class, () -> plain.fromString("1e5"));
+        assertThrows(NumberFormatException.class, () -> plain.fromString("1E5"));
+
+        IntegerFieldConverter integer = new IntegerFieldConverter();
+        assertThrows(NumberFormatException.class, () -> integer.fromString("1e5"));
+
+        DoubleFieldConverter dbl = new DoubleFieldConverter();
+        assertThrows(NumberFormatException.class, () -> dbl.fromString("1e5"));
+        assertThrows(NumberFormatException.class, () -> dbl.fromString("1E5"));
     }
 }
