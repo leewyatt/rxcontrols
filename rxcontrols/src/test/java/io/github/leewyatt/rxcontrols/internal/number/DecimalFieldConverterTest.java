@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols.internal.number;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -133,6 +135,36 @@ public class DecimalFieldConverterTest {
         assertValue("1234", conv.fromString("1,234"));
         assertValue("-75", conv.fromString("-75"));
         assertValue("1.5", conv.fromString("1.5"));
+    }
+
+    /**
+     * Under an accounting format (parenthesized negatives) the lenient retry
+     * must pair sign evidence: a definite positive prefix combined with a
+     * definite negative suffix ("$123)") is malformed and must throw — never
+     * silently flip the sign to -123. One-sided halves of the negative form
+     * stay lenient (the filter admits them mid-edit), and a sign-ambiguous
+     * shared affix (percent's "%") never conflicts.
+     */
+    @Test
+    public void accountingFormatPairsSignEvidence() {
+        DecimalFormat accounting = new DecimalFormat("¤#,##0.00;(¤#,##0.00)",
+                DecimalFormatSymbols.getInstance(Locale.US));
+        DecimalFieldConverter conv = converterFor(accounting);
+
+        assertValue("123", conv.fromString("$123"));
+        assertValue("-123", conv.fromString("($123)"));
+        assertValue("-123", conv.fromString(conv.toString(new BigDecimal("-123"))));
+
+        // One-sided negative halves stay parseable (affix optional mid-edit).
+        assertValue("-123", conv.fromString("($123"));
+        assertValue("-123", conv.fromString("123)"));
+
+        // Definite positive prefix + definite negative suffix: malformed.
+        assertThrows(NumberFormatException.class, () -> conv.fromString("$123)"));
+
+        // Coinciding percent suffix stays sign-ambiguous: "-75%" is still lenient.
+        DecimalFieldConverter pct = converterFor(NumberFormat.getPercentInstance(Locale.US));
+        assertValue("-0.75", pct.fromString("-75%"));
     }
 
     /**
