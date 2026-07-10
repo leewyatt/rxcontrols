@@ -303,6 +303,32 @@ public class RXDecimalFieldBoundConstraintTest {
     }
 
     /**
+     * In the transiently inverted range left by a convergence that threw on a
+     * bound opposite bound, the clamp pins to min — Slider's Utils.clamp
+     * order, uniform across all four typed fields.
+     */
+    @Test
+    public void invertedTransientRangeClampsToMinLikeSlider() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField();
+            SimpleObjectProperty<BigDecimal> maxSrc = new SimpleObjectProperty<>(new BigDecimal("10"));
+            f.maxProperty().bind(maxSrc);
+            boolean threw = false;
+            try {
+                f.setMin(new BigDecimal("20"));    // convergence into the bound max throws
+            } catch (RuntimeException expected) {
+                threw = true;
+            }
+            f.setValue(new BigDecimal("5"));       // inverted [20,10]: pins to min
+            return new Object[]{threw, f.getMin(), f.getMax(), f.getValue()};
+        });
+        assertTrue((Boolean) r[0], "convergence into the bound max threw");
+        assertBig("20", (BigDecimal) r[1], "min stayed at 20 (inverted transient)");
+        assertBig("10", (BigDecimal) r[2], "bound max stayed at 10");
+        assertBig("20", (BigDecimal) r[3], "clamp pins to min (Slider's Utils.clamp order)");
+    }
+
+    /**
      * A bound text property bypasses the edit filter (TextInputControl only
      * filters unbound text), handing raw strings straight to the converter: a
      * scientific-notation or garbage string must fail the parse inside

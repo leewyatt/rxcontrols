@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.Event;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
 import javafx.scene.input.MouseButton;
@@ -243,16 +244,19 @@ public class RXFieldSkinLifecycleTest {
     }
 
     /**
-     * Verifies a typed number field rides the plain {@link RXTextFieldSkin}
-     * (there is no dedicated number skin — the commit backstop lives on the
-     * control) and that the skin constructs and disposes cleanly.
+     * Verifies a typed number field's real default skin is the plain
+     * {@link RXTextFieldSkin} (there is no dedicated number skin — the commit
+     * backstop lives on the control) and that it disposes cleanly.
      */
     @Test
     public void numberFieldUsesTextFieldSkinAndDisposeIsClean() {
         runOnFx(() -> {
             RXDecimalField field = new RXDecimalField();
-            RXTextFieldSkin skin = new RXTextFieldSkin(field);
-            field.setSkin(skin);
+            StackPane root = new StackPane(field);
+            new Scene(root, 200, 100);
+            root.applyCss();
+            RXTextFieldSkin skin = assertInstanceOf(RXTextFieldSkin.class, field.getSkin(),
+                    "typed number fields ride the plain RXTextFieldSkin as their default skin");
             skin.dispose();
         });
     }

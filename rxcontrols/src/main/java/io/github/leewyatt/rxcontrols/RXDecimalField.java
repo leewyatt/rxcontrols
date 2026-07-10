@@ -304,14 +304,10 @@ public class RXDecimalField extends RXTextField {
         }
         BigDecimal lo = getMin();
         BigDecimal hi = getMax();
-        // An inverted range (lo > hi) is transient — reachable only after a
-        // convergence set() threw on a bound opposite bound. It has no member, so
-        // keep the candidate rather than pin it to a wrong bound. For a normal
-        // range this matches Slider's Utils.clamp: pull up to the lower bound
-        // first, then down to the upper bound.
-        if (lo != null && hi != null && lo.compareTo(hi) > 0) {
-            return candidate;
-        }
+        // Slider's Utils.clamp order: pull up to the lower bound first, then
+        // down to the upper bound — including in the transiently inverted range
+        // left by a convergence set() that threw on a bound opposite bound,
+        // where all four typed fields uniformly pin to min.
         if (lo != null && candidate.compareTo(lo) < 0) {
             return lo;
         }
