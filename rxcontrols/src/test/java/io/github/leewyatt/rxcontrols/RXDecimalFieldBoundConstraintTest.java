@@ -304,8 +304,9 @@ public class RXDecimalFieldBoundConstraintTest {
 
     /**
      * In the transiently inverted range left by a convergence that threw on a
-     * bound opposite bound, the clamp pins to min — Slider's Utils.clamp
-     * order, uniform across all four typed fields.
+     * bound opposite bound, the clamp keeps Slider's Utils.clamp order —
+     * uniform across all four typed fields. Here the below-min candidate is
+     * pulled up to min (a candidate above max would pin to max instead).
      */
     @Test
     public void invertedTransientRangeClampsToMinLikeSlider() {
@@ -325,7 +326,7 @@ public class RXDecimalFieldBoundConstraintTest {
         assertTrue((Boolean) r[0], "convergence into the bound max threw");
         assertBig("20", (BigDecimal) r[1], "min stayed at 20 (inverted transient)");
         assertBig("10", (BigDecimal) r[2], "bound max stayed at 10");
-        assertBig("20", (BigDecimal) r[3], "clamp pins to min (Slider's Utils.clamp order)");
+        assertBig("20", (BigDecimal) r[3], "below-min candidate pulled up to min (Slider's Utils.clamp order)");
     }
 
     /**

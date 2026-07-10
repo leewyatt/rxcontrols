@@ -305,9 +305,9 @@ public class RXDecimalField extends RXTextField {
         BigDecimal lo = getMin();
         BigDecimal hi = getMax();
         // Slider's Utils.clamp order: pull up to the lower bound first, then
-        // down to the upper bound — including in the transiently inverted range
-        // left by a convergence set() that threw on a bound opposite bound,
-        // where all four typed fields uniformly pin to min.
+        // down to the upper bound. The same order applies in the transiently
+        // inverted range left by a convergence set() that threw on a bound
+        // opposite bound — uniform across all four typed fields.
         if (lo != null && candidate.compareTo(lo) < 0) {
             return lo;
         }
