@@ -217,7 +217,15 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
     private void step(long delta) {
         field.commitValue();
         long current = field.getValue() == null ? 0L : field.getValue();
-        field.setValue(current + delta);
+        long next;
+        try {
+            next = Math.addExact(current, delta);
+        } catch (ArithmeticException overflow) {
+            // Saturate at the domain edge; wrapping to the opposite sign in a
+            // showcase that demonstrates 64-bit edge policy would be absurd.
+            next = delta > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+        }
+        field.setValue(next);
     }
 
     private Node stepButton(String text, long delta) {

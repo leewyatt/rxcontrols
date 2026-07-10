@@ -206,7 +206,15 @@ public class RXIntegerFieldShowcase extends RXShowcaseApplication {
     private void step(int delta) {
         field.commitValue();
         int current = field.getValue() == null ? 0 : field.getValue();
-        field.setValue(current + delta);
+        int next;
+        try {
+            next = Math.addExact(current, delta);
+        } catch (ArithmeticException overflow) {
+            // Saturate at the domain edge; wrapping to the opposite sign in a
+            // showcase that demonstrates the 32-bit overflow policy would be absurd.
+            next = delta > 0 ? Integer.MAX_VALUE : Integer.MIN_VALUE;
+        }
+        field.setValue(next);
     }
 
     private Node stepButton(String text, int delta) {

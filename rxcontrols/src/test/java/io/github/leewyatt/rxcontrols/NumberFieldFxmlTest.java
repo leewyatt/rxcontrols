@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * FXML smoke test for the typed number fields: {@code value} / {@code min} /
  * {@code max} attribute strings must coerce onto the exact property types
- * (Integer object value with primitive int bounds, Double with primitive
- * double bounds, BigDecimal throughout) — the FXML friendliness that motivated
- * the typed split.
+ * (Integer / Long object values with primitive int / long bounds, Double with
+ * primitive double bounds, BigDecimal throughout) — the FXML friendliness
+ * that motivated the typed split.
  */
 public class NumberFieldFxmlTest {
 

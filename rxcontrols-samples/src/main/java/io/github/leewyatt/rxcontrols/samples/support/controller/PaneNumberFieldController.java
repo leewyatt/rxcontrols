@@ -11,10 +11,10 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
- * Controller for the number-field showcase page. Integer / Double values and
- * bounds land directly from FXML attribute strings; {@link NumberFormat}
- * instances cannot be expressed in FXML, so the formatted fields are
- * configured here.
+ * Controller for the number-field showcase page. Integer / Long / Double
+ * values and bounds land directly from FXML attribute strings;
+ * {@link NumberFormat} instances cannot be expressed in FXML, so the
+ * formatted fields are configured here.
  */
 public class PaneNumberFieldController {
 
