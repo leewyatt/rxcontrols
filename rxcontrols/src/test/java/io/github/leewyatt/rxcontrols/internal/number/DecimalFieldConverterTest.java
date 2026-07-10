@@ -157,6 +157,9 @@ public class DecimalFieldConverterTest {
         IntegerFieldConverter integer = new IntegerFieldConverter();
         assertThrows(NumberFormatException.class, () -> integer.fromString("1e5"));
 
+        LongFieldConverter longConverter = new LongFieldConverter();
+        assertThrows(NumberFormatException.class, () -> longConverter.fromString("1e5"));
+
         DoubleFieldConverter dbl = new DoubleFieldConverter();
         assertThrows(NumberFormatException.class, () -> dbl.fromString("1e5"));
         assertThrows(NumberFormatException.class, () -> dbl.fromString("1E5"));

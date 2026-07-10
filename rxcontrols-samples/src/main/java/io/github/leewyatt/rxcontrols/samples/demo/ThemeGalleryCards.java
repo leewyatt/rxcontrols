@@ -30,6 +30,7 @@ import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXLineLabel;
+import io.github.leewyatt.rxcontrols.RXLongField;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
@@ -144,6 +145,7 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXIntegerField", buildRXIntegerField()));
         list.add(new NamedControl("RXLineButton", buildRXLineButton()));
         list.add(new NamedControl("RXLineLabel", buildRXLineLabel()));
+        list.add(new NamedControl("RXLongField", buildRXLongField()));
         list.add(new NamedControl("RXLrcLineView", buildRXLrcLineView()));
         list.add(new NamedControl("RXLrcView", buildRXLrcView()));
         list.add(new NamedControl("RXPasswordField", buildRXPasswordField()));
@@ -628,6 +630,20 @@ final class ThemeGalleryCards {
         box.setAlignment(Pos.CENTER);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
+    }
+
+    private static Node buildRXLongField() {
+        RXLongField field = new RXLongField(9007199254740993L);
+        field.setPromptText("64-bit whole numbers");
+        field.setPrefColumnCount(14);
+        Label badge = new Label("#");
+        badge.getStyleClass().add("slot-badge");
+        Label unit = new Label("id");
+        unit.getStyleClass().add("slot-unit");
+        field.setLeading(badge);
+        field.setTrailing(unit);
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
     }
 
     private static Node buildRXLrcLineView() {

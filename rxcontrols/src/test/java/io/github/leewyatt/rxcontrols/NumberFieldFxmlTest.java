@@ -72,9 +72,11 @@ public class NumberFieldFxmlTest {
                     <?import io.github.leewyatt.rxcontrols.RXDecimalField?>
                     <?import io.github.leewyatt.rxcontrols.RXDoubleField?>
                     <?import io.github.leewyatt.rxcontrols.RXIntegerField?>
+                    <?import io.github.leewyatt.rxcontrols.RXLongField?>
                     <?import javafx.scene.layout.VBox?>
                     <VBox xmlns="http://javafx.com/javafx/17">
                         <RXIntegerField value="42" min="0" max="100"/>
+                        <RXLongField value="9007199254740993" min="0" max="9223372036854775807"/>
                         <RXDoubleField value="2.5" min="-1.5" max="9.75"/>
                         <RXDecimalField value="19.99" min="0.01" max="100.00"/>
                     </VBox>
@@ -93,12 +95,18 @@ public class NumberFieldFxmlTest {
         assertEquals(100, integerField.getMax());
         assertEquals("42", integerField.getText());
 
-        RXDoubleField doubleField = (RXDoubleField) root.getChildren().get(1);
+        RXLongField longField = (RXLongField) root.getChildren().get(1);
+        assertEquals(9007199254740993L, longField.getValue(),
+                "Long value beyond the double-safe range lands exactly");
+        assertEquals(0L, longField.getMin());
+        assertEquals(Long.MAX_VALUE, longField.getMax());
+
+        RXDoubleField doubleField = (RXDoubleField) root.getChildren().get(2);
         assertEquals(2.5, doubleField.getValue(), "Double value lands exactly");
         assertEquals(-1.5, doubleField.getMin());
         assertEquals(9.75, doubleField.getMax());
 
-        RXDecimalField decimalField = (RXDecimalField) root.getChildren().get(2);
+        RXDecimalField decimalField = (RXDecimalField) root.getChildren().get(3);
         assertEquals(0, new BigDecimal("19.99").compareTo(decimalField.getValue()),
                 "BigDecimal value lands via the exact String constructor");
         assertEquals(2, decimalField.getValue().scale(), "scale from the attribute string is preserved");

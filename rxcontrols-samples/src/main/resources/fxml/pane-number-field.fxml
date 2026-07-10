@@ -3,6 +3,7 @@
 <?import io.github.leewyatt.rxcontrols.RXDecimalField?>
 <?import io.github.leewyatt.rxcontrols.RXDoubleField?>
 <?import io.github.leewyatt.rxcontrols.RXIntegerField?>
+<?import io.github.leewyatt.rxcontrols.RXLongField?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -25,32 +26,39 @@
                             <children>
                                 <Label styleClass="page-title" text="数字输入框"/>
                                 <Label styleClass="page-subtitle"
-                                       text="强类型数字文本框：Integer / Double / BigDecimal 各归其位，可设上下限，BigDecimal 版支持 NumberFormat 格式化。"/>
+                                       text="强类型数字文本框：Integer / Long / Double / BigDecimal 各归其位，可设上下限，BigDecimal 版支持 NumberFormat 格式化。"/>
                             </children>
                         </VBox>
 
                         <VBox spacing="10.0">
                             <children>
-                                <Label styleClass="section-title" text="三种数字输入框"/>
+                                <Label styleClass="section-title" text="四种数字输入框"/>
                                 <HBox alignment="CENTER" spacing="20.0" styleClass="field-row">
                                     <children>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXIntegerField fx:id="integerField" prefColumnCount="14"
+                                                <RXIntegerField fx:id="integerField" prefColumnCount="11"
                                                                 value="2048" min="0"/>
                                                 <Label styleClass="field-caption" text="RXIntegerField · Integer 整数"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXDoubleField fx:id="doubleField" prefColumnCount="14"
+                                                <RXLongField fx:id="longField" prefColumnCount="11"
+                                                             value="9007199254740993"/>
+                                                <Label styleClass="field-caption" text="RXLongField · Long 长整数"/>
+                                            </children>
+                                        </VBox>
+                                        <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
+                                            <children>
+                                                <RXDoubleField fx:id="doubleField" prefColumnCount="11"
                                                                value="3.14159"/>
                                                 <Label styleClass="field-caption" text="RXDoubleField · Double 浮点"/>
                                             </children>
                                         </VBox>
                                         <VBox alignment="CENTER" spacing="10.0" styleClass="field-item">
                                             <children>
-                                                <RXDecimalField fx:id="decimalField" prefColumnCount="14"
+                                                <RXDecimalField fx:id="decimalField" prefColumnCount="11"
                                                                 value="1234567.89"/>
                                                 <Label styleClass="field-caption" text="RXDecimalField · 精确十进制"/>
                                             </children>

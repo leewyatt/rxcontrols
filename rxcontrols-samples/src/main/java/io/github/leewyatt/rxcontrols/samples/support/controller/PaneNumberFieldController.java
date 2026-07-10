@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.support.controller;
 import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXDoubleField;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
+import io.github.leewyatt.rxcontrols.RXLongField;
 import javafx.fxml.FXML;
 
 import java.math.BigDecimal;
@@ -19,6 +20,9 @@ public class PaneNumberFieldController {
 
     @FXML
     private RXIntegerField integerField;
+
+    @FXML
+    private RXLongField longField;
 
     @FXML
     private RXDoubleField doubleField;
