@@ -116,7 +116,22 @@ public final class NumberFieldEngine<T> {
             @Override
             public T fromString(String s) {
                 committedText = s;
-                return converter.fromString(s);
+                T parsed = converter.fromString(s);
+                // Commits normalize the displayed text: a changed value re-renders
+                // through TextFormatter's own value.invalidated -> updateText. But
+                // ObjectPropertyBase.set short-circuits on reference equality, so a
+                // parsed result that is the very instance the formatter already
+                // holds (Integer.valueOf cache, null) would fire nothing and leave
+                // non-canonical text as typed — "+5" would stick while "+500"
+                // normalizes, leaking the integer cache into visible behavior.
+                // Throw instead: updateValue's catch calls updateText, which
+                // renders the canonical text of the current (unchanged) value.
+                if (parsed == formatter.getValue()
+                        && !Objects.equals(s, converter.toString(parsed))) {
+                    throw new NumberFormatException(
+                            "Non-canonical text for an unchanged value: " + s);
+                }
+                return parsed;
             }
         };
         formatter = new TextFormatter<>(capturingConverter, null, filter);

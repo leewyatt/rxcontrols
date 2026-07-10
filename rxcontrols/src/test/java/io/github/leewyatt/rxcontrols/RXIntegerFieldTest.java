@@ -271,21 +271,27 @@ public class RXIntegerFieldTest {
     }
 
     /**
-     * An equal-value commit ("+5" parses to the current 5) keeps the value and
-     * leaves the text as typed — the JavaFX-native TextFormatter semantics
-     * (the commit path never canonicalizes the displayed text; the previous
-     * BigDecimal-based field behaved identically).
+     * A commit always normalizes the displayed text, whether or not the parsed
+     * Integer hits the valueOf cache: "+5" (cached, reference-equal to the
+     * current value) and "+500" (new instance) must both render canonically.
+     * Guards against the integer cache leaking into visible behavior.
      */
     @Test
-    public void equalValueCommitKeepsValueAndTypedText() {
+    public void commitNormalizesTextRegardlessOfIntegerCache() {
         Object[] r = onFx(() -> {
-            RXIntegerField f = new RXIntegerField(5);
-            f.setText("+5");
-            f.commitValue();
-            return new Object[]{f.getValue(), f.getText()};
+            RXIntegerField small = new RXIntegerField(5);
+            small.setText("+5");
+            small.commitValue();
+            RXIntegerField large = new RXIntegerField(500);
+            large.setText("+500");
+            large.commitValue();
+            return new Object[]{small.getValue(), small.getText(),
+                    large.getValue(), large.getText()};
         });
-        assertEquals(5, r[0], "equal-value commit keeps the value");
-        assertEquals("+5", r[1], "text stays as typed (JavaFX TextFormatter convention)");
+        assertEquals(5, r[0], "equal-value commit keeps the value (cached path)");
+        assertEquals("5", r[1], "text normalized to the canonical rendering (cached path)");
+        assertEquals(500, r[2], "equal-value commit keeps the value (uncached path)");
+        assertEquals("500", r[3], "text normalized to the canonical rendering (uncached path)");
     }
 
     /** The edit filter rejects letters and the decimal point. */

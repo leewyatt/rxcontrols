@@ -165,6 +165,19 @@ public class RXDecimalFieldCommitTest {
         assertEquals(3, ((Integer) r[1]).intValue(), "value scale stays 3 (no drift to display precision)");
     }
 
+    /** A commit of equivalent but non-canonical text normalizes the rendering. */
+    @Test
+    public void commitNormalizesEquivalentText() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField(new BigDecimal("5"));
+            f.setText("+5");
+            f.commitValue();
+            return new Object[]{f.getValue(), f.getText()};
+        });
+        assertBig("5", (BigDecimal) r[0], "value unchanged");
+        assertEquals("5", r[1], "text normalized to toPlainString");
+    }
+
     /** Assigning another numberFormat instance re-renders; null falls back to plain text. */
     @Test
     public void numberFormatSwapReRendersAndNullFallsBackToPlain() {
