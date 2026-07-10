@@ -175,4 +175,43 @@ public class NumberFieldFormatterGuardTest {
         assertEquals(0, new BigDecimal("3").compareTo((BigDecimal) r[4]),
                 "commit still works after the guard repaired the field");
     }
+
+    /**
+     * Binding a source that currently holds the installed internal formatter
+     * is rejected by JavaFX itself, synchronously at the bind() call site:
+     * TextInputControl's own invalidated() calls bindToControl on the
+     * already-attached formatter, which throws IllegalStateException. JFX's
+     * catch unbinds and nulls the property; that nested null write fires a
+     * change event mid-flight, so the guard restores the internal formatter
+     * (with a WARNING) before the ISE even reaches the caller — the field
+     * never stays broken.
+     */
+    @Test
+    public void equalValueBindIsRejectedByJavaFxAndGuardRestores() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField(new BigDecimal("1"));
+            TextFormatter<?> internal = f.getTextFormatter();
+            SimpleObjectProperty<TextFormatter<?>> src = new SimpleObjectProperty<>(internal);
+            AtomicReference<Boolean> threw = new AtomicReference<>(false);
+            LogRecord warning = captureEngineWarning(() -> {
+                try {
+                    f.textFormatterProperty().bind(src);
+                } catch (IllegalStateException expected) {
+                    threw.set(true);
+                }
+            });
+            boolean boundAfter = f.textFormatterProperty().isBound();
+            TextFormatter<?> formatterAfter = f.getTextFormatter();
+            f.setText("3");
+            f.commitValue();
+            return new Object[]{threw.get(), boundAfter, internal, formatterAfter,
+                    warning, f.getValue()};
+        });
+        assertTrue((Boolean) r[0], "JavaFX rejects the equal-value bind synchronously (ISE)");
+        assertFalse((Boolean) r[1], "the binding was removed");
+        assertSame(r[2], r[3], "the internal formatter was restored by the guard mid-flight");
+        assertTrue(r[4] != null, "a WARNING was logged for the repair");
+        assertEquals(0, new BigDecimal("3").compareTo((BigDecimal) r[5]),
+                "commit still works after the rejection");
+    }
 }

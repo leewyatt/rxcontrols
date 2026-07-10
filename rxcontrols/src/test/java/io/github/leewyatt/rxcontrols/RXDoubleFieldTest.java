@@ -253,6 +253,27 @@ public class RXDoubleFieldTest {
         assertEquals("", r[1], "text stays empty");
     }
 
+    /**
+     * An infinite bound is "unconstrained on that side", never a clamp target:
+     * a degenerate setMin(+Infinity) / setMax(-Infinity) must not clamp a
+     * finite value into a non-finite one (the bounds-change re-clamp runs
+     * under the reentrancy lock, past sanitize).
+     */
+    @Test
+    public void infiniteBoundIsNeverAClampTarget() {
+        Object[] r = onFx(() -> {
+            RXDoubleField lower = new RXDoubleField(5.0);
+            lower.setMax(10.0);
+            lower.setMin(Double.POSITIVE_INFINITY);   // converges max to +Inf, must not clamp value
+            RXDoubleField upper = new RXDoubleField(5.0);
+            upper.setMax(Double.NEGATIVE_INFINITY);
+            return new Object[]{lower.getValue(), lower.getText(), upper.getValue()};
+        });
+        assertEquals(5.0, r[0], "value stays finite despite min = +Infinity");
+        assertEquals("5", r[1], "text stays the finite rendering");
+        assertEquals(5.0, r[2], "value stays finite despite max = -Infinity");
+    }
+
     /** The edit filter rejects letters, a second decimal point, and a mid-text sign. */
     @Test
     public void filterRejectsLettersSecondPointAndMidSign() {

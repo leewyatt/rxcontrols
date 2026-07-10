@@ -270,6 +270,24 @@ public class RXIntegerFieldTest {
         assertNull(r[0], "cleared text commits null");
     }
 
+    /**
+     * An equal-value commit ("+5" parses to the current 5) keeps the value and
+     * leaves the text as typed — the JavaFX-native TextFormatter semantics
+     * (the commit path never canonicalizes the displayed text; the previous
+     * BigDecimal-based field behaved identically).
+     */
+    @Test
+    public void equalValueCommitKeepsValueAndTypedText() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(5);
+            f.setText("+5");
+            f.commitValue();
+            return new Object[]{f.getValue(), f.getText()};
+        });
+        assertEquals(5, r[0], "equal-value commit keeps the value");
+        assertEquals("+5", r[1], "text stays as typed (JavaFX TextFormatter convention)");
+    }
+
     /** The edit filter rejects letters and the decimal point. */
     @Test
     public void filterRejectsLettersAndDecimalPoint() {

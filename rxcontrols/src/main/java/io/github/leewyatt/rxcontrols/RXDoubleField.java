@@ -32,8 +32,10 @@ import javafx.scene.control.TextFormatter;
  * <p>
  * {@link #minProperty() min} / {@link #maxProperty() max} are inclusive
  * primitive bounds, defaulting to {@link Double#NEGATIVE_INFINITY} /
- * {@link Double#POSITIVE_INFINITY} (unbounded; the clamp is naturally a
- * no-op), and behave like {@link Slider}: setting one past the other converges
+ * {@link Double#POSITIVE_INFINITY} (unbounded). An infinite bound means
+ * "unconstrained on that side" and is never used as a clamp target — so even
+ * a degenerate {@code setMin(POSITIVE_INFINITY)} cannot clamp the value into
+ * a non-finite number. The bounds behave like {@link Slider}: setting one past the other converges
  * the opposite bound to preserve {@code min <= max}; if that opposite bound is
  * itself {@code bound}, the convergence {@code set()} throws
  * {@code "A bound value cannot be set"}. A {@code NaN} bound never compares,
@@ -286,11 +288,17 @@ public class RXDoubleField extends RXTextField {
         if (candidate == null) {
             return null;
         }
-        if (candidate < getMin()) {
-            return getMin();
+        // An infinite bound means "unconstrained on that side" and is never a
+        // clamp target: a degenerate min = +Infinity would otherwise clamp the
+        // value to +Infinity past sanitize (boundsChanged re-clamps under the
+        // reentrancy lock) and break the finite-value contract.
+        double lo = getMin();
+        double hi = getMax();
+        if (Double.isFinite(lo) && candidate < lo) {
+            return lo;
         }
-        if (candidate > getMax()) {
-            return getMax();
+        if (Double.isFinite(hi) && candidate > hi) {
+            return hi;
         }
         return candidate;
     }

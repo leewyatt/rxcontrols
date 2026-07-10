@@ -54,6 +54,12 @@ public final class NumberFieldEngine<T> {
 
     private final InvalidationListener formatterValueListener =
             obs -> handleFormatterValueChanged();
+    // A ChangeListener suffices: any reachable formatter change fires it. The
+    // one non-changing write — binding a source that already holds the
+    // installed formatter — is rejected synchronously by TextInputControl's
+    // own invalidated() (bindToControl throws ISE), whose catch unbinds and
+    // nulls the property; that nested null write fires a change event, so this
+    // guard restores the internal formatter before the ISE reaches the caller.
     private final ChangeListener<TextFormatter<?>> textFormatterGuard =
             (obs, oldFormatter, newFormatter) -> guardTextFormatter(newFormatter);
 
@@ -246,13 +252,13 @@ public final class NumberFieldEngine<T> {
         if (restoringTextFormatter || newFormatter == formatter) {
             return;
         }
+        boolean wasBound = control.textFormatterProperty().isBound();
         // This guard is an external listener on the inherited textFormatter
         // property: any exception it throws is caught by ExpressionHelper and
         // routed to the uncaught-exception handler, never reaching the caller.
         // So both repair paths log a WARNING instead of throwing, and the
         // bind path removes the binding first (failure atomicity: the external
         // formatter must not stay installed with the binding intact).
-        boolean wasBound = control.textFormatterProperty().isBound();
         restoringTextFormatter = true;
         try {
             if (wasBound) {
