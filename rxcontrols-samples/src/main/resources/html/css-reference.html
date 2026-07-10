@@ -97,6 +97,7 @@
     <li><a href="#rxLineLabel">RXLineLabel</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxLrcLineView">RXLrcLineView</a></li>
+    <li><a href="#rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField / Material number fields</a></li>
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxSegmentedControl">RXSegmentedControl</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
@@ -1013,9 +1014,12 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 <p><b>Padding model.</b> Identical to RXTextField — see that section for the three-layer breakdown (<code>-fx-padding</code> vs. <code>-rx-text-padding</code> vs. <code>.leading-wrapper</code> / <code>.trailing-wrapper</code> internal padding).</p>
 <p><b>Accessibility.</b> Inherits <code>PasswordField</code>'s defaults — <code>AccessibleRole.PASSWORD_FIELD</code>, screen readers receive the prompt text rather than the password, and <code>cut()</code> / <code>copy()</code> are no-ops. These behaviors stay in effect even while <code>revealPassword</code> is <code>true</code>.</p>
 
-<h3 id="rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField</h3>
+<h3 id="rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField / Material number fields</h3>
+<p class="fxClass">Style classes: rx-material-text-field / rx-material-password-field</p>
 
 <p>Material-style single-line inputs: a floating label, a bottom activation line with a focus (accent) line, a supporting (helper / error) row, and a built-in clear button. The password variant adds a reveal (eye) button, a runtime <code>revealPassword</code> toggle and an <code>echoChar</code> mask. The floating label falls back to <code>promptText</code> when <code>labelText</code> is blank (a blank promptText is likewise ignored); the native prompt node is suppressed via <code>-fx-prompt-text-fill: transparent</code>.</p>
+
+<p><b>Number variants.</b> <code>RXMaterialDecimalField</code> (BigDecimal), <code>RXMaterialDoubleField</code>, <code>RXMaterialIntegerField</code> and <code>RXMaterialLongField</code> extend <code>RXMaterialTextField</code> and inherit the pseudo-class and CSS-property set below unchanged — they declare no additional CSS properties (<code>-rx-echo-char</code> stays password-only). Each variant keeps the inherited <code>rx-material-text-field</code> style class and adds the shared family class <code>rx-material-number-field</code> plus its own class: <code>rx-material-decimal-field</code>, <code>rx-material-double-field</code>, <code>rx-material-integer-field</code>, <code>rx-material-long-field</code>.</p>
 
 <p>Pseudo-classes</p>
 <table>

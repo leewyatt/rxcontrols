@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXLongField;
-import io.github.leewyatt.rxcontrols.samples.demo.RXLongFieldDemo;
+import io.github.leewyatt.rxcontrols.RXMaterialLongField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXMaterialLongFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -11,33 +11,33 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
 
 /**
- * Showcase application for {@link RXLongField}.
+ * Showcase application for {@link RXMaterialLongField}.
  *
- * <p>Exercises the main public knobs: the committed {@link Long} value
- * (edited in the preview field, which rejects the decimal point), the
- * inclusive primitive {@code min} / {@code max} bounds with Slider-style
- * convergence, the inherited leading / trailing decoration slots, alignment,
- * and the editable flag (text padding is deliberately not showcased: a panel
- * slider would take USER origin and permanently disable the UA side-node
- * defaults). A dedicated section demonstrates the 64-bit policies — an
- * overflowing magnitude rolls the text back, while a value beyond the
- * double-safe 2^53 range commits exactly.
+ * <p>Exercises the Material surface inherited from RXMaterialTextField
+ * (floating label, helper / error supporting text, the invalid state, the
+ * animation toggle, and the built-in clear button) together with the typed
+ * knobs shared with the plain RXLongField: the committed {@link Long} value
+ * and the inclusive primitive min / max bounds with Slider-style convergence.
+ * A dedicated section commits 2^53 + 1 to show the value staying exact beyond
+ * the double-safe range. Alignment and the editable flag round out the layout
+ * section.
  *
- * <p>For a minimal "few lines of code" example see {@link RXLongFieldDemo}.
+ * <p>For a minimal "few lines of code" example see
+ * {@link RXMaterialLongFieldDemo}.
  */
-public class RXLongFieldShowcase extends RXShowcaseApplication {
+public class RXMaterialLongFieldShowcase extends RXShowcaseApplication {
 
     private static final double BOUND_MIN = -100.0;
     private static final double BOUND_MAX = 100.0;
 
-    private RXLongField field;
+    private RXMaterialLongField field;
     private Slider minSlider;
     private Slider maxSlider;
     private CheckBox minEnabled;
@@ -47,28 +47,29 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
 
     @Override
     protected String title() {
-        return "RXLongField";
+        return "RXMaterialLongField";
     }
 
     @Override
     protected String subtitle() {
-        return "64-bit integer numeric text field";
+        return "Material 64-bit integer numeric field";
     }
 
     @Override
     protected String windowTitle() {
-        return "RXLongField Showcase";
+        return "RXMaterialLongField Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-long-field-showcase.css").toExternalForm();
+        return getClass().getResource("rx-material-long-field-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXLongField(25L);
-        field.setPromptText("Whole numbers only");
+        field = new RXMaterialLongField(25L);
+        field.setLabelText("Snowflake ID");
+        field.setHelperText("Whole numbers only");
         field.setPrefColumnCount(14);
 
         Label readout = new Label();
@@ -77,7 +78,8 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
                 () -> describe(field),
                 field.valueProperty(), field.minProperty(), field.maxProperty()));
 
-        VBox box = new VBox(16.0, field, readout);
+        VBox box = new VBox(22.0, field, readout);
+        box.getStyleClass().add("live-preview");
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -85,13 +87,61 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
+                section("Material surface", buildSurfaceGrid()),
                 section("Range", buildRangeGrid()),
-                section("64-bit policy", buildPolicyGrid()),
-                section("Decoration slots", buildSlotGrid()),
+                section("Precision", buildPrecisionGrid()),
                 section("Layout & state", buildLayoutGrid()));
     }
 
     // ==================== Sections ====================
+
+    private Node buildSurfaceGrid() {
+        TextField labelBox = new TextField(field.getLabelText());
+        labelBox.setMaxWidth(Double.MAX_VALUE);
+        field.labelTextProperty().bind(labelBox.textProperty());
+
+        TextField helperBox = new TextField(field.getHelperText());
+        helperBox.setMaxWidth(Double.MAX_VALUE);
+        field.helperTextProperty().bind(helperBox.textProperty());
+
+        TextField errorBox = new TextField();
+        errorBox.setMaxWidth(Double.MAX_VALUE);
+        errorBox.setPromptText("shown when invalid");
+        field.errorTextProperty().bind(errorBox.textProperty());
+
+        CheckBox invalidBox = new CheckBox("Invalid");
+        field.invalidProperty().bind(invalidBox.selectedProperty());
+
+        CheckBox floatingBox = new CheckBox("Floating label");
+        floatingBox.setSelected(field.isFloatingLabel());
+        field.floatingLabelProperty().bind(floatingBox.selectedProperty());
+
+        CheckBox animatedBox = new CheckBox("Animated");
+        animatedBox.setSelected(field.isAnimated());
+        field.animatedProperty().bind(animatedBox.selectedProperty());
+
+        CheckBox clearBox = new CheckBox("Clear button");
+        clearBox.setSelected(field.isShowClearButton());
+        field.showClearButtonProperty().bind(clearBox.selectedProperty());
+
+        HBox stateRow = new HBox(18.0, invalidBox, floatingBox);
+        stateRow.getStyleClass().add("toggle-row");
+        HBox chromeRow = new HBox(18.0, animatedBox, clearBox);
+        chromeRow.getStyleClass().add("toggle-row");
+
+        Label hint = new Label("The clear button clears the committed value, not just the "
+                + "text — clicking it commits null immediately.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+
+        return createGrid(
+                row("Label", labelBox),
+                row("Helper", helperBox),
+                row("Error", errorBox),
+                row(stateRow),
+                row(chromeRow),
+                row(hint));
+    }
 
     private Node buildRangeGrid() {
         minSlider = createSlider(BOUND_MIN, BOUND_MAX, 0.0);
@@ -131,8 +181,9 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
                 row(hint));
     }
 
-    private Node buildPolicyGrid() {
-        Label result = new Label("Press a button to test the 64-bit policies.");
+    private Node buildPrecisionGrid() {
+        Label result = new Label("Press a button to commit 2^53 + 1 (long-exact precision) "
+                + "or 2^63 (64-bit overflow rollback).");
         result.getStyleClass().add("policy-result");
         result.setWrapText(true);
 
@@ -141,7 +192,7 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
             field.setText("9223372036854775808");   // Long.MAX_VALUE + 1
             field.commitValue();
             result.setText("Overflow rolled the text back; value = " + field.getValue()
-                    + ". Whole numbers beyond 64-bit belong in RXDecimalField.");
+                    + ". Whole numbers beyond 64-bit belong in RXMaterialDecimalField.");
         });
 
         Button exact = new Button("Commit 2^53 + 1");
@@ -160,16 +211,6 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
         buttons.setAlignment(Pos.CENTER_LEFT);
 
         return createGrid(row(buttons), row(result));
-    }
-
-    private Node buildSlotGrid() {
-        ComboBox<SlotPreset> slotBox = new ComboBox<>();
-        slotBox.getItems().addAll(SlotPreset.values());
-        slotBox.setValue(SlotPreset.NONE);
-        slotBox.setMaxWidth(Double.MAX_VALUE);
-        slotBox.valueProperty().addListener((obs, oldV, newV) -> applySlots(newV));
-
-        return createGrid(row("Slot preset", slotBox));
     }
 
     private Node buildLayoutGrid() {
@@ -201,57 +242,7 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
                 : Long.MAX_VALUE);
     }
 
-    private void applySlots(SlotPreset preset) {
-        switch (preset) {
-            case NONE -> {
-                field.setLeading(null);
-                field.setTrailing(null);
-            }
-            case DECORATION -> {
-                field.setLeading(slotLabel("#", "slot-badge"));
-                field.setTrailing(slotLabel("id", "slot-unit"));
-            }
-            case STEPPER -> {
-                field.setLeading(stepButton("−", -1L));
-                field.setTrailing(stepButton("+", 1L));
-            }
-        }
-    }
-
-    private void step(long delta) {
-        field.commitValue();
-        long current = field.getValue() == null ? 0L : field.getValue();
-        long next;
-        try {
-            next = Math.addExact(current, delta);
-        } catch (ArithmeticException overflow) {
-            // Saturate at the domain edge; wrapping to the opposite sign in a
-            // showcase that demonstrates 64-bit edge policy would be absurd.
-            next = delta > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
-        }
-        field.setValue(next);
-    }
-
-    private Node stepButton(String text, long delta) {
-        Button button = new Button(text);
-        button.getStyleClass().add("slot-button");
-        button.setFocusTraversable(false);
-        button.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        button.setOnAction(e -> step(delta));
-
-        StackPane box = new StackPane(button);
-        box.getStyleClass().add("slot-button-box");
-        box.setMaxHeight(Double.MAX_VALUE);
-        return box;
-    }
-
-    private static Label slotLabel(String text, String styleClass) {
-        Label label = new Label(text);
-        label.getStyleClass().add(styleClass);
-        return label;
-    }
-
-    private static String describe(RXLongField field) {
+    private static String describe(RXMaterialLongField field) {
         return "value = " + field.getValue()
                 + "\nmin = " + bound(field.getMin(), Long.MIN_VALUE)
                 + "      max = " + bound(field.getMax(), Long.MAX_VALUE);
@@ -259,25 +250,6 @@ public class RXLongFieldShowcase extends RXShowcaseApplication {
 
     private static String bound(long value, long unboundedSentinel) {
         return value == unboundedSentinel ? "unbounded" : Long.toString(value);
-    }
-
-    // ==================== Slot preset ====================
-
-    private enum SlotPreset {
-        NONE("None"),
-        DECORATION("Badge + unit"),
-        STEPPER("± stepper buttons");
-
-        private final String label;
-
-        SlotPreset(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
     }
 
     /**

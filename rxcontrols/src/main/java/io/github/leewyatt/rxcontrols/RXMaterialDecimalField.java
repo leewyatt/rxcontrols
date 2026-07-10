@@ -13,13 +13,13 @@ import java.text.NumberFormat;
 import java.util.function.UnaryOperator;
 
 /**
- * Text field for exact-decimal {@link BigDecimal} input — money, rates, and
- * other quantities where binary floating point is not acceptable. The value is
+ * Material-style field for exact-decimal {@link BigDecimal} input — money,
+ * rates, and other quantities where binary floating point is not acceptable.
+ * Extends {@link RXMaterialTextField}, so the floating label, bottom
+ * activation line, and supporting (helper / error) row come with it; the typed
+ * value model is identical to the plain {@link RXDecimalField}. The value is
  * committed on focus loss, ENTER, and {@link #commitValue()}; {@code null}
- * represents an empty field. A direct {@code text} write ({@code setText} /
- * {@code clear()}) commits immediately — clearing the field commits
- * {@code null} on the spot — while a user edit stays uncommitted until one of
- * those commit points.
+ * represents an empty field.
  * <p>
  * With the default {@code null} {@link #numberFormatProperty() numberFormat}
  * the field accepts plain decimal text and renders values with
@@ -42,17 +42,20 @@ import java.util.function.UnaryOperator;
  * {@link #setValue(BigDecimal)} is a no-op, exactly as Slider. An empty field
  * ({@code null} value) is never clamped into a value.
  * <p>
- * The internal {@link TextFormatter} is not replaceable: an external
+ * The built-in clear button and the {@link #clear()} method clear the
+ * committed value, not just the text: a direct {@code text} write commits
+ * immediately, unlike a user edit. The internal
+ * {@link TextFormatter} is not replaceable: an external
  * {@link #setTextFormatter(TextFormatter) setTextFormatter} is reverted and a
  * {@code WARNING} is logged. Prefer bidirectional binding for the value
  * property; one-way {@code bind} blocks user edits from being committed.
  */
-public class RXDecimalField extends RXTextField {
+public class RXMaterialDecimalField extends RXMaterialTextField {
 
     // ==================== Constants ====================
 
-    private static final String FAMILY_STYLE_CLASS = "rx-number-field";
-    private static final String DEFAULT_STYLE_CLASS = "rx-decimal-field";
+    private static final String FAMILY_STYLE_CLASS = "rx-material-number-field";
+    private static final String DEFAULT_STYLE_CLASS = "rx-material-decimal-field";
 
     // ==================== Fields ====================
 
@@ -61,18 +64,18 @@ public class RXDecimalField extends RXTextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty decimal field.
+     * Creates an empty Material decimal field.
      */
-    public RXDecimalField() {
+    public RXMaterialDecimalField() {
         this(null);
     }
 
     /**
-     * Creates a decimal field with an initial value.
+     * Creates a Material decimal field with an initial value.
      *
      * @param initialValue the initial value, or {@code null} for an empty field
      */
-    public RXDecimalField(BigDecimal initialValue) {
+    public RXMaterialDecimalField(BigDecimal initialValue) {
         getStyleClass().addAll(FAMILY_STYLE_CLASS, DEFAULT_STYLE_CLASS);
         engine = new NumberFieldEngine<>(this, value,
                 new DecimalFieldConverter(this::getNumberFormat),

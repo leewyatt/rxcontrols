@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.internal.number;
 
-import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.util.StringConverter;
 
@@ -15,9 +15,12 @@ import java.util.logging.Logger;
 
 /**
  * Owns the {@link TextFormatter} plumbing shared by the typed number fields
- * ({@code RXIntegerField} / {@code RXDoubleField} / {@code RXDecimalField}):
- * formatter assembly, the replace/bind guard, the value-text synchronization
- * locks, the lossy-format commit check, and the value coercion pipeline.
+ * ({@code RXIntegerField} / {@code RXLongField} / {@code RXDoubleField} /
+ * {@code RXDecimalField} and their Material variants): formatter assembly, the
+ * replace/bind guard, the value-text synchronization locks, the lossy-format
+ * commit check, and the value coercion pipeline. The host floor is
+ * {@link TextField} — not {@code TextInputControl} — because the ACTION commit
+ * backstop and {@code commitValue} semantics only hold in the TextField family.
  * <p>
  * The engine is the only writer of the host control's {@code value} property
  * besides the property's own binding. An unbound value change runs the
@@ -37,7 +40,7 @@ public final class NumberFieldEngine<T> {
 
     private static final Logger LOGGER = Logger.getLogger(NumberFieldEngine.class.getName());
 
-    private final RXTextField control;
+    private final TextField control;
     private final ObjectProperty<T> value;
     private final TextFormatter<T> formatter;
 
@@ -93,7 +96,7 @@ public final class NumberFieldEngine<T> {
      *                  domain rule beyond its range
      * @param clamp     the range clamp for unbound value writes
      */
-    public NumberFieldEngine(RXTextField control, ObjectProperty<T> value,
+    public NumberFieldEngine(TextField control, ObjectProperty<T> value,
                              StringConverter<T> converter,
                              UnaryOperator<TextFormatter.Change> filter,
                              UnaryOperator<T> sanitize,

@@ -144,8 +144,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * Creates the shared Material skin.
      *
      * @param control           the text field being skinned
-     * @param userLeading       leading-node observable (effective left)
-     * @param userTrailing      trailing-node observable (effective right)
+     * @param userLeading       leading-node observable (effective leading node)
+     * @param userTrailing      trailing-node observable (effective trailing node)
      * @param userTextPadding   text-padding observable (effective text padding)
      * @param labelText         floating-label text observable
      * @param helperText        helper-text observable

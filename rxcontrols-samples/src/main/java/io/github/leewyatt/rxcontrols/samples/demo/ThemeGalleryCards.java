@@ -33,6 +33,12 @@ import io.github.leewyatt.rxcontrols.RXLineLabel;
 import io.github.leewyatt.rxcontrols.RXLongField;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXLrcView;
+import io.github.leewyatt.rxcontrols.RXMaterialDecimalField;
+import io.github.leewyatt.rxcontrols.RXMaterialDoubleField;
+import io.github.leewyatt.rxcontrols.RXMaterialIntegerField;
+import io.github.leewyatt.rxcontrols.RXMaterialLongField;
+import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
+import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
@@ -148,6 +154,12 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXLongField", buildRXLongField()));
         list.add(new NamedControl("RXLrcLineView", buildRXLrcLineView()));
         list.add(new NamedControl("RXLrcView", buildRXLrcView()));
+        list.add(new NamedControl("RXMaterialDecimalField", buildRXMaterialDecimalField()));
+        list.add(new NamedControl("RXMaterialDoubleField", buildRXMaterialDoubleField()));
+        list.add(new NamedControl("RXMaterialIntegerField", buildRXMaterialIntegerField()));
+        list.add(new NamedControl("RXMaterialLongField", buildRXMaterialLongField()));
+        list.add(new NamedControl("RXMaterialPasswordField", buildRXMaterialPasswordField()));
+        list.add(new NamedControl("RXMaterialTextField", buildRXMaterialTextField()));
         list.add(new NamedControl("RXPasswordField", buildRXPasswordField()));
         list.add(new NamedControl("RXPlaceholder", buildRXPlaceholder()));
         list.add(new NamedControl("RXRadioToggleButton", buildRXRadioToggleButton()));
@@ -678,6 +690,53 @@ final class ThemeGalleryCards {
         lrcView.setPrefSize(280.0, 220.0);
         lrcView.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return lrcView;
+    }
+
+    private static Node buildRXMaterialDecimalField() {
+        RXMaterialDecimalField field = new RXMaterialDecimalField(new BigDecimal("1234.50"));
+        field.setLabelText("Amount");
+        field.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXMaterialDoubleField() {
+        RXMaterialDoubleField field = new RXMaterialDoubleField(0.75);
+        field.setLabelText("Scale factor");
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXMaterialIntegerField() {
+        RXMaterialIntegerField field = new RXMaterialIntegerField(25);
+        field.setLabelText("Quantity");
+        field.setMin(0);
+        field.setMax(999);
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXMaterialLongField() {
+        RXMaterialLongField field = new RXMaterialLongField(9007199254740993L);
+        field.setLabelText("ID");
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXMaterialPasswordField() {
+        RXMaterialPasswordField field = new RXMaterialPasswordField("hunter2");
+        field.setLabelText("Password");
+        field.setHelperText("At least 8 characters");
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXMaterialTextField() {
+        RXMaterialTextField field = new RXMaterialTextField();
+        field.setLabelText("Full name");
+        field.setHelperText("As it appears on your ID");
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
     }
 
     private static Node buildRXDoubleField() {

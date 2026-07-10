@@ -113,4 +113,50 @@ public class NumberFieldFxmlTest {
         assertEquals(0, new BigDecimal("0.01").compareTo(decimalField.getMin()));
         assertEquals(0, new BigDecimal("100.00").compareTo(decimalField.getMax()));
     }
+
+    @Test
+    public void materialVariantsLoadWithTypedAndMaterialAttributes() {
+        VBox root = onFx(() -> {
+            String fxml = """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <?import io.github.leewyatt.rxcontrols.RXMaterialDecimalField?>
+                    <?import io.github.leewyatt.rxcontrols.RXMaterialDoubleField?>
+                    <?import io.github.leewyatt.rxcontrols.RXMaterialIntegerField?>
+                    <?import io.github.leewyatt.rxcontrols.RXMaterialLongField?>
+                    <?import javafx.scene.layout.VBox?>
+                    <VBox xmlns="http://javafx.com/javafx/17">
+                        <RXMaterialIntegerField value="42" min="0" max="100" labelText="Count"/>
+                        <RXMaterialLongField value="9007199254740993" labelText="Id"/>
+                        <RXMaterialDoubleField value="2.5" min="-1.5" max="9.75"/>
+                        <RXMaterialDecimalField value="19.99" helperText="Price"/>
+                    </VBox>
+                    """;
+            try {
+                FXMLLoader loader = new FXMLLoader();
+                return loader.load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        RXMaterialIntegerField integerField = (RXMaterialIntegerField) root.getChildren().get(0);
+        assertEquals(42, integerField.getValue(), "Integer value lands exactly");
+        assertEquals(0, integerField.getMin());
+        assertEquals(100, integerField.getMax());
+        assertEquals("Count", integerField.getLabelText(), "the inherited Material surface stays FXML-reachable");
+
+        RXMaterialLongField longField = (RXMaterialLongField) root.getChildren().get(1);
+        assertEquals(9007199254740993L, longField.getValue(),
+                "Long value beyond the double-safe range lands exactly");
+
+        RXMaterialDoubleField doubleField = (RXMaterialDoubleField) root.getChildren().get(2);
+        assertEquals(2.5, doubleField.getValue(), "Double value lands exactly");
+        assertEquals(-1.5, doubleField.getMin());
+        assertEquals(9.75, doubleField.getMax());
+
+        RXMaterialDecimalField decimalField = (RXMaterialDecimalField) root.getChildren().get(3);
+        assertEquals(0, new BigDecimal("19.99").compareTo(decimalField.getValue()),
+                "BigDecimal value lands via the exact String constructor");
+        assertEquals("Price", decimalField.getHelperText());
+    }
 }

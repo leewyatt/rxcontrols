@@ -15,6 +15,9 @@ import java.util.function.UnaryOperator;
 /**
  * Text field for {@link Integer} input. The value is committed on focus loss,
  * ENTER, and {@link #commitValue()}; {@code null} represents an empty field.
+ * A direct {@code text} write ({@code setText} / {@code clear()}) commits
+ * immediately — clearing the field commits {@code null} on the spot — while a
+ * user edit stays uncommitted until one of those commit points.
  * <p>
  * User edits reject anything but digits and a leading sign; a magnitude beyond
  * the 32-bit integer range fails to parse and the text rolls back to the last

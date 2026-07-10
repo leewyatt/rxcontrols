@@ -11,18 +11,19 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextFormatter;
 
 /**
- * Text field for {@link Double} input. The value is committed on focus loss,
- * ENTER, and {@link #commitValue()}; {@code null} represents an empty field.
- * A direct {@code text} write ({@code setText} / {@code clear()}) commits
- * immediately — clearing the field commits {@code null} on the spot — while a
- * user edit stays uncommitted until one of those commit points.
+ * Material-style field for {@link Double} input. Extends
+ * {@link RXMaterialTextField}, so the floating label, bottom activation line,
+ * and supporting (helper / error) row come with it; the typed value model is
+ * identical to the plain {@link RXDoubleField}. The value is committed on
+ * focus loss, ENTER, and {@link #commitValue()}; {@code null} represents an
+ * empty field.
  * <p>
  * The field accepts plain decimal text and renders finite values as plain
  * decimal with no scientific notation and no trailing {@code .0} (an extreme
  * magnitude like {@code 1e308} renders as its full 300-plus-digit plain
  * form). Double is binary floating point: a value like {@code 0.1 + 0.2}
  * renders its exact representation ({@code 0.30000000000000004}). For money
- * and other exact decimal quantities use {@link RXDecimalField}.
+ * and other exact decimal quantities use {@link RXMaterialDecimalField}.
  * <p>
  * The value must be finite. {@link #setValue(Double)} with {@code NaN} or an
  * infinity coerces the value to {@code null} (empty field) and throws
@@ -48,7 +49,10 @@ import javafx.scene.control.TextFormatter;
  * {@link #setValue(Double)} is a no-op, exactly as Slider. An empty field
  * ({@code null} value) is never clamped into a value.
  * <p>
- * The internal {@link TextFormatter} is not replaceable: an external
+ * The built-in clear button and the {@link #clear()} method clear the
+ * committed value, not just the text: a direct {@code text} write commits
+ * immediately, unlike a user edit. The internal
+ * {@link TextFormatter} is not replaceable: an external
  * {@link #setTextFormatter(TextFormatter) setTextFormatter} is reverted and a
  * {@code WARNING} is logged. Prefer bidirectional binding for the value
  * property; to bridge a {@code DoubleProperty} model use
@@ -57,12 +61,12 @@ import javafx.scene.control.TextFormatter;
  * bindings are weak) and note that clearing the field writes {@code null},
  * which a {@code DoubleProperty} stores as {@code 0.0}.
  */
-public class RXDoubleField extends RXTextField {
+public class RXMaterialDoubleField extends RXMaterialTextField {
 
     // ==================== Constants ====================
 
-    private static final String FAMILY_STYLE_CLASS = "rx-number-field";
-    private static final String DEFAULT_STYLE_CLASS = "rx-double-field";
+    private static final String FAMILY_STYLE_CLASS = "rx-material-number-field";
+    private static final String DEFAULT_STYLE_CLASS = "rx-material-double-field";
 
     // ==================== Fields ====================
 
@@ -71,19 +75,19 @@ public class RXDoubleField extends RXTextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty double field.
+     * Creates an empty Material double field.
      */
-    public RXDoubleField() {
+    public RXMaterialDoubleField() {
         this(null);
     }
 
     /**
-     * Creates a double field with an initial value.
+     * Creates a Material double field with an initial value.
      *
      * @param initialValue the initial value, or {@code null} for an empty field
      * @throws IllegalArgumentException if the value is {@code NaN} or infinite
      */
-    public RXDoubleField(Double initialValue) {
+    public RXMaterialDoubleField(Double initialValue) {
         getStyleClass().addAll(FAMILY_STYLE_CLASS, DEFAULT_STYLE_CLASS);
         engine = new NumberFieldEngine<>(this, value,
                 new DoubleFieldConverter(), new NumberFieldChangeFilter(),

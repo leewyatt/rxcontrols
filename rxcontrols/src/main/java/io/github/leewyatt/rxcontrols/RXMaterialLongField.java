@@ -13,18 +13,19 @@ import javafx.scene.control.TextFormatter;
 import java.util.function.UnaryOperator;
 
 /**
- * Text field for {@link Long} input. The value is committed on focus loss,
- * ENTER, and {@link #commitValue()}; {@code null} represents an empty field.
- * A direct {@code text} write ({@code setText} / {@code clear()}) commits
- * immediately — clearing the field commits {@code null} on the spot — while a
- * user edit stays uncommitted until one of those commit points.
+ * Material-style field for {@link Long} input. Extends
+ * {@link RXMaterialTextField}, so the floating label, bottom activation line,
+ * and supporting (helper / error) row come with it; the typed value model is
+ * identical to the plain {@link RXLongField}. The value is committed on focus
+ * loss, ENTER, and {@link #commitValue()}; {@code null} represents an empty
+ * field.
  * <p>
  * User edits reject anything but digits and a leading sign; a magnitude beyond
  * the 64-bit long range fails to parse and the text rolls back to the last
  * valid rendering. For whole numbers beyond that range use
- * {@link RXDecimalField}. Unlike {@code double}-backed inputs, the full long
- * range is carried exactly — values beyond 2<sup>53</sup> never lose
- * precision.
+ * {@link RXMaterialDecimalField}. Unlike {@code double}-backed inputs, the
+ * full long range is carried exactly — values beyond 2<sup>53</sup> never
+ * lose precision.
  * <p>
  * {@link #minProperty() min} / {@link #maxProperty() max} are inclusive
  * primitive bounds, defaulting to {@link Long#MIN_VALUE} /
@@ -37,7 +38,10 @@ import java.util.function.UnaryOperator;
  * displayed as-is and {@link #setValue(Long)} is a no-op, exactly as
  * Slider. An empty field ({@code null} value) is never clamped into a value.
  * <p>
- * The internal {@link TextFormatter} is not replaceable: an external
+ * The built-in clear button and the {@link #clear()} method clear the
+ * committed value, not just the text: a direct {@code text} write commits
+ * immediately, unlike a user edit. The internal
+ * {@link TextFormatter} is not replaceable: an external
  * {@link #setTextFormatter(TextFormatter) setTextFormatter} is reverted and a
  * {@code WARNING} is logged. Prefer bidirectional binding for the value
  * property; to bridge a {@code LongProperty} model use
@@ -46,12 +50,12 @@ import java.util.function.UnaryOperator;
  * bindings are weak) and note that clearing the field writes {@code null},
  * which a {@code LongProperty} stores as {@code 0}.
  */
-public class RXLongField extends RXTextField {
+public class RXMaterialLongField extends RXMaterialTextField {
 
     // ==================== Constants ====================
 
-    private static final String FAMILY_STYLE_CLASS = "rx-number-field";
-    private static final String DEFAULT_STYLE_CLASS = "rx-long-field";
+    private static final String FAMILY_STYLE_CLASS = "rx-material-number-field";
+    private static final String DEFAULT_STYLE_CLASS = "rx-material-long-field";
 
     // ==================== Fields ====================
 
@@ -60,18 +64,18 @@ public class RXLongField extends RXTextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty long field.
+     * Creates an empty Material long field.
      */
-    public RXLongField() {
+    public RXMaterialLongField() {
         this(null);
     }
 
     /**
-     * Creates a long field with an initial value.
+     * Creates a Material long field with an initial value.
      *
      * @param initialValue the initial value, or {@code null} for an empty field
      */
-    public RXLongField(Long initialValue) {
+    public RXMaterialLongField(Long initialValue) {
         getStyleClass().addAll(FAMILY_STYLE_CLASS, DEFAULT_STYLE_CLASS);
         engine = new NumberFieldEngine<>(this, value,
                 new LongFieldConverter(), new IntegerFieldChangeFilter(),

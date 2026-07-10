@@ -273,6 +273,39 @@ public class RXMaterialTextFieldTest {
         });
     }
 
+    @Test
+    public void skinFallbacksMatchControlDefaults() {
+        // The skin keeps private FALLBACK_* copies of the controls' defaults for
+        // null / non-finite property values. Pin them behaviorally: a field whose
+        // gaps / float scale are NaN (and duration null) must render exactly like
+        // a default field. The duration fallback itself has no headless-observable
+        // value (only the animation end state is observable), so this also just
+        // exercises the null-duration path.
+        runOnFx(() -> {
+            RXMaterialTextField reference = new RXMaterialTextField();
+            reference.setLabelText("Name");
+            reference.setHelperText("Help");
+            reference.setText("hello");
+            inScene(reference);
+
+            RXMaterialTextField fallback = new RXMaterialTextField();
+            fallback.setLabelText("Name");
+            fallback.setHelperText("Help");
+            fallback.setText("hello");
+            fallback.setLabelGap(Double.NaN);
+            fallback.setSupportingGap(Double.NaN);
+            fallback.setLabelFloatScale(Double.NaN);
+            fallback.setAnimationDuration(null);
+            inScene(fallback);
+
+            assertEquals(reference.prefHeight(-1), fallback.prefHeight(-1), 0.001,
+                    "NaN gaps must fall back to the controls' defaults");
+            assertEquals(scaleOf(floatingLabel(reference)).getX(),
+                    scaleOf(floatingLabel(fallback)).getX(), 0.001,
+                    "a NaN labelFloatScale must fall back to the control default");
+        });
+    }
+
     // The snap-vs-animate gate while showing (animated flag / duration<=0) lives in
     // the @Tag("ui") RXMaterialTextFieldUITest. The focus-driven states — the focus
     // branch of :floated and the accent-line expansion to scaleX=1 / opacity=1 — are
