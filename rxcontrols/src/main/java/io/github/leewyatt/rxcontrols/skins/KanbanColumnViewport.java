@@ -514,11 +514,28 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     @Override
     protected RXKanbanCardCell<T> createCell() {
         Callback<RXKanbanView<T>, RXKanbanCardCell<T>> factory = control.getCardCellFactory();
-        RXKanbanCardCell<T> cell = factory != null ? factory.call(control) : new RXKanbanCardCell<>();
+        RXKanbanCardCell<T> cell = factory != null ? factory.call(control) : createDefaultCell();
         cell.updateColumn(column);
         cell.updateKanbanView(control);
         cell.setManaged(false);
         return cell;
+    }
+
+    private RXKanbanCardCell<T> createDefaultCell() {
+        // The default rendering lives in the default factory (mirroring the list
+        // viewport), not in the RXKanbanCardCell base class: a bare cell renders nothing.
+        return new RXKanbanCardCell<>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(primaryText(item));
+                }
+            }
+        };
     }
 
     @Override

@@ -2,18 +2,28 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.skin.CellSkinBase;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 /**
- * Skin for {@link RXKanbanCardCell}: the standard {@link CellSkinBase} plus an
- * embedded {@link RippleDecoration} placed below the card content. The cell owns
- * its content holder (set as the cell graphic); this skin places the ripple layer
- * behind it, stretches the holder to fill the card, supplies the pointer-press
- * ripple trigger and clears the ripple when the cell is recycled.
+ * Skin for {@link RXKanbanCardCell}: the standard {@link CellSkinBase} (Labeled
+ * text + graphic rendering) plus an embedded {@link RippleDecoration} placed
+ * below the card content; it supplies the pointer-press ripple trigger and
+ * clears the ripple when the cell is recycled.
+ *
+ * <p>One deliberate deviation from plain {@code LabeledSkinBase} layout: a
+ * <em>resizable</em> graphic under {@link ContentDisplay#GRAPHIC_ONLY} is
+ * resized to fill the card's content area (min/max respected, label padding
+ * honored in both layout and measurement), so rich full-card content needs no
+ * manual width binding; pref-locked icons and non-resizable shapes are
+ * unaffected.
  *
  * @param <T> the card type
  */
@@ -59,14 +69,81 @@ public class RXKanbanCardCellSkin<T> extends CellSkinBase<RXKanbanCardCell<T>> {
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        super.layoutChildren(x, y, w, h);
-        // Force the content holder (the cell's graphic) to fill the content box so
-        // both the content and the ripple span the full card.
-        Node graphic = getSkinnable().getGraphic();
-        if (graphic != null) {
-            graphic.resizeRelocate(x, y, w, h);
+        RXKanbanCardCell<T> cell = getSkinnable();
+        if (fillsGraphicOnly()) {
+            // Full-card rich content: fill the content area (label padding honored,
+            // min/max respected by layoutInArea) — pref-locked icons stay pref-sized.
+            Insets lp = cell.getLabelPadding();
+            layoutInArea(cell.getGraphic(),
+                    x + snapSizeX(lp.getLeft()), y + snapSizeY(lp.getTop()),
+                    Math.max(0.0, w - snapSizeX(lp.getLeft()) - snapSizeX(lp.getRight())),
+                    Math.max(0.0, h - snapSizeY(lp.getTop()) - snapSizeY(lp.getBottom())),
+                    0, HPos.LEFT, VPos.CENTER);
+        } else {
+            super.layoutChildren(x, y, w, h);
         }
-        ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        ripple.layout(cell.getWidth(), cell.getHeight());
+    }
+
+    // The graphic-only fill branch of layoutChildren; the compute* methods below must
+    // mirror it, because LabeledSkinBase only counts labelPadding into measurement
+    // when text is rendered — under GRAPHIC_ONLY the padding the fill branch reserves
+    // has to be added back, or measured cards compress/clip the graphic.
+    private boolean fillsGraphicOnly() {
+        RXKanbanCardCell<T> cell = getSkinnable();
+        Node graphic = cell.getGraphic();
+        return cell.getContentDisplay() == ContentDisplay.GRAPHIC_ONLY
+                && graphic != null && graphic.isResizable();
+    }
+
+    private double fillHorizontalLabelPadding() {
+        Insets lp = getSkinnable().getLabelPadding();
+        return fillsGraphicOnly() ? snapSizeX(lp.getLeft()) + snapSizeX(lp.getRight()) : 0.0;
+    }
+
+    private double fillVerticalLabelPadding() {
+        Insets lp = getSkinnable().getLabelPadding();
+        return fillsGraphicOnly() ? snapSizeY(lp.getTop()) + snapSizeY(lp.getBottom()) : 0.0;
+    }
+
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return super.computeMinWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + fillHorizontalLabelPadding();
+    }
+
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        // Measure the label part at the exact width the layout will hand it (in the
+        // fill branch: minus the horizontal label padding): a width-dependent graphic
+        // (wrapping full-card content) measured wider than it is laid out would
+        // under-estimate card heights. A negative width is the unconstrained sentinel
+        // and passes through.
+        double labelWidth = width < 0
+                ? width
+                : Math.max(0.0, width - fillHorizontalLabelPadding());
+        return super.computeMinHeight(labelWidth, topInset, rightInset, bottomInset, leftInset)
+                + fillVerticalLabelPadding();
+    }
+
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return super.computePrefWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + fillHorizontalLabelPadding();
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        // Same width formula as computeMinHeight: measurement mirrors the layout.
+        double labelWidth = width < 0
+                ? width
+                : Math.max(0.0, width - fillHorizontalLabelPadding());
+        return super.computePrefHeight(labelWidth, topInset, rightInset, bottomInset, leftInset)
+                + fillVerticalLabelPadding();
     }
 
     /**

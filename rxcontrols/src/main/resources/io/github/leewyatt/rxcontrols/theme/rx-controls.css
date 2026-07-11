@@ -2256,15 +2256,12 @@
     -fx-border-color: -rx-outline-variant;
     -fx-border-radius: 6;
     -fx-padding: 0.75em;
+    -fx-text-fill: -rx-on-surface;
     /* Interaction feedback comes from the embedded ripple / state overlay. */
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
-}
-
-.rx-kanban-card-cell > .content > .label {
-    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-kanban-card-cell:selected {

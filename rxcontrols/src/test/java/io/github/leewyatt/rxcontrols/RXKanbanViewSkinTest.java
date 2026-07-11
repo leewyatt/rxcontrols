@@ -24,10 +24,12 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +70,99 @@ public class RXKanbanViewSkinTest {
             throw new AssertionError("JavaFX toolkit did not start");
         }
         Platform.runLater(() -> Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA));
+    }
+
+    @Test
+    public void defaultCardRendersConverterText() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2);
+            board.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(String value) {
+                    return "<" + value + ">";
+                }
+
+                @Override
+                public String fromString(String value) {
+                    return value;
+                }
+            });
+            pump(host(board, 900, 500));
+            RXKanbanCardCell<?> cell = cellByText(board, "card-0");
+            assertNotNull(cell);
+            assertEquals("<card-0>", cell.getText(), "default card renders the converter text");
+        });
+    }
+
+    @Test
+    public void customUpdateItemCardRendersTextAndGraphic() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2);
+            board.setCardCellFactory(view -> new RXKanbanCardCell<>() {
+                private final Region marker = new Region();
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        setText(primaryText(item));
+                        setGraphic(marker);
+                    }
+                }
+            });
+            pump(host(board, 900, 500));
+            RXKanbanCardCell<?> cell = cellByText(board, "card-0");
+            assertNotNull(cell);
+            assertEquals("card-0", cell.getText(), "custom card text rendered via primaryText");
+            assertNotNull(cell.getGraphic(), "custom card graphic rendered");
+        });
+    }
+
+    @Test
+    public void graphicOnlyFillCardMeasuresAtLayoutWidthWithLabelPadding() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2);
+            board.setCardCellFactory(view -> new RXKanbanCardCell<>() {
+                // Deterministic width-dependent content (area-preserving block, like
+                // wrapping text): narrower layout width must yield a taller measure.
+                private final Region flow = new Region() {
+                    @Override
+                    protected double computePrefHeight(double width) {
+                        return width <= 0 ? 60.0 : 6000.0 / width;
+                    }
+
+                    @Override
+                    public Orientation getContentBias() {
+                        return Orientation.HORIZONTAL;
+                    }
+                };
+
+                {
+                    // GRAPHIC_ONLY + resizable graphic = the skin's full-card fill
+                    // branch; padding zeroed so the math below is exact.
+                    setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+                    setStyle("-fx-padding: 0; -fx-label-padding: 5 50 7 50;");
+                }
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty || item == null ? null : flow);
+                }
+            });
+            pump(host(board, 900, 500));
+            RXKanbanCardCell<?> cell = cellByText(board, "card-0");
+            assertNotNull(cell);
+            // Layout hands the graphic 300 - 100 (horizontal label padding) = 200px
+            // -> honest measure 6000/200 = 30, plus 5+7 vertical label padding = 42.
+            // Measuring at the unpadded 300px would claim 20 (+12) and clip.
+            assertTrue(cell.prefHeight(300) >= 42.0 - 0.5,
+                    "fill card measures at its layout width incl. label padding (pref="
+                            + cell.prefHeight(300) + ", expected >= 42)");
+        });
     }
 
     @Test

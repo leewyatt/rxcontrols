@@ -19,13 +19,10 @@ import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
-import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.IndexedCell;
-import javafx.scene.control.Label;
 import javafx.scene.control.Skin;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.util.StringConverter;
 
@@ -43,10 +40,20 @@ import java.util.List;
  * level selection / focus and the shared converter). {@link #updateIndex(int)}
  * resolves the card from {@code getColumn().getCards().get(i)}.
  *
- * <p>To customize the card content, subclass and override
- * {@link #createContent(Object)} to return the content node; do not override
- * {@link #updateItem(Object, boolean)}. A {@code null} card is a legal value, not
- * an empty cell: emptiness is decided solely by the index.
+ * <p>Content follows the standard {@link javafx.scene.control.Cell} contract:
+ * customize by overriding {@link #updateItem(Object, boolean)}, calling
+ * {@code super.updateItem(item, empty)} first, clearing {@code text} /
+ * {@code graphic} on the empty branch and rendering them otherwise. Sub-nodes
+ * must be cached fields — {@code updateItem} runs on every re-bind, not once per
+ * card. A bare {@code RXKanbanCardCell} renders nothing — the column viewport's
+ * default cell factory supplies the converter-driven text rendering.
+ *
+ * <p>Full-card content: a resizable {@code graphic} under
+ * {@link ContentDisplay#GRAPHIC_ONLY} is resized by the skin to fill the card's
+ * content area (min/max respected), so rich cards need no manual width binding.
+ *
+ * <p>A {@code null} card is a legal value, not an empty cell: emptiness is
+ * decided solely by the index.
  *
  * @param <T> the card type
  */
@@ -58,9 +65,6 @@ public class RXKanbanCardCell<T> extends IndexedCell<T> {
     // toggle is the sole writer.
     private static final PseudoClass FOCUSED_PSEUDO_CLASS = PseudoClass.getPseudoClass("focused");
 
-    private final StackPane contentHolder = new StackPane();
-    private final Label primaryLabel = new Label();
-
     /**
      * Creates an empty card cell.
      */
@@ -70,9 +74,6 @@ public class RXKanbanCardCell<T> extends IndexedCell<T> {
         // Cells are not Tab stops — the board is the single focus owner — so they
         // never receive Node focus and the focus ring above stays under skin control.
         setFocusTraversable(false);
-        setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-        contentHolder.getStyleClass().add("content");
-        contentHolder.setMaxWidth(Double.MAX_VALUE);
     }
 
     // ==================== Accessibility ====================
@@ -199,55 +200,28 @@ public class RXKanbanCardCell<T> extends IndexedCell<T> {
     /**
      * {@inheritDoc}
      *
-     * <p>The empty branch fully clears the row (content, selection / focus state);
-     * the non-empty branch rebuilds the content via {@link #createContent(Object)}.
-     * The board re-applies real {@code :selected} / focus to a re-bound visible
-     * cell right after {@link #updateIndex(int)}. Override
-     * {@link #createContent(Object)}, not this method.
+     * <p>The standard customization point, per the {@link javafx.scene.control.Cell}
+     * contract: override, call {@code super.updateItem(item, empty)} first, clear
+     * {@code text} / {@code graphic} on the empty branch and render them otherwise
+     * (with cached sub-nodes — this runs on every re-bind). This base implementation
+     * never touches text or graphic; it only resets a recycled slot's framework
+     * state (the board re-applies real {@code :selected} / focus to a re-bound
+     * visible cell right after {@link #updateIndex(int)}).
      */
     @Override
     protected void updateItem(T item, boolean empty) {
         super.updateItem(item, empty);
         if (empty) {
-            setGraphic(null);
-            setText(null);
-            primaryLabel.setText(null);
-            contentHolder.getChildren().clear();
             updateSelected(false);
             updateCardFocus(false);
-            return;
         }
-        setGraphic(contentHolder);
-        setText(null);
-        Node content = createContent(item);
-        if (content == null) {
-            contentHolder.getChildren().clear();
-        } else if (contentHolder.getChildren().size() != 1 || contentHolder.getChildren().get(0) != content) {
-            contentHolder.getChildren().setAll(content);
-        }
-    }
-
-    /**
-     * Returns the content node for the given card. The default sets the built-in
-     * label to the card's text (via the kanban view's
-     * {@link RXKanbanView#converterProperty() converter}, falling back to
-     * {@code card.toString()}) and returns it. Override to render richer cards;
-     * returning {@code null} renders an empty card. Called on every layout pass
-     * that binds this cell, so reuse a cached node rather than allocating per call.
-     *
-     * @param item the card to render (empty cells never reach this method)
-     * @return the content node, or {@code null} for none
-     */
-    protected Node createContent(T item) {
-        primaryLabel.setText(primaryText(item));
-        return primaryLabel;
     }
 
     /**
      * Resolves the primary text for {@code item} through the kanban view's
      * converter, falling back to {@code item.toString()} (and the empty string for
      * a {@code null} card) when no converter is set. For use by subclasses
-     * overriding {@link #createContent(Object)}.
+     * overriding {@link #updateItem(Object, boolean)}.
      *
      * @param item the card to render
      * @return the primary text, never {@code null}
