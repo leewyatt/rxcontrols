@@ -94,6 +94,11 @@ public final class RXSuggestionPopup<T> {
         support.setPopupStyleClass(POPUP_STYLE_CLASS);
 
         disposer.registerListener(support.showingProperty(), this::onShowingChanged);
+        // The entrance pivot follows the resolved side; both fire after playEntrance
+        // (reconfigure runs later in the same show event, layout at the next pulse),
+        // so the pivot is corrected before the first frame paints.
+        disposer.registerListener(support.openAboveProperty(), this::updateEntrancePivot);
+        disposer.registerListener(listView.layoutBoundsProperty(), this::updateEntrancePivot);
         disposer.registerListener(filtered, this::onFilteredChanged);
         disposer.registerListener(listView.insetsProperty(), this::updatePopupHeight);
         disposer.registerEventHandler(listView, MouseEvent.MOUSE_CLICKED, this::handleListClicked);
@@ -695,11 +700,10 @@ public final class RXSuggestionPopup<T> {
         if (!animated || animationDuration == null || animationDuration.lessThanOrEqualTo(Duration.ZERO)) {
             return;
         }
-        // Scale-in from the top edge (the common below-anchor case): an unfolding
-        // dropdown. Fade runs alongside. Not replayed on re-filter (showing stays
-        // true), so it never slows typing.
-        entranceScale.setPivotX(0.0);
-        entranceScale.setPivotY(0.0);
+        // Scale-in from the anchor-adjacent edge: an unfolding dropdown. Fade runs
+        // alongside. Not replayed on re-filter (showing stays true), so it never
+        // slows typing.
+        updateEntrancePivot();
         entranceScale.setY(ENTRANCE_START_SCALE);
         listView.setOpacity(0.0);
         entrance = new Timeline(
@@ -711,6 +715,14 @@ public final class RXSuggestionPopup<T> {
                         new KeyValue(entranceScale.yProperty(), 1.0, Interpolator.EASE_OUT)));
         entrance.setOnFinished(event -> resetEntranceState());
         entrance.playFromStart();
+    }
+
+    // The unfold must grow out of the anchor-adjacent edge: below the anchor →
+    // pivot on the top edge; flipped above → pivot on the bottom edge. The bottom
+    // pivot tracks the list's layout height (the list may not be laid out yet when
+    // the entrance starts, and a mid-animation refilter can change it).
+    private void updateEntrancePivot() {
+        entranceScale.setPivotY(support.isOpenAbove() ? listView.getLayoutBounds().getHeight() : 0.0);
     }
 
     private void stopEntrance() {

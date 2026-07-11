@@ -726,7 +726,7 @@ public class RXChipInput<T> extends Control {
 
     /**
      * The maximum number of visible suggestion rows in the popup. Default
-     * {@value #DEFAULT_VISIBLE_ROW_COUNT}.
+     * {@value #DEFAULT_VISIBLE_ROW_COUNT}. Values below 1 are rendered as 1.
      *
      * @return the visible-row-count property
      */

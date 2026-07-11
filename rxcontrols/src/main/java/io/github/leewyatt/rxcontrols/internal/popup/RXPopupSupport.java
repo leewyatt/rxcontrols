@@ -103,6 +103,7 @@ public final class RXPopupSupport {
     private boolean disposed;
 
     private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
+    private final ReadOnlyBooleanWrapper openAbove = new ReadOnlyBooleanWrapper(this, "openAbove", false);
 
     // ==================== Constructor ====================
 
@@ -234,6 +235,28 @@ public final class RXPopupSupport {
      */
     public void requestReposition() {
         reconfigure();
+    }
+
+    /**
+     * Returns whether the last resolved geometry placed a vertical-family popup
+     * above the anchor (the flip case); {@code false} for below or the side
+     * family. Consumers use it for direction-aware visuals (e.g. the suggestion
+     * popup's entrance pivot). Updated on every reposition; keeps its last value
+     * while hidden.
+     *
+     * @return {@code true} when the popup opens above the anchor
+     */
+    public boolean isOpenAbove() {
+        return openAbove.get();
+    }
+
+    /**
+     * Returns the {@link #isOpenAbove() open-above} state as a read-only property.
+     *
+     * @return the read-only open-above property
+     */
+    public ReadOnlyBooleanProperty openAboveProperty() {
+        return openAbove.getReadOnlyProperty();
     }
 
     /**
@@ -456,6 +479,7 @@ public final class RXPopupSupport {
         shell.setPrefHeight(result.maxHeight);
         popup.setAnchorX(result.anchorX);
         popup.setAnchorY(result.anchorY);
+        openAbove.set(placement.isVertical() && !result.after);
     }
 
     private void applyWidth(double width) {

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.internal.popup;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,6 +40,7 @@ public class RXPopupGeometryTest {
         assertEquals(150, r.width, EPS, "PREF_CONTENT uses the content width");
         assertEquals(120, r.height, EPS, "full natural height when it fits");
         assertEquals(RXPopupGeometry.USE_COMPUTED_SIZE, r.maxHeight, EPS, "no cap when it fits");
+        assertTrue(r.after, "reports the resolved side: below (after)");
     }
 
     @Test
@@ -50,6 +52,7 @@ public class RXPopupGeometryTest {
         assertEquals(120, r.height, EPS, "keeps full height above");
         assertTrue(r.anchorY >= SCREEN_MIN_Y, "stays on screen");
         assertEquals(RXPopupGeometry.USE_COMPUTED_SIZE, r.maxHeight, EPS);
+        assertFalse(r.after, "reports the flip: resolved above (not after)");
     }
 
     @Test
@@ -61,6 +64,7 @@ public class RXPopupGeometryTest {
         assertEquals(330, r.anchorY, EPS, "opens below (the larger side)");
         assertEquals(availBelow, r.height, EPS, "height capped to available space");
         assertEquals(availBelow, r.maxHeight, EPS, "max-height cap reported to the caller");
+        assertTrue(r.after, "space-aware pick is reported as the resolved side");
     }
 
     @Test

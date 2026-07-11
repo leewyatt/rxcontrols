@@ -151,6 +151,12 @@ public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
                 if (popup.isShowing() && popup.highlightedItem() != null) {
                     popup.selectHighlighted();
                     event.consume();
+                } else {
+                    // No highlight: ENTER commits the typed text as-is, so the dropdown's
+                    // job is done — dismiss it (and any queued re-filter, which would
+                    // otherwise pop it open right after the commit) but leave the event
+                    // un-consumed so it still reaches onAction / the default button.
+                    hidePopup();
                 }
             }
             case ESCAPE -> {

@@ -32,13 +32,22 @@ final class RXPopupGeometry {
         final double width;
         final double height;
         final double maxHeight;
+        /**
+         * Whether the popup resolved to the "after" side of the anchor along its
+         * primary axis (below for the vertical family, right for the side family) —
+         * i.e. the flip decision, which consumers need for direction-aware visuals
+         * such as the entrance-animation pivot.
+         */
+        final boolean after;
 
-        Result(double anchorX, double anchorY, double width, double height, double maxHeight) {
+        Result(double anchorX, double anchorY, double width, double height, double maxHeight,
+               boolean after) {
             this.anchorX = anchorX;
             this.anchorY = anchorY;
             this.width = width;
             this.height = height;
             this.maxHeight = maxHeight;
+            this.after = after;
         }
     }
 
@@ -121,7 +130,7 @@ final class RXPopupGeometry {
         x = RXMath.clamp(x, screenMinX, screenMaxX - width);
         y = RXMath.clamp(y, screenMinY, screenMaxY - height);
         double cap = (height < naturalH) ? height : USE_COMPUTED_SIZE;
-        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap);
+        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap, below);
     }
 
     private static Result resolveSide(double anchorX, double anchorY, double anchorW, double anchorH,
@@ -142,7 +151,7 @@ final class RXPopupGeometry {
         x = RXMath.clamp(x, screenMinX, screenMaxX - width);
         y = RXMath.clamp(y, screenMinY, screenMaxY - height);
         double cap = (height < naturalH) ? height : USE_COMPUTED_SIZE;
-        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap);
+        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap, right);
     }
 
     /**
