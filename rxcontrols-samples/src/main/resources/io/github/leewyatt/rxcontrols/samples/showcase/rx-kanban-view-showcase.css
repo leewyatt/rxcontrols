@@ -137,6 +137,11 @@
 }
 
 .kanban-showcase-board .rx-kanban-card-cell {
+    -fx-alignment: center-left;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-kanban-title;
+    -fx-wrap-text: true;
     -fx-background-color: -rx-kanban-card-bg;
     -fx-background-radius: 12px;
     -fx-border-color: -rx-kanban-card-border;
@@ -151,17 +156,6 @@
     -fx-background-color: #fbfdff;
     -fx-border-color: #bfd0e2;
     -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.16), 18, 0, 0, 7);
-}
-
-.kanban-showcase-board .rx-kanban-card-cell > .content {
-    -fx-alignment: center-left;
-}
-
-.kanban-showcase-board .rx-kanban-card-cell > .content > .label {
-    -fx-font-size: 13px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -rx-kanban-title;
-    -fx-wrap-text: true;
 }
 
 .kanban-showcase-board .rx-kanban-card-cell:selected,
