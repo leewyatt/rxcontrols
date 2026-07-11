@@ -700,6 +700,54 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
+    public void internalLabelForNeverOutlivesTheSkin() {
+        runOnFx(() -> {
+            // Internal stamps first, an external label then overwrites the single
+            // slot. Teardown must still detach the internal label's own labelFor
+            // wiring — Label.labelFor keeps a mnemonic listener on the control
+            // (unconditional, even with mnemonicParsing off), so skipping it
+            // would leak the dead label into the live control. The slot is
+            // cleared, not restored: the combination is unsupported.
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            inScene(field);
+            Label internal = floatingLabel(field);
+            assertEquals(internal, field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY));
+
+            Label external = new Label("External");
+            external.setLabelFor(field);
+            assertEquals(external, field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "precondition: the external label overwrote the single slot");
+
+            field.setSkin(null);
+            assertNull(internal.getLabelFor(),
+                    "the dead internal label must not keep labelFor (a mnemonic listener) on the control");
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "unsupported combination: teardown clears the slot, no restore");
+        });
+    }
+
+    @Test
+    public void externalThenInternalLabelForFollowsTheLastWriter() {
+        runOnFx(() -> {
+            // External stamps first, the internal label source then takes the
+            // single slot (last writer wins); teardown clears it.
+            RXMaterialTextField field = new RXMaterialTextField();
+            Label external = new Label("External");
+            external.setLabelFor(field);
+            field.setLabelText("Name");
+            inScene(field);
+            Label internal = floatingLabel(field);
+            assertEquals(internal, field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY),
+                    "an internal label source takes the single slot from the external label");
+
+            field.setSkin(null);
+            assertNull(internal.getLabelFor(), "internal labelFor must be cleared on dispose");
+            assertNull(field.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY));
+        });
+    }
+
+    @Test
     public void skinReplacementKeepsLabeledByRelation() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField();

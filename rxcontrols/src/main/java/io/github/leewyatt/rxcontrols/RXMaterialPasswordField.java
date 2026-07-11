@@ -135,11 +135,12 @@ public class RXMaterialPasswordField extends PasswordField {
      * Floating-label text. When blank, the skin falls back to {@code promptText}
      * as the label source; a blank {@code promptText} is likewise ignored — the
      * field then renders without a floating label. The label also labels the
-     * control for assistive technology via the {@code LABELED_BY} relation —
-     * {@code labeledBy} is a single-value slot, so while a label source is
-     * present the internal label takes precedence over an external
-     * {@code Label.setLabelFor}; {@code accessibleText} is left untouched and
-     * stays user-owned.
+     * control for assistive technology via the {@code LABELED_BY} relation.
+     * {@code labeledBy} is a single-value slot managed by the skin while a
+     * label source is present — do not combine it with an external
+     * {@code Label.setLabelFor}: the slot follows the last writer and the
+     * skin's teardown clears it without restoring an overwritten external
+     * stamp. {@code accessibleText} is left untouched and stays user-owned.
      *
      * @return the label-text property
      */

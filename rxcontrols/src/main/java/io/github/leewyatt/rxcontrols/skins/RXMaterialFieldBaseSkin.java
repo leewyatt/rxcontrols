@@ -14,7 +14,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -315,11 +314,15 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                 control.skinProperty().removeListener(pendingLabelForListener);
                 pendingLabelForListener = null;
             }
-            // Withdraw LABELED_BY only while the relation is still ours: an
-            // external Label.setLabelFor(field) stamp must survive our teardown.
-            if (control.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) == labelNode) {
-                labelNode.setLabelFor(null);
-            }
+            // Always detach the internal label's labelFor: Label.labelFor keeps
+            // a mnemonic listener on the target (unconditional, even with
+            // mnemonicParsing off — Label.java:129), so skipping this would leak
+            // the dead label into the live control. Clearing an unstamped label
+            // is a no-op, which is what keeps an external Label.setLabelFor on a
+            // field WITHOUT a label source untouched; combining an external
+            // stamp WITH an internal label source is unsupported (Node.labeledBy
+            // is a single slot — the last writer wins, no restore on teardown).
+            labelNode.setLabelFor(null);
             labelNode.getTransforms().remove(labelScale);
             accentLine.getTransforms().remove(accentScale);
             builtinTrailing.getChildren().clear();
@@ -352,10 +355,14 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     /**
      * Keeps the LABELED_BY relation in step with the effective label source:
      * stamped only while a label source exists, withdrawn when it goes blank.
-     * Gated on actual attach (stamping earlier races with a replaced
-     * predecessor's teardown) and, on withdrawal, on still owning the relation
-     * ({@code setLabelFor(null)} wipes {@code Node.labeledBy} unconditionally —
-     * an external {@code Label.setLabelFor(field)} stamp must survive us).
+     * Stamping is gated on actual attach (stamping earlier races with a
+     * replaced predecessor's teardown). Withdrawal is unconditional: the
+     * internal label owns its labelFor wiring — its mnemonic listener on the
+     * control must never outlive the skin — and clearing an unstamped label is
+     * a no-op. {@code Node.labeledBy} is a single slot, so pairing an external
+     * {@code Label.setLabelFor(field)} with an internal label source is
+     * unsupported: the last writer wins and withdrawal clears the slot without
+     * restoring an overwritten external stamp.
      */
     private void syncLabelFor() {
         TextField control = getSkinnable();
@@ -364,7 +371,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         }
         if (hasLabelSource()) {
             labelNode.setLabelFor(control);
-        } else if (control.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) == labelNode) {
+        } else {
             labelNode.setLabelFor(null);
         }
     }
