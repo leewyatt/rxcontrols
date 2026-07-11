@@ -38,10 +38,12 @@ import java.util.List;
  *
  * <p><strong>Customizing the content.</strong> Subclass this cell and override
  * {@link #createContent(RXCascaderItem)} to render a custom node in the middle
- * content area while keeping the contract above. The content is built once per
- * item (it is rebuilt when the item or its value changes, not on every state
- * change); to make content react to state, target the cell pseudo classes from
- * CSS, for example:
+ * content area while keeping the contract above. The content is rebuilt whenever
+ * the cell is bound to an item (every non-empty re-bind, including recycling),
+ * when the item's value changes, and when the view's item-text factory changes —
+ * but never on pure state changes (selection, active path, loading, checked), so
+ * cache sub-nodes as fields and make content react to state by targeting the cell
+ * pseudo classes from CSS, for example:
  *
  * <pre>{@code
  * .rx-cascader-cell:disabled .my-content { -fx-opacity: 0.4; }
@@ -53,6 +55,16 @@ import java.util.List;
  * the row structure, return your own {@link ListCell} from the factory and route
  * interaction to the view yourself, or copy this class — it depends only on the
  * public {@link RXCascaderView} / {@link RXCascaderItem} API.
+ *
+ * <p><strong>Why a content slot instead of the standard {@code updateItem} +
+ * {@code setText} / {@code setGraphic} idiom</strong> (compare {@link RXListCell},
+ * which follows it): this cell is multi-slot interaction chrome — check box,
+ * selection mark, content slot, loading glyph and branch arrow — which the
+ * two-slot {@code Labeled} content model cannot express, and its content is
+ * deliberately kept off the state-change path to avoid rebuild flicker. That is
+ * why {@link #updateItem(RXCascaderItem, boolean)} is {@code final} here and the
+ * supported customization surface is the content slot; cells without such chrome
+ * (plain rows and cards) follow the standard idiom instead.
  *
  * @param <T> application value type
  */
@@ -212,10 +224,13 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
 
     /**
      * Returns the node rendered in the middle content area for the given item.
-     * Called once per item (and when the item value changes), not on every state
-     * change. The default returns a reused {@link Label} set to
-     * {@link #getDisplayText(Object) getDisplayText(item.getValue())}. Returning
-     * {@code null} renders an empty content area.
+     * Called whenever the cell is bound to an item (every non-empty re-bind,
+     * including recycling), when the item's value changes, and when the view's
+     * item-text factory changes — never on pure state changes, so reuse cached
+     * node fields rather than allocating per call. The default returns a reused
+     * {@link Label} set to {@link #getDisplayText(Object)
+     * getDisplayText(item.getValue())}. Returning {@code null} renders an empty
+     * content area.
      *
      * @param item item to render content for
      * @return content node, or {@code null} for no content
