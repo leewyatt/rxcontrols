@@ -153,6 +153,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
                 () -> popup.setAnimated(control.isAnimated()));
         disposer.registerListener(popup.showingProperty(),
                 () -> control.setPopupShowing(popup.isShowing()));
+        disposer.registerListener(popup.getFilteredSuggestions(), this::onFilteredSuggestionsChanged);
         disposer.registerDisposeTask(filterDebounce::stop);
         disposer.registerDisposeTask(popup::dispose);
         // RXPopupSupport.dispose() hides without flipping its logical showing state, so
@@ -536,6 +537,15 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         }
     }
 
+    // One-way close-on-empty: an open dropdown whose matches vanish (a live
+    // suggestions mutation) hides; re-opening stays typing / Down / showSuggestions
+    // driven, so an empty popup never lingers and data arrival never pops it open.
+    private void onFilteredSuggestionsChanged() {
+        if (popup.isShowing() && popup.getFilteredSuggestions().isEmpty()) {
+            hidePopup();
+        }
+    }
+
     private void hidePopup() {
         filterDebounce.stop();
         popup.hide();
@@ -567,8 +577,9 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         return base;
     }
 
-    // Re-applies the current query's filter to an OPEN popup and closes it when nothing
-    // is left — used when the chip set, allowDuplicates or filterSelectedOptions change.
+    // Re-applies the current query's filter to an OPEN popup — used when the chip set,
+    // allowDuplicates or filterSelectedOptions change. An emptied list closes the popup
+    // via the filtered-suggestions listener (single close-on-empty funnel).
     private void refilterOpenPopup() {
         if (!popup.isShowing()) {
             return;
@@ -577,9 +588,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         popup.setFilterPredicate(buildPredicate(query));
         // Chip set / allowDuplicates changed, so an item's selectable state may have too.
         popup.refreshDisabledState();
-        if (popup.getFilteredSuggestions().isEmpty()) {
-            hidePopup();
-        }
     }
 
     private Predicate<T> defaultPredicate(String query) {

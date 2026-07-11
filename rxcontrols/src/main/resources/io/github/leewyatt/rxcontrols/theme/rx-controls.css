@@ -11,7 +11,7 @@
  * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -1181,7 +1181,7 @@
 
 /*******************************************************************************
  *                                                                             *
- * RXSuggestionPopup (RXAutoComplete)                                           *
+ * RXSuggestionPopup (RXAutoCompleteField)                                      *
  *                                                                             *
  * The popup bridge and RXPopupSupport's sizing shell above the content are    *
  * plain token-less panes outside this stylesheet's UA scope (hence the        *

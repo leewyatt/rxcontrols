@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -32,11 +31,11 @@ import java.util.function.Predicate;
  * Anchored suggestion / autocomplete popup, built on {@link RXPopupSupport} and
  * an {@link RXListView} content body. Owns the suggestion data model (a swappable
  * source mirrored into a stable {@link FilteredList}), a keyboard-navigation
- * bridge driven by the host editor, mouse selection, a light entrance animation,
- * and optional filter debouncing. Content-selection semantics (how a chosen item
- * is written back) stay with the consumer via {@link #setOnSuggestionSelected}.
+ * bridge driven by the host editor, mouse selection, and a light entrance
+ * animation. Content-selection semantics (how a chosen item is written back) stay
+ * with the consumer via {@link #setOnSuggestionSelected}.
  *
- * <p>Kept internal: the first consumer is {@code RXAutoComplete}. Focus stays on
+ * <p>Kept internal: the first consumer is {@code RXAutoCompleteField}. Focus stays on
  * the host editor — the list is not focus-traversable and is never asked to take
  * focus; navigation is expressed through the list's public selection model as a
  * highlight cursor. Use on the JavaFX Application Thread.
@@ -64,10 +63,9 @@ public final class RXSuggestionPopup<T> {
     private boolean hideOnSelect = true;
     private boolean animated = true;
     private Duration animationDuration = DEFAULT_ANIMATION_DURATION;
-    private Duration filterDelay = Duration.ZERO;
     private Consumer<T> onSuggestionSelected;
     // Marks items that are shown but not selectable (e.g. already-chosen chips when
-    // duplicates are off). null = nothing disabled — the RXAutoComplete default.
+    // duplicates are off). null = nothing disabled — the RXAutoCompleteField default.
     private Predicate<T> disabledPredicate;
     private boolean usingDefaultCellFactory = true;
     // When true, the first selectable row is highlighted on every refilter (and on
@@ -79,7 +77,6 @@ public final class RXSuggestionPopup<T> {
 
     private final Scale entranceScale = new Scale(1, 1);
     private Timeline entrance;
-    private PauseTransition filterDebounce;
 
     // ==================== Constructor ====================
 
@@ -170,10 +167,6 @@ public final class RXSuggestionPopup<T> {
      */
     public void dispose() {
         stopEntrance();
-        if (filterDebounce != null) {
-            filterDebounce.stop();
-            filterDebounce = null;
-        }
         if (observedSuggestions != null) {
             observedSuggestions.removeListener(weakSuggestionsListener);
             observedSuggestions = null;
@@ -346,7 +339,7 @@ public final class RXSuggestionPopup<T> {
             new SimpleObjectProperty<>(this, "filterPredicate") {
                 @Override
                 protected void invalidated() {
-                    scheduleFilter();
+                    applyFilter();
                 }
             };
 
@@ -461,7 +454,8 @@ public final class RXSuggestionPopup<T> {
     }
 
     /**
-     * Sets the maximum number of rows shown before the list scrolls.
+     * Sets the maximum number of rows shown before the list scrolls. Values below 1
+     * are rendered as 1.
      *
      * @param value the maximum visible rows
      */
@@ -556,16 +550,6 @@ public final class RXSuggestionPopup<T> {
     }
 
     /**
-     * Sets the filter debounce delay. {@code Duration.ZERO} (default) applies the
-     * predicate immediately.
-     *
-     * @param value the debounce delay
-     */
-    public void setFilterDelay(Duration value) {
-        filterDelay = value;
-    }
-
-    /**
      * Sets the popup width strategy.
      *
      * @param mode the width mode
@@ -614,20 +598,6 @@ public final class RXSuggestionPopup<T> {
             backing.setAll(source);
         }
         afterFilteredSettled();
-    }
-
-    private void scheduleFilter() {
-        if (filterDelay == null || filterDelay.lessThanOrEqualTo(Duration.ZERO)) {
-            applyFilter();
-            return;
-        }
-        if (filterDebounce == null) {
-            filterDebounce = new PauseTransition();
-            filterDebounce.setOnFinished(event -> applyFilter());
-        }
-        filterDebounce.stop();
-        filterDebounce.setDuration(filterDelay);
-        filterDebounce.playFromStart();
     }
 
     private void applyFilter() {

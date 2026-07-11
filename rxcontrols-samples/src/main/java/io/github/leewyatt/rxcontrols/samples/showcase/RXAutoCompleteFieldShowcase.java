@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXAutoComplete;
-import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteDemo;
+import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
@@ -20,20 +20,20 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Showcase application for {@link RXAutoComplete}.
+ * Showcase application for {@link RXAutoCompleteField}.
  *
  * <p>Exercises the local suggestion field: swappable dataset, filter strategy
  * ({@code filterFunction}), the number of visible dropdown rows, the entrance
- * animation toggle, and a live readout that also demonstrates a custom
- * {@code onAutoCompleted} handler.
+ * animation toggle, and a live readout driven by the {@code onAutoCompleted}
+ * event (the default completion handler stays in place).
  *
  * <p>Popup placement and width mode are driven internally by the shared
  * suggestion-popup infrastructure (dropdown below the field, matching / preferring
  * the field width, flipping up when space is tight); those knobs are not surfaced
  * on the control in V1 because their enums are internal. For a minimal example see
- * {@link RXAutoCompleteDemo}.
+ * {@link RXAutoCompleteFieldDemo}.
  */
-public class RXAutoCompleteShowcase extends RXShowcaseApplication {
+public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
 
     private static final double MIN_ROWS = 3.0;
     private static final double MAX_ROWS = 12.0;
@@ -52,14 +52,14 @@ public class RXAutoCompleteShowcase extends RXShowcaseApplication {
         }
     };
 
-    private RXAutoComplete field;
+    private RXAutoCompleteField field;
     private final StringProperty lastCompleted = new SimpleStringProperty("(none)");
 
     // ==================== Showcase wiring ====================
 
     @Override
     protected String title() {
-        return "RXAutoComplete";
+        return "RXAutoCompleteField";
     }
 
     @Override
@@ -69,26 +69,22 @@ public class RXAutoCompleteShowcase extends RXShowcaseApplication {
 
     @Override
     protected String windowTitle() {
-        return "RXAutoComplete Showcase";
+        return "RXAutoCompleteField Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-auto-complete-showcase.css").toExternalForm();
+        return getClass().getResource("rx-auto-complete-field-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXAutoComplete();
+        field = new RXAutoCompleteField();
         field.setPromptText("Start typing, then use ↑ ↓ Enter");
         field.getSuggestions().setAll(Dataset.COUNTRIES.items());
-        // Custom write-back that also records the last committed value for the readout.
-        field.setOnAutoCompleted(item -> {
-            String text = item == null ? "" : item;
-            field.setText(text);
-            field.positionCaret(text.length());
-            lastCompleted.set(text);
-        });
+        // Observation only: the default write-back stays; the event records the commit.
+        field.setOnAutoCompleted(event ->
+                lastCompleted.set(event.getCompletion() == null ? "" : event.getCompletion()));
 
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
@@ -202,7 +198,7 @@ public class RXAutoCompleteShowcase extends RXShowcaseApplication {
         CONTAINS("Contains (default)") {
             @Override
             Function<String, Predicate<String>> function() {
-                return RXAutoComplete.DEFAULT_FILTER_FUNCTION;
+                return RXAutoCompleteField.DEFAULT_FILTER_FUNCTION;
             }
         },
         STARTS_WITH("Starts with") {

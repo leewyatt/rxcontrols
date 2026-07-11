@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXAutoComplete;
+import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -11,16 +11,16 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Minimal sample application for {@link RXAutoComplete}.
+ * Minimal sample application for {@link RXAutoCompleteField}.
  *
  * <p>Shows two lightweight, realistic scenarios: a country field driven by the
  * default case-insensitive substring filter, and an email field with a custom
- * filter + write-back that completes the domain after {@code @}.
+ * filter + completion handler that completes the domain after {@code @}.
  *
  * <p>For the property explorer see
- * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXAutoCompleteShowcase}.
+ * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXAutoCompleteFieldShowcase}.
  */
-public class RXAutoCompleteDemo extends Application {
+public class RXAutoCompleteFieldDemo extends Application {
 
     private static final List<String> COUNTRIES = List.of(
             "Argentina", "Australia", "Austria", "Belgium", "Brazil", "Canada",
@@ -39,11 +39,11 @@ public class RXAutoCompleteDemo extends Application {
         VBox root = new VBox(16);
         root.setStyle("-fx-padding: 24; -fx-background-color: white;");
 
-        RXAutoComplete country = new RXAutoComplete();
+        RXAutoCompleteField country = new RXAutoCompleteField();
         country.setPromptText("Start typing a country");
         country.getSuggestions().setAll(COUNTRIES);
 
-        RXAutoComplete email = new RXAutoComplete();
+        RXAutoCompleteField email = new RXAutoCompleteField();
         email.setPromptText("you@example.com");
         email.getSuggestions().setAll(EMAIL_DOMAINS);
         // Custom filter: only suggest once an '@' is typed, matching the domain part.
@@ -55,8 +55,8 @@ public class RXAutoCompleteDemo extends Application {
             String typedDomain = query.substring(at + 1).toLowerCase(Locale.ROOT);
             return domain -> domain.toLowerCase(Locale.ROOT).startsWith(typedDomain);
         });
-        // Custom write-back: keep the local part, replace the domain with the choice.
-        email.setOnAutoCompleted(domain -> {
+        // Custom write-back strategy: keep the local part, replace the domain.
+        email.setCompletionHandler(domain -> {
             String text = email.getText() == null ? "" : email.getText();
             int at = text.lastIndexOf('@');
             String local = at < 0 ? text : text.substring(0, at);
@@ -72,7 +72,7 @@ public class RXAutoCompleteDemo extends Application {
 
         Scene scene = new Scene(root, 480, 260);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("RXAutoComplete Demo");
+        primaryStage.setTitle("RXAutoCompleteField Demo");
         primaryStage.show();
     }
 

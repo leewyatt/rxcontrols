@@ -1,14 +1,17 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.skins.RXAutoCompleteSkin;
+import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
+import io.github.leewyatt.rxcontrols.skins.RXAutoCompleteFieldSkin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.scene.control.Skin;
 import javafx.util.StringConverter;
 
@@ -21,19 +24,21 @@ import java.util.function.Predicate;
  * Text field with a local, synchronous autocomplete dropdown. As the user types,
  * {@link #getSuggestions() suggestions} are filtered by
  * {@link #filterFunctionProperty() filterFunction} and shown in an anchored popup;
- * choosing an item (mouse or keyboard) runs {@link #onAutoCompletedProperty()
- * onAutoCompleted}, which by default writes the item back into the field.
+ * choosing an item (mouse or keyboard) runs the
+ * {@link #completionHandlerProperty() completionHandler} write-back strategy
+ * (by default writing the item into the field) and then fires
+ * {@link RXAutoCompleteEvent#COMPLETED}.
  *
  * <p>Focus stays in the editor while the popup is open — the dropdown is a passive
  * highlight surface driven by Down / Up / Enter / Escape. This is a minimal,
  * String-valued consumer of the shared suggestion-popup infrastructure; richer
  * value types, remote providers, and chip/tag inputs are separate controls.
  */
-public class RXAutoComplete extends RXTextField {
+public class RXAutoCompleteField extends RXTextField {
 
     // ==================== Constants ====================
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-auto-complete";
+    private static final String DEFAULT_STYLE_CLASS = "rx-auto-complete-field";
 
     /** Default filter: case-insensitive substring match against each suggestion. */
     public static final Function<String, Predicate<String>> DEFAULT_FILTER_FUNCTION =
@@ -51,7 +56,7 @@ public class RXAutoComplete extends RXTextField {
     /**
      * Creates an empty autocomplete field.
      */
-    public RXAutoComplete() {
+    public RXAutoCompleteField() {
         this(null);
     }
 
@@ -60,14 +65,14 @@ public class RXAutoComplete extends RXTextField {
      *
      * @param text the initial text, or {@code null}
      */
-    public RXAutoComplete(String text) {
+    public RXAutoCompleteField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
     }
 
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new RXAutoCompleteSkin(this);
+        return new RXAutoCompleteFieldSkin(this);
     }
 
     // ==================== Suggestions ====================
@@ -75,8 +80,9 @@ public class RXAutoComplete extends RXTextField {
     private final ObservableList<String> suggestions = FXCollections.observableArrayList();
 
     /**
-     * The live list of candidate suggestions. Mutate it in place; the popup tracks
-     * changes.
+     * The live list of candidate suggestions. Mutate it in place; the dropdown rows
+     * track changes, and an open dropdown hides when no suggestion matches anymore.
+     * Opening is always driven by user input (typing or Down), never by data arrival.
      *
      * @return the mutable suggestions list
      */
@@ -118,41 +124,95 @@ public class RXAutoComplete extends RXTextField {
         filterFunction.set(value);
     }
 
-    // ==================== On Auto Completed ====================
+    // ==================== Completion Handler ====================
 
-    private final ObjectProperty<Consumer<String>> onAutoCompleted =
-            new SimpleObjectProperty<>(this, "onAutoCompleted", item -> {
+    private final ObjectProperty<Consumer<String>> completionHandler =
+            new SimpleObjectProperty<>(this, "completionHandler", item -> {
                 String text = item == null ? "" : item;
                 setText(text);
                 positionCaret(text.length());
             });
 
     /**
-     * Invoked with the chosen suggestion when the user commits one. The default
-     * writes the item into the field and moves the caret to the end; replace it to
-     * customize write-back. A {@code null} value disables commit handling.
+     * The write-back strategy invoked with the chosen suggestion when the user
+     * commits one. The default writes the item into the field and moves the caret
+     * to the end; replace it to customize write-back, or set a no-op handler to
+     * suppress write-back entirely. A {@code null} value is treated as the default
+     * by the skin. The handler must apply its changes synchronously — the skin
+     * suppresses dropdown re-opening only for the duration of the call. After the
+     * handler runs, {@link RXAutoCompleteEvent#COMPLETED} is fired.
+     *
+     * @return the completion-handler property
+     */
+    public final ObjectProperty<Consumer<String>> completionHandlerProperty() {
+        return completionHandler;
+    }
+
+    /**
+     * Returns the completion handler.
+     *
+     * @return the completion handler, or {@code null}
+     */
+    public final Consumer<String> getCompletionHandler() {
+        return completionHandler.get();
+    }
+
+    /**
+     * Sets the completion handler.
+     *
+     * @param value the completion handler, or {@code null} for the default
+     */
+    public final void setCompletionHandler(Consumer<String> value) {
+        completionHandler.set(value);
+    }
+
+    // ==================== On Auto Completed ====================
+
+    private final ObjectProperty<EventHandler<RXAutoCompleteEvent>> onAutoCompleted =
+            new ObjectPropertyBase<>() {
+                @Override
+                protected void invalidated() {
+                    setEventHandler(RXAutoCompleteEvent.COMPLETED, get());
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXAutoCompleteField.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "onAutoCompleted";
+                }
+            };
+
+    /**
+     * The handler invoked after a suggestion is committed and written back (the
+     * {@link RXAutoCompleteEvent#COMPLETED} event). Observation only — customizing
+     * the write-back is the job of {@link #completionHandlerProperty()
+     * completionHandler}.
      *
      * @return the on-auto-completed property
      */
-    public final ObjectProperty<Consumer<String>> onAutoCompletedProperty() {
+    public final ObjectProperty<EventHandler<RXAutoCompleteEvent>> onAutoCompletedProperty() {
         return onAutoCompleted;
     }
 
     /**
-     * Returns the commit handler.
+     * Returns the on-auto-completed handler.
      *
-     * @return the commit handler, or {@code null}
+     * @return the on-auto-completed handler, or {@code null}
      */
-    public final Consumer<String> getOnAutoCompleted() {
+    public final EventHandler<RXAutoCompleteEvent> getOnAutoCompleted() {
         return onAutoCompleted.get();
     }
 
     /**
-     * Sets the commit handler.
+     * Sets the on-auto-completed handler.
      *
-     * @param value the commit handler, or {@code null}
+     * @param value the on-auto-completed handler, or {@code null}
      */
-    public final void setOnAutoCompleted(Consumer<String> value) {
+    public final void setOnAutoCompleted(EventHandler<RXAutoCompleteEvent> value) {
         onAutoCompleted.set(value);
     }
 
@@ -196,6 +256,7 @@ public class RXAutoComplete extends RXTextField {
 
     /**
      * Maximum number of suggestion rows shown before the dropdown scrolls.
+     * Values below 1 are rendered as 1.
      *
      * @return the visible-row-count property
      */

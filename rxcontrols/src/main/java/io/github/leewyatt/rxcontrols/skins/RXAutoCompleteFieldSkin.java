@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXAutoComplete;
+import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
+import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
 import io.github.leewyatt.rxcontrols.internal.popup.RXSuggestionPopup;
 import javafx.animation.PauseTransition;
 import javafx.scene.input.KeyEvent;
@@ -11,13 +12,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Default skin for {@link RXAutoComplete}. Extends the text-field skin and wires a
- * shared {@link RXSuggestionPopup} to the editor: text changes filter (debounced)
- * and open / close the dropdown; Down / Up / Enter / Escape drive the highlight
- * cursor with focus kept in the editor; a chosen item runs the control's
- * {@code onAutoCompleted} handler.
+ * Default skin for {@link RXAutoCompleteField}. Extends the text-field skin and
+ * wires a shared {@link RXSuggestionPopup} to the editor: text changes filter
+ * (debounced) and open / close the dropdown; Down / Up / Enter / Escape drive the
+ * highlight cursor with focus kept in the editor; a chosen item runs the control's
+ * {@code completionHandler} write-back and fires
+ * {@link RXAutoCompleteEvent#COMPLETED}.
  */
-public class RXAutoCompleteSkin extends RXTextFieldSkin {
+public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
 
     // ==================== Constants ====================
 
@@ -26,7 +28,7 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
 
     // ==================== Fields ====================
 
-    private final RXAutoComplete control;
+    private final RXAutoCompleteField control;
     private final RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
     private final PauseTransition filterDebounce = new PauseTransition(FILTER_DEBOUNCE);
 
@@ -37,11 +39,11 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
     // ==================== Constructor ====================
 
     /**
-     * Creates the skin for the given autocomplete control.
+     * Creates the skin for the given autocomplete field.
      *
-     * @param control the autocomplete control
+     * @param control the autocomplete field
      */
-    public RXAutoCompleteSkin(RXAutoComplete control) {
+    public RXAutoCompleteFieldSkin(RXAutoCompleteField control) {
         super(control);
         this.control = control;
 
@@ -67,6 +69,7 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
                 () -> popup.setMaxVisibleRows(control.getVisibleRowCount()));
         disposer.registerListener(control.animatedProperty(),
                 () -> popup.setAnimated(control.isAnimated()));
+        disposer.registerListener(popup.getFilteredSuggestions(), this::onFilteredSuggestionsChanged);
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleKeyPressed);
         disposer.registerDisposeTask(filterDebounce::stop);
         disposer.registerDisposeTask(popup::dispose);
@@ -87,6 +90,15 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
         }
     }
 
+    // One-way close-on-empty: an open dropdown whose matches vanish (a live
+    // suggestions mutation) hides; re-opening stays typing / Down driven, so an
+    // empty popup never lingers and data arrival never pops the dropdown open.
+    private void onFilteredSuggestionsChanged() {
+        if (popup.isShowing() && popup.getFilteredSuggestions().isEmpty()) {
+            hidePopup();
+        }
+    }
+
     // Dismiss the popup and cancel any pending debounce, so a queued re-filter
     // cannot re-open the dropdown after it was intentionally closed (commit / Escape
     // / focus loss / no matches).
@@ -99,7 +111,7 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
         String query = control.getText() == null ? "" : control.getText();
         Function<String, Predicate<String>> function = control.getFilterFunction();
         if (function == null) {
-            function = RXAutoComplete.DEFAULT_FILTER_FUNCTION;
+            function = RXAutoCompleteField.DEFAULT_FILTER_FUNCTION;
         }
         popup.setFilterPredicate(function.apply(query));
         boolean shouldShow = control.isFocused()
@@ -162,10 +174,18 @@ public class RXAutoCompleteSkin extends RXTextFieldSkin {
         filterDebounce.stop();
         suppressAutoShow = true;
         try {
-            Consumer<String> handler = control.getOnAutoCompleted();
+            Consumer<String> handler = control.getCompletionHandler();
             if (handler != null) {
                 handler.accept(item);
+            } else {
+                // null handler = the built-in write-back (mirrors the property default).
+                String text = item == null ? "" : item;
+                control.setText(text);
+                control.positionCaret(text.length());
             }
+            // Observation event; fired inside the suppress window so a handler that
+            // touches the text does not queue a dropdown re-open.
+            control.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, item));
         } finally {
             suppressAutoShow = false;
         }

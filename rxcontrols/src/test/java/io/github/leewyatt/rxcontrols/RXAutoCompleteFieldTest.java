@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
 import javafx.application.Platform;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -14,12 +15,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless tests for the {@link RXAutoComplete} control contract: the default
- * filter function, default write-back handler, live suggestions list, and style
- * class. The interactive dropdown (show / keyboard navigation / focus) is left to
- * real-machine checks.
+ * Headless tests for the {@link RXAutoCompleteField} control contract: the default
+ * filter function, default completion handler, the auto-completed event wiring,
+ * live suggestions list, and style class. The interactive dropdown (show / keyboard
+ * navigation / focus) is left to real-machine checks.
  */
-public class RXAutoCompleteTest {
+public class RXAutoCompleteFieldTest {
 
     /**
      * Starts the JavaFX toolkit before constructing controls.
@@ -41,32 +42,47 @@ public class RXAutoCompleteTest {
 
     @Test
     public void defaultFilterFunctionIsCaseInsensitiveSubstring() {
-        assertTrue(RXAutoComplete.DEFAULT_FILTER_FUNCTION.apply("ST").test("United States"),
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("ST").test("United States"),
                 "case-insensitive substring match");
-        assertTrue(RXAutoComplete.DEFAULT_FILTER_FUNCTION.apply("united").test("UNITED KINGDOM"),
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("united").test("UNITED KINGDOM"),
                 "case-insensitive both ways");
-        assertFalse(RXAutoComplete.DEFAULT_FILTER_FUNCTION.apply("xyz").test("United States"),
+        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("xyz").test("United States"),
                 "no match");
-        assertFalse(RXAutoComplete.DEFAULT_FILTER_FUNCTION.apply("a").test(null),
+        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("a").test(null),
                 "null candidate never matches");
-        assertTrue(RXAutoComplete.DEFAULT_FILTER_FUNCTION.apply("").test("anything"),
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("").test("anything"),
                 "empty query matches all");
     }
 
     @Test
-    public void defaultOnAutoCompletedWritesBackAndMovesCaret() throws InterruptedException {
+    public void defaultCompletionHandlerWritesBackAndMovesCaret() throws InterruptedException {
         runOnFx(() -> {
-            RXAutoComplete field = new RXAutoComplete();
-            field.getOnAutoCompleted().accept("Germany");
+            RXAutoCompleteField field = new RXAutoCompleteField();
+            field.getCompletionHandler().accept("Germany");
             assertEquals("Germany", field.getText(), "default handler writes the item back");
             assertEquals("Germany".length(), field.getCaretPosition(), "caret moves to the end");
         });
     }
 
     @Test
+    public void onAutoCompletedReceivesTheCompletionViaEventWiring() throws InterruptedException {
+        runOnFx(() -> {
+            RXAutoCompleteField field = new RXAutoCompleteField();
+            AtomicReference<String> completed = new AtomicReference<>();
+            field.setOnAutoCompleted(event -> completed.set(event.getCompletion()));
+            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Japan"));
+            assertEquals("Japan", completed.get(),
+                    "onAutoCompleted is wired to the COMPLETED event type");
+            field.setOnAutoCompleted(null);
+            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Chile"));
+            assertEquals("Japan", completed.get(), "clearing the handler detaches it");
+        });
+    }
+
+    @Test
     public void suggestionsIsALiveList() throws InterruptedException {
         runOnFx(() -> {
-            RXAutoComplete field = new RXAutoComplete();
+            RXAutoCompleteField field = new RXAutoCompleteField();
             assertTrue(field.getSuggestions().isEmpty(), "starts empty");
             field.getSuggestions().addAll("a", "b");
             assertEquals(2, field.getSuggestions().size(), "mutations are visible on the same list");
@@ -76,24 +92,30 @@ public class RXAutoCompleteTest {
     @Test
     public void defaultsAndStyleClass() throws InterruptedException {
         runOnFx(() -> {
-            RXAutoComplete field = new RXAutoComplete();
-            assertEquals(RXAutoComplete.DEFAULT_FILTER_FUNCTION, field.getFilterFunction(),
+            RXAutoCompleteField field = new RXAutoCompleteField();
+            assertEquals(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION, field.getFilterFunction(),
                     "default filter function is the shared constant");
             assertNull(field.getConverter(), "converter defaults to null");
-            assertEquals(RXAutoComplete.DEFAULT_VISIBLE_ROW_COUNT, field.getVisibleRowCount(),
+            assertNull(field.getOnAutoCompleted(), "no completion observer by default");
+            assertEquals(RXAutoCompleteField.DEFAULT_VISIBLE_ROW_COUNT, field.getVisibleRowCount(),
                     "default visible rows matches the popup default");
             assertTrue(field.isAnimated(), "animated by default");
-            assertTrue(field.getStyleClass().contains("rx-auto-complete"), "carries its own style class");
-            assertTrue(field.getStyleClass().contains("rx-text-field"), "inherits the text-field style class");
+            assertTrue(field.getStyleClass().contains("rx-auto-complete-field"),
+                    "carries its own style class");
+            assertTrue(field.getStyleClass().contains("rx-text-field"),
+                    "inherits the text-field style class");
         });
     }
 
     @Test
-    public void nullFilterFunctionIsTolerated() throws InterruptedException {
+    public void nullFilterFunctionAndCompletionHandlerAreTolerated() throws InterruptedException {
         runOnFx(() -> {
-            RXAutoComplete field = new RXAutoComplete();
+            RXAutoCompleteField field = new RXAutoCompleteField();
             field.setFilterFunction(null);
             assertNull(field.getFilterFunction(), "null is accepted (skin falls back to the default)");
+            field.setCompletionHandler(null);
+            assertNull(field.getCompletionHandler(),
+                    "null is accepted (skin falls back to the built-in write-back)");
         });
     }
 
