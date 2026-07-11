@@ -96,6 +96,7 @@ public class RXAutoCompleteFieldTest {
             assertEquals(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION, field.getFilterFunction(),
                     "default filter function is the shared constant");
             assertNull(field.getConverter(), "converter defaults to null");
+            assertNull(field.getSuggestionCellFactory(), "cell factory defaults to the built-in cell");
             assertNull(field.getOnAutoCompleted(), "no completion observer by default");
             assertEquals(RXAutoCompleteField.DEFAULT_VISIBLE_ROW_COUNT, field.getVisibleRowCount(),
                     "default visible rows matches the popup default");

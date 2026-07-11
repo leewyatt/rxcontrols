@@ -13,6 +13,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.scene.control.Skin;
+import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.util.Locale;
@@ -247,6 +248,40 @@ public class RXAutoCompleteField extends RXTextField {
      */
     public final void setConverter(StringConverter<String> value) {
         converter.set(value);
+    }
+
+    // ==================== Suggestion Cell Factory ====================
+
+    private final ObjectProperty<Callback<RXListView<String>, RXListCell<String>>> suggestionCellFactory =
+            new SimpleObjectProperty<>(this, "suggestionCellFactory");
+
+    /**
+     * An optional cell factory for the suggestion rows, forwarded to the popup's
+     * list. {@code null} (the default) uses the built-in cell, which renders each
+     * suggestion's text via {@link #converterProperty() converter}.
+     *
+     * @return the suggestion-cell-factory property
+     */
+    public final ObjectProperty<Callback<RXListView<String>, RXListCell<String>>> suggestionCellFactoryProperty() {
+        return suggestionCellFactory;
+    }
+
+    /**
+     * Returns the suggestion cell factory.
+     *
+     * @return the suggestion cell factory, or {@code null}
+     */
+    public final Callback<RXListView<String>, RXListCell<String>> getSuggestionCellFactory() {
+        return suggestionCellFactory.get();
+    }
+
+    /**
+     * Sets the suggestion cell factory.
+     *
+     * @param value the suggestion cell factory, or {@code null} for the default cell
+     */
+    public final void setSuggestionCellFactory(Callback<RXListView<String>, RXListCell<String>> value) {
+        suggestionCellFactory.set(value);
     }
 
     // ==================== Visible Row Count ====================

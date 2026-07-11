@@ -1,17 +1,24 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
+import io.github.leewyatt.rxcontrols.RXListCell;
+import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.util.List;
@@ -24,8 +31,9 @@ import java.util.function.Predicate;
  *
  * <p>Exercises the local suggestion field: swappable dataset, filter strategy
  * ({@code filterFunction}), the number of visible dropdown rows, the entrance
- * animation toggle, and a live readout driven by the {@code onAutoCompleted}
- * event (the default completion handler stays in place).
+ * animation toggle, converter and custom suggestion-cell-factory rendering, and a
+ * live readout driven by the {@code onAutoCompleted} event (the default completion
+ * handler stays in place).
  *
  * <p>Popup placement and width mode are driven internally by the shared
  * suggestion-popup infrastructure (dropdown below the field, matching / preferring
@@ -37,6 +45,29 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
 
     private static final double MIN_ROWS = 3.0;
     private static final double MAX_ROWS = 12.0;
+
+    // Demonstrates the cell-factory path via RXListCell's createContent extension
+    // point: a color dot + the converter-driven text. Sub-nodes are cached fields
+    // (AGENTS.md §2.10) — createContent runs on every cell re-bind (scroll / click /
+    // selection refresh), so the callback only mutates state.
+    private static final Callback<RXListView<String>, RXListCell<String>> COLOR_DOT_CELL_FACTORY =
+            view -> new RXListCell<>() {
+                private final Circle dot = new Circle(6);
+                private final Label label = new Label();
+                private final HBox content = new HBox(8, dot, label);
+
+                {
+                    content.setAlignment(Pos.CENTER_LEFT);
+                }
+
+                @Override
+                protected Node createContent(String item) {
+                    double hue = (item == null) ? 0.0 : (item.hashCode() % 360 + 360) % 360;
+                    dot.setFill(Color.hsb(hue, 0.55, 0.85));
+                    label.setText(primaryText(item));
+                    return content;
+                }
+            };
 
     // Demonstrates the converter path: rows render upper-cased while the stored value
     // (and the write-back) stays the original string.
@@ -155,10 +186,15 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         upperCase.selectedProperty().addListener((obs, was, on) ->
                 field.setConverter(Boolean.TRUE.equals(on) ? UPPER_CASE_CONVERTER : null));
 
+        CheckBox customCells = new CheckBox("Custom cells (color dot factory)");
+        customCells.selectedProperty().addListener((obs, was, on) ->
+                field.setSuggestionCellFactory(Boolean.TRUE.equals(on) ? COLOR_DOT_CELL_FACTORY : null));
+
         return createGrid(
                 row("Visible rows", rows, rowsValue),
                 row(animated),
-                row(upperCase));
+                row(upperCase),
+                row(customCells));
     }
 
     // ==================== Datasets + filter modes ====================
