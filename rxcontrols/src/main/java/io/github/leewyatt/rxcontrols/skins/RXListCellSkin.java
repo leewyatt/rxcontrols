@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -51,11 +52,17 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
     private final Region checkmark = new Region();
 
     // The effective visual mode depends on view.selectionVisualMode and the selection
-    // model's selectionMode (AUTO resolution); both owners are swappable, and
-    // SkinDisposer has no per-item unregister, so stable listeners + tracked owners
-    // (same pattern as RXListViewSkin's selection-model tracking).
+    // model's selectionMode (AUTO resolution); both owners outlive this cell (the
+    // viewport discards cell pools without disposing skins on a factory change), so
+    // the view/model registrations are weak — the skin island stays collectable —
+    // with the real listeners held strongly here. Tracked owners because both are
+    // swappable and SkinDisposer has no per-item unregister.
     private final InvalidationListener slotRefreshListener = obs -> refreshSelectionSlot();
     private final InvalidationListener selectionModelChangedListener = obs -> rebindSelectionModel();
+    private final WeakInvalidationListener weakSlotRefreshListener =
+            new WeakInvalidationListener(slotRefreshListener);
+    private final WeakInvalidationListener weakSelectionModelChangedListener =
+            new WeakInvalidationListener(selectionModelChangedListener);
     private RXListView<T> observedView;
     private MultipleSelectionModel<T> observedModel;
 
@@ -128,16 +135,14 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         layoutInArea(selectionSlot, x, y, slotW, h, 0, HPos.CENTER, VPos.CENTER);
         double contentX = x + slotW;
         double contentW = Math.max(0.0, w - slotW);
-        Node graphic = cell.getGraphic();
-        if (cell.getContentDisplay() == ContentDisplay.GRAPHIC_ONLY
-                && graphic != null && graphic.isResizable()) {
+        if (fillsGraphicOnly()) {
             // Full-row rich content: fill the content area (label padding honored,
             // min/max respected by layoutInArea) — pref-locked icons stay pref-sized.
             Insets lp = cell.getLabelPadding();
-            layoutInArea(graphic,
-                    contentX + lp.getLeft(), y + lp.getTop(),
-                    Math.max(0.0, contentW - lp.getLeft() - lp.getRight()),
-                    Math.max(0.0, h - lp.getTop() - lp.getBottom()),
+            layoutInArea(cell.getGraphic(),
+                    contentX + snapSizeX(lp.getLeft()), y + snapSizeY(lp.getTop()),
+                    Math.max(0.0, contentW - snapSizeX(lp.getLeft()) - snapSizeX(lp.getRight())),
+                    Math.max(0.0, h - snapSizeY(lp.getTop()) - snapSizeY(lp.getBottom())),
                     0, HPos.LEFT, VPos.CENTER);
         } else {
             layoutLabelInArea(contentX, y, contentW, h);
@@ -145,11 +150,32 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         ripple.layout(cell.getWidth(), cell.getHeight());
     }
 
+    // The graphic-only fill branch of layoutChildren; the compute* methods below must
+    // mirror it, because LabeledSkinBase only counts labelPadding into measurement
+    // when text is rendered — under GRAPHIC_ONLY the padding the fill branch reserves
+    // has to be added back, or measured rows compress/clip the graphic.
+    private boolean fillsGraphicOnly() {
+        RXListCell<T> cell = getSkinnable();
+        Node graphic = cell.getGraphic();
+        return cell.getContentDisplay() == ContentDisplay.GRAPHIC_ONLY
+                && graphic != null && graphic.isResizable();
+    }
+
+    private double fillHorizontalLabelPadding() {
+        Insets lp = getSkinnable().getLabelPadding();
+        return fillsGraphicOnly() ? snapSizeX(lp.getLeft()) + snapSizeX(lp.getRight()) : 0.0;
+    }
+
+    private double fillVerticalLabelPadding() {
+        Insets lp = getSkinnable().getLabelPadding();
+        return fillsGraphicOnly() ? snapSizeY(lp.getTop()) + snapSizeY(lp.getBottom()) : 0.0;
+    }
+
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
         return super.computeMinWidth(height, topInset, rightInset, bottomInset, leftInset)
-                + snapSizeX(selectionSlot.minWidth(-1));
+                + snapSizeX(selectionSlot.minWidth(-1)) + fillHorizontalLabelPadding();
     }
 
     @Override
@@ -160,7 +186,7 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         // CHECKMARK mode still fits its indicator.
         return Math.max(
                 super.computeMinHeight(width - selectionSlot.minWidth(-1),
-                        topInset, rightInset, bottomInset, leftInset),
+                        topInset, rightInset, bottomInset, leftInset) + fillVerticalLabelPadding(),
                 topInset + selectionSlot.minHeight(-1) + bottomInset);
     }
 
@@ -168,7 +194,7 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         return super.computePrefWidth(height, topInset, rightInset, bottomInset, leftInset)
-                + snapSizeX(selectionSlot.prefWidth(-1));
+                + snapSizeX(selectionSlot.prefWidth(-1)) + fillHorizontalLabelPadding();
     }
 
     @Override
@@ -176,7 +202,7 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
                                        double bottomInset, double leftInset) {
         return Math.max(
                 super.computePrefHeight(width - selectionSlot.prefWidth(-1),
-                        topInset, rightInset, bottomInset, leftInset),
+                        topInset, rightInset, bottomInset, leftInset) + fillVerticalLabelPadding(),
                 topInset + selectionSlot.prefHeight(-1) + bottomInset);
     }
 
@@ -184,24 +210,24 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
 
     private void rebindView() {
         if (observedView != null) {
-            observedView.selectionVisualModeProperty().removeListener(slotRefreshListener);
-            observedView.selectionModelProperty().removeListener(selectionModelChangedListener);
+            observedView.selectionVisualModeProperty().removeListener(weakSlotRefreshListener);
+            observedView.selectionModelProperty().removeListener(weakSelectionModelChangedListener);
         }
         observedView = getSkinnable().getListView();
         if (observedView != null) {
-            observedView.selectionVisualModeProperty().addListener(slotRefreshListener);
-            observedView.selectionModelProperty().addListener(selectionModelChangedListener);
+            observedView.selectionVisualModeProperty().addListener(weakSlotRefreshListener);
+            observedView.selectionModelProperty().addListener(weakSelectionModelChangedListener);
         }
         rebindSelectionModel();
     }
 
     private void rebindSelectionModel() {
         if (observedModel != null) {
-            observedModel.selectionModeProperty().removeListener(slotRefreshListener);
+            observedModel.selectionModeProperty().removeListener(weakSlotRefreshListener);
         }
         observedModel = observedView == null ? null : observedView.getSelectionModel();
         if (observedModel != null) {
-            observedModel.selectionModeProperty().addListener(slotRefreshListener);
+            observedModel.selectionModeProperty().addListener(weakSlotRefreshListener);
         }
         refreshSelectionSlot();
     }
@@ -267,12 +293,12 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
 
     private void disposeSlot() {
         if (observedModel != null) {
-            observedModel.selectionModeProperty().removeListener(slotRefreshListener);
+            observedModel.selectionModeProperty().removeListener(weakSlotRefreshListener);
             observedModel = null;
         }
         if (observedView != null) {
-            observedView.selectionVisualModeProperty().removeListener(slotRefreshListener);
-            observedView.selectionModelProperty().removeListener(selectionModelChangedListener);
+            observedView.selectionVisualModeProperty().removeListener(weakSlotRefreshListener);
+            observedView.selectionModelProperty().removeListener(weakSelectionModelChangedListener);
             observedView = null;
         }
         getChildren().remove(selectionSlot);

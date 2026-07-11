@@ -45,9 +45,9 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     private static final double MAX_ROWS = 12.0;
 
     // Demonstrates the cell-factory path with the standard updateItem idiom: a color
-    // dot as the graphic + the converter-driven text. The dot is a cached field
-    // (AGENTS.md §2.10) — updateItem runs on every cell re-bind (scroll / click /
-    // selection refresh), so the callback only mutates state.
+    // dot as the graphic + the converter-driven text. The dot is a cached field —
+    // updateItem runs on every cell re-bind (scroll / click / selection refresh),
+    // so the callback only mutates state.
     private static final Callback<RXListView<String>, RXListCell<String>> COLOR_DOT_CELL_FACTORY =
             view -> new RXListCell<>() {
                 private final Circle dot = new Circle(6);

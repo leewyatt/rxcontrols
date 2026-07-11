@@ -9,6 +9,7 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -623,6 +624,38 @@ public class RXListViewSkinTest {
                     "skin-owned selection slot survives a standard updateItem custom cell");
             assertEquals("Item 0", cell.getText(), "custom cell text rendered via primaryText");
             assertNotNull(cell.getGraphic(), "custom graphic coexists with the slot");
+        });
+    }
+
+    @Test
+    public void graphicOnlyFillRowMeasuresLabelPadding() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(3);
+            view.setFixedCellSize(0); // variable height: rows size to their measured pref
+            view.setCellFactory(v -> new RXListCell<>() {
+                private final Region block = new Region();
+
+                {
+                    // GRAPHIC_ONLY + resizable graphic = the skin's full-row fill branch;
+                    // the pref-locked height must survive vertical label padding.
+                    setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+                    setStyle("-fx-label-padding: 5 0 7 0;");
+                    block.setMinHeight(30);
+                    block.setPrefHeight(30);
+                    block.setMaxHeight(30);
+                }
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty || item == null ? null : block);
+                }
+            });
+            pump(host(view, 300, 400));
+            RXListCell<?> cell = cellByIndex(view, 0);
+            assertTrue(cell.prefHeight(-1) >= 30 + 5 + 7,
+                    "graphic-only fill measurement includes the vertical label padding (pref="
+                            + cell.prefHeight(-1) + ")");
         });
     }
 
