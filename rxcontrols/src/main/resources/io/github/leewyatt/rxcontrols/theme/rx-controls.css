@@ -2058,6 +2058,10 @@
 .rx-list-cell {
     -fx-background-color: transparent;
     -fx-padding: 0;
+    -fx-text-fill: -rx-on-surface;
+    /* Breathing room of the Labeled text/graphic content area, between the leading
+       selection slot and the right edge. */
+    -fx-label-padding: 0 0.75em 0 0.25em;
     /* Interaction feedback comes from the embedded ripple / state overlay. */
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
@@ -2075,13 +2079,12 @@
     -fx-border-insets: 0;
 }
 
-/* Three-segment content (child-combinator scoped to the cell's own container, so a
-   custom createContent node never inherits these): leading selection slot, then the
-   content area. The slot reserves a constant width for the leading checkbox / checkmark
-   in the CHECKBOX / CHECKMARK modes; ROW (no indicator) collapses it to zero below so a
-   plain list reads flush-left (trade-off: switching to a checkbox / checkmark mode then
-   shifts the text right by the slot width). */
-.rx-list-cell > .container > .selection-slot {
+/* Leading selection slot (a skin child, left of the Labeled content area). The slot
+   reserves a constant width for the leading checkbox / checkmark in the CHECKBOX /
+   CHECKMARK modes; ROW (no indicator) collapses it to zero below so a plain list reads
+   flush-left (trade-off: switching to a checkbox / checkmark mode then shifts the text
+   right by the slot width). */
+.rx-list-cell > .selection-slot {
     -fx-min-width: 2em;
     -fx-pref-width: 2em;
     -fx-alignment: center;
@@ -2090,25 +2093,13 @@
 /* ROW shows no leading indicator, so drop the reserved slot for a flush-left plain list.
    Scoped to the control's :selection-row pseudo-class (set by the skin from the effective
    visual mode, so AUTO single-selection collapses it too). */
-.rx-list-view:selection-row .rx-list-cell > .container > .selection-slot {
+.rx-list-view:selection-row .rx-list-cell > .selection-slot {
     -fx-min-width: 0;
     -fx-pref-width: 0;
 }
 
-.rx-list-cell > .container > .content {
-    -fx-padding: 0 0.75em 0 0.25em;
-}
-
-.rx-list-cell > .container > .content > .text-box {
-    -fx-alignment: center-left;
-}
-
-.rx-list-cell > .container > .content > .text-box > .label {
-    -fx-text-fill: -rx-on-surface;
-}
-
 /* CHECKMARK mode: a lightweight leading tick, shown only on the selected row. */
-.rx-list-cell > .container > .selection-slot > .checkmark {
+.rx-list-cell > .selection-slot > .checkmark {
     -fx-pref-width: 0.85em;
     -fx-pref-height: 0.85em;
     -fx-background-color: -rx-primary;
@@ -2116,7 +2107,7 @@
     visibility: hidden;
 }
 
-.rx-list-cell:selected > .container > .selection-slot > .checkmark {
+.rx-list-cell:selected > .selection-slot > .checkmark {
     visibility: visible;
 }
 
@@ -2589,20 +2580,14 @@
 .rx-selection-box-popup .rx-list-cell {
     -fx-background-insets: 0;
     -fx-background-radius: 0;
+    /* The select-box indicator is the cell graphic; gap + padding replace the former
+       custom .select-content box. */
+    -fx-graphic-text-gap: 0.583em; /* 7 */
+    -fx-label-padding: 0.416667em 0.666667em; /* 5 8 */
 }
 
 .rx-selection-box-popup .rx-list-cell:selected {
     -fx-background-color: -rx-primary-bg;
-}
-
-.rx-selection-box-popup .rx-list-cell .select-content {
-    -fx-alignment: center-left;
-    -fx-spacing: 0.583em; /* 7 */
-    -fx-padding: 0.416667em 0.666667em; /* 5 8 */
-}
-
-.rx-selection-box-popup .rx-list-cell .label {
-    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-selection-box-popup .rx-list-cell .select-box {

@@ -9,7 +9,6 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.Labeled;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -599,6 +598,51 @@ public class RXListViewSkinTest {
     }
 
     @Test
+    public void customUpdateItemCellKeepsSkinSelectionSlot() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(10);
+            view.setSelectionMode(SelectionMode.MULTIPLE); // AUTO -> CHECKBOX
+            view.setCellFactory(v -> new RXListCell<>() {
+                private final Region marker = new Region();
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        setText(primaryText(item));
+                        setGraphic(marker);
+                    }
+                }
+            });
+            pump(host(view, 300, 400));
+            RXListCell<?> cell = cellByIndex(view, 0);
+            assertNotNull(cell.lookup(".check-box"),
+                    "skin-owned selection slot survives a standard updateItem custom cell");
+            assertEquals("Item 0", cell.getText(), "custom cell text rendered via primaryText");
+            assertNotNull(cell.getGraphic(), "custom graphic coexists with the slot");
+        });
+    }
+
+    @Test
+    public void emptyTextCheckboxRowStillFitsItsIndicator() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = new RXListView<>(FXCollections.observableArrayList(""));
+            view.setSelectionVisualMode(RXListSelectionVisualMode.CHECKBOX);
+            view.setFixedCellSize(0); // variable height: rows size to their measured pref
+            pump(host(view, 300, 400));
+            RXListCell<?> cell = cellByIndex(view, 0);
+            Region box = (Region) cell.lookup(".check-box");
+            assertNotNull(box, "checkbox rendered for the empty-text row");
+            assertTrue(cell.prefHeight(-1) >= box.prefHeight(-1),
+                    "an empty-text CHECKBOX row still reserves the indicator height (pref="
+                            + cell.prefHeight(-1) + ", box=" + box.prefHeight(-1) + ")");
+        });
+    }
+
+    @Test
     public void checkboxClickTogglesSelection() throws Exception {
         onFx(() -> {
             RXListView<String> view = items(10);
@@ -1065,6 +1109,7 @@ public class RXListViewSkinTest {
             @Override
             protected void updateItem(Integer item, boolean empty) {
                 super.updateItem(item, empty);
+                setText(empty || item == null ? null : String.valueOf(item));
                 setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : measuredHeightOf(item));
             }
         });
@@ -1492,11 +1537,9 @@ public class RXListViewSkinTest {
         return null;
     }
 
-    // The default cell renders its primary text in a .text-box > .label inside the
-    // content container (the cell's own Labeled text stays null).
+    // Standard Labeled model: the cell's own text is the rendered text.
     private static String cellText(RXListCell<?> cell) {
-        Node label = cell.lookup(".text-box > .label");
-        return label instanceof Labeled labeled ? labeled.getText() : null;
+        return cell.getText();
     }
 
     private static boolean hasPseudo(Node node, String name) {

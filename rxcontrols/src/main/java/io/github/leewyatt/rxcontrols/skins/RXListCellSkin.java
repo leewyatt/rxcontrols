@@ -1,19 +1,40 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXListCell;
+import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
+import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import javafx.beans.InvalidationListener;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.skin.CellSkinBase;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 
 /**
- * Skin for {@link RXListCell}: the standard {@link CellSkinBase} plus an embedded
- * {@link RippleDecoration} placed below the cell content. The cell owns its
- * three-segment content container (set as the cell graphic); this skin places the
- * ripple layer behind it, stretches the container to fill the row, supplies the
- * pointer-press ripple trigger and clears the ripple when the cell is recycled.
+ * Skin for {@link RXListCell}: the standard {@link CellSkinBase} (Labeled
+ * text + graphic rendering) plus two skin-owned layers, following the
+ * {@code CheckBoxSkin} extension pattern — a leading <em>selection slot</em>
+ * (checkbox / checkmark, chosen from the owning list view's effective selection
+ * visual mode) that shifts the label content area right, and an embedded
+ * {@link RippleDecoration} placed below everything. Width and height
+ * computations compensate for the slot; the slot's reserved width itself is
+ * CSS-driven (collapsed to zero in ROW mode via the view's
+ * {@code :selection-row} pseudo-class).
+ *
+ * <p>One deliberate deviation from plain {@code LabeledSkinBase} layout: a
+ * <em>resizable</em> graphic under {@link ContentDisplay#GRAPHIC_ONLY} is
+ * resized to fill the content area (min/max respected), so full-row custom
+ * content needs no manual width binding; pref-locked icons and non-resizable
+ * shapes are unaffected.
  *
  * <p>Selection toggling is handled centrally by {@code RXListViewSkin}; the
  * checkbox / checkmark are mouse-transparent display indicators, so a press
@@ -25,9 +46,21 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
 
     private final SkinDisposer disposer = new SkinDisposer();
     private final RippleDecoration ripple;
+    private final StackPane selectionSlot = new StackPane();
+    private final CheckBox checkBox = new CheckBox();
+    private final Region checkmark = new Region();
+
+    // The effective visual mode depends on view.selectionVisualMode and the selection
+    // model's selectionMode (AUTO resolution); both owners are swappable, and
+    // SkinDisposer has no per-item unregister, so stable listeners + tracked owners
+    // (same pattern as RXListViewSkin's selection-model tracking).
+    private final InvalidationListener slotRefreshListener = obs -> refreshSelectionSlot();
+    private final InvalidationListener selectionModelChangedListener = obs -> rebindSelectionModel();
+    private RXListView<T> observedView;
+    private MultipleSelectionModel<T> observedModel;
 
     /**
-     * Creates the skin and wires the ripple.
+     * Creates the skin and wires the selection slot and the ripple.
      *
      * @param cell the cell this skin is attached to
      */
@@ -36,6 +69,21 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         ripple = new RippleDecoration(cell, cell.rippleEnabledProperty(),
                 cell.stateOverlayEnabledProperty(), cell.rippleFillProperty(),
                 cell::getRippleOpacity, null, null);
+
+        selectionSlot.getStyleClass().add("selection-slot");
+        // The checkbox / checkmark are pure visual + a11y indicators of the single
+        // selection state; all pointer toggling is handled centrally by the list
+        // view's skin, so they never independently react to the mouse or take
+        // keyboard focus. The checkbox simply mirrors the cell's selected state
+        // (one-way bind; never user-driven), and the checkmark's visibility follows
+        // the :selected pseudo-class via CSS.
+        checkBox.setFocusTraversable(false);
+        checkBox.setMouseTransparent(true);
+        checkBox.setAllowIndeterminate(false);
+        checkmark.getStyleClass().add("checkmark");
+        checkmark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        checkmark.setMouseTransparent(true);
+        disposer.registerBinding(checkBox.selectedProperty(), cell.selectedProperty());
 
         disposer.registerEventHandler(cell, MouseEvent.MOUSE_PRESSED, this::onPressed);
         disposer.registerEventHandler(cell, MouseEvent.MOUSE_RELEASED, event -> ripple.release());
@@ -49,6 +97,10 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         disposer.registerListener(cell.indexProperty(), ripple::cancelInteraction);
         disposer.registerListener(cell.itemProperty(), ripple::cancelInteraction);
 
+        disposer.registerListener(cell.listViewProperty(), this::rebindView);
+        disposer.registerListener(cell.emptyProperty(), this::refreshSelectionSlot);
+        rebindView();
+
         updateChildren();
     }
 
@@ -56,34 +108,147 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
     protected void updateChildren() {
         super.updateChildren();
         // The first call comes from the LabeledSkinBase constructor, before this
-        // skin's fields are initialized.
+        // skin's fields are initialized; super.updateChildren() also setAll()s the
+        // children (text/graphic only), dropping the skin-owned nodes — re-append
+        // them after every call.
         if (ripple != null) {
             getChildren().add(0, ripple.getLayer());
         }
+        if (selectionSlot != null) {
+            getChildren().add(selectionSlot);
+        }
     }
+
+    // ==================== Layout (CheckBoxSkin pattern) ====================
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        super.layoutChildren(x, y, w, h);
-        // Force the content container (the cell's graphic) to fill the content box so
-        // the selection slot, content and ripple span the full row width.
-        Node graphic = getSkinnable().getGraphic();
-        if (graphic != null) {
-            graphic.resizeRelocate(x, y, w, h);
+        RXListCell<T> cell = getSkinnable();
+        double slotW = snapSizeX(selectionSlot.prefWidth(-1));
+        layoutInArea(selectionSlot, x, y, slotW, h, 0, HPos.CENTER, VPos.CENTER);
+        double contentX = x + slotW;
+        double contentW = Math.max(0.0, w - slotW);
+        Node graphic = cell.getGraphic();
+        if (cell.getContentDisplay() == ContentDisplay.GRAPHIC_ONLY
+                && graphic != null && graphic.isResizable()) {
+            // Full-row rich content: fill the content area (label padding honored,
+            // min/max respected by layoutInArea) — pref-locked icons stay pref-sized.
+            Insets lp = cell.getLabelPadding();
+            layoutInArea(graphic,
+                    contentX + lp.getLeft(), y + lp.getTop(),
+                    Math.max(0.0, contentW - lp.getLeft() - lp.getRight()),
+                    Math.max(0.0, h - lp.getTop() - lp.getBottom()),
+                    0, HPos.LEFT, VPos.CENTER);
+        } else {
+            layoutLabelInArea(contentX, y, contentW, h);
         }
-        ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        ripple.layout(cell.getWidth(), cell.getHeight());
     }
 
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        return super.computeMinWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + snapSizeX(selectionSlot.minWidth(-1));
+    }
+
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        // The label height is measured at the width left over after the slot; the
+        // slot height caps from below so an empty/short text row in CHECKBOX /
+        // CHECKMARK mode still fits its indicator.
+        return Math.max(
+                super.computeMinHeight(width - selectionSlot.minWidth(-1),
+                        topInset, rightInset, bottomInset, leftInset),
+                topInset + selectionSlot.minHeight(-1) + bottomInset);
+    }
+
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return super.computePrefWidth(height, topInset, rightInset, bottomInset, leftInset)
+                + snapSizeX(selectionSlot.prefWidth(-1));
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return Math.max(
+                super.computePrefHeight(width - selectionSlot.prefWidth(-1),
+                        topInset, rightInset, bottomInset, leftInset),
+                topInset + selectionSlot.prefHeight(-1) + bottomInset);
+    }
+
+    // ==================== Selection slot ====================
+
+    private void rebindView() {
+        if (observedView != null) {
+            observedView.selectionVisualModeProperty().removeListener(slotRefreshListener);
+            observedView.selectionModelProperty().removeListener(selectionModelChangedListener);
+        }
+        observedView = getSkinnable().getListView();
+        if (observedView != null) {
+            observedView.selectionVisualModeProperty().addListener(slotRefreshListener);
+            observedView.selectionModelProperty().addListener(selectionModelChangedListener);
+        }
+        rebindSelectionModel();
+    }
+
+    private void rebindSelectionModel() {
+        if (observedModel != null) {
+            observedModel.selectionModeProperty().removeListener(slotRefreshListener);
+        }
+        observedModel = observedView == null ? null : observedView.getSelectionModel();
+        if (observedModel != null) {
+            observedModel.selectionModeProperty().addListener(slotRefreshListener);
+        }
+        refreshSelectionSlot();
+    }
+
+    private void refreshSelectionSlot() {
+        RXListCell<T> cell = getSkinnable();
+        RXListSelectionVisualMode mode = effectiveVisualMode();
+        if (cell.isEmpty() || mode == RXListSelectionVisualMode.ROW) {
+            // ROW / empty rows show no indicator; the slot stays managed so its
+            // (CSS-driven, ROW-collapsed) reserved width keeps applying.
+            setSlotChild(null);
+            selectionSlot.setVisible(false);
+        } else {
+            setSlotChild(mode == RXListSelectionVisualMode.CHECKBOX ? checkBox : checkmark);
+            selectionSlot.setVisible(true);
+        }
+    }
+
+    private void setSlotChild(Node child) {
+        if (child == null) {
+            selectionSlot.getChildren().clear();
+        } else if (selectionSlot.getChildren().size() != 1 || selectionSlot.getChildren().get(0) != child) {
+            selectionSlot.getChildren().setAll(child);
+        }
+    }
+
+    private RXListSelectionVisualMode effectiveVisualMode() {
+        RXListView<T> view = getSkinnable().getListView();
+        if (view == null) {
+            return RXListSelectionVisualMode.ROW;
+        }
+        return RXListSelectionVisualMode.resolve(view.getSelectionVisualMode(), view.getSelectionMode());
+    }
+
+    // ==================== Dispose ====================
+
     /**
-     * Stops ripple animations, removes the ripple layer and unregisters all ripple
-     * listeners before the standard {@link CellSkinBase} cleanup runs.
+     * Detaches the selection-slot tracking, stops ripple animations, removes the
+     * skin-owned layers and unregisters all listeners before the standard
+     * {@link CellSkinBase} cleanup runs.
      */
     @Override
     public void dispose() {
         if (getSkinnable() == null) {
             return;
         }
-        SkinDisposer.disposeInOrder(this::disposeRipple, disposer::dispose, super::dispose);
+        SkinDisposer.disposeInOrder(this::disposeSlot, this::disposeRipple, disposer::dispose, super::dispose);
     }
 
     // ==================== Ripple trigger ====================
@@ -98,6 +263,19 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
         // checkmark — is one row click, so it always ripples.
         Point2D local = cell.sceneToLocal(event.getSceneX(), event.getSceneY());
         ripple.press(local.getX(), local.getY(), false);
+    }
+
+    private void disposeSlot() {
+        if (observedModel != null) {
+            observedModel.selectionModeProperty().removeListener(slotRefreshListener);
+            observedModel = null;
+        }
+        if (observedView != null) {
+            observedView.selectionVisualModeProperty().removeListener(slotRefreshListener);
+            observedView.selectionModelProperty().removeListener(selectionModelChangedListener);
+            observedView = null;
+        }
+        getChildren().remove(selectionSlot);
     }
 
     private void disposeRipple() {

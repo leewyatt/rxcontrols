@@ -147,6 +147,9 @@ public class RXListViewContactsDemo extends Application {
         private final HBox row;
 
         private ContactCell() {
+            // Full-row rich content: GRAPHIC_ONLY + a resizable graphic is stretched
+            // by the skin to fill the content area (trailing phone right-aligns).
+            setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
             avatar.setMinSize(42.0, 42.0);
             avatar.setPrefSize(42.0, 42.0);
             avatar.setMaxSize(42.0, 42.0);
@@ -166,7 +169,13 @@ public class RXListViewContactsDemo extends Application {
         }
 
         @Override
-        protected Node createContent(Contact contact) {
+        protected void updateItem(Contact contact, boolean empty) {
+            super.updateItem(contact, empty);
+            if (empty || contact == null) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
             avatar.setText(contact.initials());
             avatar.setStyle("-fx-background-color: " + contact.color() + ";"
                     + " -fx-background-radius: 999;"
@@ -176,7 +185,7 @@ public class RXListViewContactsDemo extends Application {
             name.setText(contact.name());
             role.setText(contact.role() + " / " + contact.location());
             phone.setText(contact.phone());
-            return row;
+            setGraphic(row);
         }
     }
 

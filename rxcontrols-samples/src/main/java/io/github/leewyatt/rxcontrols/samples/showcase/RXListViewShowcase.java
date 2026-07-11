@@ -129,19 +129,17 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         variable.selectedProperty().addListener((obs, old, on) -> {
             cellSize.setDisable(on);
             if (on) {
-                // Variable height: each row wraps its content to a different height. The
-                // label is a reused field (createContent runs on every bind), per its docs.
+                // Variable height: each row wraps its text to a different height —
+                // standard Labeled wrapText on the cell itself.
                 list.setCellFactory(view -> new RXListCell<>() {
-                    private final Label label = new Label();
-
                     {
-                        label.setWrapText(true);
+                        setWrapText(true);
                     }
 
                     @Override
-                    protected Node createContent(Integer item) {
-                        label.setText(describe(item));
-                        return label;
+                    protected void updateItem(Integer item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setText(empty || item == null ? null : describe(item));
                     }
                 });
                 list.setFixedCellSize(0);

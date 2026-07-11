@@ -17,21 +17,12 @@ import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
-import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
-import javafx.scene.Node;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.IndexedCell;
-import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
 import javafx.scene.control.Skin;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.util.StringConverter;
 
@@ -44,19 +35,46 @@ import java.util.List;
  * recycles a small pool of cells across the visible rows, so a cell's item and
  * index change as the view scrolls or relays out.
  *
- * <p>The cell is a three-segment row: a fixed leading <em>selection slot</em>
- * (a {@code CheckBox}, a checkmark or empty, chosen automatically from the list
- * view's {@link RXListView#selectionVisualModeProperty() selectionVisualMode}),
- * then the content area, then a trailing area. <strong>The selection slot is
- * managed entirely by the base cell</strong>, so a custom cell automatically has
- * a checkbox in {@code CHECKBOX} mode without wiring anything.
+ * <p>Content follows the standard {@link javafx.scene.control.Cell} contract:
+ * customize by overriding {@link #updateItem(Object, boolean)}, calling
+ * {@code super.updateItem(item, empty)} first, clearing {@code text} /
+ * {@code graphic} on the empty branch and rendering them otherwise. Sub-nodes
+ * must be cached fields — {@code updateItem} runs on every re-bind, not once per
+ * row. The full {@link Labeled} surface (font, text fill, content display,
+ * graphic-text gap, ellipsis, wrapping) applies to the rendered text.
  *
- * <p>To customize the content while keeping the selection slot / checkbox /
- * selection behavior / ripple, subclass and override {@link #createContent(Object)}
- * to return the content node (mirroring {@code RXCascaderCell}); do not override
- * {@link #updateItem(Object, boolean)}. A {@code null} item is a legal value, not
- * an empty cell: emptiness is decided solely by the index (see
- * {@link #updateIndex(int)}).
+ * <pre>{@code
+ * listView.setCellFactory(view -> new RXListCell<String>() {
+ *     private final Circle dot = new Circle(6);
+ *
+ *     @Override
+ *     protected void updateItem(String item, boolean empty) {
+ *         super.updateItem(item, empty);
+ *         if (empty || item == null) {
+ *             setText(null);
+ *             setGraphic(null);
+ *         } else {
+ *             setText(primaryText(item));
+ *             setGraphic(dot);
+ *         }
+ *     }
+ * });
+ * }</pre>
+ *
+ * <p>A bare {@code RXListCell} renders nothing — the list view's default cell
+ * factory supplies the converter-driven text rendering. The leading selection
+ * slot (a {@code CheckBox}, a checkmark or nothing, chosen automatically from the
+ * list view's {@link RXListView#selectionVisualModeProperty() selectionVisualMode})
+ * is owned by the skin, so a custom cell automatically has a checkbox in
+ * {@code CHECKBOX} mode without wiring anything.
+ *
+ * <p>Full-row content: a resizable {@code graphic} under
+ * {@link ContentDisplay#GRAPHIC_ONLY} is resized by the skin to fill the content
+ * area (min/max respected), so rich rows (leading avatar, trailing actions) need
+ * no manual width binding.
+ *
+ * <p>A {@code null} item is a legal value, not an empty cell: emptiness is
+ * decided solely by the index (see {@link #updateIndex(int)}).
  *
  * @param <T> the item type
  */
@@ -68,14 +86,6 @@ public class RXListCell<T> extends IndexedCell<T> {
     // fires, so this manual toggle is the sole writer and is not overridden.
     private static final PseudoClass FOCUSED_PSEUDO_CLASS = PseudoClass.getPseudoClass("focused");
 
-    private final HBox container = new HBox();
-    private final StackPane selectionSlot = new StackPane();
-    private final CheckBox checkBox = new CheckBox();
-    private final Region checkmark = new Region();
-    private final StackPane contentHolder = new StackPane();
-    private final VBox textBox = new VBox();
-    private final Label primaryLabel = new Label();
-
     /**
      * Creates an empty list cell.
      */
@@ -86,36 +96,6 @@ public class RXListCell<T> extends IndexedCell<T> {
         // they never receive Node focus and the focus ring above stays under skin
         // control.
         setFocusTraversable(false);
-        setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-        buildStructure();
-    }
-
-    private void buildStructure() {
-        selectionSlot.getStyleClass().add("selection-slot");
-        // The checkbox / checkmark are pure visual + a11y indicators of the single
-        // selection state; all pointer toggling is handled centrally by the list
-        // view's skin, so they never independently react to the mouse or take
-        // keyboard focus. The checkbox simply mirrors this cell's selected state
-        // (one-way bind; never user-driven), and the checkmark's visibility follows
-        // the :selected pseudo-class via CSS.
-        checkBox.setFocusTraversable(false);
-        checkBox.setMouseTransparent(true);
-        checkBox.setAllowIndeterminate(false);
-        checkBox.selectedProperty().bind(selectedProperty());
-        checkmark.getStyleClass().add("checkmark");
-        checkmark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        checkmark.setMouseTransparent(true);
-
-        textBox.getStyleClass().add("text-box");
-        textBox.getChildren().add(primaryLabel);
-
-        contentHolder.getStyleClass().add("content");
-        contentHolder.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(contentHolder, Priority.ALWAYS);
-
-        container.getStyleClass().add("container");
-        container.setAlignment(Pos.CENTER_LEFT);
-        container.getChildren().setAll(selectionSlot, contentHolder);
     }
 
     // ==================== Accessibility ====================
@@ -403,68 +383,31 @@ public class RXListCell<T> extends IndexedCell<T> {
     /**
      * {@inheritDoc}
      *
-     * <p>Orchestrates the recycled-cell contract: the empty branch fully clears the
-     * row (content, selection slot, selection / focus state); the non-empty branch
-     * refreshes the selection slot from the visual mode and rebuilds the content via
-     * {@link #createContent(Object)}. The selection indicator (checkbox checked /
-     * checkmark visible / row highlight) follows the {@code selected} state, applied
-     * by the viewport right after {@link #updateIndex(int)}. Override
-     * {@link #createContent(Object)}, not this method.
+     * <p>The standard customization point, per the {@link javafx.scene.control.Cell}
+     * contract: override, call {@code super.updateItem(item, empty)} first, clear
+     * {@code text} / {@code graphic} on the empty branch and render them otherwise
+     * (with cached sub-nodes — this runs on every re-bind). This base implementation
+     * never touches text or graphic; it only resets a recycled slot's framework
+     * state. The selection slot is managed by the skin and needs no wiring here.
      */
     @Override
     protected void updateItem(T item, boolean empty) {
         super.updateItem(item, empty);
         if (empty) {
-            // Fully clear a recycled / parked slot (cell-reuse discipline): the
-            // viewport re-applies real :selected / focus to a re-bound visible cell
-            // right after updateIndex, so a non-empty rebind is unaffected. The
-            // checkbox follows selected via its bind; the ripple is cleared by the
-            // skin via its index / item listeners.
-            setGraphic(null);
-            setText(null);
-            primaryLabel.setText(null);
-            contentHolder.getChildren().clear();
-            selectionSlot.getChildren().clear();
+            // Reset a recycled / parked slot's framework state (cell-reuse
+            // discipline): the viewport re-applies real :selected / focus to a
+            // re-bound visible cell right after updateIndex. Clearing text /
+            // graphic is the overrider's duty per the standard Cell contract.
             updateSelected(false);
             updateListFocus(false);
-            return;
         }
-        setGraphic(container);
-        setText(null);
-        refreshSelectionSlot();
-        Node content = createContent(item);
-        if (content == null) {
-            contentHolder.getChildren().clear();
-        } else if (contentHolder.getChildren().size() != 1 || contentHolder.getChildren().get(0) != content) {
-            contentHolder.getChildren().setAll(content);
-        }
-    }
-
-    /**
-     * Returns the content node for the given item, rendered in the content area to
-     * the right of the selection slot. The default sets the built-in primary label
-     * to the item's text (via the list view's {@link RXListView#converterProperty()
-     * converter}, falling back to {@code item.toString()}) and returns it. Override
-     * to render richer content; returning {@code null} renders an empty content
-     * area. Called on every layout pass that binds this cell (not only when the item
-     * changes — a resize, scroll-bar toggle or variable-height re-pack re-binds the same
-     * item), so reuse a cached node rather than allocating per call. The default returns
-     * a reused field node and only updates its text.
-     *
-     * @param item the item to render (never used as the emptiness signal — empty
-     *             cells never reach this method)
-     * @return the content node, or {@code null} for none
-     */
-    protected Node createContent(T item) {
-        primaryLabel.setText(primaryText(item));
-        return textBox;
     }
 
     /**
      * Resolves the primary text for {@code item} through the list view's converter,
      * falling back to {@code item.toString()} (and the empty string for a
      * {@code null} item) when no converter is set. For use by subclasses overriding
-     * {@link #createContent(Object)}.
+     * {@link #updateItem(Object, boolean)}.
      *
      * @param item the item to render
      * @return the primary text, never {@code null}
@@ -477,43 +420,6 @@ public class RXListCell<T> extends IndexedCell<T> {
             return text == null ? "" : text;
         }
         return item == null ? "" : item.toString();
-    }
-
-    // ==================== Selection slot ====================
-
-    private void refreshSelectionSlot() {
-        switch (effectiveVisualMode()) {
-            case CHECKBOX -> {
-                setSlotChild(checkBox);
-                selectionSlot.setVisible(true);
-            }
-            case CHECKMARK -> {
-                setSlotChild(checkmark);
-                selectionSlot.setVisible(true);
-            }
-            default -> {
-                // ROW: keep the slot's reserved width (managed) but invisible, so
-                // switching modes does not shift the text left edge.
-                setSlotChild(null);
-                selectionSlot.setVisible(false);
-            }
-        }
-    }
-
-    private void setSlotChild(Node child) {
-        if (child == null) {
-            selectionSlot.getChildren().clear();
-        } else if (selectionSlot.getChildren().size() != 1 || selectionSlot.getChildren().get(0) != child) {
-            selectionSlot.getChildren().setAll(child);
-        }
-    }
-
-    private RXListSelectionVisualMode effectiveVisualMode() {
-        RXListView<T> view = getListView();
-        if (view == null) {
-            return RXListSelectionVisualMode.ROW;
-        }
-        return RXListSelectionVisualMode.resolve(view.getSelectionVisualMode(), view.getSelectionMode());
     }
 
     @Override

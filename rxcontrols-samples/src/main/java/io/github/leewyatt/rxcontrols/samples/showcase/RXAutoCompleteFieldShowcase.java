@@ -8,13 +8,11 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -46,26 +44,26 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     private static final double MIN_ROWS = 3.0;
     private static final double MAX_ROWS = 12.0;
 
-    // Demonstrates the cell-factory path via RXListCell's createContent extension
-    // point: a color dot + the converter-driven text. Sub-nodes are cached fields
-    // (AGENTS.md §2.10) — createContent runs on every cell re-bind (scroll / click /
+    // Demonstrates the cell-factory path with the standard updateItem idiom: a color
+    // dot as the graphic + the converter-driven text. The dot is a cached field
+    // (AGENTS.md §2.10) — updateItem runs on every cell re-bind (scroll / click /
     // selection refresh), so the callback only mutates state.
     private static final Callback<RXListView<String>, RXListCell<String>> COLOR_DOT_CELL_FACTORY =
             view -> new RXListCell<>() {
                 private final Circle dot = new Circle(6);
-                private final Label label = new Label();
-                private final HBox content = new HBox(8, dot, label);
-
-                {
-                    content.setAlignment(Pos.CENTER_LEFT);
-                }
 
                 @Override
-                protected Node createContent(String item) {
-                    double hue = (item == null) ? 0.0 : (item.hashCode() % 360 + 360) % 360;
-                    dot.setFill(Color.hsb(hue, 0.55, 0.85));
-                    label.setText(primaryText(item));
-                    return content;
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        double hue = (item.hashCode() % 360 + 360) % 360;
+                        dot.setFill(Color.hsb(hue, 0.55, 0.85));
+                        setText(primaryText(item));
+                        setGraphic(dot);
+                    }
                 }
             };
 

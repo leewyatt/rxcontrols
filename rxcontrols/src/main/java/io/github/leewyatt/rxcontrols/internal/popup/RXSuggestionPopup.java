@@ -430,7 +430,14 @@ public final class RXSuggestionPopup<T> {
             @Override
             protected void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
-                setDisable(!empty && isItemDisabled(item));
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                    setDisable(false);
+                } else {
+                    setText(primaryText(item));
+                    setDisable(isItemDisabled(item));
+                }
             }
         };
     }

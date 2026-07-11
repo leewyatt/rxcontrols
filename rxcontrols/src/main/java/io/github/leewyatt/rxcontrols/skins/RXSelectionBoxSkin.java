@@ -900,8 +900,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         private final FilteredList<T> filtered;
         private final StackPane indicator = new StackPane();
         private final Region check = new Region();
-        private final Label label = new Label();
-        private final HBox content = new HBox();
         private final InvalidationListener refresher = obs -> refreshIndicator();
 
         SelectionCell(RXSelectionBox<T> box, FilteredList<T> filtered) {
@@ -915,13 +913,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             indicator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             indicator.getChildren().add(check);
 
-            label.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(label, Priority.ALWAYS);
-
-            content.getStyleClass().add("select-content");
-            content.setAlignment(Pos.CENTER_LEFT);
-            content.getChildren().addAll(indicator, label);
-
             MultipleSelectionModel<T> model = box.getSelectionModel();
             if (model != null) {
                 model.getSelectedIndices().addListener(new WeakInvalidationListener(refresher));
@@ -930,10 +921,16 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         }
 
         @Override
-        protected Node createContent(T item) {
-            label.setText(primaryText(item));
+        protected void updateItem(T item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+            setText(primaryText(item));
+            setGraphic(indicator);
             refreshIndicator();
-            return content;
         }
 
         private void refreshIndicator() {

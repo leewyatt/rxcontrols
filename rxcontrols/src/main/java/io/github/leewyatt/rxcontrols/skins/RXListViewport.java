@@ -609,6 +609,19 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     private RXListCell<T> createDefaultCell() {
-        return new RXListCell<>();
+        // The default rendering lives in the default factory (mirroring ListViewSkin's
+        // default cell), not in the RXListCell base class: a bare cell renders nothing.
+        return new RXListCell<>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(primaryText(item));
+                }
+            }
+        };
     }
 }
