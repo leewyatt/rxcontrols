@@ -61,7 +61,10 @@ public abstract class RXShowcaseApplication extends Application {
         scene = new Scene(root, sceneWidth(), sceneHeight());
         scene.getStylesheets().add(
                 RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm());
-        scene.getStylesheets().add(stylesheetPath());
+        String stylesheetPath = stylesheetPath();
+        if (stylesheetPath != null) {
+            scene.getStylesheets().add(stylesheetPath);
+        }
         if (themePicker != null) {
             themePicker.getSelectionModel().selectFirst(); // applies the initial theme
         }
@@ -98,7 +101,9 @@ public abstract class RXShowcaseApplication extends Application {
      * @return an absolute stylesheet URL (typically
      *         {@code getClass().getResource("xxx.css").toExternalForm()})
      */
-    protected abstract String stylesheetPath();
+    protected String stylesheetPath(){
+        return null;
+    }
 
     /**
      * Gives subclasses a final chance to configure the scene before it is
