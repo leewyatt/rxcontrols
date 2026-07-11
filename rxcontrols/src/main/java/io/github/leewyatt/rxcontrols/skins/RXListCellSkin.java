@@ -181,12 +181,18 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        // The label height is measured at the width left over after the slot; the
-        // slot height caps from below so an empty/short text row in CHECKBOX /
-        // CHECKMARK mode still fits its indicator.
+        // Measure the label part at the exact width the layout will hand it (after
+        // the slot and, in the fill branch, the horizontal label padding): a
+        // width-dependent graphic (wrapping full-row content) measured wider than it
+        // is laid out would under-estimate row heights. A negative width is the
+        // unconstrained sentinel and passes through. The slot height caps from below
+        // so an empty/short row in CHECKBOX / CHECKMARK mode still fits its indicator.
+        double labelWidth = width < 0
+                ? width
+                : Math.max(0.0, width - selectionSlot.minWidth(-1) - fillHorizontalLabelPadding());
         return Math.max(
-                super.computeMinHeight(width - selectionSlot.minWidth(-1),
-                        topInset, rightInset, bottomInset, leftInset) + fillVerticalLabelPadding(),
+                super.computeMinHeight(labelWidth, topInset, rightInset, bottomInset, leftInset)
+                        + fillVerticalLabelPadding(),
                 topInset + selectionSlot.minHeight(-1) + bottomInset);
     }
 
@@ -200,9 +206,13 @@ public class RXListCellSkin<T> extends CellSkinBase<RXListCell<T>> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
+        // Same width formula as computeMinHeight: measurement mirrors the layout.
+        double labelWidth = width < 0
+                ? width
+                : Math.max(0.0, width - selectionSlot.prefWidth(-1) - fillHorizontalLabelPadding());
         return Math.max(
-                super.computePrefHeight(width - selectionSlot.prefWidth(-1),
-                        topInset, rightInset, bottomInset, leftInset) + fillVerticalLabelPadding(),
+                super.computePrefHeight(labelWidth, topInset, rightInset, bottomInset, leftInset)
+                        + fillVerticalLabelPadding(),
                 topInset + selectionSlot.prefHeight(-1) + bottomInset);
     }
 

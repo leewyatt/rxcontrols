@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Orientation;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
@@ -656,6 +657,48 @@ public class RXListViewSkinTest {
             assertTrue(cell.prefHeight(-1) >= 30 + 5 + 7,
                     "graphic-only fill measurement includes the vertical label padding (pref="
                             + cell.prefHeight(-1) + ")");
+        });
+    }
+
+    @Test
+    public void graphicOnlyFillMeasuresWidthDependentGraphicAtLayoutWidth() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(3); // SINGLE -> AUTO -> ROW: slot collapses to 0
+            view.setFixedCellSize(0); // variable height: the viewport caches cell.prefHeight(rowWidth)
+            view.setCellFactory(v -> new RXListCell<>() {
+                // Deterministic width-dependent content (area-preserving block, like
+                // wrapping text): narrower layout width must yield a taller measure.
+                private final Region flow = new Region() {
+                    @Override
+                    protected double computePrefHeight(double width) {
+                        return width <= 0 ? 60.0 : 6000.0 / width;
+                    }
+
+                    @Override
+                    public Orientation getContentBias() {
+                        return Orientation.HORIZONTAL;
+                    }
+                };
+
+                {
+                    setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+                    setStyle("-fx-label-padding: 0 50 0 50;");
+                }
+
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty || item == null ? null : flow);
+                }
+            });
+            pump(host(view, 300, 400));
+            RXListCell<?> cell = cellByIndex(view, 0);
+            // Layout hands the graphic 300 - 100 (horizontal label padding) = 200px,
+            // so the honest measure is 6000/200 = 30; measuring at the unpadded 300px
+            // would claim 20 and clip a third of the content.
+            assertTrue(cell.prefHeight(300) >= 30.0 - 0.5,
+                    "width-dependent graphic is measured at its layout width (pref="
+                            + cell.prefHeight(300) + ", expected >= 30)");
         });
     }
 
