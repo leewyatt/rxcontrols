@@ -238,12 +238,12 @@ public class RXChipInputTest {
     }
 
     /**
-     * Verifies an onCreateItem returning null rejects the text with {@code :error}.
+     * Verifies an itemFactory returning null rejects the text with {@code :error}.
      */
     @Test
-    public void onCreateItemNullRejectsWithError() {
+    public void itemFactoryNullRejectsWithError() {
         RXChipInput<String> input = new RXChipInput<>();
-        input.setOnCreateItem(text -> null);
+        input.setItemFactory(text -> null);
         input.setEditorText("x");
         input.commitInput();
         assertTrue(input.getChips().isEmpty());

@@ -16,10 +16,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
-import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Showcase application for {@link RXCircularProgressIndicator}.
@@ -37,7 +37,7 @@ public class RXCircularProgressIndicatorShowcase extends RXShowcaseApplication {
 
     private static final double PREVIEW_SIZE = 100.0;
 
-    private static final Callback<Double, String> STATE_TEXT_FACTORY = progress -> {
+    private static final Function<Double, String> STATE_TEXT_FACTORY = progress -> {
         if (progress == null || progress < 0.0) {
             return "Loading…";
         }

@@ -187,19 +187,19 @@ public class RXChipInput<T> extends Control {
         converter.set(value);
     }
 
-    // ==================== On Create Item ====================
+    // ==================== Item Factory ====================
 
-    private final ObjectProperty<Function<String, T>> onCreateItem =
-            new SimpleObjectProperty<>(this, "onCreateItem");
+    private final ObjectProperty<Function<String, T>> itemFactory =
+            new SimpleObjectProperty<>(this, "itemFactory");
 
     /**
      * A creation hook that overrides {@code converter.fromString} when committing
      * unmatched text; returning {@code null} rejects the text ({@code :error}).
      *
-     * @return the on-create-item property
+     * @return the item-factory property
      */
-    public final ObjectProperty<Function<String, T>> onCreateItemProperty() {
-        return onCreateItem;
+    public final ObjectProperty<Function<String, T>> itemFactoryProperty() {
+        return itemFactory;
     }
 
     /**
@@ -207,8 +207,8 @@ public class RXChipInput<T> extends Control {
      *
      * @return the create hook, or {@code null}
      */
-    public final Function<String, T> getOnCreateItem() {
-        return onCreateItem.get();
+    public final Function<String, T> getItemFactory() {
+        return itemFactory.get();
     }
 
     /**
@@ -216,8 +216,8 @@ public class RXChipInput<T> extends Control {
      *
      * @param value the create hook, or {@code null}
      */
-    public final void setOnCreateItem(Function<String, T> value) {
-        onCreateItem.set(value);
+    public final void setItemFactory(Function<String, T> value) {
+        itemFactory.set(value);
     }
 
     // ==================== Custom Input Policy ====================
@@ -1026,7 +1026,7 @@ public class RXChipInput<T> extends Control {
 
     @SuppressWarnings("unchecked")
     private T createFromText(String text) {
-        Function<String, T> creator = getOnCreateItem();
+        Function<String, T> creator = getItemFactory();
         if (creator != null) {
             return creator.apply(text);
         }

@@ -19,7 +19,8 @@ import javafx.scene.shape.ArcType;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
-import javafx.util.Callback;
+
+import java.util.function.Function;
 
 /**
  * Default skin for {@link RXCircularProgressIndicator}. Renders a track ring,
@@ -375,11 +376,11 @@ public class RXCircularProgressIndicatorSkin extends RXSkinBase<RXCircularProgre
     }
 
     private String formatLabel(double progress) {
-        Callback<Double, String> textFactory = getSkinnable().getTextFactory();
+        Function<Double, String> textFactory = getSkinnable().getTextFactory();
         if (textFactory == null) {
             textFactory = RXCircularProgressIndicator.DEFAULT_TEXT_FACTORY;
         }
-        return textFactory.call(progress);
+        return textFactory.apply(progress);
     }
 
     // ==================== Layout ====================

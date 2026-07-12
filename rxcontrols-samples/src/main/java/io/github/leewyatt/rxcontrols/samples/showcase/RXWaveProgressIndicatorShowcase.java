@@ -13,10 +13,10 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
-import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Showcase application for {@link RXWaveProgressIndicator}.
@@ -38,7 +38,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
 
     private static final double PREVIEW_SIZE = 140.0;
 
-    private static final Callback<Double, String> STATE_TEXT_FACTORY = progress -> {
+    private static final Function<Double, String> STATE_TEXT_FACTORY = progress -> {
         if (progress == null || progress < 0.0) {
             return "Loading…";
         }

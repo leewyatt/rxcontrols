@@ -27,11 +27,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.util.Duration;
-import javafx.util.Callback;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Circular progress indicator with a determinate sweep and a Material-style
@@ -114,7 +114,7 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
     /**
      * Default text factory used by the skin when {@link #textFactoryProperty()} is {@code null}.
      */
-    public static final Callback<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
+    public static final Function<Double, String> DEFAULT_TEXT_FACTORY = progress -> {
         if (progress == null || progress < 0.0) {
             return "";
         }
@@ -183,7 +183,7 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
 
     // ==================== Text Factory ====================
 
-    private final ObjectProperty<Callback<Double, String>> textFactory =
+    private final ObjectProperty<Function<Double, String>> textFactory =
             new SimpleObjectProperty<>(this, "textFactory", DEFAULT_TEXT_FACTORY);
 
     /**
@@ -193,15 +193,15 @@ public class RXCircularProgressIndicator extends ProgressIndicator {
      *
      * @return the textFactory property
      */
-    public final ObjectProperty<Callback<Double, String>> textFactoryProperty() {
+    public final ObjectProperty<Function<Double, String>> textFactoryProperty() {
         return textFactory;
     }
 
-    public final Callback<Double, String> getTextFactory() {
+    public final Function<Double, String> getTextFactory() {
         return textFactory.get();
     }
 
-    public final void setTextFactory(Callback<Double, String> value) {
+    public final void setTextFactory(Function<Double, String> value) {
         textFactory.set(value);
     }
 
