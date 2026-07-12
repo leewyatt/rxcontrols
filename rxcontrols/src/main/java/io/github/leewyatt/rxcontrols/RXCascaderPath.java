@@ -11,10 +11,10 @@ import java.util.StringJoiner;
  *
  * <p>A path captures only its node identity chain ({@link #getItems() items}).
  * That is what a path fundamentally is — which nodes were traversed — and it
- * never goes stale: changing the view's {@code itemTextFactory} or an item's value
+ * never goes stale: changing the view's {@code converter} or an item's value
  * does not alter which nodes this path represents. Display text is a derived
  * view, not part of the snapshot: resolve it from the items with whatever scheme
- * you need (the view's {@code itemTextFactory}, or {@link #toString()} as a
+ * you need (the view's {@code converter}, or {@link #toString()} as a
  * value-based fallback).
  *
  * @param <T> application value type
@@ -127,9 +127,9 @@ public final class RXCascaderPath<T> {
     /**
      * Returns a slash-separated value-based fallback representation. This uses
      * {@link RXCascaderItem#toString()} (the value), not the view's
-     * {@code itemTextFactory}, so it is for debugging and not guaranteed to match the
+     * {@code converter}, so it is for debugging and not guaranteed to match the
      * visible cascader text — resolve display text from {@link #getItems()} with
-     * the view's {@code itemTextFactory} for that.
+     * the view's {@code converter} for that.
      *
      * @return slash-separated value-based path text
      */

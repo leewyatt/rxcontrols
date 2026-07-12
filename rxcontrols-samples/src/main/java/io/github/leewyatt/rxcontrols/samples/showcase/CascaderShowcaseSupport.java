@@ -11,10 +11,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
-import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.function.Function;
 
 /**
  * Shared sample data and presentation helpers for the cascader showcases.
@@ -33,7 +34,7 @@ final class CascaderShowcaseSupport {
                 cascader.getSelectionMode(),
                 cascader.getCheckedPaths(),
                 cascader.getSelectedPath(),
-                cascader.getItemTextFactory());
+                cascader.getConverter());
     }
 
     static String describeSelection(RXCascaderView<CascaderOption> view) {
@@ -41,44 +42,62 @@ final class CascaderShowcaseSupport {
                 view.getSelectionMode(),
                 view.getCheckedPaths(),
                 view.getSelectedPath(),
-                view.getItemTextFactory());
+                view.getConverter());
     }
 
     private static String describeSelection(
             SelectionMode mode,
             List<RXCascaderPath<CascaderOption>> checked,
             RXCascaderPath<CascaderOption> selected,
-            Callback<CascaderOption, String> itemTextFactory) {
+            StringConverter<CascaderOption> converter) {
         if (mode == SelectionMode.MULTIPLE) {
             if (checked.isEmpty()) {
                 return "checked: (none)";
             }
             StringJoiner joiner = new StringJoiner("\n");
             for (RXCascaderPath<CascaderOption> path : checked) {
-                joiner.add("- " + String.join(SEPARATOR, pathTexts(itemTextFactory, path)));
+                joiner.add("- " + String.join(SEPARATOR, pathTexts(converter, path)));
             }
             return "checked (" + checked.size() + "):\n" + joiner;
         }
         if (selected == null) {
             return "selected: (none)";
         }
-        return "selected: " + String.join(SEPARATOR, pathTexts(itemTextFactory, selected));
+        return "selected: " + String.join(SEPARATOR, pathTexts(converter, selected));
     }
 
     static List<String> pathTexts(
-            Callback<CascaderOption, String> itemTextFactory,
+            StringConverter<CascaderOption> converter,
             RXCascaderPath<CascaderOption> path) {
         return path.getValues().stream()
-                .map(value -> displayText(itemTextFactory, value))
+                .map(value -> displayText(converter, value))
                 .toList();
     }
 
-    private static String displayText(Callback<CascaderOption, String> itemTextFactory, CascaderOption value) {
+    private static String displayText(StringConverter<CascaderOption> converter, CascaderOption value) {
         if (value == null) {
             return "";
         }
-        String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
+        String text = converter == null ? String.valueOf(value) : converter.toString(value);
         return text == null ? "" : text;
+    }
+
+    /**
+     * Wraps a one-way display function as a converter; the cascader never calls
+     * {@code fromString}.
+     */
+    static StringConverter<CascaderOption> displayConverter(Function<CascaderOption, String> toText) {
+        return new StringConverter<>() {
+            @Override
+            public String toString(CascaderOption value) {
+                return toText.apply(value);
+            }
+
+            @Override
+            public CascaderOption fromString(String text) {
+                return null;
+            }
+        };
     }
 
     // ==================== Sample data ====================

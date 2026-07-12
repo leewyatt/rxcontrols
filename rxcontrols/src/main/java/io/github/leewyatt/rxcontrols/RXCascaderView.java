@@ -28,6 +28,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -534,40 +535,41 @@ public class RXCascaderView<T> extends Control {
         cellFactory.set(value);
     }
 
-    // ==================== Item Text Factory ====================
+    // ==================== Converter ====================
 
-    private final ObjectProperty<Callback<T, String>> itemTextFactory =
-            new SimpleObjectProperty<>(this, "itemTextFactory");
+    private final ObjectProperty<StringConverter<T>> converter =
+            new SimpleObjectProperty<>(this, "converter");
 
     /**
      * Converts an item value to its display text. When {@code null} the view
      * falls back to {@code String.valueOf(value)}. A {@code null} value, or a
-     * factory that returns {@code null}, yields the empty string. Items do not
+     * converter that returns {@code null}, yields the empty string. Items do not
      * store text; this is the single source of the visible node text, used by the
-     * built-in cell and by the field's default path text.
+     * built-in cell and by the field's default path text. Only {@code toString}
+     * is used; {@code fromString} is never called.
      *
-     * @return item-text-factory property
+     * @return the converter property
      */
-    public final ObjectProperty<Callback<T, String>> itemTextFactoryProperty() {
-        return itemTextFactory;
+    public final ObjectProperty<StringConverter<T>> converterProperty() {
+        return converter;
     }
 
     /**
-     * Returns the item text factory.
+     * Returns the converter.
      *
-     * @return item text factory, or {@code null}
+     * @return the converter, or {@code null}
      */
-    public final Callback<T, String> getItemTextFactory() {
-        return itemTextFactory.get();
+    public final StringConverter<T> getConverter() {
+        return converter.get();
     }
 
     /**
-     * Sets the item text factory.
+     * Sets the converter.
      *
-     * @param value item text factory, or {@code null}
+     * @param value the converter, or {@code null}
      */
-    public final void setItemTextFactory(Callback<T, String> value) {
-        itemTextFactory.set(value);
+    public final void setConverter(StringConverter<T> value) {
+        converter.set(value);
     }
 
     // ==================== Children Loader ====================

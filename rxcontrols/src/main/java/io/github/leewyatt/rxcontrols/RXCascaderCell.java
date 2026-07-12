@@ -242,7 +242,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
 
     /**
      * Resolves the display text for a value using the view's
-     * {@link RXCascaderView#getItemTextFactory() itemTextFactory}, falling back to
+     * {@link RXCascaderView#getConverter() converter}, falling back to
      * {@code String.valueOf(value)} when none is set. A {@code null} value, or a
      * factory that returns {@code null}, yields the empty string. For use by
      * subclasses overriding {@link #createContent(RXCascaderItem)}.
@@ -251,7 +251,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
      * @return display text, never {@code null}
      */
     protected final String getDisplayText(T value) {
-        return CascaderText.resolve(view.getItemTextFactory(), value);
+        return CascaderText.resolve(view.getConverter(), value);
     }
 
     /**

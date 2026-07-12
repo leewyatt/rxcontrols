@@ -26,7 +26,7 @@ import java.util.List;
  * observable.
  *
  * <p>The value type is a {@link CascaderOption} record; visible node text comes
- * from {@code setItemTextFactory(CascaderOption::label)} and path text from the
+ * from the {@code converter} ({@code CascaderOption::label}) and path text from the
  * shared showcase helper.
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderViewDemo}.
@@ -64,7 +64,7 @@ public class RXCascaderViewShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         view = new RXCascaderView<>();
-        view.setItemTextFactory(CascaderOption::label);
+        view.setConverter(CascaderShowcaseSupport.displayConverter(CascaderOption::label));
         view.getRootItems().setAll(CascaderShowcaseSupport.sampleOptions());
 
         Label readout = new Label();

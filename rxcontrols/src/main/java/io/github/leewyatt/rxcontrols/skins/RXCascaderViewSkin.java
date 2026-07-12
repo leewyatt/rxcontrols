@@ -87,7 +87,7 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
         disposer.registerListener(control.visibleRowCountProperty(), control::requestLayout);
         disposer.registerListener(control.columnWidthProperty(), this::applyColumnSizing);
         disposer.registerListener(control.rowHeightProperty(), this::applyColumnSizing);
-        disposer.registerListener(control.itemTextFactoryProperty(), this::refreshColumns);
+        disposer.registerListener(control.converterProperty(), this::refreshColumns);
         disposer.registerListener(control.emptyTextProperty(), this::applyEmptyText);
         // A new cell factory changes the cell type, so every column must be rebuilt;
         // the tail-diff reuses by backing-list identity and would keep stale cells.

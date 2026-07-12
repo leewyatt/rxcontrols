@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 /**
  * Internal helper that resolves a cascader item value to its display text. This
@@ -16,24 +16,24 @@ public final class CascaderText {
     }
 
     /**
-     * Resolves the display text for a value using the given factory, falling back
-     * to {@code String.valueOf(value)} when the factory is {@code null}. A
-     * {@code null} value, or a factory that returns {@code null}, yields the empty
-     * string.
+     * Resolves the display text for a value using the given converter (only its
+     * {@code toString} is consulted), falling back to {@code String.valueOf(value)}
+     * when the converter is {@code null}. A {@code null} value, or a converter that
+     * returns {@code null}, yields the empty string.
      *
-     * @param factory item text factory, or {@code null}
-     * @param value   value to render
-     * @param <T>     application value type
+     * @param converter item text converter, or {@code null}
+     * @param value     value to render
+     * @param <T>       application value type
      * @return display text, never {@code null}
      */
-    public static <T> String resolve(Callback<T, String> factory, T value) {
+    public static <T> String resolve(StringConverter<T> converter, T value) {
         if (value == null) {
             return "";
         }
-        if (factory == null) {
+        if (converter == null) {
             return String.valueOf(value);
         }
-        String text = factory.call(value);
+        String text = converter.toString(value);
         return text == null ? "" : text;
     }
 }

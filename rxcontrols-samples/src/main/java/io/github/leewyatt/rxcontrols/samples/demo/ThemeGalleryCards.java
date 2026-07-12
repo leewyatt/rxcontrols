@@ -296,7 +296,6 @@ final class ThemeGalleryCards {
         RXCascader<String> cascader = new RXCascader<>();
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
-        cascader.setItemTextFactory(value -> value);
         cascader.getRootItems().setAll(List.of(asia, europe));
         cascader.select(shanghai);
         cascader.setMaxWidth(Double.MAX_VALUE);
@@ -324,7 +323,6 @@ final class ThemeGalleryCards {
 
         RXCascaderView<String> view = new RXCascaderView<>();
         view.setSelectionMode(SelectionMode.MULTIPLE);
-        view.setItemTextFactory(value -> value);
         view.setVisibleRowCount(5);
         view.setColumnWidth(150.0);
         view.getRootItems().setAll(List.of(asia, europe));

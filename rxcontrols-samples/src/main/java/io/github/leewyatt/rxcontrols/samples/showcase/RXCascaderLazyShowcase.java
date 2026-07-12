@@ -65,10 +65,10 @@ public class RXCascaderLazyShowcase extends RXShowcaseApplication {
         cascader.setMaxWidth(Double.MAX_VALUE);
         cascader.setPromptText("Expand to load");
         cascader.setClearable(true);
-        cascader.setItemTextFactory(CascaderOption::label);
+        cascader.setConverter(CascaderShowcaseSupport.displayConverter(CascaderOption::label));
         cascader.setPathTextFactory(path -> String.join(
                 CascaderShowcaseSupport.SEPARATOR,
-                CascaderShowcaseSupport.pathTexts(cascader.getItemTextFactory(), path)));
+                CascaderShowcaseSupport.pathTexts(cascader.getConverter(), path)));
         cascader.setOnChildrenLoadError((failedItem, error) -> statusLabel.setText(
                 "Load failed for \"" + failedItem.getValue().label() + "\": " + errorMessage(error)
                         + "\nUncheck \"Fail loads\" and click the row again to retry."));

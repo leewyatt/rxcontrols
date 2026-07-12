@@ -22,7 +22,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.util.Callback;
+import java.util.function.Function;
+
+import javafx.util.StringConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -154,7 +156,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         disposer.registerListener(control.selectionModeProperty(), this::onSelectionItemsChanged);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
         disposer.registerListener(control.pathTextFactoryProperty(), this::updateDisplay);
-        disposer.registerListener(control.itemTextFactoryProperty(), this::updateDisplay);
+        disposer.registerListener(control.converterProperty(), this::updateDisplay);
         disposer.registerListener(control.separatorProperty(), this::updateDisplay);
         disposer.registerListener(control.showAllLevelsProperty(), this::updateDisplay);
         disposer.registerListener(control.clearableProperty(), this::updateDisplay);
@@ -399,23 +401,23 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         if (path == null) {
             return "";
         }
-        Callback<RXCascaderPath<T>, String> factory = control.getPathTextFactory();
+        Function<RXCascaderPath<T>, String> factory = control.getPathTextFactory();
         String text = factory == null
                 ? defaultPathText(control, path)
-                : factory.call(path);
+                : factory.apply(path);
         return text == null ? "" : text;
     }
 
     private String defaultPathText(RXCascader<T> control, RXCascaderPath<T> path) {
-        Callback<T, String> itemTextFactory = control.getItemTextFactory();
+        StringConverter<T> converter = control.getConverter();
         if (!control.isShowAllLevels()) {
             RXCascaderItem<T> leaf = path.getLeaf();
-            return leaf == null ? "" : CascaderText.resolve(itemTextFactory, leaf.getValue());
+            return leaf == null ? "" : CascaderText.resolve(converter, leaf.getValue());
         }
         String separator = control.getSeparator();
         StringJoiner joiner = new StringJoiner(separator == null ? RXCascader.DEFAULT_SEPARATOR : separator);
         for (RXCascaderItem<T> item : path.getItems()) {
-            joiner.add(CascaderText.resolve(itemTextFactory, item.getValue()));
+            joiner.add(CascaderText.resolve(converter, item.getValue()));
         }
         return joiner.toString();
     }

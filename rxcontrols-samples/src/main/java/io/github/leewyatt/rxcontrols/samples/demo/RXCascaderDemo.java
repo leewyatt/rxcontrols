@@ -9,7 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p>The value type is a small {@link Option} record (a stand-in for a backend
  * object carrying both id and label); the visible text comes from
- * {@code setItemTextFactory(Option::label)}, not from the item — items no longer
+ * the {@code converter} ({@code Option::label}), not from the item — items no longer
  * store text.
  *
  * <p>For the field-property explorer see
@@ -35,10 +35,22 @@ public class RXCascaderDemo extends Application {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier (what you would send back)
-     * @param label human-facing text (what {@code itemTextFactory} renders)
+     * @param label human-facing text (what the {@code converter} renders)
      */
     public record Option(String id, String label) {
     }
+
+    private static final StringConverter<Option> LABEL_CONVERTER = new StringConverter<>() {
+        @Override
+        public String toString(Option option) {
+            return option == null ? "" : option.label();
+        }
+
+        @Override
+        public Option fromString(String text) {
+            return null;
+        }
+    };
 
     @Override
     public void start(Stage primaryStage) {
@@ -49,8 +61,8 @@ public class RXCascaderDemo extends Application {
         single.setMaxWidth(Double.MAX_VALUE);
         single.setPromptText("Choose a city");
         single.setClearable(true);
-        single.setItemTextFactory(Option::label);
-        single.setPathTextFactory(path -> String.join(" -> ", pathTexts(single.getItemTextFactory(), path)));
+        single.setConverter(LABEL_CONVERTER);
+        single.setPathTextFactory(path -> String.join(" -> ", pathTexts(single.getConverter(), path)));
         List<RXCascaderItem<Option>> cities = sampleOptions();
         single.getRootItems().setAll(cities);
         // Real form-restore pattern: on reload you look the saved id back up in the
@@ -63,9 +75,9 @@ public class RXCascaderDemo extends Application {
         multiple.setPromptText("Choose multiple cities");
         multiple.setSelectionMode(SelectionMode.MULTIPLE);
         multiple.setClearable(true);
-        multiple.setItemTextFactory(Option::label);
+        multiple.setConverter(LABEL_CONVERTER);
         multiple.setPathTextFactory(path -> {
-            List<String> texts = pathTexts(multiple.getItemTextFactory(), path);
+            List<String> texts = pathTexts(multiple.getConverter(), path);
             return texts.isEmpty() ? "" : texts.get(texts.size() - 1);
         });
         multiple.getRootItems().setAll(sampleOptions());
@@ -75,7 +87,7 @@ public class RXCascaderDemo extends Application {
         lazy.setPromptText("Lazy load children");
         lazy.setSelectionMode(SelectionMode.MULTIPLE);
         lazy.setClearable(true);
-        lazy.setItemTextFactory(Option::label);
+        lazy.setConverter(LABEL_CONVERTER);
         lazy.setChildrenLoader(item -> CompletableFuture.supplyAsync(() -> loadChildren(item)));
         lazy.getRootItems().setAll(lazyRoot());
 
@@ -87,7 +99,7 @@ public class RXCascaderDemo extends Application {
         forced.setMaxWidth(Double.MAX_VALUE);
         forced.setPromptText("Forced-branch placeholder");
         forced.setClearable(true);
-        forced.setItemTextFactory(Option::label);
+        forced.setConverter(LABEL_CONVERTER);
         forced.setEmptyText("No cities yet");
         forced.getRootItems().setAll(forcedBranchOptions());
 
@@ -104,17 +116,17 @@ public class RXCascaderDemo extends Application {
         primaryStage.show();
     }
 
-    private static List<String> pathTexts(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
+    private static List<String> pathTexts(StringConverter<Option> converter, RXCascaderPath<Option> path) {
         return path.getValues().stream()
-                .map(value -> displayText(itemTextFactory, value))
+                .map(value -> displayText(converter, value))
                 .toList();
     }
 
-    private static String displayText(Callback<Option, String> itemTextFactory, Option value) {
+    private static String displayText(StringConverter<Option> converter, Option value) {
         if (value == null) {
             return "";
         }
-        String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
+        String text = converter == null ? String.valueOf(value) : converter.toString(value);
         return text == null ? "" : text;
     }
 

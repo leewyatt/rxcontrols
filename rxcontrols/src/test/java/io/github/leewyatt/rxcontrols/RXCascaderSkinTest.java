@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.Scene;
+import javafx.util.StringConverter;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -110,7 +111,7 @@ public class RXCascaderSkinTest {
      * @throws InterruptedException if the FX task is interrupted
      */
     @Test
-    public void defaultPathTextUsesItemTextFactoryWithFallback() throws InterruptedException {
+    public void defaultPathTextUsesConverterWithFallback() throws InterruptedException {
         runOnFx(() -> {
             RXCascader<String> cascader = new RXCascader<>();
             RXCascaderItem<String> root = new RXCascaderItem<>("bj");
@@ -126,11 +127,21 @@ public class RXCascaderSkinTest {
             assertNotNull(field, "display label should exist");
 
             cascader.select(child);
-            // No factory: fall back to String.valueOf(value), joined with " / ".
+            // No converter: fall back to String.valueOf(value), joined with " / ".
             assertEquals("bj / sh", field.getText());
 
-            // Factory: derive each node's text from the value.
-            cascader.setItemTextFactory(value -> value == null ? "" : value.toUpperCase());
+            // Converter: derive each node's text from the value.
+            cascader.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(String value) {
+                    return value == null ? "" : value.toUpperCase();
+                }
+
+                @Override
+                public String fromString(String text) {
+                    return text;
+                }
+            });
             assertEquals("BJ / SH", field.getText());
         });
     }

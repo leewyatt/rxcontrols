@@ -10,7 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -22,7 +22,7 @@ import java.util.StringJoiner;
  * paths to react to selection.
  *
  * <p>The value type is an {@link Option} record; visible text comes from
- * {@code setItemTextFactory(Option::label)}, and path text is joined from the
+ * the {@code converter} ({@code Option::label}), and path text is joined from the
  * per-node texts in a local helper.
  *
  * <p>For the full property-driven explorer see
@@ -35,16 +35,28 @@ public class RXCascaderViewDemo extends Application {
      * Backend-style value carrying an id and a display label.
      *
      * @param id stable identifier
-     * @param label human-facing text rendered by {@code itemTextFactory}
+     * @param label human-facing text rendered by the {@code converter}
      */
     public record Option(String id, String label) {
     }
+
+    private static final StringConverter<Option> LABEL_CONVERTER = new StringConverter<>() {
+        @Override
+        public String toString(Option option) {
+            return option == null ? "" : option.label();
+        }
+
+        @Override
+        public Option fromString(String text) {
+            return null;
+        }
+    };
 
     @Override
     public void start(Stage primaryStage) {
         RXCascaderView<Option> view = new RXCascaderView<>();
         view.setSelectionMode(SelectionMode.MULTIPLE);
-        view.setItemTextFactory(Option::label);
+        view.setConverter(LABEL_CONVERTER);
         view.getRootItems().setAll(sampleOptions());
 
         Label result = new Label("(nothing checked)");
@@ -70,24 +82,24 @@ public class RXCascaderViewDemo extends Application {
         }
         StringJoiner joiner = new StringJoiner("\n");
         for (RXCascaderPath<Option> path : view.getCheckedPaths()) {
-            joiner.add("- " + pathText(view.getItemTextFactory(), path));
+            joiner.add("- " + pathText(view.getConverter(), path));
         }
         return joiner.toString();
     }
 
-    private static String pathText(Callback<Option, String> itemTextFactory, RXCascaderPath<Option> path) {
+    private static String pathText(StringConverter<Option> converter, RXCascaderPath<Option> path) {
         StringJoiner joiner = new StringJoiner(" / ");
         for (Option value : path.getValues()) {
-            joiner.add(displayText(itemTextFactory, value));
+            joiner.add(displayText(converter, value));
         }
         return joiner.toString();
     }
 
-    private static String displayText(Callback<Option, String> itemTextFactory, Option value) {
+    private static String displayText(StringConverter<Option> converter, Option value) {
         if (value == null) {
             return "";
         }
-        String text = itemTextFactory == null ? String.valueOf(value) : itemTextFactory.call(value);
+        String text = converter == null ? String.valueOf(value) : converter.toString(value);
         return text == null ? "" : text;
     }
 

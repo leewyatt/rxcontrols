@@ -12,7 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
+import java.util.function.Function;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ import java.util.List;
  * scenario rather than a field-display property.
  *
  * <p>The value type is a {@link CascaderOption} record carrying id + label; the
- * visible node text comes from {@code setItemTextFactory(CascaderOption::label)}.
+ * visible node text comes from the {@code converter} ({@code CascaderOption::label}).
  *
  * <p>For a minimal "few lines of code" example see {@link RXCascaderDemo}. For
  * the lazy-loading scenario see {@link RXCascaderLazyShowcase}.
@@ -69,7 +69,7 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         cascader.setMaxWidth(Double.MAX_VALUE);
         cascader.setPromptText("Choose a location");
         cascader.setClearable(true);
-        cascader.setItemTextFactory(CascaderOption::label);
+        cascader.setConverter(CascaderShowcaseSupport.displayConverter(CascaderOption::label));
         cascader.setPathTextFactory(pathFactory(PathFormat.FULL_PATH));
         cascader.getRootItems().setAll(CascaderShowcaseSupport.sampleOptions());
 
@@ -143,8 +143,8 @@ public class RXCascaderShowcase extends RXShowcaseApplication {
         return createGrid(row("Path text", formatBox));
     }
 
-    private Callback<RXCascaderPath<CascaderOption>, String> pathFactory(PathFormat format) {
-        return path -> format.format(CascaderShowcaseSupport.pathTexts(cascader.getItemTextFactory(), path));
+    private Function<RXCascaderPath<CascaderOption>, String> pathFactory(PathFormat format) {
+        return path -> format.format(CascaderShowcaseSupport.pathTexts(cascader.getConverter(), path));
     }
 
     private Node buildDimensionGrid() {

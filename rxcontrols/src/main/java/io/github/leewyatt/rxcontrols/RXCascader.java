@@ -20,6 +20,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +36,7 @@ import java.util.function.Function;
  * and tri-state check logic.
  *
  * <p>Configuration properties declared here ({@code selectionMode},
- * {@code itemTextFactory}, {@code visibleRowCount}, {@code cellFactory},
+ * {@code converter}, {@code visibleRowCount}, {@code cellFactory},
  * {@code childrenLoader}, {@code onChildrenLoadError}) drive the embedded view
  * through one-way bindings; the read-only {@code selectedPath} mirrors it back.
  * Each property's bean is this control, per the JavaFX convention. The root item
@@ -90,7 +91,7 @@ public class RXCascader<T> extends Control {
         // (selected path) flows back up into a read-only mirror. The item and
         // result lists are shared directly (see the getters), not bound here.
         view.selectionModeProperty().bind(selectionMode);
-        view.itemTextFactoryProperty().bind(itemTextFactory);
+        view.converterProperty().bind(converter);
         view.visibleRowCountProperty().bind(visibleRowCount);
         view.emptyTextProperty().bind(emptyText);
         view.cellFactoryProperty().bind(cellFactory);
@@ -237,60 +238,61 @@ public class RXCascader<T> extends Control {
         promptText.set(value);
     }
 
-    // ==================== Item Text Factory ====================
+    // ==================== Converter ====================
 
-    private final ObjectProperty<Callback<T, String>> itemTextFactory =
-            new SimpleObjectProperty<>(this, "itemTextFactory");
+    private final ObjectProperty<StringConverter<T>> converter =
+            new SimpleObjectProperty<>(this, "converter");
 
     /**
      * Converts an item value to its display text (single source of the visible
      * node text). When {@code null}, {@code String.valueOf(value)} is used. A
-     * {@code null} value, or a factory that returns {@code null}, yields the empty
-     * string.
+     * {@code null} value, or a converter that returns {@code null}, yields the
+     * empty string. Only {@code toString} is used; {@code fromString} is never
+     * called (a cascader has no free-text path).
      *
-     * @return item-text-factory property
+     * @return the converter property
      */
-    public final ObjectProperty<Callback<T, String>> itemTextFactoryProperty() {
-        return itemTextFactory;
+    public final ObjectProperty<StringConverter<T>> converterProperty() {
+        return converter;
     }
 
     /**
-     * Returns the item text factory.
+     * Returns the converter.
      *
-     * @return item text factory, or {@code null}
+     * @return the converter, or {@code null}
      */
-    public final Callback<T, String> getItemTextFactory() {
-        return itemTextFactory.get();
+    public final StringConverter<T> getConverter() {
+        return converter.get();
     }
 
     /**
-     * Sets the item text factory.
+     * Sets the converter.
      *
-     * @param value item text factory, or {@code null}
+     * @param value the converter, or {@code null}
      */
-    public final void setItemTextFactory(Callback<T, String> value) {
-        itemTextFactory.set(value);
+    public final void setConverter(StringConverter<T> value) {
+        converter.set(value);
     }
 
     // ==================== Path Text Factory ====================
 
-    private final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactory =
+    private final ObjectProperty<Function<RXCascaderPath<T>, String>> pathTextFactory =
             new SimpleObjectProperty<>(this, "pathTextFactory");
 
     /**
      * Optional formatter from a selected path to the single string shown in the
      * field. When {@code null}, the field shows the per-node display texts
-     * (resolved by {@link #getItemTextFactory() itemTextFactory}) joined with the
+     * (resolved by {@link #getConverter() converter}) joined with the
      * {@link #separatorProperty() separator}, or only the last level when
      * {@link #showAllLevelsProperty() showAllLevels} is {@code false}.
      *
      * <p>To keep the field consistent with the columns, resolve node text from
-     * each item's value via the same {@link #getItemTextFactory() itemTextFactory}
+     * each item's value via the same {@link #getConverter() converter}
      * rather than {@code value.toString()}, which bypasses it.
      *
      * @return path-text factory property
      */
-    public final ObjectProperty<Callback<RXCascaderPath<T>, String>> pathTextFactoryProperty() {
+    public final ObjectProperty<Function<RXCascaderPath<T>, String>> pathTextFactoryProperty() {
         return pathTextFactory;
     }
 
@@ -299,7 +301,7 @@ public class RXCascader<T> extends Control {
      *
      * @return path-text factory, or {@code null}
      */
-    public final Callback<RXCascaderPath<T>, String> getPathTextFactory() {
+    public final Function<RXCascaderPath<T>, String> getPathTextFactory() {
         return pathTextFactory.get();
     }
 
@@ -308,7 +310,7 @@ public class RXCascader<T> extends Control {
      *
      * @param value path-text factory, or {@code null}
      */
-    public final void setPathTextFactory(Callback<RXCascaderPath<T>, String> value) {
+    public final void setPathTextFactory(Function<RXCascaderPath<T>, String> value) {
         pathTextFactory.set(value);
     }
 

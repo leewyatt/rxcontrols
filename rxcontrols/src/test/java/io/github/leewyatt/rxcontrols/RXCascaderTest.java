@@ -88,7 +88,7 @@ public class RXCascaderTest {
     public void propertyBeansAreTheControl() {
         RXCascader<String> cascader = new RXCascader<>();
         assertSame(cascader, cascader.selectionModeProperty().getBean());
-        assertSame(cascader, cascader.itemTextFactoryProperty().getBean());
+        assertSame(cascader, cascader.converterProperty().getBean());
         assertSame(cascader, cascader.visibleRowCountProperty().getBean());
         assertSame(cascader, cascader.cellFactoryProperty().getBean());
         assertSame(cascader, cascader.emptyTextProperty().getBean());
