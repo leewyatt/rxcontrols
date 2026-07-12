@@ -10,6 +10,10 @@ import javafx.event.EventType;
  * <p>{@link #COMPLETED} is a pure post-notification for observing completions;
  * customizing what a commit writes into the field is the job of the control's
  * {@code completionHandler} strategy, not of this event.</p>
+ *
+ * <p>The event is not generic: {@link #getItem() item} is typed {@link Object}
+ * so the runtime {@link EventType} constants stay simple (a generic
+ * {@code EventType} plays badly with the JavaFX event system).</p>
  */
 public class RXAutoCompleteEvent extends Event {
 
@@ -25,6 +29,7 @@ public class RXAutoCompleteEvent extends Event {
     public static final EventType<RXAutoCompleteEvent> COMPLETED =
             new EventType<>(ANY, "RX_AUTO_COMPLETE_COMPLETED");
 
+    private final transient Object item;
     private final transient String completion;
 
     /**
@@ -32,17 +37,31 @@ public class RXAutoCompleteEvent extends Event {
      * source and target are assigned when it is fired.
      *
      * @param eventType  the specific event type
-     * @param completion the committed suggestion, or {@code null}
+     * @param item       the committed suggestion item, or {@code null}
+     * @param completion the item's default write-back text, or {@code null}
      */
-    public RXAutoCompleteEvent(EventType<RXAutoCompleteEvent> eventType, String completion) {
+    public RXAutoCompleteEvent(EventType<RXAutoCompleteEvent> eventType, Object item, String completion) {
         super(eventType);
+        this.item = item;
         this.completion = completion;
     }
 
     /**
-     * Returns the committed suggestion this event concerns.
+     * Returns the original suggestion item this commit concerns.
      *
-     * @return the committed suggestion, or {@code null}
+     * @return the committed item, or {@code null}
+     */
+    public Object getItem() {
+        return item;
+    }
+
+    /**
+     * Returns the default write-back text of the committed suggestion. This is not
+     * necessarily what ended up in the field — a custom completion handler may
+     * write something else (or nothing); read the target field's text for the
+     * final value.
+     *
+     * @return the default write-back text, or {@code null}
      */
     public String getCompletion() {
         return completion;

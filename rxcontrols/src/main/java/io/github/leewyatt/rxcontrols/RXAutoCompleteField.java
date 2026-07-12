@@ -6,11 +6,14 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
@@ -33,13 +36,19 @@ import java.util.function.Predicate;
  * <p>Focus stays in the editor while the popup is open — the dropdown is a passive
  * highlight surface driven by Down / Up / Enter / Escape. This is a minimal,
  * String-valued consumer of the shared suggestion-popup infrastructure; richer
- * value types, remote providers, and chip/tag inputs are separate controls.
+ * value types, remote providers, and chip/tag inputs are separate controls. To
+ * attach the same dropdown to an arbitrary {@code TextField} (or for non-String
+ * suggestion types), use the {@link RXAutoCompletion} binding facade instead.
+ *
+ * @see RXAutoCompletion
  */
 public class RXAutoCompleteField extends RXTextField {
 
     // ==================== Constants ====================
 
     private static final String DEFAULT_STYLE_CLASS = "rx-auto-complete-field";
+
+    private static final PseudoClass POPUP_SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("popup-showing");
 
     /** Default filter: case-insensitive substring match against each suggestion. */
     public static final Function<String, Predicate<String>> DEFAULT_FILTER_FUNCTION =
@@ -81,9 +90,11 @@ public class RXAutoCompleteField extends RXTextField {
     private final ObservableList<String> suggestions = FXCollections.observableArrayList();
 
     /**
-     * The live list of candidate suggestions. Mutate it in place; the dropdown rows
-     * track changes, and an open dropdown hides when no suggestion matches anymore.
-     * Opening is always driven by user input (typing or Down), never by data arrival.
+     * The live list of candidate suggestions ({@code null} elements are not
+     * supported). Mutate it in place; the dropdown rows track changes, and an open
+     * dropdown hides when no suggestion matches anymore. Opening is always driven
+     * by user input (typing or Down) or {@link #showSuggestions()}, never by data
+     * arrival.
      *
      * @return the mutable suggestions list
      */
@@ -346,5 +357,69 @@ public class RXAutoCompleteField extends RXTextField {
      */
     public final void setAnimated(boolean value) {
         animated.set(value);
+    }
+
+    // ==================== Popup Showing ====================
+
+    private final ReadOnlyBooleanWrapper popupShowing =
+            new ReadOnlyBooleanWrapper(this, "popupShowing", false) {
+                @Override
+                protected void invalidated() {
+                    pseudoClassStateChanged(POPUP_SHOWING_PSEUDO_CLASS, get());
+                }
+            };
+
+    /**
+     * Whether the suggestion dropdown is currently showing. Mirrors the popup's
+     * state; useful for CSS ({@code :popup-showing}) and observers.
+     *
+     * @return the read-only popup-showing property
+     */
+    public final ReadOnlyBooleanProperty popupShowingProperty() {
+        return popupShowing.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns whether the dropdown is showing.
+     *
+     * @return whether the dropdown is showing
+     */
+    public final boolean isPopupShowing() {
+        return popupShowing.get();
+    }
+
+    /**
+     * Sets the popup-showing state. Intended for skin / behavior implementors, which
+     * mirror the popup here; not for general use.
+     *
+     * @param value whether the dropdown is showing
+     */
+    public final void setPopupShowing(boolean value) {
+        popupShowing.set(value);
+    }
+
+    // ==================== Public methods ====================
+
+    /**
+     * Opens the suggestion dropdown programmatically: applies the current filter —
+     * an empty query is allowed — and shows the dropdown when the field is focused
+     * and at least one suggestion matches. The entry point for asynchronous flows,
+     * where results arriving are the continuation of the user's own typing. No-op
+     * when no skin is attached.
+     */
+    public final void showSuggestions() {
+        if (getSkin() instanceof RXAutoCompleteFieldSkin skin) {
+            skin.showSuggestions();
+        }
+    }
+
+    /**
+     * Closes the suggestion dropdown and cancels any pending debounced re-filter.
+     * No-op when no skin is attached.
+     */
+    public final void hideSuggestions() {
+        if (getSkin() instanceof RXAutoCompleteFieldSkin skin) {
+            skin.hideSuggestions();
+        }
     }
 }

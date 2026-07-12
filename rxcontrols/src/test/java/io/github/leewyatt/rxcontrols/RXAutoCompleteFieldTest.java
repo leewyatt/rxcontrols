@@ -1,7 +1,11 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
+import io.github.leewyatt.rxcontrols.skins.RXAutoCompleteFieldSkin;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -69,12 +73,17 @@ public class RXAutoCompleteFieldTest {
         runOnFx(() -> {
             RXAutoCompleteField field = new RXAutoCompleteField();
             AtomicReference<String> completed = new AtomicReference<>();
-            field.setOnAutoCompleted(event -> completed.set(event.getCompletion()));
-            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Japan"));
+            AtomicReference<Object> item = new AtomicReference<>();
+            field.setOnAutoCompleted(event -> {
+                completed.set(event.getCompletion());
+                item.set(event.getItem());
+            });
+            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Japan", "Japan"));
             assertEquals("Japan", completed.get(),
                     "onAutoCompleted is wired to the COMPLETED event type");
+            assertEquals("Japan", item.get(), "the event carries the original item");
             field.setOnAutoCompleted(null);
-            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Chile"));
+            field.fireEvent(new RXAutoCompleteEvent(RXAutoCompleteEvent.COMPLETED, "Chile", "Chile"));
             assertEquals("Japan", completed.get(), "clearing the handler detaches it");
         });
     }
@@ -118,6 +127,66 @@ public class RXAutoCompleteFieldTest {
             assertNull(field.getCompletionHandler(),
                     "null is accepted (skin falls back to the built-in write-back)");
         });
+    }
+
+    @Test
+    public void popupShowingDefaultsFalseAndDrivesThePseudoClass() throws InterruptedException {
+        runOnFx(() -> {
+            RXAutoCompleteField field = new RXAutoCompleteField();
+            PseudoClass popupShowing = PseudoClass.getPseudoClass("popup-showing");
+            assertFalse(field.isPopupShowing(), "popupShowing defaults to false");
+            assertFalse(field.getPseudoClassStates().contains(popupShowing));
+            field.setPopupShowing(true);
+            assertTrue(field.getPseudoClassStates().contains(popupShowing));
+            field.setPopupShowing(false);
+            assertFalse(field.getPseudoClassStates().contains(popupShowing));
+        });
+    }
+
+    @Test
+    public void showHideSuggestionsAreNoOpsWithoutSkin() throws InterruptedException {
+        runOnFx(() -> {
+            RXAutoCompleteField field = new RXAutoCompleteField();
+            field.getSuggestions().add("a");
+            field.showSuggestions();
+            field.hideSuggestions();
+            assertFalse(field.isPopupShowing(), "no skin: show / hide are no-ops");
+        });
+    }
+
+    @Test
+    public void showSuggestionsRequiresFocusAndHideIsSafeWithSkin() throws InterruptedException {
+        runOnFx(() -> {
+            RXAutoCompleteField field = attach(new RXAutoCompleteField());
+            field.getSuggestions().addAll("alpha", "beta");
+            field.showSuggestions();
+            assertFalse(field.isPopupShowing(),
+                    "an unfocused field never opens the dropdown, even programmatically");
+            field.hideSuggestions();
+            assertFalse(field.isPopupShowing(), "hide is safe when nothing is showing");
+        });
+    }
+
+    @Test
+    public void skinDisposeResetsPopupShowing() throws InterruptedException {
+        runOnFx(() -> {
+            RXAutoCompleteField field = attach(new RXAutoCompleteField());
+            field.getSuggestions().addAll("a", "b");
+            // Simulate the dropdown being open, then dispose the skin directly: a
+            // same-class setSkin is a no-op in JavaFX 17, so it would not dispose.
+            field.setPopupShowing(true);
+            field.getSkin().dispose();
+            assertFalse(field.isPopupShowing(), "disposing the skin clears the popup-showing mirror");
+        });
+    }
+
+    private static RXAutoCompleteField attach(RXAutoCompleteField field) {
+        field.setSkin(new RXAutoCompleteFieldSkin(field));
+        StackPane root = new StackPane(field);
+        new Scene(root, 400.0, 200.0);
+        root.applyCss();
+        root.layout();
+        return field;
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

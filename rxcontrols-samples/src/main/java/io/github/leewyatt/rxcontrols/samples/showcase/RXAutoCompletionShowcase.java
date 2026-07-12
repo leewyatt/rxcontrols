@@ -1,11 +1,14 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
+import io.github.leewyatt.rxcontrols.RXAutoCompletion;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
-import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteFieldDemo;
+import io.github.leewyatt.rxcontrols.RXMaterialTextField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompletionDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.Node;
@@ -14,6 +17,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -26,21 +30,21 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Showcase application for {@link RXAutoCompleteField}.
+ * Showcase application for the {@link RXAutoCompletion} binding facade.
  *
- * <p>Exercises the local suggestion field: swappable dataset, filter strategy
- * ({@code filterFunction}), the number of visible dropdown rows, the entrance
- * animation toggle, converter and custom suggestion-cell-factory rendering, and a
- * live readout driven by the {@code onAutoCompleted} event (the default completion
- * handler stays in place).
+ * <p>Exercises the facade on a plain {@link RXMaterialTextField}: the bind /
+ * unbind / rebind lifecycle (unbinding leaves the field a completely ordinary
+ * text field; rebinding silently replaces), the swappable dataset, filter
+ * strategies including the {@link RXAutoCompletion#acceptAll() acceptAll}
+ * pre-filtered mode, converter and custom-cell rendering, visible rows, the
+ * entrance animation, the programmatic {@code showSuggestions()} entry point, and
+ * a readout driven by {@code popupShowing} plus the {@code onAutoCompleted}
+ * event's item / completion pair.
  *
- * <p>Popup placement and width mode are driven internally by the shared
- * suggestion-popup infrastructure (dropdown below the field, matching / preferring
- * the field width, flipping up when space is tight); those knobs are not surfaced
- * on the control in V1 because their enums are internal. For a minimal example see
- * {@link RXAutoCompleteFieldDemo}.
+ * <p>For a minimal example (including the asynchronous orchestration recipe) see
+ * {@link RXAutoCompletionDemo}.
  */
-public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
+public class RXAutoCompletionShowcase extends RXShowcaseApplication {
 
     private static final double MIN_ROWS = 3.0;
     private static final double MAX_ROWS = 12.0;
@@ -68,8 +72,8 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
                 }
             };
 
-    // Demonstrates the converter path: rows render upper-cased while the stored value
-    // (and the write-back) stays the original string.
+    // Demonstrates the converter path: rows render (and the default write-back
+    // writes) the upper-cased display text while the stored item stays unchanged.
     private static final StringConverter<String> UPPER_CASE_CONVERTER = new StringConverter<>() {
         @Override
         public String toString(String value) {
@@ -82,39 +86,49 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         }
     };
 
-    private RXAutoCompleteField field;
+    private RXMaterialTextField field;
+    private RXAutoCompletion<String> completion;
+    private final BooleanProperty bound = new SimpleBooleanProperty(false);
     private final StringProperty lastCompleted = new SimpleStringProperty("(none)");
+    private final BooleanProperty popupShowing = new SimpleBooleanProperty(false);
+
+    // Current knob state, re-applied on every rebind.
+    private Dataset dataset = Dataset.COUNTRIES;
+    private FilterMode filterMode = FilterMode.CONTAINS;
+    private int visibleRows;
+    private boolean animated = true;
+    private boolean upperCaseConverter;
+    private boolean customCells;
 
     // ==================== Showcase wiring ====================
 
     @Override
     protected String title() {
-        return "RXAutoCompleteField";
+        return "RXAutoCompletion";
     }
 
     @Override
     protected String subtitle() {
-        return "Text field with a local suggestion dropdown";
+        return "Autocomplete binding for any TextField";
     }
 
     @Override
     protected String windowTitle() {
-        return "RXAutoCompleteField Showcase";
+        return "RXAutoCompletion Showcase";
     }
 
     @Override
     protected String stylesheetPath() {
-        return getClass().getResource("rx-auto-complete-field-showcase.css").toExternalForm();
+        return getClass().getResource("rx-auto-completion-showcase.css").toExternalForm();
     }
 
     @Override
     protected Node createPreview() {
-        field = new RXAutoCompleteField();
-        field.setPromptText("Start typing, then use ↑ ↓ Enter");
-        field.getSuggestions().setAll(Dataset.COUNTRIES.items());
-        // Observation only: the default write-back stays; the event records the commit.
-        field.setOnAutoCompleted(event ->
-                lastCompleted.set(event.getCompletion() == null ? "" : event.getCompletion()));
+        visibleRows = RXAutoCompletion.DEFAULT_VISIBLE_ROW_COUNT;
+
+        field = new RXMaterialTextField();
+        field.setLabelText("Start typing, then use ↑ ↓ Enter");
+        bindCompletion();
 
         Label readout = new Label();
         readout.getStyleClass().add("field-readout");
@@ -125,33 +139,84 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
                     String current = (text == null || text.isEmpty()) ? "—" : text;
                     return "Current text: " + current
                             + "\nLast completed: " + lastCompleted.get()
-                            + "\nDropdown showing: " + field.isPopupShowing();
+                            + "\nDropdown showing: " + popupShowing.get()
+                            + "\nBound: " + bound.get();
                 },
-                field.textProperty(), lastCompleted, field.popupShowingProperty()));
+                field.textProperty(), lastCompleted, popupShowing, bound));
 
         VBox box = new VBox(16.0, field, readout);
-        box.getStyleClass().add("auto-complete-preview");
+        box.getStyleClass().add("auto-completion-preview");
         return box;
     }
 
     @Override
     protected List<Section> createSections() {
         return List.of(
+                section("Binding", buildBindingGrid()),
                 section("Data", buildDataGrid()),
                 section("Filtering", buildFilterGrid()),
                 section("Dropdown", buildDropdownGrid()));
     }
 
+    // ==================== Binding lifecycle ====================
+
+    private void bindCompletion() {
+        completion = RXAutoCompletion.bind(field, dataset.items());
+        completion.setFilterFunction(filterMode.function());
+        completion.setVisibleRowCount(visibleRows);
+        completion.setAnimated(animated);
+        completion.setConverter(upperCaseConverter ? UPPER_CASE_CONVERTER : null);
+        completion.setSuggestionCellFactory(customCells ? COLOR_DOT_CELL_FACTORY : null);
+        // Observation only: the default write-back stays; the event records the commit.
+        completion.setOnAutoCompleted(event ->
+                lastCompleted.set(event.getItem() + " (completion: " + event.getCompletion() + ")"));
+        popupShowing.bind(completion.popupShowingProperty());
+        bound.set(true);
+    }
+
+    private void unbindCompletion() {
+        popupShowing.unbind();
+        popupShowing.set(false);
+        RXAutoCompletion.unbind(field);
+        completion = null;
+        bound.set(false);
+    }
+
     // ==================== Sections ====================
+
+    private Node buildBindingGrid() {
+        // Enabled even while bound: bind() silently replaces an existing binding, so
+        // pressing it again exercises the rebind path.
+        Button bind = new Button("Bind / Rebind");
+        bind.setMaxWidth(Double.MAX_VALUE);
+        bind.setOnAction(event -> bindCompletion());
+
+        Button unbind = new Button("Unbind");
+        unbind.setMaxWidth(Double.MAX_VALUE);
+        unbind.disableProperty().bind(bound.not());
+        unbind.setOnAction(event -> unbindCompletion());
+
+        HBox buttons = new HBox(8.0, bind, unbind);
+
+        Label hint = new Label("Unbound, the field is an ordinary text field again; "
+                + "binding twice silently replaces the previous binding.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+
+        return createGrid(row(buttons), row(hint));
+    }
 
     private Node buildDataGrid() {
         ComboBox<Dataset> datasetBox = new ComboBox<>();
         datasetBox.getItems().setAll(Dataset.values());
-        datasetBox.setValue(Dataset.COUNTRIES);
+        datasetBox.setValue(dataset);
         datasetBox.setMaxWidth(Double.MAX_VALUE);
         datasetBox.valueProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) {
-                field.getSuggestions().setAll(newV.items());
+                dataset = newV;
+                if (completion != null) {
+                    completion.getSuggestions().setAll(newV.items());
+                }
             }
         });
 
@@ -159,9 +224,10 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         // is always a continuation of typing), so hand focus back before showing.
         Button showAll = new Button("Show all");
         showAll.setMaxWidth(Double.MAX_VALUE);
+        showAll.disableProperty().bind(bound.not());
         showAll.setOnAction(event -> {
             field.requestFocus();
-            field.showSuggestions();
+            completion.showSuggestions();
         });
 
         return createGrid(row("Dataset", datasetBox), row("Programmatic", showAll));
@@ -170,13 +236,20 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     private Node buildFilterGrid() {
         ComboBox<FilterMode> modeBox = new ComboBox<>();
         modeBox.getItems().setAll(FilterMode.values());
-        modeBox.setValue(FilterMode.CONTAINS);
+        modeBox.setValue(filterMode);
         modeBox.setMaxWidth(Double.MAX_VALUE);
-        modeBox.valueProperty().addListener((obs, oldV, newV) ->
-                field.setFilterFunction(newV == null ? null : newV.function()));
+        modeBox.valueProperty().addListener((obs, oldV, newV) -> {
+            if (newV != null) {
+                filterMode = newV;
+                if (completion != null) {
+                    completion.setFilterFunction(newV.function());
+                }
+            }
+        });
 
-        Label hint = new Label("The filter maps the typed text to a predicate over the "
-                + "suggestions; a null function falls back to the default substring match.");
+        Label hint = new Label("A null function falls back to a case-insensitive "
+                + "substring match on the display text; \"Accept all\" is the "
+                + "pre-filtered (server-side / async) mode.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
 
@@ -184,27 +257,45 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     }
 
     private Node buildDropdownGrid() {
-        Slider rows = createSlider(MIN_ROWS, MAX_ROWS, field.getVisibleRowCount());
-        rows.valueProperty().addListener((obs, oldV, newV) ->
-                field.setVisibleRowCount((int) Math.round(newV.doubleValue())));
+        Slider rows = createSlider(MIN_ROWS, MAX_ROWS, visibleRows);
+        rows.valueProperty().addListener((obs, oldV, newV) -> {
+            visibleRows = (int) Math.round(newV.doubleValue());
+            if (completion != null) {
+                completion.setVisibleRowCount(visibleRows);
+            }
+        });
         Label rowsValue = createValueLabel(rows, "%.0f");
 
-        CheckBox animated = new CheckBox("Entrance animation");
-        animated.selectedProperty().bindBidirectional(field.animatedProperty());
+        CheckBox animatedBox = new CheckBox("Entrance animation");
+        animatedBox.setSelected(animated);
+        animatedBox.selectedProperty().addListener((obs, was, on) -> {
+            animated = Boolean.TRUE.equals(on);
+            if (completion != null) {
+                completion.setAnimated(animated);
+            }
+        });
 
-        CheckBox upperCase = new CheckBox("Upper-case rows (converter)");
-        upperCase.selectedProperty().addListener((obs, was, on) ->
-                field.setConverter(Boolean.TRUE.equals(on) ? UPPER_CASE_CONVERTER : null));
+        CheckBox upperCase = new CheckBox("Upper-case display text (converter)");
+        upperCase.selectedProperty().addListener((obs, was, on) -> {
+            upperCaseConverter = Boolean.TRUE.equals(on);
+            if (completion != null) {
+                completion.setConverter(upperCaseConverter ? UPPER_CASE_CONVERTER : null);
+            }
+        });
 
-        CheckBox customCells = new CheckBox("Custom cells (color dot factory)");
-        customCells.selectedProperty().addListener((obs, was, on) ->
-                field.setSuggestionCellFactory(Boolean.TRUE.equals(on) ? COLOR_DOT_CELL_FACTORY : null));
+        CheckBox customCellsBox = new CheckBox("Custom cells (color dot factory)");
+        customCellsBox.selectedProperty().addListener((obs, was, on) -> {
+            customCells = Boolean.TRUE.equals(on);
+            if (completion != null) {
+                completion.setSuggestionCellFactory(customCells ? COLOR_DOT_CELL_FACTORY : null);
+            }
+        });
 
         return createGrid(
                 row("Visible rows", rows, rowsValue),
-                row(animated),
+                row(animatedBox),
                 row(upperCase),
-                row(customCells));
+                row(customCellsBox));
     }
 
     // ==================== Datasets + filter modes ====================
@@ -244,7 +335,7 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         CONTAINS("Contains (default)") {
             @Override
             Function<String, Predicate<String>> function() {
-                return RXAutoCompleteField.DEFAULT_FILTER_FUNCTION;
+                return null;
             }
         },
         STARTS_WITH("Starts with") {
@@ -255,6 +346,12 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
                     return candidate -> candidate != null
                             && candidate.toLowerCase(Locale.ROOT).startsWith(needle);
                 };
+            }
+        },
+        ACCEPT_ALL("Accept all (pre-filtered)") {
+            @Override
+            Function<String, Predicate<String>> function() {
+                return RXAutoCompletion.acceptAll();
             }
         };
 
