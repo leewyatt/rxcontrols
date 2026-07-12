@@ -24,7 +24,7 @@ public class RXAutoCompleteEvent extends Event {
             new EventType<>(Event.ANY, "RX_AUTO_COMPLETE");
 
     /**
-     * Fired after a suggestion was committed and the completion handler ran.
+     * Fired after a suggestion was committed and the completion pipeline ran.
      */
     public static final EventType<RXAutoCompleteEvent> COMPLETED =
             new EventType<>(ANY, "RX_AUTO_COMPLETE_COMPLETED");

@@ -209,6 +209,9 @@ public final class AutoCompletionSupport<T> {
      * Hides the dropdown and cancels any pending debounced re-filter.
      */
     public void hideSuggestions() {
+        if (disposed) {
+            return;
+        }
         hidePopup();
     }
 
