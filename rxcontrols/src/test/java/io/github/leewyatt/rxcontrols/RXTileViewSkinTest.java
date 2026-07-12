@@ -822,6 +822,33 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a single partial data row justifies by the actual cells, not the
+     * resolvable column count — mirroring RXTilePane, so sparse content centers
+     * like CSS justify-content instead of hugging a phantom full row.
+     */
+    @Test
+    public void sparseSingleRowJustifiesByActualCells() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(3);
+            view.setPrefTileWidth(100);
+            view.setHgap(0);
+            view.setItemsJustify(ItemsJustify.CENTER);
+            StackPane root = host(view, 820, 300);
+            pump(root);
+
+            // 820 px resolves 8 columns; the 3-cell block (300) centers at about
+            // 260 (minus the viewport chrome) — a phantom full-row block would
+            // leave it at ~10.
+            double centerX = firstCellX(view);
+            assertEquals(260.0, centerX, 2.0, "CENTER centers the actual cells");
+
+            view.setItemsJustify(ItemsJustify.END);
+            pump(root);
+            assertEquals(2.0 * centerX, firstCellX(view), 2.0, "END slack is twice the CENTER slack");
+        });
+    }
+
     @Test
     public void spaceModesDistributeRowSlack() throws Exception {
         onFx(() -> {

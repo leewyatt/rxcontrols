@@ -845,7 +845,8 @@ public class RXFlowPane extends Pane {
      * Like {@link javafx.scene.layout.FlowPane#prefWrapLengthProperty()}, it does
      * <em>not</em> control the actual wrapping at layout time; the real wrap boundary is
      * the main-axis size the parent gives this pane. It exists so an unconstrained pane
-     * reports a sane preferred main-axis size instead of one giant run.
+     * reports a sane preferred main-axis size instead of one giant run. A non-finite
+     * value resolves to the default when the preferred size is computed.
      *
      * @return the preferred-wrap-length property
      */
@@ -869,6 +870,11 @@ public class RXFlowPane extends Pane {
      */
     public final void setPrefWrapLength(double value) {
         prefWrapLength.set(value);
+    }
+
+    private double prefWrapLengthOrDefault() {
+        double value = getPrefWrapLength();
+        return Double.isFinite(value) ? value : DEFAULT_PREF_WRAP_LENGTH;
     }
 
     // ==================== Animated ====================
@@ -1236,13 +1242,14 @@ public class RXFlowPane extends Pane {
     protected double computePrefWidth(double height) {
         if (orientationOrDefault() == Orientation.HORIZONTAL) {
             // width is the wrap (main) axis, floored by prefWrapLength.
-            List<Run> lines = getRuns(getPrefWrapLength());
-            double width = Math.max(computeContentWidth(lines), getPrefWrapLength());
+            double wrapLength = prefWrapLengthOrDefault();
+            List<Run> lines = getRuns(wrapLength);
+            double width = Math.max(computeContentWidth(lines), wrapLength);
             return snappedLeftInset() + snapSizeX(width) + snappedRightInset();
         }
         // vertical: width is the cross axis, sized to the content wrapped at the given height.
         double wrap = height == -1
-                ? getPrefWrapLength()
+                ? prefWrapLengthOrDefault()
                 : height - snappedTopInset() - snappedBottomInset();
         List<Run> lines = getRuns(wrap);
         return snappedLeftInset() + snapSizeX(computeContentWidth(lines)) + snappedRightInset();
@@ -1255,13 +1262,14 @@ public class RXFlowPane extends Pane {
     protected double computePrefHeight(double width) {
         if (orientationOrDefault() == Orientation.VERTICAL) {
             // height is the wrap (main) axis, floored by prefWrapLength.
-            List<Run> lines = getRuns(getPrefWrapLength());
-            double height = Math.max(computeContentHeight(lines), getPrefWrapLength());
+            double wrapLength = prefWrapLengthOrDefault();
+            List<Run> lines = getRuns(wrapLength);
+            double height = Math.max(computeContentHeight(lines), wrapLength);
             return snappedTopInset() + snapSizeY(height) + snappedBottomInset();
         }
         // horizontal: height is the cross axis, sized to the content wrapped at the given width.
         double wrap = width == -1
-                ? getPrefWrapLength()
+                ? prefWrapLengthOrDefault()
                 : width - snappedLeftInset() - snappedRightInset();
         List<Run> lines = getRuns(wrap);
         return snappedTopInset() + snapSizeY(computeContentHeight(lines)) + snappedBottomInset();
@@ -1296,7 +1304,10 @@ public class RXFlowPane extends Pane {
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
                 && isAnimationDurationPositive();
-        List<PaneRelayoutAnimator.Move> moves = new ArrayList<>();
+        // With animation off and nothing in flight the animator pass would be a
+        // no-op; a null list tells layoutItem to skip the move bookkeeping.
+        List<PaneRelayoutAnimator.Move> moves =
+                animate || animator.hasActiveState() ? new ArrayList<>() : null;
 
         if (horizontal) {
             // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
@@ -1336,25 +1347,36 @@ public class RXFlowPane extends Pane {
             }
         }
 
-        animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (moves != null) {
+            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        }
         enteringNodes.clear();
         firstLayoutDone = true;
     }
 
     // Lays the node out (no fill, matching the static path) and records its FLIP delta
-    // from the old on-screen position for the relayout animator. An entering child has
-    // no meaningful previous position, so it snaps to its slot (fromD* = 0).
+    // from the old on-screen position for the relayout animator; a null moves list
+    // skips the bookkeeping. An entering child has no meaningful previous position,
+    // so it snaps to its slot (fromD* = 0).
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
                             List<PaneRelayoutAnimator.Move> moves) {
+        if (moves == null) {
+            layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
+                    false, false, hpos, vpos);
+            return;
+        }
         double oldVisualX = node.getLayoutX() + node.getTranslateX();
         double oldVisualY = node.getLayoutY() + node.getTranslateY();
         layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                 false, false, hpos, vpos);
         double fromDx = enteringNodes.contains(node) ? 0.0 : oldVisualX - node.getLayoutX();
         double fromDy = enteringNodes.contains(node) ? 0.0 : oldVisualY - node.getLayoutY();
+        // A node the animator still tracks stays submitted even when static this
+        // pass — dropping it would finalize its in-flight tween.
         if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
-                || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON) {
+                || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
+                || animator.isTracked(node)) {
             moves.add(new PaneRelayoutAnimator.Move(node, fromDx, fromDy, false));
         }
     }

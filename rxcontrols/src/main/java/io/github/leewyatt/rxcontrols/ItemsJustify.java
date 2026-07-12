@@ -5,8 +5,8 @@ package io.github.leewyatt.rxcontrols;
  * difference between the content width and the space the cells plus the base
  * {@code hgap} gaps consume.
  *
- * <p>The first three values keep cells at their fixed
- * {@code cellWidth} and only position the block.
+ * <p>The first three values keep cells at the host's fixed cell width (its
+ * preferred tile or column width) and only position the block.
  * The {@code SPACE_*} values keep the fixed width but grow the gaps (the
  * {@code hgap} acts as a minimum that the extra width is added on top of),
  * mirroring CSS flexbox {@code justify-content}. {@link #STRETCH} instead grows
@@ -14,9 +14,14 @@ package io.github.leewyatt.rxcontrols;
  * {@code flex-start / center / flex-end / space-between / space-around /
  * space-evenly} plus {@code stretch}.
  *
- * <p>When a control uses row-based layout, a short final row is laid out with
- * the same metrics as a full row, so a given column stays vertically aligned
- * across every row.
+ * <p>When a control uses row-based layout with several rows, a short final row
+ * is laid out with the same metrics as a full row, so a given column stays
+ * vertically aligned across every row; when the whole content is a single
+ * partial row there is no cross-row alignment to preserve, and the block spans
+ * the actual cells. Because the block never spans more than the resolvable
+ * column count, {@code CENTER} / {@code END} shift full rows by less than one
+ * cell step; pair them with a column cap (such as {@code maxColumns}) when a
+ * large block offset is the goal.
  */
 public enum ItemsJustify {
 
@@ -51,11 +56,9 @@ public enum ItemsJustify {
 
     /**
      * Size the cells equally so they fill the row, keeping {@code hgap} between
-     * them. In adaptive mode cells only grow: the column count drops before a
-     * cell would shrink below {@code cellWidth}. The growth is capped by the
-     * max cell width, after which the resulting block is centered. Under a
-     * forced column count that does not fit, cells may shrink below
-     * {@code cellWidth} to keep that column count.
+     * them. Cells only grow: the column count drops before a cell would shrink
+     * below the host's fixed cell width. The growth is capped by the host's max
+     * cell width, after which the resulting block is centered.
      */
     STRETCH
 }

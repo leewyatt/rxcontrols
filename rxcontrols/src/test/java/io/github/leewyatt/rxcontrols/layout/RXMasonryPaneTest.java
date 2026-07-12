@@ -66,7 +66,7 @@ public class RXMasonryPaneTest {
         assertTrue(pane.isFillWidth());
         assertSame(Pos.TOP_LEFT, pane.getAlignment());
         assertTrue(pane.isAnimated());
-        assertEquals(Duration.millis(220.0), pane.getAnimationDuration());
+        assertEquals(Duration.millis(200.0), pane.getAnimationDuration());
         assertSame(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
         assertSame(RXBreakpointProfile.ANT_DESIGN, pane.getBreakpointProfile());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
@@ -376,6 +376,38 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a child mid-fade keeps its in-flight fade across a static relayout
+     * pass: the pre-filter must keep submitting nodes the animator still tracks,
+     * otherwise the drop detection would finalize the fade to its target.
+     */
+    @Test
+    public void midFadeChildSurvivesStaticRelayout() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane();
+            pane.setAnimationDuration(Duration.millis(400.0));
+            Region first = card(80.0, 50.0);
+            pane.getChildren().add(first);
+            new Scene(pane);
+            layout(pane, 300.0, 600.0);
+
+            Region entering = card(80.0, 50.0);
+            pane.getChildren().add(entering);
+            layout(pane, 300.0, 600.0);
+            assertTrue(entering.getOpacity() < 1.0 - EPSILON, "entering child fade armed");
+
+            // A static relayout (no geometry change) must not finalize the fade.
+            pane.requestLayout();
+            pane.layout();
+            assertTrue(entering.getOpacity() < 1.0 - EPSILON,
+                    "in-flight fade survives a static relayout");
+
+            // Settling via animated=false restores the fade target deterministically.
+            pane.setAnimated(false);
+            assertClose(1.0, entering.getOpacity(), "fade target restored on settle");
+        });
+    }
+
+    /**
      * Verifies a vertical content-bias child is measured at its intrinsic height
      * (not at a width-dependent height), matching layoutInArea, so the next card
      * does not leave a phantom gap.
@@ -535,7 +567,60 @@ public class RXMasonryPaneTest {
         assertTrue(Double.isNaN(pane.getColumnWidth()), "invalid value remains visible on the property");
         assertClose(260.0, b.getLayoutX(), "second column uses the default track step");
         assertClose(260.0, pane.minWidth(-1.0), "default column width used for min width");
-        assertClose(780.0, pane.prefWidth(-1.0), "default column width used for pref width");
+        // The forced count (2) drives the pref width, not prefColumns (3).
+        assertClose(520.0, pane.prefWidth(-1.0), "forced count with default column width");
+    }
+
+    /**
+     * Verifies a forced column count drives the preferred width, mirroring the
+     * layout-time priority over prefColumns.
+     */
+    @Test
+    public void forcedColumnCountDrivesPrefWidth() {
+        RXMasonryPane pane = pane(100.0, 10.0, 0.0, card(80.0, 50.0));
+
+        assertClose(3 * 100.0 + 2 * 10.0, pane.prefWidth(-1.0), "prefColumns drives pref width");
+
+        pane.setColumnCount(6);
+        assertClose(6 * 100.0 + 5 * 10.0, pane.prefWidth(-1.0), "forced count drives pref width");
+
+        // maxColumns still caps the forced count in the pref math.
+        pane.setMaxColumns(4);
+        assertClose(4 * 100.0 + 3 * 10.0, pane.prefWidth(-1.0), "maxColumns caps the forced count");
+
+        // A pathological forced count is capped like the layout side (4096), so
+        // measure and layout never split on the column count.
+        pane.setMaxColumns(0);
+        pane.setColumnCount(100000);
+        assertClose(4096 * 100.0 + 4095 * 10.0, pane.prefWidth(-1.0), "pref capped at 4096 columns");
+    }
+
+    /**
+     * Verifies negative gaps overlap columns and stacked items in both fill
+     * modes: the count formula's step floor bounds the column count only, while
+     * the track geometry keeps the caller's raw gaps.
+     */
+    @Test
+    public void negativeGapsOverlapGeometry() {
+        Region a = card(80.0, 50.0);
+        Region b = card(80.0, 60.0);
+        Region c = card(80.0, 40.0);
+        RXMasonryPane pane = pane(100.0, -20.0, -10.0, a, b, c);
+        pane.setFillWidth(false);
+
+        layout(pane, 190.0, 1000.0);
+
+        // step = columnWidth + hgap = 80 -> floor((190 - 20) / 80) = 2 columns.
+        assertEquals(2, pane.getActualColumnCount());
+        assertClose(80.0, b.getLayoutX(), "columns overlap by the negative hgap");
+        // Column bottoms carry the negative vgap: a(50) - 10 = 40 is the shortest.
+        assertClose(40.0, c.getLayoutY(), "stacked items overlap by the negative vgap");
+
+        pane.setFillWidth(true);
+        layout(pane, 190.0, 1000.0);
+
+        // track = (190 - 1 * (-20)) / 2 = 105; step = 105 - 20 = 85.
+        assertClose(85.0, b.getLayoutX(), "stretched track keeps the raw negative hgap step");
     }
 
     @Test

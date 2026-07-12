@@ -279,6 +279,30 @@ final class PaneRelayoutAnimator {
     }
 
     /**
+     * Returns whether this animator currently owns the node's transforms via an
+     * in-flight relayout move. Callers that pre-filter static moves must still
+     * submit tracked nodes — the drop detection would otherwise finalize them
+     * mid-tween.
+     *
+     * @param node the node to query
+     * @return whether the node has an in-flight relayout move
+     */
+    boolean isTracked(Node node) {
+        return activeMoves.containsKey(node);
+    }
+
+    /**
+     * Returns whether any relayout move or exit is in flight. When nothing is
+     * tracked, a non-animated pass may skip move bookkeeping entirely — there is
+     * no state left for the snap path to settle.
+     *
+     * @return whether any animation state is live
+     */
+    boolean hasActiveState() {
+        return !activeMoves.isEmpty() || !exits.isEmpty() || relayoutTimeline != null;
+    }
+
+    /**
      * Stops every animation, leaving moved nodes at their final layout state and
      * completing pending exits so no detached-but-unmanaged ghosts remain.
      */

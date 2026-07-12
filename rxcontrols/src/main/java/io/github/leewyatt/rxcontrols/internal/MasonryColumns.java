@@ -41,9 +41,10 @@ public final class MasonryColumns {
 
     /**
      * Defensive hard cap so a pathological tiny {@code columnWidth} or huge forced
-     * count never asks the engine to allocate an unbounded column array.
+     * count never asks the engine to allocate an unbounded column array. Shared
+     * with the pane's preferred-width math so measure and layout cap alike.
      */
-    private static final int MAX_RESOLVED_COLUMNS = 4096;
+    public static final int MAX_RESOLVED_COLUMNS = 4096;
 
     /**
      * Floor on the effective per-column step of the auto count, as a fraction of

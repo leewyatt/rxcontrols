@@ -53,8 +53,10 @@ import java.util.Set;
  * shortest column, producing the staggered "Pinterest" look.
  *
  * <p>The number of columns is responsive. By default it is derived from
- * {@link #columnWidthProperty() columnWidth} and the available width, so the pane
- * gains a column whenever the width grows past another {@code columnWidth + hgap}.
+ * {@link #columnWidthProperty() columnWidth} and the available width, gaining a
+ * column per {@code columnWidth + hgap} of extra width (the per-column step is
+ * floored at a fraction of {@code columnWidth}, so a strongly negative
+ * {@code hgap} overlaps columns without exploding the count).
  * A fixed count can be forced with {@link #columnCountProperty() columnCount}, and
  * {@link #maxColumnsProperty() maxColumns} caps the resolved count. When
  * {@link #fillWidthProperty() fillWidth} is {@code true} (the default) the columns
@@ -144,7 +146,7 @@ public class RXMasonryPane extends Pane {
     /**
      * Default layout-animation duration.
      */
-    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(220.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     /**
      * Default layout-animation interpolator.
@@ -387,7 +389,8 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Horizontal gap between columns.
+     * Horizontal gap between columns. May be negative to overlap columns; a
+     * non-finite value resolves to the default when measured or laid out.
      *
      * @return the hgap property
      */
@@ -438,7 +441,9 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Vertical gap between stacked children in a column.
+     * Vertical gap between stacked children in a column. May be negative to
+     * overlap items; a non-finite value resolves to the default when measured or
+     * laid out.
      *
      * @return the vgap property
      */
@@ -544,7 +549,9 @@ public class RXMasonryPane extends Pane {
     /**
      * Number of columns used by {@link #computePrefWidth(double)} when the pane is
      * measured without a width constraint. Does not affect the actual column count
-     * used during layout.
+     * used during layout, and is ignored while a positive
+     * {@link #columnCountProperty() columnCount} is forced (the forced count then
+     * drives the preferred width too).
      *
      * @return the pref columns property
      */
@@ -703,10 +710,11 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Alignment of the content block within the pane. The horizontal component also
-     * aligns a child within its column when {@link #fillWidthProperty() fillWidth} is
-     * {@code false}; the vertical component only takes effect when the pane is taller
-     * than its content. A {@code null} value is not rejected; it resolves to the
-     * default at the use site.
+     * aligns a child within its column whenever the child cannot fill the track —
+     * when {@link #fillWidthProperty() fillWidth} is {@code false}, or when the
+     * child's own max width caps it below the track width; the vertical component
+     * only takes effect when the pane is taller than its content. A {@code null}
+     * value is not rejected; it resolves to the default at the use site.
      *
      * @return the alignment property
      */
@@ -1313,11 +1321,16 @@ public class RXMasonryPane extends Pane {
 
     @Override
     protected double computePrefWidth(double height) {
-        int columns = Math.max(1, getPrefColumns());
+        // A forced column count wins over prefColumns, mirroring the layout-time
+        // priority, so the pane never reports a pref width its own layout would
+        // then split into a different number of columns.
+        int forced = getColumnCount();
+        int columns = forced >= 1 ? forced : Math.max(1, getPrefColumns());
         int max = getMaxColumns();
         if (max > 0 && columns > max) {
             columns = max;
         }
+        columns = Math.min(columns, MasonryColumns.MAX_RESOLVED_COLUMNS);
         double content = columns * snapSizeX(columnWidthOrDefault()) + (columns - 1) * snapSpaceX(sanitizedHgap());
         return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
     }
@@ -1359,11 +1372,14 @@ public class RXMasonryPane extends Pane {
         boolean fill = isFillWidth();
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
                 && isAnimationDurationPositive();
+        // With animation off and nothing in flight the animator pass would be a
+        // no-op; skip the move bookkeeping entirely on this hot path.
+        boolean collectMoves = animate || animator.hasActiveState();
         double enterOffset = enterTranslateY();
         List<Node> managed = metrics.managed();
         int[] startColumns = metrics.result().startColumns();
         double[] tops = metrics.result().tops();
-        List<PaneRelayoutAnimator.Move> moves = new ArrayList<>(managed.size());
+        List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
@@ -1375,17 +1391,34 @@ public class RXMasonryPane extends Pane {
 
             // FLIP: record the current on-screen position before relocating, so the
             // animator can invert the move and tween translate back to zero.
-            double oldVisualX = child.getLayoutX() + child.getTranslateX();
-            double oldVisualY = child.getLayoutY() + child.getTranslateY();
+            double oldVisualX = 0.0;
+            double oldVisualY = 0.0;
+            if (collectMoves) {
+                oldVisualX = child.getLayoutX() + child.getTranslateX();
+                oldVisualY = child.getLayoutY() + child.getTranslateY();
+            }
             layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
+            if (!collectMoves) {
+                continue;
+            }
             if (enteringNodes.contains(child)) {
                 moves.add(new PaneRelayoutAnimator.Move(child, 0.0, enterOffset, true));
             } else {
-                moves.add(new PaneRelayoutAnimator.Move(child,
-                        oldVisualX - child.getLayoutX(), oldVisualY - child.getLayoutY(), false));
+                double fromDx = oldVisualX - child.getLayoutX();
+                double fromDy = oldVisualY - child.getLayoutY();
+                // Static nodes are pre-filtered like the sibling panes, but a node
+                // the animator still tracks must stay submitted — dropping it from
+                // the pass would finalize its in-flight tween (fade or glide).
+                if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
+                        || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
+                        || animator.isTracked(child)) {
+                    moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
+                }
             }
         }
-        animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (collectMoves) {
+            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        }
         enteringNodes.clear();
         firstLayoutDone = true;
     }

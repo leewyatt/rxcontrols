@@ -134,6 +134,10 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
         maxColumnsSlider.valueProperty().addListener((obs, oldV, newV) ->
                 masonry.setMaxColumns((int) Math.round(newV.doubleValue())));
 
+        Slider prefColumnsSlider = integerSlider(1.0, 8.0, masonry.getPrefColumns());
+        prefColumnsSlider.valueProperty().addListener((obs, oldV, newV) ->
+                masonry.setPrefColumns((int) Math.round(newV.doubleValue())));
+
         CheckBox fillWidthBox = new CheckBox("Stretch columns to fill the width");
         fillWidthBox.setSelected(masonry.isFillWidth());
         masonry.fillWidthProperty().bind(fillWidthBox.selectedProperty());
@@ -142,6 +146,8 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
                 row("Column width", columnWidthSlider, createValueLabel(columnWidthSlider, "%.0f px")),
                 row("Column count", columnCountSlider, createValueLabel(columnCountSlider, "%.0f")),
                 row("Max columns", maxColumnsSlider, createValueLabel(maxColumnsSlider, "%.0f")),
+                row("Pref columns (pref size only)", prefColumnsSlider,
+                        createValueLabel(prefColumnsSlider, "%.0f")),
                 row(fillWidthBox));
     }
 

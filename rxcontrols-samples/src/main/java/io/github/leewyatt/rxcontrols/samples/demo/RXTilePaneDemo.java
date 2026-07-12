@@ -31,7 +31,6 @@ public class RXTilePaneDemo extends Application {
         tiles.setHgap(14);
         tiles.setVgap(14);
         tiles.setStyle("-fx-padding: 10px; -fx-background-color: #c2cce0ab;");
-        tiles.setAnimated(true);
         tiles.setItemsJustify(ItemsJustify.CENTER);
         tiles.setContentVAlignment(VPos.CENTER);
         for (int i = 0; i < CARD_COUNT; i++) {

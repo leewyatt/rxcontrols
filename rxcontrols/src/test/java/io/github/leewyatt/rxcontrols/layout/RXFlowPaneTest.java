@@ -530,6 +530,31 @@ public class RXFlowPaneTest {
     }
 
     /**
+     * Verifies a non-finite prefWrapLength resolves to the default when the
+     * preferred size is computed, instead of collapsing the pref width to zero
+     * (NaN) or inflating it to infinity, on both orientations.
+     */
+    @Test
+    public void nonFinitePrefWrapLengthFallsBackToDefault() {
+        RXFlowPane pane = flowPane(0.0, 0.0, cards(3, 100.0, 60.0));
+        double horizontalBaseline = pane.prefWidth(-1.0);
+
+        for (double bad : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            pane.setPrefWrapLength(bad);
+            assertClose(horizontalBaseline, pane.prefWidth(-1.0), "prefWidth @ " + bad);
+        }
+
+        pane.setPrefWrapLength(400.0);
+        pane.setOrientation(Orientation.VERTICAL);
+        double verticalBaseline = pane.prefHeight(-1.0);
+
+        for (double bad : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            pane.setPrefWrapLength(bad);
+            assertClose(verticalBaseline, pane.prefHeight(-1.0), "prefHeight @ " + bad);
+        }
+    }
+
+    /**
      * Verifies prefWrapLength only drives preferred size, never the actual wrap
      * at layout time (the famous FlowPane decoupling).
      */

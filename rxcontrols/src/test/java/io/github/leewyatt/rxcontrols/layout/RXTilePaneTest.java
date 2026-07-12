@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -199,6 +200,94 @@ public class RXTilePaneTest {
 
         assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
                 "the edge gap grows BETWEEN < AROUND < EVENLY");
+    }
+
+    /**
+     * Verifies a single partial row justifies by the actual tiles, not the
+     * resolvable column count: with fewer children than columns, CENTER / END /
+     * SPACE_* behave like CSS justify-content on that row.
+     */
+    @Test
+    public void sparseSingleRowJustifiesByActualTiles() {
+        RXTilePane pane = filledPane(3);
+        pane.setPrefTileWidth(100);
+        pane.setHgap(0);
+        pane.setItemsJustify(ItemsJustify.CENTER);
+
+        // 820 px resolves 8 columns; the 3-tile block (300) is centered at 260.
+        layout(pane, 820, 200);
+        assertEquals(260.0, firstChildX(pane), EPSILON, "CENTER centers the actual tiles");
+
+        pane.setItemsJustify(ItemsJustify.END);
+        pane.layout();
+        assertEquals(520.0, firstChildX(pane), EPSILON, "END packs the actual tiles right");
+
+        pane.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
+        pane.layout();
+        // slack 520 over 2 inner gaps -> tiles at 0, 360, 720.
+        assertEquals(0.0, pane.getChildren().get(0).getLayoutX(), EPSILON);
+        assertEquals(360.0, pane.getChildren().get(1).getLayoutX(), EPSILON);
+        assertEquals(720.0, pane.getChildren().get(2).getLayoutX(), EPSILON);
+
+        // A single cell centers under SPACE_AROUND, as the enum documents.
+        pane.getChildren().remove(1, 3);
+        pane.setItemsJustify(ItemsJustify.SPACE_AROUND);
+        pane.layout();
+        assertEquals(360.0, firstChildX(pane), EPSILON, "single cell is centered");
+    }
+
+    /**
+     * Verifies multiple rows keep the full-row metrics on the short final row,
+     * so a given column stays aligned across rows (the documented trade-off the
+     * single-row case is exempt from).
+     */
+    @Test
+    public void multiRowShortFinalRowKeepsFullRowMetrics() {
+        RXTilePane pane = filledPane(11);
+        pane.setPrefTileWidth(100);
+        pane.setHgap(0);
+        pane.setItemsJustify(ItemsJustify.CENTER);
+
+        // 8 columns, slack 20 -> block origin 10; the short final row (3 tiles)
+        // keeps the same origin so columns stay aligned across rows.
+        layout(pane, 820, 400);
+        assertEquals(10.0, pane.getChildren().get(0).getLayoutX(), EPSILON, "full row origin");
+        assertEquals(10.0, pane.getChildren().get(8).getLayoutX(), EPSILON, "short row keeps the origin");
+    }
+
+    /**
+     * Verifies prefColumns drives the preferred width, mirroring the native
+     * TilePane and RXMasonryPane knobs.
+     */
+    @Test
+    public void prefColumnsDrivesPrefWidth() {
+        RXTilePane pane = filledPane(6);
+        pane.setPrefTileWidth(100);
+        pane.setHgap(0);
+
+        assertEquals(3, pane.getPrefColumns(), "default pref columns");
+        double threeColumns = pane.prefWidth(-1.0);
+
+        pane.setPrefColumns(5);
+        assertEquals(threeColumns + 200.0, pane.prefWidth(-1.0), EPSILON,
+                "pref width follows prefColumns");
+
+        pane.setMaxColumns(4);
+        assertEquals(threeColumns + 100.0, pane.prefWidth(-1.0), EPSILON,
+                "maxColumns caps prefColumns in the pref math");
+    }
+
+    /**
+     * Verifies the static constraint methods reject a null child with the same
+     * contract as the sibling panes.
+     */
+    @Test
+    public void constraintMethodsRejectNullChild() {
+        assertThrows(NullPointerException.class, () -> RXTilePane.setAlignment(null, Pos.CENTER));
+        assertThrows(NullPointerException.class, () -> RXTilePane.getAlignment(null));
+        assertThrows(NullPointerException.class, () -> RXTilePane.setMargin(null, new Insets(1.0)));
+        assertThrows(NullPointerException.class, () -> RXTilePane.getMargin(null));
+        assertThrows(NullPointerException.class, () -> RXTilePane.clearConstraints(null));
     }
 
     @Test

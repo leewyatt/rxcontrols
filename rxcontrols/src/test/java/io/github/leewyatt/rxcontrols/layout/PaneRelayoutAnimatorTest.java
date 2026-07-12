@@ -272,6 +272,26 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
+     * Verifies a tracked node resubmitted with a sub-epsilon delta — the shape a
+     * caller-side isTracked guard produces near the end of a tween — neither
+     * finalizes the node nor rearms the timeline.
+     */
+    @Test
+    public void subEpsilonResubmissionKeepsTrackedTween() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = new Region();
+
+        runOnFx(() -> {
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 200.0, 0.0, false)),
+                    true, Duration.millis(400.0), Interpolator.LINEAR);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 0.2, 0.0, false)),
+                    true, Duration.millis(400.0), Interpolator.LINEAR);
+            assertTrue(node.getTranslateX() > 100.0, "in-flight tween untouched by the resubmission");
+        });
+        waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON);
+    }
+
+    /**
      * Verifies a relayout pass never arms a node that an exit animation owns: the
      * exit keeps exclusive control of its transforms.
      */

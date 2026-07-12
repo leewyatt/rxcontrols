@@ -485,7 +485,15 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     private CellGeometry cellGeometry(double contentWidth) {
         double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
         double cellHeight = snapSizeY(RXTileViewSkin.prefTileHeightOrDefault(control));
-        int cols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
+        int resolvedCols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
+        // A single partial data row has no cross-row column alignment to preserve,
+        // so the justify block spans the actual cells rather than the resolvable
+        // column count — mirroring RXTilePane. With multiple data rows the short
+        // final row keeps the full-row metrics so columns stay aligned.
+        int cols = resolvedCols;
+        if (rowPlan != null && rowPlan.totalDataRows() == 1) {
+            cols = Math.max(1, Math.min(resolvedCols, rowPlan.itemCount()));
+        }
         double baseWidth = snapSizeX(RXTileViewSkin.prefTileWidthOrDefault(control));
         ItemsJustify mode = RXTileViewSkin.justifyOrDefault(control.getItemsJustify());
 

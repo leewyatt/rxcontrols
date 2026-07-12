@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
@@ -11,6 +12,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
@@ -20,15 +22,16 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 import java.util.List;
 
 /**
  * Showcase for {@link RXTilePane}. Renders a responsive wall of node cards and
- * exposes every knob — tile size, spacing, max columns, layout and
- * relayout animation — plus add / remove controls and a live readout of the
- * resolved column count, so the responsive grid and the glide can be exercised
- * directly on real children.
+ * exposes every knob — tile size (pref and max), spacing, pref / max columns,
+ * layout and relayout animation — plus add / remove controls and a live readout
+ * of the resolved column count, so the responsive grid and the glide can be
+ * exercised directly on real children.
  */
 public class RXTilePaneShowcase extends RXShowcaseApplication {
 
@@ -53,7 +56,6 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         tiles.setPrefTileWidth(100.0);
         tiles.setPrefTileHeight(100.0);
         tiles.setStyle("-fx-background-color: #caefff;");
-        tiles.setAnimated(true);
 
         // Add unresizable nodes
         tiles.getChildren().addAll(circleProbe(), rectangleProbe());
@@ -89,9 +91,17 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         width.valueProperty().addListener((obs, old, value) -> tiles.setPrefTileWidth(value.doubleValue()));
         Slider height = createSlider(60, 280, tiles.getPrefTileHeight());
         height.valueProperty().addListener((obs, old, value) -> tiles.setPrefTileHeight(value.doubleValue()));
+        Slider maxWidth = intSlider(0, 400, (int) tiles.getMaxTileWidth());
+        maxWidth.valueProperty().addListener((obs, old, value) -> tiles.setMaxTileWidth(value.intValue()));
+        Label maxWidthNote = new Label(
+                "Max width caps how far STRETCH grows a tile; the capped block is centered.");
+        maxWidthNote.getStyleClass().add("note-label");
+        maxWidthNote.setWrapText(true);
         return createGrid(
                 row("Width", width, createValueLabel(width, "%.0f px")),
-                row("Height", height, createValueLabel(height, "%.0f px")));
+                row("Height", height, createValueLabel(height, "%.0f px")),
+                row("Max width (STRETCH)", maxWidth, sentinelLabel(maxWidth, "none")),
+                row(maxWidthNote));
     }
 
     private Node spacingGrid() {
@@ -107,8 +117,11 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     private Node columnsGrid() {
         Slider maxColumns = intSlider(0, 12, tiles.getMaxColumns());
         maxColumns.valueProperty().addListener((obs, old, value) -> tiles.setMaxColumns(value.intValue()));
+        Slider prefColumns = intSlider(1, 8, tiles.getPrefColumns());
+        prefColumns.valueProperty().addListener((obs, old, value) -> tiles.setPrefColumns(value.intValue()));
         return createGrid(
-                row("Max", maxColumns, sentinelLabel(maxColumns, "none")));
+                row("Max", maxColumns, sentinelLabel(maxColumns, "none")),
+                row("Pref (pref size only)", prefColumns, createValueLabel(prefColumns, "%.0f")));
     }
 
     private Node layoutGrid() {
@@ -144,9 +157,44 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         duration.valueProperty().addListener(
                 (obs, old, value) -> tiles.setAnimationDuration(Duration.millis(value.doubleValue())));
 
+        ComboBox<Interpolator> interpolatorBox = new ComboBox<>(FXCollections.observableArrayList(
+                Interpolator.EASE_BOTH, Interpolator.EASE_OUT, Interpolator.EASE_IN, Interpolator.LINEAR));
+        interpolatorBox.setValue(tiles.getAnimationInterpolator());
+        interpolatorBox.setMaxWidth(Double.MAX_VALUE);
+        interpolatorBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Interpolator interpolator) {
+                return interpolatorName(interpolator);
+            }
+
+            @Override
+            public Interpolator fromString(String string) {
+                return null;
+            }
+        });
+        interpolatorBox.valueProperty().addListener(
+                (obs, old, value) -> tiles.setAnimationInterpolator(value));
+
         return createGrid(
                 row(animated),
-                row("Duration", duration, createValueLabel(duration, "%.0f ms")));
+                row("Duration", duration, createValueLabel(duration, "%.0f ms")),
+                row("Interpolator", interpolatorBox, new Label()));
+    }
+
+    private String interpolatorName(Interpolator interpolator) {
+        if (interpolator == Interpolator.EASE_BOTH) {
+            return "EASE_BOTH";
+        }
+        if (interpolator == Interpolator.EASE_OUT) {
+            return "EASE_OUT";
+        }
+        if (interpolator == Interpolator.EASE_IN) {
+            return "EASE_IN";
+        }
+        if (interpolator == Interpolator.LINEAR) {
+            return "LINEAR";
+        }
+        return String.valueOf(interpolator);
     }
 
     private Node childrenGrid() {

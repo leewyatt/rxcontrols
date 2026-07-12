@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -103,21 +104,23 @@ public class RXTilePane extends Pane {
      * this pane's {@link #tileAlignmentProperty() tileAlignment} for that child.
      * Passing {@code null} removes the constraint.
      *
-     * @param node  the child node
+     * @param child the child node
      * @param value the child tile alignment, or {@code null} to remove it
+     * @throws NullPointerException if {@code child} is {@code null}
      */
-    public static void setAlignment(Node node, Pos value) {
-        setConstraint(node, ALIGNMENT_CONSTRAINT, value);
+    public static void setAlignment(Node child, Pos value) {
+        setConstraint(child, ALIGNMENT_CONSTRAINT, value);
     }
 
     /**
      * Returns the tile alignment constraint for a child.
      *
-     * @param node the child node
+     * @param child the child node
      * @return the child tile alignment, or {@code null} if none is set
+     * @throws NullPointerException if {@code child} is {@code null}
      */
-    public static Pos getAlignment(Node node) {
-        return (Pos) getConstraint(node, ALIGNMENT_CONSTRAINT);
+    public static Pos getAlignment(Node child) {
+        return (Pos) getConstraint(child, ALIGNMENT_CONSTRAINT);
     }
 
     /**
@@ -125,47 +128,52 @@ public class RXTilePane extends Pane {
      * constraint. Margins participate in computed tile size and are subtracted
      * from the child layout area, matching JavaFX {@code TilePane}.
      *
-     * @param node  the child node
+     * @param child the child node
      * @param value the margin around the child, or {@code null} to remove it
+     * @throws NullPointerException if {@code child} is {@code null}
      */
-    public static void setMargin(Node node, Insets value) {
-        setConstraint(node, MARGIN_CONSTRAINT, value);
+    public static void setMargin(Node child, Insets value) {
+        setConstraint(child, MARGIN_CONSTRAINT, value);
     }
 
     /**
      * Returns the margin constraint for a child.
      *
-     * @param node the child node
+     * @param child the child node
      * @return the child margin, or {@code null} if none is set
+     * @throws NullPointerException if {@code child} is {@code null}
      */
-    public static Insets getMargin(Node node) {
-        return (Insets) getConstraint(node, MARGIN_CONSTRAINT);
+    public static Insets getMargin(Node child) {
+        return (Insets) getConstraint(child, MARGIN_CONSTRAINT);
     }
 
     /**
      * Removes all RXTilePane constraints from the child node.
      *
      * @param child the child node
+     * @throws NullPointerException if {@code child} is {@code null}
      */
     public static void clearConstraints(Node child) {
         setAlignment(child, null);
         setMargin(child, null);
     }
 
-    private static void setConstraint(Node node, String key, Object value) {
+    private static void setConstraint(Node child, String key, Object value) {
+        Objects.requireNonNull(child, "child cannot be null");
         if (value == null) {
-            node.getProperties().remove(key);
+            child.getProperties().remove(key);
         } else {
-            node.getProperties().put(key, value);
+            child.getProperties().put(key, value);
         }
-        if (node.getParent() != null) {
-            node.getParent().requestLayout();
+        if (child.getParent() != null) {
+            child.getParent().requestLayout();
         }
     }
 
-    private static Object getConstraint(Node node, String key) {
-        if (node.hasProperties()) {
-            Object value = node.getProperties().get(key);
+    private static Object getConstraint(Node child, String key) {
+        Objects.requireNonNull(child, "child cannot be null");
+        if (child.hasProperties()) {
+            Object value = child.getProperties().get(key);
             if (value != null) {
                 return value;
             }
@@ -561,6 +569,59 @@ public class RXTilePane extends Pane {
      */
     public final void setMaxColumns(int value) {
         maxColumns.set(value);
+    }
+
+    // ==================== Pref Columns ====================
+
+    private final IntegerProperty prefColumns = new StyleableIntegerProperty(DEFAULT_PREF_COLUMNS) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
+        }
+
+        @Override
+        public CssMetaData<RXTilePane, Number> getCssMetaData() {
+            return StyleableProperties.PREF_COLUMNS;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTilePane.this;
+        }
+
+        @Override
+        public String getName() {
+            return "prefColumns";
+        }
+    };
+
+    /**
+     * Number of columns used by {@link #computePrefWidth(double)} when the pane is
+     * measured without a width constraint. Does not affect the actual column count
+     * used during layout, which is derived from the available width.
+     *
+     * @return the pref columns property
+     */
+    public final IntegerProperty prefColumnsProperty() {
+        return prefColumns;
+    }
+
+    /**
+     * Returns the preferred column count.
+     *
+     * @return the preferred column count
+     */
+    public final int getPrefColumns() {
+        return prefColumns.get();
+    }
+
+    /**
+     * Sets the preferred column count.
+     *
+     * @param value the preferred column count
+     */
+    public final void setPrefColumns(int value) {
+        prefColumns.set(value);
     }
 
     // ==================== Items Justify ====================
@@ -1000,19 +1061,25 @@ public class RXTilePane extends Pane {
         double effectiveHgap;
         double startX;
         ItemsJustify mode = justifyOrDefault(getItemsJustify());
-        double preferredRowWidth = columns * nominalTileWidth + (columns - 1) * hgapValue;
-        if (columns == 1 && preferredRowWidth > contentWidth) {
+        // A single partial row has no cross-row column alignment to preserve, so
+        // the justify block spans the actual tiles rather than the resolvable
+        // column count — CENTER/END/SPACE_*/STRETCH then behave like CSS
+        // justify-content on that row. With multiple rows the short final row
+        // keeps the full-row metrics so columns stay aligned across rows.
+        int justifyColumns = rows == 1 ? Math.min(columns, managed.size()) : columns;
+        double preferredRowWidth = justifyColumns * nominalTileWidth + (justifyColumns - 1) * hgapValue;
+        if (justifyColumns == 1 && preferredRowWidth > contentWidth) {
             tileWidth = Math.max(0.0, contentWidth);
             effectiveHgap = hgapValue;
             startX = 0.0;
         } else if (mode == ItemsJustify.STRETCH) {
-            double ideal = (contentWidth - (columns - 1) * hgapValue) / columns;
+            double ideal = (contentWidth - (justifyColumns - 1) * hgapValue) / justifyColumns;
             double cap = maxTileWidthOrUnbounded();
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), nominalTileWidth) : 0.0;
             effectiveHgap = hgapValue;
             if (effectiveCap > 0.0 && ideal > effectiveCap) {
                 tileWidth = effectiveCap;
-                double used = columns * tileWidth + (columns - 1) * hgapValue;
+                double used = justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue;
                 startX = Math.max(0.0, (contentWidth - used) / 2.0);
             } else {
                 tileWidth = snapSizeX(Math.max(0.0, ideal));
@@ -1026,14 +1093,14 @@ public class RXTilePane extends Pane {
             switch (mode) {
                 case CENTER -> startX = slack / 2.0;
                 case END -> startX = slack;
-                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (columns > 1 ? slack / (columns - 1) : 0.0);
+                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (justifyColumns > 1 ? slack / (justifyColumns - 1) : 0.0);
                 case SPACE_AROUND -> {
-                    effectiveHgap = hgapValue + slack / columns;
-                    startX = slack / (2.0 * columns);
+                    effectiveHgap = hgapValue + slack / justifyColumns;
+                    startX = slack / (2.0 * justifyColumns);
                 }
                 case SPACE_EVENLY -> {
-                    effectiveHgap = hgapValue + slack / (columns + 1);
-                    startX = slack / (columns + 1);
+                    effectiveHgap = hgapValue + slack / (justifyColumns + 1);
+                    startX = slack / (justifyColumns + 1);
                 }
                 default -> {
                     // START: the block hugs the leading edge (defaults stand).
@@ -1042,6 +1109,9 @@ public class RXTilePane extends Pane {
         }
 
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null && isAnimationDurationPositive();
+        // With animation off and nothing in flight the animator pass would be a
+        // no-op; skip the move bookkeeping entirely on this hot path.
+        boolean collectMoves = animate || animator.hasActiveState();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
         List<PaneRelayoutAnimator.Move> moves = null;
         for (int i = 0; i < managed.size(); i++) {
@@ -1053,22 +1123,35 @@ public class RXTilePane extends Pane {
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An
             // entering child has no meaningful previous position, so it snaps in.
-            double oldVisualX = child.getLayoutX() + child.getTranslateX();
-            double oldVisualY = child.getLayoutY() + child.getTranslateY();
+            double oldVisualX = 0.0;
+            double oldVisualY = 0.0;
+            if (collectMoves) {
+                oldVisualX = child.getLayoutX() + child.getTranslateX();
+                oldVisualY = child.getLayoutY() + child.getTranslateY();
+            }
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
             layoutInArea(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
+            if (!collectMoves) {
+                continue;
+            }
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
+            // A node the animator still tracks stays submitted even when static
+            // this pass — dropping it would finalize its in-flight tween.
             if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
-                    || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON) {
+                    || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
+                    || animator.isTracked(child)) {
                 if (moves == null) {
                     moves = new ArrayList<>();
                 }
                 moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
             }
         }
-        animator.runRelayout(moves == null ? List.of() : moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (collectMoves) {
+            animator.runRelayout(moves == null ? List.of() : moves, animate,
+                    getAnimationDuration(), interpolatorOrDefault());
+        }
         enteringNodes.clear();
         firstLayoutDone = true;
     }
@@ -1090,7 +1173,7 @@ public class RXTilePane extends Pane {
     }
 
     private int prefWidthColumns() {
-        return capColumns(DEFAULT_PREF_COLUMNS);
+        return capColumns(getPrefColumns());
     }
 
     private int capColumns(int columns) {
@@ -1382,6 +1465,20 @@ public class RXTilePane extends Pane {
                     }
                 };
 
+        private static final CssMetaData<RXTilePane, Number> PREF_COLUMNS =
+                new CssMetaData<>("-rx-pref-columns", SizeConverter.getInstance(), DEFAULT_PREF_COLUMNS) {
+                    @Override
+                    public boolean isSettable(RXTilePane node) {
+                        return !node.prefColumns.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTilePane node) {
+                        return (StyleableProperty<Number>) node.prefColumnsProperty();
+                    }
+                };
+
         private static final CssMetaData<RXTilePane, Number> MAX_COLUMNS =
                 new CssMetaData<>("-rx-max-columns", SizeConverter.getInstance(), DEFAULT_MAX_COLUMNS) {
                     @Override
@@ -1503,7 +1600,7 @@ public class RXTilePane extends Pane {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_COLUMNS, HGAP, VGAP,
+            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, PREF_COLUMNS, MAX_COLUMNS, HGAP, VGAP,
                     ITEMS_JUSTIFY, CONTENT_V_ALIGNMENT, TILE_ALIGNMENT, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

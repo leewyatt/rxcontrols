@@ -130,6 +130,14 @@ final class RXTileRowPlan {
         return columns;
     }
 
+    int totalDataRows() {
+        return totalDataRows;
+    }
+
+    int itemCount() {
+        return itemCount;
+    }
+
     boolean headersShown() {
         return headersShown;
     }

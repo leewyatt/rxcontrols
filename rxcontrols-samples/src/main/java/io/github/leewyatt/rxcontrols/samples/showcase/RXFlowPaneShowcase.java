@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 
+import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.geometry.HPos;
@@ -18,6 +19,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 import java.util.List;
 
@@ -156,9 +158,20 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         Slider vgapSlider = createSlider(0.0, 40.0, flow.getVgap());
         flow.vgapProperty().bind(vgapSlider.valueProperty());
 
+        Slider wrapLengthSlider = createSlider(100.0, 1000.0, flow.getPrefWrapLength());
+        flow.prefWrapLengthProperty().bind(wrapLengthSlider.valueProperty());
+
+        Label wrapNote = new Label(
+                "Pref wrap length only drives the pane's preferred size; the actual "
+                        + "wrapping follows the width the parent gives it.");
+        wrapNote.getStyleClass().add("note-label");
+        wrapNote.setWrapText(true);
+
         return createGrid(
                 row("Hgap", hgapSlider, createValueLabel(hgapSlider, "%.0f px")),
-                row("Vgap", vgapSlider, createValueLabel(vgapSlider, "%.0f px")));
+                row("Vgap", vgapSlider, createValueLabel(vgapSlider, "%.0f px")),
+                row("Pref wrap length", wrapLengthSlider, createValueLabel(wrapLengthSlider, "%.0f px")),
+                row(wrapNote));
     }
 
     private Node buildAnimationGrid() {
@@ -170,17 +183,51 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         flow.animationDurationProperty().bind(Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()), durationSlider.valueProperty()));
 
+        ComboBox<Interpolator> interpolatorBox = new ComboBox<>(FXCollections.observableArrayList(
+                Interpolator.EASE_BOTH, Interpolator.EASE_OUT, Interpolator.EASE_IN, Interpolator.LINEAR));
+        interpolatorBox.setValue(flow.getAnimationInterpolator());
+        interpolatorBox.setMaxWidth(Double.MAX_VALUE);
+        interpolatorBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Interpolator interpolator) {
+                return interpolatorName(interpolator);
+            }
+
+            @Override
+            public Interpolator fromString(String string) {
+                return null;
+            }
+        });
+        flow.animationInterpolatorProperty().bind(interpolatorBox.valueProperty());
+
         Label note = new Label(
-                "Turn on, then change the alignment / gaps / wrap length or add a chip — the "
+                "On by default — change the alignment / gaps or add a chip and the "
                         + "existing chips glide to their new positions while a newly added chip "
-                        + "snaps in. Off by default.");
+                        + "snaps in. Untick to snap every reflow.");
         note.getStyleClass().add("note-label");
         note.setWrapText(true);
 
         return createGrid(
                 row(animate),
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
+                row("Interpolator", interpolatorBox, new Label()),
                 row(note));
+    }
+
+    private String interpolatorName(Interpolator interpolator) {
+        if (interpolator == Interpolator.EASE_BOTH) {
+            return "EASE_BOTH";
+        }
+        if (interpolator == Interpolator.EASE_OUT) {
+            return "EASE_OUT";
+        }
+        if (interpolator == Interpolator.EASE_IN) {
+            return "EASE_IN";
+        }
+        if (interpolator == Interpolator.LINEAR) {
+            return "LINEAR";
+        }
+        return String.valueOf(interpolator);
     }
 
     private Node buildContentGrid() {
