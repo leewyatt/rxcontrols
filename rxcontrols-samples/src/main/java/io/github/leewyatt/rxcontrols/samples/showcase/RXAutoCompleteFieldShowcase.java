@@ -29,7 +29,7 @@ import java.util.function.Predicate;
  * Showcase application for {@link RXAutoCompleteField}.
  *
  * <p>Exercises the local suggestion field: swappable dataset, filter strategy
- * ({@code filterFunction}), the number of visible dropdown rows, the entrance
+ * ({@code filterFactory}), the number of visible dropdown rows, the entrance
  * animation toggle, converter and custom suggestion-cell-factory rendering, and a
  * live readout driven by the {@code onAutoCompleted} event (the default completion
  * handler stays in place).
@@ -173,7 +173,7 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         modeBox.setValue(FilterMode.CONTAINS);
         modeBox.setMaxWidth(Double.MAX_VALUE);
         modeBox.valueProperty().addListener((obs, oldV, newV) ->
-                field.setFilterFunction(newV == null ? null : newV.function()));
+                field.setFilterFactory(newV == null ? null : newV.function()));
 
         Label hint = new Label("The filter maps the typed text to a predicate over the "
                 + "suggestions; a null function falls back to the default substring match.");
@@ -244,7 +244,7 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
         CONTAINS("Contains (default)") {
             @Override
             Function<String, Predicate<String>> function() {
-                return RXAutoCompleteField.DEFAULT_FILTER_FUNCTION;
+                return RXAutoCompleteField.DEFAULT_FILTER_FACTORY;
             }
         },
         STARTS_WITH("Starts with") {

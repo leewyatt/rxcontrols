@@ -136,7 +136,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
 
         disposer.registerListener(editor.textProperty(), this::onEditorTextChanged);
         disposer.registerListener(editor.focusedProperty(), this::onEditorFocusChanged);
-        disposer.registerListener(control.filterFunctionProperty(), this::onEditorTextChanged);
+        disposer.registerListener(control.filterFactoryProperty(), this::onEditorTextChanged);
         disposer.registerListener(control.filterSelectedOptionsProperty(), this::refilterOpenPopup);
         disposer.registerListener(control.allowDuplicatesProperty(), this::refilterOpenPopup);
         disposer.registerListener(control.autoSelectFirstSuggestionProperty(),
@@ -566,7 +566,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
 
     private Predicate<T> buildPredicate(String query) {
         RXChipInput<T> control = getSkinnable();
-        Function<String, Predicate<T>> function = control.getFilterFunction();
+        Function<String, Predicate<T>> function = control.getFilterFactory();
         Predicate<T> base = function != null ? function.apply(query) : defaultPredicate(query);
         // Hiding already-chosen options is opt-in via filterSelectedOptions. Otherwise
         // they stay in the list, shown disabled when they cannot be added again — see the

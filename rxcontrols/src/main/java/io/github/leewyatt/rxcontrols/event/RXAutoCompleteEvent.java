@@ -5,11 +5,11 @@ import javafx.event.EventType;
 
 /**
  * Event for the autocomplete lifecycle: a suggestion was committed and the
- * completion handler has written it back.
+ * completion pipeline has run.
  *
  * <p>{@link #COMPLETED} is a pure post-notification for observing completions;
- * customizing what a commit writes into the field is the job of the control's
- * {@code completionHandler} strategy, not of this event.</p>
+ * customizing what a commit writes into the field (possibly nothing at all) is
+ * the job of the {@code completionHandler} strategy, not of this event.</p>
  *
  * <p>The event is not generic: {@link #getItem() item} is typed {@link Object}
  * so the runtime {@link EventType} constants stay simple (a generic

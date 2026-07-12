@@ -41,7 +41,7 @@ import java.util.function.Predicate;
  * }</pre>
  *
  * <p>As the user types, the {@link #getSuggestions() suggestions} are filtered by
- * {@link #filterFunctionProperty() filterFunction} (by default a case-insensitive
+ * {@link #filterFactoryProperty() filterFactory} (by default a case-insensitive
  * substring match on each item's display text) and shown in an anchored popup;
  * committing an item (mouse or keyboard) runs the
  * {@link #completionHandlerProperty() completionHandler} write-back (by default
@@ -143,13 +143,13 @@ public final class RXAutoCompletion<T> {
     }
 
     /**
-     * Returns a filter function that accepts every suggestion regardless of the
+     * Returns a filter factory that accepts every suggestion regardless of the
      * query. Use it when the suggestions are already filtered elsewhere (typically
      * a server-side search feeding {@link #getSuggestions()}), where the default
      * substring filter would wrongly re-filter fuzzy-matched results.
      *
      * @param <T> the suggestion item type
-     * @return the all-accepting filter function
+     * @return the all-accepting filter factory
      */
     public static <T> Function<String, Predicate<T>> acceptAll() {
         return query -> item -> true;
@@ -190,7 +190,7 @@ public final class RXAutoCompletion<T> {
         // write-back both act on the item's display text (converter-aware); the
         // String control's seams act on the raw item instead.
         this.support = new AutoCompletionSupport<>(field,
-                this::getFilterFunction,
+                this::getFilterFactory,
                 this::defaultFilterPredicate,
                 this::getCompletionHandler,
                 this::displayTextOf);
@@ -209,7 +209,8 @@ public final class RXAutoCompletion<T> {
      * and disposes the popup, and removes every listener, key filter, and event
      * handler it installed. Idempotent, and identity-checked against the field's
      * registry — a stale handle disposed after being replaced only cleans up its
-     * own leftovers and never detaches the newer binding.
+     * own leftovers and never detaches the newer binding. Afterwards the handle is
+     * inert: configuration changes and show / hide calls no longer have any effect.
      */
     public void dispose() {
         disposed = true;
@@ -235,10 +236,10 @@ public final class RXAutoCompletion<T> {
         return suggestions;
     }
 
-    // ==================== Filter Function ====================
+    // ==================== Filter Factory ====================
 
-    private final ObjectProperty<Function<String, Predicate<T>>> filterFunction =
-            new SimpleObjectProperty<>(this, "filterFunction") {
+    private final ObjectProperty<Function<String, Predicate<T>>> filterFactory =
+            new SimpleObjectProperty<>(this, "filterFactory") {
                 @Override
                 protected void invalidated() {
                     support.requestRefilter();
@@ -251,28 +252,28 @@ public final class RXAutoCompletion<T> {
      * on each item's display text. See {@link #acceptAll()} for pre-filtered
      * (asynchronous / server-side) sources.
      *
-     * @return the filter-function property
+     * @return the filter-factory property
      */
-    public ObjectProperty<Function<String, Predicate<T>>> filterFunctionProperty() {
-        return filterFunction;
+    public ObjectProperty<Function<String, Predicate<T>>> filterFactoryProperty() {
+        return filterFactory;
     }
 
     /**
-     * Returns the filter function.
+     * Returns the filter factory.
      *
-     * @return the filter function, or {@code null}
+     * @return the filter factory, or {@code null}
      */
-    public Function<String, Predicate<T>> getFilterFunction() {
-        return filterFunction.get();
+    public Function<String, Predicate<T>> getFilterFactory() {
+        return filterFactory.get();
     }
 
     /**
-     * Sets the filter function.
+     * Sets the filter factory.
      *
-     * @param value the filter function, or {@code null} for the default
+     * @param value the filter factory, or {@code null} for the default
      */
-    public void setFilterFunction(Function<String, Predicate<T>> value) {
-        filterFunction.set(value);
+    public void setFilterFactory(Function<String, Predicate<T>> value) {
+        filterFactory.set(value);
     }
 
     // ==================== Completion Handler ====================

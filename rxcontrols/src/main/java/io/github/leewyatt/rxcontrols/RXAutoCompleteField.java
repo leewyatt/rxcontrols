@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 /**
  * Text field with a local, synchronous autocomplete dropdown. As the user types,
  * {@link #getSuggestions() suggestions} are filtered by
- * {@link #filterFunctionProperty() filterFunction} and shown in an anchored popup;
+ * {@link #filterFactoryProperty() filterFactory} and shown in an anchored popup;
  * choosing an item (mouse or keyboard) runs the
  * {@link #completionHandlerProperty() completionHandler} write-back strategy
  * (by default writing the item into the field) and then fires
@@ -51,7 +51,7 @@ public class RXAutoCompleteField extends RXTextField {
     private static final PseudoClass POPUP_SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("popup-showing");
 
     /** Default filter: case-insensitive substring match against each suggestion. */
-    public static final Function<String, Predicate<String>> DEFAULT_FILTER_FUNCTION =
+    public static final Function<String, Predicate<String>> DEFAULT_FILTER_FACTORY =
             query -> {
                 String needle = (query == null ? "" : query).toLowerCase(Locale.ROOT);
                 return candidate -> candidate != null
@@ -102,38 +102,38 @@ public class RXAutoCompleteField extends RXTextField {
         return suggestions;
     }
 
-    // ==================== Filter Function ====================
+    // ==================== Filter Factory ====================
 
-    private final ObjectProperty<Function<String, Predicate<String>>> filterFunction =
-            new SimpleObjectProperty<>(this, "filterFunction", DEFAULT_FILTER_FUNCTION);
+    private final ObjectProperty<Function<String, Predicate<String>>> filterFactory =
+            new SimpleObjectProperty<>(this, "filterFactory", DEFAULT_FILTER_FACTORY);
 
     /**
      * Maps the current query text to a predicate selecting matching suggestions.
      * A {@code null} value (or a {@code null} predicate result) is treated as
-     * {@link #DEFAULT_FILTER_FUNCTION} / show-all by the skin.
+     * {@link #DEFAULT_FILTER_FACTORY} / show-all by the skin.
      *
-     * @return the filter-function property
+     * @return the filter-factory property
      */
-    public final ObjectProperty<Function<String, Predicate<String>>> filterFunctionProperty() {
-        return filterFunction;
+    public final ObjectProperty<Function<String, Predicate<String>>> filterFactoryProperty() {
+        return filterFactory;
     }
 
     /**
-     * Returns the filter function.
+     * Returns the filter factory.
      *
-     * @return the filter function, or {@code null}
+     * @return the filter factory, or {@code null}
      */
-    public final Function<String, Predicate<String>> getFilterFunction() {
-        return filterFunction.get();
+    public final Function<String, Predicate<String>> getFilterFactory() {
+        return filterFactory.get();
     }
 
     /**
-     * Sets the filter function.
+     * Sets the filter factory.
      *
-     * @param value the filter function, or {@code null} for the default
+     * @param value the filter factory, or {@code null} for the default
      */
-    public final void setFilterFunction(Function<String, Predicate<String>> value) {
-        filterFunction.set(value);
+    public final void setFilterFactory(Function<String, Predicate<String>> value) {
+        filterFactory.set(value);
     }
 
     // ==================== Completion Handler ====================

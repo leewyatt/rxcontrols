@@ -426,7 +426,7 @@ public class RXChipInputTest {
     public void suggestionPopupPropertyDefaults() {
         RXChipInput<String> input = new RXChipInput<>();
         assertTrue(input.getSuggestions().isEmpty());
-        assertSame(null, input.getFilterFunction());
+        assertSame(null, input.getFilterFactory());
         assertFalse(input.isFilterSelectedOptions());
         assertSame(null, input.getSuggestionCellFactory());
         assertEquals(RXChipInput.DEFAULT_VISIBLE_ROW_COUNT, input.getVisibleRowCount());

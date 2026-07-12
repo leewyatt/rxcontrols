@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Headless tests for the {@link RXAutoCompleteField} control contract: the default
- * filter function, default completion handler, the auto-completed event wiring,
+ * filter factory, default completion handler, the auto-completed event wiring,
  * live suggestions list, and style class. The interactive dropdown (show / keyboard
  * navigation / focus) is left to real-machine checks.
  */
@@ -45,16 +45,16 @@ public class RXAutoCompleteFieldTest {
     }
 
     @Test
-    public void defaultFilterFunctionIsCaseInsensitiveSubstring() {
-        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("ST").test("United States"),
+    public void defaultFilterFactoryIsCaseInsensitiveSubstring() {
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FACTORY.apply("ST").test("United States"),
                 "case-insensitive substring match");
-        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("united").test("UNITED KINGDOM"),
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FACTORY.apply("united").test("UNITED KINGDOM"),
                 "case-insensitive both ways");
-        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("xyz").test("United States"),
+        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FACTORY.apply("xyz").test("United States"),
                 "no match");
-        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("a").test(null),
+        assertFalse(RXAutoCompleteField.DEFAULT_FILTER_FACTORY.apply("a").test(null),
                 "null candidate never matches");
-        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION.apply("").test("anything"),
+        assertTrue(RXAutoCompleteField.DEFAULT_FILTER_FACTORY.apply("").test("anything"),
                 "empty query matches all");
     }
 
@@ -102,8 +102,8 @@ public class RXAutoCompleteFieldTest {
     public void defaultsAndStyleClass() throws InterruptedException {
         runOnFx(() -> {
             RXAutoCompleteField field = new RXAutoCompleteField();
-            assertEquals(RXAutoCompleteField.DEFAULT_FILTER_FUNCTION, field.getFilterFunction(),
-                    "default filter function is the shared constant");
+            assertEquals(RXAutoCompleteField.DEFAULT_FILTER_FACTORY, field.getFilterFactory(),
+                    "default filter factory is the shared constant");
             assertNull(field.getConverter(), "converter defaults to null");
             assertNull(field.getSuggestionCellFactory(), "cell factory defaults to the built-in cell");
             assertNull(field.getOnAutoCompleted(), "no completion observer by default");
@@ -118,11 +118,11 @@ public class RXAutoCompleteFieldTest {
     }
 
     @Test
-    public void nullFilterFunctionAndCompletionHandlerAreTolerated() throws InterruptedException {
+    public void nullFilterFactoryAndCompletionHandlerAreTolerated() throws InterruptedException {
         runOnFx(() -> {
             RXAutoCompleteField field = new RXAutoCompleteField();
-            field.setFilterFunction(null);
-            assertNull(field.getFilterFunction(), "null is accepted (skin falls back to the default)");
+            field.setFilterFactory(null);
+            assertNull(field.getFilterFactory(), "null is accepted (skin falls back to the default)");
             field.setCompletionHandler(null);
             assertNull(field.getCompletionHandler(),
                     "null is accepted (skin falls back to the built-in write-back)");

@@ -628,36 +628,36 @@ public class RXChipInput<T> extends Control {
 
     // ==================== Suggestions / popup ====================
 
-    private final ObjectProperty<Function<String, Predicate<T>>> filterFunction =
-            new SimpleObjectProperty<>(this, "filterFunction");
+    private final ObjectProperty<Function<String, Predicate<T>>> filterFactory =
+            new SimpleObjectProperty<>(this, "filterFactory");
 
     /**
      * Maps the current query text to a predicate that filters {@link #getSuggestions()}.
      * When {@code null} the skin uses a case-insensitive contains match on the
      * converter's text.
      *
-     * @return the filter-function property
+     * @return the filter-factory property
      */
-    public final ObjectProperty<Function<String, Predicate<T>>> filterFunctionProperty() {
-        return filterFunction;
+    public final ObjectProperty<Function<String, Predicate<T>>> filterFactoryProperty() {
+        return filterFactory;
     }
 
     /**
-     * Returns the filter function.
+     * Returns the filter factory.
      *
-     * @return the filter function, or {@code null}
+     * @return the filter factory, or {@code null}
      */
-    public final Function<String, Predicate<T>> getFilterFunction() {
-        return filterFunction.get();
+    public final Function<String, Predicate<T>> getFilterFactory() {
+        return filterFactory.get();
     }
 
     /**
-     * Sets the filter function.
+     * Sets the filter factory.
      *
-     * @param value the filter function, or {@code null} for the default
+     * @param value the filter factory, or {@code null} for the default
      */
-    public final void setFilterFunction(Function<String, Predicate<T>> value) {
-        filterFunction.set(value);
+    public final void setFilterFactory(Function<String, Predicate<T>> value) {
+        filterFactory.set(value);
     }
 
     private final BooleanProperty filterSelectedOptions =

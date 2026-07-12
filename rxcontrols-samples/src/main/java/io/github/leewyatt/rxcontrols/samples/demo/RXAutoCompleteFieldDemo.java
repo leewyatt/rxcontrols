@@ -47,7 +47,7 @@ public class RXAutoCompleteFieldDemo extends Application {
         email.setPromptText("you@example.com");
         email.getSuggestions().setAll(EMAIL_DOMAINS);
         // Custom filter: only suggest once an '@' is typed, matching the domain part.
-        email.setFilterFunction(query -> {
+        email.setFilterFactory(query -> {
             int at = query.lastIndexOf('@');
             if (at < 0) {
                 return domain -> false;

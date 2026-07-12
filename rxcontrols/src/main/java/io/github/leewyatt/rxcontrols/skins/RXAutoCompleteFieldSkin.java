@@ -32,8 +32,8 @@ public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
         // act on the raw suggestion string itself; only row text goes through the
         // converter (inside the popup's cell).
         support = new AutoCompletionSupport<>(control,
-                control::getFilterFunction,
-                RXAutoCompleteField.DEFAULT_FILTER_FUNCTION,
+                control::getFilterFactory,
+                RXAutoCompleteField.DEFAULT_FILTER_FACTORY,
                 control::getCompletionHandler,
                 item -> item);
 
@@ -43,7 +43,7 @@ public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
         support.setMaxVisibleRows(control.getVisibleRowCount());
         support.setAnimated(control.isAnimated());
 
-        disposer.registerListener(control.filterFunctionProperty(), support::requestRefilter);
+        disposer.registerListener(control.filterFactoryProperty(), support::requestRefilter);
         disposer.registerListener(control.converterProperty(),
                 () -> support.setConverter(control.getConverter()));
         disposer.registerListener(control.suggestionCellFactoryProperty(),

@@ -162,7 +162,7 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
 
     private void bindCompletion() {
         completion = RXAutoCompletion.bind(field, dataset.items());
-        completion.setFilterFunction(filterMode.function());
+        completion.setFilterFactory(filterMode.function());
         completion.setVisibleRowCount(visibleRows);
         completion.setAnimated(animated);
         completion.setConverter(upperCaseConverter ? UPPER_CASE_CONVERTER : null);
@@ -242,7 +242,7 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
             if (newV != null) {
                 filterMode = newV;
                 if (completion != null) {
-                    completion.setFilterFunction(newV.function());
+                    completion.setFilterFactory(newV.function());
                 }
             }
         });

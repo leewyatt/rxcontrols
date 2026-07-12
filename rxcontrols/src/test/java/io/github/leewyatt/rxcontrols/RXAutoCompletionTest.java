@@ -5,12 +5,14 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.TextField;
+import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,7 +126,7 @@ public class RXAutoCompletionTest {
             ref.set(completion);
             // The filter runs before the focus check, so its invocation count observes
             // the debounced text pipeline even though the dropdown cannot open headless.
-            completion.setFilterFunction(query -> {
+            completion.setFilterFactory(query -> {
                 filterCalls.incrementAndGet();
                 return item -> true;
             });
@@ -214,8 +216,8 @@ public class RXAutoCompletionTest {
     public void configurationDefaults() throws InterruptedException {
         runOnFx(() -> {
             RXAutoCompletion<String> completion = RXAutoCompletion.bind(new TextField());
-            assertNull(completion.getFilterFunction(),
-                    "filter function defaults to null (display-text contains fallback)");
+            assertNull(completion.getFilterFactory(),
+                    "filter factory defaults to null (display-text contains fallback)");
             assertNull(completion.getCompletionHandler(),
                     "completion handler defaults to null (display-text write-back fallback)");
             assertNull(completion.getConverter(), "converter defaults to null");
@@ -273,6 +275,41 @@ public class RXAutoCompletionTest {
             assertEquals("Java", received.get(), "dispose detaches the handler");
         });
     }
+
+    @Test
+    public void staleHandleNeverRunsUserCallbacksAfterDispose() throws InterruptedException {
+        TextField field = new TextField();
+        AtomicInteger filterCalls = new AtomicInteger();
+        runOnFx(() -> {
+            RXAutoCompletion<String> completion = RXAutoCompletion.bind(field, List.of("alpha"));
+            completion.dispose();
+            completion.setFilterFactory(query -> {
+                filterCalls.incrementAndGet();
+                return item -> true;
+            });
+            // showSuggestions would run the filter synchronously if the support were
+            // still live; the config invalidations would queue a debounced re-filter.
+            completion.showSuggestions();
+            completion.setConverter(UPPER_CASE);
+        });
+        // Outlive the debounce window a wrongly queued re-filter would use.
+        Thread.sleep(400);
+        runOnFx(() -> assertEquals(0, filterCalls.get(),
+                "a disposed handle never runs user filter code or queues a re-filter"));
+    }
+
+    private static final StringConverter<String> UPPER_CASE =
+            new StringConverter<>() {
+                @Override
+                public String toString(String value) {
+                    return value == null ? "" : value.toUpperCase(Locale.ROOT);
+                }
+
+                @Override
+                public String fromString(String value) {
+                    return value;
+                }
+            };
 
     @Test
     public void staleHandleSetOnAutoCompletedDoesNotReattach() throws InterruptedException {

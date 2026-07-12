@@ -90,7 +90,7 @@ public class RXAutoCompletionDemo extends Application {
         async.setSuggestionCellFactory(bookCellFactory());
         // The server already matched fuzzily; a client-side contains filter would
         // wrongly re-filter its results.
-        async.setFilterFunction(RXAutoCompletion.acceptAll());
+        async.setFilterFactory(RXAutoCompletion.acceptAll());
 
         PauseTransition remoteSearch = new PauseTransition(SIMULATED_LATENCY);
         asyncField.textProperty().addListener((obs, oldText, text) -> {

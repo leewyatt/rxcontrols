@@ -27,7 +27,7 @@ import java.util.function.Supplier;
  * write-back, then the {@link RXAutoCompleteEvent#COMPLETED} notification fired on
  * the field).
  *
- * <p>Consumers parameterize the strategy seams: where the current filter function
+ * <p>Consumers parameterize the strategy seams: where the current filter factory
  * and completion handler are read from, the fallback filter used when that source
  * is {@code null}, and the default write-back text of a committed item.
  * {@code RXAutoCompleteFieldSkin} consumes it with {@code T = String} (config
@@ -46,8 +46,8 @@ public final class AutoCompletionSupport<T> {
     // ==================== Fields ====================
 
     private final TextField field;
-    private final Supplier<Function<String, Predicate<T>>> filterFunction;
-    private final Function<String, Predicate<T>> defaultFilterFunction;
+    private final Supplier<Function<String, Predicate<T>>> filterFactory;
+    private final Function<String, Predicate<T>> defaultFilterFactory;
     private final Supplier<Consumer<T>> completionHandler;
     private final Function<T, String> defaultCompletionText;
 
@@ -61,6 +61,11 @@ public final class AutoCompletionSupport<T> {
     // change does not re-open the popup.
     private boolean suppressAutoShow;
 
+    // A disposed support is inert: a stale consumer (an unbound facade handle, a
+    // manually disposed skin) must not run user filter code, queue the debounce, or
+    // attach listeners to external suggestion lists anymore.
+    private boolean disposed;
+
     // ==================== Constructor ====================
 
     /**
@@ -68,9 +73,9 @@ public final class AutoCompletionSupport<T> {
      *
      * @param field                 the host text field (anchor, text / focus source,
      *                              key-filter target, and event target)
-     * @param filterFunction        reads the consumer's current filter function; may
+     * @param filterFactory         reads the consumer's current filter factory; may
      *                              yield {@code null}
-     * @param defaultFilterFunction the filter used when {@code filterFunction}
+     * @param defaultFilterFactory  the filter used when {@code filterFactory}
      *                              yields {@code null}
      * @param completionHandler     reads the consumer's current completion handler;
      *                              may yield {@code null} for the default write-back
@@ -79,13 +84,13 @@ public final class AutoCompletionSupport<T> {
      * @throws NullPointerException if any argument is {@code null}
      */
     public AutoCompletionSupport(TextField field,
-            Supplier<Function<String, Predicate<T>>> filterFunction,
-            Function<String, Predicate<T>> defaultFilterFunction,
+            Supplier<Function<String, Predicate<T>>> filterFactory,
+            Function<String, Predicate<T>> defaultFilterFactory,
             Supplier<Consumer<T>> completionHandler,
             Function<T, String> defaultCompletionText) {
         this.field = Objects.requireNonNull(field, "field");
-        this.filterFunction = Objects.requireNonNull(filterFunction, "filterFunction");
-        this.defaultFilterFunction = Objects.requireNonNull(defaultFilterFunction, "defaultFilterFunction");
+        this.filterFactory = Objects.requireNonNull(filterFactory, "filterFactory");
+        this.defaultFilterFactory = Objects.requireNonNull(defaultFilterFactory, "defaultFilterFactory");
         this.completionHandler = Objects.requireNonNull(completionHandler, "completionHandler");
         this.defaultCompletionText = Objects.requireNonNull(defaultCompletionText, "defaultCompletionText");
 
@@ -114,6 +119,9 @@ public final class AutoCompletionSupport<T> {
      * @param value the source list, or {@code null} for empty
      */
     public void setSuggestions(ObservableList<T> value) {
+        if (disposed) {
+            return;
+        }
         popup.setSuggestions(value);
     }
 
@@ -124,6 +132,9 @@ public final class AutoCompletionSupport<T> {
      * @param value the converter, or {@code null} for {@code toString()}
      */
     public void setConverter(StringConverter<T> value) {
+        if (disposed) {
+            return;
+        }
         converter = value;
         popup.setConverter(value);
     }
@@ -134,6 +145,9 @@ public final class AutoCompletionSupport<T> {
      * @param value the cell factory, or {@code null} for the built-in cell
      */
     public void setCellFactory(Callback<RXListView<T>, RXListCell<T>> value) {
+        if (disposed) {
+            return;
+        }
         popup.setCellFactory(value);
     }
 
@@ -143,6 +157,9 @@ public final class AutoCompletionSupport<T> {
      * @param value the maximum visible rows; values below 1 are rendered as 1
      */
     public void setMaxVisibleRows(int value) {
+        if (disposed) {
+            return;
+        }
         popup.setMaxVisibleRows(value);
     }
 
@@ -152,6 +169,9 @@ public final class AutoCompletionSupport<T> {
      * @param value the animated flag
      */
     public void setAnimated(boolean value) {
+        if (disposed) {
+            return;
+        }
         popup.setAnimated(value);
     }
 
@@ -221,15 +241,18 @@ public final class AutoCompletionSupport<T> {
     /**
      * Releases all resources: cancels the pending debounce, detaches the field
      * listeners and key filter, and disposes the popup (hiding it). Idempotent.
+     * Afterwards the support is inert — every configuration setter and entry point
+     * is a no-op, so a stale consumer can never run user callbacks again.
      */
     public void dispose() {
+        disposed = true;
         disposer.dispose();
     }
 
     // ==================== Input handling ====================
 
     private void onTextChanged() {
-        if (suppressAutoShow) {
+        if (disposed || suppressAutoShow) {
             return;
         }
         filterDebounce.playFromStart();
@@ -259,12 +282,15 @@ public final class AutoCompletionSupport<T> {
     }
 
     private void applyFilterAndMaybeShow(boolean openOnEmptyText) {
-        String query = field.getText() == null ? "" : field.getText();
-        Function<String, Predicate<T>> function = filterFunction.get();
-        if (function == null) {
-            function = defaultFilterFunction;
+        if (disposed) {
+            return;
         }
-        popup.setFilterPredicate(function.apply(query));
+        String query = field.getText() == null ? "" : field.getText();
+        Function<String, Predicate<T>> factory = filterFactory.get();
+        if (factory == null) {
+            factory = defaultFilterFactory;
+        }
+        popup.setFilterPredicate(factory.apply(query));
         boolean shouldShow = field.isFocused()
                 && !popup.getFilteredSuggestions().isEmpty()
                 && (openOnEmptyText || !query.isEmpty());
