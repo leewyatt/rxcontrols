@@ -87,7 +87,7 @@ public class RXTilePane extends Pane {
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final VPos DEFAULT_CONTENT_V_ALIGNMENT = VPos.TOP;
     private static final Pos DEFAULT_TILE_ALIGNMENT = Pos.CENTER;
-    private static final boolean DEFAULT_ANIMATED = false;
+    private static final boolean DEFAULT_ANIMATED = true;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
@@ -760,9 +760,10 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions after relayout. Off
+     * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position.
+     * position. While enabled, the pane drives each child's {@code translateX} /
+     * {@code translateY} during the glide.
      *
      * @return the animated property
      */

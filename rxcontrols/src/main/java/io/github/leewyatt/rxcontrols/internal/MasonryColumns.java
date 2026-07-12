@@ -8,8 +8,7 @@ import java.util.Objects;
 
 /**
  * Stateless column-count and track-width resolver for masonry / waterfall layouts,
- * shared by the virtualized view (and column-semantics-equivalent to the node-based
- * pane's inline resolution).
+ * the single implementation shared by the virtualized view and the node-based pane.
  *
  * <p>The resolver takes two widths so a virtualized view can keep its responsive
  * decisions stable while a scrollbar appears or disappears:</p>
@@ -47,6 +46,16 @@ public final class MasonryColumns {
     private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     /**
+     * Floor on the effective per-column step of the auto count, as a fraction of
+     * {@code columnWidth}. A negative {@code hgap} overlaps columns, so each extra
+     * column costs {@code columnWidth + hgap} of width; near total overlap that
+     * step approaches zero and the auto count would explode into thousands of
+     * stacked columns. Clamping the step keeps the count bounded by the column
+     * width and continuous as {@code hgap} crosses {@code -columnWidth}.
+     */
+    private static final double MIN_COLUMN_STEP_RATIO = 0.1;
+
+    /**
      * Resolved column geometry for a layout pass.
      *
      * @param columns         the number of columns, at least one
@@ -65,9 +74,11 @@ public final class MasonryColumns {
      * Resolves the column count and track geometry for a layout pass.
      *
      * @param breakpointWidth  the stable, pre-scrollbar content width driving the
-     *                         active breakpoint and the breakpoint column cascade
+     *                         active breakpoint and the breakpoint column cascade;
+     *                         a non-finite value resolves as {@code 0}
      * @param layoutWidth      the width available this pass, driving the
-     *                         {@code columnWidth} auto floor and the track width
+     *                         {@code columnWidth} auto floor and the track width;
+     *                         a non-finite value resolves as {@code 0}
      * @param columnCount      a forced column count, or a non-positive value to
      *                         resolve the count automatically
      * @param columnWidth      the target column width (snapped, positive, finite)
@@ -88,6 +99,14 @@ public final class MasonryColumns {
                                      RXBreakpointProfile profile,
                                      Map<RXBreakpoint, Integer> breakpointColumns) {
         Objects.requireNonNull(profile, "profile cannot be null");
+        // NaN or infinite widths (typical before the first sized layout pass) resolve
+        // as zero instead of poisoning the track geometry with NaN.
+        if (!Double.isFinite(breakpointWidth)) {
+            breakpointWidth = 0.0;
+        }
+        if (!Double.isFinite(layoutWidth)) {
+            layoutWidth = 0.0;
+        }
         RXBreakpoint activeBreakpoint = profile.resolve(breakpointWidth);
         int columns = computeColumns(layoutWidth, columnCount, columnWidth, hgap, maxColumns,
                 profile, breakpointColumns, activeBreakpoint);
@@ -114,7 +133,8 @@ public final class MasonryColumns {
             if (breakpointColumnCount != null) {
                 columns = breakpointColumnCount;
             } else {
-                columns = (int) Math.floor((layoutWidth + hgap) / (columnWidth + hgap));
+                double step = Math.max(columnWidth + hgap, MIN_COLUMN_STEP_RATIO * columnWidth);
+                columns = (int) Math.floor((layoutWidth + hgap) / step);
             }
         }
         if (columns < 1) {

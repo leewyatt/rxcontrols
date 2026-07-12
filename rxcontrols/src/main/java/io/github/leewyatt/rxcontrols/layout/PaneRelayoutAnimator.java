@@ -27,9 +27,16 @@ import java.util.Set;
  * <p>When a node leaves relayout ownership (an exit starts, or the node is removed
  * externally) the shared relayout timeline is rebuilt for the remaining nodes from
  * their current transforms, so no two timelines ever write the same node and a
- * removed node is not retained by a running timeline. All termination paths
- * converge on the same cleanup: {@code translateX} / {@code translateY} return to
- * {@code 0} and {@code opacity} to {@code 1} (or the node is removed for exits).</p>
+ * removed node is not retained by a running timeline. Opacity is only ever
+ * borrowed: a faded node returns to the opacity it had before the fade, and the
+ * opacity of nodes the animator never tracked is never written, so caller-set
+ * opacity survives layout passes. The translate channel, by contrast, belongs to
+ * the FLIP mechanism: armed nodes return to translate {@code 0}, and an exit
+ * re-homes the node to its layout position before fading out.</p>
+ *
+ * <p>A {@code null}, zero, negative, unknown or indefinite duration — or a
+ * {@code null} interpolator — degrades an animated call to the snap path instead
+ * of constructing a timeline that would throw inside a layout pass.</p>
  */
 final class PaneRelayoutAnimator {
 
@@ -39,25 +46,33 @@ final class PaneRelayoutAnimator {
      * @param node           the moving node
      * @param fromTranslateX the starting {@code translateX} (relative to the new layout position)
      * @param fromTranslateY the starting {@code translateY}
-     * @param fade           whether the node fades in from {@code opacity 0}
+     * @param fade           whether the node fades in from {@code 0} toward its current opacity
      */
     record Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade) {
     }
 
     static final double MOVE_EPSILON = 0.5;
 
-    // node -> whether its relayout animation also fades opacity in
-    private final Map<Node, Boolean> activeMoves = new HashMap<>();
+    // targetOpacity is the opacity the fade tween ends at (the value the node had
+    // before the animator wrote 0); NaN for pure-translate moves, whose opacity is
+    // never touched.
+    private record MoveState(boolean fade, double targetOpacity) {
+    }
+
+    // baseOpacity is the opacity restored after the node is detached, so a node
+    // pulled out mid-exit keeps its caller-set value.
+    private record ExitState(Timeline timeline, Runnable onRemoved, double baseOpacity) {
+    }
+
+    private final Map<Node, MoveState> activeMoves = new HashMap<>();
     private final Map<Node, ExitState> exits = new HashMap<>();
     private Timeline relayoutTimeline;
     private Duration lastDuration = Duration.ZERO;
     private Interpolator lastInterpolator = Interpolator.LINEAR;
 
-    private record ExitState(Timeline timeline, Runnable onRemoved) {
-    }
-
     /**
-     * Runs (or snaps) a relayout pass.
+     * Runs (or snaps) a relayout pass. Invalid animation inputs (see the class
+     * documentation) degrade to the snap path.
      *
      * @param moves        the per-node moves
      * @param animate      whether to animate or snap to the final state
@@ -65,6 +80,7 @@ final class PaneRelayoutAnimator {
      * @param interpolator the animation interpolator
      */
     void runRelayout(List<Move> moves, boolean animate, Duration duration, Interpolator interpolator) {
+        animate = animate && isAnimatable(duration, interpolator);
         Set<Node> passNodes = new HashSet<>();
         for (Move move : moves) {
             passNodes.add(move.node());
@@ -109,21 +125,39 @@ final class PaneRelayoutAnimator {
         List<Node> animated = new ArrayList<>();
         for (Move move : moves) {
             Node node = move.node();
+            // The exit timeline owns a leaving node's transforms; arming it here
+            // would have two timelines writing the same node.
+            if (exits.containsKey(node)) {
+                continue;
+            }
+            MoveState previous = activeMoves.get(node);
+            // A node whose fade-in is still in flight keeps fading across timeline
+            // rebuilds; its new move only carries fade on the pass it entered.
+            boolean continuedFade = previous != null && previous.fade();
+            boolean fade = move.fade() || continuedFade;
             boolean hasTranslation = Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
                     || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON;
-            if (!move.fade() && !hasTranslation) {
+            if (!fade && !hasTranslation) {
                 finalizeMove(node);
                 continue;
             }
             node.setTranslateX(move.fromTranslateX());
             node.setTranslateY(move.fromTranslateY());
-            if (move.fade()) {
-                node.setOpacity(0.0);
-                keyValues.add(new KeyValue(node.opacityProperty(), 1.0, interpolator));
+            double targetOpacity = Double.NaN;
+            if (fade) {
+                if (continuedFade) {
+                    // Resume from the live mid-fade value: no opacity write, the
+                    // timeline interpolates from the current value at play time.
+                    targetOpacity = previous.targetOpacity();
+                } else {
+                    targetOpacity = node.getOpacity();
+                    node.setOpacity(0.0);
+                }
+                keyValues.add(new KeyValue(node.opacityProperty(), targetOpacity, interpolator));
             }
             keyValues.add(new KeyValue(node.translateXProperty(), 0.0, interpolator));
             keyValues.add(new KeyValue(node.translateYProperty(), 0.0, interpolator));
-            activeMoves.put(node, move.fade());
+            activeMoves.put(node, new MoveState(fade, targetOpacity));
             animated.add(node);
         }
         if (keyValues.isEmpty()) {
@@ -141,6 +175,9 @@ final class PaneRelayoutAnimator {
     private boolean needsRearm(List<Move> moves) {
         for (Move move : moves) {
             Node node = move.node();
+            if (exits.containsKey(node)) {
+                continue;
+            }
             if (move.fade()) {
                 return true;
             }
@@ -161,6 +198,7 @@ final class PaneRelayoutAnimator {
 
     /**
      * Runs (or skips) an exit animation, removing the node when it finishes.
+     * Invalid animation inputs (see the class documentation) remove immediately.
      *
      * @param node           the leaving node
      * @param animate        whether to animate or remove immediately
@@ -171,43 +209,73 @@ final class PaneRelayoutAnimator {
      */
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
                  double exitTranslateY, Runnable onRemoved) {
+        animate = animate && isAnimatable(duration, interpolator);
         // The exit takes ownership of this node's transforms away from any relayout.
+        MoveState tracked = activeMoves.get(node);
         releaseFromRelayout(node);
         ExitState existing = exits.remove(node);
         if (existing != null) {
             existing.timeline().stop();
         }
         if (!animate) {
+            // Settle anything this animator wrote before detaching, since forget
+            // will no longer see the node as tracked.
+            if (tracked != null || existing != null) {
+                node.setTranslateX(0.0);
+                node.setTranslateY(0.0);
+                if (existing != null) {
+                    node.setOpacity(existing.baseOpacity());
+                } else if (tracked.fade()) {
+                    node.setOpacity(tracked.targetOpacity());
+                }
+            }
             onRemoved.run();
             return;
         }
 
+        double baseOpacity;
+        if (existing != null) {
+            baseOpacity = existing.baseOpacity();
+        } else if (tracked != null && tracked.fade()) {
+            baseOpacity = tracked.targetOpacity();
+        } else {
+            baseOpacity = node.getOpacity();
+        }
         node.setTranslateX(0.0);
         node.setTranslateY(0.0);
-        node.setOpacity(1.0);
         Timeline timeline = new Timeline(new KeyFrame(duration,
                 new KeyValue(node.opacityProperty(), 0.0, interpolator),
                 new KeyValue(node.translateYProperty(), exitTranslateY, interpolator)));
         timeline.setOnFinished(event -> finishExit(node));
-        exits.put(node, new ExitState(timeline, onRemoved));
+        exits.put(node, new ExitState(timeline, onRemoved, baseOpacity));
         timeline.play();
     }
 
     /**
-     * Drops a node from all tracking and restores it to a neutral state. Called
-     * when a node is removed from the pane's children outside an exit animation.
+     * Drops a node from all tracking and, if this animator ever wrote to it,
+     * restores what was written. A node that was never tracked is left untouched
+     * so caller-set transforms survive. Called when a node is removed from the
+     * pane's children outside an exit animation.
      *
      * @param node the node to forget
      */
     void forget(Node node) {
+        MoveState tracked = activeMoves.get(node);
         releaseFromRelayout(node);
         ExitState exit = exits.remove(node);
         if (exit != null) {
             exit.timeline().stop();
         }
+        if (tracked == null && exit == null) {
+            return;
+        }
         node.setTranslateX(0.0);
         node.setTranslateY(0.0);
-        node.setOpacity(1.0);
+        if (tracked != null && tracked.fade()) {
+            node.setOpacity(tracked.targetOpacity());
+        } else if (exit != null) {
+            node.setOpacity(exit.baseOpacity());
+        }
     }
 
     /**
@@ -246,10 +314,11 @@ final class PaneRelayoutAnimator {
         List<KeyValue> keyValues = new ArrayList<>();
         List<Node> animated = new ArrayList<>(activeMoves.keySet());
         for (Node remaining : animated) {
+            MoveState state = activeMoves.get(remaining);
             keyValues.add(new KeyValue(remaining.translateXProperty(), 0.0, lastInterpolator));
             keyValues.add(new KeyValue(remaining.translateYProperty(), 0.0, lastInterpolator));
-            if (Boolean.TRUE.equals(activeMoves.get(remaining))) {
-                keyValues.add(new KeyValue(remaining.opacityProperty(), 1.0, lastInterpolator));
+            if (state.fade()) {
+                keyValues.add(new KeyValue(remaining.opacityProperty(), state.targetOpacity(), lastInterpolator));
             }
         }
         relayoutTimeline = playRelayout(keyValues, animated, lastDuration);
@@ -277,17 +346,30 @@ final class PaneRelayoutAnimator {
         state.timeline().stop();
         node.setTranslateX(0.0);
         node.setTranslateY(0.0);
-        node.setOpacity(1.0);
+        node.setOpacity(state.baseOpacity());
         state.onRemoved().run();
     }
 
+    // Settles a tracked node: translate returns to 0, and opacity returns to its
+    // fade target only when this animator wrote opacity. A node that was never
+    // tracked is not ours to touch.
     private void finalizeMove(Node node) {
-        activeMoves.remove(node);
+        MoveState state = activeMoves.remove(node);
+        if (state == null) {
+            return;
+        }
         if (exits.containsKey(node)) {
             return;
         }
         node.setTranslateX(0.0);
         node.setTranslateY(0.0);
-        node.setOpacity(1.0);
+        if (state.fade()) {
+            node.setOpacity(state.targetOpacity());
+        }
+    }
+
+    private static boolean isAnimatable(Duration duration, Interpolator interpolator) {
+        return interpolator != null && duration != null && !duration.isUnknown()
+                && !duration.isIndefinite() && duration.greaterThan(Duration.ZERO);
     }
 }

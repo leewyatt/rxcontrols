@@ -75,7 +75,7 @@ public class RXFlowPaneTest {
         assertSame(HPos.LEFT, pane.getColumnHalignment());
         assertClose(400.0, pane.getPrefWrapLength(), "prefWrapLength");
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
-        assertFalse(pane.isAnimated(), "relayout animation is opt-in");
+        assertTrue(pane.isAnimated(), "relayout animation is on by default");
         assertEquals(Duration.millis(200.0), pane.getAnimationDuration());
         assertSame(Interpolator.EASE_BOTH, pane.getAnimationInterpolator());
 

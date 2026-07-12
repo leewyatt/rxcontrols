@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -152,9 +153,6 @@ public class RXMasonryPane extends Pane {
 
     private static final double ENTER_TRANSLATE_MIN = 4.0;
     private static final double ENTER_TRANSLATE_MAX = 12.0;
-    // Defensive ceiling on the resolved column count; far beyond any real layout,
-    // it only bounds the column array against a pathological columnWidth/columnCount.
-    private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     // ==================== Constraints ====================
 
@@ -767,8 +765,10 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Whether children animate to their new positions on relayout, fade in on
-     * insertion, and fade out via {@link #removeAnimated(Node)}. Turning this off
-     * while an animation is running snaps every child to its final state.
+     * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
+     * turning this off while an animation is running snaps every child to its
+     * final state. While enabled, the pane drives each child's {@code translateX}
+     * / {@code translateY} (and {@code opacity} during fades) for the animation.
      *
      * @return the animated property
      */
@@ -1247,30 +1247,6 @@ public class RXMasonryPane extends Pane {
         return getBreakpointColumns(RXBreakpoint.XXXL);
     }
 
-    private Integer resolveBreakpointColumns(double contentWidth) {
-        if (breakpointColumns.isEmpty()) {
-            return null;
-        }
-        RXBreakpointProfile profile = breakpointProfileOrDefault();
-        double activeMinWidth = profile.minWidthOf(profile.resolve(contentWidth));
-        Integer resolved = null;
-        for (RXBreakpoint breakpoint : profile.getBreakpoints()) {
-            if (profile.minWidthOf(breakpoint) > activeMinWidth) {
-                break;
-            }
-            Integer columns = breakpointColumns.get(breakpoint);
-            if (columns != null) {
-                resolved = columns;
-            }
-        }
-        // An explicit AUTO_COLUMNS override breaks the cascade; returning null
-        // lets computeColumns fall back to the columnWidth auto-calculation.
-        if (resolved != null && resolved == AUTO_COLUMNS) {
-            return null;
-        }
-        return resolved;
-    }
-
     // ==================== Actual Column Count ====================
 
     private final ReadOnlyIntegerWrapper actualColumnCount =
@@ -1452,34 +1428,13 @@ public class RXMasonryPane extends Pane {
         return metrics;
     }
 
+    // A node-based pane has no scrollbar, so the breakpoint-driving width and the
+    // track-driving width are the same content width.
     private int computeColumns(double contentWidth) {
-        int columns;
-        int forced = getColumnCount();
-        if (forced >= 1) {
-            columns = forced;
-        } else {
-            Integer breakpointColumnCount = resolveBreakpointColumns(contentWidth);
-            if (breakpointColumnCount != null) {
-                columns = breakpointColumnCount;
-            } else {
-                double track = snapSizeX(columnWidthOrDefault());
-                double gap = snapSpaceX(sanitizedHgap());
-                columns = (int) Math.floor((contentWidth + gap) / (track + gap));
-            }
-        }
-        if (columns < 1) {
-            columns = 1;
-        }
-        int max = getMaxColumns();
-        if (max > 0 && columns > max) {
-            columns = max;
-        }
-        // Defensive hard cap: a pathological tiny columnWidth or huge forced count
-        // must never allocate an unbounded column array.
-        if (columns > MAX_RESOLVED_COLUMNS) {
-            columns = MAX_RESOLVED_COLUMNS;
-        }
-        return columns;
+        return MasonryColumns.resolve(contentWidth, contentWidth, getColumnCount(),
+                snapSizeX(columnWidthOrDefault()), snapSpaceX(sanitizedHgap()),
+                getMaxColumns(), isFillWidth(), breakpointProfileOrDefault(),
+                breakpointColumns).columns();
     }
 
     private int childColumnSpan(Node child) {

@@ -136,7 +136,7 @@ public class RXFlowPane extends Pane {
     private static final VPos DEFAULT_COLUMN_VALIGNMENT = VPos.TOP;
     private static final HPos DEFAULT_COLUMN_HALIGNMENT = HPos.LEFT;
     private static final double DEFAULT_PREF_WRAP_LENGTH = 400.0;
-    private static final boolean DEFAULT_ANIMATED = false;
+    private static final boolean DEFAULT_ANIMATED = true;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
@@ -899,9 +899,10 @@ public class RXFlowPane extends Pane {
 
     /**
      * Whether existing children glide to their new positions when a relayout (a resize
-     * that reflows the runs, a gap or alignment change) moves them. Off by default;
+     * that reflows the runs, a gap or alignment change) moves them. On by default;
      * turning it off mid-flight snaps every child to its final position. Children added
-     * after the first layout snap into place rather than gliding in.
+     * after the first layout snap into place rather than gliding in. While enabled, the
+     * pane drives each child's {@code translateX} / {@code translateY} during the glide.
      *
      * @return the animated property
      */

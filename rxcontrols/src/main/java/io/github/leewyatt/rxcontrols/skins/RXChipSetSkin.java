@@ -32,6 +32,9 @@ public class RXChipSetSkin extends RXSkinBase<RXChipSet> {
     public RXChipSetSkin(RXChipSet control) {
         super(control);
 
+        // RXChipSet exposes no animation API yet, so chips keep snapping into place
+        // regardless of the flow pane's own animated default.
+        flowPane.setAnimated(false);
         disposer.registerBinding(flowPane.hgapProperty(), control.hgapProperty());
         disposer.registerBinding(flowPane.vgapProperty(), control.vgapProperty());
         disposer.registerBinding(flowPane.alignmentProperty(), control.alignmentProperty());

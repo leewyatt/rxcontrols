@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
+import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
@@ -15,12 +16,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link MasonryColumns}. The column-count and active-breakpoint semantics
- * are locked against a live {@link RXMasonryPane} (the authority), confirming the
- * shared resolver is column-semantics-equivalent to the pane's inline resolution.
- * Track-width geometry and the two-width contract are asserted directly.
+ * Tests for {@link MasonryColumns}, the single column resolver behind both
+ * {@link RXMasonryPane} and the masonry view. Column-count and active-breakpoint
+ * semantics are additionally locked against a live pane as a regression on the
+ * pane's delegation wiring. Track-width geometry and the two-width contract are
+ * asserted directly.
  */
 public class MasonryColumnsTest {
 
@@ -81,6 +84,24 @@ public class MasonryColumnsTest {
         // (lg/xl) must not leak in, so the count falls back to the auto floor (8).
         assertColumnParity(800.0, 100.0, 0.0, 0, 0, true,
                 Map.of(RXBreakpoint.MD, RXMasonryPane.AUTO_COLUMNS, RXBreakpoint.LG, 4, RXBreakpoint.XL, 5));
+        // Overrides combined with a positive gap: the cascade and the gapped auto
+        // floor must not diverge once a gap is in play.
+        assertColumnParity(830.0, 200.0, 10.0, 0, 0, true, Map.of(RXBreakpoint.MD, 3));
+        assertColumnParity(1500.0, 200.0, 10.0, 0, 0, true,
+                Map.of(RXBreakpoint.MD, 3, RXBreakpoint.XL, RXMasonryPane.AUTO_COLUMNS));
+    }
+
+    /**
+     * Verifies the pane and the view expose the same {@code AUTO_COLUMNS} sentinel,
+     * so the shared resolver's cascade-break behavior applies identically to both.
+     */
+    @Test
+    public void autoColumnsSentinelIsSharedAcrossControls() {
+        assertEquals(RXMasonryPane.AUTO_COLUMNS, RXMasonryView.AUTO_COLUMNS);
+        // The sentinel value breaks the override cascade back to the auto floor.
+        assertEquals(8, MasonryColumns.resolve(800.0, 800.0, 0, 100.0, 0.0, 0, true,
+                RXBreakpointProfile.ANT_DESIGN,
+                Map.of(RXBreakpoint.MD, RXMasonryPane.AUTO_COLUMNS)).columns());
     }
 
     // ==================== Robustness ====================
@@ -100,6 +121,44 @@ public class MasonryColumnsTest {
         // A huge forced count is capped too.
         assertEquals(4096, MasonryColumns.resolve(800.0, 800.0, 100000, 100.0, 0.0, 0, true,
                 RXBreakpointProfile.ANT_DESIGN, Map.of()).columns());
+    }
+
+    /**
+     * Verifies near-total overlap keeps the auto count bounded and continuous: the
+     * effective per-column step is floored at a fraction of {@code columnWidth}, so
+     * {@code hgap} approaching {@code -columnWidth} can neither explode the count
+     * into thousands of stacked columns nor cliff-jump across the boundary.
+     */
+    @Test
+    public void nearTotalOverlapKeepsAutoCountBounded() {
+        int atMinus99 = overlappedAutoColumns(-99.0);
+        int atMinus100 = overlappedAutoColumns(-100.0);
+        int atMinus101 = overlappedAutoColumns(-101.0);
+
+        // Bounded by columnWidth: at most the non-overlap count divided by the
+        // minimum step ratio (800 / 100 / 0.1 = 80).
+        assertTrue(atMinus99 <= 80, "bounded near total overlap: " + atMinus99);
+        // Monotone and continuous across hgap = -columnWidth (no 4096 -> 1 cliff).
+        assertTrue(atMinus99 >= atMinus100 && atMinus100 >= atMinus101,
+                atMinus99 + " >= " + atMinus100 + " >= " + atMinus101);
+        assertTrue(atMinus100 - atMinus101 <= 1, "no cliff at the boundary");
+        // The pane delegates to this resolver, so both stay in the same regime.
+        assertColumnParity(800.0, 100.0, -99.0, 0, 0, true, Map.of());
+    }
+
+    /**
+     * Verifies non-finite widths resolve as zero (single column, zero track)
+     * instead of poisoning the track geometry with NaN.
+     */
+    @Test
+    public void nonFiniteWidthsResolveAsZero() {
+        for (double bad : new double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            Resolution r = MasonryColumns.resolve(bad, bad, 0, 100.0, 10.0, 0, true,
+                    RXBreakpointProfile.ANT_DESIGN, Map.of());
+            assertEquals(1, r.columns(), "columns @ " + bad);
+            assertEquals(0.0, r.trackWidth(), DELTA, "trackWidth @ " + bad);
+            assertEquals(0.0, r.usedWidth(), DELTA, "usedWidth @ " + bad);
+        }
     }
 
     /**
@@ -191,6 +250,11 @@ public class MasonryColumnsTest {
     }
 
     // ==================== Helpers ====================
+
+    private static int overlappedAutoColumns(double hgap) {
+        return MasonryColumns.resolve(800.0, 800.0, 0, 100.0, hgap, 0, true,
+                RXBreakpointProfile.ANT_DESIGN, Map.of()).columns();
+    }
 
     private void assertColumnParity(double width, double columnWidth, double hgap,
                                     int columnCount, int maxColumns, boolean fillWidth,

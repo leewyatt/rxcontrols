@@ -64,7 +64,7 @@ public class RXTilePaneTest {
         assertSame(ItemsJustify.START, pane.getItemsJustify());
         assertSame(VPos.TOP, pane.getContentVAlignment());
         assertSame(Pos.CENTER, pane.getTileAlignment());
-        assertFalse(pane.isAnimated(), "reorder animation is opt-in");
+        assertTrue(pane.isAnimated(), "reorder animation is on by default");
         assertEquals(Duration.millis(200), pane.getAnimationDuration());
         assertSame(Orientation.HORIZONTAL, pane.getContentBias());
         assertEquals(0, pane.getActualColumnCount());
