@@ -105,7 +105,7 @@ public class RXCascaderSkinTest {
 
     /**
      * Verifies the field's default path text (no {@code pathTextFactory} set)
-     * joins each node's text via the item text factory, falling back to
+     * joins each node's text via the converter, falling back to
      * {@code String.valueOf(value)} when none is set.
      *
      * @throws InterruptedException if the FX task is interrupted

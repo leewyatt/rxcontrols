@@ -40,7 +40,7 @@ import java.util.List;
  * {@link #createContent(RXCascaderItem)} to render a custom node in the middle
  * content area while keeping the contract above. The content is rebuilt whenever
  * the cell is bound to an item (every non-empty re-bind, including recycling),
- * when the item's value changes, and when the view's item-text factory changes —
+ * when the item's value changes, and when the view's converter changes —
  * but never on pure state changes (selection, active path, loading, checked), so
  * cache sub-nodes as fields and make content react to state by targeting the cell
  * pseudo classes from CSS, for example:
@@ -226,7 +226,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
      * Returns the node rendered in the middle content area for the given item.
      * Called whenever the cell is bound to an item (every non-empty re-bind,
      * including recycling), when the item's value changes, and when the view's
-     * item-text factory changes — never on pure state changes, so reuse cached
+     * converter changes — never on pure state changes, so reuse cached
      * node fields rather than allocating per call. The default returns a reused
      * {@link Label} set to {@link #getDisplayText(Object)
      * getDisplayText(item.getValue())}. Returning {@code null} renders an empty
@@ -244,7 +244,7 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
      * Resolves the display text for a value using the view's
      * {@link RXCascaderView#getConverter() converter}, falling back to
      * {@code String.valueOf(value)} when none is set. A {@code null} value, or a
-     * factory that returns {@code null}, yields the empty string. For use by
+     * converter that returns {@code null}, yields the empty string. For use by
      * subclasses overriding {@link #createContent(RXCascaderItem)}.
      *
      * @param value value to render
