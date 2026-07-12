@@ -144,6 +144,18 @@ public class MasonryColumnsTest {
         assertTrue(atMinus100 - atMinus101 <= 1, "no cliff at the boundary");
         // The pane delegates to this resolver, so both stay in the same regime.
         assertColumnParity(800.0, 100.0, -99.0, 0, 0, true, Map.of());
+
+        // The step floor bounds the count only: with fillWidth the stretched track
+        // keeps the placement step consistent with the count, while fixed-width
+        // tracks keep the caller's raw hgap and render the requested overlap.
+        Resolution stretched = MasonryColumns.resolve(800.0, 800.0, 0, 100.0, -99.0, 0, true,
+                RXBreakpointProfile.ANT_DESIGN, Map.of());
+        assertTrue(stretched.trackWidth() - 99.0 > 0.0, "stretched step stays positive");
+        assertEquals(800.0, stretched.usedWidth(), DELTA);
+        Resolution fixed = MasonryColumns.resolve(800.0, 800.0, 0, 100.0, -99.0, 0, false,
+                RXBreakpointProfile.ANT_DESIGN, Map.of());
+        assertEquals(100.0, fixed.trackWidth(), DELTA, "fixed track keeps columnWidth");
+        assertEquals(fixed.columns() * 100.0 - (fixed.columns() - 1) * 99.0, fixed.usedWidth(), DELTA);
     }
 
     /**

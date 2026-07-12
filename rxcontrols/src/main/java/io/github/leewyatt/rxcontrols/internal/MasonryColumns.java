@@ -51,7 +51,11 @@ public final class MasonryColumns {
      * column costs {@code columnWidth + hgap} of width; near total overlap that
      * step approaches zero and the auto count would explode into thousands of
      * stacked columns. Clamping the step keeps the count bounded by the column
-     * width and continuous as {@code hgap} crosses {@code -columnWidth}.
+     * width and continuous as {@code hgap} crosses {@code -columnWidth}. The floor
+     * bounds the count only — track placement keeps the caller's raw {@code hgap},
+     * so the requested overlap still renders as such: with {@code fillWidth} the
+     * stretched track keeps the placement step consistent with the count, while
+     * fixed-width tracks pack tighter than the resolved count would fill.
      */
     private static final double MIN_COLUMN_STEP_RATIO = 0.1;
 
