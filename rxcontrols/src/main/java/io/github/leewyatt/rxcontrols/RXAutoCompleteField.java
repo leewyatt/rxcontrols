@@ -199,10 +199,10 @@ public class RXAutoCompleteField extends RXTextField {
             };
 
     /**
-     * The handler invoked after a suggestion is committed and written back (the
-     * {@link RXAutoCompleteEvent#COMPLETED} event). Observation only — customizing
-     * the write-back is the job of {@link #completionHandlerProperty()
-     * completionHandler}.
+     * The handler invoked after a suggestion is committed and the completion
+     * pipeline has run (the {@link RXAutoCompleteEvent#COMPLETED} event).
+     * Observation only — customizing the write-back is the job of
+     * {@link #completionHandlerProperty() completionHandler}.
      *
      * @return the on-auto-completed property
      */

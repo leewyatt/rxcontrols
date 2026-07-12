@@ -520,9 +520,10 @@ public final class RXAutoCompletion<T> {
             };
 
     /**
-     * The handler invoked after a suggestion is committed and written back (the
-     * {@link RXAutoCompleteEvent#COMPLETED} event, fired with the bound field as
-     * target). Observation only — customizing the write-back is the job of
+     * The handler invoked after a suggestion is committed and the completion
+     * pipeline has run (the {@link RXAutoCompleteEvent#COMPLETED} event, fired
+     * with the bound field as target). Observation only — customizing the
+     * write-back is the job of
      * {@link #completionHandlerProperty() completionHandler}.
      *
      * @return the on-auto-completed property
