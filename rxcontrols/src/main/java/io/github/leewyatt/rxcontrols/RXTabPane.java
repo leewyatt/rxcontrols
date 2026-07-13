@@ -149,6 +149,10 @@ public class RXTabPane extends Control {
         setFocusTraversable(true);
         setSelectionModel(new RXTabPaneSelectionModel(this));
         tabs.addListener((ListChangeListener<RXTab>) this::onTabsChanged);
+        // Seed the default side/variant pseudo-classes so the contract holds before a
+        // skin attaches (invalidated() only fires on change, not the initial value).
+        updateSidePseudoClasses();
+        updateVariantPseudoClasses();
     }
 
     /**
@@ -285,16 +289,23 @@ public class RXTabPane extends Control {
     private final ObjectProperty<Side> side = new SimpleObjectProperty<>(this, "side", DEFAULT_SIDE) {
         @Override
         protected void invalidated() {
-            // Pseudo-class tracks the effective side (null -> TOP) so the CSS side
-            // hooks match the rendered geometry.
-            Side s = effectiveSide();
-            pseudoClassStateChanged(TOP_PSEUDO, s == Side.TOP);
-            pseudoClassStateChanged(RIGHT_PSEUDO, s == Side.RIGHT);
-            pseudoClassStateChanged(BOTTOM_PSEUDO, s == Side.BOTTOM);
-            pseudoClassStateChanged(LEFT_PSEUDO, s == Side.LEFT);
+            updateSidePseudoClasses();
             requestLayout();
         }
     };
+
+    /**
+     * Applies the side pseudo-classes for the effective side (null -&gt; TOP) so the
+     * CSS side hooks match the rendered geometry. Owned by the control (not the skin)
+     * so the state holds from construction, before any skin is attached.
+     */
+    private void updateSidePseudoClasses() {
+        Side s = effectiveSide();
+        pseudoClassStateChanged(TOP_PSEUDO, s == Side.TOP);
+        pseudoClassStateChanged(RIGHT_PSEUDO, s == Side.RIGHT);
+        pseudoClassStateChanged(BOTTOM_PSEUDO, s == Side.BOTTOM);
+        pseudoClassStateChanged(LEFT_PSEUDO, s == Side.LEFT);
+    }
 
     /**
      * Position of the tab header. Initial value is {@link Side#TOP}; {@code null}
@@ -343,13 +354,18 @@ public class RXTabPane extends Control {
     private final ObjectProperty<Variant> variant = new SimpleObjectProperty<>(this, "variant", DEFAULT_VARIANT) {
         @Override
         protected void invalidated() {
-            Variant v = get() == null ? DEFAULT_VARIANT : get();
-            pseudoClassStateChanged(STANDARD_PSEUDO, v == Variant.STANDARD);
-            pseudoClassStateChanged(FULL_WIDTH_PSEUDO, v == Variant.FULL_WIDTH);
-            pseudoClassStateChanged(SCROLLABLE_PSEUDO, v == Variant.SCROLLABLE);
+            updateVariantPseudoClasses();
             requestLayout();
         }
     };
+
+    /** Applies the variant pseudo-classes for the current variant (null -&gt; STANDARD). */
+    private void updateVariantPseudoClasses() {
+        Variant v = getVariant() == null ? DEFAULT_VARIANT : getVariant();
+        pseudoClassStateChanged(STANDARD_PSEUDO, v == Variant.STANDARD);
+        pseudoClassStateChanged(FULL_WIDTH_PSEUDO, v == Variant.FULL_WIDTH);
+        pseudoClassStateChanged(SCROLLABLE_PSEUDO, v == Variant.SCROLLABLE);
+    }
 
     /**
      * How the strip distributes width. Initial value is

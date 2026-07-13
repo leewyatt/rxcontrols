@@ -388,6 +388,48 @@ public class RXTabPaneContentTest {
         });
     }
 
+    @Test
+    public void animateThenAnimateHandsBackStalePageNeutral() throws Exception {
+        runOnFx(() -> {
+            RXTab t0 = tab("A", 120, 40);
+            RXTab t1 = tab("B", 300, 160);
+            RXTab t2 = tab("C", 200, 90);
+            RXTabPane pane = new RXTabPane(t0, t1, t2);
+            pane.setContentAnimation(new AnimSlide());
+            laidOut(pane);
+            pane.getSelectionModel().select(1);   // A->B animating: [A, B] attached
+            pane.getSelectionModel().select(2);   // B->C: A is interrupted + detached
+            StackPane region = contentRegionOf(pane);
+            // The two tween pages survive; the stale first page is detached...
+            assertTrue(region.getChildrenUnmodifiable().contains(t1.getContent()));
+            assertTrue(region.getChildrenUnmodifiable().contains(t2.getContent()));
+            assertFalse(region.getChildrenUnmodifiable().contains(t0.getContent()));
+            // ...and handed back neutral, not left invisible by the interrupted tween.
+            assertTrue(t0.getContent().isVisible());
+        });
+    }
+
+    @Test
+    public void detachingContentClearsResidualScaleAndRotate() throws Exception {
+        runOnFx(() -> {
+            RXTab t0 = tab("A", 120, 40);
+            RXTab t1 = tab("B", 300, 160);
+            RXTabPane pane = new RXTabPane(t0, t1);
+            pane.setPreserveContent(true);
+            laidOut(pane);
+            Node c1 = t1.getContent();
+            // Simulate a transform left behind by an interrupted Zoom/Flip transition.
+            c1.setScaleX(2.0);
+            c1.setScaleY(0.5);
+            c1.setRotate(45.0);
+            pane.getTabs().remove(t1);
+            // resetPageState must clear scale/rotate, not only translate/opacity/visibility.
+            assertEquals(1.0, c1.getScaleX(), 0.001);
+            assertEquals(1.0, c1.getScaleY(), 0.001);
+            assertEquals(0.0, c1.getRotate(), 0.001);
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static StackPane contentRegionOf(RXTabPane pane) {

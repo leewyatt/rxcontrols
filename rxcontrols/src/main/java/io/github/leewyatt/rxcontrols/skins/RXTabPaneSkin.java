@@ -37,6 +37,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
+import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -64,13 +65,10 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
 
     // ==================== Pseudo-classes ====================
 
-    private static final PseudoClass TOP_PSEUDO = PseudoClass.getPseudoClass("top");
-    private static final PseudoClass RIGHT_PSEUDO = PseudoClass.getPseudoClass("right");
-    private static final PseudoClass BOTTOM_PSEUDO = PseudoClass.getPseudoClass("bottom");
+    // Side/variant pseudo-classes are owned by the control; the skin only uses
+    // left/right to point the scroll-button chevrons.
     private static final PseudoClass LEFT_PSEUDO = PseudoClass.getPseudoClass("left");
-    private static final PseudoClass STANDARD_PSEUDO = PseudoClass.getPseudoClass("standard");
-    private static final PseudoClass FULL_WIDTH_PSEUDO = PseudoClass.getPseudoClass("full-width");
-    private static final PseudoClass SCROLLABLE_PSEUDO = PseudoClass.getPseudoClass("scrollable");
+    private static final PseudoClass RIGHT_PSEUDO = PseudoClass.getPseudoClass("right");
 
     private static final PseudoClass SELECTED_PSEUDO = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass FIRST_PSEUDO = PseudoClass.getPseudoClass("first");
@@ -88,6 +86,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     private static final double GEOMETRY_EPSILON = 0.5;
     /** Floor width for a scroll button when CSS has not yet supplied a preferred size. */
     private static final double MIN_SCROLL_BUTTON_WIDTH = 24.0;
+    /** A content transition is a two-page swap (outgoing + incoming). */
+    private static final int CONTENT_PAGE_COUNT = 2;
 
     /** Symmetric ease-in-out matching the Material standard-easing curve. */
     private static final Interpolator SLIDE_EASING = Interpolator.SPLINE(0.4, 0.0, 0.2, 1.0);
@@ -162,8 +162,6 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         getChildren().setAll(contentRegion, headerArea);
 
         rebuildCells();
-        updateSidePseudoClasses();
-        updateVariantPseudoClasses();
         updateContent();
         syncFocusToSelection();
 
@@ -300,7 +298,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     private boolean canAnimateContent() {
         RXTabPane control = getSkinnable();
         return PageTransitionEngine.canAnimate(control.getContentAnimation(), control.isAnimated(),
-                2, control.getAnimationDuration(), false);
+                CONTENT_PAGE_COUNT, control.getAnimationDuration(), false);
     }
 
     private void setContentImmediate(Node newContent) {
@@ -387,6 +385,12 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         content.setTranslateY(0.0);
         content.setOpacity(1.0);
         content.setClip(null);
+        // Page animations also drive scale/rotate (e.g. Zoom, Flip); clear them so a
+        // page interrupted mid-tween is handed back without a residual transform.
+        content.setScaleX(1.0);
+        content.setScaleY(1.0);
+        content.setRotate(0.0);
+        content.setRotationAxis(Rotate.Z_AXIS);
     }
 
     private void animateContentChange(Node newContent) {
@@ -399,11 +403,11 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         }
         Node oldContent = currentContent;
         // Keep exactly the outgoing + incoming pages attached for the tween; a
-        // prior interrupt may have left a stale page behind. Preserve mode keeps
-        // every page attached, so it only ensures the incoming one is present.
+        // prior interrupt may have left a stale page behind. Detach it through
+        // detachExcept so it is handed back neutral (not carrying a transform from
+        // the interrupted tween). Preserve mode keeps every page attached.
         if (!control.isPreserveContent()) {
-            contentRegion.getChildren().removeIf(
-                    child -> child != oldContent && child != newContent);
+            detachExcept(child -> child == oldContent || child == newContent);
         }
         if (!contentRegion.getChildren().contains(newContent)) {
             contentRegion.getChildren().add(newContent);
@@ -413,7 +417,9 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
 
         TransitionDirection direction = control.getSelectedIndex() >= lastContentIndex
                 ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
-        TransitionContext context = new TransitionContext(oldContent, newContent, 0, 1, 2,
+        // currentIndex 0, nextIndex 1, pageCount CONTENT_PAGE_COUNT: the engine's
+        // two-page view of this swap; the page provider maps those indices to the nodes.
+        TransitionContext context = new TransitionContext(oldContent, newContent, 0, 1, CONTENT_PAGE_COUNT,
                 direction, control.getAnimationDuration(), contentRegion,
                 index -> index == 0 ? oldContent : newContent,
                 TransitionContext.LifecycleCallback.NOOP);
@@ -529,7 +535,12 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         if (closeRequest.isConsumed()) {
             return;
         }
-        pane.getTabs().remove(tab);
+        // Only fire TAB_CLOSED when this pipeline actually removed the tab; a
+        // request handler may have already removed it without consuming, and a
+        // CLOSED for a tab this pipeline did not remove would be spurious.
+        if (!pane.getTabs().remove(tab)) {
+            return;
+        }
         // Fixed order: tab handler first, then pane. Fresh events so a consumed
         // tab handler does not short-circuit the pane's dispatch.
         EventHandler<RXTabEvent> onClosed = tab.getOnClosed();
@@ -697,27 +708,11 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         }
     }
 
-    // ==================== Pseudo-classes (control level) ====================
-
-    private void updateSidePseudoClasses() {
-        Side s = getSkinnable().effectiveSide();
-        RXTabPane control = getSkinnable();
-        control.pseudoClassStateChanged(TOP_PSEUDO, s == Side.TOP);
-        control.pseudoClassStateChanged(RIGHT_PSEUDO, s == Side.RIGHT);
-        control.pseudoClassStateChanged(BOTTOM_PSEUDO, s == Side.BOTTOM);
-        control.pseudoClassStateChanged(LEFT_PSEUDO, s == Side.LEFT);
-    }
-
-    private void updateVariantPseudoClasses() {
-        RXTabPane control = getSkinnable();
-        RXTabPane.Variant v = control.getVariant() == null ? RXTabPane.Variant.STANDARD : control.getVariant();
-        control.pseudoClassStateChanged(STANDARD_PSEUDO, v == RXTabPane.Variant.STANDARD);
-        control.pseudoClassStateChanged(FULL_WIDTH_PSEUDO, v == RXTabPane.Variant.FULL_WIDTH);
-        control.pseudoClassStateChanged(SCROLLABLE_PSEUDO, v == RXTabPane.Variant.SCROLLABLE);
-    }
+    // ==================== Variant change ====================
 
     private void onVariantChanged() {
-        updateVariantPseudoClasses();
+        // The side/variant pseudo-classes are owned by the control (set in its
+        // constructor and property invalidated()); the skin only reacts to layout.
         if (isScrollable()) {
             // Entering SCROLLABLE: reveal the current selection on the next pass.
             ensureVisibleRequested = true;
