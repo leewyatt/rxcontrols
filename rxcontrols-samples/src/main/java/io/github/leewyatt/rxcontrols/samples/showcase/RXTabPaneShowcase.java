@@ -61,6 +61,7 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
     private static final String[] ACCENTS = {"#4f6df5", "#12b886", "#f08c00", "#e8590c", "#ae3ec9", "#1098ad"};
 
     private RXTabPane tabPane;
+    private ComboBox<Variant> variantBox;
     private Label selectionReadout;
     private Label eventReadout;
     private CheckBox disableTabBox;
@@ -132,7 +133,7 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
         sideBox.setMaxWidth(Double.MAX_VALUE);
         tabPane.sideProperty().bind(sideBox.valueProperty());
 
-        ComboBox<Variant> variantBox = new ComboBox<>();
+        variantBox = new ComboBox<>();
         variantBox.getItems().setAll(Variant.values());
         variantBox.setValue(tabPane.getVariant());
         variantBox.setMaxWidth(Double.MAX_VALUE);
@@ -274,11 +275,15 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
                 extraCount++;
                 tabPane.getTabs().add(RXTab.of("Extra " + extraCount, page("Extra " + extraCount, accent(extraCount))));
             }
-            // variant is bound to the Layout combo, so drive scrolling by narrowing instead.
+            // Switch to SCROLLABLE through the bound Layout combo (the pane's variant
+            // property is bound, so it cannot be set directly), and narrow the pane so
+            // the tabs overflow and the scroll buttons appear.
+            variantBox.setValue(Variant.SCROLLABLE);
             tabPane.setMaxWidth(420.0);
         });
 
-        Label hint = new Label("Pick SCROLLABLE in Layout, then scroll with the wheel or the ‹ › buttons.");
+        Label hint = new Label("Adds tabs, switches to SCROLLABLE, and narrows the pane; "
+                + "then scroll with the wheel or the ‹ › buttons.");
         hint.getStyleClass().add("hint-label");
         hint.setWrapText(true);
 
