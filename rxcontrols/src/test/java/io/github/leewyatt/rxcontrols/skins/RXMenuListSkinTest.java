@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -488,6 +489,24 @@ public class RXMenuListSkinTest {
             assertEquals(1.0, scroll.getOpacity(), 0.0, "opacity restored");
             assertEquals(1.0, scale.getX(), 0.0, "scale x restored");
             assertEquals(1.0, scale.getY(), 0.0, "scale y restored");
+        });
+    }
+
+    /**
+     * A null animationInterpolator coalesces to EASE_OUT: playEntrance must not
+     * reach a JavaFX KeyValue with a null interpolator (which throws). Observable
+     * without a production hook — the throw / no-throw is the assertion.
+     */
+    @Test
+    public void nullInterpolatorFallsBackWithoutThrowing() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.getItems().add(RXMenuItem.of("A"));
+            list.setAnimationInterpolator(null);
+            hostFor(list);
+            RXMenuListSkin skin = (RXMenuListSkin) list.getSkin();
+            assertDoesNotThrow(() -> skin.playEntrance(false),
+                    "null interpolator falls back to EASE_OUT instead of throwing at KeyValue");
         });
     }
 

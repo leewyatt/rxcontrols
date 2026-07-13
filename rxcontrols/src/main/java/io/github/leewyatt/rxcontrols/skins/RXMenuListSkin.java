@@ -9,6 +9,8 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAction;
@@ -503,8 +505,17 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
             trailing.getStyleClass().add("trailing");
 
             RXMenuList control = getSkinnable();
+            // The hover state overlay must not tint a disabled item (disabled = no
+            // interaction feedback, matching the press / activate paths). In the
+            // default mode the cell is JavaFX-disabled and RippleDecoration already
+            // gates the overlay on that; in APG mode the cell stays enabled for
+            // roving focus, so gate on the item's own disabled flag here too.
+            BooleanBinding overlayEnabled = Bindings.createBooleanBinding(
+                    () -> control.isStateOverlayEnabled() && !item.isDisable(),
+                    control.stateOverlayEnabledProperty(), item.disableProperty());
+            itemDisposer.registerDisposeTask(overlayEnabled::dispose);
             ripple = new RippleDecoration(this, control.rippleEnabledProperty(),
-                    control.stateOverlayEnabledProperty(), control.rippleFillProperty(),
+                    overlayEnabled, control.rippleFillProperty(),
                     control::getRippleOpacity, null, null);
             getChildren().add(ripple.getLayer());
             // A selectable item reserves a leading indicator slot (checkmark for a
