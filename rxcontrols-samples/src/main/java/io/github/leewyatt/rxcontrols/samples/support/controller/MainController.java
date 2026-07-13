@@ -64,6 +64,7 @@ public class MainController {
             "/fxml/pane-field.fxml",
             "/fxml/pane-number-field.fxml",
             "/fxml/pane-media.fxml",
+            "/fxml/pane-menu.fxml",
             "/fxml/pane-css-reference.fxml"
     };
 

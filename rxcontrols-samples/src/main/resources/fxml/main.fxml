@@ -44,6 +44,7 @@
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Number Field" toggleGroup="$navGroup"/>
             <RXRadioToggleButton layoutX="10.0" layoutY="329.0" prefHeight="30.0" prefWidth="237.0"
                             text="SeekBar/ LrcView/ Spectrum" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Menu" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="CSS Reference" toggleGroup="$navGroup"/>
          </VBox>
       </left>

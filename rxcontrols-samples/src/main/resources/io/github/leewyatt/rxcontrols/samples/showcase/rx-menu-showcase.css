@@ -1,0 +1,40 @@
+.menu-icon {
+    -fx-background-color: -rx-on-surface;
+    -fx-min-width: 16px;
+    -fx-min-height: 16px;
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-max-width: 16px;
+    -fx-max-height: 16px;
+}
+
+.panel-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #627d98;
+}
+
+.live-panel {
+    -fx-padding: 10px;
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -rx-outline;
+    -fx-border-radius: 8px;
+}
+
+.context-card {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 8px;
+    -fx-border-color: -rx-outline;
+    -fx-border-radius: 8px;
+    -fx-border-style: segments(6, 4) line-cap round;
+}
+
+.context-card .card-hint {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 12px;
+}
+
+.note-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #829ab1;
+}

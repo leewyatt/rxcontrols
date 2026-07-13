@@ -287,6 +287,35 @@ public class RXPopupSupportTest {
                 + popupRef.get().getHeight());
     }
 
+    @Test
+    @Tag("ui")
+    public void screenPointShowsAtDegenerateAnchor() throws InterruptedException {
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        AtomicReference<double[]> pointRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region owner = newShownAnchor(150);
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            double px = screen.getMinX() + 200;
+            double py = screen.getMinY() + 200;
+            pointRef.set(new double[]{px, py});
+            RXPopupSupport support = newTestSupport(sizedContent(120, 60));
+            support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            // A zero-size degenerate anchor rect at (px, py): BOTTOM_START opens with
+            // the popup's top-left at the point (fits on screen, so no flip / shift).
+            support.show(owner, px, py);
+            assertTrue(support.isShowing(), "screen-point show shows the popup");
+            popupRef.set(findTestPopup());
+            assertNotNull(popupRef.get(), "popup window should be present");
+        });
+        waitForFxCondition(() -> {
+            PopupControl popup = popupRef.get();
+            double[] point = pointRef.get();
+            return Math.abs(popup.getAnchorX() - point[0]) <= 1.5
+                    && Math.abs(popup.getAnchorY() - point[1]) <= 1.5;
+        }, () -> "screen-point popup must anchor at the point, got ("
+                + popupRef.get().getAnchorX() + ", " + popupRef.get().getAnchorY() + ")");
+    }
+
     // ==================== Window-level lifecycle ====================
 
     @Test
@@ -374,6 +403,32 @@ public class RXPopupSupportTest {
         });
         runOnFx(() -> assertEquals(beforeX.get() + 40, popupRef.get().getAnchorX(), 2.0,
                 "a window move must reposition the popup after a hide + re-show"));
+    }
+
+    @Test
+    @Tag("ui")
+    public void nodeShowAfterScreenPointReinstallsAnchorFollow() throws InterruptedException {
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        AtomicReference<Double> beforeX = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = newShownAnchor(150);
+            RXPopupSupport support = newTestSupport(sizedContent(120, 60));
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            // Screen-point mode first, then hide, then node mode on the SAME anchor:
+            // the node-mode re-show must reinstall the anchor follow-listeners.
+            support.show(anchor, screen.getMinX() + 150, screen.getMinY() + 150);
+            support.hide();
+            support.show(anchor);
+            assertTrue(support.isShowing(), "precondition: node-mode re-show");
+            popupRef.set(findTestPopup());
+            assertNotNull(popupRef.get(), "popup window should be present");
+            beforeX.set(popupRef.get().getAnchorX());
+            // Move the anchor within its scene: node mode must reposition to follow.
+            anchor.setTranslateX(40);
+        });
+        waitForFxCondition(() -> Math.abs(popupRef.get().getAnchorX() - (beforeX.get() + 40)) <= 2.0,
+                () -> "after a point->node transition the popup must follow the anchor's in-scene move, got "
+                        + popupRef.get().getAnchorX() + " expected ~" + (beforeX.get() + 40));
     }
 
     // ==================== Helpers ====================

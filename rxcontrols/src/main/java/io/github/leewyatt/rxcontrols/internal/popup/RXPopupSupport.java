@@ -6,6 +6,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.event.EventHandler;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Rectangle2D;
@@ -98,6 +99,17 @@ public final class RXPopupSupport {
     private double offsetX;
     private double offsetY;
 
+    // Screen-point (context-menu) mode: the popup anchors to a fixed screen point,
+    // modeled as a zero-size degenerate anchor rectangle, instead of following the
+    // owner node's bounds. The owner is still bound for scene / window / tree-showing
+    // / RTL / auto-hide-exemption, but its moves do not reposition the popup.
+    private boolean pointMode;
+    private double pointX;
+    private double pointY;
+    // The pointMode the current anchorDisposer's listener set was built for, so a
+    // point<->node transition on the same anchor rebuilds the correct follow set.
+    private boolean boundPointMode;
+
     private Runnable onHidden;
     private boolean suppressOnHidden;
     private boolean disposed;
@@ -152,6 +164,7 @@ public final class RXPopupSupport {
         if (disposed || anchor == null) {
             return;
         }
+        pointMode = false;
         if (anchor != this.anchor && showing.get() && popup.isShowing()) {
             // The framework ownerNode (CSS parent chain, auto-hide owner exemption,
             // tree-showing tracking) has no public setter: migrating anchors while
@@ -160,6 +173,38 @@ public final class RXPopupSupport {
             return;
         }
         bindAnchor(anchor);
+        showInternal();
+    }
+
+    /**
+     * Shows the popup at a fixed screen point (context-menu placement), owned by
+     * {@code owner}. The point is treated as a zero-size degenerate anchor
+     * rectangle: flip / shift / collision and RTL still apply, but the popup does
+     * not follow the owner's bounds as it moves. The owner is bound for scene /
+     * window / tree-showing auto-close / auto-hide exemption. A {@code null} owner
+     * is ignored.
+     *
+     * @param owner   the node whose window hosts and owns the popup
+     * @param screenX the anchor x in screen coordinates
+     * @param screenY the anchor y in screen coordinates
+     */
+    public void show(Node owner, double screenX, double screenY) {
+        if (disposed || owner == null) {
+            return;
+        }
+        pointMode = true;
+        pointX = screenX;
+        pointY = screenY;
+        if (owner != this.anchor && showing.get() && popup.isShowing()) {
+            // Same owner-migration constraint as show(Node): rebind via hide + re-show.
+            suppressOnHidden = true;
+            try {
+                popup.hide();
+            } finally {
+                suppressOnHidden = false;
+            }
+        }
+        bindAnchor(owner);
         showInternal();
     }
 
@@ -389,7 +434,9 @@ public final class RXPopupSupport {
     // ==================== Internal ====================
 
     private void bindAnchor(Node newAnchor) {
-        if (newAnchor == anchor && anchorDisposer != null) {
+        // Re-bind when the anchor changes OR when the mode flips on the same anchor
+        // (point<->node), since the follow-listener set differs between the two.
+        if (newAnchor == anchor && anchorDisposer != null && boundPointMode == pointMode) {
             return;
         }
         if (anchorDisposer != null) {
@@ -398,14 +445,19 @@ public final class RXPopupSupport {
         detachWindowListeners();
         anchorDisposer = new SkinDisposer();
         anchor = newAnchor;
+        boundPointMode = pointMode;
         if (newAnchor == null) {
             return;
         }
         // Keep the popup glued to the anchor as it moves / resizes within its scene
         // (boundsInParent covers own position + size; localToSceneTransform covers
         // ancestor-driven moves). Window x/y/size are tracked separately at show time.
-        anchorDisposer.registerListener(newAnchor.boundsInParentProperty(), this::requestReposition);
-        anchorDisposer.registerListener(newAnchor.localToSceneTransformProperty(), this::requestReposition);
+        // Screen-point mode anchors to a fixed point, so the follow-listeners are
+        // skipped (the point does not move with the owner).
+        if (!pointMode) {
+            anchorDisposer.registerListener(newAnchor.boundsInParentProperty(), this::requestReposition);
+            anchorDisposer.registerListener(newAnchor.localToSceneTransformProperty(), this::requestReposition);
+        }
         // Auto-close when the anchor leaves the scene / its window hides. Explicit
         // ownership (new + dispose), not the shared RXTreeShowingProperty.of(node).
         RXTreeShowingProperty tracker = new RXTreeShowingProperty(newAnchor);
@@ -441,7 +493,7 @@ public final class RXPopupSupport {
         // Mirror the anchor's effective orientation so START/END and content flip under RTL.
         content.setNodeOrientation(anchor.getEffectiveNodeOrientation());
         if (!popup.isShowing()) {
-            Bounds anchorScreen = anchor.localToScreen(anchor.getBoundsInLocal());
+            Bounds anchorScreen = anchorScreenBounds();
             // Provisional anchor below the node; reconfigure once the popup is measured.
             popup.show(anchor, anchorScreen.getMinX(), anchorScreen.getMaxY());
         }
@@ -453,7 +505,7 @@ public final class RXPopupSupport {
         if (disposed || !showing.get() || anchor == null || !popup.isShowing()) {
             return;
         }
-        Bounds anchorScreen = anchor.localToScreen(anchor.getBoundsInLocal());
+        Bounds anchorScreen = anchorScreenBounds();
         if (anchorScreen == null) {
             return;
         }
@@ -547,6 +599,14 @@ public final class RXPopupSupport {
         if (onHidden != null) {
             onHidden.run();
         }
+    }
+
+    private Bounds anchorScreenBounds() {
+        if (pointMode) {
+            // Zero-size degenerate anchor rect at the fixed screen point.
+            return new BoundingBox(pointX, pointY, 0.0, 0.0);
+        }
+        return anchor.localToScreen(anchor.getBoundsInLocal());
     }
 
     private static Screen screenFor(Bounds anchorScreen) {

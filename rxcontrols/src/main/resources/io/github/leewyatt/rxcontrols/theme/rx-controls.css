@@ -26,7 +26,7 @@
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
-.rx-kanban-view, .rx-list-view,
+.rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
 .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
     /* brand / primary */
@@ -2120,6 +2120,151 @@
 
 .rx-list-view .rx-list-section-header.sticky:pinned {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXMenuList                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.rx-menu-list {
+    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4, 3;
+    -fx-padding: 4 0 4 0;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 8, 0.0, 0, 2);
+}
+.rx-menu-item {
+    -fx-padding: 8 12 8 12;
+    -fx-spacing: 12;
+    -fx-alignment: CENTER_LEFT;
+    -fx-min-height: 32;
+    -fx-background-radius: 4;
+}
+.rx-menu-item > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+.rx-menu-item > .trailing {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-padding: 0 0 0 16;
+}
+.rx-menu-item:focused {
+    -fx-background-color: -rx-selection;
+}
+.rx-menu-item:disabled {
+    -fx-opacity: 0.4;
+}
+/* Leading selection slot for checkbox / radio items; the indicator is hidden
+   until :checked. The slot reserves width so text stays aligned either way. */
+.rx-menu-item > .leading {
+    -fx-min-width: 18;
+    -fx-pref-width: 18;
+    -fx-alignment: CENTER;
+}
+.rx-menu-item > .leading > .checkmark {
+    -fx-min-width: 14;
+    -fx-min-height: 14;
+    -fx-pref-width: 14;
+    -fx-pref-height: 14;
+    -fx-background-color: -rx-on-surface;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    -fx-opacity: 0;
+}
+.rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-pref-width: 8;
+    -fx-pref-height: 8;
+    -fx-background-color: -rx-primary;
+    -fx-background-radius: 50%;
+    -fx-opacity: 0;
+}
+.rx-menu-item:checked > .leading > .checkmark,
+.rx-menu-item:checked > .leading > .radiomark {
+    -fx-opacity: 1;
+}
+/* Destructive / dangerous action. */
+.rx-menu-item:danger > .label {
+    -fx-text-fill: -rx-danger;
+}
+.rx-menu-item:danger > .leading > .checkmark {
+    -fx-background-color: -rx-danger;
+}
+/* Dense (compact) vertical rhythm, driven by the list-level :dense pseudo-class. */
+.rx-menu-list:dense {
+    -fx-padding: 2 0 2 0;
+}
+.rx-menu-list:dense .rx-menu-item {
+    -fx-padding: 4 12 4 12;
+    -fx-min-height: 28;
+}
+.rx-menu-list .menu-separator {
+    -fx-pref-height: 9;
+    -fx-min-height: 9;
+    -fx-background-color: -rx-outline-variant;
+    -fx-background-insets: 4 8 4 8;
+}
+.rx-menu-list .menu-header {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-weight: bold;
+    -fx-padding: 8 12 4 12;
+}
+/* Popup shell is token-less and transparent; the .rx-menu-list content box carries
+   the surface fill, border, radius and elevation (shadow on the content, not the shell). */
+.rx-menu-popup {
+    -fx-background-color: transparent;
+}
+/* The max-height scroll wrapper is transparent so the menu surface shows through;
+   no border / inset / padding of its own. */
+.rx-menu-list > .scroll,
+.rx-menu-list > .scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXMenuButton                                                                *
+ *                                                                             *
+ ******************************************************************************/
+/* Extends ButtonBase directly (no modena .button chrome), so the outlined
+   trigger shell is defined in full here. Hover / press feedback comes from the
+   skin's ripple + state overlay; :focused adds a ring, :showing an accent. */
+.rx-menu-button {
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4, 3;
+    -fx-padding: 8 12 8 12;
+    -fx-alignment: CENTER_LEFT;
+    -fx-text-fill: -rx-on-surface;
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.18;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
+}
+.rx-menu-button > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M7 10 L12 15 L17 10 Z";
+    -fx-pref-width: 12;
+    -fx-pref-height: 6;
+}
+.rx-menu-button:focused {
+    -fx-background-color: -rx-focus, -rx-outline, -rx-surface;
+    -fx-background-insets: -1.4, 0, 1;
+    -fx-background-radius: 5, 4, 3;
+}
+.rx-menu-button:showing {
+    -fx-background-color: -rx-primary, -rx-primary-bg;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4, 3;
+}
+.rx-menu-button:showing > .arrow {
+    -fx-background-color: -rx-primary;
+    -fx-rotate: 180;
+}
+.rx-menu-button:disabled {
+    -fx-opacity: 0.4;
 }
 
 /*******************************************************************************
