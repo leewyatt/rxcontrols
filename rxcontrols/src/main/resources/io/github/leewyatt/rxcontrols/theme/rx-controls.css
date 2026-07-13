@@ -27,7 +27,7 @@
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
-.rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
     /* brand / primary */
     -rx-primary: #616dff;
@@ -1938,6 +1938,133 @@
 
 .rx-segmented-control > .segment:disabled .label {
     -fx-text-fill: -rx-on-surface-disabled;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTabPane                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.rx-tab-pane {
+    -rx-animation-duration: 250ms;
+}
+
+.rx-tab-pane > .header {
+    -fx-background-color: -rx-surface;
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* The divider sits on the header edge adjacent to the content region, per side. */
+.rx-tab-pane:bottom > .header {
+    -fx-border-width: 1 0 0 0;
+}
+
+.rx-tab-pane:left > .header {
+    -fx-border-width: 0 1 0 0;
+}
+
+.rx-tab-pane:right > .header {
+    -fx-border-width: 0 0 0 1;
+}
+
+/* Each tab is an RXRipplePane: a transparent fill keeps it pickable and shapes
+   the bounded press ripple + hover overlay. */
+.rx-tab-pane > .header > .tab {
+    -fx-padding: 0.5em 1em;
+    -fx-background-color: transparent;
+    -rx-ripple-fill: -rx-state-overlay-color;
+}
+
+/* Roving keyboard focus: a distinct inset ring (not just the state-layer fill) so
+   focus reads clearly in both themes and is separable from the selection underline. */
+.rx-tab-pane > .header > .tab:focused {
+    -fx-background-color: -rx-primary-bg;
+    -fx-border-color: -rx-primary;
+    -fx-border-width: 2;
+    -fx-border-insets: 3;
+    -fx-border-radius: 4;
+}
+
+.rx-tab-pane > .header > .tab .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-tab-pane > .header > .tab:selected .label {
+    -fx-text-fill: -rx-primary;
+}
+
+.rx-tab-pane > .header > .tab:disabled .label {
+    -fx-text-fill: -rx-on-surface-disabled;
+}
+
+.rx-tab-pane > .header > .tab .close-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+    -fx-padding: 3px;
+}
+
+.rx-tab-pane > .header > .tab .close-button .graphic {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M0,1 L1,0 L4,3 L7,0 L8,1 L5,4 L8,7 L7,8 L4,5 L1,8 L0,7 L3,4 Z";
+}
+
+/* The sliding underline: an unmanaged Region the skin positions on the header,
+   a sibling of the tab cells (not a per-tab child). */
+.rx-tab-pane > .header > .indicator {
+    -fx-background-color: -rx-primary;
+    -fx-pref-height: 2px;
+    -fx-background-radius: 1px;
+}
+
+.rx-tab-pane:left > .header > .indicator,
+.rx-tab-pane:right > .header > .indicator {
+    -fx-pref-height: 0;
+    -fx-pref-width: 2px;
+}
+
+/* SCROLLABLE scroll buttons: opaque surface fill so a cell scrolled underneath is
+   masked; the chevron is a shaped .arrow sub-region (:left / :right pick direction). */
+.rx-tab-pane > .header > .scroll-button {
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 0;
+    -fx-padding: 0.5em;
+    -rx-ripple-fill: -rx-state-overlay-color;
+}
+
+.rx-tab-pane > .header > .scroll-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.rx-tab-pane > .header > .scroll-button > .arrow {
+    -fx-pref-width: 0.5em;
+    -fx-pref-height: 0.8em;
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.rx-tab-pane > .header > .scroll-button:left > .arrow {
+    -fx-shape: "M15.41 7.41 L14 6 l-6 6 6 6 1.41-1.41 L10.83 12 Z";
+}
+
+.rx-tab-pane > .header > .scroll-button:right > .arrow {
+    -fx-shape: "M10 6 L8.59 7.41 L13.17 12 l-4.58 4.59 L10 18 l6-6 Z";
+}
+
+/* Vertical sides scroll along Y, so the back/forward chevrons point up/down. */
+.rx-tab-pane:left > .header > .scroll-button:left > .arrow,
+.rx-tab-pane:right > .header > .scroll-button:left > .arrow {
+    -fx-shape: "M12 8 L6 14 l1.41 1.41 L12 10.83 l4.59 4.58 L18 14 Z";
+}
+
+.rx-tab-pane:left > .header > .scroll-button:right > .arrow,
+.rx-tab-pane:right > .header > .scroll-button:right > .arrow {
+    -fx-shape: "M16.59 8.59 L12 13.17 L7.41 8.59 L6 10 l6 6 6-6 Z";
+}
+
+.rx-tab-pane > .content {
+    -fx-background-color: -rx-surface;
 }
 
 /*******************************************************************************
