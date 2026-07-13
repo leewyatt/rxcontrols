@@ -104,6 +104,56 @@ public class KanbanColumnViewportGlideTest {
     }
 
     /**
+     * Verifies a plain programmatic insert at rest glides the displaced cards
+     * with their own nodes: the entering card must not steal a displaced card's
+     * prior cell, which would cascade every later card into a pop.
+     */
+    @Test
+    public void programmaticInsertGlidesDisplacedCardsByIdentity() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("todo");
+            for (int i = 0; i < 12; i++) {
+                column.getCards().add("card-" + i);
+            }
+            board.getColumns().add(column);
+            board.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = new StackPane(board);
+            new Scene(root, 400, 700);
+            root.resize(400, 700);
+            pump(root);
+
+            Map<String, RXKanbanCardCell<String>> nodeByCard = new HashMap<>();
+            for (RXKanbanCardCell<String> cell : cells(root)) {
+                if (cell.isVisible() && cell.getIndex() >= 0) {
+                    nodeByCard.put(cell.getItem(), cell);
+                }
+            }
+
+            column.getCards().add(0, "card-new"); // no animation in flight
+            pump(root);
+            boolean displacedGlide = false;
+            for (RXKanbanCardCell<String> cell : cells(root)) {
+                if (!cell.isVisible() || cell.getIndex() < 0) {
+                    continue;
+                }
+                boolean moving = Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()) > 0.5;
+                RXKanbanCardCell<String> priorNode = nodeByCard.get(cell.getItem());
+                assertTrue(!moving || priorNode == cell,
+                        "a gliding cell must be the card's own prior node: " + cell.getItem());
+                if (priorNode != null) {
+                    assertTrue(priorNode == cell,
+                            "a displaced card keeps its node across the insert: " + cell.getItem());
+                    if (moving) {
+                        displacedGlide = true;
+                    }
+                }
+            }
+            assertTrue(displacedGlide, "displaced cards glide to their shifted slots");
+        });
+    }
+
+    /**
      * Verifies a same-column move commit (remove + add in one pass) glides each
      * displaced card with its own node — the moved card keeps its cell and slides
      * to the new slot, and no cell carries another card's motion.

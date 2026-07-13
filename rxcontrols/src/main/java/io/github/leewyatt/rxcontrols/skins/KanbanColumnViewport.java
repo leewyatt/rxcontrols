@@ -47,9 +47,11 @@ import java.util.Set;
  * gap opening / closing, a lift), the same node glides from its old position to
  * the new one via {@link ViewportReorderAnimator} (FLIP). The carry-over map is
  * keyed by card identity, so the glide follows the card even when a mutation
- * shifts every index. Scroll passes snap. Cells mid-glide are pinned: a same-card
- * re-placement keeps the glide running, while any rebind to a different card or a
- * park cancels the glide first.
+ * shifts every index; continuity therefore requires distinct, non-{@code null}
+ * card instances — a {@code null} card or a duplicate occurrence of the same
+ * instance settles with a pop instead. Scroll passes snap. Cells mid-glide are
+ * pinned: a same-card re-placement keeps the glide running, while any rebind to a
+ * different card or a park cancels the glide first.
  *
  * @param <T> the card type
  */
@@ -66,8 +68,8 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     private int dropGapIndex = -1;
 
     private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
-    // Cells mid-glide, pinned: a same-item re-placement keeps the glide running,
-    // while any rebind to a different item or a park cancels the glide first.
+    // Cells mid-glide, pinned: a same-card re-placement keeps the glide running,
+    // while any rebind to a different card or a park cancels the glide first.
     private final Set<RXKanbanCardCell<T>> animating = Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean reorderPass;
     // One-shot glide trigger: set only when the slot arrangement actually changed (a
@@ -287,6 +289,7 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
         // card, not the index, or another card's motion would be carried over.
         Map<T, RXKanbanCardCell<T>> priorCardToCell = null;
         Set<RXKanbanCardCell<T>> usedThisPass = null;
+        Set<RXKanbanCardCell<T>> reservedThisPass = null;
         if (reorderPass) {
             priorCardToCell = new IdentityHashMap<>();
             for (RXKanbanCardCell<T> cell : cellPool) {
@@ -295,26 +298,38 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
                 }
             }
             usedThisPass = new HashSet<>();
+            // Reserve every visible card's prior cell up front: an entering card
+            // (no prior) fills earlier slots first, and its fallback must not
+            // steal a displaced card's node — that would cascade every later
+            // carry-over into a pop.
+            reservedThisPass = new HashSet<>();
+            for (int slot = firstSlot; slot <= lastSlot; slot++) {
+                int itemIndex = itemIndexForSlot(slot, gapIndex, lifted, effectiveCount);
+                if (itemIndex < 0 || itemIndex >= cards.size()) {
+                    continue;
+                }
+                T card = cards.get(itemIndex);
+                RXKanbanCardCell<T> prior = card != null ? priorCardToCell.get(card) : null;
+                if (prior != null) {
+                    reservedThisPass.add(prior);
+                }
+            }
         }
 
         int cellCursor = 0;
         int firstItem = -1;
         int lastItem = -1;
         for (int slot = firstSlot; slot <= lastSlot; slot++) {
-            if (slot == gapIndex) {
+            int itemIndex = itemIndexForSlot(slot, gapIndex, lifted, effectiveCount);
+            if (itemIndex < 0) {
                 continue;
             }
-            int effectiveIndex = gapIndex < 0 || slot < gapIndex ? slot : slot - 1;
-            if (effectiveIndex < 0 || effectiveIndex >= effectiveCount) {
-                continue;
-            }
-            int itemIndex = lifted < 0 || effectiveIndex < lifted ? effectiveIndex : effectiveIndex + 1;
             double rowTop = snapPositionY(slot * stride - scrollY);
             T card = itemIndex < cards.size() ? cards.get(itemIndex) : null;
             RXKanbanCardCell<T> prior =
                     reorderPass && card != null ? priorCardToCell.get(card) : null;
             RXKanbanCardCell<T> cell = reorderPass
-                    ? acquireCellForItem(prior, usedThisPass)
+                    ? acquireCellForItem(prior, usedThisPass, reservedThisPass)
                     : acquireCell(cellCursor++);
             // A carry-over is the node that rendered this card last pass (the prior
             // map is card-keyed, so this holds across index-shifting mutations).
@@ -351,16 +366,32 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
 
     // ==================== Cell pool ====================
 
+    // Maps a visual slot to its card index, folding out the drop gap and the
+    // lifted card; -1 for the gap slot itself or an out-of-range slot.
+    private static int itemIndexForSlot(int slot, int gapIndex, int lifted, int effectiveCount) {
+        if (slot == gapIndex) {
+            return -1;
+        }
+        int effectiveIndex = gapIndex < 0 || slot < gapIndex ? slot : slot - 1;
+        if (effectiveIndex < 0 || effectiveIndex >= effectiveCount) {
+            return -1;
+        }
+        return lifted < 0 || effectiveIndex < lifted ? effectiveIndex : effectiveIndex + 1;
+    }
+
     // Reorder pass: reuse the node that rendered this card last pass so the SAME node
-    // glides to its new slot; otherwise take a free, non-gliding pool cell.
+    // glides to its new slot; otherwise take a free pool cell that is neither
+    // gliding nor reserved as another visible card's carry-over.
     private RXKanbanCardCell<T> acquireCellForItem(RXKanbanCardCell<T> prior,
-                                                   Set<RXKanbanCardCell<T>> used) {
+                                                   Set<RXKanbanCardCell<T>> used,
+                                                   Set<RXKanbanCardCell<T>> reserved) {
         if (prior != null && !used.contains(prior)) {
             used.add(prior);
             return prior;
         }
         for (RXKanbanCardCell<T> candidate : cellPool) {
-            if (!used.contains(candidate) && !animating.contains(candidate)) {
+            if (!used.contains(candidate) && !reserved.contains(candidate)
+                    && !animating.contains(candidate)) {
                 used.add(candidate);
                 return candidate;
             }
