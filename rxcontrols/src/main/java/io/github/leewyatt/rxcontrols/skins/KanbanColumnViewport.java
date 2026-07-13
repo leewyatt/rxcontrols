@@ -16,7 +16,6 @@ import javafx.util.Callback;
 import javafx.util.Duration;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -44,13 +43,13 @@ import java.util.Set;
  * for the reorder settle glide.
  *
  * <p>Settle glide: on any non-scroll pass where a card that a cell rendered last
- * pass now lands in a different slot (a drop gap opening / closing, a lift, a drop
- * commit), the same node glides from its old position to the new one via
- * {@link ViewportReorderAnimator} (FLIP). A plain programmatic add / remove does
- * not glide — the prior map is index-keyed, so carry-over deltas stay zero. Scroll
- * passes snap. Cells mid-glide are pinned: a same-item re-placement keeps the
- * glide running, while any rebind to a different item or a park cancels the glide
- * first.
+ * pass now lands in a different slot (a card added / removed / reordered, a drop
+ * gap opening / closing, a lift), the same node glides from its old position to
+ * the new one via {@link ViewportReorderAnimator} (FLIP). The carry-over map is
+ * keyed by card identity, so the glide follows the card even when a mutation
+ * shifts every index. Scroll passes snap. Cells mid-glide are pinned: a same-card
+ * re-placement keeps the glide running, while any rebind to a different card or a
+ * park cancels the glide first.
  *
  * @param <T> the card type
  */
@@ -282,15 +281,17 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             lastSlot = firstSlot;
         }
 
-        // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding,
-        // so the same node can be re-found for its item and glide to the new slot.
-        Map<Integer, RXKanbanCardCell<T>> priorItemToCell = null;
+        // On a reorder pass, snapshot which cell rendered each card BEFORE rebinding,
+        // keyed by card identity: a reorder pass here is usually a cards mutation
+        // (indices shift under the cells), and the settle glide must follow the
+        // card, not the index, or another card's motion would be carried over.
+        Map<T, RXKanbanCardCell<T>> priorCardToCell = null;
         Set<RXKanbanCardCell<T>> usedThisPass = null;
         if (reorderPass) {
-            priorItemToCell = new HashMap<>();
+            priorCardToCell = new IdentityHashMap<>();
             for (RXKanbanCardCell<T> cell : cellPool) {
-                if (cell.getIndex() >= 0) {
-                    priorItemToCell.put(cell.getIndex(), cell);
+                if (cell.getIndex() >= 0 && cell.getItem() != null) {
+                    priorCardToCell.put(cell.getItem(), cell);
                 }
             }
             usedThisPass = new HashSet<>();
@@ -309,17 +310,15 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             }
             int itemIndex = lifted < 0 || effectiveIndex < lifted ? effectiveIndex : effectiveIndex + 1;
             double rowTop = snapPositionY(slot * stride - scrollY);
-            RXKanbanCardCell<T> prior = reorderPass ? priorItemToCell.get(itemIndex) : null;
+            T card = itemIndex < cards.size() ? cards.get(itemIndex) : null;
+            RXKanbanCardCell<T> prior =
+                    reorderPass && card != null ? priorCardToCell.get(card) : null;
             RXKanbanCardCell<T> cell = reorderPass
-                    ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
+                    ? acquireCellForItem(prior, usedThisPass)
                     : acquireCell(cellCursor++);
-            // A true carry-over is the same node still showing the same card. The
-            // prior map is index-keyed and every cards mutation arrives as a
-            // reorder pass here, so a mutation during a settle glide can move a
-            // different card under the old index — that cell must not glide as if
-            // it were carried over.
-            boolean carryOver = reorderPass && cell == prior
-                    && itemIndex < cards.size() && cell.getItem() == cards.get(itemIndex);
+            // A carry-over is the node that rendered this card last pass (the prior
+            // map is card-keyed, so this holds across index-shifting mutations).
+            boolean carryOver = reorderPass && cell == prior;
             // Rebinding a gliding cell to a different card invalidates its glide:
             // the tween belongs to the old card's move and would carry that motion
             // onto the new card. Same-card re-placement keeps the glide running
@@ -352,14 +351,13 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
 
     // ==================== Cell pool ====================
 
-    // Reorder pass: reuse the node that rendered this item last pass so the SAME node
+    // Reorder pass: reuse the node that rendered this card last pass so the SAME node
     // glides to its new slot; otherwise take a free, non-gliding pool cell.
-    private RXKanbanCardCell<T> acquireCellForItem(int itemIndex, Map<Integer, RXKanbanCardCell<T>> prior,
+    private RXKanbanCardCell<T> acquireCellForItem(RXKanbanCardCell<T> prior,
                                                    Set<RXKanbanCardCell<T>> used) {
-        RXKanbanCardCell<T> cell = prior.get(itemIndex);
-        if (cell != null && !used.contains(cell)) {
-            used.add(cell);
-            return cell;
+        if (prior != null && !used.contains(prior)) {
+            used.add(prior);
+            return prior;
         }
         for (RXKanbanCardCell<T> candidate : cellPool) {
             if (!used.contains(candidate) && !animating.contains(candidate)) {

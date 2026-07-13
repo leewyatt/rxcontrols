@@ -82,30 +82,77 @@ public class KanbanColumnViewportGlideTest {
 
             column.getCards().add(0, "card-new"); // shifts every index mid-glide
             pump(root);
+            boolean sameCardGlide = false;
             for (RXKanbanCardCell<String> cell : cells(root)) {
                 if (!cell.isVisible() || cell.getIndex() < 0) {
                     continue;
                 }
                 boolean moving = Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()) > 0.5;
+                if (!moving) {
+                    continue;
+                }
                 String before = cardBefore.get(cell);
-                assertTrue(!moving || before == null || before.equals(cell.getItem()),
+                assertTrue(before == null || before.equals(cell.getItem()),
                         "a rebound cell must not glide with another card's motion: "
                                 + before + " -> " + cell.getItem());
-                assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 0.5,
-                        "the index-shifting mutation leaves no carry-over, so every cell pops");
-            }
-
-            // Sanity: with stable cards a later slot change still glides.
-            viewport.setDropGap(6);
-            pump(root);
-            boolean glidesAgain = false;
-            for (RXKanbanCardCell<String> cell : cells(root)) {
-                if (Math.abs(cell.getTranslateY()) > 0.5) {
-                    glidesAgain = true;
-                    break;
+                if (before != null) {
+                    sameCardGlide = true;
                 }
             }
-            assertTrue(glidesAgain, "same-card carry-overs keep gliding after the mutation settled");
+            assertTrue(sameCardGlide, "the settle glide follows the cards to their shifted slots");
+        });
+    }
+
+    /**
+     * Verifies a same-column move commit (remove + add in one pass) glides each
+     * displaced card with its own node — the moved card keeps its cell and slides
+     * to the new slot, and no cell carries another card's motion.
+     */
+    @Test
+    public void dropCommitGlidesTheMovedCardsByIdentity() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("todo");
+            for (int i = 0; i < 12; i++) {
+                column.getCards().add("card-" + i);
+            }
+            board.getColumns().add(column);
+            board.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = new StackPane(board);
+            new Scene(root, 400, 700);
+            root.resize(400, 700);
+            pump(root);
+
+            Map<String, RXKanbanCardCell<String>> nodeByCard = new HashMap<>();
+            for (RXKanbanCardCell<String> cell : cells(root)) {
+                if (cell.isVisible() && cell.getIndex() >= 0) {
+                    nodeByCard.put(cell.getItem(), cell);
+                }
+            }
+
+            // A same-column move commit lands as remove + add of the SAME card
+            // instance in a single pass (mirroring the drag support's commitMove).
+            String movedCard = column.getCards().get(0);
+            column.getCards().remove(movedCard);
+            column.getCards().add(3, movedCard);
+            pump(root);
+
+            RXKanbanCardCell<String> moved = null;
+            for (RXKanbanCardCell<String> cell : cells(root)) {
+                if (!cell.isVisible() || cell.getIndex() < 0) {
+                    continue;
+                }
+                boolean moving = Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()) > 0.5;
+                RXKanbanCardCell<String> priorNode = nodeByCard.get(cell.getItem());
+                assertTrue(!moving || priorNode == cell,
+                        "a gliding cell must be the card's own prior node: " + cell.getItem());
+                if (cell.getItem() == movedCard) {
+                    moved = cell;
+                }
+            }
+            assertTrue(moved != null, "the moved card is visible");
+            assertTrue(moved == nodeByCard.get(movedCard), "the moved card keeps its node across the commit");
+            assertTrue(Math.abs(moved.getTranslateY()) > 0.5, "the moved card glides to its new slot");
         });
     }
 
