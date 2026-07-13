@@ -624,9 +624,9 @@ public class RXTileViewTest {
     }
 
     @Test
-    public void animatedDefaultsToFalseWithDefaultDuration() {
+    public void animatedDefaultsToTrueWithDefaultDuration() {
         RXTileView<String> view = new RXTileView<>();
-        assertFalse(view.isAnimated(), "reorder animation is opt-in");
+        assertTrue(view.isAnimated(), "reorder animation is on by default");
         assertEquals(Duration.millis(200), view.getAnimationDuration());
     }
 

@@ -209,6 +209,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private void onItemsListSwapped() {
         finishMarquee();
+        // An in-flight glide targets slots of the old list; snap it before the
+        // rebuild, like setStickyEnabled / recreateHeaders / dispose do.
+        viewport.snapReorderAnimation();
         rowPlanRevision++;
         attachItems(getSkinnable().getItems());
         // The shift-range anchor referred to the previous list; drop it so a later
@@ -220,6 +223,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private void onItemsContentChanged() {
         finishMarquee();
+        // An in-flight glide targets slots of the old contents; snap it so gliding
+        // cells cannot linger on removed items or drag stale translate onto new ones.
+        viewport.snapReorderAnimation();
         rowPlanRevision++;
         resetAnchor();
         updatePlaceholder();

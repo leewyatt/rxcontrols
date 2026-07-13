@@ -110,7 +110,7 @@ public class RXTileView<T> extends Control {
     private static final boolean DEFAULT_STICKY_SECTION_HEADER = false;
     private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     private static final SmoothScrollMode DEFAULT_SMOOTH_SCROLL_MODE = RXSmoothScrollOptions.DEFAULT_MODE;
-    private static final boolean DEFAULT_ANIMATED = false;
+    private static final boolean DEFAULT_ANIMATED = true;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
@@ -979,8 +979,10 @@ public class RXTileView<T> extends Control {
 
     /**
      * Whether cells and section headers glide to their new positions when a change
-     * in the column count reflows the grid. Off by default; turning it off while a
-     * reorder is in flight snaps every cell to its final position.
+     * in the column count reflows the grid. On by default; turning it off while a
+     * reorder is in flight snaps every cell to its final position. While a glide
+     * runs, the skin drives the affected cells' {@code translateX} /
+     * {@code translateY}.
      *
      * @return the animated property
      */

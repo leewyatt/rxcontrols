@@ -961,6 +961,7 @@ public class RXTileViewSkinTest {
     public void noTranslationLeftOnCellsWithoutAnimation() throws Exception {
         onFx(() -> {
             RXTileView<String> view = tiles(40);
+            view.setAnimated(false);
             view.setMaxColumns(4);
             StackPane root = host(view, 400, 300);
             pump(root);
@@ -968,7 +969,7 @@ public class RXTileViewSkinTest {
             pump(root);
             RXTileCell<?> cell = cellByIndex(view, 0);
             assertNotNull(cell);
-            assertEquals(0.0, cell.getTranslateX(), 0.0001, "no animation infrastructure runs in PR2");
+            assertEquals(0.0, cell.getTranslateX(), 0.0001, "no translate written with animation off");
             assertEquals(0.0, cell.getTranslateY(), 0.0001);
         });
     }
@@ -2827,7 +2828,8 @@ public class RXTileViewSkinTest {
     @Test
     public void noGlideWhenAnimationDisabled() throws Exception {
         onFx(() -> {
-            RXTileView<String> view = tiles(12); // animated defaults to false
+            RXTileView<String> view = tiles(12);
+            view.setAnimated(false);
             view.setMaxColumns(4);
             StackPane root = host(view, 700, 400);
             pump(root);
@@ -2921,6 +2923,123 @@ public class RXTileViewSkinTest {
             view.setSkin(null); // disposes the skin -> viewport.dispose() -> snapAllGlides()
             assertEquals(0.0, moved.getTranslateX(), 0.0001, "dispose snaps in-flight glides (no pinned leak)");
             assertEquals(0.0, moved.getTranslateY(), 0.0001);
+        });
+    }
+
+    /**
+     * Verifies scrolling while a reorder glide is in flight neither rebinds a
+     * gliding cell with its leftover translate nor leaves a gliding cell visible
+     * outside the published range.
+     */
+    @Test
+    public void scrollMidGlideDoesNotRebindGlidingCells() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(400);
+            view.setMaxColumns(4);
+            view.setPrefTileHeight(100);
+            view.setAnimationDuration(Duration.seconds(30.0)); // freeze the mid-glide state
+            StackPane root = host(view, 700, 400);
+            pump(root);
+
+            view.setMaxColumns(3); // column change -> reorder glide in flight
+            pump(root);
+            assertTrue(anyCellTranslated(view, 40), "setup: a reorder glide is in flight");
+
+            view.scrollTo(120);
+            pump(root);
+            assertNoStaleVisibleCells(view, "mid-list jump");
+
+            // The short last row shrinks the visible set, so cells the pass no
+            // longer binds go through the park path (not the rebind guard).
+            view.setMaxColumns(4); // re-arm a glide
+            pump(root);
+            view.setMaxColumns(3);
+            pump(root);
+            view.scrollTo(399);
+            pump(root);
+            assertNoStaleVisibleCells(view, "end-of-list jump");
+        });
+    }
+
+    private static void assertNoStaleVisibleCells(RXTileView<?> view, String phase) {
+        RXTileVisibleRange range = view.getVisibleRange();
+        for (Node node : view.lookupAll(".rx-tile-cell")) {
+            RXTileCell<?> cell = (RXTileCell<?>) node;
+            if (!cell.isVisible() || cell.getIndex() < 0) {
+                continue;
+            }
+            assertTrue(cell.getIndex() >= range.firstIndex() && cell.getIndex() <= range.lastIndex(),
+                    phase + ": no visible cell outside the published range: " + cell.getIndex());
+            assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 0.5,
+                    phase + ": no rebound cell carries glide residue: index " + cell.getIndex());
+        }
+    }
+
+    /**
+     * Verifies an items mutation while a reorder glide is in flight snaps every
+     * glide: no cell lingers on a removed item and no translate residue survives.
+     */
+    @Test
+    public void itemsMutationMidGlideSnapsAndLeavesNoGhosts() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(400);
+            view.setMaxColumns(4);
+            view.setPrefTileHeight(100);
+            view.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = host(view, 700, 400);
+            pump(root);
+
+            view.setMaxColumns(3);
+            pump(root);
+            assertTrue(anyCellTranslated(view, 40), "setup: a reorder glide is in flight");
+
+            view.getItems().remove(6, 400); // shrink mid-glide
+            pump(root);
+            for (Node node : view.lookupAll(".rx-tile-cell")) {
+                RXTileCell<?> cell = (RXTileCell<?>) node;
+                if (cell.isVisible()) {
+                    assertTrue(cell.getIndex() >= 0 && cell.getIndex() < view.getItems().size(),
+                            "no ghost cell shows a removed item: " + cell.getIndex());
+                }
+            }
+            assertFalse(anyCellTranslated(view, 6), "the items change snapped every glide");
+        });
+    }
+
+    /**
+     * Verifies a deep scroll while headers glide neither leaves a rebound header
+     * with the old glide's translate nor a stale header visible.
+     */
+    @Test
+    public void scrollMidGlideDoesNotLeaveHeaderResidue() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(30, 8);
+            view.setMaxColumns(4);
+            view.setPrefTileHeight(100);
+            view.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = host(view, 700, 400);
+            pump(root);
+
+            view.setMaxColumns(3); // headers glide vertically on the reflow
+            pump(root);
+            boolean headerGliding = false;
+            for (RXTileSectionCell header : poolHeaders(view)) {
+                if (Math.abs(header.getTranslateY()) > 0.5) {
+                    headerGliding = true;
+                    break;
+                }
+            }
+            assertTrue(headerGliding, "setup: a header glide is in flight");
+
+            view.scrollTo(200); // deep jump rebinds the header pool
+            pump(root);
+            for (RXTileSectionCell header : poolHeaders(view)) {
+                if (header.isVisible()) {
+                    assertEquals(0.0,
+                            Math.abs(header.getTranslateX()) + Math.abs(header.getTranslateY()), 0.5,
+                            "no rebound header carries glide residue");
+                }
+            }
         });
     }
 

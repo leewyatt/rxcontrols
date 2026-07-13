@@ -21,6 +21,7 @@ import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -694,6 +695,75 @@ public class RXMasonryViewSkinTest {
             view.getSkin().dispose(); // disposeSkin -> viewport.dispose -> snapAllGlides
             assertEquals(0.0, gliding.getTranslateX(), 0.001, "the glide is snapped on dispose");
             assertEquals(0.0, gliding.getTranslateY(), 0.001);
+        });
+    }
+
+    /**
+     * Verifies scrolling while a reorder glide is in flight neither rebinds a
+     * gliding cell with its leftover translate nor leaves a gliding cell visible
+     * on a stale item.
+     */
+    @Test
+    public void scrollMidGlideDoesNotRebindGlidingCells() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(200);
+            view.setColumnCount(3);
+            view.setAnimationDuration(Duration.seconds(30.0)); // freeze the mid-glide state
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            view.setColumnCount(2); // column change -> reorder glide in flight
+            layoutOnce(root);
+            RXMasonryCell<?> gliding = cellByIndex(view, 2);
+            assertTrue(Math.abs(gliding.getTranslateX()) + Math.abs(gliding.getTranslateY()) > 0.5,
+                    "setup: a reorder glide is in flight");
+
+            view.scrollTo(120);
+            layoutOnce(root);
+            for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                if (!(node instanceof RXMasonryCell<?> cell) || !cell.isVisible() || cell.getIndex() < 0) {
+                    continue;
+                }
+                assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 0.5,
+                        "no rebound cell carries glide residue: index " + cell.getIndex());
+                // A ghost from the pre-jump window would still show one of the
+                // first items; everything visible must belong to the jump target.
+                assertTrue(cell.getIndex() >= 50,
+                        "no visible cell lingers on the pre-jump window: " + cell.getIndex());
+            }
+        });
+    }
+
+    /**
+     * Verifies an items mutation while a reorder glide is in flight snaps every
+     * glide: no cell lingers on a removed item and no translate residue survives.
+     */
+    @Test
+    public void itemsMutationMidGlideSnapsAndLeavesNoGhosts() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setAnimationDuration(Duration.seconds(30.0)); // freeze the mid-glide state
+            StackPane root = host(view, 340, 400);
+            pump(root);
+
+            view.setColumnCount(2);
+            layoutOnce(root);
+            RXMasonryCell<?> gliding = cellByIndex(view, 2);
+            assertTrue(Math.abs(gliding.getTranslateX()) + Math.abs(gliding.getTranslateY()) > 0.5,
+                    "setup: a reorder glide is in flight");
+
+            view.getItems().remove(2, 30); // shrink mid-glide
+            layoutOnce(root);
+            for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                if (!(node instanceof RXMasonryCell<?> cell) || !cell.isVisible()) {
+                    continue;
+                }
+                assertTrue(cell.getIndex() >= 0 && cell.getIndex() < view.getItems().size(),
+                        "no ghost cell shows a removed item: " + cell.getIndex());
+                assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 0.001,
+                        "the items change snapped every glide: index " + cell.getIndex());
+            }
         });
     }
 

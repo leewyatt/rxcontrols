@@ -250,6 +250,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
     private void onItemsListSwapped() {
         finishMarquee();
+        // An in-flight glide targets slots of the old list; snap it before the
+        // rebuild, like convergeEstimatedHeights does before re-filling.
+        viewport.snapReorderGlides();
         attachItems(getSkinnable().getItems());
         // Both anchors referred to the previous list; drop them so a later fill /
         // Shift-action starts fresh instead of off a stale origin.
@@ -264,6 +267,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
     private void onItemsContentChanged(ListChangeListener.Change<? extends T> change) {
         finishMarquee();
+        // An in-flight glide targets slots of the old contents; snap it so gliding
+        // cells cannot linger on removed items or drag stale translate onto new ones.
+        viewport.snapReorderGlides();
         viewport.resetAnchor();
         resetAnchor();
         resetPreferredNav();

@@ -177,15 +177,26 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     }
 
     /**
-     * Whether a cell must be skipped by the recycler because it is mid-glide.
-     * Default {@code false}; the animated viewports return {@code true} for cells
-     * in their in-flight set.
+     * Whether a cell is mid-glide and owned by a reorder animation. Default
+     * {@code false}; the animated viewports return {@code true} for cells in
+     * their in-flight set.
      *
      * @param cell a pooled cell
-     * @return {@code true} to skip parking it
+     * @return {@code true} when an in-flight glide owns the cell
      */
     protected boolean isPinnedForAnimation(C cell) {
         return false;
+    }
+
+    /**
+     * Cancels the in-flight glide pinning {@code cell}, if any, so the cell can
+     * be parked or rebound without carrying the old item's leftover translate.
+     * The animated viewports stop the tween, reset the transforms and un-pin the
+     * cell; the default implementation is a no-op for viewports without glides.
+     *
+     * @param cell the cell whose glide to cancel
+     */
+    protected void cancelGlide(C cell) {
     }
 
     /**
@@ -662,8 +673,10 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     }
 
     /**
-     * Parks every pool cell from {@code from} to the end, skipping any cell pinned
-     * by an in-flight glide.
+     * Parks every pool cell from {@code from} to the end. A cell pinned by an
+     * in-flight glide has its glide cancelled first — the pass no longer binds
+     * the cell, and letting the glide keep it visible would show a stale item as
+     * a ghost.
      *
      * @param from the first pool index to park
      */
@@ -671,7 +684,7 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         for (int i = from; i < cellPool.size(); i++) {
             C cell = cellPool.get(i);
             if (isPinnedForAnimation(cell)) {
-                continue;
+                cancelGlide(cell);
             }
             parkCell(cell);
         }

@@ -78,7 +78,7 @@ public class RXMasonryViewTest {
         assertEquals(Pos.TOP_LEFT, view.getAlignment());
         assertSame(RXBreakpointProfile.ANT_DESIGN, view.getBreakpointProfile());
         assertEquals(200.0, view.getEstimatedCellHeight(), EPSILON);
-        assertFalse(view.isAnimated());
+        assertTrue(view.isAnimated());
         assertEquals(Duration.millis(200.0), view.getAnimationDuration());
         assertEquals(Interpolator.EASE_BOTH, view.getAnimationInterpolator());
         assertEquals(0, RXMasonryView.AUTO_COLUMNS);

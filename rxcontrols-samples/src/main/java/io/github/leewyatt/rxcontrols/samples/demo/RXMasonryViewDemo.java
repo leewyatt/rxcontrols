@@ -56,8 +56,6 @@ public class RXMasonryViewDemo extends Application {
         masonry.setCellFactory(view -> new NoteCell());
         // A featured note spans two columns (clamped to the column count on narrow widths).
         masonry.setColumnSpanFactory(note -> note.featured() ? 2 : 1);
-        // Glide the tiles to their new slots when a resize changes the column count.
-        masonry.setAnimated(true);
         masonry.setOnAction(event -> status.setText("Opened: " + event.getItem().title()));
 
         // The precise path: a per-item height approximating the rendered paragraph.

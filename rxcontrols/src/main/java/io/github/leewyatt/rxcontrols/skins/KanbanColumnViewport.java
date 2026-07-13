@@ -44,10 +44,13 @@ import java.util.Set;
  * for the reorder settle glide.
  *
  * <p>Settle glide: on any non-scroll pass where a card that a cell rendered last
- * pass now lands in a different slot (a drop gap opening / closing, a card added /
- * removed, a lift), the same node glides from its old position to the new one via
- * {@link ViewportReorderAnimator} (FLIP). Scroll passes snap. Cells mid-glide are
- * pinned so the recycler leaves them alone until they land.
+ * pass now lands in a different slot (a drop gap opening / closing, a lift, a drop
+ * commit), the same node glides from its old position to the new one via
+ * {@link ViewportReorderAnimator} (FLIP). A plain programmatic add / remove does
+ * not glide — the prior map is index-keyed, so carry-over deltas stay zero. Scroll
+ * passes snap. Cells mid-glide are pinned: a same-item re-placement keeps the
+ * glide running, while any rebind to a different item or a park cancels the glide
+ * first.
  *
  * @param <T> the card type
  */
@@ -64,7 +67,8 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     private int dropGapIndex = -1;
 
     private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
-    // Cells mid-glide, pinned so the recycler skips them until they land.
+    // Cells mid-glide, pinned: a same-item re-placement keeps the glide running,
+    // while any rebind to a different item or a park cancels the glide first.
     private final Set<RXKanbanCardCell<T>> animating = Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean reorderPass;
     // One-shot glide trigger: set only when the slot arrangement actually changed (a
@@ -309,6 +313,13 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             RXKanbanCardCell<T> cell = reorderPass
                     ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
                     : acquireCell(cellCursor++);
+            // Rebinding a gliding cell to a different item invalidates its glide:
+            // the tween belongs to the old item's move and would drag the new item
+            // in with the leftover translate. Same-item re-placement keeps the
+            // glide running (reorder carry-overs are re-aimed by placeCell).
+            if (!reorderPass && cell.getIndex() != itemIndex && animating.remove(cell)) {
+                reorderAnimator.cancel(cell);
+            }
             String oldStyle = cell.getStyle();
             cell.updateIndex(itemIndex);
             cell.setVisible(true);
@@ -385,11 +396,22 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
 
     private void parkUnusedCells(Set<RXKanbanCardCell<T>> used) {
         for (RXKanbanCardCell<T> cell : cellPool) {
-            if (used.contains(cell) || animating.contains(cell)) {
+            if (used.contains(cell)) {
                 continue;
+            }
+            // A gliding cell the pass no longer shows must not stay visible on a
+            // stale item; cancel its glide so it parks like any other unused cell.
+            if (animating.contains(cell)) {
+                cancelGlide(cell);
             }
             parkCell(cell);
         }
+    }
+
+    @Override
+    protected void cancelGlide(RXKanbanCardCell<T> cell) {
+        reorderAnimator.cancel(cell);
+        animating.remove(cell);
     }
 
     private void snapAllGlides() {

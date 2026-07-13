@@ -39,8 +39,9 @@ import java.util.Set;
  *
  * <p>On a column-count change, when animation is enabled, the visible cells keep
  * their identity, are repositioned to their new slots and tween from their old
- * position via {@link ViewportReorderAnimator}; cells mid-glide are pinned so the
- * recycler leaves them alone until they land.</p>
+ * position via {@link ViewportReorderAnimator}; cells mid-glide are pinned: a
+ * same-item re-placement keeps the glide running, while any rebind to a different
+ * item or a park cancels the glide first.</p>
  *
  * @param <T> the item type
  */
@@ -63,8 +64,9 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
 
     private final RXMasonryView<T> control;
 
-    // Cells mid-glide are pinned here and skipped by the recycler so a cell gliding to a
-    // new slot is not grabbed and re-bound before it lands.
+    // Cells mid-glide are pinned here: the reorder fallback allocation skips them
+    // and a same-item re-placement keeps the glide, while a rebind to a different
+    // item or a park cancels the glide first.
     private final Set<RXMasonryCell<T>> animating = new HashSet<>();
     private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
     // True for the duration of one fillVisible when a column-count change should glide
@@ -295,6 +297,13 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
             RXMasonryCell<T> cell = reorderPass
                     ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
                     : acquireCell(cursor++);
+            // Rebinding a gliding cell to a different item invalidates its glide:
+            // the tween belongs to the old item's move and would drag the new item
+            // in with the leftover translate. Same-item re-placement keeps the
+            // glide running (reorder carry-overs are re-aimed by placeCell).
+            if (!reorderPass && cell.getIndex() != itemIndex && animating.remove(cell)) {
+                reorderAnimator.cancel(cell);
+            }
             String oldStyle = cell.getStyle();
             cell.updateMasonryPosition(current.startColumnOf(itemIndex), current.spanOf(itemIndex));
             cell.updateIndex(itemIndex);
@@ -430,8 +439,13 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
 
     private void parkUnusedCells(Set<RXMasonryCell<T>> used) {
         for (RXMasonryCell<T> cell : cellPool) {
-            if (used.contains(cell) || animating.contains(cell)) {
+            if (used.contains(cell)) {
                 continue;
+            }
+            // A gliding cell the pass no longer shows must not stay visible on a
+            // stale item; cancel its glide so it parks like any other unused cell.
+            if (animating.contains(cell)) {
+                cancelGlide(cell);
             }
             parkCell(cell);
         }
@@ -440,6 +454,12 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     @Override
     protected boolean isPinnedForAnimation(RXMasonryCell<T> cell) {
         return animating.contains(cell);
+    }
+
+    @Override
+    protected void cancelGlide(RXMasonryCell<T> cell) {
+        reorderAnimator.cancel(cell);
+        animating.remove(cell);
     }
 
     @Override
@@ -503,11 +523,11 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     }
 
     /**
-     * Snaps any in-flight reorder glide to its landing position. The skin calls this
-     * before an estimated-path measure-repack: a column-count change there re-measures
-     * and re-packs every cell within the pass, so a glide started at the column change
-     * has an unstable target and is dropped (rather than re-bound mid-flight by the
-     * non-reorder converge re-fill).
+     * Snaps any in-flight reorder glide to its landing position. The skin calls
+     * this before any pass that re-fills against rebuilt geometry — an items
+     * mutation or list swap (the glide targets slots of the old contents) and the
+     * estimated-path measure-repack (a column-count change there re-measures and
+     * re-packs every cell within the pass, leaving the glide an unstable target).
      */
     void snapReorderGlides() {
         if (!animating.isEmpty()) {

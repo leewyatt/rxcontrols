@@ -108,7 +108,6 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         masonry.setColumnWidth(220.0);
         masonry.setCellFactory(view -> new NoteCell());
         masonry.setColumnSpanFactory(index -> featured(index) ? 2 : 1);
-        masonry.setAnimated(true);
         masonry.setOnAction(event -> actionStatus.setText("Opened: Note " + (event.getItem() + 1)));
 
         // The precise path: a per-item height approximating the rendered paragraph.

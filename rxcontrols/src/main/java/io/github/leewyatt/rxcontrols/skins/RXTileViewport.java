@@ -37,7 +37,8 @@ import java.util.Set;
  * <p>On a column-count change the viewport runs a reorder glide: visible cells
  * (and section headers) keep their identity, are repositioned to their new slots,
  * and tween from their old position via {@link ViewportReorderAnimator}. Cells
- * mid-glide are pinned so the recycler leaves them alone until they land.
+ * mid-glide are pinned: a same-item re-placement keeps the glide running, while
+ * any rebind to a different item or a park cancels the glide first.
  *
  * @param <T> the item type
  */
@@ -57,8 +58,9 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     // in the overlay layer (above content + marquee, below the scroll bar), so it
     // never joins the recycling pool or the reorder glide.
     private RXTileSectionCell stickyHeader;
-    // Cells / headers mid-glide are pinned here and skipped by the recycler so a
-    // tile gliding to a new slot is not grabbed and re-bound before it lands.
+    // Cells / headers mid-glide are pinned here: the reorder fallback allocation
+    // skips them and a same-item re-placement keeps the glide, while a rebind to
+    // a different item or a park cancels the glide first.
     private final Set<RXTileCell<T>> animating = new HashSet<>();
     private final Set<RXTileSectionCell> animatingHeaders = new HashSet<>();
     private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
@@ -433,6 +435,14 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                     continue;
                 }
                 RXTileSectionCell header = acquireHeader(headerCursor++);
+                // Rebinding a gliding header to a different section invalidates its
+                // glide: the tween belongs to the old section's move and would drag
+                // the new section in with the leftover translate. On a reorder pass
+                // placeHeader re-aims from the live visual position instead, so
+                // cancelling here would break the FLIP continuity.
+                if (!reorderPass && header.getItem() != info.section() && animatingHeaders.remove(header)) {
+                    reorderAnimator.cancel(header);
+                }
                 String oldStyle = header.getStyle();
                 header.updateSection(info.section());
                 header.setVisible(true);
@@ -452,6 +462,14 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                     RXTileCell<T> cell = reorderPass
                             ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
                             : acquireCell(cellCursor++);
+                    // Rebinding a gliding cell to a different item invalidates its
+                    // glide: the tween belongs to the old item's move and would
+                    // drag the new item in with the leftover translate. Same-item
+                    // re-placement keeps the glide running (reorder carry-overs
+                    // are re-aimed by placeCell instead).
+                    if (!reorderPass && cell.getIndex() != itemIndex && animating.remove(cell)) {
+                        reorderAnimator.cancel(cell);
+                    }
                     String oldStyle = cell.getStyle();
                     cell.updateGridPosition(info.dataRowIndex(), column);
                     cell.updateIndex(itemIndex);
@@ -643,8 +661,13 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
 
     private void parkUnusedCells(Set<RXTileCell<T>> used) {
         for (RXTileCell<T> cell : cellPool) {
-            if (used.contains(cell) || animating.contains(cell)) {
+            if (used.contains(cell)) {
                 continue;
+            }
+            // A gliding cell the pass no longer shows must not stay visible on a
+            // stale item; cancel its glide so it parks like any other unused cell.
+            if (animating.contains(cell)) {
+                cancelGlide(cell);
             }
             parkCell(cell);
         }
@@ -653,6 +676,12 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     @Override
     protected boolean isPinnedForAnimation(RXTileCell<T> cell) {
         return animating.contains(cell);
+    }
+
+    @Override
+    protected void cancelGlide(RXTileCell<T> cell) {
+        reorderAnimator.cancel(cell);
+        animating.remove(cell);
     }
 
     @Override
@@ -725,8 +754,10 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     private void parkHeadersFrom(int from) {
         for (int i = from; i < headerPool.size(); i++) {
             RXTileSectionCell header = headerPool.get(i);
-            if (animatingHeaders.contains(header)) {
-                continue;
+            // A gliding header the pass no longer shows must not stay visible on
+            // a stale section; cancel its glide so it parks normally.
+            if (animatingHeaders.remove(header)) {
+                reorderAnimator.cancel(header);
             }
             if (header.isVisible() || header.getItem() != null) {
                 header.setVisible(false);
