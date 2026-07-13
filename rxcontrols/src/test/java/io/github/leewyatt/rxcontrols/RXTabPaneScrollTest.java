@@ -212,6 +212,38 @@ public class RXTabPaneScrollTest {
         });
     }
 
+    @Test
+    public void disablingAnimationMidGlideHaltsStrip() throws Exception {
+        AtomicReference<RXTabPane> ref = new AtomicReference<>();
+        AtomicReference<Double> beforeRef = new AtomicReference<>();
+        AtomicReference<Double> frozenRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTabPane pane = scrollable(10, 220);   // animated by default: glide on click
+            beforeRef.set(cellLayoutX(pane, 0));
+            rightButton(pane).fire();               // start the glide
+            ref.set(pane);
+        });
+        // Let the glide advance partway (default 250ms glide).
+        waitForFx(100.0);
+        runOnFx(() -> {
+            RXTabPane pane = ref.get();
+            layout(pane);
+            assertTrue(cellLayoutX(pane, 0) < beforeRef.get() - EPSILON,
+                    "glide should be in flight before animation is disabled");
+            // Disabling animation mid-glide must halt the engine, not let it coast.
+            pane.setAnimated(false);
+            layout(pane);
+            frozenRef.set(cellLayoutX(pane, 0));
+        });
+        // Wait well past the remaining glide duration.
+        waitForFx(320.0);
+        runOnFx(() -> {
+            layout(ref.get());
+            // Frozen: later pulses do not move the strip once animation was switched off.
+            assertEquals(frozenRef.get(), cellLayoutX(ref.get(), 0));
+        });
+    }
+
     // ==================== ensureSelectedVisible ====================
 
     @Test

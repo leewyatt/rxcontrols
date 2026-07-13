@@ -200,6 +200,11 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         disposer.registerListener(control.tabMinWidthProperty(), control::requestLayout);
         disposer.registerListener(control.tabMaxWidthProperty(), control::requestLayout);
         disposer.registerListener(control.scrollButtonPolicyProperty(), control::requestLayout);
+        // Halt any in-flight strip momentum/glide when animation is switched off mid-flight
+        // (mirrors the view skins' onAnimationSettingsChanged), so it stops instead of
+        // coasting on later pulses. Both properties feed shouldAnimate().
+        disposer.registerListener(control.animatedProperty(), this::onScrollAnimationSettingsChanged);
+        disposer.registerListener(control.animationDurationProperty(), this::onScrollAnimationSettingsChanged);
         disposer.registerListener(control.tabAlignmentProperty(), control::requestLayout);
         disposer.registerListener(control.dynamicHeightProperty(), control::requestLayout);
         disposer.registerListener(control.preserveContentProperty(), this::updateContent);
@@ -828,6 +833,9 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             return;
         }
         if (!shouldAnimate()) {
+            // Stop any engine animation still in flight (e.g. animation was disabled
+            // mid-glide) so its later pulses cannot drag the strip off this direct set.
+            scrollEngine.stop();
             applyScrollOffset(target);
             return;
         }
@@ -835,6 +843,18 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // starts from the live offset (an ensure-visible pass may have moved it silently).
         scrollEngine.snapToCurrentOffsets();
         scrollEngine.animateHorizontalTo(target, getSkinnable().getAnimationDuration(), SLIDE_EASING);
+    }
+
+    /**
+     * Halts any in-flight strip momentum or button glide when {@code animated} /
+     * {@code animationDuration} change so that animation is now off, so it does not keep
+     * advancing on later pulses. Mirrors the view skins' {@code onAnimationSettingsChanged}.
+     */
+    private void onScrollAnimationSettingsChanged() {
+        if (!shouldAnimate()) {
+            scrollEngine.stop();
+            getSkinnable().requestLayout();
+        }
     }
 
     /** Clamps, stores, and re-lays-out the primary-axis scroll offset. Single write path. */

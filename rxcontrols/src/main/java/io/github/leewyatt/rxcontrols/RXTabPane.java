@@ -434,8 +434,10 @@ public class RXTabPane extends Control {
     private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
 
     /**
-     * Whether the indicator animates its slide between tabs. When {@code false}
-     * it snaps immediately.
+     * Whether tab-pane motions animate: the sliding underline indicator, the content
+     * transition (when a {@code contentAnimation} is set), and, in the {@code SCROLLABLE}
+     * variant, the tab-strip scroll (momentum wheel and button glide). When {@code false}
+     * they snap or scroll immediately, and any in-flight motion is halted.
      *
      * @return the animated property
      */
@@ -444,7 +446,7 @@ public class RXTabPane extends Control {
     }
 
     /**
-     * Returns whether the indicator animates.
+     * Returns whether tab-pane motions animate.
      *
      * @return {@code true} if animated
      */
@@ -453,7 +455,7 @@ public class RXTabPane extends Control {
     }
 
     /**
-     * Sets whether the indicator animates.
+     * Sets whether tab-pane motions animate.
      *
      * @param value {@code true} to animate
      */
@@ -482,8 +484,9 @@ public class RXTabPane extends Control {
             };
 
     /**
-     * Duration of the indicator slide. {@code null}, {@code Duration.ZERO},
-     * negative or non-finite values fall back to an immediate snap.
+     * Duration of the tab-pane motions (indicator slide, content transition, and
+     * {@code SCROLLABLE} strip scroll). {@code null}, {@code Duration.ZERO}, negative or
+     * non-finite values fall back to an immediate snap.
      *
      * @return the animation-duration property
      */
