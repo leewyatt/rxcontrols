@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXMenuHeader;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXMenuSeparator;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.AccessibleRole;
@@ -448,6 +449,37 @@ public class RXMenuListSkinTest {
     }
 
     /**
+     * In APG mode (disabledItemsFocusable) a disabled cell stays JavaFX-enabled
+     * for roving focus, so RippleDecoration's own {@code !host.isDisabled()} gate
+     * would let its hover overlay tint the item. The per-cell overlay gate
+     * ({@code stateOverlayEnabled && !item.isDisable()}) suppresses it: hovering a
+     * disabled item keeps the overlay target opacity at 0, while an enabled item
+     * still lights up. Removing {@code !item.isDisable()} makes this regress.
+     */
+    @Test
+    public void apgDisabledItemHoverShowsNoStateOverlay() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.setDisabledItemsFocusable(true);
+            RXMenuItem enabled = RXMenuItem.of("A");
+            RXMenuItem disabled = RXMenuItem.of("B");
+            disabled.setDisable(true);
+            list.getItems().addAll(enabled, disabled);
+            hostFor(list);
+            List<Node> cells = cellsOf(list);
+            RippleLayer enabledLayer = (RippleLayer) ((Pane) cells.get(0)).getChildrenUnmodifiable().get(0);
+            RippleLayer disabledLayer = (RippleLayer) ((Pane) cells.get(1)).getChildrenUnmodifiable().get(0);
+
+            hover(cells.get(1));
+            assertEquals(0.0, disabledLayer.getOverlayTargetOpacity(), 0.0,
+                    "a disabled APG item shows no hover state overlay");
+            hover(cells.get(0));
+            assertTrue(enabledLayer.getOverlayTargetOpacity() > 0.0,
+                    "an enabled item still shows the hover state overlay");
+        });
+    }
+
+    /**
      * The content VBox is wrapped in a ScrollPane so a capped max-height scrolls.
      */
     @Test
@@ -505,8 +537,14 @@ public class RXMenuListSkinTest {
             list.setAnimationInterpolator(null);
             hostFor(list);
             RXMenuListSkin skin = (RXMenuListSkin) list.getSkin();
-            assertDoesNotThrow(() -> skin.playEntrance(false),
-                    "null interpolator falls back to EASE_OUT instead of throwing at KeyValue");
+            try {
+                assertDoesNotThrow(() -> skin.playEntrance(false),
+                        "null interpolator falls back to EASE_OUT instead of throwing at KeyValue");
+            } finally {
+                // playEntrance starts a live Timeline; stop it so no animation
+                // outlives the test.
+                skin.stopEntrance();
+            }
         });
     }
 
