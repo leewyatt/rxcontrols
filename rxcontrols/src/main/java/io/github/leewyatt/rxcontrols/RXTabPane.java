@@ -437,7 +437,9 @@ public class RXTabPane extends Control {
      * Whether tab-pane motions animate: the sliding underline indicator, the content
      * transition (when a {@code contentAnimation} is set), and, in the {@code SCROLLABLE}
      * variant, the tab-strip scroll (momentum wheel and button glide). When {@code false}
-     * they snap or scroll immediately, and any in-flight motion is halted.
+     * each new motion is applied instantly. A tab-strip scroll already in flight when the
+     * flag is cleared is halted (it would otherwise coast); an indicator slide or content
+     * transition already in flight runs to completion, each settling to its own end state.
      *
      * @return the animated property
      */
