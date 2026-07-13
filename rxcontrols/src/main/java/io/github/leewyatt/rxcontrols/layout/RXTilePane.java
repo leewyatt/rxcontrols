@@ -45,7 +45,9 @@ import java.util.Set;
  * column count is derived from the resolved nominal tile width and the available
  * width. Unlike {@code RXTileView}, it is a plain layout {@link Pane}: not
  * data-driven, not virtualized, with no sections or selection.
- * It is to a tile grid what {@code RXFlowPane} is to a wrapping flow.
+ * It is to a tile grid what {@code RXFlowPane} is to a wrapping flow. The grid
+ * fills horizontal rows only (there is no {@code orientation} axis, unlike
+ * {@code TilePane}); the pane grows vertically as rows wrap.
  *
  * <p>Children are placed left-to-right, top-to-bottom into tiles whose nominal
  * size is {@link #prefTileWidthProperty() prefTileWidth} ×

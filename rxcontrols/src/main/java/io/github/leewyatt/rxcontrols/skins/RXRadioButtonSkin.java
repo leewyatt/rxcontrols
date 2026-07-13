@@ -310,8 +310,8 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         if (!isAnimatable(duration)) {
             // Non-positive / unusable duration: snap to the target rather than feeding
             // the Timeline a degenerate duration. A short one-shot tween needs no
-            // tree-showing gate (AGENTS §3.1): an off-screen toggle just completes
-            // invisibly, leaving the same end state.
+            // tree-showing gate: an off-screen toggle just completes invisibly,
+            // leaving the same end state.
             if (timeline != null) {
                 timeline.stop();
             }
@@ -359,7 +359,7 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
 
     private void stopDotAnimation() {
         // Rebuilt across toggles; the disposer would hold a stale reference, so stop the
-        // live field directly (AGENTS §2.8).
+        // live field directly.
         if (timeline != null) {
             timeline.stop();
             timeline = null;

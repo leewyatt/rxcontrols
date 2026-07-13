@@ -275,7 +275,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         // would start from a discontinuous frame.
         // Reset clip geometry to the determinate form now — if the incoming
         // tween target equals the current displayedProgress, no listener fires
-        // and last frame's band overlap would otherwise linger (§1.8).
+        // and last frame's band overlap would otherwise linger.
         applyFills();
     }
 

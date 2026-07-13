@@ -20,7 +20,6 @@ import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.WeakListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventTarget;
 import javafx.geometry.HPos;
@@ -116,8 +115,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private boolean placementDirty = true;
 
     private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
-    private final WeakListChangeListener<T> weakItemsContentListener =
-            new WeakListChangeListener<>(itemsContentListener);
     private ObservableList<T> observedItems;
 
     private final RXIndexedFocusModel<T> focusModel;
@@ -332,17 +329,17 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
     private void attachItems(ObservableList<T> items) {
         if (observedItems != null) {
-            observedItems.removeListener(weakItemsContentListener);
+            observedItems.removeListener(itemsContentListener);
         }
         observedItems = items;
         if (items != null) {
-            items.addListener(weakItemsContentListener);
+            items.addListener(itemsContentListener);
         }
     }
 
     private void detachItems() {
         if (observedItems != null) {
-            observedItems.removeListener(weakItemsContentListener);
+            observedItems.removeListener(itemsContentListener);
             observedItems = null;
         }
     }
@@ -1219,9 +1216,16 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         RXMasonryView<T> control = getSkinnable();
-        double columnWidth = columnWidthOrDefault(control);
-        double gap = gapOrDefault(control.getHgap());
-        int columns = capColumns(control.getPrefColumns(), control.getMaxColumns());
+        double columnWidth = snapSizeX(columnWidthOrDefault(control));
+        double gap = snapSpaceX(gapOrDefault(control.getHgap()));
+        // A forced columnCount takes priority over prefColumns, mirroring both the
+        // layout resolution and RXMasonryPane, so under a forced count the view
+        // never reports a pref width its own layout would then split into a
+        // different number of columns. (Breakpoint overrides stay out of the pref
+        // math on purpose: they are width-dependent, so folding them in would be
+        // circular.)
+        int forced = control.getColumnCount();
+        int columns = capColumns(forced >= 1 ? forced : control.getPrefColumns(), control.getMaxColumns());
         double content = columns * columnWidth + (columns - 1) * gap;
         return leftInset + content + viewport.scrollBarBreadth() + rightInset;
     }

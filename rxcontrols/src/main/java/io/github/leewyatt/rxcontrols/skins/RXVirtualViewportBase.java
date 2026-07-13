@@ -52,6 +52,8 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     // Below this px difference the bar value already matches the scroll offset, so
     // a programmatic setValue would be a redundant no-op (and a feedback risk).
     private static final double SCROLL_BAR_SYNC_EPSILON = 1.0e-4;
+    // One-pixel bar overlap onto the right chrome border (see configureAndPositionScrollBar).
+    private static final double BAR_BORDER_OVERLAP = 1.0;
 
     // ==================== Shell nodes ====================
 
@@ -510,7 +512,10 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
                 vbar.setValue(scrollY);
             }
             adjustingScrollBar = false;
-            double barX = w - barBreadth + (chromeRight < 1.0 ? 0.0 : chromeRight - 1.0);
+            // Overlap the right chrome border by one pixel so the bar sits on the
+            // border line instead of leaving a hairline gutter beside it; chrome
+            // thinner than that pixel keeps the bar fully inside the content edge.
+            double barX = w - barBreadth + (chromeRight < BAR_BORDER_OVERLAP ? 0.0 : chromeRight - BAR_BORDER_OVERLAP);
             vbar.resizeRelocate(barX, -chromeTop, barBreadth, h + chromeTop + chromeBottom);
             vbar.setVisible(true);
         } else {

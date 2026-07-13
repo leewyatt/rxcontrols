@@ -72,8 +72,7 @@ public class RXCheckBox extends CheckBox {
      * Default mark appear / morph duration. Public because the skin reads it
      * through {@code RXCheckBox.DEFAULT_ANIMATION_DURATION} to default a
      * {@code null} {@link #animationDurationProperty() animationDuration}
-     * (AGENTS &sect;2.3: a default shared across Control and Skin lives on the
-     * Control).
+     * (a default shared across Control and Skin lives on the Control).
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(150.0);
 

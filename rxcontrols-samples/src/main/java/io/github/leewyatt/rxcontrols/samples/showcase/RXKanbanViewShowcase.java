@@ -65,7 +65,6 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         kanban.setCardSpacing(10.0);
         kanban.setPrefCardHeight(78.0);
         kanban.setColumnsJustify(ItemsJustify.CENTER);
-        kanban.setSmoothScrolling(true);
         kanban.setColumnHeaderFactory(this::createColumnHeader);
 
         // Each column footer adds a card, so the settle glide and the WIP pill react.

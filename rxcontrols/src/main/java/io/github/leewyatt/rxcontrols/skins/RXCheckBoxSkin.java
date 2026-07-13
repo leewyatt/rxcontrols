@@ -249,8 +249,8 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
         if (!isAnimatable(duration)) {
             // Non-positive / unusable duration: snap to the target rather than
             // feeding the Timeline a degenerate duration. A short one-shot tween
-            // needs no tree-showing gate (AGENTS §3.1): an off-screen toggle just
-            // completes invisibly, leaving the same end state.
+            // needs no tree-showing gate: an off-screen toggle just completes
+            // invisibly, leaving the same end state.
             if (timeline != null) {
                 timeline.stop();
             }
@@ -297,7 +297,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
 
     private void stopMarkAnimation() {
         // Rebuilt across toggles; the disposer would hold a stale reference, so
-        // stop the live field directly (AGENTS §2.8).
+        // stop the live field directly.
         if (timeline != null) {
             timeline.stop();
             timeline = null;

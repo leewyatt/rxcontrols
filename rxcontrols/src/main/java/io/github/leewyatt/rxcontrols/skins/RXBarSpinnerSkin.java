@@ -39,9 +39,9 @@ import java.util.List;
  *       through {@link AnimationMode#WAVE} ({@code sin}) or {@link AnimationMode#BOUNCE}
  *       (tent) to a value in {@code [0, 1]}, then lerped from
  *       {@code minHeight} to {@code peakHeight}.</li>
- *   <li>{@code cycleDuration ≤ 0} or {@code null} disables the timeline per
- *       AGENTS.md §3.6 and snaps every bar to its minimum height so a stale
- *       frame cannot linger (§1.8).</li>
+ *   <li>{@code cycleDuration ≤ 0} or {@code null} disables the timeline and
+ *       snaps every bar to its minimum height so a stale frame cannot
+ *       linger.</li>
  *   <li>Bars are bottom-anchored so the row reads as growing upward, which is
  *       the conventional equalizer / spectrum-analyser metaphor.</li>
  *   <li>Height is animated with a {@code scaleY} + {@code translateY} transform,
@@ -133,7 +133,7 @@ public class RXBarSpinnerSkin extends RXSkinBase<RXBarSpinner> {
         rebuildTimeline();
         if (timeline == null) {
             // Animation disabled at construction (e.g. cycleDuration <= 0) —
-            // §1.8: still snap the bars to a deterministic rest pose so the
+            // still snap the bars to a deterministic rest pose so the
             // first frame is not whatever defaults Region was initialised
             // to. Layout will overwrite once dimensions are known; this only
             // matters for the brief window before the first layout pass.

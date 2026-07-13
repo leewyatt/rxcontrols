@@ -496,7 +496,10 @@ public class RXMasonryPane extends Pane {
     /**
      * Forces a fixed number of columns. {@code 0} (the default) computes the count
      * automatically from {@link #columnWidthProperty() columnWidth}; a positive
-     * value pins the count, still subject to {@link #maxColumnsProperty()}.
+     * value pins the count, still subject to {@link #maxColumnsProperty()}. A
+     * forced count drives the layout and the preferred width, but not the minimum
+     * width — like {@code TilePane}, the minimum stays one column wide (a usable
+     * floor, not a layout promise).
      *
      * @return the column count property
      */
@@ -1311,6 +1314,11 @@ public class RXMasonryPane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
+        // Deliberately one column wide even under a forced columnCount: the minimum
+        // is a usable-width floor (TilePane reports one tile the same way), not a
+        // layout promise — squeezing below the forced track total only overflows
+        // when fillWidth is disabled, and honoring the forced count here would
+        // instead impose a surprise minimum on containers that clamp to minWidth.
         return snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset();
     }
 

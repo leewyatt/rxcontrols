@@ -958,7 +958,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
         }
         Point2D local = dialogCard.sceneToLocal(event.getSceneX(), event.getSceneY());
         // Resize wins over drag (so the top border band resizes north rather than dragging),
-        // and corners win over edges inside resizeCursor / beginResize (spec §3.4 #3).
+        // and corners win over edges inside resizeCursor / beginResize.
         if (getSkinnable().isEnableResizable()) {
             int edges = hitResizeEdges(local);
             if (edges != 0) {

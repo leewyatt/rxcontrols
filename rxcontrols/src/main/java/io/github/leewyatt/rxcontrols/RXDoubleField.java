@@ -278,7 +278,7 @@ public class RXDoubleField extends RXTextField {
     private Double sanitize(Double candidate) {
         // Finiteness is the one domain rule the type system cannot express: a
         // non-finite value renders to text the field's own filter locks out of
-        // editing, so there is no safe lenient storage (AGENTS §2.2.3 strategy 3).
+        // editing, so there is no safe lenient storage.
         // The clamp cannot catch it either: the default ±Infinity bounds do not
         // clamp +Infinity and NaN never compares.
         if (candidate == null || Double.isFinite(candidate)) {

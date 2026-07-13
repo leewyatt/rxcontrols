@@ -591,7 +591,7 @@ public class RXRangeSlider extends Control {
                 protected void invalidated() {
                     // Non-positive is structurally unusable for tick math; coerce
                     // to the default rather than throw from a setter / CSS / bind
-                    // path (AGENTS §2.2.3). The tick generator also guards it.
+                    // path. The tick generator also guards it.
                     if (!(get() > 0.0) && !isBound()) {
                         set(DEFAULT_MAJOR_TICK_UNIT);
                     }

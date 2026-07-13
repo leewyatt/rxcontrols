@@ -1169,6 +1169,57 @@ public class RXFlowPaneTest {
         assertNull(pane.getAnimationInterpolator());
     }
 
+    /**
+     * Smoke-tests the full CSS surface in one shot: every -rx-* property set via
+     * an inline style must land on its Java property.
+     */
+    @Test
+    public void cssSmokeCoversEveryStyleableProperty() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(0.0, 0.0, cards(3, 100.0, 40.0));
+            new Scene(pane, 400.0, 400.0);
+            pane.setStyle("-rx-orientation: vertical; -rx-hgap: 14; -rx-vgap: 6;"
+                    + " -rx-alignment: bottom-right; -rx-row-halignment: center;"
+                    + " -rx-row-valignment: bottom; -rx-column-valignment: center;"
+                    + " -rx-column-halignment: right; -rx-animated: false;"
+                    + " -rx-animation-duration: 350ms;");
+            pane.applyCss();
+
+            assertSame(Orientation.VERTICAL, pane.getOrientation());
+            assertClose(14.0, pane.getHgap(), "-rx-hgap");
+            assertClose(6.0, pane.getVgap(), "-rx-vgap");
+            assertSame(Pos.BOTTOM_RIGHT, pane.getAlignment());
+            assertSame(HPos.CENTER, pane.getRowHalignment());
+            assertSame(VPos.BOTTOM, pane.getRowValignment());
+            assertSame(VPos.CENTER, pane.getColumnValignment());
+            assertSame(HPos.RIGHT, pane.getColumnHalignment());
+            assertFalse(pane.isAnimated(), "-rx-animated");
+            assertEquals(Duration.millis(350.0), pane.getAnimationDuration());
+        });
+    }
+
+    /**
+     * Pins the preferred-size behavior of a zero / negative prefWrapLength: every
+     * child wraps to its own run (the wrap threshold is immediately exceeded) and
+     * the wrap-axis floor contributes nothing.
+     */
+    @Test
+    public void zeroAndNegativePrefWrapLengthWrapEveryChild() {
+        RXFlowPane pane = flowPane(0.0, 10.0, cards(3, 100.0, 60.0));
+
+        pane.setPrefWrapLength(0.0);
+        assertClose(3 * 60.0 + 2 * 10.0, pane.prefHeight(-1.0),
+                "zero wrap length stacks one child per row");
+        assertClose(100.0, pane.prefWidth(-1.0),
+                "the pref width floor contributes nothing at zero");
+
+        pane.setPrefWrapLength(-50.0);
+        assertClose(3 * 60.0 + 2 * 10.0, pane.prefHeight(-1.0),
+                "a negative wrap length behaves like zero");
+        assertClose(100.0, pane.prefWidth(-1.0),
+                "the pref width floor contributes nothing when negative");
+    }
+
     @Test
     public void reflowGlideEngagesAndDisableSnaps() throws Exception {
         onFx(() -> {

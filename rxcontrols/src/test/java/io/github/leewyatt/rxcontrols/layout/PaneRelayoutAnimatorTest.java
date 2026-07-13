@@ -472,6 +472,68 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
+     * Verifies a tracked node that vanishes from the next pass (dropped without an
+     * exit) is finalized — transforms reset, no longer tracked — while the timeline
+     * is rebuilt so the survivor keeps its in-flight glide.
+     */
+    @Test
+    public void droppedNodeIsFinalizedAndSurvivorKeepsGliding() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region kept = new Region();
+            Region dropped = new Region();
+            Duration glide = Duration.seconds(30.0);
+
+            kept.setTranslateX(40.0);
+            dropped.setTranslateX(60.0);
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(kept, 40.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(dropped, 60.0, 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            assertTrue(animator.isTracked(dropped), "setup: the dropped node is animating");
+
+            double keptLive = kept.getTranslateX();
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(kept, keptLive, 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+
+            assertEquals(0.0, dropped.getTranslateX(), EPSILON, "the dropped node's translate is finalized");
+            assertFalse(animator.isTracked(dropped), "the dropped node is no longer tracked");
+            assertTrue(animator.isTracked(kept), "the survivor is still tracked");
+            assertTrue(Math.abs(kept.getTranslateX()) > 1.0, "the survivor is still mid-glide");
+        });
+    }
+
+    /**
+     * Verifies a mid-tween resubmission with a CHANGED delta re-aims immediately:
+     * the node restarts from the newly captured origin (heading to the new target),
+     * not from the superseded tween's stale position.
+     */
+    @Test
+    public void retargetMidTweenStartsFromTheNewDelta() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            Duration glide = Duration.seconds(30.0);
+
+            node.setTranslateX(100.0);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 100.0, 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            assertEquals(100.0, node.getTranslateX(), 1.0, "setup: the first tween armed");
+
+            // The pane relaid out again and captured a flipped FLIP delta. The live
+            // translate still sits near the old value, so the rearm check sees a real
+            // target change (pre-writing -50 here would fake a same-target no-op).
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, -50.0, 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+
+            assertEquals(-50.0, node.getTranslateX(), 1.0,
+                    "the re-aim starts from the new delta, heading to the new target");
+            assertTrue(animator.isTracked(node), "the node stays tracked across the re-aim");
+        });
+    }
+
+    /**
      * Verifies removing a node mid-relayout exits it cleanly while the surviving
      * node keeps animating and settles at its final transform.
      */

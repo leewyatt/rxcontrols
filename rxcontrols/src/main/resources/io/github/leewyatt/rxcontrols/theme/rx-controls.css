@@ -1065,7 +1065,7 @@
 }
 
 /* disabled: rely on modena's inherited .text-input:disabled whole-control opacity
-   (§2.5); do NOT also dim the text via a token, or it darkens twice (JDK-8152392).
+  ; do NOT also dim the text via a token, or it darkens twice (JDK-8152392).
    The floating label keeps the built-in .label class, so modena's .label:disabled
    0.4 opacity would MULTIPLY with the control-level 0.4 (child opacity composes);
    counter it back to 1.0 — same pattern modena uses for .text-input:disabled

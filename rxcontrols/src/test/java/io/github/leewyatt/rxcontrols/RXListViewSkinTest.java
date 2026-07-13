@@ -1292,6 +1292,38 @@ public class RXListViewSkinTest {
         });
     }
 
+    /**
+     * Pins the converge compensation: once a deep variable-height scrollTo has
+     * landed, the surrounding rows keep getting measured on later passes — the
+     * anchor pin must hold the target row's on-screen position steady (within a
+     * pixel) instead of letting the re-packs drift it.
+     */
+    @Test
+    public void variableHeightConvergeKeepsTheLandedRowSteady() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = variableHeightView(2_000);
+            StackPane root = host(view, 300, 420);
+            pumpUntilStable(root, 60);
+            view.scrollTo(900, ScrollAlignment.START);
+            pumpUntilStable(root, 80);
+            RXListCell<?> target = cellByIndex(view, 900);
+            assertNotNull(target);
+            double landedY = target.getLayoutY();
+
+            // Extra passes measure more neighbors and re-pack the plan.
+            for (int i = 0; i < 10; i++) {
+                view.requestLayout();
+                pump(root);
+            }
+
+            RXListCell<?> after = cellByIndex(view, 900);
+            assertNotNull(after, "the landed row is still realized after the converge");
+            assertTrue(Math.abs(after.getLayoutY() - landedY) <= 1.0,
+                    "converge passes must not drift the landed row: " + landedY
+                            + " -> " + after.getLayoutY());
+        });
+    }
+
     @Test
     public void variableHeightMeasuresItemRevealedByUpwardScroll() throws Exception {
         onFx(() -> {

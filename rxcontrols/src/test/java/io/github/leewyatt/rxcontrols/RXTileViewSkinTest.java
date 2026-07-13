@@ -3048,6 +3048,37 @@ public class RXTileViewSkinTest {
     }
 
     /**
+     * Verifies a column change and a deep items shrink landing in the SAME pass
+     * stay graceful: the resize anchor points at an item index that no longer
+     * exists, and the pass must clamp instead of throwing or publishing a stale
+     * range.
+     */
+    @Test
+    public void columnChangeWithItemsShrinkInSamePassStaysGraceful() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(400);
+            view.setMaxColumns(4);
+            view.setSmoothScrolling(false);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            view.scrollTo(300, ScrollAlignment.START);
+            pump(root);
+            assertTrue(view.getVisibleRange().firstIndex() >= 200, "setup: scrolled deep");
+
+            // One pass sees both: the reorder anchor (column change) and a shrink
+            // that removes the anchor item itself.
+            view.setMaxColumns(3);
+            view.getItems().remove(20, 400);
+            pump(root);
+
+            RXTileVisibleRange range = view.getVisibleRange();
+            assertFalse(range.isEmpty(), "the shrunken list still publishes a range");
+            assertTrue(range.lastIndex() < 20, "the range is clamped into the shrunken list");
+            assertNoStaleVisibleCells(view, "column change + shrink in one pass");
+        });
+    }
+
+    /**
      * Verifies the reorder pass keeps header identity by section: a header node
      * that is rebound to a DIFFERENT section on a column change must pop in at its
      * slot (no translate), never glide in from the old section's position.

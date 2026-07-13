@@ -51,7 +51,8 @@ import java.util.List;
  * consistent. Transitions snap to their end value when {@code animated} is off,
  * when the duration is non-positive, or while the control is not showing (so
  * there is no opening animation and headless tests are deterministic). These
- * are short one-shot tweens, so they are not paused on tree-hide (AGENTS §3.1).
+ * are short one-shot tweens, so they are not paused on tree-hide (an off-screen
+ * run just completes invisibly).
  */
 public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
@@ -214,7 +215,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         this.supportingGap = supportingGap;
 
         // A Label already carries the built-in ".label" style class; the CSS
-        // targets it through the direct-child path (AGENTS §2.4.4).
+        // targets it through the direct-child path.
         labelNode.setManaged(false);
         labelNode.setMouseTransparent(true);
         labelNode.getTransforms().add(labelScale);
@@ -260,8 +261,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         supporting.setMouseTransparent(true);
 
         // Built-in clear affordance: a shape-backed Region inside a transparent
-        // StackPane wrapper (AGENTS §2.9). The wrapper is the click target; the
-        // graphic is mouse-transparent and size-locked to its pref. The trailing
+        // StackPane wrapper (transparent fill keeps it pickable). The wrapper is
+        // the click target; the graphic is mouse-transparent and size-locked to
+        // its pref. The trailing
         // container is laid out by the base (via the effectiveTrailing relay), not
         // added to getChildren() here.
         clearGraphic.getStyleClass().add(GRAPHIC_CLASS);
@@ -274,8 +276,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         getChildren().addAll(activationLine, accentLine, labelNode, supporting);
 
         // Map normalized progress onto the decoration transforms. Registered on
-        // the shared disposer for a single cleanup channel (AGENTS §2.8),
-        // matching the RXCircularProgressIndicatorSkin reference baseline.
+        // the shared disposer for a single cleanup channel, matching the
+        // RXCircularProgressIndicatorSkin reference baseline.
         disposer.registerListener(floatProgress, this::applyFloatVisual);
         disposer.registerListener(accentProgress, this::applyAccentVisual);
 

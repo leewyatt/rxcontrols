@@ -84,6 +84,39 @@ public class IndexedHeightCacheTest {
     }
 
     @Test
+    public void multiSegmentChangeSequenceKeepsAlignment() {
+        // A single ListChangeListener change can carry several segments; the skin
+        // applies them as successive shift calls in ascending order. Two segments:
+        // remove one at 1, then (indices already shifted) add two at 3.
+        IndexedHeightCache cache = cacheOf(6);
+        cache.record(0, 110.0, EPSILON);
+        cache.record(2, 130.0, EPSILON);
+        cache.record(5, 160.0, EPSILON);
+
+        cache.shift(1, 1, 0, EST); // sizes 6 -> 5; old 2 -> 1, old 5 -> 4
+        cache.shift(3, 0, 2, EST); // sizes 5 -> 7; old 4 -> 6
+
+        assertEquals(7, cache.size());
+        assertEquals(110.0, cache.heightAt(0, EST), EPSILON, "untouched head keeps its measurement");
+        assertEquals(130.0, cache.heightAt(1, EST), EPSILON, "first segment shifted the middle item");
+        assertEquals(160.0, cache.heightAt(6, EST), EPSILON, "second segment shifted the tail item");
+        assertEquals(EST, cache.heightAt(3, EST), EPSILON, "inserted slots are fresh estimates");
+        assertEquals(3, cache.measuredCount());
+    }
+
+    @Test
+    public void shiftBeyondSizeIsANoOp() {
+        IndexedHeightCache cache = cacheOf(5);
+        cache.record(2, 150.0, EPSILON);
+
+        cache.shift(10, 1, 3, EST); // from > size: defensively ignored
+
+        assertEquals(5, cache.size(), "out-of-range shift leaves the size alone");
+        assertEquals(150.0, cache.heightAt(2, EST), EPSILON, "and the measurements alone");
+        assertEquals(1, cache.measuredCount());
+    }
+
+    @Test
     public void clearResetsToEstimates() {
         IndexedHeightCache cache = cacheOf(5);
         cache.record(2, 150.0, EPSILON);

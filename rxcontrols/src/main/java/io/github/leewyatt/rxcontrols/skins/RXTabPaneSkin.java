@@ -740,7 +740,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
 
     private void onFocusChanged() {
         // Entering the tablist with no focused tab lands on the first available
-        // one (automatic then also selects it); see keyboard spec §2.3.
+        // one (automatic activation then also selects it), matching the WAI-ARIA
+        // tabs keyboard pattern.
         if (getSkinnable().isFocused() && focusedIndex < 0) {
             int first = firstAvailable();
             if (first >= 0) {

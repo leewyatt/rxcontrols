@@ -683,7 +683,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
 
     // Min follows the base view; the active overlay's min is folded in only in
     // the degenerate loading-only case (no base view at all) — anything wider
-    // would pulse the pane's min on every refresh cycle (see the design's §1.5).
+    // would pulse the pane's min on every refresh cycle.
 
     /**
      * {@inheritDoc}

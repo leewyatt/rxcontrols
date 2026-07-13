@@ -1106,6 +1106,28 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a forced column count drives the preferred width, mirroring the
+     * layout-time priority over prefColumns and the RXMasonryPane contract.
+     */
+    @Test
+    public void forcedColumnCountDrivesPrefWidth() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(4);
+            view.setColumnWidth(100.0);
+            view.setHgap(10.0);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            double base = view.prefWidth(-1.0); // prefColumns = 3 -> 3 * 100 + 2 * 10 content
+            view.setColumnCount(6);
+            assertEquals(base + 3 * 110.0, view.prefWidth(-1.0), 0.5,
+                    "a forced columnCount drives the preferred width (mirrors RXMasonryPane)");
+            view.setMaxColumns(4);
+            assertEquals(base + 110.0, view.prefWidth(-1.0), 0.5,
+                    "maxColumns still caps the forced count in the pref math");
+        });
+    }
+
     // ==================== Helpers ====================
 
     // An image-gallery-style view: each item's height comes from its index, so the

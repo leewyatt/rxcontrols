@@ -79,8 +79,8 @@ public class RXRadioButton extends RadioButton {
     /**
      * Default dot grow / shrink duration. Public because the skin reads it through
      * {@code RXRadioButton.DEFAULT_ANIMATION_DURATION} to default a {@code null}
-     * {@link #animationDurationProperty() animationDuration} (AGENTS &sect;2.3: a
-     * default shared across Control and Skin lives on the Control).
+     * {@link #animationDurationProperty() animationDuration} (a default shared
+     * across Control and Skin lives on the Control).
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180.0);
 

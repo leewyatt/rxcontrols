@@ -476,7 +476,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         place(axis, thumb, trackMLo - thumbSize * HALF, trackMLo + thumbSize * HALF,
                 barCrossCenter - thumbSize * HALF, barCrossCenter + thumbSize * HALF);
         // Keep the overlays glued to the collapsed thumb rather than stranded at
-        // stale coordinates (AGENTS §1.8).
+        // stale coordinates.
         layoutHalo(axis.pointX(trackMLo, barCrossCenter), axis.pointY(trackMLo, barCrossCenter));
         layoutInk(thumbSize, thumbSize);
         layoutIndicator(axis, trackMLo, barCrossCenter, thumbSize);

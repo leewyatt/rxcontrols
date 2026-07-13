@@ -71,8 +71,8 @@ public class RXSwitchButton extends ButtonBase {
     /**
      * Default thumb slide duration. Public because the skin reads it through
      * {@code RXSwitchButton.DEFAULT_ANIMATION_DURATION} to default a {@code null}
-     * {@link #animationDurationProperty() animationDuration} (AGENTS &sect;2.3:
-     * a default shared across Control and Skin lives on the Control).
+     * {@link #animationDurationProperty() animationDuration} (a default shared
+     * across Control and Skin lives on the Control).
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(150.0);
 

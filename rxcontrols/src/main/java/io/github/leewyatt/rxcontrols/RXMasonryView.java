@@ -461,7 +461,9 @@ public class RXMasonryView<T> extends Control {
 
     /**
      * Preferred number of columns, used only to compute the preferred width when the
-     * view has no width constraint.
+     * view has no width constraint. Does not affect the actual column count used
+     * during layout, and is ignored while a positive {@link #columnCountProperty()
+     * columnCount} is forced (the forced count then drives the preferred width too).
      *
      * @return the pref-columns property
      */

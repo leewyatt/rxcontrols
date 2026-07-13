@@ -34,8 +34,8 @@ import java.util.List;
  *       from the same geometry as the base layer — this prevents the gradient
  *       from spilling into rounded corners or text-line gaps.</li>
  *   <li>{@link RXTreeShowingProperty} auto-pauses the scroll when the skeleton is
- *       detached, hidden, or hosted by a hidden window — see
- *       {@code AGENTS.md} §3.1.</li>
+ *       detached, hidden, or hosted by a hidden window, so an invisible
+ *       skeleton never burns pulse time.</li>
  *   <li>{@code maxWidth} / {@code maxHeight} report {@link Double#MAX_VALUE},
  *       so the skeleton stretches inside grow-priority containers — the
  *       deliberate opposite of {@link RXCircularProgressIndicatorSkin} /
@@ -176,9 +176,9 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
      * {@link Animation#INDEFINITE} loop so the band always enters from the
      * left edge and exits on the right.
      *
-     * <p>{@code cycleDuration <= 0} or {@code null} disables the animation per
-     * AGENTS.md §3.6 — and resets the band to a deterministic off-screen pose
-     * so a stale frame from a previous animation cannot linger (§1.8).
+     * <p>{@code cycleDuration <= 0} or {@code null} disables the animation and
+     * resets the band to a deterministic off-screen pose so a stale frame from
+     * a previous animation cannot linger.
      */
     private void rebuildShimmerTimeline() {
         Duration cycle = getSkinnable().getCycleDuration();

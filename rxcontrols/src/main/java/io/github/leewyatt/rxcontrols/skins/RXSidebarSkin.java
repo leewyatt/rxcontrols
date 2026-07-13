@@ -109,7 +109,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         root.getChildren().addAll(headerSlot, topBox, mainScroll, bottomBox, footerSlot);
         // setAll (not add): a replacing skin's constructor takes ownership of the
-        // children, clearing any nodes left by a prior skin (javafx-notes §5.7).
+        // children, clearing any nodes left by a prior skin.
         getChildren().setAll(root);
 
         bindItems(control.getTopItems(), topBox);
@@ -124,7 +124,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         disposer.registerListener(control.modeProperty(), this::onModeChanged);
         disposer.registerListener(control.miniWidthProperty(), this::updateIconColumns);
 
-        // The rail is a single Tab stop; roving moves focus inside it (§2.5).
+        // The rail is a single Tab stop; roving moves focus inside it.
         control.setFocusTraversable(false);
         disposer.registerListener(control.selectedItemProperty(), this::onSelectionChanged);
         installKeyboardNavigation();
@@ -200,7 +200,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // Per-item configuration: fixed row height, fill-width band, fixed icon column,
     // accessibleText + mini tooltip bound to text, and the committed mode's content
     // display. Alignment / text overrun stay in CSS; the dynamic left padding and
-    // content display are owned by the skin (§2.1 / §2.2 / §2.6). Idempotent: the
+    // content display are owned by the skin. Idempotent: the
     // text/tooltip bindings are set once per wired item (re-add re-wires fresh).
     private void wireItem(RXSidebarItem item) {
         Labeled node = (Labeled) item.asNode(); // every V1 permitted item is a Labeled
@@ -237,7 +237,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         node.setFocusTraversable(true);
     }
 
-    // ==================== Zero-jump icon column (§2.1) ====================
+    // ==================== Zero-jump icon column ====================
 
     // The icon's left edge sits at leftInset in BOTH modes, so it never moves during
     // a transition. leftInset = max(MIN_LEFT_INSET, (miniWidth - ICON_SIZE) / 2) centers
@@ -252,7 +252,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         forEachItem(item -> applyIconColumn((Labeled) item.asNode()));
     }
 
-    // ==================== Mode transition (single Timeline; §2.2) ====================
+    // ==================== Mode transition (single Timeline) ====================
 
     private void onModeChanged() {
         SidebarMode target = committedMode(); // direction follows the committed mode, not the transient fraction
@@ -354,7 +354,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         control.getBottomItems().forEach(action);
     }
 
-    // ==================== Keyboard roving (§2.5) ====================
+    // ==================== Keyboard roving ====================
 
     private void installKeyboardNavigation() {
         // A capturing FILTER on root, not a bubbling handler: a ScrollPane consumes
@@ -471,7 +471,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    // ==================== Width resolution + compute (§2.4) ====================
+    // ==================== Width resolution + compute ====================
 
     private double resolvedMiniWidth() {
         double v = getSkinnable().getMiniWidth();
@@ -531,17 +531,17 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     @Override
     protected void disposeSkin() {
         // The rebuilt-per-transition Timeline would be a stale reference in the
-        // disposer; stop it explicitly by reading the live field (AGENTS §2.8).
+        // disposer; stop it explicitly by reading the live field.
         stopAnimation();
         // Per-item resources (tooltips, accessibleText bindings, roving tab-stop) are
         // managed manually, paired with item add/remove, so release the still-wired
-        // ones here (AGENTS §2.8: dynamic-node resources don't go through the disposer).
+        // ones here (dynamic-node resources don't go through the disposer).
         for (RXSidebarItem item : List.copyOf(itemTooltips.keySet())) {
             unwireItem(item);
         }
         // Pair the constructor's getChildren().setAll(root): remove our root so a
         // setSkin(null) (no replacing skin to clear it) leaves no stale node
-        // (javafx-notes §5.7). Listeners/event filters are released by the disposer.
+        // behind. Listeners/event filters are released by the disposer.
         getChildren().remove(root);
     }
 }

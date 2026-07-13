@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -203,6 +205,64 @@ public class KanbanColumnViewportGlideTest {
             assertTrue(moved != null, "the moved card is visible");
             assertTrue(moved == nodeByCard.get(movedCard), "the moved card keeps its node across the commit");
             assertTrue(Math.abs(moved.getTranslateY()) > 0.5, "the moved card glides to its new slot");
+        });
+    }
+
+    /**
+     * Verifies the park path cancels an in-flight glide whose card left the
+     * visible set (unrebound mid-glide): the parked cell must not keep the stale
+     * translate or stay visible on a removed card.
+     */
+    @Test
+    public void removingGlidingCardsParksTheirCellsClean() throws Exception {
+        List<RXKanbanCardCell<String>> glidingTail = new ArrayList<>();
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("todo");
+            for (int i = 0; i < 12; i++) {
+                column.getCards().add("card-" + i);
+            }
+            board.getColumns().add(column);
+            board.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = new StackPane(board);
+            new Scene(root, 400, 700);
+            root.resize(400, 700);
+            pump(root);
+
+            KanbanColumnViewport<String> viewport = findViewport(root);
+            viewport.setDropGap(2); // settle glide in flight below the gap
+            pump(root);
+            for (RXKanbanCardCell<String> cell : cells(root)) {
+                if (cell.isVisible() && cell.getIndex() >= 4 && Math.abs(cell.getTranslateY()) > 0.5) {
+                    glidingTail.add(cell);
+                }
+            }
+            assertFalse(glidingTail.isEmpty(), "setup: tail cards are gliding");
+
+            // Shrink the visible set mid-glide: every tail card leaves, so its
+            // gliding cell is parked without being rebound — the park must cancel
+            // the in-flight glide, not just zero the transforms.
+            column.getCards().remove(4, 12);
+            pump(root);
+        });
+
+        // Let a few animation pulses run: a glide the park failed to cancel keeps
+        // writing translate onto the parked cell (its 30s tween is nowhere near
+        // done), so residue shows up here; a cancelled one stays at zero forever.
+        Thread.sleep(150);
+
+        onFx(() -> {
+            for (RXKanbanCardCell<String> cell : glidingTail) {
+                if (cell.isVisible()) {
+                    continue; // recycled onto a surviving card in the same pass
+                }
+                assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 0.5,
+                        "a parked mid-glide cell carries no translate residue");
+                assertNull(cell.getItem(),
+                        "a parked mid-glide cell is unbound from its removed card");
+            }
+            assertTrue(glidingTail.stream().anyMatch(cell -> !cell.isVisible()),
+                    "at least one gliding cell was parked by the shrink");
         });
     }
 

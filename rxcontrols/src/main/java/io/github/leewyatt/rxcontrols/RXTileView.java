@@ -55,7 +55,8 @@ import java.util.Objects;
  *
  * <p>{@code RXTileView} lays a flat {@link #itemsProperty() items} list out in a
  * uniform grid: it derives the column count from {@link #prefTileWidthProperty()
- * prefTileWidth} and the available width, wraps items into rows, and virtualizes by
+ * prefTileWidth} and the available width, wraps items into horizontal rows only
+ * (there is no {@code orientation} axis, unlike {@code TilePane}), and virtualizes by
  * row so only the visible rows hold live cells. Each item is
  * rendered by a {@link RXTileCell} produced by the
  * {@link #cellFactoryProperty() cellFactory}; a {@code null} item is a legal

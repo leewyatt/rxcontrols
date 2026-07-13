@@ -2,9 +2,11 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -352,6 +354,118 @@ public class RXMasonryPaneTest {
         assertClose(100.0, biased.getWidth(), "biased width clamped");
         assertClose(200.0, biased.getHeight(), "biased height at clamped width");
         assertClose(200.0, next.getLayoutY(), "next card sits below, no overlap");
+    }
+
+    /**
+     * Verifies the alignment's horizontal component positions the whole content
+     * block (fillWidth off), and that an overflowing block clamps the offset at
+     * zero instead of going negative.
+     */
+    @Test
+    public void alignmentPositionsContentBlock() {
+        Region a = card(100.0, 50.0);
+        Region b = card(100.0, 70.0);
+        RXMasonryPane pane = pane(100.0, 10.0, 0.0, a, b);
+        pane.setColumnCount(2);
+        pane.setFillWidth(false);
+
+        layout(pane, 400.0, 300.0); // used width = 2 * 100 + 10 = 210
+        assertClose(0.0, a.getLayoutX(), "TOP_LEFT keeps the block at x = 0");
+
+        pane.setAlignment(Pos.TOP_CENTER);
+        layout(pane, 400.0, 300.0);
+        assertClose(95.0, a.getLayoutX(), "CENTER offsets the block by (400 - 210) / 2");
+        assertClose(205.0, b.getLayoutX(), "the second column carries the same offset");
+
+        pane.setAlignment(Pos.TOP_RIGHT);
+        layout(pane, 400.0, 300.0);
+        assertClose(190.0, a.getLayoutX(), "RIGHT flushes the block to the right edge");
+
+        layout(pane, 150.0, 300.0); // block (210) wider than the pane (150)
+        assertClose(0.0, a.getLayoutX(), "an overflowing block clamps the offset at zero");
+    }
+
+    /**
+     * Verifies removeAnimated's happy path (exit armed, then the child leaves on
+     * its own once the fade completes) and clearAnimated over several children.
+     */
+    @Test
+    public void removeAnimatedFadesOutThenRemoves() throws Exception {
+        RXMasonryPane pane = new RXMasonryPane();
+        Region card = card(80.0, 50.0);
+        CountDownLatch gone = new CountDownLatch(1);
+        runOnFx(() -> {
+            pane.setAnimationDuration(Duration.millis(40.0));
+            pane.getChildren().add(card);
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                if (!pane.getChildren().contains(card)) {
+                    gone.countDown();
+                }
+            });
+
+            pane.removeAnimated(card);
+            assertTrue(pane.getChildren().contains(card), "still a child while the exit plays");
+            assertFalse(card.isManaged(), "unmanaged during the exit so survivors reflow");
+        });
+        assertTrue(gone.await(5, TimeUnit.SECONDS), "the exit removes the child when the fade completes");
+        runOnFx(() -> assertTrue(card.isManaged(), "managed state restored after the exit"));
+    }
+
+    /**
+     * Verifies clearAnimated arms an exit for every child (all stay children,
+     * unmanaged) and clears immediately when animation is disabled.
+     */
+    @Test
+    public void clearAnimatedArmsExitsOrClearsImmediately() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane(card(80.0, 50.0), card(80.0, 60.0));
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+
+            pane.clearAnimated();
+            assertEquals(2, pane.getChildren().size(), "children stay while their exits play");
+            assertTrue(pane.getChildren().stream().noneMatch(Node::isManaged),
+                    "every child is unmanaged during its exit");
+
+            RXMasonryPane plain = new RXMasonryPane(card(80.0, 50.0));
+            plain.setAnimated(false);
+            new Scene(plain);
+            layout(plain, 300.0, 300.0);
+            plain.clearAnimated();
+            assertTrue(plain.getChildren().isEmpty(), "animation off clears immediately");
+        });
+    }
+
+    /**
+     * Verifies the enter fade's pane-level contract: an added child starts its
+     * first laid-out frame fully transparent and settles back at the user's own
+     * opacity (not a hard-coded 1.0) once the fade completes.
+     */
+    @Test
+    public void enterFadeStartsAtZeroAndRestoresUserOpacity() throws Exception {
+        RXMasonryPane pane = new RXMasonryPane();
+        Region entering = card(80.0, 50.0);
+        CountDownLatch settled = new CountDownLatch(1);
+        runOnFx(() -> {
+            pane.setAnimationDuration(Duration.millis(40.0));
+            pane.getChildren().add(card(80.0, 50.0));
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+
+            entering.setOpacity(0.7);
+            entering.opacityProperty().addListener((obs, old, value) -> {
+                if (Math.abs(value.doubleValue() - 0.7) < EPSILON) {
+                    settled.countDown();
+                }
+            });
+            pane.getChildren().add(entering);
+            layout(pane, 300.0, 300.0);
+            assertClose(0.0, entering.getOpacity(), "the first laid-out frame is fully transparent");
+        });
+        assertTrue(settled.await(5, TimeUnit.SECONDS), "the fade settles at the user opacity");
+        runOnFx(() -> assertClose(0.7, entering.getOpacity(), "the user's own opacity is restored, not 1.0"));
     }
 
     /**

@@ -5,9 +5,12 @@ import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine.Result;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Random;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link MasonryLayoutEngine}, locking the shortest-column placement
@@ -178,6 +181,79 @@ public class MasonryLayoutEngineTest {
         // Overlap larger than the item height does not inflate the reported height.
         Result pair = MasonryLayoutEngine.place(1, -20.0, new int[]{1, 1}, new double[]{10.0, 10.0});
         assertEquals(10.0, pair.contentHeight(), DELTA, "deep overlap does not inflate height");
+    }
+
+    @Test
+    public void deepNegativeVgapFloorsTopsAtZero() {
+        // A column bottom driven below zero by a deep overlap is floored: the next
+        // item starts at 0 rather than rising above the column start. This is a
+        // deliberate divergence from VBox negative spacing (which would yield -10).
+        Result result = MasonryLayoutEngine.place(1, -20.0,
+                new int[]{1, 1, 1}, new double[]{10.0, 10.0, 10.0});
+
+        assertArrayEquals(new double[]{0.0, 0.0, 0.0}, result.tops(), DELTA,
+                "deep overlap floors every top at zero");
+        assertEquals(10.0, result.contentHeight(), DELTA);
+    }
+
+    @Test
+    public void spanRespectsNegativeVgapAcrossColumns() {
+        // A spanning item lands below the TALLEST spanned column; the negative gap
+        // was already folded into that column's bottom by the preceding item.
+        Result result = MasonryLayoutEngine.place(2, -10.0,
+                new int[]{1, 1, 2}, new double[]{100.0, 40.0, 50.0});
+
+        assertArrayEquals(new int[]{0, 1, 0}, result.startColumns());
+        assertArrayEquals(new double[]{0.0, 0.0, 90.0}, result.tops(), DELTA,
+                "the span starts at the overlapped bottom of the taller column");
+        assertEquals(140.0, result.contentHeight(), DELTA);
+    }
+
+    @Test
+    public void spanTieBreakPrefersTheLeftmostStart() {
+        // Both span-2 starts see the same top (10): the leftmost start must win,
+        // keeping placement deterministic even though column 2 alone is empty.
+        Result result = MasonryLayoutEngine.place(3, 0.0,
+                new int[]{2, 2}, new double[]{10.0, 10.0});
+
+        assertArrayEquals(new int[]{0, 0}, result.startColumns(),
+                "equal-top span candidates resolve to the leftmost start");
+        assertArrayEquals(new double[]{0.0, 10.0}, result.tops(), DELTA);
+    }
+
+    @Test
+    public void randomizedPlacementsHoldTheCoreInvariants() {
+        // Fixed-seed randomized sweep: every placement must keep tops non-negative,
+        // starts in range with the span fitting, and the content height covering
+        // every item bottom. Catches drift in the shortest-column bookkeeping that
+        // hand-picked cases might miss.
+        Random random = new Random(42);
+        for (int round = 0; round < 200; round++) {
+            int columns = 1 + random.nextInt(6);
+            int count = 1 + random.nextInt(30);
+            int[] spans = new int[count];
+            double[] heights = new double[count];
+            for (int i = 0; i < count; i++) {
+                spans[i] = 1 + random.nextInt(3);
+                heights[i] = 1.0 + random.nextInt(300);
+            }
+            double vgap = random.nextInt(3) == 0 ? -random.nextInt(40) : random.nextInt(40);
+
+            Result result = MasonryLayoutEngine.place(columns, vgap, spans, heights);
+
+            double maxBottom = 0.0;
+            for (int i = 0; i < count; i++) {
+                int span = Math.min(spans[i], columns);
+                int start = result.startColumns()[i];
+                double top = result.tops()[i];
+                assertTrue(top >= -DELTA, "tops never go negative");
+                assertTrue(start >= 0 && start + span <= columns,
+                        "the span fits inside the column range");
+                maxBottom = Math.max(maxBottom, top + heights[i]);
+            }
+            assertEquals(maxBottom, result.contentHeight(), DELTA,
+                    "content height covers exactly the deepest item bottom");
+        }
     }
 
     // ==================== Outline overload ====================

@@ -6,8 +6,9 @@ package io.github.leewyatt.rxcontrols;
  * {@link RXTileView#visibleRangeProperty()} when the realized range changes.
  *
  * <p>Indices are inclusive and refer to item positions in
- * {@link RXTileView#getItems()}; rows are visual rows (data rows only — section
- * header rows are not counted here). {@link #EMPTY} represents "nothing visible"
+ * {@link RXTileView#getItems()}; rows are data rows (section header rows are not
+ * counted here, unlike {@link RXTileView#rowCountProperty() rowCount}, which
+ * counts visual rows). {@link #EMPTY} represents "nothing visible"
  * (no items, or not yet laid out) and reports {@link #isEmpty()} {@code true}
  * with a {@link #size()} of {@code 0}.
  *
