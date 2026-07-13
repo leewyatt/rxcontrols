@@ -270,6 +270,9 @@ public class RXTabPaneContentTest {
     public void wheelScrollEnabledScrollsStrip() throws Exception {
         runOnFx(() -> {
             RXTabPane pane = scrollablePane();
+            // Animation off: assert the wheel-to-scroll wiring synchronously (the animated
+            // momentum path is covered in RXTabPaneScrollTest).
+            pane.setAnimated(false);
             layoutConstrained(pane);
             double before = cellAt(pane, 0).getLayoutX();
             wheel(cellAt(pane, 0), -120);

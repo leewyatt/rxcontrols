@@ -176,6 +176,27 @@ public final class RXSmoothScrollEngine implements AutoCloseable {
     }
 
     /**
+     * Animates the horizontal axis to an absolute target offset with a target-mode glide,
+     * for hosts that scroll to a computed position (e.g. a page button) rather than by wheel
+     * delta. Any horizontal momentum is stopped so the two animators do not fight; a
+     * non-positive duration snaps immediately.
+     *
+     * @param target       the absolute horizontal offset, clamped to the writable range
+     * @param duration     the glide duration
+     * @param interpolator the easing, or {@code null} for the default
+     */
+    public void animateHorizontalTo(double target, Duration duration, Interpolator interpolator) {
+        if (disposed || !scrollable.isHorizontalWritable()) {
+            return;
+        }
+        xMomentum.stop();
+        xValue.setDuration(duration);
+        xValue.setInterpolator(interpolator == null
+                ? RXSmoothScrollOptions.DEFAULT_INTERPOLATOR : interpolator);
+        xValue.animateTo(clamp(target, 0.0, scrollable.getMaxOffsetX()));
+    }
+
+    /**
      * Returns whether either axis is currently animating.
      *
      * @return {@code true} when an axis is running

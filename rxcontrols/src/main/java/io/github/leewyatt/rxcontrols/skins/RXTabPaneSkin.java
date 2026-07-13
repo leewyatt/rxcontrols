@@ -2,12 +2,18 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
+import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
 import io.github.leewyatt.rxcontrols.RXTab;
 import io.github.leewyatt.rxcontrols.RXTabEvent;
 import io.github.leewyatt.rxcontrols.RXTabPane;
+import io.github.leewyatt.rxcontrols.ScrollAxis;
+import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -124,6 +130,12 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     /** Primary-axis viewport extent and max offset from the last layout, so scroll gestures clamp between passes. */
     private double lastViewportPrimary;
     private double lastMaxScrollOffset;
+    /**
+     * Drives smooth strip scrolling on the primary axis: momentum for the wheel and a
+     * target glide for the page buttons. The strip is single-axis, so its offset always
+     * maps to the engine's horizontal axis regardless of side (see {@link StripScrollable}).
+     */
+    private final RXSmoothScrollEngine scrollEngine = new RXSmoothScrollEngine(new StripScrollable());
 
     // ==================== Indicator animation state ====================
 
@@ -256,6 +268,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         syncFocusToSelection();
         pendingSelectionAnimation = true;
         ensureVisibleRequested = true;
+        // Cancel any in-flight strip momentum/glide so the ensure-visible reveal wins.
+        scrollEngine.stop();
         getSkinnable().requestLayout();
     }
 
@@ -749,6 +763,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             ensureVisibleRequested = true;
         } else {
             // Leaving SCROLLABLE drops any scroll shift so the strip re-anchors at the start.
+            scrollEngine.stop();
             scrollOffset = 0.0;
         }
         getSkinnable().requestLayout();
@@ -795,29 +810,124 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         if (delta == 0.0) {
             return;
         }
-        // Natural direction: scrolling down/right advances the strip (offset grows).
-        if (scrollBy(-delta)) {
+        // The strip is single-axis; remap the resolved primary-axis delta onto the engine's
+        // horizontal axis so momentum runs through one path for either side and gesture. The
+        // engine negates the delta (down/right grows the offset) and honours OS inertia.
+        boolean consumed = scrollEngine.handleScroll(asHorizontalScroll(event, delta),
+                ScrollAxis.HORIZONTAL, getSkinnable().getAnimationDuration(), SLIDE_EASING,
+                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, SmoothScrollMode.MOMENTUM,
+                ScrollBoundaryPolicy.CHAIN, false, false, shouldAnimate(), false);
+        if (consumed) {
             event.consume();
         }
     }
 
     private void scrollByPage(int direction) {
-        scrollBy(direction * headerViewportPrimary());
+        double target = clampScrollOffset(scrollOffset + direction * headerViewportPrimary());
+        if (Math.abs(target - scrollOffset) < GEOMETRY_EPSILON) {
+            return;
+        }
+        if (!shouldAnimate()) {
+            applyScrollOffset(target);
+            return;
+        }
+        // Glide to the target through the same engine as the wheel; sync first so the tween
+        // starts from the live offset (an ensure-visible pass may have moved it silently).
+        scrollEngine.snapToCurrentOffsets();
+        scrollEngine.animateHorizontalTo(target, getSkinnable().getAnimationDuration(), SLIDE_EASING);
     }
 
-    /** Shifts the strip by {@code delta} px (clamped in layout); returns whether it moved. */
-    private boolean scrollBy(double delta) {
-        double previous = scrollOffset;
-        scrollOffset = clampScrollOffset(scrollOffset + delta);
-        if (Math.abs(scrollOffset - previous) < GEOMETRY_EPSILON) {
-            return false;
-        }
+    /** Clamps, stores, and re-lays-out the primary-axis scroll offset. Single write path. */
+    private void applyScrollOffset(double value) {
+        scrollOffset = clampScrollOffset(value);
         getSkinnable().requestLayout();
-        return true;
+    }
+
+    /**
+     * Re-expresses a strip scroll gesture as a horizontal-axis {@link ScrollEvent} carrying
+     * the already-resolved primary-axis delta on {@code deltaX}. Preserves the inertia and
+     * modifier flags so the engine still distinguishes OS-inertia frames from fresh input.
+     */
+    private static ScrollEvent asHorizontalScroll(ScrollEvent event, double deltaX) {
+        return new ScrollEvent(ScrollEvent.SCROLL,
+                event.getX(), event.getY(), event.getScreenX(), event.getScreenY(),
+                event.isShiftDown(), event.isControlDown(), event.isAltDown(), event.isMetaDown(),
+                event.isDirect(), event.isInertia(),
+                deltaX, 0.0, deltaX, 0.0,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                event.getTouchCount(), event.getPickResult());
     }
 
     private double clampScrollOffset(double value) {
         return Math.max(0.0, Math.min(value, lastMaxScrollOffset));
+    }
+
+    /** Primary-axis pixel-offset adapter over {@link #scrollOffset} for {@link #scrollEngine}. */
+    private final class StripScrollable implements RXSmoothScrollable {
+        @Override
+        public Node eventNode() {
+            return headerArea;
+        }
+
+        @Override
+        public double getOffsetX() {
+            return scrollOffset;
+        }
+
+        @Override
+        public double getOffsetY() {
+            return 0.0;
+        }
+
+        @Override
+        public void setOffsetX(double value, boolean smoothFrame) {
+            applyScrollOffset(value);
+        }
+
+        @Override
+        public void setOffsetY(double value, boolean smoothFrame) {
+        }
+
+        @Override
+        public double getMaxOffsetX() {
+            return lastMaxScrollOffset;
+        }
+
+        @Override
+        public double getMaxOffsetY() {
+            return 0.0;
+        }
+
+        @Override
+        public double getViewportWidth() {
+            return lastViewportPrimary;
+        }
+
+        @Override
+        public double getViewportHeight() {
+            return 0.0;
+        }
+
+        @Override
+        public double getHorizontalUnitIncrement() {
+            return 0.0;
+        }
+
+        @Override
+        public double getVerticalUnitIncrement() {
+            return 0.0;
+        }
+
+        @Override
+        public boolean isHorizontalWritable() {
+            return true;
+        }
+
+        @Override
+        public boolean isVerticalWritable() {
+            return false;
+        }
     }
 
     private double headerViewportPrimary() {
@@ -1245,6 +1355,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // The slide Timeline is rebuilt many times; stop the current one by reading
         // the live field (a disposer task would hold a stale reference).
         stopSlide();
+        // Stop the strip's momentum/glide timers so no frame fires after disposal.
+        scrollEngine.dispose();
         // Interrupt first so a mid-flight transition runs its finish action, clearing
         // the transforms it put on the wrappers (dispose() alone stops the timeline
         // without running it). Then dispose the engine.

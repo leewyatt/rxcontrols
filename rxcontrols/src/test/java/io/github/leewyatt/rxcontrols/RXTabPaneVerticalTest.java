@@ -185,6 +185,9 @@ public class RXTabPaneVerticalTest {
             RXTabPane pane = new RXTabPane(tabs);
             pane.setSide(Side.LEFT);
             pane.setVariant(RXTabPane.Variant.SCROLLABLE);
+            // Animation off: assert the vertical wheel-to-scroll wiring synchronously (the
+            // animated momentum path is covered in RXTabPaneScrollTest).
+            pane.setAnimated(false);
             pane.setPrefHeight(200.0);
             pane.setMaxHeight(200.0);
             StackPane root = new StackPane(pane);

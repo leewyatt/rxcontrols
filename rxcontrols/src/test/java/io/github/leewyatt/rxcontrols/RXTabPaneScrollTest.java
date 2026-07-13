@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXTabPane.ScrollButtonPolicy;
 import io.github.leewyatt.rxcontrols.RXTabPane.Variant;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -9,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -105,6 +107,9 @@ public class RXTabPaneScrollTest {
     public void wheelScrollsStripForward() throws Exception {
         runOnFx(() -> {
             RXTabPane pane = scrollable(10, 220);
+            // Animation off isolates the wheel-to-scroll wiring from the momentum timing
+            // (the animated path is covered by wheelMomentumAdvancesStripAfterPulses).
+            pane.setAnimated(false);
             double before = cellLayoutX(pane, 0);
             wheel(pane, -80);
             layout(pane);
@@ -138,6 +143,7 @@ public class RXTabPaneScrollTest {
     public void scrollingEnablesLeftButton() throws Exception {
         runOnFx(() -> {
             RXTabPane pane = scrollable(10, 220);
+            pane.setAnimated(false);
             wheel(pane, -120);
             layout(pane);
             assertFalse(leftButton(pane).isDisable());
@@ -148,10 +154,61 @@ public class RXTabPaneScrollTest {
     public void rightButtonClickAdvancesStrip() throws Exception {
         runOnFx(() -> {
             RXTabPane pane = scrollable(10, 220);
+            // Animation off isolates the button-to-scroll wiring from the glide timing
+            // (the animated path is covered by rightButtonGlideAdvancesStripAfterPulses).
+            pane.setAnimated(false);
             double before = cellLayoutX(pane, 0);
             rightButton(pane).fire();
             layout(pane);
             assertTrue(cellLayoutX(pane, 0) < before - EPSILON);
+        });
+    }
+
+    // ==================== Animated scrolling (momentum wheel + button glide) ====================
+
+    @Test
+    public void wheelMomentumAdvancesStripAfterPulses() throws Exception {
+        AtomicReference<RXTabPane> ref = new AtomicReference<>();
+        AtomicReference<Double> beforeRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTabPane pane = scrollable(10, 220);   // animated by default: momentum wheel
+            double before = cellLayoutX(pane, 0);
+            wheel(pane, -120);
+            layout(pane);
+            // Momentum is frame-driven, so nothing moves within the same event turn.
+            assertEquals(before, cellLayoutX(pane, 0));
+            beforeRef.set(before);
+            ref.set(pane);
+        });
+        // Let the pulse clock advance the momentum animation.
+        waitForFx(280.0);
+        runOnFx(() -> {
+            layout(ref.get());
+            assertTrue(cellLayoutX(ref.get(), 0) < beforeRef.get() - EPSILON,
+                    "momentum wheel advances the strip on later pulses");
+        });
+    }
+
+    @Test
+    public void rightButtonGlideAdvancesStripAfterPulses() throws Exception {
+        AtomicReference<RXTabPane> ref = new AtomicReference<>();
+        AtomicReference<Double> beforeRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTabPane pane = scrollable(10, 220);   // animated by default: glide on click
+            double before = cellLayoutX(pane, 0);
+            rightButton(pane).fire();
+            layout(pane);
+            // The page glide is frame-driven, so nothing moves within the same event turn.
+            assertEquals(before, cellLayoutX(pane, 0));
+            beforeRef.set(before);
+            ref.set(pane);
+        });
+        // Let the pulse clock run past the glide duration.
+        waitForFx(320.0);
+        runOnFx(() -> {
+            layout(ref.get());
+            assertTrue(cellLayoutX(ref.get(), 0) < beforeRef.get() - EPSILON,
+                    "button glide advances the strip on later pulses");
         });
     }
 
@@ -196,6 +253,8 @@ public class RXTabPaneScrollTest {
     public void leavingScrollableResetsOffset() throws Exception {
         runOnFx(() -> {
             RXTabPane pane = scrollable(10, 220);
+            // Animation off so the wheel shifts the strip synchronously for this assertion.
+            pane.setAnimated(false);
             wheel(pane, -160);
             layout(pane);
             assertTrue(cellLayoutX(pane, 0) < 0);
@@ -278,6 +337,19 @@ public class RXTabPaneScrollTest {
                 ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
                 ScrollEvent.VerticalTextScrollUnits.NONE, 0,
                 0, new PickResult(target, 0, 0)));
+    }
+
+    /** Runs the JavaFX pulse clock for {@code millis} so frame-driven animations advance. */
+    private static void waitForFx(double millis) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("Timed out waiting for JavaFX pulses");
+        }
     }
 
     private static void runOnFx(FxAction action) throws Exception {
