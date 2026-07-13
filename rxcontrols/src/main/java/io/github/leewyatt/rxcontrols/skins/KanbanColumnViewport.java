@@ -313,11 +313,19 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             RXKanbanCardCell<T> cell = reorderPass
                     ? acquireCellForItem(itemIndex, priorItemToCell, usedThisPass)
                     : acquireCell(cellCursor++);
-            // Rebinding a gliding cell to a different item invalidates its glide:
-            // the tween belongs to the old item's move and would drag the new item
-            // in with the leftover translate. Same-item re-placement keeps the
-            // glide running (reorder carry-overs are re-aimed by placeCell).
-            if (!reorderPass && cell.getIndex() != itemIndex && animating.remove(cell)) {
+            // A true carry-over is the same node still showing the same card. The
+            // prior map is index-keyed and every cards mutation arrives as a
+            // reorder pass here, so a mutation during a settle glide can move a
+            // different card under the old index — that cell must not glide as if
+            // it were carried over.
+            boolean carryOver = reorderPass && cell == prior
+                    && itemIndex < cards.size() && cell.getItem() == cards.get(itemIndex);
+            // Rebinding a gliding cell to a different card invalidates its glide:
+            // the tween belongs to the old card's move and would carry that motion
+            // onto the new card. Same-card re-placement keeps the glide running
+            // (true carry-overs are re-aimed by placeCell instead).
+            boolean keepsGlide = reorderPass ? carryOver : cell.getIndex() == itemIndex;
+            if (!keepsGlide && animating.remove(cell)) {
                 reorderAnimator.cancel(cell);
             }
             String oldStyle = cell.getStyle();
@@ -325,9 +333,9 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
             cell.setVisible(true);
             applyCellState(cell, itemIndex);
             applyCssAfterCellUpdate(cell, oldStyle);
-            // Only a carry-over cell (the one that rendered this item last pass) glides;
-            // a freshly repurposed or entering cell pops in at its slot.
-            placeCell(cell, rowTop, contentWidth, rowH, cell == prior);
+            // Only a true carry-over glides; a freshly repurposed or entering cell
+            // pops in at its slot.
+            placeCell(cell, rowTop, contentWidth, rowH, carryOver);
             if (firstItem < 0) {
                 firstItem = itemIndex;
             }
