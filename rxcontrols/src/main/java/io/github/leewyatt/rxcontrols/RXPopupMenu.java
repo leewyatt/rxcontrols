@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -77,6 +78,9 @@ public class RXPopupMenu {
     private final RXPopupSupport support = new RXPopupSupport(menuList);
     private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
     private final EventHandler<KeyEvent> menuKeyFilter = this::onMenuKeyPressed;
+    // While shown, watch the invoker's (effective) disabled state so a "disabled
+    // owner -> no menu" also closes a menu already open when the owner is disabled.
+    private final InvalidationListener invokerDisabledListener = obs -> closeIfInvokerDisabled();
 
     private Node invoker;
     private CloseReason pendingReason;
@@ -264,6 +268,11 @@ public class RXPopupMenu {
         showing.set(true);
         shownFired = true;
         popupHadFocus = true;
+        if (invoker != null) {
+            // Re-add defensively (single registration even on a re-entrant show).
+            invoker.disabledProperty().removeListener(invokerDisabledListener);
+            invoker.disabledProperty().addListener(invokerDisabledListener);
+        }
         menuList.notifyAccessibleAttributeChanged(AccessibleAttribute.VISIBLE);
         // Force the skin so the entrance pivot uses real dimensions this frame.
         menuList.applyCss();
@@ -319,6 +328,9 @@ public class RXPopupMenu {
     // here, so cleanup + focus-restore live in exactly one place.
     private void onSupportHidden() {
         boolean hadFocus = popupHadFocus;
+        if (invoker != null) {
+            invoker.disabledProperty().removeListener(invokerDisabledListener);
+        }
         RXMenuListSkin skin = menuSkin();
         if (skin != null) {
             skin.stopEntrance();
@@ -350,6 +362,15 @@ public class RXPopupMenu {
             invoker.requestFocus();
         }
         fire(getOnHidden(), RXMenuEvent.MENU_HIDDEN, reason);
+    }
+
+    // A menu must not stay open on a disabled owner (anchor §5). This covers a
+    // standalone popup as well as a button-hosted one (invoker = the button), so
+    // the owning skin does not need its own disabled watch.
+    private void closeIfInvokerDisabled() {
+        if (showing.get() && invoker != null && invoker.isDisabled()) {
+            hide(CloseReason.PROGRAMMATIC);
+        }
     }
 
     private void onMenuKeyPressed(KeyEvent event) {
@@ -417,8 +438,11 @@ public class RXPopupMenu {
         // still references — leaving them attached would pin the whole menu view).
         menuList.getItems().clear();
         support.dispose();
-        // Drop the anchor reference so a retained (but disposed) menu does not pin
-        // the invoker node.
+        // Drop the anchor reference (and its disabled watch) so a retained (but
+        // disposed) menu does not pin the invoker node.
+        if (invoker != null) {
+            invoker.disabledProperty().removeListener(invokerDisabledListener);
+        }
         invoker = null;
         shownFired = false;
         popupHadFocus = false;

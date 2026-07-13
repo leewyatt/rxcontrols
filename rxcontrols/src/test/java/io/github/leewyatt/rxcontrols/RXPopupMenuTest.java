@@ -256,6 +256,24 @@ public class RXPopupMenuTest {
 
     @Test
     @Tag("ui")
+    public void disablingOwnerWhileOpenClosesTheMenu() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            AtomicReference<CloseReason> reason = new AtomicReference<>();
+            menu.setOnHidden(e -> reason.set(e.getReason()));
+            menu.show(anchor);
+            assertTrue(menu.isShowing(), "precondition: showing");
+            // A standalone popup closes when its owner becomes (effectively) disabled,
+            // not only when it is disabled before opening ("disabled owner -> no menu").
+            anchor.setDisable(true);
+            assertFalse(menu.isShowing(), "disabling the owner while open closes the menu");
+            assertSame(CloseReason.PROGRAMMATIC, reason.get());
+        });
+    }
+
+    @Test
+    @Tag("ui")
     public void surfaceReportsVisibleAndParentMenuToAccessibility() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
