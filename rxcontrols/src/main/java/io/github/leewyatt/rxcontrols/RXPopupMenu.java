@@ -231,7 +231,7 @@ public class RXPopupMenu {
         if (disposed || !isRealized(anchor) || anchor.isDisabled() || !hasFocusableItem()) {
             return;
         }
-        this.invoker = anchor;
+        setInvoker(anchor);
         support.setPlacement(placement);
         fire(getOnShowing(), RXMenuEvent.MENU_SHOWING, null);
         support.show(anchor);
@@ -250,7 +250,7 @@ public class RXPopupMenu {
         if (disposed || !isRealized(owner) || owner.isDisabled() || !hasFocusableItem()) {
             return;
         }
-        this.invoker = owner;
+        setInvoker(owner);
         // Pin a stable placement so the menu opens below-right of the cursor point
         // regardless of any placement a prior anchored show() left on the support.
         support.setPlacement(RXPlacement.BOTTOM_START);
@@ -364,12 +364,30 @@ public class RXPopupMenu {
         fire(getOnHidden(), RXMenuEvent.MENU_HIDDEN, reason);
     }
 
-    // A menu must not stay open on a disabled owner (anchor §5). This covers a
-    // standalone popup as well as a button-hosted one (invoker = the button), so
-    // the owning skin does not need its own disabled watch.
+    // Reassign the current invoker, moving the disabled-owner watch off the previous
+    // one. RXPopupSupport can rebind to a new anchor while showing (a suppressed hide
+    // + re-show, no onSupportHidden), so a re-show onto a different owner without an
+    // intervening close must not strand the prior owner's listener.
+    private void setInvoker(Node anchor) {
+        if (invoker == anchor) {
+            return;
+        }
+        if (invoker != null) {
+            invoker.disabledProperty().removeListener(invokerDisabledListener);
+        }
+        invoker = anchor;
+    }
+
+    // A menu must not stay open on a disabled owner. This covers a standalone popup
+    // as well as a button-hosted one (invoker = the button), so the owning skin does
+    // not need its own disabled watch. A disabled owner is an owner-invalidation
+    // lifecycle close (like owner-detach), not a user hide(): it fires no vetoable
+    // onHiding, so an onHiding handler that consumes cannot trap the menu on a dead
+    // owner. onHidden still reports the reason as PROGRAMMATIC.
     private void closeIfInvokerDisabled() {
         if (showing.get() && invoker != null && invoker.isDisabled()) {
-            hide(CloseReason.PROGRAMMATIC);
+            pendingReason = CloseReason.PROGRAMMATIC;
+            support.hide();
         }
     }
 
@@ -440,10 +458,7 @@ public class RXPopupMenu {
         support.dispose();
         // Drop the anchor reference (and its disabled watch) so a retained (but
         // disposed) menu does not pin the invoker node.
-        if (invoker != null) {
-            invoker.disabledProperty().removeListener(invokerDisabledListener);
-        }
-        invoker = null;
+        setInvoker(null);
         shownFired = false;
         popupHadFocus = false;
         showing.set(false);

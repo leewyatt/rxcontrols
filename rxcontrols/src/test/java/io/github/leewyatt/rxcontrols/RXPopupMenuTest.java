@@ -274,6 +274,52 @@ public class RXPopupMenuTest {
 
     @Test
     @Tag("ui")
+    public void vetoDoesNotKeepMenuOnDisabledOwner() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            // A disabled owner is an owner-invalidation lifecycle close, not a user
+            // hide(): an onHiding veto must not trap the menu on a dead owner (mirrors
+            // vetoDoesNotBlockOwnerDetach).
+            menu.setOnHiding(RXMenuEvent::consume);
+            AtomicReference<CloseReason> reason = new AtomicReference<>();
+            menu.setOnHidden(e -> reason.set(e.getReason()));
+            menu.show(anchor);
+            anchor.setDisable(true);
+            assertFalse(menu.isShowing(), "a veto cannot keep the menu on a disabled owner");
+            assertSame(CloseReason.PROGRAMMATIC, reason.get());
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void reshowOntoNewOwnerMovesDisabledWatch() throws InterruptedException {
+        runOnFx(() -> {
+            Region ownerA = shownAnchor();
+            Region ownerB = new Region();
+            ownerB.setPrefSize(120, 30);
+            ownerB.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            StackPane root = (StackPane) ownerA.getParent();
+            root.getChildren().add(ownerB);
+            root.applyCss();
+            root.layout();
+
+            RXPopupMenu menu = quietMenu("A", "B");
+            menu.show(ownerA);
+            // RXPopupSupport rebinds to a new anchor while showing; the disabled-owner
+            // watch must move to the new owner and leave none on the old one.
+            menu.show(ownerB);
+            assertTrue(menu.isShowing(), "the menu survives an owner rebind");
+
+            ownerA.setDisable(true);
+            assertTrue(menu.isShowing(), "the previous owner no longer governs the open menu");
+            ownerB.setDisable(true);
+            assertFalse(menu.isShowing(), "the current owner closes the menu when disabled");
+        });
+    }
+
+    @Test
+    @Tag("ui")
     public void surfaceReportsVisibleAndParentMenuToAccessibility() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
