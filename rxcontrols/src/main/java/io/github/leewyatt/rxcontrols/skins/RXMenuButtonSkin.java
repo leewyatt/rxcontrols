@@ -133,7 +133,9 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
     }
 
     private void onAccelerator(RXMenuItem item) {
-        if (item.isDisable()) {
+        // A disabled button (or item) is inert: its command must not fire via the
+        // still-registered scene accelerator, mirroring the click / keyboard guard.
+        if (item.isDisable() || getSkinnable().isDisabled()) {
             return;
         }
         // Toggle a selectable item, but re-activating the already-selected radio must

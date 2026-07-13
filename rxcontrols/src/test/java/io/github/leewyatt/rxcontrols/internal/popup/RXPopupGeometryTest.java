@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.popup;
 
+import io.github.leewyatt.rxcontrols.RXPlacement;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

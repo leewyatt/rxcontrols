@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.internal.popup.RXPlacement;
 import io.github.leewyatt.rxcontrols.skins.RXMenuButtonSkin;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
@@ -362,6 +361,9 @@ public class RXMenuButtonTest {
             // animations + listeners), closing the popup window it owns.
             skin.dispose();
             assertEquals(before, extraShowingWindows(), "disposing the skin closes the popup");
+            // Detach the button so a later pulse does not lay out the now-disposed
+            // skin (LabeledSkinBase with a null skinnable would NPE on the FX thread).
+            ((StackPane) button.getParent()).getChildren().remove(button);
         });
     }
 
@@ -556,6 +558,25 @@ public class RXMenuButtonTest {
             registered.run();
             assertTrue(a.isSelected(), "firing a selected radio's accelerator keeps it selected");
             assertSame(a, group.getSelectedToggle(), "the toggle group is not emptied");
+        });
+    }
+
+    @Test
+    public void disabledButtonAcceleratorDoesNotFire() throws InterruptedException {
+        runOnFx(() -> {
+            RXMenuItem item = RXMenuItem.of("Save");
+            KeyCombination combo = KeyCombination.keyCombination("Shortcut+Q");
+            item.setAccelerator(combo);
+            AtomicInteger fired = new AtomicInteger();
+            item.setOnAction(e -> fired.incrementAndGet());
+            RXMenuButton button = attachedButton(item);
+            button.setDisable(true);
+
+            Runnable registered = button.getScene().getAccelerators().get(combo);
+            assertNotNull(registered, "the accelerator stays registered while disabled");
+            // A disabled button is inert: its command must not fire via the accelerator.
+            registered.run();
+            assertEquals(0, fired.get(), "a disabled button's accelerator does not fire its command");
         });
     }
 

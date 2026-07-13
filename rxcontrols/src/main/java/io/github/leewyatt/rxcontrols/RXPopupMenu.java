@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXMenuEvent;
-import io.github.leewyatt.rxcontrols.internal.popup.RXPlacement;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;

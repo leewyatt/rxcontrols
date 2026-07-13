@@ -29,6 +29,13 @@ import java.util.function.Consumer;
  * leave a dead global shortcut wired to a disposed menu. Item-list changes and
  * per-item accelerator changes re-sync automatically.
  *
+ * <p>The scene accelerator map is keyed by combination, so registering a menu
+ * accelerator that collides with one already in the scene follows JavaFX's
+ * last-registered-wins semantics (as the platform {@code ControlAcceleratorSupport}
+ * does): the menu's binding takes over while it is registered, and unregistering
+ * removes only the menu's own binding — a displaced prior binding is not restored.
+ * Assign unique combinations to avoid collisions.
+ *
  * <p>When a registered accelerator fires, the supplied consumer is invoked with
  * the item; the consumer owns the activation semantics (disabled guard, checkbox /
  * radio toggle, firing, and closing an open popup with the accelerator reason).

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.popup;
 
+import io.github.leewyatt.rxcontrols.RXPlacement;
 import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;

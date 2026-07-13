@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.internal.popup;
+package io.github.leewyatt.rxcontrols;
 
 /**
  * Preferred placement of an anchored popup relative to its anchor node.
@@ -14,8 +14,8 @@ package io.github.leewyatt.rxcontrols.internal.popup;
  *
  * <p>Dropdown / suggestion popups use only the vertical family; the side family
  * is defined ahead of a future arrow-popover consumer and is positioned but not
- * a first-class V1 path. Kept internal until an anchored-popup public API
- * stabilizes.
+ * a first-class V1 path. Exposed publicly because it is the argument type of
+ * {@code RXMenuButton.placement} and {@code RXPopupMenu.show(anchor, placement)}.
  */
 public enum RXPlacement {
 

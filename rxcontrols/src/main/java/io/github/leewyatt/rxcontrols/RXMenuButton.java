@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.internal.popup.RXPlacement;
 import io.github.leewyatt.rxcontrols.skins.RXMenuButtonSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;

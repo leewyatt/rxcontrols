@@ -4,8 +4,6 @@ import io.github.leewyatt.rxcontrols.RXMenuHeader;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXMenuSeparator;
-import javafx.animation.Animation;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.AccessibleRole;
@@ -23,7 +21,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.transform.Scale;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -444,55 +441,13 @@ public class RXMenuListSkinTest {
     }
 
     /**
-     * animated=false and a non-positive duration both skip the entrance: no
-     * timeline is started ({@code Timeline.playFromStart} applies no value
-     * synchronously, so the timeline's presence — not opacity — is the observable).
+     * stopEntrance snaps the content back to fully shown (opacity and both scale
+     * axes), the state every close path and dispose rely on. Whether the entrance
+     * animation actually plays / is skipped is a visual behavior verified on a real
+     * machine (AGENTS §5.7), not through a production test hook.
      */
     @Test
-    public void entranceSkippedWhenDisabledOrZeroDuration() throws Exception {
-        runOnFx(() -> {
-            RXMenuList disabled = new RXMenuList();
-            disabled.setAnimated(false);
-            disabled.getItems().add(RXMenuItem.of("A"));
-            hostFor(disabled);
-            RXMenuListSkin disabledSkin = (RXMenuListSkin) disabled.getSkin();
-            disabledSkin.playEntrance(false);
-            assertNull(disabledSkin.entranceTimelineForTest(), "animated=false starts no timeline");
-
-            RXMenuList zero = new RXMenuList();
-            zero.setAnimationDuration(Duration.ZERO);
-            zero.getItems().add(RXMenuItem.of("A"));
-            hostFor(zero);
-            RXMenuListSkin zeroSkin = (RXMenuListSkin) zero.getSkin();
-            zeroSkin.playEntrance(false);
-            assertNull(zeroSkin.entranceTimelineForTest(), "Duration.ZERO starts no timeline");
-        });
-    }
-
-    /**
-     * An animated menu starts a running entrance timeline.
-     */
-    @Test
-    public void animatedEntranceStartsRunningTimeline() throws Exception {
-        runOnFx(() -> {
-            RXMenuList list = new RXMenuList(); // animated=true, 120ms default
-            list.getItems().add(RXMenuItem.of("A"));
-            hostFor(list);
-            RXMenuListSkin skin = (RXMenuListSkin) list.getSkin();
-            skin.playEntrance(false);
-            Timeline entrance = skin.entranceTimelineForTest();
-            assertNotNull(entrance, "an animated menu starts an entrance timeline");
-            assertSame(Animation.Status.RUNNING, entrance.getStatus());
-        });
-    }
-
-    /**
-     * stopEntrance clears the running timeline and snaps the content back to fully
-     * shown (opacity and both scale axes), the state every close path and dispose
-     * rely on.
-     */
-    @Test
-    public void stopEntranceClearsTimelineAndResetsState() throws Exception {
+    public void stopEntranceResetsContentToFullyShown() throws Exception {
         runOnFx(() -> {
             RXMenuList list = new RXMenuList();
             list.getItems().add(RXMenuItem.of("A"));
@@ -502,17 +457,42 @@ public class RXMenuListSkinTest {
             Scale scale = (Scale) scroll.getTransforms().get(0);
 
             skin.playEntrance(false);
-            assertNotNull(skin.entranceTimelineForTest(), "precondition: entrance running");
             // Force a mid-animation pose; stopEntrance must snap all of it back.
             scroll.setOpacity(0.3);
             scale.setX(0.8);
             scale.setY(0.8);
             skin.stopEntrance();
 
-            assertNull(skin.entranceTimelineForTest(), "stopEntrance clears the timeline");
             assertEquals(1.0, scroll.getOpacity(), 0.0, "opacity restored");
             assertEquals(1.0, scale.getX(), 0.0, "scale x restored");
             assertEquals(1.0, scale.getY(), 0.0, "scale y restored");
+        });
+    }
+
+    /**
+     * In a capped (scrolling) menu, roving keyboard focus scrolls the focused cell
+     * into view — the ScrollPane does not follow programmatic focus on its own.
+     */
+    @Test
+    public void keyboardNavigationScrollsFocusedCellIntoView() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.setAnimated(false);
+            for (int i = 0; i < 20; i++) {
+                list.getItems().add(RXMenuItem.of("Item " + i));
+            }
+            Scene scene = hostFor(list).getScene();
+            // Cap the list well below its content height so the inner ScrollPane scrolls.
+            list.resize(280.0, 120.0);
+            list.layout();
+            ScrollPane scroll = (ScrollPane) list.lookup(".scroll");
+            List<Node> cells = cellsOf(list);
+
+            cells.get(0).requestFocus();
+            assertEquals(0.0, scroll.getVvalue(), 1e-9, "precondition: starts at the top");
+            press(scene, KeyCode.END);
+            assertSame(cells.get(cells.size() - 1), scene.getFocusOwner(), "END focuses the last item");
+            assertTrue(scroll.getVvalue() > 0.0, "the focused last cell is scrolled into view");
         });
     }
 

@@ -8,7 +8,6 @@ module rxcontrols {
     exports io.github.leewyatt.rxcontrols.animation.page;
     exports io.github.leewyatt.rxcontrols.carousel;
     exports io.github.leewyatt.rxcontrols.event;
-    exports io.github.leewyatt.rxcontrols.internal.popup;
     exports io.github.leewyatt.rxcontrols.layout;
     exports io.github.leewyatt.rxcontrols.lrc;
     exports io.github.leewyatt.rxcontrols.skins;

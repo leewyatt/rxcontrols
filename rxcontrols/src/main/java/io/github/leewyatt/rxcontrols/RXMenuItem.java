@@ -271,6 +271,11 @@ public class RXMenuItem implements Toggle {
      * Arbitrary host data associated with this item, mirroring the
      * {@code Node.userData} convention. {@code null} by default.
      *
+     * <p>Unlike the {@link Toggle} default (where user data is a view over the
+     * {@link #getProperties() properties} map), this is a dedicated observable
+     * property — consistent with the other RX value objects that expose
+     * {@code userDataProperty()} — and is therefore not mirrored into that map.
+     *
      * @return the user-data property
      */
     public final ObjectProperty<Object> userDataProperty() {

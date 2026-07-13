@@ -26,8 +26,10 @@ public class RXMenuEvent extends Event {
     public static final EventType<RXMenuEvent> ANY = new EventType<>(Event.ANY, "RX_MENU");
 
     /**
-     * Fired just before the menu is shown (populate items here). Fires even if the
-     * subsequent show fails, matching native {@code PopupControl.WINDOW_SHOWING}.
+     * Fired just before the menu is shown, e.g. to refresh item state. It fires only
+     * once the menu will actually open — the anchor is realized and at least one
+     * focusable item is present — so it cannot populate an otherwise-empty menu; it
+     * may still precede a raced show failure that never reaches {@link #MENU_SHOWN}.
      */
     public static final EventType<RXMenuEvent> MENU_SHOWING = new EventType<>(ANY, "RX_MENU_SHOWING");
 

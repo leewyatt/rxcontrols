@@ -344,19 +344,32 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
                 && duration.greaterThan(Duration.ZERO);
     }
 
-    // Package-private test hook: the running entrance timeline, or null when idle /
-    // skipped. Timeline.playFromStart applies no keyframe synchronously, so skin
-    // tests assert the animation actually started (or was skipped) through this
-    // rather than by reading opacity right after the call.
-    Timeline entranceTimelineForTest() {
-        return entrance;
-    }
-
     private void focusIndex(int index) {
         RXMenuItem item = getSkinnable().getItems().get(index);
         Region cell = cellByItem.get(item);
         if (cell != null) {
             cell.requestFocus();
+            scrollCellIntoView(cell);
+        }
+    }
+
+    // Roving focus does not move the ScrollPane on its own, so a capped (scrolling)
+    // menu must scroll the focused cell into view — the NEAREST minimal scroll: only
+    // when the cell sits above or below the viewport, never otherwise.
+    private void scrollCellIntoView(Region cell) {
+        double viewportHeight = scroller.getViewportBounds().getHeight();
+        double contentHeight = container.getHeight();
+        double scrollable = contentHeight - viewportHeight;
+        if (viewportHeight <= 0.0 || scrollable <= 0.0) {
+            return;
+        }
+        double top = cell.getBoundsInParent().getMinY();
+        double bottom = cell.getBoundsInParent().getMaxY();
+        double offset = scroller.getVvalue() * scrollable;
+        if (top < offset) {
+            scroller.setVvalue(top / scrollable);
+        } else if (bottom > offset + viewportHeight) {
+            scroller.setVvalue((bottom - viewportHeight) / scrollable);
         }
     }
 

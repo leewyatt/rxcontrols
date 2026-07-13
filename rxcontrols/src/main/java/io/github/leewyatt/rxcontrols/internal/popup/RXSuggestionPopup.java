@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.internal.popup;
 
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
+import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.popup;
 
+import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.beans.InvalidationListener;
