@@ -410,23 +410,25 @@ public class RXTabPaneContentTest {
     }
 
     @Test
-    public void detachingContentClearsResidualScaleAndRotate() throws Exception {
+    public void showingContentPreservesUserSetTransform() throws Exception {
         runOnFx(() -> {
             RXTab t0 = tab("A", 120, 40);
             RXTab t1 = tab("B", 300, 160);
+            Node c0 = t0.getContent();
+            // A caller-set transform on the content root (no content animation here).
+            c0.setScaleX(1.5);
+            c0.setRotate(15.0);
             RXTabPane pane = new RXTabPane(t0, t1);
-            pane.setPreserveContent(true);
             laidOut(pane);
-            Node c1 = t1.getContent();
-            // Simulate a transform left behind by an interrupted Zoom/Flip transition.
-            c1.setScaleX(2.0);
-            c1.setScaleY(0.5);
-            c1.setRotate(45.0);
-            pane.getTabs().remove(t1);
-            // resetPageState must clear scale/rotate, not only translate/opacity/visibility.
-            assertEquals(1.0, c1.getScaleX(), 0.001);
-            assertEquals(1.0, c1.getScaleY(), 0.001);
-            assertEquals(0.0, c1.getRotate(), 0.001);
+            // Showing the page must not clobber the user's transform (the skin owns only
+            // visibility/managed; transforms belong to the user or the animation).
+            assertEquals(1.5, c0.getScaleX(), 0.001);
+            assertEquals(15.0, c0.getRotate(), 0.001);
+            // Still true after a plain (non-animated) switch away and back.
+            pane.getSelectionModel().select(1);
+            pane.getSelectionModel().select(0);
+            assertEquals(1.5, c0.getScaleX(), 0.001);
+            assertEquals(15.0, c0.getRotate(), 0.001);
         });
     }
 

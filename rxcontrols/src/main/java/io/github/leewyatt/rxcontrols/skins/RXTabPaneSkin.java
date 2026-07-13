@@ -37,7 +37,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
-import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -327,7 +326,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             if (!contentRegion.getChildren().contains(selected)) {
                 contentRegion.getChildren().add(selected);
             }
-            resetPageState(selected);
+            showPage(selected);
         }
     }
 
@@ -346,18 +345,19 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
                 contentRegion.getChildren().add(content);
             }
             if (content == selected) {
-                resetPageState(content);
+                showPage(content);
             } else {
-                content.setVisible(false);
-                content.setManaged(false);
+                hidePage(content);
             }
         }
     }
 
     /**
-     * Detaches every content child not matching {@code keep}, first restoring each to a
-     * neutral state so a page handed back to the application is never left hidden,
-     * unmanaged, or carrying a mid-transition transform.
+     * Detaches every content child not matching {@code keep}, first making each visible
+     * again so a page handed back to the application is never left hidden or unmanaged
+     * (a preserved page is hidden while inactive, and an animated swap leaves the
+     * outgoing page invisible). Any transition transform was already cleared by the
+     * animation's own finish action when the tween completed or was interrupted.
      */
     private void detachExcept(Predicate<Node> keep) {
         List<Node> stale = new ArrayList<>();
@@ -367,30 +367,27 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             }
         }
         for (Node child : stale) {
-            resetPageState(child);
+            showPage(child);
         }
         contentRegion.getChildren().removeAll(stale);
     }
 
     /**
-     * Resets a page node to a neutral, reusable state: visible, managed, and free of
-     * any residual transition transform. Used both to show the live page and to hand a
-     * detached page back to the application in a clean state (a preserved page may be
-     * hidden/unmanaged, and an animated swap leaves the outgoing page invisible).
+     * Makes a page the live, laid-out page. Deliberately touches only visibility and
+     * managed state — the two properties the content-hosting contract owns — and never
+     * a transform/opacity/clip, so a caller-set transform on the user's content node is
+     * preserved. Transition transforms are owned and cleared by the {@link PageAnimation}
+     * itself (its finish action / {@code clearEffects}), not by the skin.
      */
-    private static void resetPageState(Node content) {
+    private static void showPage(Node content) {
         content.setVisible(true);
         content.setManaged(true);
-        content.setTranslateX(0.0);
-        content.setTranslateY(0.0);
-        content.setOpacity(1.0);
-        content.setClip(null);
-        // Page animations also drive scale/rotate (e.g. Zoom, Flip); clear them so a
-        // page interrupted mid-tween is handed back without a residual transform.
-        content.setScaleX(1.0);
-        content.setScaleY(1.0);
-        content.setRotate(0.0);
-        content.setRotationAxis(Rotate.Z_AXIS);
+    }
+
+    /** Detaches a page from layout while keeping it attached (preserveContent mode). */
+    private static void hidePage(Node content) {
+        content.setVisible(false);
+        content.setManaged(false);
     }
 
     private void animateContentChange(Node newContent) {
@@ -402,18 +399,19 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             contentEngine.interrupt();
         }
         Node oldContent = currentContent;
-        // Keep exactly the outgoing + incoming pages attached for the tween; a
-        // prior interrupt may have left a stale page behind. Detach it through
-        // detachExcept so it is handed back neutral (not carrying a transform from
-        // the interrupted tween). Preserve mode keeps every page attached.
+        // Keep exactly the outgoing + incoming pages attached for the tween; a prior
+        // interrupt may have left a stale page behind. detachExcept hands it back
+        // visible (its transform was already cleared by that tween's finish action on
+        // interrupt). Preserve mode keeps every page attached.
         if (!control.isPreserveContent()) {
             detachExcept(child -> child == oldContent || child == newContent);
         }
         if (!contentRegion.getChildren().contains(newContent)) {
             contentRegion.getChildren().add(newContent);
         }
-        resetPageState(oldContent);
-        resetPageState(newContent);
+        // Both pages visible for the tween; the animation sets their initial transforms.
+        showPage(oldContent);
+        showPage(newContent);
 
         TransitionDirection direction = control.getSelectedIndex() >= lastContentIndex
                 ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
@@ -433,7 +431,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
                     lastContentIndex = control.getSelectedIndex();
                 },
                 () -> setContentImmediate(newContent),
-                () -> resetPageState(newContent));
+                () -> showPage(newContent));
         control.requestLayout();
     }
 
@@ -1214,16 +1212,17 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // The slide Timeline is rebuilt many times; stop the current one by reading
         // the live field (a disposer task would hold a stale reference).
         stopSlide();
-        // dispose() clears the running flag before stopping the timeline, so the
-        // external-stop callback stays silent during teardown.
+        // Interrupt first so a mid-flight transition runs its finish action, clearing
+        // the transforms it put on the pages (dispose() alone stops the timeline without
+        // running it). Then dispose the engine.
+        contentEngine.interrupt();
         contentEngine.dispose(getSkinnable().getContentAnimation());
         for (TabHeaderCell cell : cells) {
             cell.detach();
         }
-        // Hand every page back neutral: a stopped transition leaves frozen transforms
-        // on its pages, and preserved non-selected pages are hidden/unmanaged.
+        // Hand every page back visible/managed (preserved non-selected pages are hidden).
         for (Node child : contentRegion.getChildren()) {
-            resetPageState(child);
+            showPage(child);
         }
         contentRegion.getChildren().clear();
         currentContent = null;

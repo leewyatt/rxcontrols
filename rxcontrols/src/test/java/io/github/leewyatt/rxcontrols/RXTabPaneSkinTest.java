@@ -311,6 +311,20 @@ public class RXTabPaneSkinTest {
         });
     }
 
+    @Test
+    public void activationKeysAreNoOpWithNoSelection() throws Exception {
+        runOnFx(() -> {
+            RXTabPane pane = new RXTabPane(tab("A"), tab("B"), tab("C"));
+            pane.setSelectionFollowsFocus(false);
+            laidOut(pane);
+            pane.getSelectionModel().clearSelection();   // no roving focus (index -1)
+            press(pane, KeyCode.SPACE);
+            press(pane, KeyCode.ENTER);
+            // With nothing focused, the activation keys must not manufacture a selection.
+            assertEquals(-1, pane.getSelectedIndex());
+        });
+    }
+
     // ==================== Accessibility ====================
 
     @Test
