@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -13,6 +14,8 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,9 +58,9 @@ public class RXTabPaneContentTest {
             RXTab t1 = tab("B", 300, 160);
             RXTabPane pane = new RXTabPane(t0, t1);
             laidOut(pane);
-            StackPane region = contentRegionOf(pane);
-            assertEquals(1, region.getChildrenUnmodifiable().size());
-            assertSame(t0.getContent(), region.getChildrenUnmodifiable().get(0));
+            List<Node> contents = attachedContents(pane);
+            assertEquals(1, contents.size());
+            assertSame(t0.getContent(), contents.get(0));
         });
     }
 
@@ -69,9 +72,9 @@ public class RXTabPaneContentTest {
             RXTabPane pane = new RXTabPane(t0, t1);
             laidOut(pane);
             pane.getSelectionModel().select(1);
-            StackPane region = contentRegionOf(pane);
-            assertEquals(1, region.getChildrenUnmodifiable().size());
-            assertSame(t1.getContent(), region.getChildrenUnmodifiable().get(0));
+            List<Node> contents = attachedContents(pane);
+            assertEquals(1, contents.size());
+            assertSame(t1.getContent(), contents.get(0));
         });
     }
 
@@ -86,11 +89,11 @@ public class RXTabPaneContentTest {
             RXTabPane pane = new RXTabPane(t0, t1, t2);
             pane.setPreserveContent(true);
             laidOut(pane);
-            StackPane region = contentRegionOf(pane);
-            assertEquals(3, region.getChildrenUnmodifiable().size());
-            assertTrue(region.getChildrenUnmodifiable().contains(t0.getContent()));
-            assertTrue(region.getChildrenUnmodifiable().contains(t1.getContent()));
-            assertTrue(region.getChildrenUnmodifiable().contains(t2.getContent()));
+            List<Node> contents = attachedContents(pane);
+            assertEquals(3, contents.size());
+            assertTrue(contents.contains(t0.getContent()));
+            assertTrue(contents.contains(t1.getContent()));
+            assertTrue(contents.contains(t2.getContent()));
         });
     }
 
@@ -102,10 +105,14 @@ public class RXTabPaneContentTest {
             RXTabPane pane = new RXTabPane(t0, t1);
             pane.setPreserveContent(true);
             laidOut(pane);
-            // Selected page shows; the other stays attached but unmanaged + hidden.
+            // The selected page wrapper shows; the other stays attached but unmanaged +
+            // hidden. Visibility is toggled on the wrapper, never on the user content.
+            assertTrue(pageOf(pane, t0.getContent()).isVisible());
+            assertFalse(pageOf(pane, t1.getContent()).isVisible());
+            assertFalse(pageOf(pane, t1.getContent()).isManaged());
+            // The user content nodes themselves are left untouched inside their wrappers.
             assertTrue(t0.getContent().isVisible());
-            assertFalse(t1.getContent().isVisible());
-            assertFalse(t1.getContent().isManaged());
+            assertTrue(t1.getContent().isVisible());
         });
     }
 
@@ -117,13 +124,13 @@ public class RXTabPaneContentTest {
             RXTabPane pane = new RXTabPane(t0, t1);
             pane.setPreserveContent(true);
             laidOut(pane);
-            assertEquals(2, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(2, attachedContents(pane).size());
 
             pane.setPreserveContent(false);
             pane.getParent().layout();
-            StackPane region = contentRegionOf(pane);
-            assertEquals(1, region.getChildrenUnmodifiable().size());
-            assertSame(t0.getContent(), region.getChildrenUnmodifiable().get(0));
+            List<Node> contents = attachedContents(pane);
+            assertEquals(1, contents.size());
+            assertSame(t0.getContent(), contents.get(0));
         });
     }
 
@@ -194,7 +201,7 @@ public class RXTabPaneContentTest {
             laidOut(pane);
             pane.getSelectionModel().select(1);
             // No animation configured: the old page is gone at once.
-            assertEquals(1, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(1, attachedContents(pane).size());
         });
     }
 
@@ -208,10 +215,10 @@ public class RXTabPaneContentTest {
             laidOut(pane);
             pane.getSelectionModel().select(1);
             // The tween needs both pages on stage simultaneously.
-            StackPane region = contentRegionOf(pane);
-            assertEquals(2, region.getChildrenUnmodifiable().size());
-            assertTrue(region.getChildrenUnmodifiable().contains(t0.getContent()));
-            assertTrue(region.getChildrenUnmodifiable().contains(t1.getContent()));
+            List<Node> contents = attachedContents(pane);
+            assertEquals(2, contents.size());
+            assertTrue(contents.contains(t0.getContent()));
+            assertTrue(contents.contains(t1.getContent()));
         });
     }
 
@@ -226,7 +233,7 @@ public class RXTabPaneContentTest {
             laidOut(pane);
             pane.getSelectionModel().select(1);
             // A non-positive duration gates the animation off: direct cut.
-            assertEquals(1, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(1, attachedContents(pane).size());
         });
     }
 
@@ -240,7 +247,7 @@ public class RXTabPaneContentTest {
             pane.setAnimated(false);
             laidOut(pane);
             pane.getSelectionModel().select(1);
-            assertEquals(1, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(1, attachedContents(pane).size());
         });
     }
 
@@ -348,15 +355,18 @@ public class RXTabPaneContentTest {
             pane.setPreserveContent(true);
             laidOut(pane);
             Node c1 = t1.getContent();
-            // Preserved-but-not-selected: hidden and unmanaged while attached.
-            assertFalse(c1.isVisible());
-            assertFalse(c1.isManaged());
+            // Preserved-but-not-selected: the page wrapper is hidden + unmanaged while
+            // attached, but the user content inside it is never touched.
+            assertFalse(pageOf(pane, c1).isVisible());
+            assertFalse(pageOf(pane, c1).isManaged());
+            assertTrue(c1.isVisible());
+            assertTrue(c1.isManaged());
 
             pane.getTabs().remove(t1);
-            // Detached and handed back neutral, not stuck hidden/unmanaged.
-            assertFalse(contentRegionOf(pane).getChildrenUnmodifiable().contains(c1));
-            assertTrue(c1.isVisible(), "removed preserved content should be restored visible");
-            assertTrue(c1.isManaged(), "removed preserved content should be restored managed");
+            // Detached and handed back untouched, not trapped inside a hidden wrapper.
+            assertFalse(attachedContents(pane).contains(c1));
+            assertTrue(c1.isVisible(), "removed preserved content should be visible");
+            assertTrue(c1.isManaged(), "removed preserved content should be managed");
         });
     }
 
@@ -371,11 +381,11 @@ public class RXTabPaneContentTest {
             pane.setAnimationDuration(Duration.millis(40.0));
             laidOut(pane);
             pane.getSelectionModel().select(1);
-            assertEquals(2, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(2, attachedContents(pane).size());
             // Clearing selection mid-transition must cancel the tween, not just detach
             // the pages — otherwise its deferred settle re-shows a page under no selection.
             pane.getSelectionModel().clearSelection();
-            assertEquals(0, contentRegionOf(pane).getChildrenUnmodifiable().size());
+            assertEquals(0, attachedContents(pane).size());
             ref.set(pane);
         });
         // Wait well past the 40ms animation so any un-cancelled settle would have fired.
@@ -383,7 +393,7 @@ public class RXTabPaneContentTest {
         runOnFx(() -> {
             RXTabPane pane = ref.get();
             assertEquals(-1, pane.getSelectedIndex());
-            assertEquals(0, contentRegionOf(pane).getChildrenUnmodifiable().size(),
+            assertEquals(0, attachedContents(pane).size(),
                     "a cancelled transition must not re-attach a page after clearSelection");
         });
     }
@@ -399,12 +409,12 @@ public class RXTabPaneContentTest {
             laidOut(pane);
             pane.getSelectionModel().select(1);   // A->B animating: [A, B] attached
             pane.getSelectionModel().select(2);   // B->C: A is interrupted + detached
-            StackPane region = contentRegionOf(pane);
+            List<Node> contents = attachedContents(pane);
             // The two tween pages survive; the stale first page is detached...
-            assertTrue(region.getChildrenUnmodifiable().contains(t1.getContent()));
-            assertTrue(region.getChildrenUnmodifiable().contains(t2.getContent()));
-            assertFalse(region.getChildrenUnmodifiable().contains(t0.getContent()));
-            // ...and handed back neutral, not left invisible by the interrupted tween.
+            assertTrue(contents.contains(t1.getContent()));
+            assertTrue(contents.contains(t2.getContent()));
+            assertFalse(contents.contains(t0.getContent()));
+            // ...and handed back untouched, not left invisible by the interrupted tween.
             assertTrue(t0.getContent().isVisible());
         });
     }
@@ -432,12 +442,70 @@ public class RXTabPaneContentTest {
         });
     }
 
+    @Test
+    public void animatedSwitchPreservesUserSetContentTransform() throws Exception {
+        RXTab t0 = tab("A", 120, 40);
+        RXTab t1 = tab("B", 300, 160);
+        Node c0 = t0.getContent();
+        AtomicReference<RXTabPane> ref = new AtomicReference<>();
+        runOnFx(() -> {
+            // Caller-set visual state on the content root.
+            c0.setScaleX(1.5);
+            c0.setOpacity(0.7);
+            RXTabPane pane = new RXTabPane(t0, t1);
+            // AnimZoom tweens scale + opacity + rotate and resets them to identity when it
+            // finishes. It runs on the disposable page wrapper, so those resets must not
+            // reach the user content node.
+            pane.setContentAnimation(new AnimZoom());
+            pane.setAnimationDuration(Duration.millis(40.0));
+            laidOut(pane);
+            pane.getSelectionModel().select(1);   // animate c0 out
+            ref.set(pane);
+        });
+        // Let the out-animation settle, then animate c0 back in and let that settle too.
+        Thread.sleep(200);
+        runOnFx(() -> ref.get().getSelectionModel().select(0));
+        Thread.sleep(200);
+        runOnFx(() -> {
+            // After a full animated round-trip the user's transform + opacity survive
+            // intact: the animation only ever mutated the wrapper, never c0.
+            assertEquals(1.5, c0.getScaleX(), 0.001,
+                    "content animation must not clobber the user-set scale");
+            assertEquals(0.7, c0.getOpacity(), 0.001,
+                    "content animation must not clobber the user-set opacity");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static StackPane contentRegionOf(RXTabPane pane) {
         StackPane region = (StackPane) pane.lookup(".content");
         assertNotNull(region, "content region not found");
         return region;
+    }
+
+    /**
+     * The user content nodes currently attached, unwrapped from the skin-owned page
+     * wrappers that host them (a page animation transforms the wrapper, never the
+     * content). Each attached wrapper hosts exactly one content node.
+     */
+    private static List<Node> attachedContents(RXTabPane pane) {
+        List<Node> contents = new ArrayList<>();
+        for (Node wrapper : contentRegionOf(pane).getChildrenUnmodifiable()) {
+            contents.addAll(((StackPane) wrapper).getChildrenUnmodifiable());
+        }
+        return contents;
+    }
+
+    /** The page wrapper hosting {@code content}, or {@code null} if it is not attached. */
+    private static StackPane pageOf(RXTabPane pane, Node content) {
+        for (Node wrapper : contentRegionOf(pane).getChildrenUnmodifiable()) {
+            StackPane page = (StackPane) wrapper;
+            if (page.getChildrenUnmodifiable().contains(content)) {
+                return page;
+            }
+        }
+        return null;
     }
 
     private static Node cellAt(RXTabPane pane, int index) {

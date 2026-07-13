@@ -156,14 +156,13 @@ public class RXTabPaneSkinTest {
             Label contentA = new Label("page A");
             Label contentB = new Label("page B");
             RXTabPane pane = laidOut(new RXTabPane(RXTab.of("A", contentA), RXTab.of("B", contentB)));
-            Parent content = (Parent) pane.lookup(".content");
-            assertTrue(content.getChildrenUnmodifiable().contains(contentA));
-            assertFalse(content.getChildrenUnmodifiable().contains(contentB));
+            assertTrue(contentAttached(pane, contentA));
+            assertFalse(contentAttached(pane, contentB));
 
             pane.getSelectionModel().select(1);
             pane.layout();
-            assertFalse(content.getChildrenUnmodifiable().contains(contentA));
-            assertTrue(content.getChildrenUnmodifiable().contains(contentB));
+            assertFalse(contentAttached(pane, contentA));
+            assertTrue(contentAttached(pane, contentB));
         });
     }
 
@@ -172,12 +171,11 @@ public class RXTabPaneSkinTest {
         runOnFx(() -> {
             Label contentA = new Label("page A");
             RXTabPane pane = laidOut(new RXTabPane(RXTab.of("A", contentA)));
-            Parent content = (Parent) pane.lookup(".content");
-            assertTrue(content.getChildrenUnmodifiable().contains(contentA));
+            assertTrue(contentAttached(pane, contentA));
 
             pane.getSelectionModel().clearSelection();
             pane.layout();
-            assertFalse(content.getChildrenUnmodifiable().contains(contentA));
+            assertFalse(contentAttached(pane, contentA));
         });
     }
 
@@ -414,6 +412,22 @@ public class RXTabPaneSkinTest {
 
     private static Node cellAt(RXTabPane pane, int index) {
         return (Node) pane.queryAccessibleAttribute(AccessibleAttribute.ITEM_AT_INDEX, index);
+    }
+
+    /**
+     * Whether {@code node} is attached as a page. Content is hosted inside a skin-owned
+     * page wrapper under {@code .content} (so animations transform the wrapper, not the
+     * user content), so this looks one level into each wrapper.
+     */
+    private static boolean contentAttached(RXTabPane pane, Node node) {
+        Parent content = (Parent) pane.lookup(".content");
+        for (Node wrapper : content.getChildrenUnmodifiable()) {
+            if (wrapper instanceof Parent
+                    && ((Parent) wrapper).getChildrenUnmodifiable().contains(node)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void press(RXTabPane pane, KeyCode code) {

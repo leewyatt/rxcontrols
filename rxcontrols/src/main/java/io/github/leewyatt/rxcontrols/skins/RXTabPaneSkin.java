@@ -40,7 +40,9 @@ import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -103,6 +105,13 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
 
     private Node currentContent;
     private final PageTransitionEngine contentEngine = new PageTransitionEngine();
+    /**
+     * User content node to its skin-owned page wrapper. Every page shown in
+     * {@code contentRegion} is a wrapper hosting one user content node, so a page
+     * animation only ever transforms the disposable wrapper and never the user's
+     * content node — its caller-set transform/opacity/clip survive untouched.
+     */
+    private final Map<Node, StackPane> pageWrappers = new IdentityHashMap<>();
     /** Selected index at the last content settle, for inferring the transition direction. */
     private int lastContentIndex = -1;
 
@@ -319,45 +328,66 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         control.requestLayout();
     }
 
-    /** Detach mode: only the selected content stays attached. */
-    private void reconcileDetachedContent(Node selected) {
-        detachExcept(child -> child == selected);
-        if (selected != null) {
-            if (!contentRegion.getChildren().contains(selected)) {
-                contentRegion.getChildren().add(selected);
-            }
-            showPage(selected);
+    /**
+     * The skin-owned page wrapper hosting {@code content}, created on first use. The
+     * wrapper is a plain {@code StackPane} with no style class or insets, so it is a
+     * transparent pass-through for sizing ({@code wrapper.pref* == content.pref*}) while
+     * absorbing every transform a page animation applies, keeping user content pristine.
+     */
+    private StackPane wrapperFor(Node content) {
+        return pageWrappers.computeIfAbsent(content, StackPane::new);
+    }
+
+    /** Hands the user content back pristine and drops the wrapper from the registry. */
+    private void unwrap(StackPane wrapper) {
+        if (!wrapper.getChildren().isEmpty()) {
+            pageWrappers.remove(wrapper.getChildren().get(0));
+            wrapper.getChildren().clear();
         }
     }
 
-    /** Keep-all mode: every tab's content stays attached; only the selected shows. */
+    /** Detach mode: only the selected content's wrapper stays attached. */
+    private void reconcileDetachedContent(Node selected) {
+        StackPane keep = selected == null ? null : wrapperFor(selected);
+        detachExcept(child -> child == keep);
+        if (keep != null) {
+            if (!contentRegion.getChildren().contains(keep)) {
+                contentRegion.getChildren().add(keep);
+            }
+            showPage(keep);
+        }
+    }
+
+    /** Keep-all mode: every tab's wrapper stays attached; only the selected shows. */
     private void reconcilePreservedContent(Node selected) {
+        StackPane selectedWrapper = selected == null ? null : wrapperFor(selected);
         List<Node> desired = new ArrayList<>();
         for (RXTab tab : getSkinnable().getTabs()) {
             Node content = tab.getContent();
-            if (content != null && !desired.contains(content)) {
-                desired.add(content);
+            if (content != null) {
+                StackPane wrapper = wrapperFor(content);
+                if (!desired.contains(wrapper)) {
+                    desired.add(wrapper);
+                }
             }
         }
         detachExcept(desired::contains);
-        for (Node content : desired) {
-            if (!contentRegion.getChildren().contains(content)) {
-                contentRegion.getChildren().add(content);
+        for (Node wrapper : desired) {
+            if (!contentRegion.getChildren().contains(wrapper)) {
+                contentRegion.getChildren().add(wrapper);
             }
-            if (content == selected) {
-                showPage(content);
+            if (wrapper == selectedWrapper) {
+                showPage(wrapper);
             } else {
-                hidePage(content);
+                hidePage(wrapper);
             }
         }
     }
 
     /**
-     * Detaches every content child not matching {@code keep}, first making each visible
-     * again so a page handed back to the application is never left hidden or unmanaged
-     * (a preserved page is hidden while inactive, and an animated swap leaves the
-     * outgoing page invisible). Any transition transform was already cleared by the
-     * animation's own finish action when the tween completed or was interrupted.
+     * Detaches every page wrapper not matching {@code keep} and hands its user content
+     * back pristine. The user content was never hidden — only its wrapper is toggled — so
+     * extracting it is enough; any transition transform lived on the disposable wrapper.
      */
     private void detachExcept(Predicate<Node> keep) {
         List<Node> stale = new ArrayList<>();
@@ -366,28 +396,28 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
                 stale.add(child);
             }
         }
-        for (Node child : stale) {
-            showPage(child);
-        }
         contentRegion.getChildren().removeAll(stale);
+        for (Node wrapper : stale) {
+            unwrap((StackPane) wrapper);
+        }
     }
 
     /**
-     * Makes a page the live, laid-out page. Deliberately touches only visibility and
-     * managed state — the two properties the content-hosting contract owns — and never
-     * a transform/opacity/clip, so a caller-set transform on the user's content node is
-     * preserved. Transition transforms are owned and cleared by the {@link PageAnimation}
-     * itself (its finish action / {@code clearEffects}), not by the skin.
+     * Makes a page wrapper the live, laid-out page. Touches only the wrapper's visibility
+     * and managed state — never the user content inside it — so a caller-set
+     * transform/opacity/clip on the content node is preserved. Transition transforms are
+     * applied by the {@link PageAnimation} to the wrapper and cleared by its own finish
+     * action / {@code clearEffects}, never leaking onto user content.
      */
-    private static void showPage(Node content) {
-        content.setVisible(true);
-        content.setManaged(true);
+    private static void showPage(Node wrapper) {
+        wrapper.setVisible(true);
+        wrapper.setManaged(true);
     }
 
-    /** Detaches a page from layout while keeping it attached (preserveContent mode). */
-    private static void hidePage(Node content) {
-        content.setVisible(false);
-        content.setManaged(false);
+    /** Detaches a wrapper from layout while keeping it attached (preserveContent mode). */
+    private static void hidePage(Node wrapper) {
+        wrapper.setVisible(false);
+        wrapper.setManaged(false);
     }
 
     private void animateContentChange(Node newContent) {
@@ -399,27 +429,30 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             contentEngine.interrupt();
         }
         Node oldContent = currentContent;
-        // Keep exactly the outgoing + incoming pages attached for the tween; a prior
-        // interrupt may have left a stale page behind. detachExcept hands it back
-        // visible (its transform was already cleared by that tween's finish action on
-        // interrupt). Preserve mode keeps every page attached.
+        // The animation runs on the disposable wrappers, never the user content nodes.
+        StackPane oldWrapper = wrapperFor(oldContent);
+        StackPane newWrapper = wrapperFor(newContent);
+        // Keep exactly the outgoing + incoming wrappers attached for the tween; a prior
+        // interrupt may have left a stale wrapper behind. detachExcept hands its content
+        // back (the wrapper carried any residual transform, already cleared by that
+        // tween's finish action on interrupt). Preserve mode keeps every wrapper attached.
         if (!control.isPreserveContent()) {
-            detachExcept(child -> child == oldContent || child == newContent);
+            detachExcept(child -> child == oldWrapper || child == newWrapper);
         }
-        if (!contentRegion.getChildren().contains(newContent)) {
-            contentRegion.getChildren().add(newContent);
+        if (!contentRegion.getChildren().contains(newWrapper)) {
+            contentRegion.getChildren().add(newWrapper);
         }
-        // Both pages visible for the tween; the animation sets their initial transforms.
-        showPage(oldContent);
-        showPage(newContent);
+        // Both wrappers visible for the tween; the animation sets their initial transforms.
+        showPage(oldWrapper);
+        showPage(newWrapper);
 
         TransitionDirection direction = control.getSelectedIndex() >= lastContentIndex
                 ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
         // currentIndex 0, nextIndex 1, pageCount CONTENT_PAGE_COUNT: the engine's
-        // two-page view of this swap; the page provider maps those indices to the nodes.
-        TransitionContext context = new TransitionContext(oldContent, newContent, 0, 1, CONTENT_PAGE_COUNT,
+        // two-page view of this swap; the page provider maps those indices to the wrappers.
+        TransitionContext context = new TransitionContext(oldWrapper, newWrapper, 0, 1, CONTENT_PAGE_COUNT,
                 direction, control.getAnimationDuration(), contentRegion,
-                index -> index == 0 ? oldContent : newContent,
+                index -> index == 0 ? oldWrapper : newWrapper,
                 TransitionContext.LifecycleCallback.NOOP);
 
         contentEngine.play(control.getContentAnimation(), context,
@@ -431,7 +464,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
                     lastContentIndex = control.getSelectedIndex();
                 },
                 () -> setContentImmediate(newContent),
-                () -> showPage(newContent));
+                () -> showPage(newWrapper));
         control.requestLayout();
     }
 
@@ -1213,18 +1246,20 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // the live field (a disposer task would hold a stale reference).
         stopSlide();
         // Interrupt first so a mid-flight transition runs its finish action, clearing
-        // the transforms it put on the pages (dispose() alone stops the timeline without
-        // running it). Then dispose the engine.
+        // the transforms it put on the wrappers (dispose() alone stops the timeline
+        // without running it). Then dispose the engine.
         contentEngine.interrupt();
         contentEngine.dispose(getSkinnable().getContentAnimation());
         for (TabHeaderCell cell : cells) {
             cell.detach();
         }
-        // Hand every page back visible/managed (preserved non-selected pages are hidden).
-        for (Node child : contentRegion.getChildren()) {
-            showPage(child);
-        }
+        // Hand every page's user content back pristine, then drop the wrappers.
+        List<Node> wrappers = new ArrayList<>(contentRegion.getChildren());
         contentRegion.getChildren().clear();
+        for (Node wrapper : wrappers) {
+            unwrap((StackPane) wrapper);
+        }
+        pageWrappers.clear();
         currentContent = null;
     }
 
