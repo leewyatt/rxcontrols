@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXSkinBase;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
@@ -162,6 +163,17 @@ public class RXTabPaneTest {
             RXTab tab = new RXTab("A");
             RXTabPane pane = new RXTabPane(tab);
             assertSame(pane, tab.getStyleableParent());
+        });
+    }
+
+    @Test
+    public void defaultPseudoClassesHoldBeforeSkinAttaches() throws Exception {
+        runOnFx(() -> {
+            // No scene / skin yet: the side + variant pseudo-classes are a control
+            // contract and must reflect the defaults from construction.
+            RXTabPane pane = new RXTabPane(new RXTab("A"));
+            assertTrue(pane.getPseudoClassStates().contains(PseudoClass.getPseudoClass("top")));
+            assertTrue(pane.getPseudoClassStates().contains(PseudoClass.getPseudoClass("standard")));
         });
     }
 

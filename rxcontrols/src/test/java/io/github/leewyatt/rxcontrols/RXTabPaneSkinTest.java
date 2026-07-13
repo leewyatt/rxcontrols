@@ -275,6 +275,42 @@ public class RXTabPaneSkinTest {
         });
     }
 
+    @Test
+    public void manualEnterSelectsFocusedTab() throws Exception {
+        runOnFx(() -> {
+            RXTabPane pane = new RXTabPane(tab("A"), tab("B"), tab("C"));
+            pane.setSelectionFollowsFocus(false);
+            laidOut(pane);
+            pane.getSelectionModel().select(0);
+            press(pane, KeyCode.RIGHT);
+            // ENTER activates the focused tab, mirroring SPACE.
+            press(pane, KeyCode.ENTER);
+            assertEquals(1, pane.getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void homeAndEndSkipDisabledBoundaryTabs() throws Exception {
+        runOnFx(() -> {
+            RXTab first = tab("A");
+            RXTab last = tab("D");
+            first.setDisable(true);
+            last.setDisable(true);
+            RXTabPane pane = new RXTabPane(first, tab("B"), tab("C"), last);
+            pane.setSelectionFollowsFocus(false);
+            laidOut(pane);
+            pane.getSelectionModel().select(1);
+
+            press(pane, KeyCode.HOME);
+            // HOME lands on the first ENABLED tab (index 1), not the disabled index 0.
+            assertSame(cellAt(pane, 1), pane.queryAccessibleAttribute(AccessibleAttribute.FOCUS_ITEM));
+
+            press(pane, KeyCode.END);
+            // END lands on the last ENABLED tab (index 2), not the disabled index 3.
+            assertSame(cellAt(pane, 2), pane.queryAccessibleAttribute(AccessibleAttribute.FOCUS_ITEM));
+        });
+    }
+
     // ==================== Accessibility ====================
 
     @Test

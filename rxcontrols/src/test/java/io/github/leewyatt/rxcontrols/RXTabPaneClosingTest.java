@@ -243,6 +243,25 @@ public class RXTabPaneClosingTest {
     }
 
     @Test
+    public void closeRequestHandlerRemovingTabSuppressesSpuriousClosed() throws Exception {
+        runOnFx(() -> {
+            RXTab a = tab("A");
+            int[] closedCount = {0};
+            RXTabPane pane = new RXTabPane(a, tab("B"));
+            pane.setTabClosingPolicy(TabClosingPolicy.ALL_TABS);
+            // The request handler removes the tab itself without consuming; the
+            // pipeline must not then fire a TAB_CLOSED for a tab it did not remove.
+            a.setOnCloseRequest(e -> pane.getTabs().remove(a));
+            pane.addEventHandler(RXTabEvent.TAB_CLOSED, e -> closedCount[0]++);
+            laidOut(pane);
+
+            closeButton(pane, 0).fire();
+            assertFalse(pane.getTabs().contains(a));
+            assertEquals(0, closedCount[0]);
+        });
+    }
+
+    @Test
     public void closedEventsFireInTabThenPaneOrder() throws Exception {
         runOnFx(() -> {
             RXTab a = tab("A");
@@ -294,6 +313,22 @@ public class RXTabPaneClosingTest {
             // A is focused + selected; SELECTED_TAB allows its close.
             press(pane, KeyCode.DELETE);
             assertFalse(pane.getTabs().contains(a));
+        });
+    }
+
+    @Test
+    public void deleteAdvancesSelectionToNextTab() throws Exception {
+        runOnFx(() -> {
+            RXTab b = tab("B");
+            RXTab c = tab("C");
+            RXTabPane pane = new RXTabPane(tab("A"), b, c);
+            pane.setTabClosingPolicy(TabClosingPolicy.ALL_TABS);
+            laidOut(pane);
+            pane.getSelectionModel().select(1);   // B focused + selected
+            press(pane, KeyCode.DELETE);
+            // Forward-first recovery after closing the selected tab: C takes selection.
+            assertFalse(pane.getTabs().contains(b));
+            assertSame(c, pane.getSelectionModel().getSelectedItem());
         });
     }
 
