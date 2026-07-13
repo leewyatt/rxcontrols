@@ -368,6 +368,60 @@ public class RXPopupMenuTest {
 
     @Test
     @Tag("ui")
+    public void restorableCloseReasonsReturnFocusToInvoker() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            // PROGRAMMATIC / ESCAPE / TAB / ACTION all return focus to the invoker;
+            // move focus off the anchor before each cycle so the restore is what puts
+            // it back (not a leftover).
+            anchor.getScene().getRoot().requestFocus();
+            menu.show(anchor);
+            menu.hide(CloseReason.PROGRAMMATIC);
+            assertSame(anchor, anchor.getScene().getFocusOwner(),
+                    "PROGRAMMATIC close restores focus to the invoker");
+
+            anchor.getScene().getRoot().requestFocus();
+            menu.show(anchor);
+            fireKey(menu.getMenuList(), KeyCode.ESCAPE);
+            assertSame(anchor, anchor.getScene().getFocusOwner(),
+                    "ESCAPE close restores focus to the invoker");
+
+            anchor.getScene().getRoot().requestFocus();
+            menu.show(anchor);
+            fireKey(menu.getMenuList(), KeyCode.TAB);
+            assertSame(anchor, anchor.getScene().getFocusOwner(),
+                    "TAB close restores focus to the invoker");
+
+            anchor.getScene().getRoot().requestFocus();
+            menu.show(anchor);
+            menu.getMenuList().activate(menu.getItems().get(0));
+            assertSame(anchor, anchor.getScene().getFocusOwner(),
+                    "ACTION close (close-then-fire) restores focus to the invoker");
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void vetoDoesNotBlockOwnerDetach() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            // A veto guards only the explicit hide() path: auto-close from the owner
+            // leaving the scene must still fire so a handler cannot trap the menu open
+            // once its invoker is gone.
+            menu.setOnHiding(RXMenuEvent::consume);
+            AtomicReference<CloseReason> reason = new AtomicReference<>();
+            menu.setOnHidden(e -> reason.set(e.getReason()));
+            menu.show(anchor);
+            ((StackPane) anchor.getParent()).getChildren().remove(anchor);
+            assertFalse(menu.isShowing(), "a veto cannot block owner-detach auto-close");
+            assertSame(CloseReason.OWNER_DETACHED, reason.get());
+        });
+    }
+
+    @Test
+    @Tag("ui")
     public void disposeWhileShowingReleasesAndHides() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();

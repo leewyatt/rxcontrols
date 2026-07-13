@@ -410,6 +410,9 @@ public class RXPopupMenu {
         // still references — leaving them attached would pin the whole menu view).
         menuList.getItems().clear();
         support.dispose();
+        // Drop the anchor reference so a retained (but disposed) menu does not pin
+        // the invoker node.
+        invoker = null;
         shownFired = false;
         popupHadFocus = false;
         showing.set(false);

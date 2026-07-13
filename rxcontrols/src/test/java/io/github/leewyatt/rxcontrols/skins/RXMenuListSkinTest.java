@@ -173,6 +173,27 @@ public class RXMenuListSkinTest {
     }
 
     /**
+     * Two different letters typed in quick succession build a multi-character
+     * prefix that refines the match in place (rather than cycling like a repeated
+     * letter): "s" lands on Settings, then "sa" narrows to Save.
+     */
+    @Test
+    public void typeAheadMultiCharPrefixRefines() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(RXMenuItem.of("Save"), RXMenuItem.of("Settings"));
+            Scene scene = hostFor(list).getScene();
+            List<Node> cells = cellsOf(list);
+
+            cells.get(0).requestFocus(); // Save
+            type(scene, "s");
+            assertSame(cells.get(1), scene.getFocusOwner(), "'s' moves to the next match Settings");
+            type(scene, "a");
+            assertSame(cells.get(0), scene.getFocusOwner(), "'sa' refines the prefix back to Save");
+        });
+    }
+
+    /**
      * focusInitial focuses the first focusable item, skipping a leading
      * separator.
      */
@@ -443,8 +464,9 @@ public class RXMenuListSkinTest {
     /**
      * stopEntrance snaps the content back to fully shown (opacity and both scale
      * axes), the state every close path and dispose rely on. Whether the entrance
-     * animation actually plays / is skipped is a visual behavior verified on a real
-     * machine (AGENTS §5.7), not through a production test hook.
+     * animation actually plays or is skipped is a visual behavior confirmed
+     * manually — asserting it would require a production-only animation hook, which
+     * the skin deliberately does not expose.
      */
     @Test
     public void stopEntranceResetsContentToFullyShown() throws Exception {

@@ -50,8 +50,10 @@ public enum RXPlacement {
 
     /**
      * Returns the secondary-axis alignment as a sign: {@code -1} for
-     * {@code START}, {@code 0} for center, {@code +1} for {@code END}. Callers
-     * flip the sign under right-to-left to honor {@code START} / {@code END}.
+     * {@code START}, {@code 0} for center, {@code +1} for {@code END}. For the
+     * vertical family, callers flip the sign under right-to-left to honor
+     * {@code START} / {@code END}; the side family's alignment is physical and is
+     * never mirrored.
      *
      * @return {@code -1}, {@code 0}, or {@code +1}
      */
