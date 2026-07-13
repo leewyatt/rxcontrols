@@ -431,6 +431,7 @@ public class RXListViewSkinTest {
             RXListView<String> view = items(10);
             view.scrollBy(Double.NaN);
             view.scrollBy(Double.POSITIVE_INFINITY);
+            view.scrollBy(Double.NEGATIVE_INFINITY);
             assertFalse(view.hasPendingScroll(), "non-finite deltas are dropped, not armed");
             assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
             view.scrollBy(40.0);
