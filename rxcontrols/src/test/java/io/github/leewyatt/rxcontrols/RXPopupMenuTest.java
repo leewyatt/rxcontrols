@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXPopupMenu.CloseReason;
 import io.github.leewyatt.rxcontrols.event.RXMenuEvent;
 import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -233,6 +235,45 @@ public class RXPopupMenuTest {
             menu.show(anchor);
             assertFalse(menu.isShowing(),
                     "an all-disabled menu does not open when disabled items are not focusable");
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void disabledAnchorIsNoOpAndFiresNothing() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            anchor.setDisable(true);
+            RXPopupMenu menu = quietMenu("A", "B");
+            AtomicInteger showing = new AtomicInteger();
+            menu.setOnShowing(e -> showing.incrementAndGet());
+            // A realized but disabled anchor must not open the menu ("disabled owner").
+            menu.show(anchor);
+            assertFalse(menu.isShowing(), "a disabled anchor does not open the menu");
+            assertEquals(0, showing.get(), "onShowing must not fire for a disabled anchor");
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void surfaceReportsVisibleAndParentMenuToAccessibility() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            RXMenuList surface = menu.getMenuList();
+            // Before showing: no owner yet.
+            assertNull(surface.queryAccessibleAttribute(AccessibleAttribute.PARENT_MENU),
+                    "no parent menu before showing");
+
+            menu.show(anchor);
+            assertEquals(Boolean.TRUE, surface.queryAccessibleAttribute(AccessibleAttribute.VISIBLE),
+                    "VISIBLE reflects the shown popup");
+            assertSame(anchor, surface.queryAccessibleAttribute(AccessibleAttribute.PARENT_MENU),
+                    "PARENT_MENU returns the invoking anchor");
+
+            menu.hide();
+            assertEquals(Boolean.FALSE, surface.queryAccessibleAttribute(AccessibleAttribute.VISIBLE),
+                    "VISIBLE reflects the hidden popup");
         });
     }
 

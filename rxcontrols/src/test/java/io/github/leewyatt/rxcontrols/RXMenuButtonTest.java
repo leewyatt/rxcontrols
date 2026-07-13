@@ -581,6 +581,38 @@ public class RXMenuButtonTest {
     }
 
     @Test
+    public void acceleratorOnNonFocusableItemDoesNotFire() throws InterruptedException {
+        runOnFx(() -> {
+            // A header / separator is never focusable and its action is ignored on the
+            // click / keyboard path; a stray accelerator must not activate it either.
+            RXMenuHeader header = RXMenuHeader.of("Group");
+            KeyCombination combo = KeyCombination.keyCombination("Shortcut+H");
+            header.setAccelerator(combo);
+            AtomicInteger fired = new AtomicInteger();
+            header.setOnAction(e -> fired.incrementAndGet());
+            RXMenuButton button = attachedButton(header);
+
+            Runnable registered = button.getScene().getAccelerators().get(combo);
+            assertNotNull(registered, "the accelerator registers for any item that carries one");
+            registered.run();
+            assertEquals(0, fired.get(),
+                    "a non-focusable item does not fire via the accelerator (mirrors activate())");
+        });
+    }
+
+    @Test
+    public void disablingButtonWhileOpenClosesTheMenu() throws InterruptedException {
+        runOnFx(() -> {
+            RXMenuButton button = shownButton("A", "B");
+            button.show();
+            assertTrue(button.isShowing(), "precondition: the menu is open");
+            button.setDisable(true);
+            assertFalse(button.isShowing(),
+                    "disabling the button while open closes the menu (no menu on a disabled owner)");
+        });
+    }
+
+    @Test
     public void acceleratorResyncOnItemsChange() throws InterruptedException {
         runOnFx(() -> {
             RXMenuItem item1 = RXMenuItem.of("A");

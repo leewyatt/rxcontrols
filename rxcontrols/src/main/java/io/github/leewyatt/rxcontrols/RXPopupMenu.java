@@ -14,6 +14,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.input.KeyEvent;
@@ -107,6 +108,9 @@ public class RXPopupMenu {
             item.fire();
         });
         menuList.addEventFilter(KeyEvent.KEY_PRESSED, menuKeyFilter);
+        // Let the CONTEXT_MENU surface report its popup showing state and owner to
+        // assistive technology (mirrors the platform ContextMenuContent surface).
+        menuList.setPopupAccessibility(showing::get, () -> invoker);
     }
 
     // ==================== Items ====================
@@ -210,16 +214,17 @@ public class RXPopupMenu {
 
     /**
      * Shows the menu against the anchor with the given placement. A no-op if the
-     * anchor is {@code null} or not in a showing window, or if the menu has no
-     * focusable item (all separators / headers, or empty).
+     * anchor is {@code null}, disabled, or not in a showing window, or if the menu
+     * has no focusable item (all separators / headers, or empty).
      *
      * @param anchor    the node to anchor to
      * @param placement the preferred placement
      */
     public void show(Node anchor, RXPlacement placement) {
         // Guard (a): detached-owner pre-check — no-op without firing onShowing or
-        // touching the support (aligns with "owner has no scene -> no-op").
-        if (disposed || !isRealized(anchor) || !hasFocusableItem()) {
+        // touching the support (aligns with "owner has no scene / disabled owner ->
+        // no-op").
+        if (disposed || !isRealized(anchor) || anchor.isDisabled() || !hasFocusableItem()) {
             return;
         }
         this.invoker = anchor;
@@ -238,7 +243,7 @@ public class RXPopupMenu {
      * @param screenY the anchor y in screen coordinates
      */
     public void showAt(Node owner, double screenX, double screenY) {
-        if (disposed || !isRealized(owner) || !hasFocusableItem()) {
+        if (disposed || !isRealized(owner) || owner.isDisabled() || !hasFocusableItem()) {
             return;
         }
         this.invoker = owner;
@@ -259,6 +264,7 @@ public class RXPopupMenu {
         showing.set(true);
         shownFired = true;
         popupHadFocus = true;
+        menuList.notifyAccessibleAttributeChanged(AccessibleAttribute.VISIBLE);
         // Force the skin so the entrance pivot uses real dimensions this frame.
         menuList.applyCss();
         RXMenuListSkin skin = menuSkin();
@@ -336,6 +342,7 @@ public class RXPopupMenu {
         shownFired = false;
         popupHadFocus = false;
         showing.set(false);
+        menuList.notifyAccessibleAttributeChanged(AccessibleAttribute.VISIBLE);
         // Restore focus to the invoker except when interaction moved elsewhere
         // (OUTSIDE) or the invoker is gone (OWNER_DETACHED).
         if (hadFocus && reason != CloseReason.OUTSIDE && reason != CloseReason.OWNER_DETACHED

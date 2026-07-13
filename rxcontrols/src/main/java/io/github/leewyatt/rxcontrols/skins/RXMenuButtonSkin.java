@@ -73,6 +73,9 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
         disposer.registerListener(control.getItems(), this::syncItems);
         disposer.registerListener(control.showingProperty(), this::syncPopupShowing);
         disposer.registerListener(popupMenu.showingProperty(), this::syncControlShowing);
+        // "disabled owner -> no menu" also applies while open: disabling the button
+        // mid-show closes the menu so no interactive surface hangs off a dead owner.
+        disposer.registerListener(control.disabledProperty(), this::syncDisabled);
 
         // Register item accelerators as real scene shortcuts while the button is in
         // a scene (works whether or not the menu is open).
@@ -89,6 +92,13 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
 
     private void syncItems() {
         popupMenu.getMenuList().getItems().setAll(getSkinnable().getItems());
+    }
+
+    private void syncDisabled() {
+        RXMenuButton control = getSkinnable();
+        if (control.isDisabled() && control.isShowing()) {
+            control.hide();
+        }
     }
 
     private void syncPopupShowing() {
@@ -133,9 +143,10 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
     }
 
     private void onAccelerator(RXMenuItem item) {
-        // A disabled button (or item) is inert: its command must not fire via the
-        // still-registered scene accelerator, mirroring the click / keyboard guard.
-        if (item.isDisable() || getSkinnable().isDisabled()) {
+        // A disabled button, or a disabled / non-focusable item (separator, header),
+        // is inert: its command must not fire via the still-registered scene
+        // accelerator, mirroring the click / keyboard path (RXMenuList.activate()).
+        if (item.isDisable() || !item.isFocusable() || getSkinnable().isDisabled()) {
             return;
         }
         // Toggle a selectable item, but re-activating the already-selected radio must

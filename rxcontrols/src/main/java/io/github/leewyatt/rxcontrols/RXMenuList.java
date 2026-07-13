@@ -24,7 +24,9 @@ import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
+import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.control.ToggleGroup;
@@ -35,7 +37,9 @@ import javafx.util.StringConverter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * A vertical list of command-menu items with real per-item roving focus,
@@ -124,6 +128,43 @@ public class RXMenuList extends Control {
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
+    }
+
+    // ==================== Accessibility ====================
+
+    private BooleanSupplier a11yShowing;
+    private Supplier<Node> a11yOwner;
+
+    // Wired by RXPopupMenu (same package) so the CONTEXT_MENU surface can report its
+    // popup showing state and owner to assistive technology. Left null when the list
+    // is used inline, where the Node defaults apply.
+    void setPopupAccessibility(BooleanSupplier showing, Supplier<Node> owner) {
+        this.a11yShowing = showing;
+        this.a11yOwner = owner;
+    }
+
+    /**
+     * Answers the command-menu surface's accessibility attributes: {@code VISIBLE}
+     * reflects the hosting popup's showing state and {@code PARENT_MENU} returns its
+     * owner (the triggering node), mirroring the platform {@code CONTEXT_MENU}
+     * surface. Both fall back to the {@link Control} defaults when the list is
+     * embedded inline rather than shown in a popup.
+     *
+     * @param attribute  the requested attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case VISIBLE -> a11yShowing != null
+                    ? a11yShowing.getAsBoolean()
+                    : super.queryAccessibleAttribute(attribute, parameters);
+            case PARENT_MENU -> a11yOwner != null
+                    ? a11yOwner.get()
+                    : super.queryAccessibleAttribute(attribute, parameters);
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
     }
 
     // ==================== Items ====================

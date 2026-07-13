@@ -7,6 +7,7 @@ import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.ToggleGroup;
 import javafx.util.Duration;
@@ -58,6 +59,16 @@ public class RXMenuListTest {
         assertEquals(RXResources.USER_AGENT_STYLESHEET, list.getUserAgentStylesheet());
         assertSame(AccessibleRole.CONTEXT_MENU, list.getAccessibleRole());
         assertTrue(list.createDefaultSkin() instanceof RXMenuListSkin);
+    }
+
+    @Test
+    public void inlineListHasNoParentMenuAccessibility() {
+        // Used inline (not in a popup), the surface has no owning menu: PARENT_MENU
+        // falls back to the Node default. RXPopupMenu wires the popup-showing / owner
+        // suppliers only when it hosts the list.
+        RXMenuList list = new RXMenuList();
+        assertNull(list.queryAccessibleAttribute(AccessibleAttribute.PARENT_MENU),
+                "an inline list reports no parent menu");
     }
 
     /**
