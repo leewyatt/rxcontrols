@@ -470,12 +470,19 @@ public class RXMenuListSkinTest {
             RippleLayer enabledLayer = (RippleLayer) ((Pane) cells.get(0)).getChildrenUnmodifiable().get(0);
             RippleLayer disabledLayer = (RippleLayer) ((Pane) cells.get(1)).getChildrenUnmodifiable().get(0);
 
-            hover(cells.get(1));
-            assertEquals(0.0, disabledLayer.getOverlayTargetOpacity(), 0.0,
-                    "a disabled APG item shows no hover state overlay");
-            hover(cells.get(0));
-            assertTrue(enabledLayer.getOverlayTargetOpacity() > 0.0,
-                    "an enabled item still shows the hover state overlay");
+            try {
+                hover(cells.get(1));
+                assertEquals(0.0, disabledLayer.getOverlayTargetOpacity(), 0.0,
+                        "a disabled APG item shows no hover state overlay");
+                hover(cells.get(0));
+                assertTrue(enabledLayer.getOverlayTargetOpacity() > 0.0,
+                        "an enabled item still shows the hover state overlay");
+            } finally {
+                // Hovering the enabled item starts the StateLayer fade Timeline;
+                // dispose the skin (→ RippleDecoration.clear → StateLayer.reset) so
+                // no animation outlives the test.
+                list.getSkin().dispose();
+            }
         });
     }
 
