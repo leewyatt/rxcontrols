@@ -226,6 +226,17 @@ public class RXMasonryViewTest {
     }
 
     @Test
+    public void scrollByDropsNonFiniteDeltas() {
+        RXMasonryView<String> view = new RXMasonryView<>();
+        view.scrollBy(Double.NaN);
+        view.scrollBy(Double.POSITIVE_INFINITY);
+        assertFalse(view.hasPendingScroll(), "non-finite deltas are dropped, not armed");
+        assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
+        view.scrollBy(40.0);
+        assertEquals(40.0, view.getPendingScrollDelta(), 1e-9, "a later finite delta still works");
+    }
+
+    @Test
     public void selectionModeConvenienceDelegatesToTheModel() {
         RXMasonryView<String> view = new RXMasonryView<>();
         assertSame(SelectionMode.SINGLE, view.getSelectionMode());

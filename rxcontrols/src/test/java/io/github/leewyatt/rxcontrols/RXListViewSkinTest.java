@@ -418,6 +418,23 @@ public class RXListViewSkinTest {
             assertEquals(1, activated.get(), "Enter activates the focused item without a model");
             key(view, KeyCode.A, false, true); // select-all is the only selection-owned key: silent no-op
             assertEquals(1, view.getFocusedIndex());
+            press(cellByIndex(view, 4), false, false);
+            assertEquals(4, view.getFocusedIndex(), "a click moves the focus cursor without a model");
+            key(view, KeyCode.ENTER, false, false);
+            assertEquals(4, activated.get(), "Enter then activates the clicked item");
+        });
+    }
+
+    @Test
+    public void scrollByDropsNonFiniteDeltas() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(10);
+            view.scrollBy(Double.NaN);
+            view.scrollBy(Double.POSITIVE_INFINITY);
+            assertFalse(view.hasPendingScroll(), "non-finite deltas are dropped, not armed");
+            assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
+            view.scrollBy(40.0);
+            assertEquals(40.0, view.getPendingScrollDelta(), 1e-9, "a later finite delta still works");
         });
     }
 

@@ -406,6 +406,10 @@ public class RXMasonryViewSkinTest {
             assertEquals(1, view.getFocusedIndex(), "arrows move the focus cursor without a model");
             fireKey(view, KeyCode.ENTER, false, false);
             assertEquals(1, activated.get(), "Enter activates the focused item without a model");
+            fireCellPress(cellByIndex(view, 4), false, false);
+            assertEquals(4, view.getFocusedIndex(), "a click moves the focus cursor without a model");
+            fireKey(view, KeyCode.ENTER, false, false);
+            assertEquals(4, activated.get(), "Enter then activates the clicked item");
         });
     }
 

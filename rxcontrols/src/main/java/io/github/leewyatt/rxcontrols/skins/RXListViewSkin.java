@@ -921,12 +921,15 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // rapid clicking selects / deselects freely) or replaces otherwise.
     private void handlePointerSelect(MouseEvent event, int index, boolean accumulate) {
         MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
-        if (sm == null) {
-            return;
-        }
         // Capture the range anchor from the current focus before moving it (see moveTo).
         int anchor = clampIndex(getAnchor(), itemCount());
         focusModel.focus(index);
+        // Without a selection model the press still moves the focus cursor (like
+        // the keyboard path); only the selection updates are skipped.
+        if (sm == null) {
+            setAnchor(index);
+            return;
+        }
         if (event.isShortcutDown()) {
             toggleAt(sm, index);
             setAnchor(index);

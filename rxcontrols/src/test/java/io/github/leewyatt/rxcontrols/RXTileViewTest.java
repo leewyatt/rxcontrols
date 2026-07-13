@@ -402,6 +402,18 @@ public class RXTileViewTest {
     }
 
     @Test
+    public void scrollByDropsNonFiniteDeltas() {
+        RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
+        view.scrollBy(Double.NaN);
+        view.scrollBy(Double.POSITIVE_INFINITY);
+        view.scrollBy(Double.NEGATIVE_INFINITY);
+        assertFalse(view.hasPendingScroll(), "non-finite deltas are dropped, not armed");
+        assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
+        view.scrollBy(40.0);
+        assertEquals(40.0, view.getPendingScrollDelta(), 1e-9, "a later finite delta still works");
+    }
+
+    @Test
     public void selectionModeConvenienceDelegatesToTheModel() {
         RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
         assertSame(SelectionMode.SINGLE, view.getSelectionMode());

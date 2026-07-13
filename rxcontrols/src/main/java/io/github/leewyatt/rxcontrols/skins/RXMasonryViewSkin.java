@@ -648,10 +648,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         }
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         RXMasonryCell<T> cell = viewport.cellAt(event.getTarget());
-        if (sm == null) {
-            return;
-        }
         if (cell == null) {
+            if (sm == null) {
+                return;
+            }
             Point2D point = viewportPoint(event);
             if (canStartMarquee(event, sm, point)) {
                 armMarquee(point);
@@ -665,6 +665,12 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         int anchor = clampIndex(getAnchor(), itemCount());
         focusModel.focus(index);
         resetPreferredNav();
+        // Without a selection model the press still moves the focus cursor (like
+        // the keyboard path); only the selection updates are skipped.
+        if (sm == null) {
+            setAnchor(index);
+            return;
+        }
         if (event.isShortcutDown()) {
             if (sm.isSelected(index)) {
                 sm.clearSelection(index);

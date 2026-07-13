@@ -1018,7 +1018,7 @@ public class RXListView<T> extends Control {
     }
 
     /**
-     * Returns the number of data rows resolved by the most recent layout.
+     * Returns the number of visual rows resolved by the most recent layout.
      *
      * @return the row count
      */

@@ -3125,6 +3125,10 @@ public class RXTileViewSkinTest {
             fireKey(view, KeyCode.ENTER, false, false);
             assertNotNull(activated.get(), "Enter activates the focused item without a model");
             assertEquals(1, activated.get().getIndex());
+            fireMousePressed(cellByIndex(view, 4), false, false);
+            assertEquals(4, view.getFocusedIndex(), "a click moves the focus cursor without a model");
+            fireKey(view, KeyCode.ENTER, false, false);
+            assertEquals(4, activated.get().getIndex(), "Enter then activates the clicked item");
         });
     }
 
