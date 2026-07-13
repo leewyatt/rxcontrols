@@ -359,7 +359,7 @@ public class RXListViewSkinTest {
     }
 
     @Test
-    public void spaceTogglesInSingleMode() throws Exception {
+    public void spaceKeepsSelectionInSingleMode() throws Exception {
         onFx(() -> {
             RXListView<String> view = items(10); // SINGLE by default
             StackPane root = host(view, 300, 400);
@@ -367,7 +367,8 @@ public class RXListViewSkinTest {
             key(view, KeyCode.DOWN, false, false);
             assertTrue(view.getSelectionModel().isSelected(0));
             key(view, KeyCode.SPACE, false, false);
-            assertFalse(view.getSelectionModel().isSelected(0), "Space toggles off in SINGLE mode too");
+            assertTrue(view.getSelectionModel().isSelected(0),
+                    "Space on the selected row never empties SINGLE mode (radio-group semantics)");
         });
     }
 
@@ -382,6 +383,41 @@ public class RXListViewSkinTest {
             key(view, KeyCode.DOWN, false, false);
             key(view, KeyCode.ENTER, false, false);
             assertEquals(0, activated.get());
+        });
+    }
+
+    @Test
+    public void shortcutWinsOverShiftOnArrowNavigation() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(10);
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            view.setSelectionVisualMode(RXListSelectionVisualMode.ROW); // arrows select (not checkbox-accumulate)
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            key(view, KeyCode.DOWN, false, false); // select + focus 0
+            key(view, KeyCode.DOWN, true, true);   // Shift + Shortcut together
+            assertEquals(List.of(0), List.copyOf(view.getSelectionModel().getSelectedIndices()),
+                    "Shortcut wins over Shift: focus-only move, no range extension (matches the pointer path)");
+            assertEquals(1, view.getFocusedIndex(), "the focus cursor still moved");
+        });
+    }
+
+    @Test
+    public void nullSelectionModelKeepsNavigationAndActivationAlive() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(10);
+            view.setSelectionModel(null);
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            AtomicReference<Integer> activated = new AtomicReference<>();
+            view.setOnAction(e -> activated.set(e.getIndex()));
+            key(view, KeyCode.DOWN, false, false);
+            key(view, KeyCode.DOWN, false, false);
+            assertEquals(1, view.getFocusedIndex(), "arrows move the focus cursor without a model");
+            key(view, KeyCode.ENTER, false, false);
+            assertEquals(1, activated.get(), "Enter activates the focused item without a model");
+            key(view, KeyCode.A, false, true); // select-all is the only selection-owned key: silent no-op
+            assertEquals(1, view.getFocusedIndex());
         });
     }
 

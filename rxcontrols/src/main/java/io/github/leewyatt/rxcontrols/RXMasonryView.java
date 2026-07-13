@@ -35,10 +35,12 @@ import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -70,17 +72,23 @@ import java.util.List;
  * The view publishes read-only metrics after each layout —
  * {@link #actualColumnCountProperty() actualColumnCount},
  * {@link #activeBreakpointProperty() activeBreakpoint},
+ * {@link #visibleBoundsProperty() visibleBounds} (with the individual
  * {@link #firstVisibleIndexProperty() firstVisibleIndex} and
- * {@link #lastVisibleIndexProperty() lastVisibleIndex} — and can scroll to an item via
+ * {@link #lastVisibleIndexProperty() lastVisibleIndex}) — and can scroll to an item via
  * the {@code scrollTo} methods.
  *
  * <p>Selection is held by a {@link #selectionModelProperty() selectionModel}
  * (single by default). The view is a single Tab stop; once focused it navigates with
  * the arrow keys, {@code Home}/{@code End} and {@code Page Up}/{@code Down}, extends a
  * range with {@code Shift}, moves focus without selecting with {@code Shortcut},
- * toggles with {@code Space}, selects all with {@code Shortcut+A}, and activates the
- * focused item — firing {@link #onActionProperty() onAction} — with {@code Enter} or a
- * double-click.
+ * toggles with {@code Space} (in multiple-selection mode; in single selection
+ * {@code Space} re-selects and never empties), selects all with {@code Shortcut+A}
+ * (in multiple-selection mode), and activates the focused item — firing
+ * {@link #onActionProperty() onAction} — with {@code Enter} or a double-click.
+ * In multiple-selection mode, dragging from blank space draws a marquee that selects
+ * the intersected cells; {@code Escape} cancels it. There is no property to switch
+ * the keyboard handling off; to disable a key (or all of them), add a consuming
+ * filter, e.g. {@code masonryView.addEventFilter(KeyEvent.KEY_PRESSED, KeyEvent::consume)}.
  *
  * @param <T> the item type
  */
@@ -139,6 +147,23 @@ public class RXMasonryView<T> extends Control {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXMasonryViewSkin<>(this);
+    }
+
+    /**
+     * Reports whether this view allows multiple selection to assistive technologies
+     * (mirroring {@code ListView}); other attributes defer to the superclass. The
+     * per-item index and selected state are reported by {@link RXMasonryCell}.
+     *
+     * @param attribute  the requested accessible attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case MULTIPLE_SELECTION -> getSelectionMode() == SelectionMode.MULTIPLE;
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
     }
 
     @Override
@@ -983,9 +1008,14 @@ public class RXMasonryView<T> extends Control {
     /**
      * Whether indirect wheel input scrolls with a short smooth animation. When
      * disabled, wheel input is applied immediately while keeping the same boundary
-     * chaining behavior.
+     * chaining behavior. Only the switch (and {@link #smoothScrollModeProperty()
+     * smoothScrollMode}) is configurable here — duration ({@code 200ms}),
+     * interpolator ({@code EASE_OUT}), wheel multiplier and boundary chaining are
+     * fixed to the library defaults; for a fully configurable smooth-scroll
+     * surface, wrap content in a pane driven by {@link RXSmoothScroller} instead.
      *
      * @return the smooth-scrolling property
+     * @see RXSmoothScroller
      */
     public final BooleanProperty smoothScrollingProperty() {
         return smoothScrolling;
@@ -1262,7 +1292,7 @@ public class RXMasonryView<T> extends Control {
     /**
      * The selection model. Defaults to a non-null {@link RXIndexedSelectionModel} in
      * single-selection mode; switch to multiple selection via
-     * {@code getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE)}.
+     * {@link #setSelectionMode(SelectionMode) setSelectionMode(SelectionMode.MULTIPLE)}.
      *
      * @return the selection-model property
      */
@@ -1283,9 +1313,38 @@ public class RXMasonryView<T> extends Control {
      * Sets the selection model.
      *
      * @param value the selection model, or {@code null} to disable selection
+     *              (keyboard navigation, Enter activation and double-click
+     *              activation stay live; only selection updates stop)
      */
     public final void setSelectionModel(MultipleSelectionModel<T> value) {
         selectionModel.set(value);
+    }
+
+    // ==================== Selection cardinality (delegating, no own property) ====================
+
+    /**
+     * Convenience pass-through to the current selection model's selection mode;
+     * the cardinality axis lives solely on the selection model (no control-level
+     * property), mirroring the native {@code ListView} idiom.
+     *
+     * @return the current selection mode, or {@code null} if there is no model
+     */
+    public final SelectionMode getSelectionMode() {
+        MultipleSelectionModel<T> sm = getSelectionModel();
+        return sm == null ? null : sm.getSelectionMode();
+    }
+
+    /**
+     * Convenience pass-through to the current selection model's selection mode.
+     * Does nothing when there is no selection model.
+     *
+     * @param value the selection mode to set
+     */
+    public final void setSelectionMode(SelectionMode value) {
+        MultipleSelectionModel<T> sm = getSelectionModel();
+        if (sm != null) {
+            sm.setSelectionMode(value);
+        }
     }
 
     // ==================== Actual Column Count (read-only) ====================
@@ -1320,7 +1379,75 @@ public class RXMasonryView<T> extends Control {
         actualColumnCount.set(value);
     }
 
+    // ==================== Focused Index (read-only) ====================
+
+    private final ReadOnlyIntegerWrapper focusedIndex = new ReadOnlyIntegerWrapper(this, "focusedIndex", -1);
+
+    /**
+     * The index of the item holding the keyboard focus cursor (the item the arrow
+     * keys move and {@code Enter} activates), or {@code -1} when none. The cursor
+     * is skin-driven and read-only here; it resets when the skin is replaced.
+     *
+     * @return the read-only focused-index property
+     */
+    public final ReadOnlyIntegerProperty focusedIndexProperty() {
+        return focusedIndex.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the index of the item holding the keyboard focus cursor.
+     *
+     * @return the focused index, or {@code -1} when none
+     */
+    public final int getFocusedIndex() {
+        return focusedIndex.get();
+    }
+
+    /**
+     * Updates the keyboard focus cursor. Intended for skins / behaviors.
+     *
+     * @param value the focused index, or {@code -1} for none
+     */
+    public final void setFocusedIndex(int value) {
+        focusedIndex.set(value);
+    }
+
     // ==================== Visible Index Bounds (read-only) ====================
+
+    private final ReadOnlyObjectWrapper<RXMasonryVisibleBounds> visibleBounds =
+            new ReadOnlyObjectWrapper<>(this, "visibleBounds", RXMasonryVisibleBounds.EMPTY);
+
+    /**
+     * Immutable snapshot of the visible index bounds, replaced as a whole when the
+     * realized bounds change — a listener always sees a consistent pair, unlike
+     * observing {@link #firstVisibleIndexProperty() firstVisibleIndex} and
+     * {@link #lastVisibleIndexProperty() lastVisibleIndex} separately, where one
+     * may briefly lag the other within a layout pass. Never {@code null};
+     * {@link RXMasonryVisibleBounds#EMPTY} when nothing is visible.
+     *
+     * @return the read-only visible-bounds property
+     */
+    public final ReadOnlyObjectProperty<RXMasonryVisibleBounds> visibleBoundsProperty() {
+        return visibleBounds.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the current visible index bounds snapshot.
+     *
+     * @return the visible bounds, never {@code null}
+     */
+    public final RXMasonryVisibleBounds getVisibleBounds() {
+        return visibleBounds.get();
+    }
+
+    /**
+     * Publishes a new visible-bounds snapshot. Intended for skins / behaviors.
+     *
+     * @param value the bounds; {@code null} is coerced to {@link RXMasonryVisibleBounds#EMPTY}
+     */
+    public final void setVisibleBounds(RXMasonryVisibleBounds value) {
+        visibleBounds.set(value == null ? RXMasonryVisibleBounds.EMPTY : value);
+    }
 
     private final ReadOnlyIntegerWrapper firstVisibleIndex =
             new ReadOnlyIntegerWrapper(this, "firstVisibleIndex", -1);
@@ -1330,7 +1457,9 @@ public class RXMasonryView<T> extends Control {
      * nothing is visible. Together with {@link #lastVisibleIndexProperty()
      * lastVisibleIndex} this is a bound, not a contiguous range: because tall items
      * make a column's visible items lag its neighbors, indices between the two are not
-     * guaranteed visible.
+     * guaranteed visible. The two indices update one after the other within a layout
+     * pass; to read the pair atomically, observe {@link #visibleBoundsProperty()
+     * visibleBounds} instead.
      *
      * @return the read-only first-visible-index property
      */
@@ -1362,7 +1491,8 @@ public class RXMasonryView<T> extends Control {
     /**
      * The highest item index currently realized in the viewport, or {@code -1} when
      * nothing is visible. See {@link #firstVisibleIndexProperty() firstVisibleIndex}
-     * for why this pair is a bound, not a contiguous range.
+     * for why this pair is a bound, not a contiguous range, and
+     * {@link #visibleBoundsProperty() visibleBounds} for reading the pair atomically.
      *
      * @return the read-only last-visible-index property
      */
@@ -1391,41 +1521,53 @@ public class RXMasonryView<T> extends Control {
     // ==================== Scrolling ====================
 
     private boolean pendingScroll;
-    private int pendingScrollIndex;
-    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.START;
+    // >= 0 : scroll the item at this index per pendingScrollAlignment.
+    // -1   : relative scroll by pendingScrollDelta pixels.
+    private int pendingScrollIndex = -1;
+    private double pendingScrollDelta;
+    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.NEAREST;
 
     /**
-     * Scrolls so the item at {@code index} is visible at the top of the viewport.
+     * Scrolls the minimum distance needed so the item at {@code index} is visible
+     * ({@link ScrollAlignment#NEAREST}); does nothing if it is already fully
+     * visible. Pass {@link ScrollAlignment#START} to pin the item to the top.
      *
      * @param index the item index; out-of-range values are clamped during layout
      */
     public final void scrollTo(int index) {
-        scrollTo(index, ScrollAlignment.START);
+        scrollTo(index, ScrollAlignment.NEAREST);
     }
 
     /**
      * Scrolls so the item at {@code index} is visible with the given alignment. The
-     * request is applied on the next layout pass.
+     * request is applied on the next layout pass. Without a
+     * {@link #cellHeightProviderProperty() cellHeightProvider}, a target far outside
+     * the current window is positioned from provisional (estimated) heights and may
+     * land approximately until its neighborhood has been measured.
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target should land; {@code null} is treated as
-     *                  {@link ScrollAlignment#START}
+     *                  {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
-        pendingScrollIndex = index;
-        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
+        // Clamp negatives at entry: -1 is the relative-delta sentinel, not a target.
+        pendingScrollIndex = Math.max(0, index);
+        pendingScrollDelta = 0.0;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.NEAREST : alignment;
         requestLayout();
     }
 
     /**
-     * Scrolls so the given item is visible at the top of the viewport. Does nothing if
-     * the item is not in the list.
+     * Scrolls the minimum distance needed so the given item is visible
+     * ({@link ScrollAlignment#NEAREST}). Does nothing if the item is not in the
+     * list or already fully visible.
      *
      * @param item the item to scroll to
      */
     public final void scrollTo(T item) {
-        scrollTo(item, ScrollAlignment.START);
+        scrollTo(item, ScrollAlignment.NEAREST);
     }
 
     /**
@@ -1434,7 +1576,8 @@ public class RXMasonryView<T> extends Control {
      *
      * @param item      the item to scroll to
      * @param alignment where the target should land; {@code null} is treated as
-     *                  {@link ScrollAlignment#START}
+     *                  {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(T item, ScrollAlignment alignment) {
         ObservableList<T> list = getItems();
@@ -1448,6 +1591,25 @@ public class RXMasonryView<T> extends Control {
     }
 
     /**
+     * Scrolls the viewport by a relative pixel delta (positive scrolls down,
+     * negative up), clamped to the scrollable range on the next layout pass.
+     * Multiple calls before a layout pass accumulate.
+     *
+     * @param deltaY the signed pixel delta
+     */
+    public final void scrollBy(double deltaY) {
+        if (!Double.isFinite(deltaY)) {
+            // A NaN / infinite delta would poison the accumulated request and, once
+            // applied, the scroll offset itself; drop it (lenient policy).
+            return;
+        }
+        pendingScroll = true;
+        pendingScrollIndex = -1;
+        pendingScrollDelta += deltaY;
+        requestLayout();
+    }
+
+    /**
      * Whether a scroll request is waiting to be applied. Intended for skins / behaviors.
      *
      * @return {@code true} if a scroll request is pending
@@ -1457,13 +1619,24 @@ public class RXMasonryView<T> extends Control {
     }
 
     /**
-     * The item index of the pending scroll request. Only meaningful when
-     * {@link #hasPendingScroll()} is {@code true}. Intended for skins / behaviors.
+     * The item index of the pending scroll request, or {@code -1} when the request
+     * is a relative-delta scroll. Intended for skins / behaviors.
      *
-     * @return the pending scroll item index
+     * @return the pending scroll item index, or {@code -1}
      */
     public final int getPendingScrollIndex() {
         return pendingScrollIndex;
+    }
+
+    /**
+     * The accumulated relative-scroll delta of the pending request, in pixels.
+     * Only meaningful when {@link #getPendingScrollIndex()} is {@code -1}.
+     * Intended for skins / behaviors.
+     *
+     * @return the pending relative-scroll delta
+     */
+    public final double getPendingScrollDelta() {
+        return pendingScrollDelta;
     }
 
     /**
@@ -1481,6 +1654,8 @@ public class RXMasonryView<T> extends Control {
      */
     public final void clearPendingScroll() {
         pendingScroll = false;
+        pendingScrollIndex = -1;
+        pendingScrollDelta = 0.0;
     }
 
     // ==================== CSS Metadata ====================

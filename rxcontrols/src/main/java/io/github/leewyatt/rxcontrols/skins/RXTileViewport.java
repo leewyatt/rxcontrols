@@ -260,6 +260,24 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     }
 
     /**
+     * Applies a pending relative pixel scroll against the current plan's fresh
+     * content height (the pending-scroll path).
+     *
+     * @param deltaY the signed pixel delta (positive scrolls down)
+     * @return {@code true} if the request was applied (so the caller can clear it);
+     *         {@code false} when the viewport has no height yet, so the caller
+     *         should keep it pending
+     */
+    boolean applyPendingScrollDelta(double deltaY) {
+        RXTileRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0) {
+            // An empty view has nothing to scroll: consume once sized.
+            return getHeight() > 0.0;
+        }
+        return applyPendingScrollDelta(deltaY, plan.contentHeight());
+    }
+
+    /**
      * Scrolls so the section's first visual row lands per {@code alignment}. When
      * headers are shown, that first row is the header; otherwise it is the first
      * data row of the section.
@@ -409,8 +427,13 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
 
         // On a reorder pass, snapshot which cell rendered each item BEFORE rebinding,
         // so the same node can be re-found for its item and glide to the new slot.
+        // Headers get the same treatment keyed by section index: a column-count
+        // change can shift which sections are in view, so the k-th visible header
+        // slot is not a stable identity.
         Map<Integer, RXTileCell<T>> priorItemToCell = null;
         Set<RXTileCell<T>> usedThisPass = null;
+        Map<Integer, RXTileSectionCell> priorSectionToHeader = null;
+        Set<RXTileSectionCell> usedHeaders = null;
         if (reorderPass) {
             priorItemToCell = new HashMap<>();
             for (RXTileCell<T> cell : cellPool) {
@@ -419,6 +442,13 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 }
             }
             usedThisPass = new HashSet<>();
+            priorSectionToHeader = new HashMap<>();
+            for (RXTileSectionCell header : headerPool) {
+                if (header.getItem() != null) {
+                    priorSectionToHeader.put(header.getItem().sectionIndex(), header);
+                }
+            }
+            usedHeaders = new HashSet<>();
         }
 
         int cellCursor = 0;
@@ -434,12 +464,16 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 if (stickyActive && info.section().sectionIndex() == topSection.sectionIndex()) {
                     continue;
                 }
-                RXTileSectionCell header = acquireHeader(headerCursor++);
+                RXTileSectionCell priorHeader = reorderPass
+                        ? priorSectionToHeader.get(info.section().sectionIndex()) : null;
+                RXTileSectionCell header = reorderPass
+                        ? acquireHeaderForSection(priorHeader, usedHeaders)
+                        : acquireHeader(headerCursor++);
                 // Rebinding a gliding header to a different section invalidates its
                 // glide: the tween belongs to the old section's move and would drag
                 // the new section in with the leftover translate. On a reorder pass
-                // placeHeader re-aims from the live visual position instead, so
-                // cancelling here would break the FLIP continuity.
+                // the prior map keeps section identity (same section, same node),
+                // so a carry-over re-aims in placeHeader and everything else pops.
                 if (!reorderPass && header.getItem() != info.section() && animatingHeaders.remove(header)) {
                     reorderAnimator.cancel(header);
                 }
@@ -447,7 +481,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 header.updateSection(info.section());
                 header.setVisible(true);
                 applyCssAfterCellUpdate(header, oldStyle);
-                placeHeader(header, rowTop, contentWidth, snapSizeY(info.height()));
+                placeHeader(header, rowTop, contentWidth, snapSizeY(info.height()), header == priorHeader);
             } else {
                 int rowStart = info.firstItemIndex();
                 int cellsInRow = info.cellCount();
@@ -489,10 +523,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         }
         if (reorderPass) {
             parkUnusedCells(usedThisPass);
+            parkUnusedHeaders(usedHeaders);
         } else {
             parkCellsFrom(cellCursor);
+            parkHeadersFrom(headerCursor);
         }
-        parkHeadersFrom(headerCursor);
 
         visibleFirstIndex = firstItem;
         visibleLastIndex = lastItem;
@@ -722,8 +757,8 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
 
     // ==================== Header pool ====================
 
-    // Headers translate as whole rows on a reorder (no per-item identity), so a
-    // plain sequential pool is sufficient — no acquireCell-style identity seam.
+    // Non-reorder passes bind headers by visible slot order; the cheap sequential
+    // pool is fine there because placement is direct (no motion to misattribute).
     private RXTileSectionCell acquireHeader(int slotIndex) {
         while (headerPool.size() <= slotIndex) {
             RXTileSectionCell header = createHeader();
@@ -733,17 +768,48 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         return headerPool.get(slotIndex);
     }
 
-    // Full-width header placement; glides vertically only on a reorder pass.
-    private void placeHeader(RXTileSectionCell header, double y, double width, double height) {
-        if (!reorderPass) {
+    // Reorder pass: reuse the node that rendered this section last pass so the
+    // SAME node glides to its new slot. The fallback only takes free headers that
+    // rendered nothing last pass (a bound one is some other section's carry-over;
+    // stealing it would strip that section's glide), else it grows the pool.
+    private RXTileSectionCell acquireHeaderForSection(RXTileSectionCell prior, Set<RXTileSectionCell> used) {
+        if (prior != null && !used.contains(prior)) {
+            used.add(prior);
+            return prior;
+        }
+        for (RXTileSectionCell candidate : headerPool) {
+            if (candidate.getItem() == null && !used.contains(candidate)
+                    && !animatingHeaders.contains(candidate)) {
+                used.add(candidate);
+                return candidate;
+            }
+        }
+        RXTileSectionCell created = createHeader();
+        headerPool.add(created);
+        contentLayer.getChildren().add(created);
+        used.add(created);
+        return created;
+    }
+
+    // Full-width header placement. A carry-over header on a reorder pass captures
+    // its old visual position and glides translate back to zero (FLIP); any other
+    // header on a reorder pass pops in at its slot (translate cleared). A
+    // non-reorder pass places directly and never touches translate, so an
+    // in-flight glide keeps running.
+    private void placeHeader(RXTileSectionCell header, double y, double width, double height, boolean glide) {
+        if (glide) {
+            double oldVisualY = header.getLayoutY() + header.getTranslateY();
             header.resizeRelocate(snapPositionX(0.0), y, width, height);
+            animatingHeaders.add(header);
+            reorderAnimator.animate(header, 0.0, oldVisualY - header.getLayoutY(),
+                    control.getAnimationDuration(), interpolatorOrDefault(), this::onHeaderGlideFinished);
             return;
         }
-        double oldVisualY = header.getLayoutY() + header.getTranslateY();
+        if (reorderPass) {
+            header.setTranslateX(0.0);
+            header.setTranslateY(0.0);
+        }
         header.resizeRelocate(snapPositionX(0.0), y, width, height);
-        animatingHeaders.add(header);
-        reorderAnimator.animate(header, 0.0, oldVisualY - header.getLayoutY(),
-                control.getAnimationDuration(), interpolatorOrDefault(), this::onHeaderGlideFinished);
     }
 
     private void onHeaderGlideFinished(Node node) {
@@ -753,18 +819,29 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
 
     private void parkHeadersFrom(int from) {
         for (int i = from; i < headerPool.size(); i++) {
-            RXTileSectionCell header = headerPool.get(i);
-            // A gliding header the pass no longer shows must not stay visible on
-            // a stale section; cancel its glide so it parks normally.
-            if (animatingHeaders.remove(header)) {
-                reorderAnimator.cancel(header);
+            parkHeader(headerPool.get(i));
+        }
+    }
+
+    private void parkUnusedHeaders(Set<RXTileSectionCell> used) {
+        for (RXTileSectionCell header : headerPool) {
+            if (!used.contains(header)) {
+                parkHeader(header);
             }
-            if (header.isVisible() || header.getItem() != null) {
-                header.setVisible(false);
-                header.setTranslateX(0.0);
-                header.setTranslateY(0.0);
-                header.updateSection(null);
-            }
+        }
+    }
+
+    private void parkHeader(RXTileSectionCell header) {
+        // A gliding header the pass no longer shows must not stay visible on
+        // a stale section; cancel its glide so it parks normally.
+        if (animatingHeaders.remove(header)) {
+            reorderAnimator.cancel(header);
+        }
+        if (header.isVisible() || header.getItem() != null) {
+            header.setVisible(false);
+            header.setTranslateX(0.0);
+            header.setTranslateY(0.0);
+            header.updateSection(null);
         }
     }
 

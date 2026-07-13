@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.CellHeightProvider;
 import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXMasonryCell;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXMasonryVisibleBounds;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.event.RXMasonryViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
@@ -71,7 +72,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private static final double FALLBACK_ESTIMATED_CELL_HEIGHT = 200.0;
     private static final int DEFAULT_VISIBLE_ROWS = 3;
     private static final double MIN_VIEWPORT_CONTENT_WIDTH = 2.0;
-    private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     private static final double MARQUEE_START_THRESHOLD = 4.0;
     private static final double MARQUEE_AUTO_SCROLL_EDGE = 32.0;
@@ -175,6 +175,15 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
         viewport.setHeightSink(this::recordMeasuredHeight);
+        // Mirror the keyboard cursor into the control's read-only focusedIndex;
+        // it is skin-driven, so it resets when the skin is replaced.
+        // No initial push: the control defaults to -1, a replaced skin's dispose
+        // task resets it, and a fresh focus model always starts at -1 — pushing
+        // here would clobber live state on the same-class setSkin short-circuit
+        // (which constructs but never installs the new skin).
+        disposer.registerListener(focusModel.focusedIndexProperty(),
+                () -> control.setFocusedIndex(focusModel.getFocusedIndex()));
+        disposer.registerDisposeTask(() -> control.setFocusedIndex(-1));
 
         registerListeners(control);
         attachItems(control.getItems());
@@ -439,9 +448,12 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             return;
         }
         RXMasonryView<T> control = getSkinnable();
+        // A null selection model disables selection, not the keyboard: navigation
+        // and Enter activation still run (selection updates are skipped at their
+        // use sites), mirroring the mouse side where double-click stays live.
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         int itemCount = itemCount();
-        if (sm == null || itemCount == 0) {
+        if (itemCount == 0) {
             return;
         }
         int focus = focusModel.getFocusedIndex();
@@ -470,8 +482,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             }
             case A -> {
                 if (shortcut) {
-                    sm.selectAll();
-                    focusModel.syncSelectionLeadState();
+                    if (sm != null) {
+                        sm.selectAll();
+                        focusModel.syncSelectionLeadState();
+                    }
                     event.consume();
                 }
             }
@@ -561,7 +575,12 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
     private void moveTo(int target, boolean shift, boolean shortcut) {
         MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
+        // Without a selection model navigation still moves the keyboard focus and
+        // scrolls; only the selection updates are skipped.
         if (sm == null) {
+            focusModel.focus(target);
+            setAnchor(target);
+            getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
             return;
         }
         // Capture the range anchor from the CURRENT focus before moving it.
@@ -1018,8 +1037,18 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
 
     private void publishVisibleBounds() {
         RXMasonryView<T> control = getSkinnable();
-        control.setFirstVisibleIndex(viewport.getVisibleFirstIndex());
-        control.setLastVisibleIndex(viewport.getVisibleLastIndex());
+        int first = viewport.getVisibleFirstIndex();
+        int last = viewport.getVisibleLastIndex();
+        // The record goes first so a listener on either int property already sees
+        // the new consistent snapshot through getVisibleBounds().
+        RXMasonryVisibleBounds bounds = first < 0 || last < 0
+                ? RXMasonryVisibleBounds.EMPTY
+                : new RXMasonryVisibleBounds(first, last);
+        if (!bounds.equals(control.getVisibleBounds())) {
+            control.setVisibleBounds(bounds);
+        }
+        control.setFirstVisibleIndex(first);
+        control.setLastVisibleIndex(last);
     }
 
     private void consumePendingScroll() {
@@ -1032,11 +1061,18 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             control.clearPendingScroll();
             return;
         }
-        int index = RXMath.clamp(control.getPendingScrollIndex(), 0, itemCount - 1);
-        // Clear only when the request was actually applied. On a zero-height pass
-        // scrollToIndex cannot compute geometry and returns false; keeping the request
-        // armed lets the first sized pass honor it.
-        if (viewport.scrollToIndex(index, control.getPendingScrollAlignment())) {
+        int index = control.getPendingScrollIndex();
+        if (index >= 0) {
+            int clamped = RXMath.clamp(index, 0, itemCount - 1);
+            // Clear only when the request was actually applied. On a zero-height pass
+            // scrollToIndex cannot compute geometry and returns false; keeping the request
+            // armed lets the first sized pass honor it.
+            if (viewport.scrollToIndex(clamped, control.getPendingScrollAlignment())) {
+                control.clearPendingScroll();
+            }
+            return;
+        }
+        if (viewport.applyPendingScrollDelta(control.getPendingScrollDelta())) {
             control.clearPendingScroll();
         }
     }
@@ -1255,6 +1291,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         if (maxColumns > 0 && capped > maxColumns) {
             capped = maxColumns;
         }
-        return Math.min(capped, MAX_RESOLVED_COLUMNS);
+        return Math.min(capped, MasonryColumns.MAX_RESOLVED_COLUMNS);
     }
 }

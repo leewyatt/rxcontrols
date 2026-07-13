@@ -33,10 +33,12 @@ import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Skin;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -85,10 +87,13 @@ import java.util.Objects;
  * with the arrow keys, {@code Home}/{@code End} and {@code Page Up}/{@code Down}
  * (item-by-item, so section headers are skipped), extends a range with
  * {@code Shift}, moves focus without selecting with {@code Shortcut}, toggles with
- * {@code Space}, selects all with {@code Shortcut+A}, and activates the focused
- * item — firing {@link #onActionProperty() onAction} — with {@code Enter} or a
- * double-click. There is no property to switch this off; to disable a key (or all
- * of them), add a consuming filter, e.g.
+ * {@code Space} (in multiple-selection mode; in single selection {@code Space}
+ * re-selects and never empties), selects all with {@code Shortcut+A} (in
+ * multiple-selection mode), and activates the focused item — firing {@link #onActionProperty() onAction} —
+ * with {@code Enter} or a double-click. In multiple-selection mode, dragging from
+ * blank space draws a marquee that selects the intersected cells; {@code Escape}
+ * cancels it. There is no property to switch the keyboard handling off; to disable
+ * a key (or all of them), add a consuming filter, e.g.
  * {@code tileView.addEventFilter(KeyEvent.KEY_PRESSED, KeyEvent::consume)}.
  *
  * @param <T> the item type
@@ -104,10 +109,11 @@ public class RXTileView<T> extends Control {
     private static final double DEFAULT_SECTION_HEADER_HEIGHT = 32.0;
     private static final double DEFAULT_SECTION_SPACING = 0.0;
     private static final double DEFAULT_MAX_TILE_WIDTH = 0.0;
+    private static final int DEFAULT_PREF_COLUMNS = 3;
     private static final int DEFAULT_MAX_COLUMNS = 0;
     private static final ItemsJustify DEFAULT_ITEMS_JUSTIFY = ItemsJustify.START;
     private static final boolean DEFAULT_SHOW_SECTION_HEADERS = true;
-    private static final boolean DEFAULT_STICKY_SECTION_HEADER = false;
+    private static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
     private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     private static final SmoothScrollMode DEFAULT_SMOOTH_SCROLL_MODE = RXSmoothScrollOptions.DEFAULT_MODE;
     private static final boolean DEFAULT_ANIMATED = true;
@@ -150,6 +156,23 @@ public class RXTileView<T> extends Control {
         return new RXTileViewSkin<>(this);
     }
 
+    /**
+     * Reports whether this view allows multiple selection to assistive technologies
+     * (mirroring {@code ListView}); other attributes defer to the superclass. The
+     * per-item index and selected state are reported by {@link RXTileCell}.
+     *
+     * @param attribute  the requested accessible attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case MULTIPLE_SELECTION -> getSelectionMode() == SelectionMode.MULTIPLE;
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
+    }
+
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -157,7 +180,7 @@ public class RXTileView<T> extends Control {
 
     // ==================== Items ====================
 
-    // Section derivation is width-independent (api §4.6), so it lives on the
+    // Section derivation is width-independent, so it lives on the
     // control, not the skin. The control observes its items list directly; the
     // listener is re-pointed on every list swap (detach old, attach new).
     private final ListChangeListener<T> itemsSectionListener = change -> recomputeSections();
@@ -669,6 +692,53 @@ public class RXTileView<T> extends Control {
         sectionSpacing.set(value);
     }
 
+    // ==================== Pref Columns ====================
+
+    private final IntegerProperty prefColumns = new StyleableIntegerProperty(DEFAULT_PREF_COLUMNS) {
+        @Override
+        public CssMetaData<RXTileView<?>, Number> getCssMetaData() {
+            return StyleableProperties.PREF_COLUMNS;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXTileView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "prefColumns";
+        }
+    };
+
+    /**
+     * Preferred number of columns, used only to compute the preferred width when the
+     * view has no width constraint.
+     *
+     * @return the pref-columns property
+     */
+    public final IntegerProperty prefColumnsProperty() {
+        return prefColumns;
+    }
+
+    /**
+     * Returns the preferred column count.
+     *
+     * @return the preferred column count
+     */
+    public final int getPrefColumns() {
+        return prefColumns.get();
+    }
+
+    /**
+     * Sets the preferred column count.
+     *
+     * @param value the preferred column count
+     */
+    public final void setPrefColumns(int value) {
+        prefColumns.set(value);
+    }
+
     // ==================== Max Columns ====================
 
     private final IntegerProperty maxColumns = new StyleableIntegerProperty(DEFAULT_MAX_COLUMNS) {
@@ -861,8 +931,8 @@ public class RXTileView<T> extends Control {
     /**
      * Whether the header of the section currently at the top of the viewport sticks
      * there while that section scrolls, sliding up only as the next section's header
-     * arrives to replace it (the iOS / MUI "sticky subheader" effect). Off by
-     * default. Only has a visible effect when a
+     * arrives to replace it (the iOS / MUI "sticky subheader" effect). On by
+     * default, like the whole view family. Only has a visible effect when a
      * {@link #sectionKeyFactoryProperty() sectionKeyFactory} is set,
      * {@link #showSectionHeadersProperty() showSectionHeaders} is {@code true} and
      * at least one section exists. While disabled it adds no extra node.
@@ -899,9 +969,14 @@ public class RXTileView<T> extends Control {
     /**
      * Whether indirect wheel input scrolls with a short smooth animation. When
      * disabled, wheel input is applied immediately while keeping the same boundary
-     * chaining behavior.
+     * chaining behavior. Only the switch (and {@link #smoothScrollModeProperty()
+     * smoothScrollMode}) is configurable here — duration ({@code 200ms}),
+     * interpolator ({@code EASE_OUT}), wheel multiplier and boundary chaining are
+     * fixed to the library defaults; for a fully configurable smooth-scroll
+     * surface, wrap content in a pane driven by {@link RXSmoothScroller} instead.
      *
      * @return the smooth-scrolling property
+     * @see RXSmoothScroller
      */
     public final BooleanProperty smoothScrollingProperty() {
         return smoothScrolling;
@@ -1148,7 +1223,7 @@ public class RXTileView<T> extends Control {
     /**
      * The selection model. Defaults to a non-null {@link RXIndexedSelectionModel} in
      * single-selection mode; switch to multiple selection via
-     * {@code getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE)}.
+     * {@link #setSelectionMode(SelectionMode) setSelectionMode(SelectionMode.MULTIPLE)}.
      *
      * @return the selection-model property
      */
@@ -1169,9 +1244,38 @@ public class RXTileView<T> extends Control {
      * Sets the selection model.
      *
      * @param value the selection model, or {@code null} to disable selection
+     *              (keyboard navigation, Enter activation and double-click
+     *              activation stay live; only selection updates stop)
      */
     public final void setSelectionModel(MultipleSelectionModel<T> value) {
         selectionModel.set(value);
+    }
+
+    // ==================== Selection cardinality (delegating, no own property) ====================
+
+    /**
+     * Convenience pass-through to the current selection model's selection mode;
+     * the cardinality axis lives solely on the selection model (no control-level
+     * property), mirroring the native {@code ListView} idiom.
+     *
+     * @return the current selection mode, or {@code null} if there is no model
+     */
+    public final SelectionMode getSelectionMode() {
+        MultipleSelectionModel<T> sm = getSelectionModel();
+        return sm == null ? null : sm.getSelectionMode();
+    }
+
+    /**
+     * Convenience pass-through to the current selection model's selection mode.
+     * Does nothing when there is no selection model.
+     *
+     * @param value the selection mode to set
+     */
+    public final void setSelectionMode(SelectionMode value) {
+        MultipleSelectionModel<T> sm = getSelectionModel();
+        if (sm != null) {
+            sm.setSelectionMode(value);
+        }
     }
 
     // ==================== Actual Column Count (read-only) ====================
@@ -1204,6 +1308,39 @@ public class RXTileView<T> extends Control {
      */
     public final void setActualColumnCount(int value) {
         actualColumnCount.set(value);
+    }
+
+    // ==================== Focused Index (read-only) ====================
+
+    private final ReadOnlyIntegerWrapper focusedIndex = new ReadOnlyIntegerWrapper(this, "focusedIndex", -1);
+
+    /**
+     * The index of the item holding the keyboard focus cursor (the item the arrow
+     * keys move and {@code Enter} activates), or {@code -1} when none. The cursor
+     * is skin-driven and read-only here; it resets when the skin is replaced.
+     *
+     * @return the read-only focused-index property
+     */
+    public final ReadOnlyIntegerProperty focusedIndexProperty() {
+        return focusedIndex.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the index of the item holding the keyboard focus cursor.
+     *
+     * @return the focused index, or {@code -1} when none
+     */
+    public final int getFocusedIndex() {
+        return focusedIndex.get();
+    }
+
+    /**
+     * Updates the keyboard focus cursor. Intended for skins / behaviors.
+     *
+     * @param value the focused index, or {@code -1} for none
+     */
+    public final void setFocusedIndex(int value) {
+        focusedIndex.set(value);
     }
 
     // ==================== Row Count (read-only) ====================
@@ -1373,17 +1510,23 @@ public class RXTileView<T> extends Control {
     // ==================== Scrolling ====================
 
     private boolean pendingScroll;
-    private int pendingScrollIndex;
+    // >= 0 : scroll the row of the item at this index per pendingScrollAlignment.
+    // -1   : relative scroll by pendingScrollDelta pixels.
+    private int pendingScrollIndex = -1;
+    // >= 0 : the pending request targets this section (takes priority over the index).
     private int pendingScrollSectionIndex = -1;
-    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.START;
+    private double pendingScrollDelta;
+    private ScrollAlignment pendingScrollAlignment = ScrollAlignment.NEAREST;
 
     /**
-     * Scrolls so the item at {@code index} is visible at the top of the viewport.
+     * Scrolls the minimum distance needed so the item at {@code index} is visible
+     * ({@link ScrollAlignment#NEAREST}); does nothing if it is already fully
+     * visible. Pass {@link ScrollAlignment#START} to pin the row to the top.
      *
      * @param index the item index; out-of-range values are clamped during layout
      */
     public final void scrollTo(int index) {
-        scrollTo(index, ScrollAlignment.START);
+        scrollTo(index, ScrollAlignment.NEAREST);
     }
 
     /**
@@ -1392,24 +1535,28 @@ public class RXTileView<T> extends Control {
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link ScrollAlignment#START}
+     *                  as {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
-        pendingScrollIndex = index;
+        // Clamp negatives at entry: -1 is the relative-delta sentinel, not a target.
+        pendingScrollIndex = Math.max(0, index);
         pendingScrollSectionIndex = -1;
-        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
+        pendingScrollDelta = 0.0;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.NEAREST : alignment;
         requestLayout();
     }
 
     /**
-     * Scrolls so the given item is visible at the top of the viewport. Does
-     * nothing if the item is not in the list.
+     * Scrolls the minimum distance needed so the given item is visible
+     * ({@link ScrollAlignment#NEAREST}). Does nothing if the item is not in the
+     * list or already fully visible.
      *
      * @param item the item to scroll to
      */
     public final void scrollTo(T item) {
-        scrollTo(item, ScrollAlignment.START);
+        scrollTo(item, ScrollAlignment.NEAREST);
     }
 
     /**
@@ -1418,7 +1565,8 @@ public class RXTileView<T> extends Control {
      *
      * @param item      the item to scroll to
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link ScrollAlignment#START}
+     *                  as {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(T item, ScrollAlignment alignment) {
         ObservableList<T> list = getItems();
@@ -1490,7 +1638,28 @@ public class RXTileView<T> extends Control {
         pendingScroll = true;
         pendingScrollIndex = section.firstItemIndex();
         pendingScrollSectionIndex = section.sectionIndex();
+        pendingScrollDelta = 0.0;
         pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
+        requestLayout();
+    }
+
+    /**
+     * Scrolls the viewport by a relative pixel delta (positive scrolls down,
+     * negative up), clamped to the scrollable range on the next layout pass.
+     * Multiple calls before a layout pass accumulate.
+     *
+     * @param deltaY the signed pixel delta
+     */
+    public final void scrollBy(double deltaY) {
+        if (!Double.isFinite(deltaY)) {
+            // A NaN / infinite delta would poison the accumulated request and, once
+            // applied, the scroll offset itself; drop it (lenient policy).
+            return;
+        }
+        pendingScroll = true;
+        pendingScrollIndex = -1;
+        pendingScrollSectionIndex = -1;
+        pendingScrollDelta += deltaY;
         requestLayout();
     }
 
@@ -1505,10 +1674,10 @@ public class RXTileView<T> extends Control {
     }
 
     /**
-     * The item index of the pending scroll request. Only meaningful when
-     * {@link #hasPendingScroll()} is {@code true}. Intended for skins / behaviors.
+     * The item index of the pending scroll request, or {@code -1} when the request
+     * is a relative-delta scroll. Intended for skins / behaviors.
      *
-     * @return the pending scroll item index
+     * @return the pending scroll item index, or {@code -1}
      */
     public final int getPendingScrollIndex() {
         return pendingScrollIndex;
@@ -1522,6 +1691,17 @@ public class RXTileView<T> extends Control {
      */
     public final int getPendingScrollSectionIndex() {
         return pendingScrollSectionIndex;
+    }
+
+    /**
+     * The accumulated relative-scroll delta of the pending request, in pixels.
+     * Only meaningful when {@link #getPendingScrollIndex()} is {@code -1}.
+     * Intended for skins / behaviors.
+     *
+     * @return the pending relative-scroll delta
+     */
+    public final double getPendingScrollDelta() {
+        return pendingScrollDelta;
     }
 
     /**
@@ -1540,7 +1720,9 @@ public class RXTileView<T> extends Control {
      */
     public final void clearPendingScroll() {
         pendingScroll = false;
+        pendingScrollIndex = -1;
         pendingScrollSectionIndex = -1;
+        pendingScrollDelta = 0.0;
     }
 
     // ==================== CSS Metadata ====================
@@ -1586,6 +1768,20 @@ public class RXTileView<T> extends Control {
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
                         return (StyleableProperty<Number>) node.maxTileWidthProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXTileView<?>, Number> PREF_COLUMNS =
+                new CssMetaData<>("-rx-pref-columns", SizeConverter.getInstance(), DEFAULT_PREF_COLUMNS) {
+                    @Override
+                    public boolean isSettable(RXTileView<?> node) {
+                        return !node.prefColumns.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXTileView<?> node) {
+                        return (StyleableProperty<Number>) node.prefColumnsProperty();
                     }
                 };
 
@@ -1724,9 +1920,9 @@ public class RXTileView<T> extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_COLUMNS, HGAP, VGAP,
-                    SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY, STICKY_SECTION_HEADER, ANIMATED,
-                    ANIMATION_DURATION);
+            Collections.addAll(styleables, PREF_TILE_WIDTH, PREF_TILE_HEIGHT, MAX_TILE_WIDTH, PREF_COLUMNS,
+                    MAX_COLUMNS, HGAP, VGAP, SECTION_HEADER_HEIGHT, SECTION_SPACING, ITEMS_JUSTIFY,
+                    STICKY_SECTION_HEADER, ANIMATED, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

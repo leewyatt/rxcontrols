@@ -220,8 +220,9 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     /**
      * Applies a relative pixel scroll, clamped to the cached scrollable range
      * (so it is only valid after a sized layout pass). This is the tile / masonry
-     * contract; the list viewport overrides with a plan-fresh, pending-aware
-     * variant.
+     * wheel contract; the list viewport overrides with a plan-fresh, pending-aware
+     * variant, and the pending-scroll path everywhere goes through
+     * {@link #applyPendingScrollDelta(double, double)} instead.
      *
      * @param deltaY the signed pixel delta (positive scrolls down)
      * @return {@code true} if the offset actually changed
@@ -234,6 +235,34 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
         stopSmoothScrolling();
         return setVerticalScrollOffset(target, ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
+    }
+
+    /**
+     * Shared pending-path relative scroll: clamps the delta to a scrollable range
+     * computed from the given fresh content height and applies it. Unlike
+     * {@link #scrollByPixels(double)} this reports "request consumed" semantics —
+     * {@code true} once the viewport has a height, even when the offset did not
+     * change (an edge-clamped delta is still consumed).
+     *
+     * @param deltaY        the signed pixel delta (positive scrolls down)
+     * @param contentHeight the current content height, computed fresh by the caller
+     * @return {@code true} if the request was applied (so the caller can clear it);
+     *         {@code false} when the viewport has no height yet, so the caller
+     *         should keep it pending
+     */
+    protected final boolean applyPendingScrollDelta(double deltaY, double contentHeight) {
+        double viewportHeight = getHeight();
+        if (viewportHeight <= 0.0) {
+            // Geometry is not known yet; leave the request armed for a sized pass.
+            return false;
+        }
+        double maxScroll = Math.max(0.0, contentHeight - viewportHeight);
+        double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
+        if (target != scrollY) {
+            stopSmoothScrolling();
+            setVerticalScrollOffset(target, ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
+        }
+        return true;
     }
 
     /**

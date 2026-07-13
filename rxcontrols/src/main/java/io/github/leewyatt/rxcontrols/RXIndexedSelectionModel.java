@@ -77,7 +77,7 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
 
         itemsSwapListener = obs -> attachItems(getItems());
         // Weak so a replaced model (setSelectionModel) is not pinned by the live
-        // items property / list (AGENTS §3.1).
+        // items property / list.
         itemsProperty.addListener(new WeakInvalidationListener(itemsSwapListener));
         attachItems(getItems());
     }
@@ -315,8 +315,16 @@ public class RXIndexedSelectionModel<T> extends MultipleSelectionModel<T> {
         if (pos >= 0) {
             selectedIndicesBacking.remove(pos);
             if (getSelectedIndex() == index) {
-                setSelectedIndex(-1);
-                setSelectedItem(null);
+                if (!selectedIndicesBacking.isEmpty()) {
+                    // Clearing the lead while other selections survive: promote the
+                    // highest survivor, mirroring the items-mutation path.
+                    int survivor = selectedIndicesBacking.get(selectedIndicesBacking.size() - 1);
+                    setSelectedIndex(survivor);
+                    setSelectedItem(getModelItem(survivor));
+                } else {
+                    setSelectedIndex(-1);
+                    setSelectedItem(null);
+                }
             }
         }
     }

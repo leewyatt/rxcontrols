@@ -206,9 +206,9 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     /**
-     * Applies a relative pixel scroll, clamped to the scrollable range, computing
-     * the range fresh from the current plan and height so it is correct on the
-     * pending-scroll path (before this pass's {@link #layoutChildren()} runs).
+     * Applies a relative pixel scroll against the current plan's fresh content
+     * height so it is correct on the pending-scroll path (before this pass's
+     * {@link #layoutChildren()} runs).
      *
      * @param deltaY the signed pixel delta (positive scrolls down)
      * @return {@code true} if the request was applied (so the caller can clear it);
@@ -217,22 +217,12 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
      */
     @Override
     protected boolean scrollByPixels(double deltaY) {
-        double viewportHeight = getHeight();
-        if (viewportHeight <= 0.0) {
-            // Geometry is not known yet; leave the request armed for a sized pass.
-            return false;
-        }
         RXListRowPlan plan = rowPlan;
         if (plan == null || plan.totalVisualRows() == 0) {
-            return true;
+            // An empty view has nothing to scroll: consume once sized.
+            return getHeight() > 0.0;
         }
-        double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
-        double target = RXMath.clamp(scrollY + deltaY, 0.0, maxScroll);
-        if (target != scrollY) {
-            stopSmoothScrolling();
-            setVerticalScrollOffset(target, ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
-        }
-        return true;
+        return applyPendingScrollDelta(deltaY, plan.contentHeight());
     }
 
     /**

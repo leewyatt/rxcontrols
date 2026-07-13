@@ -6,6 +6,8 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Skin;
 import javafx.scene.control.skin.CellSkinBase;
@@ -43,10 +45,33 @@ public class RXTileCell<T> extends IndexedCell<T> {
      */
     public RXTileCell() {
         getStyleClass().add("rx-tile-cell");
+        setAccessibleRole(AccessibleRole.LIST_ITEM);
         // Cells are not Tab stops — the tile view is the single focus owner — so
         // they never receive Node focus and the focus ring above stays under skin
         // control.
         setFocusTraversable(false);
+    }
+
+    // ==================== Accessibility ====================
+
+    /**
+     * Reports this cell's index and selection state to assistive technologies
+     * (mirroring {@code ListCell}); other attributes defer to the superclass. Only the
+     * realized (visible) cells are exposed — the self-built viewport keeps no off-screen
+     * accessibility peers, so screen readers see the visible window rather than the full
+     * item list.
+     *
+     * @param attribute  the requested accessible attribute
+     * @param parameters optional attribute parameters
+     * @return the attribute value
+     */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        return switch (attribute) {
+            case INDEX -> getIndex();
+            case SELECTED -> isSelected();
+            default -> super.queryAccessibleAttribute(attribute, parameters);
+        };
     }
 
     // ==================== Tile View ====================
@@ -184,6 +209,11 @@ public class RXTileCell<T> extends IndexedCell<T> {
         if (empty) {
             setText(null);
             setGraphic(null);
+            // Reset a recycled / parked slot's framework state (cell-reuse
+            // discipline): the viewport re-applies real :selected / focus to a
+            // re-bound visible cell right after updateIndex.
+            updateSelected(false);
+            updateTileFocus(false);
         }
     }
 

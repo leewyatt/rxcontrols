@@ -191,6 +191,24 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     }
 
     /**
+     * Applies a pending relative pixel scroll against the current placement's
+     * fresh content height (the pending-scroll path).
+     *
+     * @param deltaY the signed pixel delta (positive scrolls down)
+     * @return {@code true} if the request was applied (so the caller can clear it);
+     *         {@code false} when the viewport has no height yet, so the caller
+     *         should keep it pending
+     */
+    boolean applyPendingScrollDelta(double deltaY) {
+        RXMasonryPlacement current = placement;
+        if (current == null || current.itemCount() == 0) {
+            // An empty view has nothing to scroll: consume once sized.
+            return getHeight() > 0.0;
+        }
+        return applyPendingScrollDelta(deltaY, current.contentHeight());
+    }
+
+    /**
      * Discards the cell pool (the only path that drops cell instances); used when the
      * cell factory changes. A normal layout repopulates it.
      */

@@ -96,9 +96,11 @@
     <li><a href="#rxClipPathImageView">RXClipPathImageView</a></li>
     <li><a href="#rxLineButton">RXLineButton</a></li>
     <li><a href="#rxLineLabel">RXLineLabel</a></li>
+    <li><a href="#rxListView">RXListView</a></li>
     <li><a href="#rxLrcView">RXLrcView</a></li>
     <li><a href="#rxLrcLineView">RXLrcLineView</a></li>
     <li><a href="#rxMasonryPane">RXMasonryPane</a></li>
+    <li><a href="#rxMasonryView">RXMasonryView</a></li>
     <li><a href="#rxMaterialTextField">RXMaterialTextField / RXMaterialPasswordField / Material number fields</a></li>
     <li><a href="#rxSeekBar">RXSeekBar</a></li>
     <li><a href="#rxSegmentedControl">RXSegmentedControl</a></li>
@@ -108,6 +110,7 @@
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#rxTextView">RXTextView</a></li>
     <li><a href="#rxTilePane">RXTilePane</a></li>
+    <li><a href="#rxTileView">RXTileView</a></li>
     <li><a href="#rxTimelineView">RXTimelineView</a></li>
     <li><a href="#rxToggleButton">RXToggleButton</a></li>
     <li><a href="#rxTransitionButton">RXTransitionButton</a></li>
@@ -591,6 +594,76 @@ origin, so author CSS targeting
     </tbody>
 </table>
 
+<h3 id="rxMasonryView">RXMasonryView</h3>
+<p class="fxClass">Style class: rx-masonry-view</p>
+<p>The virtualized counterpart of RXMasonryPane. Substructure: <code>.viewport</code>
+(&gt; <code>.content</code>, <code>.scroll-bar:vertical</code>, <code>.selection-rectangle</code>
+marquee overlay) and <code>.placeholder</code>; cells are <code>.rx-masonry-cell</code>
+(<code>:selected</code> / <code>:focused</code>). Control pseudo classes: <code>:empty</code> and
+the active breakpoint as <code>:xs</code> <code>:sm</code> <code>:md</code> <code>:lg</code>
+<code>:xl</code> <code>:xxl</code> <code>:xxxl</code>.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-column-width</td>
+        <td>Size (target column width driving the auto count; non-positive and non-finite fall back to the default)</td>
+        <td>260</td>
+    </tr>
+    <tr>
+        <td>-rx-hgap</td>
+        <td>Size (may be negative to overlap; non-finite falls back to the default)</td>
+        <td>8</td>
+    </tr>
+    <tr>
+        <td>-rx-vgap</td>
+        <td>Size (negative treated as 0 — unlike RXMasonryPane; non-finite falls back to the default)</td>
+        <td>8</td>
+    </tr>
+    <tr>
+        <td>-rx-column-count</td>
+        <td>Number (0 = auto from column width)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-pref-columns</td>
+        <td>Number (preferred size only)</td>
+        <td>3</td>
+    </tr>
+    <tr>
+        <td>-rx-max-columns</td>
+        <td>Number (0 = unbounded)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-fill-width</td>
+        <td>boolean (stretch columns to fill the width)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-alignment</td>
+        <td>Pos (only the horizontal component applies)</td>
+        <td>TOP_LEFT</td>
+    </tr>
+    <tr>
+        <td>-rx-animated</td>
+        <td>boolean (reflow glide on a column-count change)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration (non-positive, unknown or indefinite disables)</td>
+        <td>200ms</td>
+    </tr>
+    </tbody>
+</table>
+
 <h3 id="rxTilePane">RXTilePane</h3>
 <p class="fxClass">Style class: rx-tile-pane</p>
 <p>The pane has all the properties of Pane; no substructure (children are laid out directly).</p>
@@ -661,6 +734,92 @@ origin, so author CSS targeting
     <tr>
         <td>-rx-animation-duration</td>
         <td>Duration</td>
+        <td>200ms</td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 id="rxTileView">RXTileView</h3>
+<p class="fxClass">Style class: rx-tile-view</p>
+<p>The virtualized counterpart of RXTilePane. Substructure: <code>.viewport</code>
+(&gt; <code>.content</code>, <code>.scroll-bar:vertical</code>, <code>.selection-rectangle</code>
+marquee overlay) and <code>.placeholder</code>; cells are <code>.rx-tile-cell</code>
+(<code>:selected</code> / <code>:focused</code>), section headers are
+<code>.rx-tile-section-header</code> — the sticky copy adds <code>.sticky</code> and is
+<code>:pinned</code> while pinned over scrolled content. Control pseudo class:
+<code>:empty</code>.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-pref-tile-width</td>
+        <td>Size (target slot width driving the column count; non-positive and non-finite fall back to the default; no -1 auto)</td>
+        <td>100</td>
+    </tr>
+    <tr>
+        <td>-rx-pref-tile-height</td>
+        <td>Size (slot height; non-positive and non-finite fall back to the default)</td>
+        <td>100</td>
+    </tr>
+    <tr>
+        <td>-rx-max-tile-width</td>
+        <td>Size (caps STRETCH only; 0 = unbounded)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-pref-columns</td>
+        <td>Number (preferred size only)</td>
+        <td>3</td>
+    </tr>
+    <tr>
+        <td>-rx-max-columns</td>
+        <td>Number (0 = unbounded)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-hgap</td>
+        <td>Size (negative and non-finite treated as 0)</td>
+        <td>10</td>
+    </tr>
+    <tr>
+        <td>-rx-vgap</td>
+        <td>Size (negative and non-finite treated as 0)</td>
+        <td>10</td>
+    </tr>
+    <tr>
+        <td>-rx-section-header-height</td>
+        <td>Size (non-positive and non-finite fall back to the default)</td>
+        <td>32</td>
+    </tr>
+    <tr>
+        <td>-rx-section-spacing</td>
+        <td>Size (extra space before each section after the first; negative and non-finite treated as 0)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-items-justify</td>
+        <td>START, CENTER, END, SPACE_BETWEEN, SPACE_AROUND, SPACE_EVENLY, STRETCH</td>
+        <td>START</td>
+    </tr>
+    <tr>
+        <td>-rx-sticky-section-header</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-animated</td>
+        <td>boolean (reorder glide on a column-count change)</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-animation-duration</td>
+        <td>Duration (non-positive, unknown or indefinite disables)</td>
         <td>200ms</td>
     </tr>
     </tbody>
@@ -992,6 +1151,81 @@ line decoration, properties, CSS properties and the
 <code>:line-showing</code> pseudo class (see RXLineButton above, minus the
 button/ripple properties). Keeps full Label semantics — not
 focus-traversable, no action.</p>
+
+<h3 id="rxListView">RXListView</h3>
+<p class="fxClass">Style class: rx-list-view</p>
+<p>Substructure: <code>.viewport</code> (&gt; <code>.content</code>, <code>.scroll-bar:vertical</code>)
+and <code>.placeholder</code>. Rows are <code>.rx-list-cell</code> (&gt; <code>.selection-slot</code>
+&gt; <code>.checkmark</code>, or a built-in <code>.check-box</code>); section headers are
+<code>.rx-list-section-header</code> — the sticky copy adds <code>.sticky</code> and is
+<code>:pinned</code> while pinned over scrolled content. Control pseudo classes:
+<code>:empty</code>, plus the effective selection visual mode as
+<code>:selection-row</code> / <code>:selection-checkmark</code> / <code>:selection-checkbox</code>
+(skin-driven). Cell pseudo classes: <code>:selected</code>, <code>:focused</code>.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-fixed-cell-size</td>
+        <td>Size (&gt; 0 = fixed row height; &lt;= 0 switches to variable height sized to content)</td>
+        <td>28</td>
+    </tr>
+    <tr>
+        <td>-rx-section-header-height</td>
+        <td>Size (non-positive and non-finite fall back to the default)</td>
+        <td>32</td>
+    </tr>
+    <tr>
+        <td>-rx-section-spacing</td>
+        <td>Size (extra space before each section after the first; negative and non-finite treated as 0)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-sticky-section-header</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+</table>
+<p>RXListCell (style class rx-list-cell) has all the properties of Labeled and adds the
+ripple surface shared with the other ripple cells:</p>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-ripple-fill</td>
+        <td>Paint (fill of the press ripple and hover overlay)</td>
+        <td>RXRipplePane default (the UA theme points it at -rx-state-overlay-color)</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-opacity</td>
+        <td>Number</td>
+        <td>RXRipplePane default (0.18 in the UA theme)</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-enabled</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <td>-rx-ripple-state-overlay-enabled</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+</table>
 
 <h3 id="rxLrcView">RXLrcView</h3>
 <p class="fxClass">Style class: rx-lrc-view</p>

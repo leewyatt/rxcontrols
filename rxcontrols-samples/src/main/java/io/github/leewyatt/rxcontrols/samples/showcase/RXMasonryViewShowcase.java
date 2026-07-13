@@ -31,10 +31,10 @@ import java.util.function.Function;
 
 /**
  * Showcase for {@link RXMasonryView}. Renders a virtualized wall of {@value #ITEM_COUNT}
- * note cards whose heights stagger into the shortest column, and exposes every V1 knob —
+ * note cards whose heights stagger into the shortest column, and exposes every visual knob —
  * column width / count / max, gaps, the two height paths (precise {@code cellHeightProvider}
  * vs estimated measure-and-repack), responsive breakpoint column overrides, column span,
- * selection mode, reorder animation and alignment — plus scroll-to-item and a live readout
+ * selection mode, reflow animation and alignment — plus scroll-to-item and a live readout
  * of the resolved column count and visible item range, so virtualization, both height
  * paths and the reorder glide can be exercised at scale.
  */
@@ -104,7 +104,6 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         }
 
         masonry = new RXMasonryView<>(items);
-        masonry.setSmoothScrolling(true);
         masonry.setColumnWidth(220.0);
         masonry.setCellFactory(view -> new NoteCell());
         masonry.setColumnSpanFactory(index -> featured(index) ? 2 : 1);
@@ -151,11 +150,17 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         fillWidth.setSelected(masonry.isFillWidth());
         masonry.fillWidthProperty().bind(fillWidth.selectedProperty());
 
+        CheckBox span = new CheckBox("Featured notes span two columns");
+        span.setSelected(true);
+        span.selectedProperty().addListener((obs, old, on) ->
+                masonry.setColumnSpanFactory(on ? index -> featured(index) ? 2 : 1 : null));
+
         return createGrid(
                 row("Column width", columnWidth, createValueLabel(columnWidth, "%.0f px")),
                 row("Column count", columnCount, sentinelLabel(columnCount, "auto")),
                 row("Max columns", maxColumns, sentinelLabel(maxColumns, "none")),
-                row(fillWidth));
+                row(fillWidth),
+                row(span));
     }
 
     private Node gapsGrid() {
@@ -235,7 +240,8 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         mode.valueProperty().addListener((obs, old, value) -> masonry.getSelectionModel().setSelectionMode(value));
         return createGrid(
                 row("Mode", mode, new Label()),
-                row(hint("Click, arrow-navigate, Shift / Ctrl extend; Enter or double-click activates.")),
+                row(hint("Click, arrow-navigate, Shift / Ctrl extend; Enter or double-click activates. "
+                        + "In MULTIPLE, drag from blank space to marquee-select; Escape cancels.")),
                 row(actionStatus));
     }
 

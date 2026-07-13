@@ -1,8 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * Where a target item range should land in the viewport when scrolling to an
- * item via {@link RXTileView#scrollTo(int, ScrollAlignment)}.
+ * Where a target should land in the viewport when scrolling to an item or
+ * section programmatically — the {@code scrollTo*} methods of the virtualized
+ * views ({@link RXListView}, {@link RXTileView}, {@link RXMasonryView}).
  */
 public enum ScrollAlignment {
 

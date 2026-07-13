@@ -20,6 +20,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.WeakListChangeListener;
+import javafx.css.CssMetaData;
+import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -32,6 +39,7 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,9 +60,14 @@ import java.util.Objects;
  * view is a single Tab stop; once focused it navigates with the arrow keys,
  * {@code Home}/{@code End} and {@code Page Up}/{@code Down}, extends a range with
  * {@code Shift}, moves focus without selecting with {@code Shortcut}, toggles
- * with {@code Space}, selects all with {@code Shortcut+A}, jumps to an item by
- * first-letter type-ahead, and activates the focused item — firing
- * {@link #onActionProperty() onAction} — with {@code Enter} or a double-click.
+ * with {@code Space} (in multiple-selection mode; in single selection {@code Space}
+ * re-selects and never empties), selects all with {@code Shortcut+A} (in
+ * multiple-selection mode), jumps to an item by first-letter type-ahead, and activates the focused
+ * item — firing {@link #onActionProperty() onAction} — with {@code Enter} or a
+ * double-click. Unlike {@link RXTileView} and {@link RXMasonryView}, there is no
+ * marquee (drag-rectangle) selection. There is no property to switch the keyboard
+ * handling off; to disable a key (or all of them), add a consuming filter, e.g.
+ * {@code listView.addEventFilter(KeyEvent.KEY_PRESSED, KeyEvent::consume)}.
  *
  * @param <T> the item type
  */
@@ -302,6 +315,8 @@ public class RXListView<T> extends Control {
      * Sets the selection model.
      *
      * @param value the selection model, or {@code null} to disable selection
+     *              (keyboard navigation, Enter activation and double-click
+     *              activation stay live; only selection updates stop)
      */
     public final void setSelectionModel(MultipleSelectionModel<T> value) {
         selectionModel.set(value);
@@ -323,6 +338,7 @@ public class RXListView<T> extends Control {
 
     /**
      * Convenience pass-through to the current selection model's selection mode.
+     * Does nothing when there is no selection model.
      *
      * @param value the selection mode to set
      */
@@ -374,8 +390,22 @@ public class RXListView<T> extends Control {
 
     // ==================== Fixed Cell Size ====================
 
-    private final DoubleProperty fixedCellSize =
-            new SimpleDoubleProperty(this, "fixedCellSize", DEFAULT_FIXED_CELL_SIZE);
+    private final DoubleProperty fixedCellSize = new StyleableDoubleProperty(DEFAULT_FIXED_CELL_SIZE) {
+        @Override
+        public CssMetaData<RXListView<?>, Number> getCssMetaData() {
+            return StyleableProperties.FIXED_CELL_SIZE;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXListView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "fixedCellSize";
+        }
+    };
 
     /**
      * Fixed height of every row, in pixels (the cell fills it). A positive, finite
@@ -384,8 +414,8 @@ public class RXListView<T> extends Control {
      * enables variable-height mode, where each row is sized to its content's preferred
      * height — matching the {@code <= 0} sentinel of {@link javafx.scene.control.ListView}.
      * In that mode unmeasured rows are sized from {@link #estimatedCellSizeProperty()
-     * estimatedCellSize} until they scroll into view and are measured. Sized by the skin
-     * rather than CSS so the row geometry stays a single source of truth.
+     * estimatedCellSize} until they scroll into view and are measured. Styleable via
+     * {@code -rx-fixed-cell-size}, mirroring the native {@code -fx-fixed-cell-size}.
      *
      * @return the fixed-cell-size property
      */
@@ -457,9 +487,14 @@ public class RXListView<T> extends Control {
     /**
      * Whether indirect wheel input scrolls with a short smooth animation. When
      * disabled, wheel input is applied immediately while keeping the same boundary
-     * chaining behavior.
+     * chaining behavior. Only the switch (and {@link #smoothScrollModeProperty()
+     * smoothScrollMode}) is configurable here — duration ({@code 200ms}),
+     * interpolator ({@code EASE_OUT}), wheel multiplier and boundary chaining are
+     * fixed to the library defaults; for a fully configurable smooth-scroll
+     * surface, wrap content in a pane driven by {@link RXSmoothScroller} instead.
      *
      * @return the smooth-scrolling property
+     * @see RXSmoothScroller
      */
     public final BooleanProperty smoothScrollingProperty() {
         return smoothScrolling;
@@ -611,7 +646,8 @@ public class RXListView<T> extends Control {
      * Groups adjacent items that map to the same key into sections, deriving the
      * read-only {@link #sectionsProperty() sections} and enabling section headers.
      * When {@code null} (the default) the view is flat. The items are not
-     * reordered, so two non-adjacent runs of the same key form two sections.
+     * reordered, so two non-adjacent runs of the same key form two sections —
+     * pass a {@code SortedList} to aggregate scattered keys.
      *
      * @return the section-key-factory property
      */
@@ -704,15 +740,28 @@ public class RXListView<T> extends Control {
         showSectionHeaders.set(value);
     }
 
-    private final DoubleProperty sectionHeaderHeight =
-            new SimpleDoubleProperty(this, "sectionHeaderHeight", DEFAULT_SECTION_HEADER_HEIGHT);
+    private final DoubleProperty sectionHeaderHeight = new StyleableDoubleProperty(DEFAULT_SECTION_HEADER_HEIGHT) {
+        @Override
+        public CssMetaData<RXListView<?>, Number> getCssMetaData() {
+            return StyleableProperties.SECTION_HEADER_HEIGHT;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXListView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "sectionHeaderHeight";
+        }
+    };
 
     /**
      * Fixed height of every section-header row, in pixels. A non-positive or
      * non-finite value is accepted and resolved to
-     * {@link #DEFAULT_SECTION_HEADER_HEIGHT} at layout time. Sized by the skin
-     * rather than CSS so the row geometry stays a single source of truth (matching
-     * {@link #fixedCellSizeProperty() fixedCellSize}).
+     * {@link #DEFAULT_SECTION_HEADER_HEIGHT} at layout time. Styleable via
+     * {@code -rx-section-header-height}, matching {@link RXTileView}.
      *
      * @return the section-header-height property
      */
@@ -738,13 +787,28 @@ public class RXListView<T> extends Control {
         sectionHeaderHeight.set(value);
     }
 
-    private final DoubleProperty sectionSpacing =
-            new SimpleDoubleProperty(this, "sectionSpacing", DEFAULT_SECTION_SPACING);
+    private final DoubleProperty sectionSpacing = new StyleableDoubleProperty(DEFAULT_SECTION_SPACING) {
+        @Override
+        public CssMetaData<RXListView<?>, Number> getCssMetaData() {
+            return StyleableProperties.SECTION_SPACING;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXListView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "sectionSpacing";
+        }
+    };
 
     /**
      * Extra blank space inserted before each section after the first, in pixels. A
      * non-positive or non-finite value is treated as zero at layout time. It only
-     * has a visible effect with two or more sections.
+     * has a visible effect with two or more sections. Styleable via
+     * {@code -rx-section-spacing}.
      *
      * @return the section-spacing property
      */
@@ -770,15 +834,30 @@ public class RXListView<T> extends Control {
         sectionSpacing.set(value);
     }
 
-    private final BooleanProperty stickySectionHeader =
-            new SimpleBooleanProperty(this, "stickySectionHeader", DEFAULT_STICKY_SECTION_HEADER);
+    private final BooleanProperty stickySectionHeader = new StyleableBooleanProperty(DEFAULT_STICKY_SECTION_HEADER) {
+        @Override
+        public CssMetaData<RXListView<?>, Boolean> getCssMetaData() {
+            return StyleableProperties.STICKY_SECTION_HEADER;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXListView.this;
+        }
+
+        @Override
+        public String getName() {
+            return "stickySectionHeader";
+        }
+    };
 
     /**
      * Whether the current section's header pins to the top of the viewport as its
      * items scroll under it, handing off to the next header as that section rises
-     * into view. Defaults to {@code true} (the common list idiom). Only has an
-     * effect when sections are grouped and {@link #showSectionHeadersProperty()
-     * showSectionHeaders} is {@code true}.
+     * into view. On by default, like the whole view family. Only has an effect
+     * when sections are grouped and {@link #showSectionHeadersProperty()
+     * showSectionHeaders} is {@code true}. Styleable via
+     * {@code -rx-sticky-section-header}.
      *
      * @return the sticky-section-header property
      */
@@ -889,13 +968,48 @@ public class RXListView<T> extends Control {
         visibleSection.set(value);
     }
 
+    // ==================== Focused Index (read-only) ====================
+
+    private final ReadOnlyIntegerWrapper focusedIndex = new ReadOnlyIntegerWrapper(this, "focusedIndex", -1);
+
+    /**
+     * The index of the item holding the keyboard focus cursor (the row the arrow
+     * keys move and {@code Enter} activates), or {@code -1} when none. The cursor
+     * is skin-driven and read-only here; it resets when the skin is replaced.
+     *
+     * @return the read-only focused-index property
+     */
+    public final ReadOnlyIntegerProperty focusedIndexProperty() {
+        return focusedIndex.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the index of the item holding the keyboard focus cursor.
+     *
+     * @return the focused index, or {@code -1} when none
+     */
+    public final int getFocusedIndex() {
+        return focusedIndex.get();
+    }
+
+    /**
+     * Updates the keyboard focus cursor. Intended for skins / behaviors.
+     *
+     * @param value the focused index, or {@code -1} for none
+     */
+    public final void setFocusedIndex(int value) {
+        focusedIndex.set(value);
+    }
+
     // ==================== Row Count (read-only) ====================
 
     private final ReadOnlyIntegerWrapper rowCount = new ReadOnlyIntegerWrapper(this, "rowCount", 0);
 
     /**
-     * The number of data rows resolved by the most recent layout (the item count
-     * for a flat single-column list).
+     * The number of visual rows resolved by the most recent layout: the item count
+     * plus, when grouping with headers shown, one row per section header — the same
+     * metric as {@link RXTileView#rowCountProperty()}. For a flat list it equals the
+     * item count.
      *
      * @return the read-only row-count property
      */
@@ -970,7 +1084,7 @@ public class RXListView<T> extends Control {
     /**
      * Scrolls the minimum distance needed to make the item at {@code index}
      * visible ({@link ScrollAlignment#NEAREST}); does nothing if it is already
-     * visible.
+     * fully visible. Pass {@link ScrollAlignment#START} to pin the row to the top.
      *
      * @param index the item index; out-of-range values are clamped during layout
      */
@@ -988,21 +1102,23 @@ public class RXListView<T> extends Control {
      *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link ScrollAlignment#START}
+     *                  as {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(int index, ScrollAlignment alignment) {
         pendingScroll = true;
-        pendingScrollIndex = index;
+        // Clamp negatives at entry: -1 is the relative-delta sentinel, not a target.
+        pendingScrollIndex = Math.max(0, index);
         pendingScrollSectionIndex = -1;
         pendingScrollDelta = 0.0;
-        pendingScrollAlignment = alignment == null ? ScrollAlignment.START : alignment;
+        pendingScrollAlignment = alignment == null ? ScrollAlignment.NEAREST : alignment;
         requestLayout();
     }
 
     /**
      * Scrolls the minimum distance needed to make the given item visible
      * ({@link ScrollAlignment#NEAREST}). Does nothing if the item is not in the
-     * list.
+     * list or already fully visible.
      *
      * @param item the item to scroll to
      */
@@ -1017,7 +1133,8 @@ public class RXListView<T> extends Control {
      *
      * @param item      the item to scroll to
      * @param alignment where the target row should land; {@code null} is treated
-     *                  as {@link ScrollAlignment#START}
+     *                  as {@link ScrollAlignment#NEAREST}, matching the
+     *                  single-argument overload
      */
     public final void scrollTo(T item, ScrollAlignment alignment) {
         ObservableList<T> list = getItems();
@@ -1103,6 +1220,11 @@ public class RXListView<T> extends Control {
      * @param deltaY the signed pixel delta
      */
     public final void scrollBy(double deltaY) {
+        if (!Double.isFinite(deltaY)) {
+            // A NaN / infinite delta would poison the accumulated request and, once
+            // applied, the scroll offset itself; drop it (lenient policy).
+            return;
+        }
         pendingScroll = true;
         pendingScrollIndex = -1;
         pendingScrollSectionIndex = -1;
@@ -1171,5 +1293,94 @@ public class RXListView<T> extends Control {
         pendingScrollIndex = -1;
         pendingScrollSectionIndex = -1;
         pendingScrollDelta = 0.0;
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static class StyleableProperties {
+
+        private static final CssMetaData<RXListView<?>, Number> FIXED_CELL_SIZE =
+                new CssMetaData<>("-rx-fixed-cell-size", SizeConverter.getInstance(),
+                        DEFAULT_FIXED_CELL_SIZE) {
+                    @Override
+                    public boolean isSettable(RXListView<?> node) {
+                        return !node.fixedCellSize.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXListView<?> node) {
+                        return (StyleableProperty<Number>) node.fixedCellSizeProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXListView<?>, Number> SECTION_HEADER_HEIGHT =
+                new CssMetaData<>("-rx-section-header-height", SizeConverter.getInstance(),
+                        DEFAULT_SECTION_HEADER_HEIGHT) {
+                    @Override
+                    public boolean isSettable(RXListView<?> node) {
+                        return !node.sectionHeaderHeight.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXListView<?> node) {
+                        return (StyleableProperty<Number>) node.sectionHeaderHeightProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXListView<?>, Number> SECTION_SPACING =
+                new CssMetaData<>("-rx-section-spacing", SizeConverter.getInstance(),
+                        DEFAULT_SECTION_SPACING) {
+                    @Override
+                    public boolean isSettable(RXListView<?> node) {
+                        return !node.sectionSpacing.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXListView<?> node) {
+                        return (StyleableProperty<Number>) node.sectionSpacingProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXListView<?>, Boolean> STICKY_SECTION_HEADER =
+                new CssMetaData<>("-rx-sticky-section-header", BooleanConverter.getInstance(),
+                        DEFAULT_STICKY_SECTION_HEADER) {
+                    @Override
+                    public boolean isSettable(RXListView<?> node) {
+                        return !node.stickySectionHeader.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXListView<?> node) {
+                        return (StyleableProperty<Boolean>) node.stickySectionHeaderProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(Control.getClassCssMetaData());
+            Collections.addAll(styleables, FIXED_CELL_SIZE, SECTION_HEADER_HEIGHT, SECTION_SPACING,
+                    STICKY_SECTION_HEADER);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+        return getClassCssMetaData();
     }
 }

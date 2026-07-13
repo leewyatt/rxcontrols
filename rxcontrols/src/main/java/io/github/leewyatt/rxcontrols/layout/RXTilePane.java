@@ -95,6 +95,8 @@ public class RXTilePane extends Pane {
     // Columns used by computePrefWidth when laid out without a width constraint.
     private static final int DEFAULT_PREF_COLUMNS = 3;
     // Defensive ceiling so a tiny prefTileWidth cannot explode the column count.
+    // The tile family does not depend on MasonryColumns, so this is an independent
+    // constant kept deliberately equal to MasonryColumns.MAX_RESOLVED_COLUMNS.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
 
     // ==================== Child Constraints ====================

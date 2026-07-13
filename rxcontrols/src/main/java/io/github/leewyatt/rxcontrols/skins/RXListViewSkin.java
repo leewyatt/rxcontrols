@@ -134,6 +134,15 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
         viewport.setHeightSink(this::recordMeasuredHeight);
+        // Mirror the keyboard cursor into the control's read-only focusedIndex;
+        // it is skin-driven, so it resets when the skin is replaced.
+        // No initial push: the control defaults to -1, a replaced skin's dispose
+        // task resets it, and a fresh focus model always starts at -1 — pushing
+        // here would clobber live state on the same-class setSkin short-circuit
+        // (which constructs but never installs the new skin).
+        disposer.registerListener(focusModel.focusedIndexProperty(),
+                () -> control.setFocusedIndex(focusModel.getFocusedIndex()));
+        disposer.registerDisposeTask(() -> control.setFocusedIndex(-1));
         lastVariable = isVariableHeight(control);
 
         attachItems(control.getItems());
@@ -285,8 +294,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private void updateRowPlan() {
         RXListView<T> control = getSkinnable();
         RXListRowPlan plan = buildPlan();
-        if (control.getRowCount() != plan.itemCount()) {
-            control.setRowCount(plan.itemCount());
+        // Visual rows (data rows plus shown section-header rows), matching the
+        // tile view's rowCount so the family metric reads the same everywhere.
+        if (control.getRowCount() != plan.totalVisualRows()) {
+            control.setRowCount(plan.totalVisualRows());
         }
         viewport.setRowPlan(plan);
     }
@@ -636,9 +647,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
 
     private void onKeyPressed(KeyEvent event) {
         RXListView<T> control = getSkinnable();
+        // A null selection model disables selection, not the keyboard: navigation,
+        // Enter activation and type-ahead still run (selection updates are skipped
+        // at their use sites), mirroring the mouse side where double-click stays live.
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         int itemCount = itemCount();
-        if (sm == null || itemCount == 0) {
+        if (itemCount == 0) {
             return;
         }
         int focus = focusModel.getFocusedIndex();
@@ -647,8 +661,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         KeyCode code = event.getCode();
         // Select-all shortcut first, so Ctrl/Cmd+A is not consumed by type-ahead.
         if (shortcut && code == KeyCode.A) {
-            sm.selectAll();
-            focusModel.syncSelectionLeadState();
+            if (sm != null) {
+                sm.selectAll();
+                focusModel.syncSelectionLeadState();
+            }
             event.consume();
             return;
         }
@@ -734,7 +750,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // selection — Space toggles there instead.
     private void moveTo(int target, boolean shift, boolean shortcut) {
         MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
+        // Without a selection model navigation still moves the keyboard focus and
+        // scrolls; only the selection updates are skipped.
         if (sm == null) {
+            focusModel.focus(target);
+            setAnchor(target);
+            getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
             return;
         }
         // Capture the range anchor from the CURRENT focus before moving it.
@@ -745,12 +766,16 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         int anchor = clampIndex(getAnchor(), itemCount());
         boolean accumulate = isAccumulateMode();
         focusModel.focus(target);
-        if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
+        if (shortcut) {
+            // Move focus only; selection is unchanged. Shortcut wins over Shift,
+            // matching the pointer path and the sibling views.
+            setAnchor(target);
+        } else if (shift && sm.getSelectionMode() == SelectionMode.MULTIPLE) {
             // Persist the fallback anchor so consecutive Shift-extends keep growing
             // from the same origin (mirrors ListViewBehavior.alsoSelectNextRow).
             setAnchor(anchor);
             clearAndSelectRange(sm, anchor, target);
-        } else if (shortcut || accumulate) {
+        } else if (accumulate) {
             // Move focus only; selection is unchanged.
             setAnchor(target);
         } else {
@@ -769,8 +794,13 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (sm == null) {
             return;
         }
-        // Space toggles the focused row's selection in every visual mode (§11.1).
-        toggleAt(sm, focus);
+        // Space toggles in multiple selection; in single selection it (re)selects
+        // and never empties, matching the sibling views.
+        if (sm.getSelectionMode() == SelectionMode.SINGLE) {
+            sm.clearAndSelect(focus);
+        } else {
+            toggleAt(sm, focus);
+        }
         setAnchor(focus);
         focusModel.syncSelectionLeadState();
     }
@@ -863,7 +893,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         }
         RXListCell<T> cell = viewport.cellAt(event.getTarget());
         if (cell == null) {
-            // Blank area below the items: no marquee in this milestone, so no-op.
+            // Blank area below the items: the list has no marquee selection (a
+            // single-column list gains little from a drag rectangle), so no-op.
             return;
         }
         int index = cell.getIndex();

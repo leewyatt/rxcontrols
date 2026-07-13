@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
+import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -24,14 +25,15 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
 import java.util.List;
 
 /**
  * Showcase for {@link RXTileView}. Renders a virtualized wall of {@value
- * #ITEM_COUNT} colored tiles, grouped into sections, and exposes every V1 knob —
- * cell size, spacing, max columns, layout, section grouping and header
- * height, selection mode and reorder animation — plus scroll-to-item and
+ * #ITEM_COUNT} colored tiles, grouped into sections, and exposes every visual knob —
+ * cell size, max tile width, spacing, max columns, layout, section grouping and header
+ * height, selection mode and reorder animation (with interpolator) — plus scroll-to-item and
  * scroll-to-section controls and a live readout of the resolved column count,
  * row count, visible item range and top section, so virtualization, grouping and
  * the reorder glide can be exercised at scale.
@@ -62,7 +64,6 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         }
 
         tile = new RXTileView<>(items);
-        tile.setSmoothScrolling(true);
         tile.setCellFactory(view -> new TileCell());
         tile.setSectionHeaderFactory(view -> new SectionHeader());
         applyGrouping("By 500s");
@@ -125,15 +126,19 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
     }
 
     private Node layoutGrid() {
-        // maxTileWidth is a low-frequency, STRETCH-only cap (kept in the API / docs);
-        // it is intentionally not shown here so it does not read as a core layout knob.
         ChoiceBox<ItemsJustify> justify = new ChoiceBox<>(
                 FXCollections.observableArrayList(ItemsJustify.values()));
         justify.setValue(tile.getItemsJustify());
         justify.valueProperty().addListener((obs, old, value) -> tile.setItemsJustify(value));
 
+        Slider maxTileWidth = createSlider(0, 400, tile.getMaxTileWidth());
+        maxTileWidth.valueProperty().addListener(
+                (obs, old, value) -> tile.setMaxTileWidth(value.doubleValue()));
+
         return createGrid(
-                row("Justify", justify));
+                row("Justify", justify),
+                row("Max tile W", maxTileWidth, sentinelLabel(maxTileWidth, "none")),
+                row(hint("Max tile width caps how far STRETCH may widen a tile beyond prefTileWidth.")));
     }
 
     private Node sectionsGrid() {
@@ -181,7 +186,8 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         mode.valueProperty().addListener((obs, old, value) -> tile.getSelectionModel().setSelectionMode(value));
         return createGrid(
                 row("Mode", mode),
-                row(hint("Click, arrow-navigate, Shift/Ctrl-extend; Enter or double-click activates.")));
+                row(hint("Click, arrow-navigate, Shift/Ctrl-extend; Enter or double-click activates. "
+                        + "In MULTIPLE, drag from blank space to marquee-select; Escape cancels.")));
     }
 
     private Node animationGrid() {
@@ -193,9 +199,43 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         duration.valueProperty().addListener(
                 (obs, old, value) -> tile.setAnimationDuration(Duration.millis(value.doubleValue())));
 
+        ChoiceBox<Interpolator> interpolator = new ChoiceBox<>(FXCollections.observableArrayList(
+                Interpolator.EASE_BOTH, Interpolator.EASE_OUT, Interpolator.EASE_IN, Interpolator.LINEAR));
+        interpolator.setValue(tile.getAnimationInterpolator());
+        interpolator.setConverter(interpolatorConverter());
+        interpolator.valueProperty().addListener(
+                (obs, old, value) -> tile.setAnimationInterpolator(value));
+
         return createGrid(
                 row(animated),
-                row("Duration", duration, createValueLabel(duration, "%.0f ms")));
+                row("Duration", duration, createValueLabel(duration, "%.0f ms")),
+                row("Interpolator", interpolator));
+    }
+
+    private static StringConverter<Interpolator> interpolatorConverter() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Interpolator interpolator) {
+                if (interpolator == Interpolator.EASE_BOTH) {
+                    return "EASE_BOTH";
+                }
+                if (interpolator == Interpolator.EASE_OUT) {
+                    return "EASE_OUT";
+                }
+                if (interpolator == Interpolator.EASE_IN) {
+                    return "EASE_IN";
+                }
+                if (interpolator == Interpolator.LINEAR) {
+                    return "LINEAR";
+                }
+                return String.valueOf(interpolator);
+            }
+
+            @Override
+            public Interpolator fromString(String string) {
+                return null;
+            }
+        };
     }
 
     private Node smoothScrollGrid() {

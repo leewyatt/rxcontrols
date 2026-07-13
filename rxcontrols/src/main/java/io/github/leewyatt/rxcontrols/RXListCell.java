@@ -101,7 +101,7 @@ public class RXListCell<T> extends IndexedCell<T> {
     // ==================== Accessibility ====================
 
     /**
-     * Reports this cell's index and single-selection state to assistive technologies
+     * Reports this cell's index and selection state to assistive technologies
      * (mirroring {@code ListCell}); other attributes defer to the superclass. Only the
      * realized (visible) cells are exposed — the self-built viewport keeps no off-screen
      * accessibility peers, so screen readers see the visible window rather than the full

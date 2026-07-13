@@ -380,4 +380,51 @@ public class RXIndexedSelectionModelTest {
         assertEquals(3, sm.getSelectedIndex(), "the remembered item re-resolves to its new index");
         assertTrue(sm.isSelected(3));
     }
+
+    @Test
+    public void clearAndSelectOutOfRangeClearsSelection() {
+        MultipleSelectionModel<String> sm = view(5).getSelectionModel();
+        sm.select(2);
+        sm.clearAndSelect(-1); // native parity: out-of-range clears instead of throwing
+        assertTrue(sm.isEmpty());
+        assertEquals(-1, sm.getSelectedIndex());
+        sm.select(2);
+        sm.clearAndSelect(5); // == getItemCount(), still out of range
+        assertTrue(sm.isEmpty());
+        assertNull(sm.getSelectedItem());
+    }
+
+    @Test
+    public void clearingTheLeadIndexPromotesTheHighestSurvivor() {
+        MultipleSelectionModel<String> sm = view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+        sm.selectIndices(1, 3, 5); // lead = 5
+        sm.clearSelection(5);
+        assertEquals(List.of(1, 3), sm.getSelectedIndices());
+        assertEquals(3, sm.getSelectedIndex(),
+                "clearing the lead with survivors promotes the highest, like the items-mutation path");
+        assertEquals("Item 3", sm.getSelectedItem());
+    }
+
+    @Test
+    public void clearingANonLeadIndexKeepsTheLead() {
+        MultipleSelectionModel<String> sm = view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+        sm.selectIndices(1, 3, 5); // lead = 5
+        sm.clearSelection(1);
+        assertEquals(List.of(3, 5), sm.getSelectedIndices());
+        assertEquals(5, sm.getSelectedIndex());
+        assertEquals("Item 5", sm.getSelectedItem());
+    }
+
+    @Test
+    public void clearingTheSoleSelectionEmptiesTheLead() {
+        MultipleSelectionModel<String> sm = view(10).getSelectionModel();
+        sm.setSelectionMode(SelectionMode.MULTIPLE);
+        sm.select(4);
+        sm.clearSelection(4);
+        assertTrue(sm.isEmpty());
+        assertEquals(-1, sm.getSelectedIndex());
+        assertNull(sm.getSelectedItem());
+    }
 }

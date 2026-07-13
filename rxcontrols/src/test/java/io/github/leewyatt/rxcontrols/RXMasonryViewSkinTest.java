@@ -25,6 +25,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -372,6 +373,86 @@ public class RXMasonryViewSkinTest {
             fireKey(view, KeyCode.DOWN, false, false); // focus 0
             fireKey(view, KeyCode.ENTER, false, false);
             assertEquals(0, fired.get());
+        });
+    }
+
+    @Test
+    public void spaceKeepsSelectionInSingleMode() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false); // focus + select 0 (SINGLE default)
+            assertTrue(view.getSelectionModel().isSelected(0));
+            fireKey(view, KeyCode.SPACE, false, false);
+            assertTrue(view.getSelectionModel().isSelected(0),
+                    "Space on the selected item never empties SINGLE mode");
+        });
+    }
+
+    @Test
+    public void nullSelectionModelKeepsNavigationAndActivationAlive() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(30);
+            view.setColumnCount(3);
+            view.setSelectionModel(null);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            AtomicReference<Integer> activated = new AtomicReference<>();
+            view.setOnAction(e -> activated.set(e.getIndex()));
+            fireKey(view, KeyCode.RIGHT, false, false);
+            fireKey(view, KeyCode.RIGHT, false, false);
+            assertEquals(1, view.getFocusedIndex(), "arrows move the focus cursor without a model");
+            fireKey(view, KeyCode.ENTER, false, false);
+            assertEquals(1, activated.get(), "Enter activates the focused item without a model");
+        });
+    }
+
+    @Test
+    public void scrollByMovesTheViewportAndClears() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(200);
+            view.setColumnCount(3);
+            view.setSmoothScrolling(false);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            assertEquals(0, view.getFirstVisibleIndex());
+            view.scrollBy(600.0);
+            pump(root);
+            assertFalse(view.hasPendingScroll(), "the delta is consumed on the layout pass");
+            assertTrue(view.getFirstVisibleIndex() > 0, "the viewport scrolled down");
+            view.scrollBy(-10_000.0); // clamps at the top
+            pump(root);
+            assertFalse(view.hasPendingScroll(), "an edge-clamped delta is still consumed");
+            assertEquals(0, view.getFirstVisibleIndex());
+        });
+    }
+
+    @Test
+    public void visibleBoundsRecordIsConsistentWithTheIntProperties() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(200);
+            view.setColumnCount(3);
+            view.setSmoothScrolling(false);
+            StackPane root = host(view, 340, 300);
+            pump(root);
+            List<String> torn = new ArrayList<>();
+            // The record is published before the int properties, so a listener on
+            // either int already sees the new consistent pair through the record.
+            view.firstVisibleIndexProperty().addListener((obs, old, value) -> {
+                RXMasonryVisibleBounds bounds = view.getVisibleBounds();
+                if (bounds.firstIndex() != value.intValue()) {
+                    torn.add("record lags first=" + value + " bounds=" + bounds);
+                }
+            });
+            view.scrollBy(600.0);
+            pump(root);
+            assertTrue(torn.isEmpty(), torn.toString());
+            RXMasonryVisibleBounds bounds = view.getVisibleBounds();
+            assertFalse(bounds.isEmpty());
+            assertEquals(view.getFirstVisibleIndex(), bounds.firstIndex());
+            assertEquals(view.getLastVisibleIndex(), bounds.lastIndex());
         });
     }
 

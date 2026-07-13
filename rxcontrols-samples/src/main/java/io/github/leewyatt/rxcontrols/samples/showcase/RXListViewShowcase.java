@@ -30,7 +30,8 @@ import java.util.List;
  * Showcase for {@link RXListView}. Renders a virtualized list of {@value
  * #ITEM_COUNT} rows and exposes the M1 knobs — selection mode and visual mode
  * (row / checkmark / checkbox / auto, the appearance of the single selection) and
- * fixed cell size — plus scroll-to-item / scroll-by controls and a live readout of
+ * fixed cell size — plus scroll-to-item / scroll-by controls, clear / restore of the
+ * items (showing the placeholder), an activation status line and a live readout of
  * the row count, visible range and selected count, so virtualization and the
  * selection across visual modes can be exercised at scale.
  */
@@ -40,6 +41,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
 
     private RXListView<Integer> list;
     private ObservableList<Integer> items;
+    private final Label actionStatus = new Label("Click to select \u00b7 double-click to activate");
 
     @Override
     protected String title() {
@@ -58,7 +60,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
             items.add(i);
         }
         list = new RXListView<>(items);
-        list.setSmoothScrolling(true);
+        list.setOnAction(event -> actionStatus.setText("Activated: Item " + event.getItem()));
         list.setConverter(new StringConverter<>() {
             @Override
             public String toString(Integer value) {
@@ -79,6 +81,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
+                section("Items", itemsGrid()),
                 section("Selection", selectionGrid()),
                 section("Row height", cellSizeGrid()),
                 section("Sections", sectionsGrid()),
@@ -94,6 +97,23 @@ public class RXListViewShowcase extends RXShowcaseApplication {
 
     // ==================== Sections ====================
 
+    private Node itemsGrid() {
+        Button clear = new Button("Clear items");
+        clear.setOnAction(e -> items.clear());
+        Button restore = new Button("Restore items");
+        restore.setOnAction(e -> {
+            items.clear();
+            for (int i = 0; i < ITEM_COUNT; i++) {
+                items.add(i);
+            }
+        });
+        HBox box = new HBox(8.0, clear, restore);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return createGrid(
+                row(box),
+                row(hint("Clearing shows the placeholder and the :empty pseudo-class.")));
+    }
+
     private Node selectionGrid() {
         ChoiceBox<SelectionMode> mode = new ChoiceBox<>(
                 FXCollections.observableArrayList(SelectionMode.SINGLE, SelectionMode.MULTIPLE));
@@ -108,6 +128,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Mode", mode),
                 row("Visual", visual),
+                row(actionStatus),
                 row(hint("Visual mode is purely the appearance of one selection — switch it freely without losing "
                         + "state. ROW/CHECKMARK: click replaces, Ctrl toggles, arrows select. CHECKBOX: click "
                         + "toggles, arrows move the cursor, Space toggles. Shift extends a range; Enter or "

@@ -9,6 +9,8 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -31,7 +33,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -678,7 +682,7 @@ public class RXTileViewSkinTest {
             view.setMaxColumns(4);
             StackPane root = host(view, 400, 300);
             pump(root);
-            view.scrollTo(40);
+            view.scrollTo(40, ScrollAlignment.START); // pin to top (the default is NEAREST)
             pump(root);
             assertEquals(40, view.getVisibleRange().firstIndex());
 
@@ -1324,7 +1328,7 @@ public class RXTileViewSkinTest {
             StackPane root = host(view, 400, 250);
             pump(root);
             assertEquals("s0", view.getVisibleSection().key(), "starts at the first section");
-            view.scrollTo(36); // item in section s9 (9 * 4)
+            view.scrollTo(36, ScrollAlignment.START); // item in section s9 (9 * 4), pinned to top
             pump(root);
             assertEquals("s9", view.getVisibleSection().key(), "tracks to the scrolled section");
         });
@@ -3043,13 +3047,132 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies the reorder pass keeps header identity by section: a header node
+     * that is rebound to a DIFFERENT section on a column change must pop in at its
+     * slot (no translate), never glide in from the old section's position.
+     */
+    @Test
+    public void headerReflowKeepsSectionIdentityForGlides() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(40, 8);
+            view.setStickySectionHeader(false);
+            view.setMaxColumns(4);
+            view.setPrefTileHeight(100);
+            view.setSmoothScrolling(false);
+            view.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            // Pin a section header exactly at the top. The reflow anchor snaps the
+            // scroll to the top of the first ITEM row, pushing this header out of
+            // the window, so the visible header set shifts by one slot.
+            view.scrollToSectionIndex(15);
+            pump(root);
+
+            Map<RXTileSectionCell, Object> sectionBefore = new IdentityHashMap<>();
+            for (RXTileSectionCell header : poolHeaders(view)) {
+                if (header.isVisible()) {
+                    sectionBefore.put(header, header.getItem());
+                }
+            }
+            assertFalse(sectionBefore.isEmpty(), "setup: at least one header is visible");
+
+            view.setMaxColumns(3); // reflow stretches sections; the header set shifts
+            pump(root);
+            for (RXTileSectionCell header : poolHeaders(view)) {
+                if (!header.isVisible()) {
+                    continue;
+                }
+                Object before = sectionBefore.get(header);
+                if (before != null && before != header.getItem()) {
+                    assertEquals(0.0,
+                            Math.abs(header.getTranslateX()) + Math.abs(header.getTranslateY()), 0.5,
+                            "a header rebound to another section must pop, not glide from "
+                                    + before + " to " + header.getItem());
+                }
+            }
+        });
+    }
+
+    @Test
+    public void spaceKeepsSelectionInSingleMode() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setMaxColumns(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            fireKey(view, KeyCode.DOWN, false, false); // focus + select 0 (SINGLE default)
+            assertTrue(view.getSelectionModel().isSelected(0));
+            fireKey(view, KeyCode.SPACE, false, false);
+            assertTrue(view.getSelectionModel().isSelected(0),
+                    "Space on the selected tile never empties SINGLE mode");
+        });
+    }
+
+    @Test
+    public void nullSelectionModelKeepsNavigationAndActivationAlive() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setMaxColumns(3);
+            view.setSelectionModel(null);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            AtomicReference<RXTileViewActionEvent<String>> activated = new AtomicReference<>();
+            view.setOnAction(activated::set);
+            fireKey(view, KeyCode.RIGHT, false, false);
+            fireKey(view, KeyCode.RIGHT, false, false);
+            assertEquals(1, view.getFocusedIndex(), "arrows move the focus cursor without a model");
+            fireKey(view, KeyCode.ENTER, false, false);
+            assertNotNull(activated.get(), "Enter activates the focused item without a model");
+            assertEquals(1, activated.get().getIndex());
+        });
+    }
+
+    @Test
+    public void scrollByMovesTheViewportAndClears() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setMaxColumns(2);
+            view.setSmoothScrolling(false);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            assertEquals(0, view.getVisibleRange().firstIndex());
+            view.scrollBy(400.0);
+            pump(root);
+            assertFalse(view.hasPendingScroll(), "the delta is consumed on the layout pass");
+            assertTrue(view.getVisibleRange().firstIndex() > 0, "the viewport scrolled down");
+            view.scrollBy(-10_000.0); // clamps at the top
+            pump(root);
+            assertFalse(view.hasPendingScroll(), "an edge-clamped delta is still consumed");
+            assertEquals(0, view.getVisibleRange().firstIndex());
+        });
+    }
+
+    @Test
+    public void cellsReportIndexAndSelectionToAccessibility() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            view.setMaxColumns(3);
+            StackPane root = host(view, 400, 400);
+            pump(root);
+            view.getSelectionModel().select(1);
+            pump(root);
+            RXTileCell<?> cell = cellByIndex(view, 1);
+            assertEquals(AccessibleRole.LIST_ITEM, cell.getAccessibleRole());
+            assertEquals(1, cell.queryAccessibleAttribute(AccessibleAttribute.INDEX));
+            assertEquals(Boolean.TRUE, cell.queryAccessibleAttribute(AccessibleAttribute.SELECTED));
+            assertEquals(Boolean.FALSE,
+                    cellByIndex(view, 0).queryAccessibleAttribute(AccessibleAttribute.SELECTED));
+        });
+    }
+
     // ==================== Sticky section header ====================
 
     @Test
-    public void stickySectionHeaderDefaultsOff() throws Exception {
+    public void stickySectionHeaderDefaultsOn() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4();
-            assertFalse(view.isStickySectionHeader(), "sticky is opt-in (off by default)");
+            assertTrue(view.isStickySectionHeader(), "sticky is on by default, like the whole view family");
             boolean hasMeta = RXTileView.getClassCssMetaData().stream()
                     .anyMatch(m -> "-rx-sticky-section-header".equals(m.getProperty()));
             assertTrue(hasMeta, "the sticky property is exposed to CSS");
@@ -3060,6 +3183,7 @@ public class RXTileViewSkinTest {
     public void stickyDisabledAddsNoNode() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(false);
             pump(host(view, 400, 600));
             assertNull(view.lookup(".rx-tile-section-header.sticky"),
                     "while disabled the sticky adds no node");
@@ -3179,6 +3303,7 @@ public class RXTileViewSkinTest {
     public void stickyEnablingAtRuntimeAddsNode() throws Exception {
         onFx(() -> {
             RXTileView<String> view = grouped4();
+            view.setStickySectionHeader(false);
             StackPane root = host(view, 400, 600);
             pump(root);
             assertNull(view.lookup(".rx-tile-section-header.sticky"));
@@ -3300,7 +3425,7 @@ public class RXTileViewSkinTest {
             view.setMaxColumns(6); // column change -> reorder glide in flight
             pump(root);
             assertTrue(anyCellTranslated(view, 36), "setup: a reorder glide is in flight");
-            view.setStickySectionHeader(true);
+            view.setStickySectionHeader(false); // default is on; either direction snaps
             pump(root);
             assertFalse(anyCellTranslated(view, 36),
                     "toggling sticky snaps any in-flight glide (like recreateHeaders / dispose)");

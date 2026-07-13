@@ -54,8 +54,10 @@ import java.util.List;
 public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
     private static final PseudoClass EMPTY_PSEUDO_CLASS = PseudoClass.getPseudoClass("empty");
+    // Defensive ceiling so a tiny prefTileWidth cannot explode the column count.
+    // The tile family does not depend on MasonryColumns, so this is an independent
+    // constant kept deliberately equal to MasonryColumns.MAX_RESOLVED_COLUMNS.
     private static final int MAX_RESOLVED_COLUMNS = 4096;
-    private static final int DEFAULT_PREF_COLUMNS = 3;
     private static final int DEFAULT_VISIBLE_ROWS = 4;
     private static final double MIN_VIEWPORT_CONTENT_WIDTH = 2.0;
 
@@ -141,6 +143,15 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
 
         focusModel = new RXIndexedFocusModel<>(control.itemsProperty(), control::getSelectionModel);
         viewport.setFocusModel(focusModel);
+        // Mirror the keyboard cursor into the control's read-only focusedIndex;
+        // it is skin-driven, so it resets when the skin is replaced.
+        // No initial push: the control defaults to -1, a replaced skin's dispose
+        // task resets it, and a fresh focus model always starts at -1 — pushing
+        // here would clobber live state on the same-class setSkin short-circuit
+        // (which constructs but never installs the new skin).
+        disposer.registerListener(focusModel.focusedIndexProperty(),
+                () -> control.setFocusedIndex(focusModel.getFocusedIndex()));
+        disposer.registerDisposeTask(() -> control.setFocusedIndex(-1));
 
         attachItems(control.getItems());
         updatePlaceholder();
@@ -162,6 +173,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         disposer.registerListener(control.maxTileWidthProperty(), this::requestLayoutPass);
         disposer.registerListener(control.hgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.maxColumnsProperty(), this::requestLayoutPass);
+        // prefColumns only feeds computePrefWidth (a parent size hint), not the
+        // placement, so it relays out the control rather than re-filling the viewport.
+        disposer.registerListener(control.prefColumnsProperty(), () -> getSkinnable().requestLayout());
         disposer.registerListener(control.prefTileHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
@@ -412,11 +426,18 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             }
             return;
         }
-        int index = RXMath.clamp(control.getPendingScrollIndex(), 0, itemCount - 1);
-        // Clear only when the request was actually applied. On a zero-height pass
-        // scrollToIndex cannot compute geometry and returns false; keeping the
-        // request armed lets the first sized pass honor it.
-        if (viewport.scrollToIndex(index, control.getPendingScrollAlignment())) {
+        int index = control.getPendingScrollIndex();
+        if (index >= 0) {
+            int clamped = RXMath.clamp(index, 0, itemCount - 1);
+            // Clear only when the request was actually applied. On a zero-height pass
+            // scrollToIndex cannot compute geometry and returns false; keeping the
+            // request armed lets the first sized pass honor it.
+            if (viewport.scrollToIndex(clamped, control.getPendingScrollAlignment())) {
+                control.clearPendingScroll();
+            }
+            return;
+        }
+        if (viewport.applyPendingScrollDelta(control.getPendingScrollDelta())) {
             control.clearPendingScroll();
         }
     }
@@ -467,7 +488,7 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     }
 
     private int prefWidthColumns(RXTileView<?> control) {
-        return capColumns(DEFAULT_PREF_COLUMNS, control.getMaxColumns());
+        return capColumns(control.getPrefColumns(), control.getMaxColumns());
     }
 
     private static int capColumns(int columns, int maxColumns) {
@@ -648,9 +669,12 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             return;
         }
         RXTileView<T> control = getSkinnable();
+        // A null selection model disables selection, not the keyboard: navigation
+        // and Enter activation still run (selection updates are skipped at their
+        // use sites), mirroring the mouse side where double-click stays live.
         MultipleSelectionModel<T> sm = control.getSelectionModel();
         int itemCount = itemCount();
-        if (sm == null || itemCount == 0) {
+        if (itemCount == 0) {
             return;
         }
         int focus = focusModel.getFocusedIndex();
@@ -679,8 +703,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
             }
             case A -> {
                 if (shortcut) {
-                    sm.selectAll();
-                    focusModel.syncSelectionLeadState();
+                    if (sm != null) {
+                        sm.selectAll();
+                        focusModel.syncSelectionLeadState();
+                    }
                     event.consume();
                 }
             }
@@ -784,7 +810,12 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     // section-header rows (a header occupies a visual row but no item index).
     private void moveTo(int target, boolean shift, boolean shortcut) {
         MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
+        // Without a selection model navigation still moves the keyboard focus and
+        // scrolls; only the selection updates are skipped.
         if (sm == null) {
+            focusModel.focus(target);
+            setAnchor(target);
+            getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
             return;
         }
         // Capture the range anchor from the CURRENT focus before moving it.

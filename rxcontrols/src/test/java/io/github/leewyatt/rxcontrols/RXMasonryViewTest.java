@@ -10,6 +10,7 @@ import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.event.Event;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
 import javafx.scene.control.Control;
@@ -206,9 +207,40 @@ public class RXMasonryViewTest {
         view.clearPendingScroll();
         assertFalse(view.hasPendingScroll());
 
-        // A null alignment falls back to START.
+        // A null alignment falls back to NEAREST, matching the single-argument overload.
         view.scrollTo(2, null);
-        assertSame(ScrollAlignment.START, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.NEAREST, view.getPendingScrollAlignment());
+    }
+
+    @Test
+    public void scrollByAccumulatesAndClears() {
+        RXMasonryView<String> view = new RXMasonryView<>();
+        view.scrollBy(120.0);
+        view.scrollBy(-20.0);
+        assertTrue(view.hasPendingScroll());
+        assertEquals(-1, view.getPendingScrollIndex(), "relative scroll uses the -1 sentinel");
+        assertEquals(100.0, view.getPendingScrollDelta(), 1e-9, "deltas accumulate before a layout pass");
+        view.clearPendingScroll();
+        assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
+        assertEquals(-1, view.getPendingScrollIndex());
+    }
+
+    @Test
+    public void selectionModeConvenienceDelegatesToTheModel() {
+        RXMasonryView<String> view = new RXMasonryView<>();
+        assertSame(SelectionMode.SINGLE, view.getSelectionMode());
+        view.setSelectionMode(SelectionMode.MULTIPLE);
+        assertSame(SelectionMode.MULTIPLE, view.getSelectionModel().getSelectionMode());
+        view.setSelectionModel(null);
+        assertNull(view.getSelectionMode(), "no model -> null mode");
+    }
+
+    @Test
+    public void reportsMultipleSelectionToAccessibility() {
+        RXMasonryView<String> view = new RXMasonryView<>();
+        assertEquals(Boolean.FALSE, view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+        view.setSelectionMode(SelectionMode.MULTIPLE);
+        assertEquals(Boolean.TRUE, view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
     }
 
     // ==================== On action ====================

@@ -9,9 +9,11 @@ import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.event.Event;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.SelectionMode;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -327,7 +329,7 @@ public class RXTileViewTest {
         view.scrollTo(2);
         assertTrue(view.hasPendingScroll());
         assertEquals(2, view.getPendingScrollIndex());
-        assertSame(ScrollAlignment.START, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.NEAREST, view.getPendingScrollAlignment());
 
         view.clearPendingScroll();
         assertFalse(view.hasPendingScroll());
@@ -339,10 +341,11 @@ public class RXTileViewTest {
     }
 
     @Test
-    public void scrollToNullAlignmentFallsBackToStart() {
+    public void scrollToNullAlignmentFallsBackToNearest() {
         RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a"));
         view.scrollTo(0, null);
-        assertSame(ScrollAlignment.START, view.getPendingScrollAlignment());
+        assertSame(ScrollAlignment.NEAREST, view.getPendingScrollAlignment(),
+                "null alignment matches the single-argument overload");
     }
 
     @Test
@@ -371,17 +374,53 @@ public class RXTileViewTest {
     }
 
     @Test
-    public void scrollToRecordsRawOutOfRangeIndex() {
+    public void scrollToClampsNegativeIndexAtEntry() {
         RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
 
         view.scrollTo(999);
         assertTrue(view.hasPendingScroll());
-        assertEquals(999, view.getPendingScrollIndex(), "clamping is deferred to layout");
+        assertEquals(999, view.getPendingScrollIndex(), "upper clamping is deferred to layout");
 
         view.clearPendingScroll();
         view.scrollTo(-3);
         assertTrue(view.hasPendingScroll());
-        assertEquals(-3, view.getPendingScrollIndex());
+        assertEquals(0, view.getPendingScrollIndex(),
+                "negatives clamp at entry (-1 is the relative-delta sentinel)");
+    }
+
+    @Test
+    public void scrollByAccumulatesAndClears() {
+        RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
+        view.scrollBy(120.0);
+        view.scrollBy(-20.0);
+        assertTrue(view.hasPendingScroll());
+        assertEquals(-1, view.getPendingScrollIndex(), "relative scroll uses the -1 sentinel");
+        assertEquals(100.0, view.getPendingScrollDelta(), 1e-9, "deltas accumulate before a layout pass");
+        view.clearPendingScroll();
+        assertEquals(0.0, view.getPendingScrollDelta(), 1e-9);
+        assertEquals(-1, view.getPendingScrollIndex());
+    }
+
+    @Test
+    public void selectionModeConvenienceDelegatesToTheModel() {
+        RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
+        assertSame(SelectionMode.SINGLE, view.getSelectionMode());
+        view.setSelectionMode(SelectionMode.MULTIPLE);
+        assertSame(SelectionMode.MULTIPLE, view.getSelectionModel().getSelectionMode());
+        view.setSelectionModel(null);
+        assertNull(view.getSelectionMode(), "no model -> null mode");
+        view.setSelectionMode(SelectionMode.SINGLE); // silent no-op without a model
+        assertNull(view.getSelectionMode());
+    }
+
+    @Test
+    public void reportsMultipleSelectionToAccessibility() {
+        RXTileView<String> view = new RXTileView<>(FXCollections.observableArrayList("a", "b"));
+        assertEquals(Boolean.FALSE, view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+        view.setSelectionMode(SelectionMode.MULTIPLE);
+        assertEquals(Boolean.TRUE, view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
+        view.setSelectionModel(null);
+        assertEquals(Boolean.FALSE, view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
     }
 
     @Test
