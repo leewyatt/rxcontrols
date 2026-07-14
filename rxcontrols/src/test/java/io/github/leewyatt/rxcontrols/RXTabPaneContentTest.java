@@ -10,6 +10,7 @@ import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -476,6 +477,26 @@ public class RXTabPaneContentTest {
                     "content animation must not clobber the user-set scale");
             assertEquals(0.7, c0.getOpacity(), 0.001,
                     "content animation must not clobber the user-set opacity");
+        });
+    }
+
+    @Test
+    public void contentRegionIsClippedToItsBounds() throws Exception {
+        runOnFx(() -> {
+            RXTab t0 = tab("A", 120, 40);
+            RXTab t1 = tab("B", 300, 160);
+            RXTabPane pane = new RXTabPane(t0, t1);
+            laidOut(pane);
+            StackPane region = contentRegionOf(pane);
+            Node clip = region.getClip();
+            assertNotNull(clip, "content region must be clipped so a transition cannot paint outside the pane");
+            assertTrue(clip instanceof Rectangle, "content clip should be a Rectangle");
+            Rectangle rect = (Rectangle) clip;
+            assertTrue(rect.getWidth() > 0.0 && rect.getHeight() > 0.0, "clip must have a positive size");
+            // The clip tracks the content region's laid-out size, masking any page that a
+            // transition moves or scales beyond the viewport.
+            assertEquals(region.getWidth(), rect.getWidth(), EPSILON);
+            assertEquals(region.getHeight(), rect.getHeight(), EPSILON);
         });
     }
 

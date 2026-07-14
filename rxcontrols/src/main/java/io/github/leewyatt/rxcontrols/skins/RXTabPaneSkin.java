@@ -108,6 +108,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     private final RXButton leftScrollButton = createScrollButton(true);
     private final RXButton rightScrollButton = createScrollButton(false);
     private final Rectangle headerClip = new Rectangle();
+    private final Rectangle contentClip = new Rectangle();
 
     private Node currentContent;
     private final PageTransitionEngine contentEngine = new PageTransitionEngine();
@@ -175,6 +176,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // past the header rectangle (or under the neighbouring content region).
         headerArea.setClip(headerClip);
         contentRegion.getStyleClass().add("content");
+        // Confine a transitioning page to the content band, off the header.
+        contentRegion.setClip(contentClip);
         indicator.getStyleClass().add("indicator");
         indicator.setManaged(false);
         indicator.setMouseTransparent(true);
@@ -1206,6 +1209,8 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         headerArea.requestLayout();
         headerArea.layout();
         contentRegion.resizeRelocate(contentX, contentY, Math.max(0.0, contentW), Math.max(0.0, contentH));
+        contentClip.setWidth(Math.max(0.0, contentW));
+        contentClip.setHeight(Math.max(0.0, contentH));
     }
 
     /**
