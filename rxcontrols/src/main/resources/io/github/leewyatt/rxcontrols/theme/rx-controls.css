@@ -1809,23 +1809,6 @@
     -fx-pref-height: 96px;
 }
 
-.rx-fab:extended {
-    -fx-background-radius: 999px;
-    -fx-content-display: left;
-    -fx-padding: 0 20px 0 16px;
-    -fx-pref-width: -1;
-}
-
-.rx-fab:extended:hover,
-.rx-fab:extended:armed,
-.rx-fab:extended:pressed {
-    -fx-background-radius: 999px;
-}
-
-.rx-fab:extended:focused {
-    -fx-background-radius: 999px, 999px;
-}
-
 .rx-fab .icon {
     -fx-background-color: -rx-on-primary;
 }
