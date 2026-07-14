@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXSpeedDial.LabelMode;
 import io.github.leewyatt.rxcontrols.RXSpeedDial.OpenTrigger;
 import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSpeedDialSkin;
+import javafx.beans.DefaultProperty;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -140,6 +141,17 @@ public class RXSpeedDialTest {
             assertFalse(dial.isCloseOnFocusLoss());
             assertFalse(dial.isCloseOnClickOutside());
         });
+    }
+
+    /**
+     * Verifies FXML metadata exposes actions as the default child collection.
+     */
+    @Test
+    public void defaultPropertyTargetsActionsForFxml() {
+        DefaultProperty defaultProperty = RXSpeedDial.class.getAnnotation(DefaultProperty.class);
+
+        assertNotNull(defaultProperty);
+        assertEquals("actions", defaultProperty.value());
     }
 
     /**
@@ -597,6 +609,30 @@ public class RXSpeedDialTest {
                     "RX_SPEED_DIAL_CLOSE_REQUEST:TOGGLE", "RX_SPEED_DIAL_HIDING:TOGGLE",
                     "RX_SPEED_DIAL_HIDDEN:TOGGLE",
                     "RX_SPEED_DIAL_SHOWING:null", "RX_SPEED_DIAL_SHOWN:null",
+                    "RX_SPEED_DIAL_CLOSE_REQUEST:TOGGLE", "RX_SPEED_DIAL_HIDING:TOGGLE",
+                    "RX_SPEED_DIAL_HIDDEN:TOGGLE"), log);
+        });
+    }
+
+    /**
+     * Verifies terminal lifecycle events still fire before a skin is installed.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void noSkinOpenCloseFiresTerminalLifecycleEvents() throws Exception {
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial();
+            List<String> log = new ArrayList<>();
+            dial.addEventHandler(RXSpeedDialEvent.ANY, event -> log.add(eventSignature(event)));
+
+            assertNull(dial.getSkin());
+            dial.open();
+            assertTrue(dial.isShowing());
+            dial.close();
+            assertFalse(dial.isShowing());
+
+            assertEquals(List.of("RX_SPEED_DIAL_SHOWING:null", "RX_SPEED_DIAL_SHOWN:null",
                     "RX_SPEED_DIAL_CLOSE_REQUEST:TOGGLE", "RX_SPEED_DIAL_HIDING:TOGGLE",
                     "RX_SPEED_DIAL_HIDDEN:TOGGLE"), log);
         });
@@ -1080,6 +1116,56 @@ public class RXSpeedDialTest {
             dial.setDirection(Direction.RIGHT);
             applyCssAndLayout(dial);
             assertLabelBelowFab(dial, 8.0);
+        });
+    }
+
+    /**
+     * Verifies wide persistent horizontal labels expand the whole action item.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void horizontalPersistentLabelsParticipateInCellWidthAndSpacing() throws Exception {
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Very long first action label", new Region()),
+                    new RXSpeedDialAction("Very long second action label", new Region()));
+            dial.setAnimated(false);
+            dial.setDirection(Direction.RIGHT);
+            dial.setLabelMode(LabelMode.PERSISTENT);
+            attachAndApplyCss(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+
+            List<Node> cells = visibleActionCells(dial);
+            Label label = visibleActionLabels(dial).get(0);
+            assertTrue(cells.get(0).getLayoutBounds().getWidth() >= label.prefWidth(-1));
+            assertAdjacentVisibleCellEdgeGap(dial, Direction.RIGHT, 8.0);
+        });
+    }
+
+    /**
+     * Verifies tall persistent vertical labels expand the whole action item.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void verticalPersistentLabelsParticipateInCellHeightAndSpacing() throws Exception {
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Tall\nfirst\nlabel\nitem", new Region()),
+                    new RXSpeedDialAction("Tall\nsecond\nlabel\nitem", new Region()));
+            dial.setAnimated(false);
+            dial.setDirection(Direction.UP);
+            dial.setLabelMode(LabelMode.PERSISTENT);
+            attachAndApplyCss(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+
+            List<Node> cells = visibleActionCells(dial);
+            Label label = visibleActionLabels(dial).get(0);
+            assertTrue(cells.get(0).getLayoutBounds().getHeight() >= label.prefHeight(-1));
+            assertAdjacentVisibleCellEdgeGap(dial, Direction.UP, 8.0);
         });
     }
 
@@ -1760,6 +1846,22 @@ public class RXSpeedDialTest {
                 .sorted((left, right) -> Double.compare(left.getMinY(), right.getMinY()))
                 .toList();
         assertEquals(expectedGap, bounds.get(1).getMinY() - bounds.get(0).getMaxY(), 1.0);
+    }
+
+    private static void assertAdjacentVisibleCellEdgeGap(RXSpeedDial dial, Direction direction, double expectedGap) {
+        List<Bounds> bounds = visibleActionCells(dial).stream()
+                .map(RXSpeedDialTest::sceneLayoutBounds)
+                .sorted((left, right) -> direction == Direction.LEFT || direction == Direction.RIGHT
+                        ? Double.compare(left.getMinX(), right.getMinX())
+                        : Double.compare(left.getMinY(), right.getMinY()))
+                .toList();
+        double gap;
+        if (direction == Direction.LEFT || direction == Direction.RIGHT) {
+            gap = bounds.get(1).getMinX() - bounds.get(0).getMaxX();
+        } else {
+            gap = bounds.get(1).getMinY() - bounds.get(0).getMaxY();
+        }
+        assertEquals(expectedGap, gap, 1.0);
     }
 
     private static void assertActionSide(RXSpeedDial dial, Direction direction) {

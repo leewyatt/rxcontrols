@@ -51,7 +51,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     private final StackPane iconMorph = new StackPane();
     private final List<ActionCell> cells = new ArrayList<>();
     private final EventHandler<MouseEvent> sceneMousePressedFilter = this::handleSceneMousePressed;
-    private final EventHandler<KeyEvent> sceneKeyPressedFilter = this::handleSceneKeyPressed;
     private final ChangeListener<Node> sceneFocusOwnerListener = (observable, oldValue, newValue) -> handleFocusChanged();
 
     private final ListChangeListener<RXSpeedDialAction> actionsListener = change -> rebuildCells();
@@ -99,8 +98,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         disposer.registerListener(control.sceneProperty(), this::onSceneChanged);
         disposer.registerEventHandler(control, RXSpeedDialEvent.HIDING, this::onHiding);
         disposer.registerEventHandler(mainFab, ActionEvent.ACTION, event -> control.toggle());
-        disposer.registerEventFilter(mainFab, KeyEvent.KEY_PRESSED, this::handleKeyPressed);
-        disposer.registerEventFilter(mainFab, KeyEvent.KEY_PRESSED, this::handleNavigationKeyPressed);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_ENTERED, this::handleMouseEntered);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_EXITED, this::handleMouseExited);
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::handleKeyPressed);
@@ -235,7 +232,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             if (!cell.isVisible()) {
                 continue;
             }
-            double actionExtent = fabAxisExtent(cell.fab, direction);
+            double actionExtent = cell.axisExtent(direction);
             offset += spacing + actionExtent / 2.0;
             switch (direction) {
                 case UP -> cell.layoutAt(centerX, centerY - offset, direction);
@@ -503,7 +500,9 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         if (disposed) {
             return;
         }
-        updateCellLabelVisibility();
+        if (getSkinnable().isShowing()) {
+            updateCellLabelVisibility();
+        }
         RXSpeedDial control = getSkinnable();
         if (!isFocusWithin()) {
             hoverOpenSuppressed = false;
@@ -553,16 +552,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                 mainFab.requestFocus();
             }
             event.consume();
-        }
-    }
-
-    private void handleSceneKeyPressed(KeyEvent event) {
-        if (!isEventFromDial(event) && !isFocusWithin()) {
-            return;
-        }
-        handleKeyPressed(event);
-        if (!event.isConsumed()) {
-            handleNavigationKeyPressed(event);
         }
     }
 
@@ -630,6 +619,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         int targetIndex = currentIndex + delta;
         if (targetIndex >= 0 && targetIndex < navigableCells.size()) {
             navigableCells.get(targetIndex).fab.requestFocus();
+        } else if (targetIndex < 0) {
+            mainFab.requestFocus();
         }
         event.consume();
     }
@@ -682,7 +673,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         Scene scene = getSkinnable().getScene();
         if (scene != null) {
             scene.addEventFilter(MouseEvent.MOUSE_PRESSED, sceneMousePressedFilter);
-            scene.addEventFilter(KeyEvent.KEY_PRESSED, sceneKeyPressedFilter);
             scene.focusOwnerProperty().addListener(sceneFocusOwnerListener);
             observedScene = scene;
             handleFocusChanged();
@@ -694,7 +684,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     private void detachSceneObservers() {
         if (observedScene != null) {
             observedScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, sceneMousePressedFilter);
-            observedScene.removeEventFilter(KeyEvent.KEY_PRESSED, sceneKeyPressedFilter);
             observedScene.focusOwnerProperty().removeListener(sceneFocusOwnerListener);
             observedScene = null;
         }
@@ -767,9 +756,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             cellDisposer.registerListener(fab.focusedProperty(), this::onLabelSignalChanged);
             cellDisposer.registerListener(root.hoverProperty(), this::onLabelSignalChanged);
             cellDisposer.registerEventHandler(fab, ActionEvent.ACTION, this::handleAction);
-            cellDisposer.registerEventFilter(fab, KeyEvent.KEY_PRESSED, RXSpeedDialSkin.this::handleKeyPressed);
-            cellDisposer.registerEventFilter(fab, KeyEvent.KEY_PRESSED,
-                    RXSpeedDialSkin.this::handleNavigationKeyPressed);
 
             root.getChildren().setAll(fab);
             updateLabelMode();
@@ -787,6 +773,14 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
 
         private boolean isNavigable() {
             return getSkinnable().isShowing() && action.isVisible() && !fab.isDisabled();
+        }
+
+        private double axisExtent(RXSpeedDial.Direction direction) {
+            CellMetrics metrics = measure(direction);
+            if (direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT) {
+                return metrics.width();
+            }
+            return metrics.height();
         }
 
         private void updateRootVisibility(boolean showing) {
@@ -807,17 +801,17 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
 
         private void layoutAt(double centerX, double centerY, RXSpeedDial.Direction direction) {
-            double fabWidth = snapSizeX(fab.prefWidth(-1));
-            double fabHeight = snapSizeY(fab.prefHeight(-1));
-            boolean showLabel = label.isVisible();
-            double labelWidth = showLabel ? snapSizeX(label.prefWidth(-1)) : 0.0;
-            double labelHeight = showLabel ? snapSizeY(label.prefHeight(-1)) : 0.0;
+            CellMetrics metrics = measure(direction);
+            double fabWidth = metrics.fabWidth();
+            double fabHeight = metrics.fabHeight();
+            double labelWidth = metrics.labelWidth();
+            double labelHeight = metrics.labelHeight();
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
             RXSpeedDial.LabelPlacement placement = effectiveLabelPlacement(direction);
             double gap = labelGap();
-            double rootWidth = showLabel && !horizontal ? fabWidth + gap + labelWidth : fabWidth;
-            double rootHeight = showLabel && horizontal ? fabHeight + gap + labelHeight
-                    : Math.max(fabHeight, labelHeight);
+            boolean showLabel = label.isVisible();
+            double rootWidth = metrics.width();
+            double rootHeight = metrics.height();
             double fabX;
             double labelX;
             double fabY;
@@ -828,8 +822,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                 fabY = 0.0;
                 labelY = 0.0;
             } else if (horizontal) {
-                fabX = 0.0;
-                labelX = snapPositionX((fabWidth - labelWidth) / 2.0);
+                fabX = snapPositionX((rootWidth - fabWidth) / 2.0);
+                labelX = snapPositionX((rootWidth - labelWidth) / 2.0);
                 if (placement == RXSpeedDial.LabelPlacement.START) {
                     labelY = 0.0;
                     fabY = labelHeight + gap;
@@ -854,6 +848,19 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                     rootWidth, rootHeight);
             fab.resizeRelocate(fabX, fabY, fabWidth, fabHeight);
             label.resizeRelocate(labelX, labelY, labelWidth, labelHeight);
+        }
+
+        private CellMetrics measure(RXSpeedDial.Direction direction) {
+            double fabWidth = snapSizeX(fab.prefWidth(-1));
+            double fabHeight = snapSizeY(fab.prefHeight(-1));
+            boolean showLabel = label.isVisible();
+            double labelWidth = showLabel ? snapSizeX(label.prefWidth(-1)) : 0.0;
+            double labelHeight = showLabel ? snapSizeY(label.prefHeight(-1)) : 0.0;
+            boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
+            double gap = showLabel ? labelGap() : 0.0;
+            double width = horizontal ? Math.max(fabWidth, labelWidth) : fabWidth + gap + labelWidth;
+            double height = horizontal ? fabHeight + gap + labelHeight : Math.max(fabHeight, labelHeight);
+            return new CellMetrics(fabWidth, fabHeight, labelWidth, labelHeight, width, height);
         }
 
         private void onTextChanged() {
@@ -933,5 +940,9 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             }
             return super.queryAccessibleAttribute(attribute, parameters);
         }
+    }
+
+    private record CellMetrics(double fabWidth, double fabHeight, double labelWidth, double labelHeight,
+                               double width, double height) {
     }
 }

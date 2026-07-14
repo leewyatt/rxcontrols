@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSpeedDialSkin;
+import javafx.beans.DefaultProperty;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -42,8 +43,11 @@ import java.util.List;
  * <p>{@code RXSpeedDial} is a plain {@link Control} placed by the caller, often
  * in a {@code StackPane} corner. Its layout footprint tracks the main FAB; the
  * secondary actions live on an unmanaged layer and may overflow the control
- * bounds without changing parent layout.</p>
+ * bounds without changing parent layout. The main FAB size can be styled with
+ * {@code -rx-fab-size} by targeting the direct child
+ * {@code .rx-speed-dial > .rx-fab}.</p>
  */
+@DefaultProperty("actions")
 public class RXSpeedDial extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-speed-dial";
@@ -88,7 +92,7 @@ public class RXSpeedDial extends Control {
      *
      * @param icon the main FAB icon, or {@code null}
      */
-    public RXSpeedDial(@NamedArg("graphic") Node icon) {
+    public RXSpeedDial(@NamedArg("icon") Node icon) {
         initialize();
         setIcon(icon);
     }
@@ -99,7 +103,7 @@ public class RXSpeedDial extends Control {
      * @param icon    the main FAB icon, or {@code null}
      * @param actions initial actions to append, or {@code null}
      */
-    public RXSpeedDial(@NamedArg("graphic") Node icon,
+    public RXSpeedDial(@NamedArg("icon") Node icon,
                        @NamedArg("actions") RXSpeedDialAction... actions) {
         initialize();
         setIcon(icon);
@@ -160,6 +164,8 @@ public class RXSpeedDial extends Control {
                     notifyAccessibleAttributeChanged(AccessibleAttribute.EXPANDED);
                 }
             };
+    private boolean terminalEventPending;
+    private CloseReason pendingTerminalCloseReason;
 
     /**
      * Whether the dial is currently expanded.
@@ -187,7 +193,12 @@ public class RXSpeedDial extends Control {
             return;
         }
         fireSpeedDialEvent(RXSpeedDialEvent.SHOWING, null);
+        terminalEventPending = true;
+        pendingTerminalCloseReason = null;
         showing.set(true);
+        if (getSkin() == null) {
+            completeShowingTransition(true);
+        }
     }
 
     /**
@@ -211,8 +222,13 @@ public class RXSpeedDial extends Control {
         if (fireCloseRequest(effectiveReason)) {
             return;
         }
+        terminalEventPending = true;
+        pendingTerminalCloseReason = effectiveReason;
         fireSpeedDialEvent(RXSpeedDialEvent.HIDING, effectiveReason);
         showing.set(false);
+        if (getSkin() == null) {
+            completeShowingTransition(false);
+        }
     }
 
     /**
@@ -236,6 +252,20 @@ public class RXSpeedDial extends Control {
         RXSpeedDialEvent event = new RXSpeedDialEvent(this, this, eventType, closeReason);
         fireEvent(event);
         return event;
+    }
+
+    private void completeShowingTransition(boolean showingState) {
+        if (!terminalEventPending || isShowing() != showingState) {
+            return;
+        }
+        terminalEventPending = false;
+        if (showingState) {
+            fireSpeedDialEvent(RXSpeedDialEvent.SHOWN, null);
+            return;
+        }
+        CloseReason reason = pendingTerminalCloseReason == null ? CloseReason.TOGGLE : pendingTerminalCloseReason;
+        pendingTerminalCloseReason = null;
+        fireSpeedDialEvent(RXSpeedDialEvent.HIDDEN, reason);
     }
 
     // ==================== Direction ====================
@@ -390,7 +420,7 @@ public class RXSpeedDial extends Control {
 
     /**
      * Preferred display mode for action labels. A {@code null} value is stored
-     * as-is.
+     * as-is and rendered as {@link LabelMode#HOVER} by the default skin.
      *
      * @return the label-mode property
      */
@@ -587,8 +617,10 @@ public class RXSpeedDial extends Control {
             };
 
     /**
-     * Duration used by open and close transitions. A {@code null} or non-positive
-     * value is stored as-is and handled by the skin at play time.
+     * Duration used by open and close transitions, styleable through
+     * {@code -rx-animation-duration}. A {@code null}, non-positive, or non-finite
+     * value is stored as-is and rendered as an immediate transition by the default
+     * skin.
      *
      * @return the animation-duration property
      */
@@ -635,8 +667,9 @@ public class RXSpeedDial extends Control {
             };
 
     /**
-     * Delay between adjacent action animations. A {@code null} or negative value
-     * is stored as-is and handled by the skin at play time.
+     * Delay between adjacent action animations, styleable through
+     * {@code -rx-stagger-delay}. A {@code null}, non-positive, or non-finite value
+     * is stored as-is and rendered as no stagger by the default skin.
      *
      * @return the stagger-delay property
      */

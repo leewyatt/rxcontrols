@@ -205,6 +205,9 @@ public class RXSpeedDialA11yTest {
 
             fireKey((Node) dial.getScene().getFocusOwner(), KeyEvent.KEY_PRESSED, KeyCode.DOWN);
             assertSame(fabs.get(0), dial.getScene().getFocusOwner());
+
+            fireKey((Node) dial.getScene().getFocusOwner(), KeyEvent.KEY_PRESSED, KeyCode.DOWN);
+            assertSame(mainFab, dial.getScene().getFocusOwner());
         });
     }
 
