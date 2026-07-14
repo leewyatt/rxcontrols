@@ -71,6 +71,7 @@ public class RXFloatingActionButton extends RXButton {
         setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         setMinSize(USE_PREF_SIZE, USE_PREF_SIZE);
         setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
+        setPickOnBounds(false);
         updateSizePseudoClass();
     }
 

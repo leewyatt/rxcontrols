@@ -78,6 +78,7 @@ public class RXFloatingActionButtonTest {
             assertEquals(Region.USE_PREF_SIZE, button.getMinHeight());
             assertEquals(Region.USE_PREF_SIZE, button.getMaxWidth());
             assertEquals(Region.USE_PREF_SIZE, button.getMaxHeight());
+            assertFalse(button.isPickOnBounds());
             assertNotNull(button.getUserAgentStylesheet());
         });
     }
@@ -211,6 +212,24 @@ public class RXFloatingActionButtonTest {
             assertEquals(2.0, fills.get(1).getInsets().getTop());
             assertPercentRadius(fills.get(0).getRadii());
             assertPercentRadius(fills.get(1).getRadii());
+        });
+    }
+
+    /**
+     * Verifies the elevation shadow does not expand the clickable area.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void shadowRingDoesNotPick() throws Exception {
+        runOnFx(() -> {
+            RXFloatingActionButton button = new RXFloatingActionButton();
+            attachAndApplyCss(button);
+
+            assertTrue(button.getLayoutBounds().getWidth() > 0.0);
+            assertTrue(button.contains(button.getLayoutBounds().getWidth() / 2.0,
+                    button.getLayoutBounds().getHeight() / 2.0));
+            assertFalse(button.contains(-4.0, -4.0));
         });
     }
 

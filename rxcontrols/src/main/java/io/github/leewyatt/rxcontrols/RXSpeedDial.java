@@ -19,6 +19,7 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -413,6 +414,60 @@ public class RXSpeedDial extends Control {
      */
     public final void setLabelMode(LabelMode value) {
         labelMode.set(value);
+    }
+
+    // ==================== Label Placement ====================
+
+    private final ObjectProperty<LabelPlacement> labelPlacement =
+            new StyleableObjectProperty<>(LabelPlacement.AUTO) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, LabelPlacement> getCssMetaData() {
+                    return StyleableProperties.LABEL_PLACEMENT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXSpeedDial.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "labelPlacement";
+                }
+            };
+
+    /**
+     * Preferred placement for action labels, styleable through
+     * {@code -rx-label-placement}. A {@code null} value is stored as-is and
+     * rendered as {@link LabelPlacement#AUTO} by the default skin.
+     *
+     * @return the label-placement property
+     */
+    public final ObjectProperty<LabelPlacement> labelPlacementProperty() {
+        return labelPlacement;
+    }
+
+    /**
+     * Returns the label placement.
+     *
+     * @return the label placement, or {@code null}
+     */
+    public final LabelPlacement getLabelPlacement() {
+        return labelPlacement.get();
+    }
+
+    /**
+     * Sets the label placement.
+     *
+     * @param value the label placement, or {@code null}
+     */
+    public final void setLabelPlacement(LabelPlacement value) {
+        labelPlacement.set(value);
     }
 
     // ==================== Close On Focus Loss ====================
@@ -979,6 +1034,21 @@ public class RXSpeedDial extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXSpeedDial, LabelPlacement> LABEL_PLACEMENT =
+                new CssMetaData<>("-rx-label-placement",
+                        new EnumConverter<>(LabelPlacement.class), LabelPlacement.AUTO) {
+                    @Override
+                    public boolean isSettable(RXSpeedDial node) {
+                        return !node.labelPlacement.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<LabelPlacement> getStyleableProperty(RXSpeedDial node) {
+                        return (StyleableProperty<LabelPlacement>) node.labelPlacementProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -988,6 +1058,7 @@ public class RXSpeedDial extends Control {
             styleables.add(STAGGER_DELAY);
             styleables.add(ACTION_SPACING);
             styleables.add(LABEL_GAP);
+            styleables.add(LABEL_PLACEMENT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
@@ -1074,6 +1145,29 @@ public class RXSpeedDial extends Control {
          * No-label mode.
          */
         NONE
+    }
+
+    /**
+     * Requested placement for action labels relative to the action FAB.
+     */
+    public enum LabelPlacement {
+
+        /**
+         * Uses the default placement for the current action direction.
+         */
+        AUTO,
+
+        /**
+         * Places labels at the cross-axis start side: left for vertical action
+         * directions, top for horizontal action directions.
+         */
+        START,
+
+        /**
+         * Places labels at the cross-axis end side: right for vertical action
+         * directions, bottom for horizontal action directions.
+         */
+        END
     }
 
     /**

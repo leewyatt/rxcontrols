@@ -1840,6 +1840,7 @@
     -fx-background-color: transparent;
     -rx-action-spacing: 8px;
     -rx-label-gap: 8px;
+    -rx-label-placement: auto;
 }
 
 .rx-speed-dial > .actions {

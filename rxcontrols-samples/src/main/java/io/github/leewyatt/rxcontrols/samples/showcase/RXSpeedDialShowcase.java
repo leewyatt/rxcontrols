@@ -164,6 +164,12 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
         labels.setMaxWidth(Double.MAX_VALUE);
         labels.valueProperty().bindBidirectional(speedDial.labelModeProperty());
 
+        ComboBox<RXSpeedDial.LabelPlacement> labelPlacement = new ComboBox<>();
+        labelPlacement.getItems().setAll(RXSpeedDial.LabelPlacement.values());
+        labelPlacement.setValue(speedDial.getLabelPlacement());
+        labelPlacement.setMaxWidth(Double.MAX_VALUE);
+        labelPlacement.valueProperty().bindBidirectional(speedDial.labelPlacementProperty());
+
         Slider actionSpacing = createSlider(0.0, 24.0, speedDial.getActionSpacing());
         speedDial.actionSpacingProperty().bind(actionSpacing.valueProperty());
         Label actionSpacingValue = createValueLabel(actionSpacing, "%.0f px");
@@ -184,6 +190,7 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
                 row("Direction", direction),
                 row("Open trigger", trigger),
                 row("Labels", labels),
+                row("Label placement", labelPlacement),
                 row("Action spacing", actionSpacing, actionSpacingValue),
                 row("Label gap", labelGap, labelGapValue),
                 row(closeFocus),

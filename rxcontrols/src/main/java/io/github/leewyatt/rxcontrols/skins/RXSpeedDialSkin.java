@@ -276,6 +276,21 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         return mode == null ? RXSpeedDial.LabelMode.HOVER : mode;
     }
 
+    private RXSpeedDial.LabelPlacement labelPlacementOrDefault() {
+        RXSpeedDial.LabelPlacement placement = getSkinnable().getLabelPlacement();
+        return placement == null ? RXSpeedDial.LabelPlacement.AUTO : placement;
+    }
+
+    private RXSpeedDial.LabelPlacement effectiveLabelPlacement(RXSpeedDial.Direction direction) {
+        RXSpeedDial.LabelPlacement placement = labelPlacementOrDefault();
+        if (placement != RXSpeedDial.LabelPlacement.AUTO) {
+            return placement;
+        }
+        return direction == RXSpeedDial.Direction.RIGHT
+                ? RXSpeedDial.LabelPlacement.END
+                : RXSpeedDial.LabelPlacement.START;
+    }
+
     private double actionSpacing() {
         return RXMath.sanitizeFiniteNonNegative(getSkinnable().getActionSpacing());
     }
@@ -798,6 +813,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             double labelWidth = showLabel ? snapSizeX(label.prefWidth(-1)) : 0.0;
             double labelHeight = showLabel ? snapSizeY(label.prefHeight(-1)) : 0.0;
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
+            RXSpeedDial.LabelPlacement placement = effectiveLabelPlacement(direction);
             double gap = labelGap();
             double rootWidth = showLabel && !horizontal ? fabWidth + gap + labelWidth : fabWidth;
             double rootHeight = showLabel && horizontal ? fabHeight + gap + labelHeight
@@ -814,14 +830,14 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             } else if (horizontal) {
                 fabX = 0.0;
                 labelX = snapPositionX((fabWidth - labelWidth) / 2.0);
-                if (direction == RXSpeedDial.Direction.LEFT) {
+                if (placement == RXSpeedDial.LabelPlacement.START) {
                     labelY = 0.0;
                     fabY = labelHeight + gap;
                 } else {
                     fabY = 0.0;
                     labelY = fabHeight + gap;
                 }
-            } else if (labelAfterFab(direction)) {
+            } else if (placement == RXSpeedDial.LabelPlacement.END) {
                 fabX = 0.0;
                 labelX = fabWidth + gap;
                 fabY = snapPositionY((rootHeight - fabHeight) / 2.0);
@@ -897,10 +913,6 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                     getSkinnable().close(RXSpeedDial.CloseReason.ACTION);
                 }
             }
-        }
-
-        private boolean labelAfterFab(RXSpeedDial.Direction direction) {
-            return direction == RXSpeedDial.Direction.LEFT;
         }
 
         private void dispose() {
