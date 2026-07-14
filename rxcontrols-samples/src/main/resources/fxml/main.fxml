@@ -37,6 +37,7 @@
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Avatar" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Clip Path Image" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Button / Labele" toggleGroup="$navGroup"/>
+            <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Speed Dial" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Carousel" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Digit" toggleGroup="$navGroup"/>
             <RXRadioToggleButton prefHeight="30.0" prefWidth="237.0" text="Highlight Text" toggleGroup="$navGroup"/>

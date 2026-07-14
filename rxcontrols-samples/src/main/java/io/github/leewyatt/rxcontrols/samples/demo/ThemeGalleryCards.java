@@ -24,6 +24,7 @@ import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXDualPane;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXFillLabel;
+import io.github.leewyatt.rxcontrols.RXFloatingActionButton;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.RXImageView;
@@ -52,6 +53,8 @@ import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSpeedDial;
+import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -78,6 +81,7 @@ import java.util.List;
 import java.util.Locale;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -145,6 +149,7 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXDualPane", buildRXDualPane()));
         list.add(new NamedControl("RXFillButton", buildRXFillButton()));
         list.add(new NamedControl("RXFillLabel", buildRXFillLabel()));
+        list.add(new NamedControl("RXFloatingActionButton", buildRXFloatingActionButton()));
         list.add(new NamedControl("RXHighlightTextView", buildRXHighlightTextView()));
         list.add(new NamedControl("RXImagePane", buildRXImagePane()));
         list.add(new NamedControl("RXImageView", buildRXImageView()));
@@ -169,6 +174,7 @@ final class ThemeGalleryCards {
         list.add(new NamedControl("RXSegmentedProgressBar", buildRXSegmentedProgressBar()));
         list.add(new NamedControl("RXSegmentedStepIndicator", buildRXSegmentedStepIndicator()));
         list.add(new NamedControl("RXSidebar", buildRXSidebar()));
+        list.add(new NamedControl("RXSpeedDial", buildRXSpeedDial()));
         list.add(new NamedControl("RXSkeleton", buildRXSkeleton()));
         list.add(new NamedControl("RXStatePane", buildRXStatePane()));
         list.add(new NamedControl("RXTextField", buildRXTextField()));
@@ -521,6 +527,13 @@ final class ThemeGalleryCards {
             tags.getChildren().add(tag);
         }
         return tags;
+    }
+
+    private static Node buildRXFloatingActionButton() {
+        RXFloatingActionButton fab =
+                new RXFloatingActionButton(fabIcon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"));
+        fab.setAccessibleText("Create");
+        return fab;
     }
 
     private static Node buildRXDecimalField() {
@@ -894,6 +907,51 @@ final class ThemeGalleryCards {
         sidebar.setAnimated(false);
         sidebar.setPrefHeight(460.0);
         return sidebar;
+    }
+
+    private static Node buildRXSpeedDial() {
+        RXSpeedDialAction archive = speedDialAction("Archive", "M4 5 H16 V8 H4 Z M6 8 H14 V16 H6 Z M8 11 H12");
+        RXSpeedDialAction pin = speedDialAction("Pin", "M7 3 H13 L11 8 L14 12 L10 11 L7 17 L8 11 L4 12 L7 8 Z");
+        RXSpeedDialAction comment = speedDialAction("Comment", "M4 4 H16 V13 H8 L4 17 Z");
+        RXSpeedDial dial = new RXSpeedDial(fabIcon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
+                archive, pin, comment);
+        dial.setOpenIcon(fabIcon("M4 4 L16 16 M16 4 L4 16"));
+        dial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
+        dial.setCloseOnFocusLoss(false);
+        dial.setCloseOnClickOutside(false);
+
+        StackPane stage = new StackPane(dial);
+        stage.setAlignment(Pos.BOTTOM_RIGHT);
+        stage.setPadding(new Insets(42.0, 18.0, 28.0, 18.0));
+        stage.setPrefSize(280.0, 230.0);
+        stage.setMaxSize(280.0, 230.0);
+        stage.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                Platform.runLater(() -> {
+                    stage.applyCss();
+                    if (!dial.isShowing()) {
+                        dial.open();
+                    }
+                });
+            }
+        });
+        return stage;
+    }
+
+    private static RXSpeedDialAction speedDialAction(String text, String shape) {
+        RXSpeedDialAction action = new RXSpeedDialAction(text, fabIcon(shape));
+        action.setCloseOnAction(false);
+        return action;
+    }
+
+    private static Region fabIcon(String shape) {
+        Region icon = new Region();
+        icon.getStyleClass().add("icon");
+        icon.setMinSize(18.0, 18.0);
+        icon.setPrefSize(18.0, 18.0);
+        icon.setMaxSize(18.0, 18.0);
+        icon.setStyle("-fx-shape: \"" + shape + "\";");
+        return icon;
     }
 
     private static Node buildRXPlaceholder() {

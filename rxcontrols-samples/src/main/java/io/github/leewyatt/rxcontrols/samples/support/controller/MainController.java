@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.support.controller;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXImagePane;
+import io.github.leewyatt.rxcontrols.RXSpeedDial;
+import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBox;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
@@ -27,12 +29,16 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
@@ -52,13 +58,16 @@ public class MainController {
 
     private static final String CAROUSEL_DEMO_IMAGES = "/io/github/leewyatt/rxcontrols/samples/demo/carousel/images/";
     private static final int CAROUSEL_DEMO_IMAGE_COUNT = 6;
+    private static final String CAROUSEL_DEMO_PAGE = "rx:carousel-demo";
+    private static final String SPEED_DIAL_DEMO_PAGE = "rx:speed-dial-demo";
 
     private static final String[] PAGE_FXML = {
             "/fxml/pane-about.fxml",
             "/fxml/pane-avatar.fxml",
             "/fxml/pane-clip-path-image-view.fxml",
             "/fxml/pane-buttons.fxml",
-            null, // carousel demo built dynamically
+            SPEED_DIAL_DEMO_PAGE,
+            CAROUSEL_DEMO_PAGE,
             "/fxml/pane-digit.fxml",
             "/fxml/pane-highlight-text.fxml",
             "/fxml/pane-field.fxml",
@@ -112,8 +121,11 @@ public class MainController {
     private Callback<Integer, Node> buildPageFactory() {
         return index -> {
             String fxml = PAGE_FXML[index];
-            if (fxml == null) {
+            if (CAROUSEL_DEMO_PAGE.equals(fxml)) {
                 return buildCarouselDemoPane();
+            }
+            if (SPEED_DIAL_DEMO_PAGE.equals(fxml)) {
+                return buildSpeedDialDemoPane();
             }
             try {
                 return FXMLLoader.load(getClass().getResource(fxml));
@@ -154,6 +166,80 @@ public class MainController {
         StackPane carouselContainer = new StackPane(demoCarousel);
         carouselContainer.setStyle("-fx-padding: 80px 50px;");
         return carouselContainer;
+    }
+
+    // ==================== Embedded Speed Dial Demo ====================
+
+    private Pane buildSpeedDialDemoPane() {
+        Label title = new Label("Launch checklist");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+        Label subtitle = new Label("One main FAB exposes related document actions.");
+        subtitle.setStyle("-fx-text-fill: #64748b;");
+        Label status = new Label("No quick action selected");
+        status.setStyle("-fx-text-fill: #64748b; -fx-padding: 8 0 0 0;");
+
+        VBox rows = new VBox(10.0,
+                speedDialRow("Verify migration dry run", "Database owner"),
+                speedDialRow("Freeze billing imports", "Finance system"),
+                speedDialRow("Prepare status page", "Support"),
+                speedDialRow("Schedule rollout window", "Platform"));
+        VBox card = new VBox(18.0, new VBox(2.0, title, subtitle), rows, status);
+        card.setMaxWidth(430.0);
+        card.setStyle("-fx-background-color: white;"
+                + " -fx-background-radius: 8px;"
+                + " -fx-border-color: #d8dee9;"
+                + " -fx-border-radius: 8px;"
+                + " -fx-padding: 28px;"
+                + " -fx-effect: dropshadow(gaussian, rgba(31, 41, 55, 0.16), 22, 0.16, 0, 8);");
+
+        RXSpeedDial dial = new RXSpeedDial(speedDialIcon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
+                speedDialAction(status, "Save", "M3 8 L7 12 L14 4", "Saved draft"),
+                speedDialAction(status, "Duplicate", "M4 3 H11 V5 H6 V14 H4 Z M7 6 H14 V17 H7 Z",
+                        "Duplicated checklist"),
+                speedDialAction(status, "Share",
+                        "M13 5 A2 2 0 1 0 13 4 M6 9 A2 2 0 1 0 6 8 M13 14 A2 2 0 1 0 13 13 M8 9 L11 6 M8 10 L11 13",
+                        "Share link copied"),
+                speedDialAction(status, "Delete", "M5 6 H14 M7 6 V15 M12 6 V15 M6 6 L7 17 H12 L13 6 M8 4 H11",
+                        "Moved to trash"));
+        dial.setOpenIcon(speedDialIcon("M4 4 L16 16 M16 4 L4 16"));
+        dial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
+        dial.setCloseOnFocusLoss(false);
+        dial.setCloseOnClickOutside(false);
+
+        StackPane page = new StackPane(card, dial);
+        page.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);");
+        StackPane.setAlignment(dial, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(dial, new Insets(0.0, 34.0, 34.0, 0.0));
+        return page;
+    }
+
+    private Node speedDialRow(String title, String owner) {
+        Label name = new Label(title);
+        name.setStyle("-fx-text-fill: #1f2937; -fx-font-weight: bold;");
+        Label ownerLabel = new Label(owner);
+        ownerLabel.setStyle("-fx-text-fill: #64748b;");
+        HBox row = new HBox(12.0, name, ownerLabel);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-background-color: #f8fafc;"
+                + " -fx-background-radius: 6px;"
+                + " -fx-border-color: #e5e7eb;"
+                + " -fx-border-radius: 6px;"
+                + " -fx-padding: 12px 14px;");
+        return row;
+    }
+
+    private RXSpeedDialAction speedDialAction(Label status, String text, String shape, String message) {
+        return new RXSpeedDialAction(text, speedDialIcon(shape), event -> status.setText(message));
+    }
+
+    private Region speedDialIcon(String shape) {
+        Region icon = new Region();
+        icon.getStyleClass().add("icon");
+        icon.setStyle("-fx-shape: \"" + shape + "\";");
+        icon.setMinSize(18.0, 18.0);
+        icon.setPrefSize(18.0, 18.0);
+        icon.setMaxSize(18.0, 18.0);
+        return icon;
     }
 
     private Map<String, PageAnimation> buildDemoAnimations() {
