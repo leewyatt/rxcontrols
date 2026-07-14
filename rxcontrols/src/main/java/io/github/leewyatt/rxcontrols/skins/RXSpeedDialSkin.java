@@ -28,6 +28,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -115,6 +116,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
         stopOpenCloseAnimation();
         mainFab.notifyAccessibleAttributeChanged(AccessibleAttribute.EXPANDED);
+        getSkinnable().requestLayout();
         Duration duration = getSkinnable().getAnimationDuration();
         if (!getSkinnable().isAnimated() || !PageTransitionEngine.isPositiveFinite(duration)) {
             snapTo(opening);
@@ -345,6 +347,9 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
         Timeline timeline = buildOpenCloseTimeline(opening, duration);
         openCloseAnim = timeline;
+        if (!opening) {
+            updateCellLabelVisibility();
+        }
         timeline.setOnFinished(event -> {
             if (openCloseAnim != timeline) {
                 return;
@@ -366,18 +371,18 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             int order = opening ? i : count - i - 1;
             Duration delay = Duration.millis(order * staggerMillis);
             double startOpacity = cell.root.getOpacity();
-            double startScaleX = cell.root.getScaleX();
-            double startScaleY = cell.root.getScaleY();
+            double startScaleX = cell.actionScale.getX();
+            double startScaleY = cell.actionScale.getY();
             timeline.getKeyFrames().add(new KeyFrame(delay,
                     new KeyValue(cell.root.opacityProperty(), startOpacity, Interpolator.EASE_BOTH),
-                    new KeyValue(cell.root.scaleXProperty(), startScaleX, Interpolator.EASE_BOTH),
-                    new KeyValue(cell.root.scaleYProperty(), startScaleY, Interpolator.EASE_BOTH)));
+                    new KeyValue(cell.actionScale.xProperty(), startScaleX, Interpolator.EASE_BOTH),
+                    new KeyValue(cell.actionScale.yProperty(), startScaleY, Interpolator.EASE_BOTH)));
             timeline.getKeyFrames().add(new KeyFrame(delay.add(duration),
                     new KeyValue(cell.root.opacityProperty(), opening ? VISIBLE_OPACITY : HIDDEN_OPACITY,
                             Interpolator.EASE_BOTH),
-                    new KeyValue(cell.root.scaleXProperty(), opening ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE,
+                    new KeyValue(cell.actionScale.xProperty(), opening ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE,
                             Interpolator.EASE_BOTH),
-                    new KeyValue(cell.root.scaleYProperty(), opening ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE,
+                    new KeyValue(cell.actionScale.yProperty(), opening ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE,
                             Interpolator.EASE_BOTH)));
         }
         addIconMorphKeyFrames(timeline, opening, duration);
@@ -537,6 +542,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             cell.updateLabelVisibility();
         }
         getSkinnable().requestLayout();
+    }
+
+    private boolean isClosingAnimationRunning() {
+        return openCloseAnim != null && !getSkinnable().isShowing();
     }
 
     private boolean isFocusWithin() {
@@ -733,6 +742,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
 
         private final RXSpeedDialAction action;
         private final Pane root = new Pane();
+        private final Scale actionScale = new Scale(VISIBLE_ACTION_SCALE, VISIBLE_ACTION_SCALE);
         private final RXFloatingActionButton fab = new RXFloatingActionButton();
         private final Label label = new Label();
         private final SkinDisposer cellDisposer = new SkinDisposer();
@@ -744,6 +754,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             fab.setSize(RXFloatingActionButton.Size.SMALL);
             fab.setFocusTraversable(false);
             label.setMouseTransparent(true);
+            root.getTransforms().add(actionScale);
 
             cellDisposer.registerBinding(fab.graphicProperty(), action.graphicProperty());
             cellDisposer.registerBinding(fab.disableProperty(), action.disableProperty());
@@ -754,7 +765,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             cellDisposer.registerListener(action.textProperty(), this::onTextChanged);
             cellDisposer.registerListener(fab.disabledProperty(), this::onDisableChanged);
             cellDisposer.registerListener(fab.focusedProperty(), this::onLabelSignalChanged);
-            cellDisposer.registerListener(root.hoverProperty(), this::onLabelSignalChanged);
+            cellDisposer.registerListener(fab.hoverProperty(), this::onLabelSignalChanged);
             cellDisposer.registerEventHandler(fab, ActionEvent.ACTION, this::handleAction);
 
             root.getChildren().setAll(fab);
@@ -795,8 +806,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         private void snapTo(boolean showing) {
             boolean visible = showing && action.isVisible();
             root.setOpacity(visible ? VISIBLE_OPACITY : HIDDEN_OPACITY);
-            root.setScaleX(visible ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE);
-            root.setScaleY(visible ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE);
+            actionScale.setX(visible ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE);
+            actionScale.setY(visible ? VISIBLE_ACTION_SCALE : HIDDEN_ACTION_SCALE);
             updateLabelVisibility();
         }
 
@@ -809,14 +820,14 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
             RXSpeedDial.LabelPlacement placement = effectiveLabelPlacement(direction);
             double gap = labelGap();
-            boolean showLabel = label.isVisible();
+            boolean useLabelSlot = usesLabelSlot();
             double rootWidth = metrics.width();
             double rootHeight = metrics.height();
             double fabX;
             double labelX;
             double fabY;
             double labelY;
-            if (!showLabel) {
+            if (!useLabelSlot) {
                 fabX = 0.0;
                 labelX = 0.0;
                 fabY = 0.0;
@@ -848,19 +859,30 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                     rootWidth, rootHeight);
             fab.resizeRelocate(fabX, fabY, fabWidth, fabHeight);
             label.resizeRelocate(labelX, labelY, labelWidth, labelHeight);
+            actionScale.setPivotX(snapPositionX(fabX + fabWidth / 2.0));
+            actionScale.setPivotY(snapPositionY(fabY + fabHeight / 2.0));
         }
 
         private CellMetrics measure(RXSpeedDial.Direction direction) {
             double fabWidth = snapSizeX(fab.prefWidth(-1));
             double fabHeight = snapSizeY(fab.prefHeight(-1));
-            boolean showLabel = label.isVisible();
-            double labelWidth = showLabel ? snapSizeX(label.prefWidth(-1)) : 0.0;
-            double labelHeight = showLabel ? snapSizeY(label.prefHeight(-1)) : 0.0;
+            boolean useLabelSlot = usesLabelSlot();
+            if (useLabelSlot) {
+                label.applyCss();
+            }
+            double labelWidth = useLabelSlot ? snapSizeX(label.prefWidth(-1)) : 0.0;
+            double labelHeight = useLabelSlot ? snapSizeY(label.prefHeight(-1)) : 0.0;
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
-            double gap = showLabel ? labelGap() : 0.0;
+            double gap = useLabelSlot ? labelGap() : 0.0;
             double width = horizontal ? Math.max(fabWidth, labelWidth) : fabWidth + gap + labelWidth;
             double height = horizontal ? fabHeight + gap + labelHeight : Math.max(fabHeight, labelHeight);
             return new CellMetrics(fabWidth, fabHeight, labelWidth, labelHeight, width, height);
+        }
+
+        private boolean usesLabelSlot() {
+            String text = action.getText();
+            return labelModeOrDefault() != RXSpeedDial.LabelMode.NONE
+                    && text != null && !text.isBlank();
         }
 
         private void onTextChanged() {
@@ -894,11 +916,14 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
 
         private void updateLabelVisibility() {
+            if (isClosingAnimationRunning() && labelModeOrDefault() == RXSpeedDial.LabelMode.PERSISTENT) {
+                return;
+            }
             String text = action.getText();
             RXSpeedDial.LabelMode mode = labelModeOrDefault();
             boolean hasText = text != null && !text.isBlank();
             boolean active = mode == RXSpeedDial.LabelMode.PERSISTENT
-                    || mode == RXSpeedDial.LabelMode.HOVER && (root.isHover() || isFocusOwnerWithinFab());
+                    || mode == RXSpeedDial.LabelMode.HOVER && (fab.isHover() || isFocusOwnerWithinFab());
             label.setVisible(hasText && root.getChildren().contains(label)
                     && getSkinnable().isShowing() && action.isVisible() && active);
         }

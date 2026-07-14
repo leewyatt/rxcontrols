@@ -31,6 +31,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.AfterEach;
@@ -314,8 +315,8 @@ public class RXSpeedDialTest {
             assertTrue(actionsLayer(dial).isVisible());
             assertFalse(actionsLayer(dial).isMouseTransparent());
             assertEquals(1.0, cell.getOpacity(), EPSILON);
-            assertEquals(1.0, cell.getScaleX(), EPSILON);
-            assertEquals(1.0, cell.getScaleY(), EPSILON);
+            assertEquals(1.0, actionScale(cell).getX(), EPSILON);
+            assertEquals(1.0, actionScale(cell).getY(), EPSILON);
 
             dial.close();
             applyCssAndLayout(dial);
@@ -324,8 +325,8 @@ public class RXSpeedDialTest {
             assertTrue(actionsLayer(dial).isMouseTransparent());
             assertFalse(cell.isVisible());
             assertEquals(0.0, cell.getOpacity(), EPSILON);
-            assertEquals(0.6, cell.getScaleX(), EPSILON);
-            assertEquals(0.6, cell.getScaleY(), EPSILON);
+            assertEquals(0.6, actionScale(cell).getX(), EPSILON);
+            assertEquals(0.6, actionScale(cell).getY(), EPSILON);
         });
     }
 
@@ -363,8 +364,8 @@ public class RXSpeedDialTest {
                 assertEquals(0, visibleActionCells(dial).size());
                 Node cell = actionCells(dial).get(0);
                 assertEquals(0.0, cell.getOpacity(), EPSILON);
-                assertEquals(0.6, cell.getScaleX(), EPSILON);
-                assertEquals(0.6, cell.getScaleY(), EPSILON);
+                assertEquals(0.6, actionScale(cell).getX(), EPSILON);
+                assertEquals(0.6, actionScale(cell).getY(), EPSILON);
                 assertEquals(List.of("RX_SPEED_DIAL_SHOWING:null", "RX_SPEED_DIAL_SHOWN:null",
                         "RX_SPEED_DIAL_CLOSE_REQUEST:TOGGLE", "RX_SPEED_DIAL_HIDING:TOGGLE",
                         "RX_SPEED_DIAL_HIDDEN:TOGGLE"), log);
@@ -523,7 +524,7 @@ public class RXSpeedDialTest {
             Node cell = actionCells(dial).get(0);
             assertFalse(cell.isVisible());
             assertEquals(0.0, cell.getOpacity(), EPSILON);
-            assertEquals(0.6, cell.getScaleX(), EPSILON);
+            assertEquals(0.6, actionScale(cell).getX(), EPSILON);
             assertEquals(List.of("RX_SPEED_DIAL_SHOWING:null",
                     "RX_SPEED_DIAL_CLOSE_REQUEST:TOGGLE", "RX_SPEED_DIAL_HIDING:TOGGLE",
                     "RX_SPEED_DIAL_HIDDEN:TOGGLE"), log);
@@ -1145,6 +1146,53 @@ public class RXSpeedDialTest {
     }
 
     /**
+     * Verifies hover labels reserve horizontal layout before they become visible.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void horizontalHoverLabelsReserveCellWidthAndDoNotMoveFabOnActivation() throws Exception {
+        RXSpeedDial[] dialRef = new RXSpeedDial[1];
+        RXFloatingActionButton[] fabRef = new RXFloatingActionButton[1];
+        double[] centerBefore = new double[2];
+
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Very long first action label", new Region()),
+                    new RXSpeedDialAction("Very long second action label", new Region()));
+            dial.setAnimated(false);
+            dial.setDirection(Direction.RIGHT);
+            dial.setLabelMode(LabelMode.HOVER);
+            showInStage(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+
+            List<Node> cells = visibleActionCells(dial);
+            Label label = actionLabels(dial).get(0);
+            RXFloatingActionButton fab = visibleActionFabs(dial).get(0);
+            assertFalse(label.isVisible());
+            assertTrue(cells.get(0).getLayoutBounds().getWidth() >= label.prefWidth(-1));
+            assertAdjacentVisibleCellEdgeGap(dial, Direction.RIGHT, 8.0);
+
+            centerBefore[0] = centerX(fab);
+            centerBefore[1] = centerY(fab);
+            fab.requestFocus();
+            dialRef[0] = dial;
+            fabRef[0] = fab;
+        });
+        runOnFx(() -> {
+            RXSpeedDial dial = dialRef[0];
+            RXFloatingActionButton fab = fabRef[0];
+            applyCssAndLayout(dial);
+
+            assertTrue(actionLabels(dial).get(0).isVisible());
+            assertEquals(centerBefore[0], centerX(fab), 1.0);
+            assertEquals(centerBefore[1], centerY(fab), 1.0);
+            assertAdjacentVisibleCellEdgeGap(dial, Direction.RIGHT, 8.0);
+        });
+    }
+
+    /**
      * Verifies tall persistent vertical labels expand the whole action item.
      *
      * @throws Exception if the FX-thread assertion fails
@@ -1166,6 +1214,41 @@ public class RXSpeedDialTest {
             Label label = visibleActionLabels(dial).get(0);
             assertTrue(cells.get(0).getLayoutBounds().getHeight() >= label.prefHeight(-1));
             assertAdjacentVisibleCellEdgeGap(dial, Direction.UP, 8.0);
+        });
+    }
+
+    /**
+     * Verifies labeled action animation scales around the FAB center.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void labeledActionAnimationScaleUsesFabCenter() throws Exception {
+        runOnFx(() -> {
+            for (LabelMode mode : List.of(LabelMode.PERSISTENT, LabelMode.HOVER)) {
+                RXSpeedDial dial = new RXSpeedDial(new Region(),
+                        new RXSpeedDialAction("Very long action label", new Region()));
+                dial.setAnimated(false);
+                dial.setDirection(Direction.UP);
+                dial.setLabelMode(mode);
+                attachAndApplyCss(dial);
+                dial.open();
+                applyCssAndLayout(dial);
+
+                Node cell = visibleActionCells(dial).get(0);
+                RXFloatingActionButton fab = visibleActionFabs(dial).get(0);
+                Scale scale = actionScale(cell);
+                assertEquals(fab.getLayoutX() + fab.getWidth() / 2.0, scale.getPivotX(), EPSILON);
+                assertEquals(fab.getLayoutY() + fab.getHeight() / 2.0, scale.getPivotY(), EPSILON);
+
+                double centerX = layoutCenterX(fab);
+                double centerY = layoutCenterY(fab);
+                scale.setX(0.6);
+                scale.setY(0.6);
+
+                assertEquals(centerX, layoutCenterX(fab), EPSILON);
+                assertEquals(centerY, layoutCenterY(fab), EPSILON);
+            }
         });
     }
 
@@ -1193,6 +1276,63 @@ public class RXSpeedDialTest {
             assertEquals(List.of("handler"), calls);
             assertFalse(dial.isShowing());
             assertEquals(List.of(RXSpeedDial.CloseReason.ACTION), reasons);
+        });
+    }
+
+    /**
+     * Verifies persistent labels are not hidden before their closing animation.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void persistentActionCloseKeepsCurrentLabelVisibleDuringClosingAnimationAfterFocusLoss() throws Exception {
+        assertActionCloseLabelVisibilityDuringClosingAnimationAfterFocusLoss(LabelMode.PERSISTENT, true);
+    }
+
+    /**
+     * Verifies hover labels are hidden immediately when the dial closes.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverActionCloseHidesCurrentLabelAtClosingAnimationStart() throws Exception {
+        assertActionCloseLabelVisibilityDuringClosingAnimationAfterFocusLoss(LabelMode.HOVER, false);
+    }
+
+    private void assertActionCloseLabelVisibilityDuringClosingAnimationAfterFocusLoss(
+            LabelMode mode, boolean expectedLabelVisible) throws Exception {
+        RXSpeedDial[] dialRef = new RXSpeedDial[1];
+        RXFloatingActionButton[] actionFabRef = new RXFloatingActionButton[1];
+        Button[] outsideRef = new Button[1];
+
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(), new RXSpeedDialAction("Pin", new Region()));
+            Button outside = new Button("outside");
+            dial.setAnimated(false);
+            dial.setLabelMode(mode);
+            showInStage(dial, outside);
+            dial.open();
+            applyCssAndLayout(dial);
+            RXFloatingActionButton actionFab = visibleActionFabs(dial).get(0);
+            actionFab.requestFocus();
+            dialRef[0] = dial;
+            actionFabRef[0] = actionFab;
+            outsideRef[0] = outside;
+        });
+        runOnFx(() -> {
+            RXSpeedDial dial = dialRef[0];
+            Label label = actionLabels(dial).get(0);
+            assertTrue(label.isVisible());
+
+            dial.setAnimationDuration(Duration.seconds(5.0));
+            dial.setAnimated(true);
+            actionFabRef[0].fire();
+            outsideRef[0].requestFocus();
+
+            assertFalse(dial.isShowing());
+            assertEquals(expectedLabelVisible, label.isVisible());
+            stage.hide();
+            stage = null;
         });
     }
 
@@ -1780,6 +1920,14 @@ public class RXSpeedDialTest {
                 .orElseThrow();
     }
 
+    private static Scale actionScale(Node actionCell) {
+        return actionCell.getTransforms().stream()
+                .filter(Scale.class::isInstance)
+                .map(Scale.class::cast)
+                .findFirst()
+                .orElseThrow();
+    }
+
     private static RXFloatingActionButton mainFab(RXSpeedDial dial) {
         return dial.lookupAll(".rx-fab").stream()
                 .filter(RXFloatingActionButton.class::isInstance)
@@ -1889,6 +2037,16 @@ public class RXSpeedDialTest {
 
     private static double centerY(Node node) {
         Bounds bounds = sceneBounds(node);
+        return (bounds.getMinY() + bounds.getMaxY()) / 2.0;
+    }
+
+    private static double layoutCenterX(Node node) {
+        Bounds bounds = sceneLayoutBounds(node);
+        return (bounds.getMinX() + bounds.getMaxX()) / 2.0;
+    }
+
+    private static double layoutCenterY(Node node) {
+        Bounds bounds = sceneLayoutBounds(node);
         return (bounds.getMinY() + bounds.getMaxY()) / 2.0;
     }
 
