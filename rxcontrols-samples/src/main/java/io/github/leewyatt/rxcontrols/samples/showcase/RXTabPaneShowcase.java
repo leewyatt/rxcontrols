@@ -7,10 +7,11 @@ import io.github.leewyatt.rxcontrols.RXTabPane.ScrollButtonPolicy;
 import io.github.leewyatt.rxcontrols.RXTabPane.TabAlignment;
 import io.github.leewyatt.rxcontrols.RXTabPane.TabClosingPolicy;
 import io.github.leewyatt.rxcontrols.RXTabPane.Variant;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBox;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGallery;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
@@ -55,7 +56,8 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
     private static final String ANIM_NONE = "None (direct cut)";
     private static final String ANIM_FADE = "Fade";
     private static final String ANIM_SLIDE = "Slide";
-    private static final String ANIM_ZOOM = "Zoom";
+    private static final String ANIM_BOX = "Box";
+    private static final String ANIM_GALLERY = "Gallery";
     private static final String ANIM_FLIP = "Flip";
 
     private static final String[] ACCENTS = {"#4f6df5", "#12b886", "#f08c00", "#e8590c", "#ae3ec9", "#1098ad"};
@@ -174,7 +176,7 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
         tabPane.tabAlignmentProperty().bind(alignBox.valueProperty());
 
         ComboBox<String> animBox = new ComboBox<>();
-        animBox.getItems().setAll(ANIM_NONE, ANIM_FADE, ANIM_SLIDE, ANIM_ZOOM, ANIM_FLIP);
+        animBox.getItems().setAll(ANIM_NONE, ANIM_FADE, ANIM_SLIDE, ANIM_BOX, ANIM_GALLERY, ANIM_FLIP);
         animBox.setValue(ANIM_NONE);
         animBox.setMaxWidth(Double.MAX_VALUE);
         // contentAnimation is an ObjectProperty<PageAnimation>, so map the name to a
@@ -210,8 +212,10 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
                 return new AnimFade();
             case ANIM_SLIDE:
                 return new AnimSlide();
-            case ANIM_ZOOM:
-                return new AnimZoom();
+            case ANIM_BOX:
+                return new AnimBox();
+            case ANIM_GALLERY:
+                return new AnimGallery();
             case ANIM_FLIP:
                 return new AnimFlip();
             default:
