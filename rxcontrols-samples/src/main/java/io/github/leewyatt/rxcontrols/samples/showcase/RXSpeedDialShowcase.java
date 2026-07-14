@@ -42,6 +42,12 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
     private static final String MAIN_FAB_SMALL = "main-fab-small";
     private static final String MAIN_FAB_LARGE = "main-fab-large";
 
+    private static final String PLUS_ICON = "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z";
+    private static final String ARCHIVE_ICON =
+            "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23"
+                    + "C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27z"
+                    + "M12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z";
+
     private RXSpeedDial speedDial;
     private RXSpeedDialAction archiveAction;
     private RXSpeedDialAction pinAction;
@@ -76,12 +82,16 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        archiveAction = action("Archive", "M4 5 H16 V8 H4 Z M6 8 H14 V16 H6 Z M8 11 H12");
-        pinAction = action("Pin", "M7 3 H13 L11 8 L14 12 L10 11 L7 17 L8 11 L4 12 L7 8 Z");
-        commentAction = action("Comment", "M4 4 H16 V13 H8 L4 17 Z");
-        deleteAction = action("Delete", "M5 6 H15 M7 6 V16 M13 6 V16 M6 6 L7 18 H13 L14 6 M8 4 H12");
+        archiveAction = action("Archive", ARCHIVE_ICON);
+        pinAction = action("Pin",
+                "M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5"
+                        + "c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z");
+        commentAction = action("Comment",
+                "M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z");
+        deleteAction = action("Delete",
+                "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z");
 
-        speedDial = new RXSpeedDial(icon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
+        speedDial = new RXSpeedDial(icon(PLUS_ICON),
                 archiveAction, pinAction, commentAction, deleteAction);
         speedDial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
         speedDial.setCloseOnClickOutside(false);
@@ -131,7 +141,7 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
         size.valueProperty().addListener((observable, was, is) -> applyMainFabSize(is));
 
         ComboBox<String> iconPair = new ComboBox<>();
-        iconPair.getItems().setAll("Plus / Close", "Star / Check", "Mail / Archive");
+        iconPair.getItems().setAll("Plus / Close", "Star / Settings", "Mail / Archive");
         iconPair.setValue("Plus / Close");
         iconPair.setMaxWidth(Double.MAX_VALUE);
         iconPair.valueProperty().addListener((observable, was, is) -> applyIconPair(is));
@@ -263,7 +273,7 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
 
     private void addExtraAction() {
         int index = extraActions.size() + 1;
-        RXSpeedDialAction action = action("Extra " + index, "M4 9 H16 V11 H4 Z M9 4 H11 V16 H9 Z");
+        RXSpeedDialAction action = action("Extra " + index, PLUS_ICON);
         action.setCloseOnAction(false);
         extraActions.add(action);
         speedDial.getActions().add(action);
@@ -288,16 +298,27 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
 
     private void applyIconPair(String value) {
         switch (value) {
-            case "Star / Check" -> {
-                speedDial.setIcon(icon("M10 2 L12.4 7.2 L18 7.8 L13.8 11.4 L15 17 L10 14.1 L5 17 L6.2 11.4 L2 7.8 L7.6 7.2 Z"));
-                speedDial.setOpenIcon(icon("M9 16.2 L4.8 12 L3.4 13.4 L9 19 L21 7 L19.6 5.6 Z"));
+            case "Star / Settings" -> {
+                speedDial.setIcon(icon("M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63"
+                        + " 2 9.24l5.46 4.73L5.82 21z"));
+                speedDial.setOpenIcon(icon("M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98"
+                        + "l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1"
+                        + "c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4"
+                        + "c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1"
+                        + "c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65"
+                        + "c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64"
+                        + "l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65"
+                        + "c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98"
+                        + "l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"
+                        + "M12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"));
             }
             case "Mail / Archive" -> {
-                speedDial.setIcon(icon("M3 5 H17 V15 H3 Z M3 5 L10 11 L17 5"));
-                speedDial.setOpenIcon(icon("M4 5 H16 V8 H4 Z M6 8 H14 V16 H6 Z M8 11 H12"));
+                speedDial.setIcon(icon("M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6"
+                        + "c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"));
+                speedDial.setOpenIcon(icon(ARCHIVE_ICON));
             }
             default -> {
-                speedDial.setIcon(icon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"));
+                speedDial.setIcon(icon(PLUS_ICON));
                 speedDial.setOpenIcon(null);
             }
         }

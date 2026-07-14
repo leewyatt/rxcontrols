@@ -49,15 +49,21 @@ public class RXSpeedDialDemo extends Application {
     }
 
     private RXSpeedDial createSpeedDial() {
-        RXSpeedDialAction save = action("Save", "M9 16.2 L4.8 12 L3.4 13.4 L9 19 L21 7 L19.6 5.6 Z");
+        RXSpeedDialAction save = action("Save",
+                "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z");
         RXSpeedDialAction duplicate = action("Duplicate",
-                "M4 3 H11 V5 H6 V14 H4 Z M7 6 H14 V17 H7 Z");
+                "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11"
+                        + "c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z");
         RXSpeedDialAction share = action("Share",
-                "M13 5 A2 2 0 1 0 13 4 M6 9 A2 2 0 1 0 6 8 M13 14 A2 2 0 1 0 13 13 M8 9 L11 6 M8 10 L11 13");
+                "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7"
+                        + "l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3"
+                        + "c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3"
+                        + "c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92"
+                        + "s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z");
         RXSpeedDialAction delete = action("Delete",
-                "M5 6 H14 M7 6 V15 M12 6 V15 M6 6 L7 17 H12 L13 6 M8 4 H11");
+                "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z");
 
-        RXSpeedDial dial = new RXSpeedDial(icon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
+        RXSpeedDial dial = new RXSpeedDial(icon("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"),
                 save, duplicate, share, delete);
         dial.setDirection(RXSpeedDial.Direction.UP);
         dial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
