@@ -193,7 +193,8 @@ public class MainController {
                 + " -fx-effect: dropshadow(gaussian, rgba(31, 41, 55, 0.16), 22, 0.16, 0, 8);");
 
         RXSpeedDial dial = new RXSpeedDial(speedDialIcon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
-                speedDialAction(status, "Save", "M3 8 L7 12 L14 4", "Saved draft"),
+                speedDialAction(status, "Save", "M9 16.2 L4.8 12 L3.4 13.4 L9 19 L21 7 L19.6 5.6 Z",
+                        "Saved draft"),
                 speedDialAction(status, "Duplicate", "M4 3 H11 V5 H6 V14 H4 Z M7 6 H14 V17 H7 Z",
                         "Duplicated checklist"),
                 speedDialAction(status, "Share",
@@ -201,7 +202,6 @@ public class MainController {
                         "Share link copied"),
                 speedDialAction(status, "Delete", "M5 6 H14 M7 6 V15 M12 6 V15 M6 6 L7 17 H12 L13 6 M8 4 H11",
                         "Moved to trash"));
-        dial.setOpenIcon(speedDialIcon("M4 4 L16 16 M16 4 L4 16"));
         dial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
         dial.setCloseOnFocusLoss(false);
         dial.setCloseOnClickOutside(false);

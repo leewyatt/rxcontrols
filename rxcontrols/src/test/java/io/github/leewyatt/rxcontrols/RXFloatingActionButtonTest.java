@@ -10,6 +10,8 @@ import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -190,6 +192,29 @@ public class RXFloatingActionButtonTest {
     }
 
     /**
+     * Verifies focused FAB states keep circular background geometry.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusedCssKeepsCircularBackground() throws Exception {
+        runOnFx(() -> {
+            RXFloatingActionButton button = new RXFloatingActionButton();
+            attachAndApplyCss(button);
+
+            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            button.applyCss();
+
+            List<BackgroundFill> fills = button.getBackground().getFills();
+            assertEquals(2, fills.size());
+            assertEquals(0.0, fills.get(0).getInsets().getTop());
+            assertEquals(2.0, fills.get(1).getInsets().getTop());
+            assertPercentRadius(fills.get(0).getRadii());
+            assertPercentRadius(fills.get(1).getRadii());
+        });
+    }
+
+    /**
      * Verifies the default skin type.
      *
      * @throws Exception if the FX-thread assertion fails
@@ -229,6 +254,17 @@ public class RXFloatingActionButtonTest {
         root.applyCss();
         root.applyCss();
         root.layout();
+    }
+
+    private static void assertPercentRadius(CornerRadii radii) {
+        assertTrue(radii.isTopLeftHorizontalRadiusAsPercentage());
+        assertTrue(radii.isTopLeftVerticalRadiusAsPercentage());
+        assertTrue(radii.isTopRightHorizontalRadiusAsPercentage());
+        assertTrue(radii.isTopRightVerticalRadiusAsPercentage());
+        assertTrue(radii.isBottomRightHorizontalRadiusAsPercentage());
+        assertTrue(radii.isBottomRightVerticalRadiusAsPercentage());
+        assertTrue(radii.isBottomLeftHorizontalRadiusAsPercentage());
+        assertTrue(radii.isBottomLeftVerticalRadiusAsPercentage());
     }
 
     private static void runOnFx(Runnable action) throws Exception {

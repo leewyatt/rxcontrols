@@ -2,47 +2,7 @@
     -fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);
 }
 
-.document {
-    -fx-background-color: white;
-    -fx-background-radius: 8px;
-    -fx-border-color: #d8dee9;
-    -fx-border-radius: 8px;
-    -fx-padding: 28px;
-    -fx-effect: dropshadow(gaussian, rgba(31, 41, 55, 0.16), 22, 0.16, 0, 8);
-}
-
-.doc-title {
-    -fx-font-size: 24px;
-    -fx-font-weight: 700;
-    -fx-text-fill: #111827;
-}
-
-.doc-meta {
-    -fx-text-fill: #64748b;
-}
-
-.doc-rows {
-    -fx-fill-width: true;
-}
-
-.task-row {
-    -fx-background-color: #f8fafc;
-    -fx-background-radius: 6px;
-    -fx-border-color: #e5e7eb;
-    -fx-border-radius: 6px;
-    -fx-padding: 12px 14px;
-}
-
-.task-title {
-    -fx-text-fill: #1f2937;
-    -fx-font-weight: 600;
-}
-
-.task-owner,
 .status-label {
     -fx-text-fill: #64748b;
-}
-
-.status-label {
-    -fx-padding: 8px 0 0 0;
+    -fx-font-size: 18px;
 }

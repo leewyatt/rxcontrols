@@ -120,6 +120,8 @@ public class RXSpeedDialTest {
             assertTrue(dial.isAnimated());
             assertEquals(RXSpeedDial.DEFAULT_ANIMATION_DURATION, dial.getAnimationDuration());
             assertEquals(RXSpeedDial.DEFAULT_STAGGER_DELAY, dial.getStaggerDelay());
+            assertEquals(RXSpeedDial.DEFAULT_ACTION_SPACING, dial.getActionSpacing(), EPSILON);
+            assertEquals(RXSpeedDial.DEFAULT_LABEL_GAP, dial.getLabelGap(), EPSILON);
             assertTrue(dial.isCloseOnFocusLoss());
             assertTrue(dial.isCloseOnClickOutside());
             assertFalse(dial.isShowing());
@@ -237,12 +239,20 @@ public class RXSpeedDialTest {
             assertEquals(propertyNames.size(), properties.size());
             assertTrue(properties.contains("-rx-animation-duration"));
             assertTrue(properties.contains("-rx-stagger-delay"));
+            assertTrue(properties.contains("-rx-action-spacing"));
+            assertTrue(properties.contains("-rx-label-gap"));
             assertFalse(properties.contains("-rx-animated"));
             assertEquals(1L, propertyNames.stream()
                     .filter("-rx-animation-duration"::equals)
                     .count());
             assertEquals(1L, propertyNames.stream()
                     .filter("-rx-stagger-delay"::equals)
+                    .count());
+            assertEquals(1L, propertyNames.stream()
+                    .filter("-rx-action-spacing"::equals)
+                    .count());
+            assertEquals(1L, propertyNames.stream()
+                    .filter("-rx-label-gap"::equals)
                     .count());
         });
     }
@@ -256,11 +266,14 @@ public class RXSpeedDialTest {
     public void cssAppliesAnimationDurations() throws Exception {
         runOnFx(() -> {
             RXSpeedDial dial = new RXSpeedDial();
-            dial.setStyle("-rx-animation-duration: 123ms; -rx-stagger-delay: 7ms;");
+            dial.setStyle("-rx-animation-duration: 123ms; -rx-stagger-delay: 7ms; "
+                    + "-rx-action-spacing: 14px; -rx-label-gap: 6px;");
             attachAndApplyCss(dial);
 
             assertEquals(Duration.millis(123.0), dial.getAnimationDuration());
             assertEquals(Duration.millis(7.0), dial.getStaggerDelay());
+            assertEquals(14.0, dial.getActionSpacing(), EPSILON);
+            assertEquals(6.0, dial.getLabelGap(), EPSILON);
         });
     }
 
@@ -907,6 +920,67 @@ public class RXSpeedDialTest {
     }
 
     /**
+     * Verifies action spacing controls the distance between adjacent actions.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void actionSpacingControlsActionGaps() throws Exception {
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("First", new Region()),
+                    new RXSpeedDialAction("Second", new Region()));
+            dial.setAnimated(false);
+            attachAndApplyCss(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+            assertMainActionEdgeGap(dial, 8.0);
+            assertAdjacentVisibleFabEdgeGap(dial, 8.0);
+
+            dial.setActionSpacing(14.0);
+            applyCssAndLayout(dial);
+            assertMainActionEdgeGap(dial, 14.0);
+            assertAdjacentVisibleFabEdgeGap(dial, 14.0);
+
+            dial.setActionSpacing(-10.0);
+            applyCssAndLayout(dial);
+            assertMainActionEdgeGap(dial, 0.0);
+            assertAdjacentVisibleFabEdgeGap(dial, 0.0);
+        });
+    }
+
+    /**
+     * Verifies label gap controls the distance between an action and its label.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void labelGapControlsActionLabelGap() throws Exception {
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Named", new Region()));
+            dial.setAnimated(false);
+            dial.setLabelMode(LabelMode.PERSISTENT);
+            attachAndApplyCss(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+
+            assertEquals(8.0, layoutHorizontalGap(visibleActionLabels(dial).get(0),
+                    visibleActionFabs(dial).get(0)), 1.0);
+
+            dial.setLabelGap(14.0);
+            applyCssAndLayout(dial);
+            assertEquals(14.0, layoutHorizontalGap(visibleActionLabels(dial).get(0),
+                    visibleActionFabs(dial).get(0)), 1.0);
+
+            dial.setLabelGap(Double.NaN);
+            applyCssAndLayout(dial);
+            assertEquals(0.0, layoutHorizontalGap(visibleActionLabels(dial).get(0),
+                    visibleActionFabs(dial).get(0)), 1.0);
+        });
+    }
+
+    /**
      * Verifies all directions place actions on the requested side.
      *
      * @throws Exception if the FX-thread assertion fails
@@ -984,6 +1058,35 @@ public class RXSpeedDialTest {
             assertFalse(dial.isShowing());
             assertEquals(List.of(RXSpeedDial.CloseReason.ACTION), reasons);
         });
+    }
+
+    /**
+     * Verifies hover-triggered action close does not immediately reopen from
+     * the focused action FAB.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void hoverActionCloseDoesNotImmediatelyReopenFromActionFocus() throws Exception {
+        RXSpeedDial[] dialRef = new RXSpeedDial[1];
+
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(), new RXSpeedDialAction("Run", new Region()));
+            dial.setAnimated(false);
+            dial.setOpenTrigger(OpenTrigger.HOVER);
+            showInStage(dial);
+            dial.open();
+            applyCssAndLayout(dial);
+            RXFloatingActionButton actionFab = visibleActionFabs(dial).get(0);
+            actionFab.requestFocus();
+            actionFab.fire();
+
+            assertFalse(dial.isShowing());
+            dialRef[0] = dial;
+        });
+        runOnFx(() -> {
+        });
+        runOnFx(() -> assertFalse(dialRef[0].isShowing()));
     }
 
     /**
@@ -1595,6 +1698,20 @@ public class RXSpeedDialTest {
         assertEquals(expectedGap, centers.get(1) - centers.get(0), 1.0);
     }
 
+    private static void assertMainActionEdgeGap(RXSpeedDial dial, double expectedGap) {
+        Bounds mainBounds = sceneLayoutBounds(mainFab(dial));
+        Bounds actionBounds = sceneLayoutBounds(visibleActionFabs(dial).get(0));
+        assertEquals(expectedGap, mainBounds.getMinY() - actionBounds.getMaxY(), 1.0);
+    }
+
+    private static void assertAdjacentVisibleFabEdgeGap(RXSpeedDial dial, double expectedGap) {
+        List<Bounds> bounds = visibleActionFabs(dial).stream()
+                .map(RXSpeedDialTest::sceneLayoutBounds)
+                .sorted((left, right) -> Double.compare(left.getMinY(), right.getMinY()))
+                .toList();
+        assertEquals(expectedGap, bounds.get(1).getMinY() - bounds.get(0).getMaxY(), 1.0);
+    }
+
     private static void assertActionSide(RXSpeedDial dial, Direction direction) {
         dial.setDirection(direction);
         applyCssAndLayout(dial);
@@ -1619,8 +1736,20 @@ public class RXSpeedDialTest {
     }
 
     private static double centerY(Node node) {
-        Bounds bounds = node.localToScene(node.getBoundsInLocal());
+        Bounds bounds = sceneBounds(node);
         return (bounds.getMinY() + bounds.getMaxY()) / 2.0;
+    }
+
+    private static Bounds sceneBounds(Node node) {
+        return node.localToScene(node.getBoundsInLocal());
+    }
+
+    private static Bounds sceneLayoutBounds(Node node) {
+        return node.localToScene(node.getLayoutBounds());
+    }
+
+    private static double layoutHorizontalGap(Region left, Region right) {
+        return right.getLayoutX() - (left.getLayoutX() + left.getWidth());
     }
 
     private static void runOnFx(Runnable action) throws Exception {

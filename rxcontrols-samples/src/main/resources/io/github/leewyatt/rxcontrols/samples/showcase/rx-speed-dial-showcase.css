@@ -1,14 +1,3 @@
-.speed-dial-preview {
-    -fx-fill-width: false;
-}
-
-.extended-preview {
-    -fx-background-radius: 999px;
-    -fx-content-display: left;
-    -fx-padding: 0 20px 0 16px;
-    -fx-pref-width: -1;
-}
-
 .rx-speed-dial.main-fab-small > .rx-fab {
     -rx-fab-size: small;
 }
@@ -27,33 +16,7 @@
     -fx-min-height: 340px;
 }
 
-.mock-card {
-    -fx-background-color: white;
-    -fx-background-radius: 8px;
-    -fx-border-color: #e5e7eb;
-    -fx-border-radius: 8px;
-    -fx-padding: 20px;
-    -fx-max-width: 300px;
-}
-
-.mock-title {
-    -fx-font-size: 18px;
-    -fx-font-weight: 700;
-    -fx-text-fill: #111827;
-}
-
-.mock-row {
-    -fx-background-color: #f8fafc;
-    -fx-background-radius: 6px;
-    -fx-padding: 10px 12px;
-}
-
-.mock-subject {
-    -fx-text-fill: #1f2937;
-    -fx-font-weight: 600;
-}
-
-.mock-state,
 .state-label {
     -fx-text-fill: #64748b;
+    -fx-font-size: 16px;
 }

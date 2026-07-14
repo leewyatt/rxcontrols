@@ -1748,6 +1748,7 @@
 
 .rx-fab {
     -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
     -fx-background-radius: 50%;
     -fx-content-display: graphic-only;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
@@ -1762,13 +1763,40 @@
 }
 
 .rx-fab:hover,
-.rx-fab:pressed {
+.rx-fab:armed {
     -fx-background-color: -rx-primary-hover;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 12);
 }
 
-.rx-fab:pressed {
+.rx-fab:pressed,
+.rx-fab:default:armed,
+.rx-fab:cancel:armed {
     -fx-background-color: -rx-primary-active;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
+}
+
+.rx-fab:focused {
+    -fx-background-color: -rx-focus, -rx-primary;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
+}
+
+.rx-fab:focused:hover,
+.rx-fab:focused:armed {
+    -fx-background-color: -rx-focus, -rx-primary-hover;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
+}
+
+.rx-fab:focused:pressed,
+.rx-fab:focused:default:armed,
+.rx-fab:focused:cancel:armed {
+    -fx-background-color: -rx-focus, -rx-primary-active;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
 }
 
 .rx-fab:small {
@@ -1788,6 +1816,16 @@
     -fx-pref-width: -1;
 }
 
+.rx-fab:extended:hover,
+.rx-fab:extended:armed,
+.rx-fab:extended:pressed {
+    -fx-background-radius: 999px;
+}
+
+.rx-fab:extended:focused {
+    -fx-background-radius: 999px, 999px;
+}
+
 .rx-fab .icon {
     -fx-background-color: -rx-on-primary;
 }
@@ -1800,6 +1838,8 @@
 
 .rx-speed-dial {
     -fx-background-color: transparent;
+    -rx-action-spacing: 8px;
+    -rx-label-gap: 8px;
 }
 
 .rx-speed-dial > .actions {
@@ -1808,8 +1848,42 @@
 
 .rx-speed-dial > .actions > .action > .rx-fab {
     -fx-background-color: -rx-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
     -fx-text-fill: -rx-on-surface;
     -rx-ripple-fill: -rx-state-overlay-color;
+}
+
+.rx-speed-dial > .actions > .action > .rx-fab:hover,
+.rx-speed-dial > .actions > .action > .rx-fab:armed {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
+}
+
+.rx-speed-dial > .actions > .action > .rx-fab:pressed {
+    -fx-background-color: -rx-outline-variant;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
+}
+
+.rx-speed-dial > .actions > .action > .rx-fab:focused {
+    -fx-background-color: -rx-focus, -rx-surface;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
+}
+
+.rx-speed-dial > .actions > .action > .rx-fab:focused:hover,
+.rx-speed-dial > .actions > .action > .rx-fab:focused:armed {
+    -fx-background-color: -rx-focus, -rx-surface-variant;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
+}
+
+.rx-speed-dial > .actions > .action > .rx-fab:focused:pressed {
+    -fx-background-color: -rx-focus, -rx-outline-variant;
+    -fx-background-insets: 0, 2px;
+    -fx-background-radius: 50%, 50%;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab .icon {

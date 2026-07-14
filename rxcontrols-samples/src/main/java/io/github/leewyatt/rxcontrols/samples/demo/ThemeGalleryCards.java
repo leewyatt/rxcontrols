@@ -915,7 +915,6 @@ final class ThemeGalleryCards {
         RXSpeedDialAction comment = speedDialAction("Comment", "M4 4 H16 V13 H8 L4 17 Z");
         RXSpeedDial dial = new RXSpeedDial(fabIcon("M8 2 H11 V8 H17 V11 H11 V17 H8 V11 H2 V8 H8 Z"),
                 archive, pin, comment);
-        dial.setOpenIcon(fabIcon("M4 4 L16 16 M16 4 L4 16"));
         dial.setLabelMode(RXSpeedDial.LabelMode.PERSISTENT);
         dial.setCloseOnFocusLoss(false);
         dial.setCloseOnClickOutside(false);

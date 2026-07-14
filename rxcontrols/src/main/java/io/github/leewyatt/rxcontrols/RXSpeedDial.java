@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSpeedDialSkin;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -14,9 +15,11 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
+import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
@@ -59,6 +62,16 @@ public class RXSpeedDial extends Control {
      * Default delay between adjacent action animations.
      */
     public static final Duration DEFAULT_STAGGER_DELAY = Duration.millis(30.0);
+
+    /**
+     * Default space between the main FAB and adjacent action FABs.
+     */
+    public static final double DEFAULT_ACTION_SPACING = 8.0;
+
+    /**
+     * Default space between an action FAB and its label.
+     */
+    public static final double DEFAULT_LABEL_GAP = 8.0;
 
     // ==================== Constructors ====================
 
@@ -594,6 +607,114 @@ public class RXSpeedDial extends Control {
         staggerDelay.set(value);
     }
 
+    // ==================== Action Spacing ====================
+
+    private final DoubleProperty actionSpacing =
+            new StyleableDoubleProperty(DEFAULT_ACTION_SPACING) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.ACTION_SPACING;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXSpeedDial.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "actionSpacing";
+                }
+            };
+
+    /**
+     * Space between the main FAB and adjacent action FABs, styleable through
+     * {@code -rx-action-spacing}. Non-finite or negative values are stored
+     * as-is and clamped to {@code 0} by the default skin.
+     *
+     * @return the action-spacing property
+     */
+    public final DoubleProperty actionSpacingProperty() {
+        return actionSpacing;
+    }
+
+    /**
+     * Returns the space between the main FAB and adjacent action FABs.
+     *
+     * @return the action spacing
+     */
+    public final double getActionSpacing() {
+        return actionSpacing.get();
+    }
+
+    /**
+     * Sets the space between the main FAB and adjacent action FABs.
+     *
+     * @param value the action spacing
+     */
+    public final void setActionSpacing(double value) {
+        actionSpacing.set(value);
+    }
+
+    // ==================== Label Gap ====================
+
+    private final DoubleProperty labelGap =
+            new StyleableDoubleProperty(DEFAULT_LABEL_GAP) {
+                @Override
+                protected void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.LABEL_GAP;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXSpeedDial.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "labelGap";
+                }
+            };
+
+    /**
+     * Space between each action FAB and its label, styleable through
+     * {@code -rx-label-gap}. Non-finite or negative values are stored as-is and
+     * clamped to {@code 0} by the default skin.
+     *
+     * @return the label-gap property
+     */
+    public final DoubleProperty labelGapProperty() {
+        return labelGap;
+    }
+
+    /**
+     * Returns the space between each action FAB and its label.
+     *
+     * @return the label gap
+     */
+    public final double getLabelGap() {
+        return labelGap.get();
+    }
+
+    /**
+     * Sets the space between each action FAB and its label.
+     *
+     * @param value the label gap
+     */
+    public final void setLabelGap(double value) {
+        labelGap.set(value);
+    }
+
     // ==================== Events ====================
 
     private ObjectProperty<EventHandler<RXSpeedDialEvent>> onShowing;
@@ -828,6 +949,36 @@ public class RXSpeedDial extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXSpeedDial, Number> ACTION_SPACING =
+                new CssMetaData<>("-rx-action-spacing",
+                        SizeConverter.getInstance(), DEFAULT_ACTION_SPACING) {
+                    @Override
+                    public boolean isSettable(RXSpeedDial node) {
+                        return !node.actionSpacing.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSpeedDial node) {
+                        return (StyleableProperty<Number>) node.actionSpacingProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXSpeedDial, Number> LABEL_GAP =
+                new CssMetaData<>("-rx-label-gap",
+                        SizeConverter.getInstance(), DEFAULT_LABEL_GAP) {
+                    @Override
+                    public boolean isSettable(RXSpeedDial node) {
+                        return !node.labelGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSpeedDial node) {
+                        return (StyleableProperty<Number>) node.labelGapProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -835,6 +986,8 @@ public class RXSpeedDial extends Control {
                     new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(ANIMATION_DURATION);
             styleables.add(STAGGER_DELAY);
+            styleables.add(ACTION_SPACING);
+            styleables.add(LABEL_GAP);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

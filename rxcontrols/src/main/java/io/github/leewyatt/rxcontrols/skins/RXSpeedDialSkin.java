@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -38,8 +39,6 @@ import java.util.Objects;
  */
 public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
 
-    private static final double ACTION_SPACING = 8.0;
-    private static final double LABEL_GAP = 8.0;
     private static final double HIDDEN_ACTION_SCALE = 0.6;
     private static final double VISIBLE_ACTION_SCALE = 1.0;
     private static final double HIDDEN_OPACITY = 0.0;
@@ -64,6 +63,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     private boolean terminalEventPending;
     private RXSpeedDial.CloseReason pendingHiddenReason;
     private boolean disposed;
+    private boolean hoverOpenSuppressed;
 
     // ==================== Constructors ====================
 
@@ -229,27 +229,36 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         RXSpeedDial.Direction direction = directionOrDefault();
         double centerX = snapPositionX(width / 2.0);
         double centerY = snapPositionY(height / 2.0);
-        int slot = 0;
+        double offset = fabAxisExtent(mainFab, direction) / 2.0;
+        double spacing = actionSpacing(direction);
         for (ActionCell cell : cells) {
             if (!cell.isVisible()) {
                 continue;
             }
-            slot++;
-            double offset = slot * actionStep(cell, direction);
+            double actionExtent = fabAxisExtent(cell.fab, direction);
+            offset += spacing + actionExtent / 2.0;
             switch (direction) {
                 case UP -> cell.layoutAt(centerX, centerY - offset, direction);
                 case DOWN -> cell.layoutAt(centerX, centerY + offset, direction);
                 case LEFT -> cell.layoutAt(centerX - offset, centerY, direction);
                 case RIGHT -> cell.layoutAt(centerX + offset, centerY, direction);
             }
+            offset += actionExtent / 2.0;
         }
     }
 
-    private double actionStep(ActionCell cell, RXSpeedDial.Direction direction) {
+    private double fabAxisExtent(RXFloatingActionButton fab, RXSpeedDial.Direction direction) {
         if (direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT) {
-            return snapSizeX(cell.fab.prefWidth(-1)) + snapSizeX(ACTION_SPACING);
+            return snapSizeX(fab.prefWidth(-1));
         }
-        return snapSizeY(cell.fab.prefHeight(-1)) + snapSizeY(ACTION_SPACING);
+        return snapSizeY(fab.prefHeight(-1));
+    }
+
+    private double actionSpacing(RXSpeedDial.Direction direction) {
+        if (direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT) {
+            return snapSizeX(actionSpacing());
+        }
+        return snapSizeY(actionSpacing());
     }
 
     private RXSpeedDial.Direction directionOrDefault() {
@@ -265,6 +274,14 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     private RXSpeedDial.LabelMode labelModeOrDefault() {
         RXSpeedDial.LabelMode mode = getSkinnable().getLabelMode();
         return mode == null ? RXSpeedDial.LabelMode.HOVER : mode;
+    }
+
+    private double actionSpacing() {
+        return RXMath.sanitizeFiniteNonNegative(getSkinnable().getActionSpacing());
+    }
+
+    private double labelGap() {
+        return RXMath.sanitizeFiniteNonNegative(getSkinnable().getLabelGap());
     }
 
     private void snapTo(boolean showing) {
@@ -423,6 +440,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
 
     private void onHiding(RXSpeedDialEvent event) {
         pendingHiddenReason = event.getCloseReason();
+        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER
+                && event.getCloseReason() != RXSpeedDial.CloseReason.MOUSE_EXIT) {
+            hoverOpenSuppressed = true;
+        }
     }
 
     private void stopOpenCloseAnimation() {
@@ -440,16 +461,22 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     }
 
     private void handleMouseEntered(MouseEvent event) {
-        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER) {
-            getSkinnable().open();
+        if (openTriggerOrDefault() != RXSpeedDial.OpenTrigger.HOVER) {
+            return;
         }
+        if (hoverOpenSuppressed) {
+            clearHoverOpenSuppressionLater();
+            return;
+        }
+        getSkinnable().open();
     }
 
     private void handleMouseExited(MouseEvent event) {
-        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER
-                && getSkinnable().isShowing()
-                && !isFocusWithin()) {
-            getSkinnable().close(RXSpeedDial.CloseReason.MOUSE_EXIT);
+        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER) {
+            clearHoverOpenSuppressionLater();
+            if (getSkinnable().isShowing() && !isFocusWithin()) {
+                getSkinnable().close(RXSpeedDial.CloseReason.MOUSE_EXIT);
+            }
         }
     }
 
@@ -463,7 +490,12 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
         updateCellLabelVisibility();
         RXSpeedDial control = getSkinnable();
-        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER && isFocusWithin()) {
+        if (!isFocusWithin()) {
+            hoverOpenSuppressed = false;
+        }
+        if (openTriggerOrDefault() == RXSpeedDial.OpenTrigger.HOVER
+                && isFocusWithin()
+                && !hoverOpenSuppressed) {
             control.open();
             return;
         }
@@ -472,6 +504,18 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         if (!isFocusWithin() && hasExternalFocusOwner && control.isShowing() && control.isCloseOnFocusLoss()) {
             control.close(RXSpeedDial.CloseReason.FOCUS_LOST);
         }
+    }
+
+    private void clearHoverOpenSuppressionLater() {
+        if (!hoverOpenSuppressed) {
+            return;
+        }
+        // Keep same-pulse focus and synthetic mouse events from reopening after an action close.
+        Platform.runLater(() -> Platform.runLater(() -> {
+            if (!disposed) {
+                hoverOpenSuppressed = false;
+            }
+        }));
     }
 
     private void updateCellLabelVisibility() {
@@ -754,8 +798,9 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             double labelWidth = showLabel ? snapSizeX(label.prefWidth(-1)) : 0.0;
             double labelHeight = showLabel ? snapSizeY(label.prefHeight(-1)) : 0.0;
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
-            double rootWidth = showLabel && !horizontal ? fabWidth + LABEL_GAP + labelWidth : fabWidth;
-            double rootHeight = showLabel && horizontal ? fabHeight + LABEL_GAP + labelHeight
+            double gap = labelGap();
+            double rootWidth = showLabel && !horizontal ? fabWidth + gap + labelWidth : fabWidth;
+            double rootHeight = showLabel && horizontal ? fabHeight + gap + labelHeight
                     : Math.max(fabHeight, labelHeight);
             double fabX;
             double labelX;
@@ -771,19 +816,19 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                 labelX = snapPositionX((fabWidth - labelWidth) / 2.0);
                 if (direction == RXSpeedDial.Direction.LEFT) {
                     labelY = 0.0;
-                    fabY = labelHeight + LABEL_GAP;
+                    fabY = labelHeight + gap;
                 } else {
                     fabY = 0.0;
-                    labelY = fabHeight + LABEL_GAP;
+                    labelY = fabHeight + gap;
                 }
             } else if (labelAfterFab(direction)) {
                 fabX = 0.0;
-                labelX = fabWidth + LABEL_GAP;
+                labelX = fabWidth + gap;
                 fabY = snapPositionY((rootHeight - fabHeight) / 2.0);
                 labelY = snapPositionY((rootHeight - labelHeight) / 2.0);
             } else {
                 labelX = 0.0;
-                fabX = labelWidth + LABEL_GAP;
+                fabX = labelWidth + gap;
                 fabY = snapPositionY((rootHeight - fabHeight) / 2.0);
                 labelY = snapPositionY((rootHeight - labelHeight) / 2.0);
             }
