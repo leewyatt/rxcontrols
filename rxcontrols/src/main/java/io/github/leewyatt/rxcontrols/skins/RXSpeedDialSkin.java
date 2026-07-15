@@ -50,6 +50,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
     private final RXFloatingActionButton mainFab = new MainFab();
     private final Pane actionsLayer = new Pane();
     private final StackPane iconMorph = new StackPane();
+    private final StackPane closedIconLayer = new StackPane();
+    private final StackPane openIconLayer = new StackPane();
     private final List<ActionCell> cells = new ArrayList<>();
     private final EventHandler<MouseEvent> sceneMousePressedFilter = this::handleSceneMousePressed;
     private final ChangeListener<Node> sceneFocusOwnerListener = (observable, oldValue, newValue) -> handleFocusChanged();
@@ -85,6 +87,9 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         actionsLayer.setManaged(false);
         iconMorph.getStyleClass().add("icon-morph");
         iconMorph.setMouseTransparent(true);
+        closedIconLayer.setMouseTransparent(true);
+        openIconLayer.setMouseTransparent(true);
+        iconMorph.getChildren().setAll(closedIconLayer, openIconLayer);
         mainFab.setGraphic(iconMorph);
         getChildren().setAll(actionsLayer, mainFab);
     }
@@ -133,18 +138,23 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         if (interrupted) {
             stopOpenCloseAnimation();
         }
-        iconMorph.getChildren().clear();
         Node closedIcon = control.getIcon();
         Node openIcon = control.getOpenIcon();
-        if (closedIcon != null) {
-            iconMorph.getChildren().add(closedIcon);
-        }
-        if (openIcon != null && openIcon != closedIcon) {
-            iconMorph.getChildren().add(openIcon);
-        }
+        closedIconLayer.getChildren().clear();
+        openIconLayer.getChildren().clear();
+        setIconLayerGraphic(closedIconLayer, closedIcon);
+        setIconLayerGraphic(openIconLayer, openIcon == closedIcon ? null : openIcon);
         snapTo(control.isShowing());
         if (interrupted) {
             fireTerminalEvent(control.isShowing());
+        }
+    }
+
+    private void setIconLayerGraphic(StackPane layer, Node graphic) {
+        if (graphic == null) {
+            layer.getChildren().clear();
+        } else {
+            layer.getChildren().setAll(graphic);
         }
     }
 
@@ -313,10 +323,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         Node closedIcon = getSkinnable().getIcon();
         Node configuredOpenIcon = getSkinnable().getOpenIcon();
         Node openIcon = configuredOpenIcon == closedIcon ? null : configuredOpenIcon;
-        for (Node child : iconMorph.getChildren()) {
-            boolean openNode = openIcon != null && child == openIcon;
-            child.setOpacity(openNode == showing || openIcon == null ? VISIBLE_OPACITY : HIDDEN_OPACITY);
-        }
+        closedIconLayer.setOpacity(openIcon == null || !showing ? VISIBLE_OPACITY : HIDDEN_OPACITY);
+        openIconLayer.setOpacity(openIcon != null && showing ? VISIBLE_OPACITY : HIDDEN_OPACITY);
     }
 
     private void prepareIconMorphForAnimation(boolean opening) {
@@ -325,15 +333,12 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         Node configuredOpenIcon = getSkinnable().getOpenIcon();
         Node openIcon = configuredOpenIcon == closedIcon ? null : configuredOpenIcon;
         if (openIcon == null) {
-            if (closedIcon != null) {
-                closedIcon.setOpacity(VISIBLE_OPACITY);
-            }
+            closedIconLayer.setOpacity(VISIBLE_OPACITY);
+            openIconLayer.setOpacity(HIDDEN_OPACITY);
             return;
         }
-        if (closedIcon != null) {
-            closedIcon.setOpacity(opening ? VISIBLE_OPACITY : HIDDEN_OPACITY);
-        }
-        openIcon.setOpacity(opening ? HIDDEN_OPACITY : VISIBLE_OPACITY);
+        closedIconLayer.setOpacity(opening ? VISIBLE_OPACITY : HIDDEN_OPACITY);
+        openIconLayer.setOpacity(opening ? HIDDEN_OPACITY : VISIBLE_OPACITY);
     }
 
     private void playOpenCloseAnimation(boolean opening, Duration duration) {
@@ -393,24 +398,19 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         timeline.getKeyFrames().add(new KeyFrame(duration,
                 new KeyValue(iconMorph.rotateProperty(), opening ? OPEN_ICON_ROTATION : CLOSED_ICON_ROTATION,
                         Interpolator.EASE_BOTH)));
-        Node closedIcon = getSkinnable().getIcon();
         Node configuredOpenIcon = getSkinnable().getOpenIcon();
-        Node openIcon = configuredOpenIcon == closedIcon ? null : configuredOpenIcon;
+        Node openIcon = configuredOpenIcon == getSkinnable().getIcon() ? null : configuredOpenIcon;
         if (openIcon == null) {
-            if (closedIcon != null) {
-                timeline.getKeyFrames().add(new KeyFrame(duration,
-                        new KeyValue(closedIcon.opacityProperty(), VISIBLE_OPACITY, Interpolator.EASE_BOTH)));
-            }
+            timeline.getKeyFrames().add(new KeyFrame(duration,
+                    new KeyValue(closedIconLayer.opacityProperty(), VISIBLE_OPACITY, Interpolator.EASE_BOTH),
+                    new KeyValue(openIconLayer.opacityProperty(), HIDDEN_OPACITY, Interpolator.EASE_BOTH)));
             return;
         }
-        List<KeyValue> keyValues = new ArrayList<>();
-        if (closedIcon != null) {
-            keyValues.add(new KeyValue(closedIcon.opacityProperty(),
-                    opening ? HIDDEN_OPACITY : VISIBLE_OPACITY, Interpolator.EASE_BOTH));
-        }
-        keyValues.add(new KeyValue(openIcon.opacityProperty(),
-                opening ? VISIBLE_OPACITY : HIDDEN_OPACITY, Interpolator.EASE_BOTH));
-        timeline.getKeyFrames().add(new KeyFrame(duration, keyValues.toArray(KeyValue[]::new)));
+        timeline.getKeyFrames().add(new KeyFrame(duration,
+                new KeyValue(closedIconLayer.opacityProperty(),
+                        opening ? HIDDEN_OPACITY : VISIBLE_OPACITY, Interpolator.EASE_BOTH),
+                new KeyValue(openIconLayer.opacityProperty(),
+                        opening ? VISIBLE_OPACITY : HIDDEN_OPACITY, Interpolator.EASE_BOTH)));
     }
 
     private List<ActionCell> visibleCells() {
@@ -731,6 +731,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         settleAnimationToCurrentState();
         detachSceneObservers();
         clearCells();
+        closedIconLayer.getChildren().clear();
+        openIconLayer.getChildren().clear();
         iconMorph.getChildren().clear();
         mainFab.setGraphic(null);
         getChildren().removeAll(actionsLayer, mainFab);

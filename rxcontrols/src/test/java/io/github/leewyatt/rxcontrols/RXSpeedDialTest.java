@@ -445,25 +445,35 @@ public class RXSpeedDialTest {
             dial.setAnimated(false);
             attachAndApplyCss(dial);
 
-            assertEquals(1, iconMorph(dial).getChildrenUnmodifiable().size());
+            assertEquals(2, iconMorph(dial).getChildrenUnmodifiable().size());
+            assertSame(closedIcon, iconLayer(dial, 0).getChildrenUnmodifiable().get(0));
+            assertTrue(iconLayer(dial, 1).getChildrenUnmodifiable().isEmpty());
             dial.open();
             assertEquals(45.0, iconMorph(dial).getRotate(), EPSILON);
+            assertEquals(1.0, iconLayer(dial, 0).getOpacity(), EPSILON);
+            assertEquals(0.0, iconLayer(dial, 1).getOpacity(), EPSILON);
             assertEquals(1.0, closedIcon.getOpacity(), EPSILON);
 
             dial.close();
             dial.setOpenIcon(openIcon);
             applyCssAndLayout(dial);
             assertEquals(2, iconMorph(dial).getChildrenUnmodifiable().size());
+            assertSame(closedIcon, iconLayer(dial, 0).getChildrenUnmodifiable().get(0));
+            assertSame(openIcon, iconLayer(dial, 1).getChildrenUnmodifiable().get(0));
 
             dial.open();
             assertEquals(45.0, iconMorph(dial).getRotate(), EPSILON);
-            assertEquals(0.0, closedIcon.getOpacity(), EPSILON);
+            assertEquals(0.0, iconLayer(dial, 0).getOpacity(), EPSILON);
+            assertEquals(1.0, iconLayer(dial, 1).getOpacity(), EPSILON);
+            assertEquals(1.0, closedIcon.getOpacity(), EPSILON);
             assertEquals(1.0, openIcon.getOpacity(), EPSILON);
 
             dial.close();
             assertEquals(0.0, iconMorph(dial).getRotate(), EPSILON);
+            assertEquals(1.0, iconLayer(dial, 0).getOpacity(), EPSILON);
+            assertEquals(0.0, iconLayer(dial, 1).getOpacity(), EPSILON);
             assertEquals(1.0, closedIcon.getOpacity(), EPSILON);
-            assertEquals(0.0, openIcon.getOpacity(), EPSILON);
+            assertEquals(1.0, openIcon.getOpacity(), EPSILON);
         });
     }
 
@@ -489,9 +499,74 @@ public class RXSpeedDialTest {
             assertTrue(dial.isShowing());
             assertEquals(List.of("RX_SPEED_DIAL_SHOWING:null"), log);
             assertEquals(0.0, iconMorph(dial).getRotate(), EPSILON);
+            assertEquals(1.0, iconLayer(dial, 0).getOpacity(), EPSILON);
+            assertEquals(0.0, iconLayer(dial, 1).getOpacity(), EPSILON);
             assertEquals(1.0, closedIcon.getOpacity(), EPSILON);
-            assertEquals(0.0, openIcon.getOpacity(), EPSILON);
+            assertEquals(1.0, openIcon.getOpacity(), EPSILON);
             dial.skinProperty().set(null);
+        });
+    }
+
+    /**
+     * Verifies icon morphing does not leak opacity state to replaced caller-owned nodes.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void openIconMorphDoesNotMutateReplacedIconOpacity() throws Exception {
+        runOnFx(() -> {
+            Region closedIcon = new Region();
+            Region openIcon = new Region();
+            Region replacementIcon = new Region();
+            closedIcon.setOpacity(0.42);
+            openIcon.setOpacity(0.73);
+            replacementIcon.setOpacity(0.31);
+            RXSpeedDial dial = new RXSpeedDial(closedIcon);
+            dial.setOpenIcon(openIcon);
+            dial.setAnimated(false);
+            attachAndApplyCss(dial);
+
+            dial.open();
+            applyCssAndLayout(dial);
+            assertEquals(0.42, closedIcon.getOpacity(), EPSILON);
+            assertEquals(0.73, openIcon.getOpacity(), EPSILON);
+
+            dial.setIcon(replacementIcon);
+            applyCssAndLayout(dial);
+
+            assertNull(closedIcon.getParent());
+            assertSame(replacementIcon, iconLayer(dial, 0).getChildrenUnmodifiable().get(0));
+            assertSame(openIcon, iconLayer(dial, 1).getChildrenUnmodifiable().get(0));
+            assertEquals(0.42, closedIcon.getOpacity(), EPSILON);
+            assertEquals(0.73, openIcon.getOpacity(), EPSILON);
+            assertEquals(0.31, replacementIcon.getOpacity(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies disposal releases icon nodes without changing their caller-owned opacity.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void openIconMorphDisposeDoesNotMutateIconOpacity() throws Exception {
+        runOnFx(() -> {
+            Region closedIcon = new Region();
+            Region openIcon = new Region();
+            closedIcon.setOpacity(0.42);
+            openIcon.setOpacity(0.73);
+            RXSpeedDial dial = new RXSpeedDial(closedIcon, new RXSpeedDialAction("Run", new Region()));
+            dial.setOpenIcon(openIcon);
+            dial.setAnimationDuration(Duration.seconds(5.0));
+            attachAndApplyCss(dial);
+
+            dial.open();
+            dial.skinProperty().set(null);
+
+            assertNull(closedIcon.getParent());
+            assertNull(openIcon.getParent());
+            assertEquals(0.42, closedIcon.getOpacity(), EPSILON);
+            assertEquals(0.73, openIcon.getOpacity(), EPSILON);
         });
     }
 
@@ -1943,6 +2018,10 @@ public class RXSpeedDialTest {
                 .map(StackPane.class::cast)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private static StackPane iconLayer(RXSpeedDial dial, int index) {
+        return (StackPane) iconMorph(dial).getChildrenUnmodifiable().get(index);
     }
 
     private static Pane actionsLayer(RXSpeedDial dial) {
