@@ -84,21 +84,16 @@ public class RXSkeletonPane extends Region {
         setSkeleton(skeleton);
         setContent(content);
         setLoading(loading);
-        // Listeners installed last so the three setters above only trigger
-        // one sync pass, done explicitly here.
-        wireListeners();
-        syncSlots();
-    }
-
-    private void wireListeners() {
-        skeleton.addListener((obs, oldV, newV) -> syncSlots());
-        content.addListener((obs, oldV, newV) -> syncSlots());
-        loading.addListener(obs -> syncSlots());
     }
 
     // ==================== Skeleton ====================
 
-    private final ObjectProperty<Node> skeleton = new SimpleObjectProperty<>(this, "skeleton");
+    private final ObjectProperty<Node> skeleton = new SimpleObjectProperty<>(this, "skeleton") {
+        @Override
+        protected void invalidated() {
+            syncSlots();
+        }
+    };
 
     /**
      * Placeholder node shown while {@link #loadingProperty() loading} is
@@ -131,7 +126,12 @@ public class RXSkeletonPane extends Region {
 
     // ==================== Content ====================
 
-    private final ObjectProperty<Node> content = new SimpleObjectProperty<>(this, "content");
+    private final ObjectProperty<Node> content = new SimpleObjectProperty<>(this, "content") {
+        @Override
+        protected void invalidated() {
+            syncSlots();
+        }
+    };
 
     /**
      * Real content shown when {@link #loadingProperty() loading} is
@@ -164,7 +164,12 @@ public class RXSkeletonPane extends Region {
 
     // ==================== Loading ====================
 
-    private final BooleanProperty loading = new SimpleBooleanProperty(this, "loading", true);
+    private final BooleanProperty loading = new SimpleBooleanProperty(this, "loading", true) {
+        @Override
+        protected void invalidated() {
+            syncSlots();
+        }
+    };
 
     /**
      * Whether the pane is currently in the loading state. When {@code true},
@@ -276,9 +281,16 @@ public class RXSkeletonPane extends Region {
         double y = snappedTopInset();
         double w = Math.max(0.0, getWidth() - x - snappedRightInset());
         double h = Math.max(0.0, getHeight() - y - snappedBottomInset());
-        SlotPane slot = activeManagedSlot();
-        if (slot != null) {
+        Node active = activeNode();
+        if (active == null) {
+            return;
+        }
+
+        SlotPane slot = activeSlot();
+        if (active.isManaged()) {
             layoutInArea(slot, x, y, w, h, 0.0, HPos.LEFT, VPos.TOP);
+        } else {
+            layoutUnmanagedSlot(slot);
         }
     }
 
@@ -381,17 +393,34 @@ public class RXSkeletonPane extends Region {
                 measuredMinHeight(managedSkeleton(), width));
     }
 
-    private SlotPane activeManagedSlot() {
+    private Node activeNode() {
         Node sk = getSkeleton();
         Node c = getContent();
         if (sk != null && sk == c) {
-            return sk.isManaged() ? skeletonSlot : null;
+            return sk;
         }
-        Node active = isLoading() ? sk : c;
-        if (active == null || !active.isManaged()) {
-            return null;
+        return isLoading() ? sk : c;
+    }
+
+    private SlotPane activeSlot() {
+        Node sk = getSkeleton();
+        Node c = getContent();
+        if (sk != null && sk == c) {
+            return skeletonSlot;
         }
         return isLoading() ? skeletonSlot : contentSlot;
+    }
+
+    private void layoutUnmanagedSlot(SlotPane slot) {
+        double width = getWidth();
+        double height = getHeight();
+        if (!Double.isFinite(width) || width < 0.0) {
+            width = 0.0;
+        }
+        if (!Double.isFinite(height) || height < 0.0) {
+            height = 0.0;
+        }
+        slot.resizeRelocate(0.0, 0.0, width, height);
     }
 
     private Node managedSkeleton() {
