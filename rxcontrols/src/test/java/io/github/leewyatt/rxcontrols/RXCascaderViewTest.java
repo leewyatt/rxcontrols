@@ -296,6 +296,34 @@ public class RXCascaderViewTest {
     }
 
     /**
+     * Verifies activating a shorter leaf path trims stale deeper active branches,
+     * so columns for a previously expanded sibling branch disappear.
+     */
+    @Test
+    public void activatingShorterLeafRetargetsActivePathToAncestors() {
+        RXCascaderView<String> panel = new RXCascaderView<>();
+        RXCascaderItem<String> asia = item("Asia");
+        RXCascaderItem<String> japan = item("Japan");
+        japan.getChildren().setAll(List.of(item("Tokyo"), item("Osaka")));
+        RXCascaderItem<String> singapore = item("Singapore");
+        asia.getChildren().setAll(List.of(japan, singapore));
+        panel.getRootItems().setAll(List.of(asia));
+
+        panel.activate(asia);
+        panel.activate(japan);
+        assertEquals(List.of(asia, japan), panel.getActivePath());
+
+        int revision = panel.getColumnsRevision();
+        panel.activate(singapore);
+
+        assertEquals(List.of(asia, singapore), panel.getSelectedPath().getItems());
+        assertEquals(List.of(asia), panel.getActivePath(),
+                "the active path must collapse to the selected leaf's ancestors");
+        assertTrue(panel.getColumnsRevision() > revision,
+                "trimming a stale branch must signal the skin to rebuild columns");
+    }
+
+    /**
      * Verifies an unloaded node with a loader set is a branch (Default B) and
      * expanding it loads children that flip {@code loaded} to true.
      *
@@ -1826,6 +1854,86 @@ public class RXCascaderViewTest {
 
         assertTrue(view.getActivePath().isEmpty(),
                 "a selection outside the current tree must not be revealed");
+    }
+
+    /**
+     * Verifies runtime operations that drive navigation or checked state ignore
+     * items outside the current root tree.
+     */
+    @Test
+    public void runtimeOperationsIgnoreItemsOutsideTree() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        view.getRootItems().setAll(List.of(item("root")));
+        RXCascaderItem<String> strayLeaf = item("strayLeaf");
+        RXCascaderItem<String> strayBranch = item("strayBranch");
+        strayBranch.getChildren().setAll(List.of(item("child")));
+
+        view.activate(strayLeaf);
+        view.expand(strayBranch);
+
+        assertNull(view.getSelectedPath(), "activating a detached leaf must not select it");
+        assertTrue(view.getActivePath().isEmpty(), "expanding a detached branch must not navigate");
+
+        view.setSelectionMode(SelectionMode.MULTIPLE);
+        view.setCheckedCascade(strayLeaf, true);
+        view.toggleCheck(strayLeaf);
+
+        assertFalse(strayLeaf.isChecked(), "runtime checking must ignore detached items");
+        assertTrue(view.getCheckedPaths().isEmpty());
+    }
+
+    /**
+     * Verifies loading a detached branch does not invoke the view-owned loader.
+     */
+    @Test
+    public void loadChildrenIgnoresItemsOutsideTree() {
+        RXCascaderView<String> view = new RXCascaderView<>();
+        view.getRootItems().setAll(List.of(item("root")));
+        int[] calls = {0};
+        view.setChildrenLoader(item -> {
+            calls[0]++;
+            return CompletableFuture.completedFuture(List.of(leaf("child")));
+        });
+
+        RXCascaderItem<String> strayBranch = item("strayBranch");
+        view.loadChildren(strayBranch);
+
+        assertEquals(0, calls[0], "detached items must not trigger the loader");
+        assertEquals(LoadState.EAGER, strayBranch.getLoadState());
+    }
+
+    /**
+     * Verifies a detached lazy seed can pre-mark the item, but does not load until
+     * the item is reachable and operated on.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void seedCheckedDetachedLazyBranchDefersLoadingUntilReachable() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("child")));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+
+            assertTrue(strayBranch.isChecked());
+            assertEquals(0, calls[0], "detached seed must not trigger loading");
+            assertTrue(view.getCheckedPaths().isEmpty());
+
+            view.getRootItems().setAll(strayBranch);
+            view.expand(strayBranch);
+
+            assertEquals(1, calls[0]);
+            assertTrue(loaded(strayBranch));
+            assertEquals(1, view.getCheckedPaths().size());
+            assertSame(strayBranch.getChildren().get(0), view.getCheckedPaths().get(0).getLeaf());
+        });
     }
 
     /**

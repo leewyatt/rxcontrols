@@ -1224,13 +1224,6 @@
     -fx-background-color: derive(-fx-control-inner-background, -8%);
 }
 
-/* The expanded (active) path items get a subtle grey shade, mirroring
-   ElementUI where the focused node on the active path is shaded (grey, not
-   accent) — background is reserved for hover/focus, never for selection. */
-.rx-cascader-cell:in-active-path {
-    -fx-background-color: derive(-fx-control-inner-background, -4%);
-}
-
 /* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
    (expanded) path, the single-select chosen leaf, and each checked leaf.
    Branch check state is carried by the checkbox, not the text colour. */

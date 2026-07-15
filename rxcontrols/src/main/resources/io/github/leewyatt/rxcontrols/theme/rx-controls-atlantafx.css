@@ -111,8 +111,7 @@
     -fx-border-color: transparent -rx-outline transparent transparent;
 }
 .rx-cascader-view > .columns > .column .list-cell:filled:hover,
-.rx-cascader-view > .columns > .column .list-cell:filled:focused,
-.rx-cascader-cell:in-active-path {
+.rx-cascader-view > .columns > .column .list-cell:filled:focused {
     -fx-background-color: -rx-surface-variant;
 }
 .rx-segmented-control > .segment .label {
