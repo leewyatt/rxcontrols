@@ -161,6 +161,55 @@ public class RXRipplePaneTest {
     }
 
     /**
+     * Verifies unmanaged content stays attached but is ignored by measurement,
+     * content bias and layout, matching standard JavaFX pane semantics.
+     */
+    @Test
+    public void unmanagedContentIsIgnoredByMeasurementBiasAndLayout() {
+        FixedRegion content = new FixedRegion(20.0, 10.0, 120.0, 40.0,
+                Orientation.HORIZONTAL);
+        content.setManaged(false);
+        content.resizeRelocate(11.0, 12.0, 13.0, 14.0);
+        RXRipplePane pane = new RXRipplePane(content);
+        pane.setPadding(new Insets(1.0, 2.0, 3.0, 4.0));
+
+        assertNull(pane.getContentBias());
+        assertClose(6.0, pane.minWidth(-1.0), "min width");
+        assertClose(4.0, pane.minHeight(-1.0), "min height");
+        assertClose(6.0, pane.prefWidth(-1.0), "pref width");
+        assertClose(4.0, pane.prefHeight(-1.0), "pref height");
+
+        layout(pane, 100.0, 50.0);
+
+        assertClose(11.0, content.getLayoutX(), "content x");
+        assertClose(12.0, content.getLayoutY(), "content y");
+        assertClose(13.0, content.getLayoutBounds().getWidth(), "content width");
+        assertClose(14.0, content.getLayoutBounds().getHeight(), "content height");
+    }
+
+    /**
+     * Verifies preferred measurement uses the same child min/pref/max bounding
+     * rule as {@code Region.layoutInArea}.
+     */
+    @Test
+    public void preferredSizeIsBoundedByContentMax() {
+        Region content = new Region();
+        content.setMinSize(10.0, 5.0);
+        content.setPrefSize(120.0, 80.0);
+        content.setMaxSize(40.0, 20.0);
+        RXRipplePane pane = new RXRipplePane(content);
+        pane.setPadding(new Insets(1.0, 2.0, 3.0, 4.0));
+
+        assertClose(46.0, pane.prefWidth(-1.0), "pref width");
+        assertClose(24.0, pane.prefHeight(-1.0), "pref height");
+
+        layout(pane, 100.0, 50.0);
+
+        assertClose(40.0, content.getLayoutBounds().getWidth(), "content width");
+        assertClose(20.0, content.getLayoutBounds().getHeight(), "content height");
+    }
+
+    /**
      * Verifies content uses the snapped content area while the ripple layer
      * covers the full pane bounds with a clip following the background radii.
      */

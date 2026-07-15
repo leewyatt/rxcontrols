@@ -53,11 +53,13 @@ import java.util.List;
  * exit fade the active ripple out. Existing fading ripples may coexist with a
  * new press, with an internal cap to prevent buildup.</p>
  *
- * <p>The single {@linkplain #contentProperty() content} node is laid out within
- * the pane's padded area: a resizable node is sized to fill that area (clamped
- * to its own maximum size), and any node that does not fill the area is then
- * positioned by {@link #alignmentProperty() alignment}, which defaults to
- * {@link #DEFAULT_ALIGNMENT centered}.</p>
+ * <p>The single managed {@linkplain #contentProperty() content} node is laid
+ * out within the pane's padded area: a resizable node is sized to fill that
+ * area (clamped to its own maximum size), and any node that does not fill the
+ * area is then positioned by {@link #alignmentProperty() alignment}, which
+ * defaults to {@link #DEFAULT_ALIGNMENT centered}. Unmanaged content remains
+ * attached but is ignored by measurement and layout, matching JavaFX pane
+ * semantics.</p>
  *
  * <p>The pane listens for bubbling mouse events on itself; if the content
  * consumes {@code MOUSE_PRESSED}, no ripple starts. A ripple's radius is fixed
@@ -634,7 +636,7 @@ public class RXRipplePane extends Region {
 
     @Override
     public Orientation getContentBias() {
-        Node node = getContent();
+        Node node = managedContent();
         return node == null ? null : node.getContentBias();
     }
 
@@ -643,8 +645,8 @@ public class RXRipplePane extends Region {
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
         double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
-        Node node = getContent();
-        return snappedLeftInset() + (node == null ? 0.0 : snapSizeX(node.minWidth(contentHeight))) + snappedRightInset();
+        Node node = managedContent();
+        return snappedLeftInset() + (node == null ? 0.0 : childMinWidth(node, contentHeight)) + snappedRightInset();
     }
 
     @Override
@@ -652,8 +654,8 @@ public class RXRipplePane extends Region {
         double left = snappedLeftInset();
         double right = snappedRightInset();
         double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
-        Node node = getContent();
-        return snappedTopInset() + (node == null ? 0.0 : snapSizeY(node.minHeight(contentWidth))) + snappedBottomInset();
+        Node node = managedContent();
+        return snappedTopInset() + (node == null ? 0.0 : childMinHeight(node, contentWidth)) + snappedBottomInset();
     }
 
     @Override
@@ -661,8 +663,8 @@ public class RXRipplePane extends Region {
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
         double contentHeight = height == -1.0 ? -1.0 : Math.max(0.0, height - top - bottom);
-        Node node = getContent();
-        return snappedLeftInset() + (node == null ? 0.0 : snapSizeX(node.prefWidth(contentHeight))) + snappedRightInset();
+        Node node = managedContent();
+        return snappedLeftInset() + (node == null ? 0.0 : childPrefWidth(node, contentHeight)) + snappedRightInset();
     }
 
     @Override
@@ -670,8 +672,8 @@ public class RXRipplePane extends Region {
         double left = snappedLeftInset();
         double right = snappedRightInset();
         double contentWidth = width == -1.0 ? -1.0 : Math.max(0.0, width - left - right);
-        Node node = getContent();
-        return snappedTopInset() + (node == null ? 0.0 : snapSizeY(node.prefHeight(contentWidth))) + snappedBottomInset();
+        Node node = managedContent();
+        return snappedTopInset() + (node == null ? 0.0 : childPrefHeight(node, contentWidth)) + snappedBottomInset();
     }
 
     @Override
@@ -695,7 +697,7 @@ public class RXRipplePane extends Region {
         boolean valid = width > 0.0 && height > 0.0
                 && Double.isFinite(width) && Double.isFinite(height);
 
-        Node node = getContent();
+        Node node = managedContent();
         if (node != null) {
             double contentW = valid ? Math.max(0.0, width - left - right) : 0.0;
             double contentH = valid ? Math.max(0.0, height - top - bottom) : 0.0;
@@ -737,6 +739,55 @@ public class RXRipplePane extends Region {
             getChildren().setAll(next, ripple.getLayer());
         }
         requestLayout();
+    }
+
+    private Node managedContent() {
+        Node node = getContent();
+        return node == null || !node.isManaged() ? null : node;
+    }
+
+    private double childMinWidth(Node node, double height) {
+        double alt = -1.0;
+        if (height != -1.0 && node.isResizable()
+                && node.getContentBias() == Orientation.VERTICAL) {
+            alt = snapSizeY(boundedSize(node.minHeight(-1.0), height, node.maxHeight(-1.0)));
+        }
+        return snapSizeX(node.minWidth(alt));
+    }
+
+    private double childMinHeight(Node node, double width) {
+        double alt = -1.0;
+        if (node.isResizable() && node.getContentBias() == Orientation.HORIZONTAL) {
+            alt = snapSizeX(width == -1.0
+                    ? node.maxWidth(-1.0)
+                    : boundedSize(node.minWidth(-1.0), width, node.maxWidth(-1.0)));
+        }
+        return snapSizeY(node.minHeight(alt));
+    }
+
+    private double childPrefWidth(Node node, double height) {
+        double alt = -1.0;
+        if (height != -1.0 && node.isResizable()
+                && node.getContentBias() == Orientation.VERTICAL) {
+            alt = snapSizeY(boundedSize(node.minHeight(-1.0), height, node.maxHeight(-1.0)));
+        }
+        return snapSizeX(boundedSize(node.minWidth(alt), node.prefWidth(alt), node.maxWidth(alt)));
+    }
+
+    private double childPrefHeight(Node node, double width) {
+        double alt = -1.0;
+        if (node.isResizable() && node.getContentBias() == Orientation.HORIZONTAL) {
+            alt = snapSizeX(boundedSize(node.minWidth(-1.0),
+                    width == -1.0 ? node.prefWidth(-1.0) : width,
+                    node.maxWidth(-1.0)));
+        }
+        return snapSizeY(boundedSize(node.minHeight(alt), node.prefHeight(alt), node.maxHeight(alt)));
+    }
+
+    private static double boundedSize(double min, double pref, double max) {
+        double lowerBounded = pref >= min ? pref : min;
+        double effectiveMax = min >= max ? min : max;
+        return lowerBounded <= effectiveMax ? lowerBounded : effectiveMax;
     }
 
     // ==================== CSS Metadata ====================
