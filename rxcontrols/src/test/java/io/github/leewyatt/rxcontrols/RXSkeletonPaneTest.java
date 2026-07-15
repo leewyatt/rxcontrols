@@ -203,11 +203,11 @@ public class RXSkeletonPaneTest {
     }
 
     /**
-     * Verifies a dynamically unmanaged active slot is moved back to the pane
-     * origin instead of keeping the previous managed layout offset.
+     * Verifies a dynamically unmanaged active slot stays aligned with the
+     * content area instead of keeping the previous managed layout offset.
      */
     @Test
-    public void activeSlotResetsWhenContentBecomesUnmanagedAfterLayout() {
+    public void activeSlotStaysInContentAreaWhenContentBecomesUnmanagedAfterLayout() {
         FixedRegion skeleton = new FixedRegion(30.0, 20.0, 80.0, 60.0, null);
         FixedRegion content = new FixedRegion(20.0, 15.0, 100.0, 50.0, null);
         RXSkeletonPane pane = new RXSkeletonPane(skeleton, content, false);
@@ -222,10 +222,10 @@ public class RXSkeletonPaneTest {
         content.resizeRelocate(7.0, 8.0, 9.0, 10.0);
         layout(pane, 200.0, 100.0);
 
-        assertClose(0.0, slot.getLayoutX(), "unmanaged slot x");
-        assertClose(0.0, slot.getLayoutY(), "unmanaged slot y");
-        assertClose(200.0, slot.getLayoutBounds().getWidth(), "unmanaged slot width");
-        assertClose(100.0, slot.getLayoutBounds().getHeight(), "unmanaged slot height");
+        assertClose(10.0, slot.getLayoutX(), "unmanaged slot x");
+        assertClose(10.0, slot.getLayoutY(), "unmanaged slot y");
+        assertClose(180.0, slot.getLayoutBounds().getWidth(), "unmanaged slot width");
+        assertClose(80.0, slot.getLayoutBounds().getHeight(), "unmanaged slot height");
         assertClose(7.0, content.getLayoutX(), "unmanaged child x");
         assertClose(8.0, content.getLayoutY(), "unmanaged child y");
         assertClose(9.0, content.getLayoutBounds().getWidth(), "unmanaged child width");

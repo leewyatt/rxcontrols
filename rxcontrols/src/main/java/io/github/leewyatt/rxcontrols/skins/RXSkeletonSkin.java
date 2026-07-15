@@ -30,9 +30,9 @@ import java.util.List;
  *   <li>The shimmer band is a single {@link Rectangle} translated along the
  *       x-axis; the fill paint does not change per frame, so the cost per
  *       frame is a pure affine transform.</li>
- *   <li>The band moves inside a fixed viewport clipped by rectangles computed
- *       from the same geometry as the base layer — this prevents the gradient
- *       from spilling into rounded corners or text-line gaps.</li>
+ *   <li>The band moves inside a shimmer layer clipped by mask rectangles
+ *       computed from the same geometry as the shape layer — this prevents the
+ *       gradient from spilling into rounded corners or text-line gaps.</li>
  *   <li>{@link RXTreeShowingProperty} auto-pauses the scroll when the skeleton is
  *       detached, hidden, or hosted by a hidden window, so an invisible
  *       skeleton never burns pulse time.</li>
@@ -58,22 +58,16 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
 
     private static final double HALF = 0.5;
     private static final double FULL_PERCENT = 100.0;
-    private static final String BASE_LAYER_STYLE_CLASS = "base-layer";
-    private static final String BASE_BLOCK_STYLE_CLASS = "base-block";
-    private static final String SHIMMER_VIEWPORT_STYLE_CLASS = "shimmer-viewport";
-    private static final String SHIMMER_BAND_STYLE_CLASS = "shimmer-band";
-    private static final String CLIP_LAYER_STYLE_CLASS = "clip-layer";
-    private static final String CLIP_BLOCK_STYLE_CLASS = "clip-block";
 
     // ==================== Nodes ====================
 
     /**
-     * Base layer drawn under the shimmer. The same computed blocks also drive
-     * the clip layer, keeping the base and shimmer footprint in sync.
+     * Shape layer drawn under the shimmer. The same computed blocks also drive
+     * the shimmer mask, keeping the base and shimmer footprint in sync.
      */
-    private final Group baseLayer = new Group();
-    private final Group shimmerViewport = new Group();
-    private final Group clipLayer = new Group();
+    private final Group shapeLayer = new Group();
+    private final Group shimmerLayer = new Group();
+    private final Group shimmerMask = new Group();
 
     private final Rectangle shimmerBand = new Rectangle();
 
@@ -113,26 +107,25 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
     // ==================== Init ====================
 
     private void initNodes() {
-        baseLayer.getStyleClass().add(BASE_LAYER_STYLE_CLASS);
-        baseLayer.setManaged(false);
-        baseLayer.setMouseTransparent(true);
+        shapeLayer.getStyleClass().add("shape-layer");
+        shapeLayer.setManaged(false);
+        shapeLayer.setMouseTransparent(true);
 
-        shimmerViewport.getStyleClass().add(SHIMMER_VIEWPORT_STYLE_CLASS);
-        shimmerViewport.setManaged(false);
-        shimmerViewport.setMouseTransparent(true);
-        shimmerViewport.setClip(clipLayer);
-        disposer.registerDisposeTask(() -> shimmerViewport.setClip(null));
+        shimmerLayer.getStyleClass().add("shimmer-layer");
+        shimmerLayer.setManaged(false);
+        shimmerLayer.setMouseTransparent(true);
+        shimmerLayer.setClip(shimmerMask);
+        disposer.registerDisposeTask(() -> shimmerLayer.setClip(null));
 
-        clipLayer.getStyleClass().add(CLIP_LAYER_STYLE_CLASS);
-        clipLayer.setManaged(false);
-        clipLayer.setMouseTransparent(true);
+        shimmerMask.setManaged(false);
+        shimmerMask.setMouseTransparent(true);
 
-        shimmerBand.getStyleClass().add(SHIMMER_BAND_STYLE_CLASS);
+        shimmerBand.getStyleClass().add("shimmer-band");
         shimmerBand.setManaged(false);
         shimmerBand.setMouseTransparent(true);
 
-        shimmerViewport.getChildren().setAll(shimmerBand);
-        getChildren().setAll(baseLayer, shimmerViewport);
+        shimmerLayer.getChildren().setAll(shimmerBand);
+        getChildren().setAll(shapeLayer, shimmerLayer);
     }
 
     private void registerListeners(RXSkeleton control) {
@@ -157,7 +150,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
 
     private void applyBaseFill() {
         Paint p = getSkinnable().getBaseColor();
-        for (Node n : baseLayer.getChildren()) {
+        for (Node n : shapeLayer.getChildren()) {
             if (n instanceof Rectangle r) {
                 r.setFill(p);
             }
@@ -280,18 +273,17 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
             collapseAll();
             return;
         }
-        syncLayer(baseLayer, blocks, contentX, contentY, getSkinnable().getBaseColor(),
-                BASE_BLOCK_STYLE_CLASS);
-        syncLayer(clipLayer, blocks, 0.0, 0.0, Color.BLACK, CLIP_BLOCK_STYLE_CLASS);
+        syncShapeLayer(blocks, contentX, contentY);
+        syncShimmerMask(blocks);
 
-        layoutShimmer(contentX, contentY, contentWidth, contentHeight);
+        layoutShimmer(contentX, contentY, contentHeight);
         rebuildShimmerTimeline();
     }
 
     private void collapseAll() {
-        baseLayer.getChildren().clear();
-        clipLayer.getChildren().clear();
-        positionShimmerViewport(0.0, 0.0);
+        shapeLayer.getChildren().clear();
+        shimmerMask.getChildren().clear();
+        positionShimmerLayer(0.0, 0.0);
         shimmerBand.setWidth(0.0);
         shimmerBand.setHeight(0.0);
         cachedBandWidth = 0.0;
@@ -318,7 +310,7 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
                 double lineHeight = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineHeight());
                 double lineSpacing = RXMath.sanitizeFiniteNonNegative(getSkinnable().getLineSpacing());
                 double lastPercentSource = RXMath.sanitizeNonNegative(getSkinnable().getLastLineFillPercent());
-                double lastPercent = RXMath.clamp(lastPercentSource, 0.0, FULL_PERCENT);
+                double lastPercent = Math.min(FULL_PERCENT, lastPercentSource);
                 int lineCount = Math.max(1, getSkinnable().getLineCount());
                 double radius = lineHeight * HALF;
                 // Zero-height lines paint nothing; leave the block list empty
@@ -349,11 +341,17 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         return blocks;
     }
 
-    private void syncLayer(Group layer, List<Block> blocks, double offsetX,
-                           double offsetY, Paint fill, String blockStyleClass) {
+    private void syncShapeLayer(List<Block> blocks, double contentX, double contentY) {
+        syncRectangles(shapeLayer, blocks, contentX, contentY, getSkinnable().getBaseColor());
+    }
+
+    private void syncShimmerMask(List<Block> blocks) {
+        syncRectangles(shimmerMask, blocks, 0.0, 0.0, Color.BLACK);
+    }
+
+    private void syncRectangles(Group layer, List<Block> blocks, double offsetX, double offsetY, Paint fill) {
         while (layer.getChildren().size() < blocks.size()) {
             Rectangle rectangle = new Rectangle();
-            rectangle.getStyleClass().add(blockStyleClass);
             rectangle.setManaged(false);
             rectangle.setMouseTransparent(true);
             layer.getChildren().add(rectangle);
@@ -375,9 +373,9 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         }
     }
 
-    private void layoutShimmer(double cx, double cy, double cw, double ch) {
+    private void layoutShimmer(double cx, double cy, double ch) {
         double bandWidth = RXMath.sanitizeFiniteNonNegative(getSkinnable().getShimmerWidth());
-        positionShimmerViewport(cx, cy);
+        positionShimmerLayer(cx, cy);
         if (bandWidth <= 0.0) {
             shimmerBand.setWidth(0.0);
             shimmerBand.setHeight(ch);
@@ -393,12 +391,12 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
         cachedBandWidth = bandWidth;
     }
 
-    private void positionShimmerViewport(double x, double y) {
+    private void positionShimmerLayer(double x, double y) {
         // Do not use relocate(): Group layoutBounds include the animated band,
         // so a re-layout after detach/attach would offset the clip by the
         // band's current translateX.
-        shimmerViewport.setLayoutX(x);
-        shimmerViewport.setLayoutY(y);
+        shimmerLayer.setLayoutX(x);
+        shimmerLayer.setLayoutY(y);
     }
 
     private record Block(double x, double y, double width, double height,
@@ -447,21 +445,6 @@ public class RXSkeletonSkin extends RXSkinBase<RXSkeleton> {
             case ROUNDED_RECTANGLE -> DEFAULT_PREF_HEIGHT;
         };
         return topInset + inner + bottomInset;
-    }
-
-    @Override
-    protected double computeMaxWidth(double height, double topInset, double rightInset,
-                                     double bottomInset, double leftInset) {
-        // Deliberate divergence from RXCircular / RXWave: the skeleton is a
-        // placeholder, so it must grow inside HBox.Hgrow=ALWAYS / VBox.Vgrow=
-        // ALWAYS. Locking max to pref would freeze it at the default size.
-        return Double.MAX_VALUE;
-    }
-
-    @Override
-    protected double computeMaxHeight(double width, double topInset, double rightInset,
-                                      double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
     }
 
     // ==================== Dispose ====================

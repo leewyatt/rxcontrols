@@ -290,7 +290,7 @@ public class RXSkeletonPane extends Region {
         if (active.isManaged()) {
             layoutInArea(slot, x, y, w, h, 0.0, HPos.LEFT, VPos.TOP);
         } else {
-            layoutUnmanagedSlot(slot);
+            layoutUnmanagedSlot(slot, x, y, w, h);
         }
     }
 
@@ -411,16 +411,14 @@ public class RXSkeletonPane extends Region {
         return isLoading() ? skeletonSlot : contentSlot;
     }
 
-    private void layoutUnmanagedSlot(SlotPane slot) {
-        double width = getWidth();
-        double height = getHeight();
+    private void layoutUnmanagedSlot(SlotPane slot, double x, double y, double width, double height) {
         if (!Double.isFinite(width) || width < 0.0) {
             width = 0.0;
         }
         if (!Double.isFinite(height) || height < 0.0) {
             height = 0.0;
         }
-        slot.resizeRelocate(0.0, 0.0, width, height);
+        slot.resizeRelocate(x, y, width, height);
     }
 
     private Node managedSkeleton() {

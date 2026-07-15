@@ -98,7 +98,7 @@ public class RXSkeletonTest {
         // default and lays out without an NPE.
         installSkin(skeleton);
         layout(skeleton, 200.0, 100.0);
-        assertTrue(baseLayer(skeleton).getChildren().size() > 0,
+        assertTrue(shapeLayer(skeleton).getChildren().size() > 0,
                 "null variant lays out as the default (no NPE)");
     }
 
@@ -149,7 +149,7 @@ public class RXSkeletonTest {
 
         layout(skeleton, 120.0, 16.0);
 
-        Rectangle baseBlock = rectanglesIn(baseLayer(skeleton)).get(0);
+        Rectangle baseBlock = rectanglesIn(shapeLayer(skeleton)).get(0);
         Rectangle shimmerBand = shimmerBand(skeleton);
         assertNull(skeleton.getBaseColor());
         assertNull(skeleton.getShimmerFill());
@@ -158,10 +158,10 @@ public class RXSkeletonTest {
     }
 
     /**
-     * Verifies TEXT uses one base and clip rectangle per visible text line.
+     * Verifies TEXT uses one shape and mask rectangle per visible text line.
      */
     @Test
-    public void textVariantCreatesPerLineBaseAndClipBlocks() {
+    public void textVariantCreatesPerLineShapeAndMaskBlocks() {
         RXSkeleton skeleton = new RXSkeleton(Variant.TEXT);
         skeleton.setLineCount(3);
         skeleton.setLineHeight(10.0);
@@ -171,17 +171,17 @@ public class RXSkeletonTest {
 
         layout(skeleton, 200.0, 60.0);
 
-        List<Rectangle> baseBlocks = rectanglesIn(baseLayer(skeleton));
-        List<Rectangle> clipBlocks = rectanglesIn(clipLayer(skeleton));
-        assertEquals(3, baseBlocks.size());
-        assertEquals(3, clipBlocks.size());
+        List<Rectangle> shapeBlocks = rectanglesIn(shapeLayer(skeleton));
+        List<Rectangle> maskBlocks = rectanglesIn(shimmerMask(skeleton));
+        assertEquals(3, shapeBlocks.size());
+        assertEquals(3, maskBlocks.size());
 
-        assertBlock(baseBlocks.get(0), 0.0, 0.0, 200.0, 10.0);
-        assertBlock(baseBlocks.get(1), 0.0, 15.0, 200.0, 10.0);
-        assertBlock(baseBlocks.get(2), 0.0, 30.0, 100.0, 10.0);
-        assertBlock(clipBlocks.get(0), 0.0, 0.0, 200.0, 10.0);
-        assertBlock(clipBlocks.get(1), 0.0, 15.0, 200.0, 10.0);
-        assertBlock(clipBlocks.get(2), 0.0, 30.0, 100.0, 10.0);
+        assertBlock(shapeBlocks.get(0), 0.0, 0.0, 200.0, 10.0);
+        assertBlock(shapeBlocks.get(1), 0.0, 15.0, 200.0, 10.0);
+        assertBlock(shapeBlocks.get(2), 0.0, 30.0, 100.0, 10.0);
+        assertBlock(maskBlocks.get(0), 0.0, 0.0, 200.0, 10.0);
+        assertBlock(maskBlocks.get(1), 0.0, 15.0, 200.0, 10.0);
+        assertBlock(maskBlocks.get(2), 0.0, 30.0, 100.0, 10.0);
     }
 
     /**
@@ -273,20 +273,20 @@ public class RXSkeletonTest {
 
         // Line 2 spans y=15..25 — its bottom edge crosses the 22px height.
         layout(skeleton, 200.0, 22.0);
-        assertEquals(1, rectanglesIn(baseLayer(skeleton)).size(),
+        assertEquals(1, rectanglesIn(shapeLayer(skeleton)).size(),
                 "only the line at y=0..10 fits into 22px");
-        assertEquals(1, rectanglesIn(clipLayer(skeleton)).size());
+        assertEquals(1, rectanglesIn(shimmerMask(skeleton)).size());
 
         // Exact fit is inclusive: y=15..25 with ch=25 is kept.
         layout(skeleton, 200.0, 25.0);
-        assertEquals(2, rectanglesIn(baseLayer(skeleton)).size(),
+        assertEquals(2, rectanglesIn(shapeLayer(skeleton)).size(),
                 "a line ending exactly at the content height fits");
 
         // Degenerate: not even the first line fits — nothing is painted and
         // the shimmer collapses instead of animating invisibly.
         skeleton.setLineHeight(30.0);
         layout(skeleton, 200.0, 22.0);
-        assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
+        assertEquals(0, rectanglesIn(shapeLayer(skeleton)).size(),
                 "a 30px line cannot fit into 22px");
         assertClose(0.0, shimmerBand(skeleton).getWidth(),
                 "shimmer collapses with no visible block");
@@ -295,7 +295,7 @@ public class RXSkeletonTest {
         // spacing-only preferred height reserving blank space.
         skeleton.setLineHeight(Double.POSITIVE_INFINITY);
         layout(skeleton, 200.0, 60.0);
-        assertEquals(0, rectanglesIn(baseLayer(skeleton)).size(),
+        assertEquals(0, rectanglesIn(shapeLayer(skeleton)).size(),
                 "infinite line height renders no lines");
         assertClose(0.0, shimmerBand(skeleton).getWidth(),
                 "shimmer stays collapsed for infinite line height");
@@ -304,19 +304,19 @@ public class RXSkeletonTest {
     }
 
     /**
-     * Verifies the Skin exposes stable style classes for tests and diagnostics.
+     * Verifies the Skin exposes style classes only on visible structure nodes.
      */
     @Test
-    public void skinNodesHaveStableStyleClasses() {
+    public void skinNodesExposeOnlyVisibleStructureStyleClasses() {
         RXSkeleton skeleton = new RXSkeleton();
         installSkin(skeleton);
         layout(skeleton, 120.0, 16.0);
 
-        assertTrue(baseLayer(skeleton).getStyleClass().contains("base-layer"));
-        assertTrue(shimmerViewport(skeleton).getStyleClass().contains("shimmer-viewport"));
-        assertTrue(clipLayer(skeleton).getStyleClass().contains("clip-layer"));
-        assertTrue(rectanglesIn(baseLayer(skeleton)).get(0).getStyleClass().contains("base-block"));
-        assertTrue(rectanglesIn(clipLayer(skeleton)).get(0).getStyleClass().contains("clip-block"));
+        assertTrue(shapeLayer(skeleton).getStyleClass().contains("shape-layer"));
+        assertTrue(shimmerLayer(skeleton).getStyleClass().contains("shimmer-layer"));
+        assertTrue(shimmerMask(skeleton).getStyleClass().isEmpty());
+        assertTrue(rectanglesIn(shapeLayer(skeleton)).get(0).getStyleClass().isEmpty());
+        assertTrue(rectanglesIn(shimmerMask(skeleton)).get(0).getStyleClass().isEmpty());
         assertTrue(shimmerBand(skeleton).getStyleClass().contains("shimmer-band"));
     }
 
@@ -340,25 +340,25 @@ public class RXSkeletonTest {
         skeleton.layout();
     }
 
-    private static Group baseLayer(RXSkeleton skeleton) {
-        return styledChild(skeleton, "base-layer");
+    private static Group shapeLayer(RXSkeleton skeleton) {
+        return styledChild(skeleton, "shape-layer");
     }
 
-    private static Group shimmerViewport(RXSkeleton skeleton) {
-        return styledChild(skeleton, "shimmer-viewport");
+    private static Group shimmerLayer(RXSkeleton skeleton) {
+        return styledChild(skeleton, "shimmer-layer");
     }
 
-    private static Group clipLayer(RXSkeleton skeleton) {
-        Node clip = shimmerViewport(skeleton).getClip();
+    private static Group shimmerMask(RXSkeleton skeleton) {
+        Node clip = shimmerLayer(skeleton).getClip();
         assertInstanceOf(Group.class, clip);
         return (Group) clip;
     }
 
     private static Rectangle shimmerBand(RXSkeleton skeleton) {
-        Group viewport = shimmerViewport(skeleton);
-        assertEquals(1, viewport.getChildren().size());
-        assertInstanceOf(Rectangle.class, viewport.getChildren().get(0));
-        return (Rectangle) viewport.getChildren().get(0);
+        Group layer = shimmerLayer(skeleton);
+        assertEquals(1, layer.getChildren().size());
+        assertInstanceOf(Rectangle.class, layer.getChildren().get(0));
+        return (Rectangle) layer.getChildren().get(0);
     }
 
     private static Group styledChild(RXSkeleton skeleton, String styleClass) {
