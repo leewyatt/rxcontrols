@@ -8,8 +8,10 @@ import javafx.scene.control.SelectionMode;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1937,6 +1939,165 @@ public class RXCascaderViewTest {
     }
 
     /**
+     * Verifies clearing selection drops pending check intent that came from a
+     * detached seed after the item becomes reachable.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void clearSelectionDropsPendingCheckFromReachableDetachedSeed() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("child")));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+            view.getRootItems().setAll(strayBranch);
+            view.clearSelection();
+            view.expand(strayBranch);
+
+            assertEquals(1, calls[0]);
+            assertTrue(loaded(strayBranch));
+            assertFalse(strayBranch.isChecked());
+            assertTrue(view.getCheckedPaths().isEmpty());
+            assertFalse(strayBranch.getChildren().get(0).isChecked());
+        });
+    }
+
+    /**
+     * Verifies clearing selection drops a detached seed before that item is
+     * attached to the current roots.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void clearSelectionDropsDetachedSeedBeforeItBecomesReachable() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("child")));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+            view.clearSelection();
+            view.getRootItems().setAll(strayBranch);
+            view.expand(strayBranch);
+
+            assertEquals(1, calls[0]);
+            assertTrue(loaded(strayBranch));
+            assertFalse(strayBranch.isChecked());
+            assertTrue(view.getCheckedPaths().isEmpty());
+            assertFalse(strayBranch.getChildren().get(0).isChecked());
+        });
+    }
+
+    /**
+     * Verifies clearing selection still drops a detached seed after the item was
+     * temporarily reachable and then removed from the roots again.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void clearSelectionDropsDetachedSeedAfterReachableItemIsDetachedAgain() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("child")));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+            view.getRootItems().setAll(strayBranch);
+            view.getRootItems().clear();
+            view.clearSelection();
+            view.getRootItems().setAll(strayBranch);
+            view.expand(strayBranch);
+
+            assertEquals(1, calls[0]);
+            assertTrue(loaded(strayBranch));
+            assertFalse(strayBranch.isChecked());
+            assertTrue(view.getCheckedPaths().isEmpty());
+            assertFalse(strayBranch.getChildren().get(0).isChecked());
+        });
+    }
+
+    /**
+     * Verifies an explicit cascade uncheck releases a detached seed reference once
+     * that subtree no longer carries pending or checked state.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void setCheckedCascadeFalsePrunesClearedDetachedSeedReference() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.completedFuture(List.of(leaf("child")));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+            view.getRootItems().setAll(strayBranch);
+            view.expand(strayBranch);
+            view.setCheckedCascade(strayBranch, false);
+            view.getRootItems().clear();
+
+            assertEquals(1, calls[0]);
+            assertTrue(loaded(strayBranch));
+            assertFalse(strayBranch.isChecked());
+            assertTrue(view.getCheckedPaths().isEmpty());
+            assertEquals(0, detachedSeedItemCount(view));
+        });
+    }
+
+    /**
+     * Verifies a failed lazy load releases a detached seed reference once the
+     * pending optimistic check has been rolled back.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void failedLoadPrunesClearedDetachedSeedReference() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            int[] calls = {0};
+            view.setChildrenLoader(item -> {
+                calls[0]++;
+                return CompletableFuture.failedFuture(new IllegalStateException("boom"));
+            });
+            RXCascaderItem<String> strayBranch = item("strayBranch");
+
+            view.seedChecked(List.of(strayBranch));
+            view.getRootItems().setAll(strayBranch);
+            view.expand(strayBranch);
+            view.getRootItems().clear();
+
+            assertEquals(1, calls[0]);
+            assertEquals(LoadState.FAILED, strayBranch.getLoadState());
+            assertFalse(strayBranch.isChecked());
+            assertFalse(strayBranch.isIndeterminate());
+            assertTrue(view.getCheckedPaths().isEmpty());
+            assertEquals(0, detachedSeedItemCount(view));
+        });
+    }
+
+    /**
      * Verifies a forced branch ({@code leafHint=false}) that loads to zero
      * children under a pending check does not become a checked non-leaf: the
      * rollup rule that an empty branch cannot be checked applies to the replay
@@ -2150,6 +2311,16 @@ public class RXCascaderViewTest {
 
     private static boolean loading(RXCascaderItem<?> item) {
         return item.getLoadState() == LoadState.LOADING;
+    }
+
+    private static int detachedSeedItemCount(RXCascaderView<?> view) {
+        try {
+            Field field = RXCascaderView.class.getDeclaredField("detachedSeedItems");
+            field.setAccessible(true);
+            return ((Set<?>) field.get(view)).size();
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

@@ -100,10 +100,10 @@
     -rx-text-fill: -rx-on-surface;
     -rx-selected-text-fill: -rx-on-surface;
 }
-/* Cascader field / column / cell greys are baseline `derive(-fx-*, -N%)` formulas
-   tuned for the Modena light surface; under an AtlantaFX theme (light or dark) they
-   collapse into the background. Re-point to role tokens, which map to -color-* and
-   auto-flip for both. The active-path cell also keeps its accent + bold text. */
+/* Cascader field / column / hover-focus greys are baseline `derive(-fx-*, -N%)`
+   formulas tuned for the Modena light surface; under an AtlantaFX theme (light or
+   dark) they collapse into the background. Re-point to role tokens, which map to
+   -color-* and auto-flip for both. The active path is accent + bold text only. */
 .rx-cascader > .display > .label:empty {
     -fx-text-fill: -rx-on-surface-secondary;
 }

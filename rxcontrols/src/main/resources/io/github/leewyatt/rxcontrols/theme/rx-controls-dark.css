@@ -100,12 +100,11 @@
     -rx-selected-text-fill: -rx-on-surface;
 }
 
-/* Cascader field / column / cell greys are baseline `derive(-fx-*, -N%)` formulas
-   tuned for the light surface; on the dark surface they subtract from an already
-   dark colour and collapse into the background (prompt text becomes unreadable,
-   hover / active-path / column separators become imperceptible). Re-point each to a
-   dark role token. The active-path cell also keeps its accent + bold text, so this
-   background shade is only a secondary cue. */
+/* Cascader field / column / hover-focus greys are baseline `derive(-fx-*, -N%)`
+   formulas tuned for the light surface; on the dark surface they subtract from
+   an already dark colour and collapse into the background (prompt text becomes
+   unreadable, hover/focus and column separators become imperceptible). Re-point
+   each to a dark role token. The active path is indicated by accent + bold text. */
 .rx-cascader > .display > .label:empty {
     -fx-text-fill: -rx-on-surface-secondary;
 }

@@ -126,6 +126,15 @@ public class RXCascaderView<T> extends Control {
     private final Set<RXCascaderItem<T>> liveLoads =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
+    /**
+     * Items seeded before their top-level ancestor was present in {@link #rootItems}.
+     * The view has already mutated them, so clear/reset operations must still be
+     * able to revoke that seed while the items are off-tree. Entries are retained
+     * until the item's check state is explicitly cleared.
+     */
+    private final Set<RXCascaderItem<T>> detachedSeedItems =
+            Collections.newSetFromMap(new IdentityHashMap<>());
+
     /** Monotonic and never reset: its monotonicity is the stale-completion guarantee. */
     private long nextLoadToken;
 
@@ -686,6 +695,8 @@ public class RXCascaderView<T> extends Control {
         List<RXCascaderItem<T>> items = pathItems(leaf);
         List<RXCascaderItem<T>> ancestors = items.subList(0, items.size() - 1);
         if (!activePath.equals(ancestors)) {
+            // A leaf activation retargets navigation to its ancestors, dropping
+            // stale deeper branch columns from a previously expanded path.
             activePath.setAll(ancestors);
             bumpColumnsRevision();
             requestLayout();
@@ -822,12 +833,14 @@ public class RXCascaderView<T> extends Control {
             recordPendingCheckAndLoad(item, checked);
             updateUp(item.getParent());
             refreshCheckedPaths();
+            pruneClearedDetachedSeedItems();
             requestLayout();
             return;
         }
         applyDown(item, checked);
         updateUp(item.getParent());
         refreshCheckedPaths();
+        pruneClearedDetachedSeedItems();
         requestLayout();
     }
 
@@ -862,6 +875,7 @@ public class RXCascaderView<T> extends Control {
             if (item == null) {
                 continue;
             }
+            boolean detached = !isInCurrentTree(item);
             if (isLeaf(item)) {
                 // Set the leaf directly so even a disabled (locked) leaf can be
                 // seeded as pre-checked.
@@ -872,6 +886,9 @@ public class RXCascaderView<T> extends Control {
                 // set would show it checked while its leaves and the checked paths
                 // disagree, and the next rollup would silently drop the seed.
                 applyDown(item, true);
+            }
+            if (detached && (item.isChecked() || item.isIndeterminate() || item.getPendingCheck() != null)) {
+                detachedSeedItems.add(item);
             }
         }
         for (RXCascaderItem<T> item : items) {
@@ -916,6 +933,7 @@ public class RXCascaderView<T> extends Control {
         for (RXCascaderItem<T> item : liveLoads) {
             item.setPendingCheck(null);
         }
+        clearDetachedSeedItems();
         for (RXCascaderItem<T> root : rootItems) {
             clearCheckState(root);
         }
@@ -1299,6 +1317,7 @@ public class RXCascaderView<T> extends Control {
                 updateUp(item.getParent());
                 refreshCheckedPaths();
             }
+            pruneClearedDetachedSeedItems();
             item.setLoadState(LoadState.FAILED);
             BiConsumer<RXCascaderItem<T>, Throwable> handler = getOnChildrenLoadError();
             if (handler != null) {
@@ -1349,6 +1368,7 @@ public class RXCascaderView<T> extends Control {
             // before it, isLeaf() reports false and refreshCheckedPaths drops it.
             refreshCheckedPaths();
         }
+        pruneClearedDetachedSeedItems();
         // Bump after children and any replayed check state are final, so the
         // skin's re-sync renders the newly appearing column in its correct state.
         bumpColumnsRevision();
@@ -1364,6 +1384,8 @@ public class RXCascaderView<T> extends Control {
     }
 
     private void clearCheckState(RXCascaderItem<T> item) {
+        detachedSeedItems.remove(item);
+        item.setPendingCheck(null);
         item.setChecked(false);
         item.setIndeterminate(false);
         for (RXCascaderItem<T> child : item.getChildren()) {
@@ -1398,6 +1420,7 @@ public class RXCascaderView<T> extends Control {
         for (RXCascaderItem<T> item : snapshot) {
             Boolean pendingCheck = item.getPendingCheck();
             item.setPendingCheck(null);
+            detachedSeedItems.remove(item);
             item.setLoadState(LoadState.NOT_LOADED);
             if (pendingCheck != null && isUnresolvedLazyBranch(item)) {
                 item.setChecked(false);
@@ -1428,6 +1451,7 @@ public class RXCascaderView<T> extends Control {
      */
     private void resetTree() {
         clearNavAndPending();
+        clearDetachedSeedItems();
         for (RXCascaderItem<T> root : rootItems) {
             clearCheckState(root);
             root.getChildren().clear();
@@ -1448,6 +1472,37 @@ public class RXCascaderView<T> extends Control {
         refreshCheckedPaths();
         bumpColumnsRevision();
         requestLayout();
+    }
+
+    private void clearDetachedSeedItems() {
+        if (detachedSeedItems.isEmpty()) {
+            return;
+        }
+        List<RXCascaderItem<T>> snapshot = new ArrayList<>(detachedSeedItems);
+        detachedSeedItems.clear();
+        for (RXCascaderItem<T> item : snapshot) {
+            clearCheckState(item);
+            updateUp(item.getParent());
+        }
+    }
+
+    private void pruneClearedDetachedSeedItems() {
+        if (detachedSeedItems.isEmpty()) {
+            return;
+        }
+        detachedSeedItems.removeIf(item -> !hasCheckState(item));
+    }
+
+    private boolean hasCheckState(RXCascaderItem<T> item) {
+        if (item.getPendingCheck() != null || item.isChecked() || item.isIndeterminate()) {
+            return true;
+        }
+        for (RXCascaderItem<T> child : item.getChildren()) {
+            if (hasCheckState(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void refreshCheckedPaths() {
