@@ -9,8 +9,9 @@ import javafx.scene.Node;
  * It extends {@link RXRadioToggleButton}, whose radio-like behaviour keeps one
  * destination always active — re-clicking the selected item does NOT clear it
  * (unlike a plain toggle) — while keeping a flat ToggleButton appearance. The
- * sidebar adds it to an internal selection group; activating it sets
- * {@link RXSidebar#selectedItemProperty()}.
+ * sidebar adds it to an internal selection group; activating it becomes the
+ * sidebar's {@link RXSidebar#selectedItemProperty() selectedItem}. To select it
+ * programmatically use {@link RXSidebar#selectItem(RXSidebarNavItem)}.
  *
  * <p>{@code selected} / {@code graphic} / {@code text} / {@code disabled} are
  * inherited (ToggleButton -&gt; Labeled -&gt; Control); the {@code :selected}

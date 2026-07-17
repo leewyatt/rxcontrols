@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.scene.Node;
 
 /**
@@ -8,9 +7,9 @@ import javafx.scene.Node;
  * JavaFX {@link Node}: navigation items are toggles, action items are buttons.
  * Navigation and action items live on different JavaFX control branches (toggle
  * vs button), so there is no shared concrete base class — hence a sealed
- * interface. Cross-cutting concerns (accessible text, mini-mode tooltip, the
- * shared selection group, and mode delivery) are applied uniformly by
- * {@code RXSidebarSkin}.
+ * interface. The mutually-exclusive selection is owned by {@link RXSidebar}
+ * itself (so it survives a skin change); presentation concerns such as the
+ * mini-mode tooltip and the icon column are applied by the skin.
  */
 public sealed interface RXSidebarItem permits RXSidebarNavItem, RXSidebarActionItem {
 
@@ -31,14 +30,5 @@ public sealed interface RXSidebarItem permits RXSidebarNavItem, RXSidebarActionI
      */
     default Node asNode() {
         return (Node) this;
-    }
-
-    /**
-     * Called by the skin when the sidebar's committed mode changes. The default
-     * does nothing; custom items (V2) override it to swap mini/expanded content.
-     *
-     * @param mode the new committed sidebar mode
-     */
-    default void onSidebarModeChanged(SidebarMode mode) {
     }
 }

@@ -157,7 +157,7 @@ public class RXSidebarKeyboardA11yTest {
             assertFalse(sidebar.isFocusTraversable(), "rail container is not a Tab stop");
             assertSoleTabStop(a, a, b, c); // no selection -> first
 
-            sidebar.setSelectedItem(b);
+            sidebar.selectItem(b);
             assertSoleTabStop(b, a, b, c); // selection -> selected item
         });
     }
@@ -199,11 +199,11 @@ public class RXSidebarKeyboardA11yTest {
             sidebar.getItems().addAll(a, b);
             Scene scene = hostFor(sidebar).getScene();
 
-            sidebar.setSelectedItem(a);   // a is the sole Tab stop
+            sidebar.selectItem(a);   // a is the sole Tab stop
             a.requestFocus();             // re-clicking the selected Tab stop focuses it
             assertSame(a, scene.getFocusOwner());
 
-            sidebar.setSelectedItem(b);   // selecting another item
+            sidebar.selectItem(b);   // selecting another item
             assertSame(b, scene.getFocusOwner(),
                     "focus migrates to the newly selected item, not stranded on a");
             assertSoleTabStop(b, a, b);
@@ -229,8 +229,8 @@ public class RXSidebarKeyboardA11yTest {
             outside.requestFocus();
             assertSame(outside, scene.getFocusOwner());
 
-            sidebar.setSelectedItem(a);
-            sidebar.setSelectedItem(b);
+            sidebar.selectItem(a);
+            sidebar.selectItem(b);
             assertSame(outside, scene.getFocusOwner(),
                     "programmatic selection must not pull focus into the rail");
         });
@@ -267,7 +267,7 @@ public class RXSidebarKeyboardA11yTest {
             RXSidebarNavItem a = new RXSidebarNavItem("A");
             RXSidebarNavItem b = new RXSidebarNavItem("B");
             sidebar.getItems().addAll(a, b);
-            sidebar.setSelectedItem(a); // a is the Tab stop, b is demoted
+            sidebar.selectItem(a); // a is the Tab stop, b is demoted
             hostFor(sidebar);
             assertFalse(b.isFocusTraversable());
 
@@ -290,7 +290,7 @@ public class RXSidebarKeyboardA11yTest {
             RXSidebarNavItem a = new RXSidebarNavItem("A");
             RXSidebarNavItem b = new RXSidebarNavItem("B");
             sidebar.getItems().addAll(a, b);
-            sidebar.setSelectedItem(a); // b demoted to non-traversable
+            sidebar.selectItem(a); // b demoted to non-traversable
             hostFor(sidebar);
             assertFalse(b.isFocusTraversable());
 
@@ -392,7 +392,7 @@ public class RXSidebarKeyboardA11yTest {
             Pane host = hostFor(sidebar);
 
             assertDoesNotThrow(() -> {
-                sidebar.setSelectedItem(a); // disabled + not in ring -> preferredTabStop null
+                sidebar.selectItem(a); // disabled + not in ring -> preferredTabStop null
                 sidebar.setMode(SidebarMode.MINI);
                 host.applyCss();
                 host.layout();
@@ -411,7 +411,7 @@ public class RXSidebarKeyboardA11yTest {
             RXSidebarNavItem a = new RXSidebarNavItem("A");
             RXSidebarNavItem b = new RXSidebarNavItem("B");
             sidebar.getItems().addAll(a, b);
-            sidebar.setSelectedItem(a);
+            sidebar.selectItem(a);
             hostFor(sidebar);
             assertSoleTabStop(a, a, b);
 
@@ -452,7 +452,7 @@ public class RXSidebarKeyboardA11yTest {
             RXSidebarNavItem a = new RXSidebarNavItem("A");
             RXSidebarNavItem b = new RXSidebarNavItem("B");
             sidebar.getItems().addAll(a, b);
-            sidebar.setSelectedItem(a);
+            sidebar.selectItem(a);
             hostFor(sidebar);
             assertSoleTabStop(a, a, b);
 

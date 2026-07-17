@@ -210,7 +210,7 @@ public class RXSidebarSkinTest {
             host.applyCss();
             host.layout();
 
-            sidebar.setSelectedItem(inbox);
+            sidebar.selectItem(inbox);
             for (int i = 0; i < 3; i++) {
                 sidebar.setMode(SidebarMode.MINI);
                 host.applyCss();

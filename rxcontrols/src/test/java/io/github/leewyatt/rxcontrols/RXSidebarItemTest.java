@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.AccessibleRole;
@@ -139,32 +138,6 @@ public class RXSidebarItemTest {
         assertSame(action, action.asNode());
     }
 
-    /**
-     * Verifies the default {@code onSidebarModeChanged} is a harmless no-op on
-     * both item types: it neither throws nor mutates observable item state.
-     */
-    @Test
-    public void onSidebarModeChangedDefaultIsNoOp() {
-        RXSidebarNavItem nav = new RXSidebarNavItem("A");
-        nav.setSelected(true);
-        Region navGraphic = new Region();
-        nav.setGraphic(navGraphic);
-
-        RXSidebarActionItem action = new RXSidebarActionItem("B");
-        Region actionGraphic = new Region();
-        action.setGraphic(actionGraphic);
-
-        nav.onSidebarModeChanged(SidebarMode.MINI);
-        nav.onSidebarModeChanged(SidebarMode.EXPANDED);
-        action.onSidebarModeChanged(SidebarMode.MINI);
-        action.onSidebarModeChanged(SidebarMode.EXPANDED);
-
-        assertEquals("A", nav.getText());
-        assertTrue(nav.isSelected());
-        assertSame(navGraphic, nav.getGraphic());
-        assertEquals("B", action.getText());
-        assertSame(actionGraphic, action.getGraphic());
-    }
 
     /**
      * Verifies both item types tolerate {@code null} text without throwing

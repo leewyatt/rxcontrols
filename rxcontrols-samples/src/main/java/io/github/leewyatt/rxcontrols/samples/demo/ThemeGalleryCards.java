@@ -900,7 +900,7 @@ final class ThemeGalleryCards {
         RXSidebarActionItem settings = new RXSidebarActionItem("Settings", new Circle(8, Color.web("#9b8cff")));
         sidebar.getBottomItems().addAll(settings, new RXSidebarNavItem("Help", new Circle(8, Color.web("#8a8f99"))));
         sidebar.setFooter(new Label("v1.0"));
-        sidebar.setSelectedItem(dashboard);
+        sidebar.selectItem(dashboard);
         sidebar.setExpandedWidth(220.0);
         sidebar.setMiniWidth(72.0);
         sidebar.setMode(mode);

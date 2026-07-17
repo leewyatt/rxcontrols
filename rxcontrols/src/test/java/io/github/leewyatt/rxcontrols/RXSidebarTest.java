@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
 import javafx.util.Duration;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * P2 gate tests for the {@link RXSidebar} control: property defaults, the
  * control-owned selection wiring (selectedItem &lt;-&gt; internal ToggleGroup
- * two-way sync, nav membership, lenient non-nav storage), the derived
- * {@code selectedNavigationItem} view, and the {@code :expanded}/{@code :mini}
+ * two-way sync, nav membership), the read-only selection projection driven by
+ * {@code selectItem} / {@code clearSelection}, and the {@code :expanded}/{@code :mini}
  * mode pseudo-classes. Operates on the model only — no skin/scene required.
  */
 public class RXSidebarTest {
@@ -66,7 +68,6 @@ public class RXSidebarTest {
         assertEquals(Duration.millis(200.0), sidebar.getAnimationDuration());
         assertSame(Interpolator.EASE_BOTH, sidebar.getAnimationInterpolator());
         assertNull(sidebar.getSelectedItem());
-        assertNull(sidebar.getSelectedNavigationItem());
         assertTrue(sidebar.getTopItems().isEmpty());
         assertTrue(sidebar.getItems().isEmpty());
         assertTrue(sidebar.getBottomItems().isEmpty());
@@ -94,8 +95,8 @@ public class RXSidebarTest {
     }
 
     /**
-     * Verifies clicking a nav item (group -&gt; selectedItem path) updates both
-     * selectedItem and the derived selectedNavigationItem.
+     * Verifies clicking a nav item (group -&gt; selectedItem path) updates
+     * selectedItem.
      */
     @Test
     public void navClickUpdatesSelection() {
@@ -106,18 +107,16 @@ public class RXSidebarTest {
 
         a.fire();
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
         assertTrue(a.isSelected());
 
         b.fire();
         assertSame(b, sidebar.getSelectedItem());
-        assertSame(b, sidebar.getSelectedNavigationItem());
         assertTrue(b.isSelected());
         assertFalse(a.isSelected());
     }
 
     /**
-     * Verifies programmatic setSelectedItem(nav) (selectedItem -&gt; group path)
+     * Verifies programmatic selectItem(nav) (selectedItem -&gt; group path)
      * lights the nav item and clears the previous selection.
      */
     @Test
@@ -127,18 +126,18 @@ public class RXSidebarTest {
         RXSidebarNavItem b = new RXSidebarNavItem("B");
         sidebar.getItems().addAll(a, b);
 
-        sidebar.setSelectedItem(a);
+        sidebar.selectItem(a);
         assertTrue(a.isSelected());
-        assertSame(a, sidebar.getSelectedNavigationItem());
+        assertSame(a, sidebar.getSelectedItem());
 
-        sidebar.setSelectedItem(b);
+        sidebar.selectItem(b);
         assertTrue(b.isSelected());
         assertFalse(a.isSelected());
-        assertSame(b, sidebar.getSelectedNavigationItem());
+        assertSame(b, sidebar.getSelectedItem());
     }
 
     /**
-     * Verifies setSelectedItem(null) clears the group and derived view.
+     * Verifies selectItem(null) clears the group.
      */
     @Test
     public void setSelectedNullClearsGroup() {
@@ -146,19 +145,17 @@ public class RXSidebarTest {
         RXSidebarNavItem a = new RXSidebarNavItem("A");
         sidebar.getItems().add(a);
 
-        sidebar.setSelectedItem(a);
+        sidebar.selectItem(a);
         assertTrue(a.isSelected());
 
-        sidebar.setSelectedItem(null);
+        sidebar.clearSelection();
         assertNull(sidebar.getSelectedItem());
-        assertNull(sidebar.getSelectedNavigationItem());
         assertFalse(a.isSelected());
     }
 
     /**
-     * Verifies an action item never joins the selection group: firing it does
-     * not change selectedItem, and storing it leniently keeps selectedItem but
-     * clears the derived nav view and the group.
+     * Verifies an action item never joins the selection group: firing it runs
+     * its command and leaves the selection untouched.
      */
     @Test
     public void actionItemNeverSelects() {
@@ -167,21 +164,18 @@ public class RXSidebarTest {
         RXSidebarActionItem action = new RXSidebarActionItem("Act");
         sidebar.getItems().addAll(nav, action);
 
-        sidebar.setSelectedItem(nav);
+        sidebar.selectItem(nav);
         assertTrue(nav.isSelected());
 
-        // Firing the action runs its command; selection is unchanged.
+        AtomicInteger fired = new AtomicInteger();
+        action.setOnAction(event -> fired.incrementAndGet());
         action.fire();
-        assertSame(nav, sidebar.getSelectedItem());
-        assertSame(nav, sidebar.getSelectedNavigationItem());
-        assertTrue(nav.isSelected());
 
-        // Storing a non-nav item leniently: kept in selectedItem, but no group
-        // selection and no derived nav view.
-        sidebar.setSelectedItem(action);
-        assertSame(action, sidebar.getSelectedItem());
-        assertNull(sidebar.getSelectedNavigationItem());
-        assertFalse(nav.isSelected());
+        assertEquals(1, fired.get(), "the action's command must run");
+        assertSame(nav, sidebar.getSelectedItem(), "firing an action must not change the selection");
+        assertTrue(nav.isSelected());
+        // Selecting an action item is not merely ignored, it is impossible:
+        // selectItem only accepts RXSidebarNavItem.
     }
 
     /**
@@ -200,7 +194,7 @@ public class RXSidebarTest {
         a.fire();
         assertSame(a, sidebar.getSelectedItem());
         assertTrue(a.isSelected());
-        assertSame(a, sidebar.getSelectedNavigationItem());
+        assertSame(a, sidebar.getSelectedItem());
     }
 
     /**
@@ -236,12 +230,11 @@ public class RXSidebarTest {
         RXSidebar sidebar = new RXSidebar();
         RXSidebarNavItem a = new RXSidebarNavItem("A");
         sidebar.getItems().add(a);
-        sidebar.setSelectedItem(a);
+        sidebar.selectItem(a);
         assertTrue(a.isSelected());
 
         sidebar.getItems().remove(a);
         assertNull(sidebar.getSelectedItem());
-        assertNull(sidebar.getSelectedNavigationItem());
     }
 
     /**
@@ -256,14 +249,13 @@ public class RXSidebarTest {
         sidebar.getItems().addAll(a, b);
 
         for (int i = 0; i < 50; i++) {
-            sidebar.setSelectedItem(a);
+            sidebar.selectItem(a);
             b.fire();
-            sidebar.setSelectedItem(null);
+            sidebar.clearSelection();
             a.fire();
         }
         // Reaching here without StackOverflowError proves the guard holds.
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
         assertTrue(a.isSelected());
     }
 
@@ -276,20 +268,18 @@ public class RXSidebarTest {
         RXSidebar sidebar = new RXSidebar();
         RXSidebarNavItem a = new RXSidebarNavItem("A");
 
-        sidebar.setSelectedItem(a);
+        sidebar.selectItem(a);
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
         assertTrue(a.isSelected());
 
         sidebar.getItems().add(a);
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
         assertTrue(a.isSelected());
     }
 
     /**
-     * Verifies a single discrete selection change fires the selectedItem and
-     * selectedNavigationItem listeners exactly once each (no double-fire).
+     * Verifies a single discrete selection change fires the selectedItem
+     * listener exactly once (no double-fire).
      */
     @Test
     public void selectionFiresChangeListenerExactlyOnce() {
@@ -300,7 +290,7 @@ public class RXSidebarTest {
         AtomicInteger selCount = new AtomicInteger();
         AtomicInteger navCount = new AtomicInteger();
         sidebar.selectedItemProperty().addListener((obs, o, n) -> selCount.incrementAndGet());
-        sidebar.selectedNavigationItemProperty().addListener((obs, o, n) -> navCount.incrementAndGet());
+        sidebar.selectedItemProperty().addListener((obs, o, n) -> navCount.incrementAndGet());
 
         a.fire();
         assertEquals(1, selCount.get());
@@ -308,69 +298,181 @@ public class RXSidebarTest {
     }
 
     /**
-     * Verifies a non-nav item that is not in any list is still stored leniently
-     * with no derived navigation view.
+     * The selection is a read-only projection: the sidebar owns it, because a
+     * user click has to be able to write it. Handing out a writable property
+     * would let an external binding own it too, and the two writers would
+     * collide on the first click.
      */
     @Test
-    public void orphanNonNavItemStoredLeniently() {
+    public void selectedItemPropertyIsAReadOnlyProjection() {
         RXSidebar sidebar = new RXSidebar();
-        RXSidebarActionItem orphan = new RXSidebarActionItem("X");
-
-        sidebar.setSelectedItem(orphan);
-        assertSame(orphan, sidebar.getSelectedItem());
-        assertNull(sidebar.getSelectedNavigationItem());
+        assertFalse(sidebar.selectedItemProperty() instanceof Property,
+                "selectedItemProperty must not be writable/bindable from outside");
     }
 
     /**
-     * Verifies binding selectedItemProperty to an external model drives the
-     * group and derived view; the re-entrancy guard keeps the bound property
-     * from being set back (which would throw).
+     * The supported replacement for binding: an external model drives the rail
+     * through {@code selectItem}, and the rail is observed with a listener.
+     * There is no automatic write-back — the app owns that half — but crucially
+     * a user click still lands, and the rail never ends up highlighting one item
+     * while {@code selectedItem} names another. That desync is what a two-way
+     * binding on a control-owned property would reintroduce.
      */
     @Test
-    public void boundSelectedItemMirrorsToGroupAndDerivedView() {
+    public void externalModelDrivesSelectionAndClicksStillWork() {
         RXSidebar sidebar = new RXSidebar();
         RXSidebarNavItem a = new RXSidebarNavItem("A");
         RXSidebarNavItem b = new RXSidebarNavItem("B");
         sidebar.getItems().addAll(a, b);
 
-        ObjectProperty<RXSidebarItem> external = new SimpleObjectProperty<>();
-        sidebar.selectedItemProperty().bind(external);
+        ObjectProperty<RXSidebarNavItem> route = new SimpleObjectProperty<>();
+        route.addListener((obs, old, value) -> sidebar.selectItem(value));
+        AtomicReference<RXSidebarNavItem> observed = new AtomicReference<>();
+        sidebar.selectedItemProperty().addListener((obs, old, value) -> observed.set(value));
 
-        external.set(a);
+        route.set(a);
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
+        assertSame(a, observed.get());
         assertTrue(a.isSelected());
 
-        external.set(b);
+        // The click path writes the same state without throwing and without
+        // leaving the rail highlighting one item while the model names another.
+        b.fire();
         assertSame(b, sidebar.getSelectedItem());
+        assertSame(b, observed.get());
         assertTrue(b.isSelected());
         assertFalse(a.isSelected());
-
-        sidebar.selectedItemProperty().unbind();
-        assertSame(b, sidebar.getSelectedItem());
-        assertSame(b, sidebar.getSelectedNavigationItem());
     }
 
     /**
-     * Pins the emergent add/remove/re-add behavior: removing the selected nav
-     * clears the control selection, but the orphaned toggle keeps its selected
-     * flag, so re-adding it re-adopts it and resurrects the selection.
+     * A pending selection (an item selected before it was added to any list) is
+     * held by the control, not by the ToggleGroup — the group has never seen the
+     * item. The control must therefore own the whole invariant for it: clearing
+     * or superseding a pending selection has to actually deselect it, or the
+     * stale flag makes the group adopt it on add and hijack the real selection.
      */
     @Test
-    public void removeThenReaddResurrectsSelection() {
+    public void pendingSelectionIsFullyOwnedByTheControl() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem pending = new RXSidebarNavItem("Pending");
+        RXSidebarNavItem mounted = new RXSidebarNavItem("Mounted");
+        sidebar.getItems().add(mounted);
+
+        // Superseding a mounted selection with a pending one deselects the mounted
+        // one — otherwise both would render selected.
+        sidebar.selectItem(mounted);
+        sidebar.selectItem(pending);
+        assertSame(pending, sidebar.getSelectedItem());
+        assertFalse(mounted.isSelected(), "the outgoing mounted item must not stay selected");
+        assertTrue(pending.isSelected());
+
+        // Clearing a pending selection really clears it: adding the item later
+        // must not resurrect it.
+        sidebar.clearSelection();
+        assertNull(sidebar.getSelectedItem());
+        assertFalse(pending.isSelected(), "a cleared pending item must not keep its selected flag");
+        sidebar.getItems().add(pending);
+        assertNull(sidebar.getSelectedItem(), "adding a cleared item must not resurrect the selection");
+
+        // One pending superseding another leaves only the latest armed.
+        sidebar.getItems().clear();
+        RXSidebarNavItem first = new RXSidebarNavItem("First");
+        RXSidebarNavItem second = new RXSidebarNavItem("Second");
+        sidebar.selectItem(first);
+        sidebar.selectItem(second);
+        assertFalse(first.isSelected());
+        sidebar.getItems().addAll(first, second);
+        assertSame(second, sidebar.getSelectedItem(), "the stale flag must not hijack the selection");
+    }
+
+    /**
+     * An application listener may re-select from inside the change notification
+     * (route normalization: "A is not a real destination, go to B"). That is a
+     * fresh write, not the control's own echo, so it must fully apply — on the
+     * click path too, where the group already wrote the state being replaced.
+     * Getting this wrong leaves selectedItem naming B while nothing is highlighted.
+     */
+    @Test
+    public void listenerMayRedirectSelectionOnBothPaths() {
+        for (boolean byClick : new boolean[]{false, true}) {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            sidebar.getItems().addAll(a, b);
+            sidebar.selectedItemProperty().addListener((obs, old, value) -> {
+                if (value == a) {
+                    sidebar.selectItem(b);
+                }
+            });
+
+            if (byClick) {
+                a.fire();
+            } else {
+                sidebar.selectItem(a);
+            }
+
+            String path = byClick ? "click path" : "programmatic path";
+            assertSame(b, sidebar.getSelectedItem(), path + ": the redirect must win");
+            assertTrue(b.isSelected(), path + ": the redirected item must actually be highlighted");
+            assertFalse(a.isSelected(), path + ": the rejected item must not stay highlighted");
+        }
+    }
+
+    /**
+     * selectItem(null) clears the selection, matching clearSelection().
+     */
+    @Test
+    public void selectItemNullClearsSelection() {
         RXSidebar sidebar = new RXSidebar();
         RXSidebarNavItem a = new RXSidebarNavItem("A");
         sidebar.getItems().add(a);
-        sidebar.setSelectedItem(a);
+
+        sidebar.selectItem(a);
+        sidebar.selectItem(null);
+        assertNull(sidebar.getSelectedItem());
+        assertFalse(a.isSelected());
+
+        sidebar.selectItem(a);
+        sidebar.clearSelection();
+        assertNull(sidebar.getSelectedItem());
+        assertFalse(a.isSelected());
+    }
+
+    /**
+     * Removing the selected item clears the selection and leaves the item
+     * unselected, so merely adding it back does not resurrect it — and, with
+     * something else selected by then, cannot hijack that selection either.
+     * Only an explicit selectItem re-selects.
+     */
+    @Test
+    public void removedItemDoesNotResurrectOrHijackOnReadd() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        RXSidebarNavItem b = new RXSidebarNavItem("B");
+        sidebar.getItems().addAll(a, b);
+        sidebar.selectItem(a);
         assertTrue(a.isSelected());
 
         sidebar.getItems().remove(a);
         assertNull(sidebar.getSelectedItem());
+        assertFalse(a.isSelected(), "a removed item must not keep its selected flag");
 
+        // Nothing else selected: re-adding must not resurrect it.
         sidebar.getItems().add(a);
+        assertNull(sidebar.getSelectedItem());
+        assertFalse(a.isSelected());
+
+        // Something else selected: re-adding must not steal from it.
+        sidebar.selectItem(b);
+        sidebar.getItems().remove(a);
+        sidebar.getItems().add(a);
+        assertSame(b, sidebar.getSelectedItem(), "adding an item must not change the selection");
+        assertTrue(b.isSelected());
+        assertFalse(a.isSelected());
+
+        sidebar.selectItem(a);
         assertSame(a, sidebar.getSelectedItem());
-        assertSame(a, sidebar.getSelectedNavigationItem());
-        assertTrue(a.isSelected());
+        assertFalse(b.isSelected());
     }
 
     /**

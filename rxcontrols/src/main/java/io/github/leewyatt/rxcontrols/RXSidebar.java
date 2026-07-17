@@ -203,60 +203,56 @@ public class RXSidebar extends Control {
 
     // ==================== Selected Item ====================
 
-    private final ObjectProperty<RXSidebarItem> selectedItem =
-            new SimpleObjectProperty<>(this, "selectedItem") {
+    private final ReadOnlyObjectWrapper<RXSidebarNavItem> selectedItem =
+            new ReadOnlyObjectWrapper<>(this, "selectedItem") {
                 @Override
                 protected void invalidated() {
-                    onSelectedItemInvalidated(); // mirror to group + derive typed view
+                    onSelectedItemInvalidated(); // mirror to the group
                 }
             };
 
     /**
-     * The currently selected item, or {@code null} (allow-none). Setting a nav
-     * item selects it and clears the previous selection; selecting is mutually
-     * exclusive across all three item lists. A non-navigation item is stored
-     * leniently but holds no group selection.
+     * The selected navigation item, or {@code null} when nothing is selected.
+     * Selection is mutually exclusive across all three item lists. Action items
+     * never participate, so they can never appear here.
      *
-     * @return the selected item property
-     */
-    public final ObjectProperty<RXSidebarItem> selectedItemProperty() {
-        return selectedItem;
-    }
-
-    /**
-     * @return the selected item, or {@code null}
-     */
-    public final RXSidebarItem getSelectedItem() {
-        return selectedItem.get();
-    }
-
-    /**
-     * @param value the item to select, or {@code null}
-     */
-    public final void setSelectedItem(RXSidebarItem value) {
-        selectedItem.set(value);
-    }
-
-    // ==================== Selected Navigation Item (typed read-only view) ====================
-
-    private final ReadOnlyObjectWrapper<RXSidebarNavItem> selectedNavigationItem =
-            new ReadOnlyObjectWrapper<>(this, "selectedNavigationItem");
-
-    /**
-     * The selected item narrowed to a navigation item, or {@code null} when nothing
-     * (or a non-navigation item) is selected. Derived from {@link #selectedItemProperty()}.
+     * <p>Read-only by design: the sidebar owns this state, because a user click
+     * must be able to write it. Drive it with {@link #selectItem(RXSidebarNavItem)}
+     * and {@link #clearSelection()}, and observe it with a listener.</p>
      *
-     * @return the read-only selected-navigation-item property
+     * @return the read-only selected-item property
      */
-    public final ReadOnlyObjectProperty<RXSidebarNavItem> selectedNavigationItemProperty() {
-        return selectedNavigationItem.getReadOnlyProperty();
+    public final ReadOnlyObjectProperty<RXSidebarNavItem> selectedItemProperty() {
+        return selectedItem.getReadOnlyProperty();
     }
 
     /**
      * @return the selected navigation item, or {@code null}
      */
-    public final RXSidebarNavItem getSelectedNavigationItem() {
-        return selectedNavigationItem.get();
+    public final RXSidebarNavItem getSelectedItem() {
+        return selectedItem.get();
+    }
+
+    /**
+     * Selects the given navigation item, clearing any previous selection. Use
+     * this to drive the rail from outside (a route change, a button elsewhere,
+     * restoring state at startup).
+     *
+     * <p>An item that is not in any of the three lists yet is still accepted:
+     * it becomes the selection, and the rail adopts it once it is added. This
+     * supports selecting before populating.</p>
+     *
+     * @param item the item to select, or {@code null} to clear the selection
+     */
+    public final void selectItem(RXSidebarNavItem item) {
+        selectedItem.set(item);
+    }
+
+    /**
+     * Clears the selection, leaving no item selected.
+     */
+    public final void clearSelection() {
+        selectedItem.set(null);
     }
 
     // ==================== Expanded Width ====================
@@ -478,10 +474,16 @@ public class RXSidebar extends Control {
 
     // ==================== Selection (control-owned; survives skin replacement) ====================
 
-    // Private, never exposed. Only selectedItem (+ derived selectedNavigationItem) is public.
+    // Private, never exposed. selectedItem is the only public face of the selection.
     private final ToggleGroup navGroup = new ToggleGroup();
     // Guards the two-way mirror selectedItem <-> navGroup against re-entrant ping-pong.
     private boolean syncingSelection = false;
+    // The outgoing selection. Deselecting it is this control's job, not the
+    // group's: ToggleGroup only ever deselects its own members, and an item
+    // selected before it was added to a list is not one. A stale selected flag
+    // left on such an item would later make the group adopt it on add and
+    // silently hijack whatever is selected by then.
+    private RXSidebarNavItem previousSelection;
 
     // Called from the constructor.
     private void initSelection() {
@@ -490,19 +492,16 @@ public class RXSidebar extends Control {
         items.addListener(membership);
         bottomItems.addListener(membership);
 
-        // group -> selectedItem (user click path: ToggleButton flips selected, group updates)
+        // group -> selectedItem (user click path: ToggleButton flips selected, group updates).
+        // Only reads the guard, never holds it: selectedItem.set notifies application
+        // listeners before it returns, and one of those may legitimately re-select
+        // (route normalization). Holding the guard across that would make the mirror
+        // mistake the application's write for its own echo and skip it.
         navGroup.selectedToggleProperty().addListener((obs, old, toggle) -> {
             if (syncingSelection) {
                 return;
             }
-            syncingSelection = true;
-            try {
-                setSelectedItem(toggle instanceof RXSidebarItem item ? item : null);
-            } finally {
-                // Clear the guard even if a downstream selectedItem listener throws,
-                // so a single bad listener cannot wedge selection permanently.
-                syncingSelection = false;
-            }
+            selectedItem.set(toggle instanceof RXSidebarNavItem nav ? nav : null);
         });
         // selectedItem -> group is mirrored in selectedItem's invalidated() (onSelectedItemInvalidated).
     }
@@ -523,24 +522,36 @@ public class RXSidebar extends Control {
         }
     }
 
-    // Invoked from selectedItem.invalidated(). Mirrors selectedItem -> group and derives the typed view.
+    // Invoked from selectedItem.invalidated(). Mirrors selectedItem -> group and
+    // keeps the invariant "exactly the selected item carries selected == true".
+    // Idempotent, so it costs nothing on the click path where the group has
+    // already done the same work.
     private void onSelectedItemInvalidated() {
-        if (!syncingSelection) {
-            syncingSelection = true;
-            try {
-                RXSidebarItem sel = getSelectedItem();
-                if (sel instanceof RXSidebarNavItem nav) {
-                    nav.setSelected(true);          // group clears the previously selected toggle
-                } else {
-                    navGroup.selectToggle(null);    // null or non-nav => no selection
-                }
-            } finally {
-                syncingSelection = false;
+        RXSidebarNavItem previous = previousSelection;
+        RXSidebarNavItem current = getSelectedItem();
+        previousSelection = current;
+
+        // The guard means "this control is writing to the group; ignore the echo".
+        // It is released before the property notifies application listeners, so a
+        // listener that re-selects is handled as a fresh write, not as an echo.
+        syncingSelection = true;
+        try {
+            if (previous != null && previous != current) {
+                // Deselecting a group member makes ToggleGroup clear its
+                // selectedToggle, which echoes back through our listener.
+                previous.setSelected(false);
             }
+            if (current != null) {
+                // A member is adopted by the group, which also deselects any other
+                // member; a pending item just carries the flag until it is added,
+                // and the group adopts it then.
+                current.setSelected(true);
+            } else {
+                navGroup.selectToggle(null);
+            }
+        } finally {
+            syncingSelection = false;
         }
-        // Derived typed view is always updated (read-only downstream; no feedback loop).
-        RXSidebarItem sel = getSelectedItem();
-        selectedNavigationItem.set(sel instanceof RXSidebarNavItem nav ? nav : null);
     }
 
     // ==================== PseudoClass ====================

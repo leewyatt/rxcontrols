@@ -95,14 +95,14 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         footer.getStyleClass().add("version");
         sidebar.setFooter(footer);
 
-        sidebar.setSelectedItem(dashboard);
+        sidebar.selectItem(dashboard);
 
         selectedLabel = new Label();
         selectedLabel.getStyleClass().add("selected-title");
         selectedLabel.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXSidebarNavItem selected = sidebar.getSelectedNavigationItem();
+            RXSidebarNavItem selected = sidebar.getSelectedItem();
             return selected == null ? "Nothing selected" : selected.getText();
-        }, sidebar.selectedNavigationItemProperty()));
+        }, sidebar.selectedItemProperty()));
 
         statusLabel = new Label("Click a nav item to select a view; the Settings action fires without changing it.");
         statusLabel.getStyleClass().add("status-label");
@@ -184,13 +184,13 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         Label readout = new Label();
         readout.getStyleClass().add("readout-label");
         readout.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXSidebarNavItem selected = sidebar.getSelectedNavigationItem();
-            return "selectedNavigationItem: " + (selected == null ? "null" : selected.getText());
-        }, sidebar.selectedNavigationItemProperty()));
+            RXSidebarNavItem selected = sidebar.getSelectedItem();
+            return "selectedItem: " + (selected == null ? "null" : selected.getText());
+        }, sidebar.selectedItemProperty()));
 
         Button clear = new Button("Clear selection");
         clear.setMaxWidth(Double.MAX_VALUE);
-        clear.setOnAction(event -> sidebar.setSelectedItem(null));
+        clear.setOnAction(event -> sidebar.clearSelection());
 
         return createGrid(row(readout), row(clear));
     }

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 
 import javafx.animation.Interpolator;
@@ -203,7 +204,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // content display are owned by the skin. Idempotent: the
     // text/tooltip bindings are set once per wired item (re-add re-wires fresh).
     private void wireItem(RXSidebarItem item) {
-        Labeled node = (Labeled) item.asNode(); // every V1 permitted item is a Labeled
+        // Both permitted item types are Labeled (ToggleButton / Button); the
+        // sealed interface is what makes this cast safe.
+        Labeled node = (Labeled) item.asNode();
         node.setMinHeight(ITEM_HEIGHT);
         node.setPrefHeight(ITEM_HEIGHT);
         node.setMaxWidth(Double.MAX_VALUE);
@@ -232,8 +235,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         node.visibleProperty().removeListener(focusabilityListener);
         node.disabledProperty().removeListener(focusabilityListener);
         node.accessibleTextProperty().unbind();
-        // V1 items are ButtonBase (default focusTraversable = true); restore that
-        // default so a reused item behaves like a normal node again.
+        // Both permitted item types are ButtonBase (default focusTraversable =
+        // true); restore that default so a reused item behaves like a normal node.
         node.setFocusTraversable(true);
     }
 
@@ -339,7 +342,6 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 Tooltip.install(node, tip);
             }
         }
-        item.onSidebarModeChanged(mode); // V2 custom items swap nodes; nav/action no-op
     }
 
     private SidebarMode committedMode() {
@@ -458,7 +460,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         if (ring.isEmpty()) {
             return null;
         }
-        RXSidebarItem selected = getSkinnable().getSelectedItem();
+        RXSidebarNavItem selected = getSkinnable().getSelectedItem();
         if (selected != null && ring.contains(selected.asNode())) {
             return selected.asNode();
         }

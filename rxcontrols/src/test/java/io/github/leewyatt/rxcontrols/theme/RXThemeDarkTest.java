@@ -278,7 +278,7 @@ public class RXThemeDarkTest {
             RXSidebarNavItem selected = new RXSidebarNavItem("Inbox", new Region());
             RXSidebar sidebar = new RXSidebar();
             sidebar.getItems().addAll(selected, new RXSidebarNavItem("Files", new Region()));
-            sidebar.setSelectedItem(selected);
+            sidebar.selectItem(selected);
 
             StackPane host = new StackPane(sidebar);
             Scene scene = new Scene(host, 320, 240);
