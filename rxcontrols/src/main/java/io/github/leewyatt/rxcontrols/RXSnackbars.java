@@ -71,6 +71,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param request the request to show
+     * @throws NullPointerException if {@code owner} or {@code request} is {@code null}
      */
     public static void show(Node owner, RXSnackbarRequest request) {
         Objects.requireNonNull(owner, "owner");
@@ -99,6 +100,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param message the message text
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static void show(Node owner, String message) {
         show(owner, RXSnackbarRequest.builder(message).build());
@@ -111,6 +113,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param message the message text
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static void success(Node owner, String message) {
         show(owner, RXSnackbarRequest.builder(message).severity(RXSnackbarSeverity.SUCCESS).build());
@@ -123,6 +126,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param message the message text
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static void info(Node owner, String message) {
         show(owner, RXSnackbarRequest.builder(message).severity(RXSnackbarSeverity.INFO).build());
@@ -135,6 +139,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param message the message text
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static void warning(Node owner, String message) {
         show(owner, RXSnackbarRequest.builder(message).severity(RXSnackbarSeverity.WARNING).build());
@@ -147,6 +152,7 @@ public final class RXSnackbars {
      *
      * @param owner   the node whose snackbar scope receives the request
      * @param message the message text
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static void error(Node owner, String message) {
         show(owner, RXSnackbarRequest.builder(message).severity(RXSnackbarSeverity.ERROR).build());
@@ -160,6 +166,7 @@ public final class RXSnackbars {
      * @param owner the node whose snackbar scope is searched
      * @param key   the request key to match
      * @return {@code true} if a host exists and a displayed or pending request matched
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static boolean dismiss(Node owner, String key) {
         Objects.requireNonNull(owner, "owner");
@@ -184,6 +191,7 @@ public final class RXSnackbars {
      *
      * @param owner the node whose snackbar scope is resolved
      * @return the scope's host, or empty when none is installed yet
+     * @throws NullPointerException if {@code owner} is {@code null}
      */
     public static Optional<RXSnackbarHost> hostFor(Node owner) {
         Objects.requireNonNull(owner, "owner");
@@ -208,6 +216,7 @@ public final class RXSnackbars {
      *
      * @param scene the scene to host snackbars over
      * @return the scene's snackbar host
+     * @throws NullPointerException if {@code scene} is {@code null}
      */
     public static RXSnackbarHost installInto(Scene scene) {
         Objects.requireNonNull(scene, "scene");
@@ -228,6 +237,7 @@ public final class RXSnackbars {
      *
      * @param container the pane to host snackbars in
      * @return the container's snackbar host
+     * @throws NullPointerException if {@code container} is {@code null}
      */
     public static RXSnackbarHost installInto(Pane container) {
         Objects.requireNonNull(container, "container");
