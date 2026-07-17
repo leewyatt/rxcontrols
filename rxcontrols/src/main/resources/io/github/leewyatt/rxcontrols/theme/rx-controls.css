@@ -1940,7 +1940,7 @@
 }
 
 .rx-sidebar .item:selected {
-    -fx-background-color: derive(-fx-accent, 80%);
+    -fx-background-color: -rx-primary-bg;
 }
 
 .rx-sidebar .item > .graphic {

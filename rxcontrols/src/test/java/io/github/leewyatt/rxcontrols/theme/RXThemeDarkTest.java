@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols.theme;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -55,6 +57,9 @@ public class RXThemeDarkTest {
             "/io/github/leewyatt/rxcontrols/theme/rx-controls-dark.css";
 
     private static final Pattern ROOT_SELECTOR_PATTERN = Pattern.compile("\\.(rx-[a-z0-9-]+)");
+
+    /** WCAG 2.1 AA minimum contrast ratio for normal-size text. */
+    private static final double WCAG_AA_CONTRAST = 4.5;
 
     private static final Color DARK_PRIMARY = Color.web("#7c86ff");
     private static final Color BASELINE_PRIMARY = Color.web("#616dff");
@@ -254,6 +259,50 @@ public class RXThemeDarkTest {
     }
 
     /**
+     * A selected sidebar item stays legible under the dark overlay. Guards the
+     * whole family against re-introducing a light-theme-only colour expression
+     * (e.g. {@code derive(-fx-accent, 80%)}): a lighten-by-N% of a token that the
+     * overlay itself re-points drifts toward the text colour in dark, and the two
+     * meet. Assert perceived contrast, not the literal fill, so any future
+     * expression that reads as unreadable fails here.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void selectedSidebarItemStaysLegibleUnderTheDarkOverlay() throws Exception {
+        AtomicReference<Color> rail = new AtomicReference<>();
+        AtomicReference<Color> selectedFill = new AtomicReference<>();
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+
+        runOnFx(() -> {
+            RXSidebarNavItem selected = new RXSidebarNavItem("Inbox", new Region());
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.getItems().addAll(selected, new RXSidebarNavItem("Files", new Region()));
+            sidebar.setSelectedItem(selected);
+
+            StackPane host = new StackPane(sidebar);
+            Scene scene = new Scene(host, 320, 240);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            host.layout();
+
+            rail.set(background(sidebar));
+            selectedFill.set(background(selected));
+            textFill.set(selected.getTextFill());
+        });
+
+        assertNotNull(selectedFill.get(), "selected sidebar item has no background fill");
+        // -rx-primary-bg is translucent in dark, so composite it over the rail
+        // before measuring — reading the raw fill would report a false contrast.
+        Color effective = composite(selectedFill.get(), rail.get());
+        double ratio = contrastRatio((Color) textFill.get(), effective);
+        assertTrue(ratio >= WCAG_AA_CONTRAST,
+                "selected sidebar item is unreadable in dark: text " + textFill.get()
+                        + " on " + effective + " = " + String.format("%.2f", ratio)
+                        + ":1, need >= " + WCAG_AA_CONTRAST + ":1");
+    }
+
+    /**
      * A filling fill button keeps on-primary (white) text under the dark overlay
      * even when armed (the same {@code .button:armed} vs {@code :filling} tie).
      *
@@ -433,6 +482,36 @@ public class RXThemeDarkTest {
         }
         Paint fill = region.getBackground().getFills().get(0).getFill();
         return fill instanceof Color ? (Color) fill : null;
+    }
+
+    /** Alpha-composites a (possibly translucent) fill over its backdrop. */
+    private static Color composite(Color fill, Color backdrop) {
+        double alpha = fill.getOpacity();
+        if (alpha >= 1.0 || backdrop == null) {
+            return fill;
+        }
+        return new Color(
+                fill.getRed() * alpha + backdrop.getRed() * (1.0 - alpha),
+                fill.getGreen() * alpha + backdrop.getGreen() * (1.0 - alpha),
+                fill.getBlue() * alpha + backdrop.getBlue() * (1.0 - alpha),
+                1.0);
+    }
+
+    /** WCAG 2.1 relative luminance. */
+    private static double relativeLuminance(Color color) {
+        double[] channels = {color.getRed(), color.getGreen(), color.getBlue()};
+        for (int i = 0; i < channels.length; i++) {
+            double c = channels[i];
+            channels[i] = c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    }
+
+    /** WCAG 2.1 contrast ratio; both colors must already be opaque. */
+    private static double contrastRatio(Color foreground, Color background) {
+        double lf = relativeLuminance(foreground);
+        double lb = relativeLuminance(background);
+        return (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
     }
 
     private static Set<String> controlRootSelectors(String css) {

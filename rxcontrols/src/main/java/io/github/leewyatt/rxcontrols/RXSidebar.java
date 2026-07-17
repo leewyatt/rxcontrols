@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 
 import javafx.animation.Interpolator;
+import javafx.beans.value.WritableValue;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -105,6 +106,15 @@ public class RXSidebar extends Control {
      */
     public RXSidebar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // The rail is a single Tab stop and that stop is one of its items, never
+        // the rail itself. Seeding via applyStyle with a null StyleOrigin (rather
+        // than setFocusTraversable) leaves -fx-focus-traversable able to override
+        // it; a plain setter would look like a user write and lock CSS out. Same
+        // opt-out ScrollPane performs.
+        // The WritableValue cast is not decoration: it pins the type argument so
+        // the StyleableProperty cast is provably checked rather than unchecked.
+        ((StyleableProperty<Boolean>) (WritableValue<Boolean>) focusTraversableProperty())
+                .applyStyle(null, Boolean.FALSE);
         updateModePseudoClass();
         initSelection();
     }
@@ -112,6 +122,20 @@ public class RXSidebar extends Control {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXSidebarSkin(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The rail is a single Tab stop and that stop is one of its items, never
+     * the rail itself, so it defaults to non-traversable. Overriding the initial
+     * value (rather than calling {@code setFocusTraversable}) keeps
+     * {@code -fx-focus-traversable} able to override it, matching how
+     * {@code ScrollPane} opts out.</p>
+     */
+    @Override
+    protected Boolean getInitialFocusTraversable() {
+        return Boolean.FALSE;
     }
 
     @Override

@@ -140,6 +140,29 @@ public class RXSidebarSkinTest {
             sidebar.setExpandedWidth(40.0);
             sidebar.setMode(SidebarMode.EXPANDED);
             assertEquals(RXSidebar.DEFAULT_EXPANDED_WIDTH, sidebar.prefWidth(-1), EPSILON);
+
+            // Infinite mini -> default mini. Infinity passes a plain ">= 0" guard,
+            // and railWidth() interpolates mini -> expanded, so an infinite bound
+            // yields infinity - infinity = NaN and a NaN-wide rail.
+            sidebar.setExpandedWidth(RXSidebar.DEFAULT_EXPANDED_WIDTH);
+            sidebar.setMiniWidth(Double.POSITIVE_INFINITY);
+            sidebar.setMode(SidebarMode.MINI);
+            assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
+
+            // Infinite expanded -> max(mini, default expanded), in both modes:
+            // MINI multiplies a zero fraction by an infinite span (0 * inf = NaN),
+            // EXPANDED reaches the infinite bound itself.
+            sidebar.setMiniWidth(RXSidebar.DEFAULT_MINI_WIDTH);
+            sidebar.setExpandedWidth(Double.POSITIVE_INFINITY);
+            sidebar.setMode(SidebarMode.MINI);
+            assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
+            sidebar.setMode(SidebarMode.EXPANDED);
+            assertEquals(RXSidebar.DEFAULT_EXPANDED_WIDTH, sidebar.prefWidth(-1), EPSILON);
+
+            // A NaN rail width is the failure this guards: assert the node itself,
+            // not just prefWidth (Parent.prefWidth zeroes NaN and hides it).
+            sidebar.getParent().layout();
+            assertFalse(Double.isNaN(sidebar.getWidth()), "rail width must never be NaN");
         });
     }
 

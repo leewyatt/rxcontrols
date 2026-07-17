@@ -124,8 +124,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         disposer.registerListener(control.modeProperty(), this::onModeChanged);
         disposer.registerListener(control.miniWidthProperty(), this::updateIconColumns);
 
-        // The rail is a single Tab stop; roving moves focus inside it.
-        control.setFocusTraversable(false);
+        // The rail is a single Tab stop; roving moves focus inside it. The rail
+        // itself is never that stop — see RXSidebar.getInitialFocusTraversable().
         disposer.registerListener(control.selectedItemProperty(), this::onSelectionChanged);
         installKeyboardNavigation();
 
@@ -473,16 +473,20 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // ==================== Width resolution + compute ====================
 
+    // Any unusable width (NaN, +/-infinity, negative) resolves to the default
+    // rather than to zero: infinity must be rejected here because railWidth()
+    // interpolates mini -> expanded, and infinity - infinity is NaN, which would
+    // poison the whole layout with a NaN rail width.
     private double resolvedMiniWidth() {
         double v = getSkinnable().getMiniWidth();
-        return (v >= 0.0) ? v : RXSidebar.DEFAULT_MINI_WIDTH; // catches NaN and negatives
+        return (Double.isFinite(v) && v >= 0.0) ? v : RXSidebar.DEFAULT_MINI_WIDTH;
     }
 
     private double resolvedExpandedWidth() {
         double mini = resolvedMiniWidth();
         double v = getSkinnable().getExpandedWidth();
-        if (!(v >= mini)) { // NaN or expanded < mini
-            v = Math.max(mini, RXSidebar.DEFAULT_EXPANDED_WIDTH);
+        if (!Double.isFinite(v) || v < mini) {
+            return Math.max(mini, RXSidebar.DEFAULT_EXPANDED_WIDTH);
         }
         return v;
     }
