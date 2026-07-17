@@ -10,6 +10,8 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
+import javafx.beans.value.ChangeListener;
+import javafx.event.EventTarget;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
@@ -23,6 +25,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -40,7 +43,15 @@ import java.util.function.Consumer;
  * pinned-top, scrollable main, pinned-bottom, footer), locks the rail width via
  * the {@code compute*Width} methods, and keeps each item's icon in a fixed left
  * column so icons never move between {@link SidebarMode#EXPANDED} and
- * {@link SidebarMode#MINI}. All listeners go through the disposer.
+ * {@link SidebarMode#MINI}.
+ *
+ * <p>Cleanup follows the target's lifetime. Anything attached to a fixed target
+ * (the control's own properties, this skin's own nodes) is registered with the
+ * disposer. Anything attached to a moving target — the items, which come and go
+ * with the lists, and the scene, which changes under the control — is paired by
+ * hand at the attach site and released in {@code disposeSkin()}, because the
+ * disposer would capture whichever target happened to be current at
+ * registration.</p>
  */
 public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
@@ -70,6 +81,17 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // changes (those move it in/out of the roving ring). Shared instance, added per
     // item in wireItem and removed in unwireItem.
     private final InvalidationListener focusabilityListener = obs -> refreshTabStop();
+
+    // The Tab-stop rule keys off the scene's focus owner, so it has to re-run on every
+    // focus move — including a plain requestFocus() from the application, which no
+    // roving or click path observes. Node.focused cannot serve here: it is false
+    // whenever the window is not focused.
+    private final ChangeListener<Node> focusOwnerListener = (obs, old, node) -> refreshTabStop();
+
+    // The scene focusOwnerListener is attached to. Re-attached whenever the control
+    // changes scene, so it cannot go through the disposer (which captures its target
+    // at registration); released in disposeSkin instead.
+    private Scene trackedScene;
 
     // Rebuilt per transition; NOT registered with the disposer (which would hold a
     // stale reference). Stopped explicitly in disposeSkin().
@@ -126,11 +148,26 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         disposer.registerListener(control.miniWidthProperty(), this::updateIconColumns);
 
         // The rail is a single Tab stop; roving moves focus inside it. The rail
-        // itself is never that stop — see RXSidebar.getInitialFocusTraversable().
-        disposer.registerListener(control.selectedItemProperty(), this::onSelectionChanged);
+        // itself is never that stop — RXSidebar's constructor seeds its own
+        // focusTraversable to false.
+        disposer.registerListener(control.selectedItemProperty(), this::refreshTabStop);
+        disposer.registerListener(control.sceneProperty(), this::trackFocusOwner);
         installKeyboardNavigation();
 
         snapToMode(); // initialize fraction + per-item mode without animating
+        trackFocusOwner();
+    }
+
+    // Follows the control across scenes, keeping focusOwnerListener attached to the
+    // live one; also re-runs the rule, since the focus owner changes with the scene.
+    private void trackFocusOwner() {
+        if (trackedScene != null) {
+            trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+        }
+        trackedScene = getSkinnable().getScene();
+        if (trackedScene != null) {
+            trackedScene.focusOwnerProperty().addListener(focusOwnerListener);
+        }
         refreshTabStop();
     }
 
@@ -364,6 +401,33 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // would never see them. The filter runs before the ScrollPane and items.
         // Enter/Space (and any non-arrow key) propagate to the focused item.
         disposer.registerEventFilter(root, KeyEvent.KEY_PRESSED, this::onKeyPressed);
+        disposer.registerEventFilter(root, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
+    }
+
+    // JavaFX ties click-to-focus to focusTraversable: ButtonBehavior only requests
+    // focus on a node that is traversable. With a roving tab stop every item but
+    // one is non-traversable, so a click would move focus nowhere (the web's
+    // tabindex="-1" still allows click-focus; focusTraversable=false does not).
+    // Take focus here, ahead of the button behavior, so the pointer and the roving
+    // point never disagree.
+    private void onMousePressed(MouseEvent event) {
+        Node member = ringMemberOf(event.getTarget(), focusRing());
+        if (member != null) {
+            member.requestFocus();   // the focus-owner listener moves the tab stop
+        }
+    }
+
+    // The press may land on an item's graphic or label rather than the item node.
+    // Walking out of the rail (header / footer content) simply finds no member.
+    private static Node ringMemberOf(EventTarget target, List<Node> ring) {
+        Node node = (target instanceof Node) ? (Node) target : null;
+        while (node != null) {
+            if (ring.contains(node)) {
+                return node;
+            }
+            node = node.getParent();
+        }
+        return null;
     }
 
     private void onKeyPressed(KeyEvent event) {
@@ -417,9 +481,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     private void focusRingMember(List<Node> ring, int index) {
-        Node target = ring.get(index);
-        setSoleTabStop(ring, target); // the roving point migrates with focus
-        target.requestFocus();
+        // requestFocus works on a non-traversable node (Scene.requestFocus gates on
+        // scene/disabled/visible, not on focusTraversable). The focus-owner listener
+        // moves the tab stop from here.
+        ring.get(index).requestFocus();
     }
 
     // Uses the scene focus owner (not Node.isFocused, which is false when the window
@@ -430,35 +495,32 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return (focused == null) ? -1 : ring.indexOf(focused);
     }
 
-    // Single Tab stop: exactly one ring member is Tab-reachable — the selected item
-    // if focusable, else the first. Roving (focusRingMember) migrates it to the
-    // focused item; this resets it on selection / membership changes.
+    // Single Tab stop: exactly one ring member is Tab-reachable. Idempotent, so
+    // every transition (roving, click, selection, membership, visibility) just
+    // calls this and the rule below decides.
     private void refreshTabStop() {
         List<Node> ring = focusRing();
         setSoleTabStop(ring, preferredTabStop(ring));
     }
 
-    // Selection changed: re-establish the single Tab stop, then — only when a rail
-    // item currently holds focus — move that focus onto the new Tab stop. The item
-    // that was focused is no longer the Tab stop and so is not focus-traversable;
-    // by ButtonBehavior's "request focus on press only when traversable" rule, a
-    // later click on another (also non-traversable) item never takes focus from it,
-    // leaving it stranded as focused-but-unselected (stuck showing the :focused
-    // background). Migrating focus now prevents that. The rail-focused guard keeps
-    // programmatic selection from stealing focus when the user is elsewhere.
-    private void onSelectionChanged() {
-        List<Node> ring = focusRing();
-        Node tabStop = preferredTabStop(ring);
-        boolean railFocused = indexOfFocused(ring) >= 0;
-        setSoleTabStop(ring, tabStop);
-        if (railFocused && tabStop != null) {
-            tabStop.requestFocus();
-        }
-    }
-
+    // The rule: the tab stop follows focus.
+    //
+    // While a rail item holds focus it MUST be the Tab-reachable one. Anything
+    // else leaves it focused-but-unreachable, and Shift+Tab out of it would find
+    // the other traversable item and re-enter the rail instead of leaving it.
+    // Only when focus is elsewhere does the tab stop become the way in: the
+    // selected item, or the first one when nothing is selected.
+    //
+    // This also removes the need to drag focus around on selection changes:
+    // because the focused item stays the tab stop, a selection change can never
+    // strand it.
     private Node preferredTabStop(List<Node> ring) {
         if (ring.isEmpty()) {
             return null;
+        }
+        int focused = indexOfFocused(ring);
+        if (focused >= 0) {
+            return ring.get(focused);
         }
         RXSidebarNavItem selected = getSkinnable().getSelectedItem();
         if (selected != null && ring.contains(selected.asNode())) {
@@ -539,6 +601,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // The rebuilt-per-transition Timeline would be a stale reference in the
         // disposer; stop it explicitly by reading the live field.
         stopAnimation();
+        // Paired with trackFocusOwner: the scene is a moving target, so the disposer
+        // could not hold it.
+        if (trackedScene != null) {
+            trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+            trackedScene = null;
+        }
         // Per-item resources (tooltips, accessibleText bindings, roving tab-stop) are
         // managed manually, paired with item add/remove, so release the still-wired
         // ones here (dynamic-node resources don't go through the disposer).

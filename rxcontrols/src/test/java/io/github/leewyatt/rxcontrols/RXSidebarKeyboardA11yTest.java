@@ -8,6 +8,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,12 +27,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P4 gate tests for the sidebar's keyboard roving and accessibility wiring:
- * Up/Down/Home/End roving with wrap across the three lists, disabled items
- * excluded from the ring, the single roving Tab stop (container not traversable,
- * one item traversable tracking the selection, migrating on roving), and
- * {@code accessibleText} mirroring {@code text}. Focus is driven via the scene
- * focus owner (Node.isFocused is always false headless — javafx-notes §6.7).
+ * Tests for the sidebar's keyboard roving and accessibility wiring: Up/Down/
+ * Home/End roving with wrap across the three lists, disabled items excluded from
+ * the ring, the single roving Tab stop (the container is never it; within the
+ * rail it follows focus, and it falls back to the selected item once focus is
+ * elsewhere), and {@code accessibleText} mirroring {@code text}.
+ *
+ * <p>Focus is asserted through the scene's focus owner rather than
+ * {@code Node.isFocused}, which is false whenever the window is not focused and
+ * therefore always false in these headless runs.</p>
  */
 public class RXSidebarKeyboardA11yTest {
 
@@ -183,15 +188,18 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
-     * Regression: when the focused (and selected) item is the sole Tab stop,
-     * selecting another item migrates focus to the new selection instead of
-     * stranding it on the old item. A stranded item stays focus-traversable=false
-     * yet keeps scene focus, so it never relinquishes it on a later click of
-     * another non-traversable item — leaving it stuck showing the {@code :focused}
-     * background (the white-row bug).
+     * Regression (the white-row bug): a selection change must never strand the
+     * focused item — focused yet not the Tab stop, so it holds scene focus while
+     * being Tab-unreachable, and stays stuck showing the {@code :focused}
+     * background because a later click elsewhere could not take focus from it.
+     *
+     * <p>The invariant is "never strand the focused item", not "focus follows
+     * selection". Both halves are asserted here: the Tab stop follows focus (so
+     * the focused item stays reachable, and the user's roving position is not
+     * yanked by a programmatic selection), and a click does take focus away.</p>
      */
     @Test
-    public void selectionMigratesFocusOffStrandedItem() throws Exception {
+    public void selectionNeverStrandsTheFocusedItem() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
             RXSidebarNavItem a = new RXSidebarNavItem("A");
@@ -200,19 +208,137 @@ public class RXSidebarKeyboardA11yTest {
             Scene scene = hostFor(sidebar).getScene();
 
             sidebar.selectItem(a);   // a is the sole Tab stop
-            a.requestFocus();             // re-clicking the selected Tab stop focuses it
+            a.requestFocus();
             assertSame(a, scene.getFocusOwner());
 
-            sidebar.selectItem(b);   // selecting another item
+            sidebar.selectItem(b);   // selection moves to b
+            assertSame(a, scene.getFocusOwner(),
+                    "a programmatic selection must not yank the user's roving position");
+            assertSoleTabStop(a, a, b);  // ...and a stays reachable, i.e. not stranded
+
+            // The other half: a click hands focus over even though the clicked
+            // item is not the current Tab stop.
+            pressMouse(b);
             assertSame(b, scene.getFocusOwner(),
-                    "focus migrates to the newly selected item, not stranded on a");
+                    "a click must take focus from the previously focused item");
             assertSoleTabStop(b, a, b);
         });
     }
 
     /**
+     * The Tab stop follows focus however focus arrived — including a plain
+     * {@code requestFocus()} from the application, which no roving or click path
+     * observes. Without it the item would be focused yet Tab-unreachable, with a
+     * second traversable item left in the traversal path.
+     */
+    @Test
+    public void tabStopFollowsADirectRequestFocus() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            sidebar.getItems().addAll(a, b);
+            Scene scene = hostFor(sidebar).getScene();
+
+            sidebar.selectItem(a);
+            assertSoleTabStop(a, a, b);
+
+            b.requestFocus();   // neither roving nor a click
+            assertSame(b, scene.getFocusOwner());
+            assertSoleTabStop(b, a, b);
+        });
+    }
+
+    /**
+     * Once focus leaves the rail the Tab stop reverts to the selected item, so
+     * Tabbing back in lands on the current destination rather than wherever the
+     * user happened to rove last.
+     */
+    @Test
+    public void tabStopRevertsToSelectionWhenFocusLeavesTheRail() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            sidebar.getItems().addAll(a, b);
+            Button outside = new Button("Out");
+            Scene scene = new Scene(new VBox(sidebar, outside), 400, 600);
+            ((Pane) scene.getRoot()).applyCss();
+            ((Pane) scene.getRoot()).layout();
+
+            sidebar.selectItem(a);
+            b.requestFocus();
+            assertSoleTabStop(b, a, b);
+
+            outside.requestFocus();
+            assertSoleTabStop(a, a, b);  // back to the selected item
+        });
+    }
+
+    /**
+     * A membership or visibility change re-runs the Tab-stop rule. It must not
+     * pull the stop back to the selected item while the user has roved elsewhere:
+     * that would leave the focused item Tab-unreachable and put a second, higher
+     * item in the traversal path, so Shift+Tab would re-enter the rail instead of
+     * leaving it.
+     */
+    @Test
+    public void tabStopStaysWithFocusAcrossRingChanges() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarNavItem b = new RXSidebarNavItem("B");
+            RXSidebarNavItem c = new RXSidebarNavItem("C");
+            sidebar.getItems().addAll(a, b, c);
+            Scene scene = hostFor(sidebar).getScene();
+
+            sidebar.selectItem(a);
+            a.requestFocus();
+            press(scene, KeyCode.DOWN);          // rove off the selected item
+            assertSame(b, scene.getFocusOwner());
+            assertSoleTabStop(b, a, b, c);
+
+            RXSidebarNavItem d = new RXSidebarNavItem("D");
+            sidebar.getItems().add(d);           // membership change
+            assertSoleTabStop(b, a, b, c, d);
+
+            c.setVisible(false);                 // visibility change
+            assertSoleTabStop(b, a, b, d);
+        });
+    }
+
+    /**
+     * An action item must be click-focusable like any button, even though the
+     * roving tab stop leaves it non-traversable: it never changes the selection,
+     * so nothing else would ever hand it focus.
+     */
+    @Test
+    public void clickingAnActionItemFocusesItAndMovesTheRovingPoint() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("A");
+            RXSidebarActionItem settings = new RXSidebarActionItem("Settings");
+            sidebar.getItems().add(a);
+            sidebar.getBottomItems().add(settings);
+            Scene scene = hostFor(sidebar).getScene();
+
+            sidebar.selectItem(a);
+            a.requestFocus();
+            assertFalse(settings.isFocusTraversable(), "the action item starts non-traversable");
+
+            pressMouse(settings);
+            assertSame(settings, scene.getFocusOwner(), "clicking an action item must focus it");
+            assertSoleTabStop(settings, a, settings);
+
+            // Roving now continues from the clicked item, not from where focus used to be.
+            press(scene, KeyCode.DOWN);
+            assertSame(a, scene.getFocusOwner(), "roving resumes from the clicked item (wraps)");
+        });
+    }
+
+    /**
      * Selection changes while the rail holds no focus must not steal focus into
-     * the rail (the migration is guarded on the rail already owning focus).
+     * the rail.
      */
     @Test
     public void selectionWithoutRailFocusDoesNotStealFocus() throws Exception {
@@ -497,6 +623,13 @@ public class RXSidebarKeyboardA11yTest {
             assertEquals(node == expected, node.isFocusTraversable(),
                     "focus-traversable expectation for " + node);
         }
+    }
+
+    /** Fires MOUSE_PRESSED at a node — enough to exercise the roving hand-off. */
+    private static void pressMouse(Node target) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5,
+                MouseButton.PRIMARY, 1, false, false, false, false,
+                true, false, false, true, false, true, null));
     }
 
     private static void press(Scene scene, KeyCode code) {
