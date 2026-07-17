@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
@@ -27,11 +28,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P3 gate tests for {@code RXSidebarSkin}: the zero-jump icon column (icon scene
+ * Tests for {@code RXSidebarSkin}: the zero-jump icon column (icon scene
  * X / layoutX unchanged between EXPANDED and MINI), the locked rail width
  * (computeMin == computePref == computeMax == railWidth), the icon column
  * tracking miniWidth, and a headless layout smoke over the full container tree.
@@ -381,6 +384,171 @@ public class RXSidebarSkinTest {
             sidebar.setFooter(f);
             assertTrue(footerSlot.isVisible());
             assertSame(f, footerSlot.getChildren().get(0));
+        });
+    }
+
+    /**
+     * A replacing skin is constructed before the outgoing one is disposed, so by
+     * the time the old skin tears down, the new skin has already wired these very
+     * items. Tearing them down would destroy the live skin's work, not its own.
+     */
+    @Test
+    public void replacingSkinKeepsItsOwnWiring() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home", fixedIcon());
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+            sidebar.setMode(SidebarMode.MINI);
+            assertNotNull(a.getTooltip(), "precondition: MINI lends the item a tooltip");
+
+            // A subclass is not short-circuited the way an identical class is, so
+            // this really does construct-then-dispose. The incoming skin wires the
+            // items first; the outgoing one must not then tear that down.
+            sidebar.setSkin(new RXSidebarSkin(sidebar) {
+            });
+
+            assertNotNull(a.getTooltip(),
+                    "the replacing skin's wiring must survive the outgoing skin's dispose");
+            assertEquals(ContentDisplay.GRAPHIC_ONLY, a.getContentDisplay());
+
+            // Surviving is not enough: the wiring has to still be the live skin's to
+            // drive. A tooltip merely left behind by the outgoing skin would look
+            // like the item's own to the new one, and never come off again.
+            sidebar.setMode(SidebarMode.EXPANDED);
+            assertNull(a.getTooltip(), "the live skin must still own the lent tooltip");
+            assertEquals(ContentDisplay.LEFT, a.getContentDisplay());
+        });
+    }
+
+    /**
+     * The outgoing skin must not be the one to define "what the item looked like
+     * before": it is disposed after the replacement is built, so its own overrides
+     * are on the item by then. Capturing those as the caller's originals would make
+     * a later removal restore the rail's own look instead of the caller's.
+     */
+    @Test
+    public void skinSwapDoesNotLaunderTheSkinsOwnStateIntoTheCallersOriginals() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home", fixedIcon());
+            a.setContentDisplay(ContentDisplay.TOP);       // the caller's own look
+            Insets ownPadding = new Insets(7.0);
+            a.setPadding(ownPadding);
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+            sidebar.setMode(SidebarMode.MINI);             // the rail overwrites both
+
+            sidebar.setSkin(new RXSidebarSkin(sidebar) {
+            });
+            sidebar.getItems().remove(a);
+
+            assertEquals(ContentDisplay.TOP, a.getContentDisplay(),
+                    "the caller's content display must come back, not the rail's");
+            assertEquals(ownPadding, a.getPadding(),
+                    "the caller's padding must come back, not the rail's icon column");
+        });
+    }
+
+    /**
+     * A replaced skin must stop listening to the items it wired, even though it
+     * leaves their shared state alone for the skin that took over. Its listeners
+     * are its own, and nobody else can take them off; left attached they call back
+     * into a disposed skin ({@code getSkinnable()} is null by then) on the next
+     * visibility or disabled change — and JavaFX routes that failure to the
+     * uncaught handler, so it never surfaces as a test failure on its own.
+     */
+    @Test
+    public void aReplacedSkinStopsListeningToItsOldItems() throws Exception {
+        runOnFx(() -> {
+            AtomicReference<Throwable> uncaught = new AtomicReference<>();
+            Thread fx = Thread.currentThread();
+            Thread.UncaughtExceptionHandler previous = fx.getUncaughtExceptionHandler();
+            fx.setUncaughtExceptionHandler((thread, error) -> uncaught.set(error));
+            try {
+                RXSidebar sidebar = new RXSidebar();
+                sidebar.setAnimated(false);
+                RXSidebarNavItem a = new RXSidebarNavItem("Home", fixedIcon());
+                sidebar.getItems().add(a);
+                hostFor(sidebar);
+
+                sidebar.setSkin(new RXSidebarSkin(sidebar) {
+                });
+
+                a.setVisible(false);
+                a.setVisible(true);
+                assertNull(uncaught.get(),
+                        "the outgoing skin must not still be reacting to its old items");
+            } finally {
+                fx.setUncaughtExceptionHandler(previous);
+            }
+        });
+    }
+
+    /**
+     * Disposing the installed skin directly (rather than through the control) is
+     * still nobody taking over: the control's skin is this very skin, so the items
+     * are this skin's to hand back. Reading "the control still has a sidebar skin"
+     * as "somebody adopted the items" would strand the rail's tooltip and content
+     * display on them.
+     */
+    @Test
+    public void disposingTheInstalledSkinDirectlyHandsItemsBack() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home", fixedIcon());
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+            sidebar.setMode(SidebarMode.MINI);
+            assertNotNull(a.getTooltip());
+
+            sidebar.getSkin().dispose();
+
+            assertNull(a.getTooltip(), "the lent tooltip must be taken back");
+            assertEquals(ContentDisplay.LEFT, a.getContentDisplay(), "content display restored");
+        });
+    }
+
+    /**
+     * A skin can reach dispose twice — disposed directly, then again when the
+     * control drops it — and by the second pass its control reference is gone.
+     */
+    @Test
+    public void disposingTwiceIsSafe() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            sidebar.getItems().add(new RXSidebarNavItem("Home", fixedIcon()));
+            hostFor(sidebar);
+
+            sidebar.getSkin().dispose();
+            assertDoesNotThrow(() -> sidebar.setSkin(null), "the control's dispose must not throw");
+        });
+    }
+
+    /**
+     * The other half: when nothing takes the items over, dispose really must hand
+     * them back. A guard that skipped here would leave every item carrying the
+     * rail's tooltip and content display forever.
+     */
+    @Test
+    public void disposeWithNoReplacementHandsItemsBack() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home", fixedIcon());
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+            sidebar.setMode(SidebarMode.MINI);
+            assertNotNull(a.getTooltip());
+
+            sidebar.setSkin(null);
+
+            assertNull(a.getTooltip(), "the lent tooltip must be taken back");
+            assertEquals(ContentDisplay.LEFT, a.getContentDisplay(), "content display restored");
         });
     }
 

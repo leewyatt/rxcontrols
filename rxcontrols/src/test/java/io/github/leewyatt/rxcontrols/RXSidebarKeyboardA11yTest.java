@@ -2,9 +2,11 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -23,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Home/End roving with wrap across the three lists, disabled items excluded from
  * the ring, the single roving Tab stop (the container is never it; within the
  * rail it follows focus, and it falls back to the selected item once focus is
- * elsewhere), and {@code accessibleText} mirroring {@code text}.
+ * elsewhere), and that assistive technology can name every item in both modes.
  *
  * <p>Focus is asserted through the scene's focus owner rather than
  * {@code Node.isFocused}, which is false whenever the window is not focused and
@@ -363,28 +367,62 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
-     * accessibleText mirrors text live (skin-applied binding).
+     * The requirement is that assistive technology can name every item, in both
+     * modes — MINI hides the label, but the name must still get through. Labeled
+     * already answers the TEXT query from its text regardless of content display,
+     * so the skin owes nothing here; asserting the query (not some mirror the skin
+     * might install) is what keeps that honest.
      */
     @Test
-    public void accessibleTextMirrorsText() throws Exception {
+    public void assistiveTechnologyCanNameItemsInBothModes() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
             RXSidebarNavItem a = new RXSidebarNavItem("Inbox");
             RXSidebarActionItem s = new RXSidebarActionItem("Settings");
             sidebar.getItems().add(a);
             sidebar.getBottomItems().add(s);
             hostFor(sidebar);
 
-            assertEquals("Inbox", a.getAccessibleText());
-            assertEquals("Settings", s.getAccessibleText());
+            assertEquals("Inbox", a.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            assertEquals("Settings", s.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+
+            sidebar.setMode(SidebarMode.MINI); // label hidden
+            assertEquals("Inbox", a.queryAccessibleAttribute(AccessibleAttribute.TEXT),
+                    "the name must still reach assistive technology with the label hidden");
+
             a.setText("Archive");
-            assertEquals("Archive", a.getAccessibleText());
+            assertEquals("Archive", a.queryAccessibleAttribute(AccessibleAttribute.TEXT));
         });
     }
 
     /**
-     * Removing an item unwires it: accessibleText stops mirroring and its
-     * focus-traversability is restored to the default.
+     * accessibleText stays the caller's: a nav rail item is exactly where an app
+     * wants to say more than the label ("Inbox, 3 unread"), so the skin must not
+     * own that property.
+     */
+    @Test
+    public void accessibleTextRemainsTheCallersToSet() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarNavItem a = new RXSidebarNavItem("Inbox");
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+
+            a.setAccessibleText("Inbox, 3 unread");
+            assertEquals("Inbox, 3 unread", a.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+
+            // ...and it is not left behind on an item that leaves the rail.
+            sidebar.getItems().remove(a);
+            a.setAccessibleText(null);
+            a.setText("Archive");
+            assertEquals("Archive", a.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+        });
+    }
+
+    /**
+     * Removing an item hands it back as it arrived: the caller's own
+     * focus-traversability is restored, not merely reset to the type default.
      */
     @Test
     public void removingItemUnwiresIt() throws Exception {
@@ -399,15 +437,12 @@ public class RXSidebarKeyboardA11yTest {
 
             sidebar.getItems().remove(b);
             assertTrue(b.isFocusTraversable(), "removed item's focus-traversability restored");
-            String before = b.getAccessibleText();
-            b.setText("Changed");
-            assertEquals(before, b.getAccessibleText(), "removed item's accessibleText unbound");
         });
     }
 
     /**
-     * Disposing the skin unbinds accessibleText and restores focus-traversability
-     * for items left wired.
+     * Disposing the skin hands back the items it still had wired: their
+     * focus-traversability is restored to what the caller had.
      */
     @Test
     public void disposeUnwiresRemainingItems() throws Exception {
@@ -548,8 +583,7 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
-     * Re-adding a previously removed item re-wires it (its accessibleText mirrors
-     * text again).
+     * Re-adding a previously removed item re-wires it.
      */
     @Test
     public void reAddingItemReWiresIt() throws Exception {
@@ -562,8 +596,12 @@ public class RXSidebarKeyboardA11yTest {
 
             sidebar.getItems().remove(b);
             sidebar.getItems().add(b);
+
+            // Re-wired: back in the roving ring and answering the name query.
             b.setText("Bee");
-            assertEquals("Bee", b.getAccessibleText());
+            assertEquals("Bee", b.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            b.requestFocus();
+            assertSoleTabStop(b, a, b);
         });
     }
 
@@ -588,26 +626,136 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
-     * MINI mode exercises the tooltip install path without throwing, and the
-     * name source (accessibleText, sharing the tooltip's text binding) holds.
+     * MINI hides the label, so the skin lends the item a tooltip carrying it, and
+     * takes it back on the way out. {@code setAnimated(false)} is essential: with
+     * the transition running, the mode is only committed to the items when the
+     * timeline finishes, so an un-awaited test would assert nothing at all.
      */
     @Test
-    public void miniModeInstallsTooltipPathSafely() throws Exception {
+    public void miniModeLendsTheItemALabelTooltip() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
             RXSidebarNavItem a = new RXSidebarNavItem("Inbox");
             sidebar.getItems().add(a);
-            Pane host = hostFor(sidebar);
+            hostFor(sidebar);
 
-            assertDoesNotThrow(() -> {
-                sidebar.setMode(SidebarMode.MINI); // installs the auto tooltip
-                host.applyCss();
-                host.layout();
-                sidebar.setMode(SidebarMode.EXPANDED); // uninstalls it
-                host.applyCss();
-                host.layout();
-            });
-            assertEquals("Inbox", a.getAccessibleText());
+            assertNull(a.getTooltip(), "EXPANDED shows the label; no tooltip needed");
+
+            sidebar.setMode(SidebarMode.MINI);
+            assertNotNull(a.getTooltip(), "MINI must offer the label as a tooltip");
+            assertEquals("Inbox", a.getTooltip().getText());
+            // Via the tooltip property, not the static install: that is the only
+            // thing assistive technology reads for HELP.
+            assertEquals("Inbox", a.queryAccessibleAttribute(AccessibleAttribute.HELP));
+
+            a.setText("Archive");
+            assertEquals("Archive", a.getTooltip().getText(), "the lent tooltip tracks the text");
+
+            sidebar.setMode(SidebarMode.EXPANDED);
+            assertNull(a.getTooltip(), "the lent tooltip is taken back when the label returns");
+        });
+    }
+
+    /**
+     * An item that brought its own tooltip keeps it — in both modes, and after it
+     * leaves the rail. A tooltip the caller set says more than a repeat of the
+     * label, and replacing it would be silent theft.
+     */
+    @Test
+    public void anItemsOwnTooltipIsNeverReplaced() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Inbox");
+            Tooltip own = new Tooltip("Go to the inbox");
+            a.setTooltip(own);
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+
+            assertSame(own, a.getTooltip());
+            sidebar.setMode(SidebarMode.MINI);
+            assertSame(own, a.getTooltip(), "MINI must not replace the item's own tooltip");
+            sidebar.setMode(SidebarMode.EXPANDED);
+            assertSame(own, a.getTooltip());
+
+            sidebar.getItems().remove(a);
+            assertSame(own, a.getTooltip(), "the item keeps its tooltip on the way out");
+        });
+    }
+
+    /**
+     * The tooltip slot is read live, never replayed from a snapshot taken on the
+     * way in. A caller who clears their own tooltip while the item is in the rail
+     * has freed the slot; taking the lent tooltip back must leave it free, not
+     * resurrect the one they deleted.
+     */
+    @Test
+    public void clearingAnOwnTooltipInTheRailIsNotUndoneOnTheWayOut() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home");
+            a.setTooltip(new Tooltip("Go to the inbox"));
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+
+            a.setTooltip(null);            // the caller changes their mind
+            sidebar.setMode(SidebarMode.MINI);
+            assertEquals("Home", a.getTooltip().getText(), "the freed slot may now be lent to");
+
+            sidebar.getItems().remove(a);
+            assertNull(a.getTooltip(), "a tooltip the caller deleted must stay deleted");
+        });
+    }
+
+    /**
+     * The slot is watched, not merely sampled when a mode is applied. MINI states
+     * that hidden labels are exposed via tooltip, so a caller who frees the slot
+     * while already in MINI must get the label tooltip back at once — otherwise the
+     * item sits there unidentifiable until some unrelated mode change.
+     */
+    @Test
+    public void freeingTheTooltipSlotWhileInMiniLendsTheLabelBackImmediately() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home");
+            Tooltip own = new Tooltip("Go home");
+            a.setTooltip(own);
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+
+            sidebar.setMode(SidebarMode.MINI);
+            assertSame(own, a.getTooltip(), "the caller's tooltip still wins");
+
+            a.setTooltip(null);   // the caller frees the slot, still in MINI
+            assertNotNull(a.getTooltip(), "MINI must not leave the item without a tooltip");
+            assertEquals("Home", a.getTooltip().getText());
+        });
+    }
+
+    /**
+     * A caller who takes the slot over while the rail's tooltip is lent keeps it:
+     * from that moment the tooltip is theirs, on mode changes and on the way out.
+     */
+    @Test
+    public void takingTheTooltipSlotOverMidLendWins() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            RXSidebarNavItem a = new RXSidebarNavItem("Home");
+            sidebar.getItems().add(a);
+            hostFor(sidebar);
+
+            sidebar.setMode(SidebarMode.MINI);   // rail lends its label tooltip
+            Tooltip late = new Tooltip("Mine now");
+            a.setTooltip(late);
+
+            sidebar.setMode(SidebarMode.EXPANDED);
+            assertSame(late, a.getTooltip(), "the rail must not clear a tooltip it no longer owns");
+            sidebar.getItems().remove(a);
+            assertSame(late, a.getTooltip());
         });
     }
 

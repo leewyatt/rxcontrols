@@ -1921,6 +1921,9 @@
     -fx-content-display: left;
     -fx-text-overrun: clip;
     -fx-graphic-text-gap: 12;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+    -fx-max-width: infinity;
 }
 
 .rx-sidebar .item:hover {

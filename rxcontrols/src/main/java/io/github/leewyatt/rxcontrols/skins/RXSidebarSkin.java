@@ -10,6 +10,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.ReadOnlyProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventTarget;
 import javafx.beans.property.DoubleProperty;
@@ -22,6 +23,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Labeled;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Skin;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
@@ -33,9 +35,10 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -57,7 +60,6 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // ==================== Constants ====================
 
-    private static final double ITEM_HEIGHT = 40.0;
     private static final double ITEM_GAP = 4.0;
     private static final double ICON_SIZE = 24.0;       // matches the CSS .graphic -fx-pref-* size
     private static final double RIGHT_INSET = 12.0;
@@ -73,14 +75,42 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private final VBox bottomBox = new VBox(ITEM_GAP);
     private final StackPane footerSlot = new StackPane();
 
-    // Per-item auto tooltip (text mirrors the item; installed only in MINI). Doubles
-    // as the registry of wired items for incremental wire/unwire and dispose cleanup.
-    private final Map<RXSidebarItem, Tooltip> itemTooltips = new IdentityHashMap<>();
+    // Everything owed back to the item, plus the tooltip the rail lends it in MINI.
+    // Only what the skin actually overwrites is here; anything CSS drives reverts by
+    // itself once the item stops matching the rail's selectors.
+    //
+    // Stashed on the ITEM rather than in the skin, because a replacing skin is
+    // constructed BEFORE the outgoing one is disposed. A per-skin capture would
+    // therefore record the outgoing skin's own overrides as the caller's originals,
+    // and each skin would lend a different tooltip — making "is this tooltip mine?"
+    // unanswerable across the swap.
+    private static final Object ITEM_STATE_KEY = new Object();
+
+    private record ItemState(Tooltip miniTooltip, ContentDisplay contentDisplay,
+                             Insets padding, boolean focusTraversable) {
+    }
+
+    // The items this skin attached its own listeners to. Per skin, unlike the state
+    // above: during a swap two skins legitimately have listeners on the same items,
+    // and each must take back only its own.
+    private final Set<RXSidebarItem> wiredItems = Collections.newSetFromMap(new IdentityHashMap<>());
 
     // Re-establishes the single Tab stop when a wired item's visibility/disabled state
     // changes (those move it in/out of the roving ring). Shared instance, added per
     // item in wireItem and removed in unwireItem.
     private final InvalidationListener focusabilityListener = obs -> refreshTabStop();
+
+    // The tooltip slot is the caller's to claim or free at any moment, so the rail
+    // has to watch it rather than only look when it applies a mode: MINI states that
+    // hidden labels are "exposed via tooltip", and a caller freeing the slot while
+    // already in MINI would otherwise leave the item unidentifiable until the next
+    // mode change. Shared instance — the property's bean is the item itself.
+    private final InvalidationListener tooltipSlotListener = obs -> {
+        Object bean = (obs instanceof ReadOnlyProperty<?> property) ? property.getBean() : null;
+        if (bean instanceof Labeled node) {
+            applyTooltip(node, committedMode());
+        }
+    };
 
     // The Tab-stop rule keys off the scene's focus owner, so it has to re-run on every
     // focus move — including a plain requestFocus() from the application, which no
@@ -235,46 +265,102 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return nodes;
     }
 
-    // Per-item configuration: fixed row height, fill-width band, fixed icon column,
-    // accessibleText + mini tooltip bound to text, and the committed mode's content
-    // display. Alignment / text overrun stay in CSS; the dynamic left padding and
-    // content display are owned by the skin. Idempotent: the
-    // text/tooltip bindings are set once per wired item (re-add re-wires fresh).
+    // Per-item configuration. Row height, fill-width and alignment are CSS, not
+    // written here: an item that leaves the rail stops matching the selector and
+    // reverts on its own, whereas a Java write would cling to it forever.
+    //
+    // What is left cannot be expressed as static CSS, so the skin writes it and
+    // restores it in unwireItem: the icon-column padding (it tracks miniWidth),
+    // and the content display (it collapses to icon-only in MINI, but must stay
+    // LEFT mid-transition so the label wipes with the width).
+    //
+    // Idempotent: only the first wire captures the incoming state and installs
+    // listeners, so a replacing skin re-imposing the same values is harmless.
     private void wireItem(RXSidebarItem item) {
         // Both permitted item types are Labeled (ToggleButton / Button); the
         // sealed interface is what makes this cast safe.
         Labeled node = (Labeled) item.asNode();
-        node.setMinHeight(ITEM_HEIGHT);
-        node.setPrefHeight(ITEM_HEIGHT);
-        node.setMaxWidth(Double.MAX_VALUE);
-        applyIconColumn(node);
-        if (!itemTooltips.containsKey(item)) {
-            // accessibleText mirrors text so screen readers keep the name in MINI.
-            node.accessibleTextProperty().bind(node.textProperty());
-            Tooltip tip = new Tooltip();
-            tip.textProperty().bind(node.textProperty());
-            itemTooltips.put(item, tip);
+        if (wiredItems.add(item)) {
             node.visibleProperty().addListener(focusabilityListener);
             node.disabledProperty().addListener(focusabilityListener);
+            node.tooltipProperty().addListener(tooltipSlotListener);
+            // Only the first skin to reach the item records it; a replacing one
+            // would otherwise capture its predecessor's overrides.
+            node.getProperties().computeIfAbsent(ITEM_STATE_KEY, key -> captureState(node));
         }
+        applyIconColumn(node);
         applyModeToItem(item, committedMode());
     }
 
-    // Reverse of wireItem for a removed item: uninstall + unbind its tooltip, drop the
-    // focusability listener, unbind accessibleText, and restore focus-traversability.
+    private static ItemState captureState(Labeled node) {
+        Tooltip miniTooltip = new Tooltip();
+        miniTooltip.textProperty().bind(node.textProperty());
+        return new ItemState(miniTooltip, node.getContentDisplay(), node.getPadding(),
+                node.isFocusTraversable());
+    }
+
+    private static ItemState stateOf(Labeled node) {
+        return (ItemState) node.getProperties().get(ITEM_STATE_KEY);
+    }
+
+    // Exact reverse of wireItem: hand the item back in the state it arrived in, so
+    // it can be reused anywhere. Restoring the captured values (rather than assuming
+    // defaults) is what keeps a caller's own padding / content display / traversability
+    // intact.
     private void unwireItem(RXSidebarItem item) {
         Labeled node = (Labeled) item.asNode();
-        Tooltip tip = itemTooltips.remove(item);
-        if (tip != null) {
-            Tooltip.uninstall(node, tip);
-            tip.textProperty().unbind();
+        if (!wiredItems.remove(item)) {
+            return;
         }
+        detachListeners(node);
+        handItemBack(node);
+    }
+
+    // This skin's own listeners. Always taken back, even when another skin has
+    // adopted the item: they are this skin's, not the item's.
+    private void detachListeners(Labeled node) {
         node.visibleProperty().removeListener(focusabilityListener);
         node.disabledProperty().removeListener(focusabilityListener);
-        node.accessibleTextProperty().unbind();
-        // Both permitted item types are ButtonBase (default focusTraversable =
-        // true); restore that default so a reused item behaves like a normal node.
-        node.setFocusTraversable(true);
+        node.tooltipProperty().removeListener(tooltipSlotListener);
+    }
+
+    // True only when a DIFFERENT sidebar skin is now the control's: that one was
+    // constructed before this dispose and has already adopted the items, so their
+    // shared state is its business. Null-safe because a skin can be disposed twice
+    // (disposed directly, then again when the control drops it), and by the second
+    // pass the control reference is gone.
+    private boolean adoptedByAnotherSidebarSkin() {
+        RXSidebar control = getSkinnable();
+        if (control == null) {
+            return true;   // nothing left to hand anything back to
+        }
+        Skin<?> current = control.getSkin();
+        return current != this && current instanceof RXSidebarSkin;
+    }
+
+    // Gives the item back. Only the skin that genuinely lets go of it may do this —
+    // while another sidebar skin is using the item, the state belongs to that skin.
+    //
+    // Two ownerships, and they undo differently:
+    //
+    //  - Owned by the rail for as long as the item is in it (content display,
+    //    padding, traversability). The rail overwrites these whatever they held, so
+    //    undoing means replaying what they held on the way in.
+    //  - Merely lent (the tooltip). The rail only ever writes this slot while it is
+    //    free, so undoing means leaving it free — replaying the value from the way in
+    //    would resurrect a tooltip the caller has since cleared.
+    private void handItemBack(Labeled node) {
+        ItemState state = (ItemState) node.getProperties().remove(ITEM_STATE_KEY);
+        if (state == null) {
+            return;
+        }
+        state.miniTooltip().textProperty().unbind();
+        if (node.getTooltip() == state.miniTooltip()) {
+            node.setTooltip(null);
+        }
+        node.setContentDisplay(state.contentDisplay());
+        node.setPadding(state.padding());
+        node.setFocusTraversable(state.focusTraversable());
     }
 
     // ==================== Zero-jump icon column ====================
@@ -370,15 +456,32 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // MINI steady state collapses to icon-only (visually identical to a
         // CLIP-wiped width=miniWidth row, no jump); EXPANDED shows icon + text.
         node.setContentDisplay(mode == SidebarMode.MINI ? ContentDisplay.GRAPHIC_ONLY : ContentDisplay.LEFT);
-        // Tooltip shows the label only in MINI (the label is hidden there). Uninstall
-        // first so repeated MINI applications never stack a second install.
-        Tooltip tip = itemTooltips.get(item);
-        if (tip != null) {
-            Tooltip.uninstall(node, tip);
-            if (mode == SidebarMode.MINI) {
-                Tooltip.install(node, tip);
-            }
+        applyTooltip(node, mode);
+    }
+
+    // MINI hides the label, so the skin lends the item a tooltip carrying it —
+    // but only while the tooltip slot is free. An item that brought its own says
+    // more than a repeat of the label, and silently replacing it would be theft.
+    //
+    // Uses Labeled.setTooltip rather than the static Tooltip.install: install
+    // leaves Control.tooltipProperty untouched, so assistive technology (which
+    // reads that property for HELP) would never learn the tooltip exists. It also
+    // makes this safe, because the static Tooltip.uninstall ignores the tooltip
+    // handed to it and removes whatever it finds.
+    //
+    // The slot is read live, never from a snapshot: the caller may claim it at any
+    // moment, and may equally free it again — clearing their own tooltip hands the
+    // slot back to the rail rather than pinning it forever.
+    private void applyTooltip(Labeled node, SidebarMode mode) {
+        ItemState state = stateOf(node);
+        if (state == null) {
+            return;
         }
+        Tooltip current = node.getTooltip();
+        if (current != null && current != state.miniTooltip()) {
+            return;   // the item's own tooltip; not ours to touch
+        }
+        node.setTooltip(mode == SidebarMode.MINI ? state.miniTooltip() : null);
     }
 
     private SidebarMode committedMode() {
@@ -607,12 +710,27 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
             trackedScene = null;
         }
-        // Per-item resources (tooltips, accessibleText bindings, roving tab-stop) are
-        // managed manually, paired with item add/remove, so release the still-wired
-        // ones here (dynamic-node resources don't go through the disposer).
-        for (RXSidebarItem item : List.copyOf(itemTooltips.keySet())) {
-            unwireItem(item);
+        // Two different obligations, and conflating them loses either way.
+        //
+        // This skin's own listeners always come off — nobody else can take them
+        // back. The item state, though, is shared: a replacing sidebar skin is
+        // constructed BEFORE this one is disposed, so by now it has already adopted
+        // these items and depends on that state; handing them back would tear down
+        // its work. Only when nothing has taken over is this skin the last owner,
+        // and then it must hand them back.
+        //
+        // "Taken over" means a DIFFERENT sidebar skin. Still being the control's own
+        // skin means nobody replaced anything — the caller disposed this skin
+        // directly — and then the items are this skin's to return. A foreign skin,
+        // or none, likewise wires nothing.
+        for (RXSidebarItem item : List.copyOf(wiredItems)) {
+            Labeled node = (Labeled) item.asNode();
+            detachListeners(node);
+            if (!adoptedByAnotherSidebarSkin()) {
+                handItemBack(node);
+            }
         }
+        wiredItems.clear();
         // Pair the constructor's getChildren().setAll(root): remove our root so a
         // setSkin(null) (no replacing skin to clear it) leaves no stale node
         // behind. Listeners/event filters are released by the disposer.
