@@ -26,6 +26,7 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.EnumConverter;
 import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
@@ -333,10 +334,25 @@ public class RXSnackbarHost extends Control {
 
     // ==================== Position ====================
 
-    private final ObjectProperty<Pos> position = new SimpleObjectProperty<>(this, "position", DEFAULT_POSITION) {
+    private final ObjectProperty<Pos> position = new StyleableObjectProperty<>(DEFAULT_POSITION) {
         @Override
         protected void invalidated() {
             requestLayout();
+        }
+
+        @Override
+        public CssMetaData<? extends Styleable, Pos> getCssMetaData() {
+            return StyleableProperties.POSITION;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXSnackbarHost.this;
+        }
+
+        @Override
+        public String getName() {
+            return "position";
         }
     };
 
@@ -345,6 +361,7 @@ public class RXSnackbarHost extends Control {
      * accepted and interpreted as physical positions (no RTL flipping); a single
      * bar is shown regardless of position — corner positions do not stack.
      * {@code null} falls back to {@link #DEFAULT_POSITION} at the use site.
+     * Styleable via {@code -rx-snackbar-position}.
      *
      * @return the position property
      */
@@ -1274,6 +1291,21 @@ public class RXSnackbarHost extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXSnackbarHost, Pos> POSITION =
+                new CssMetaData<>("-rx-snackbar-position",
+                        new EnumConverter<>(Pos.class), DEFAULT_POSITION) {
+                    @Override
+                    public boolean isSettable(RXSnackbarHost node) {
+                        return !node.position.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Pos> getStyleableProperty(RXSnackbarHost node) {
+                        return (StyleableProperty<Pos>) node.positionProperty();
+                    }
+                };
+
         private static final CssMetaData<RXSnackbarHost, Number> SNACKBAR_MAX_WIDTH =
                 new CssMetaData<>("-rx-snackbar-max-width",
                         SizeConverter.getInstance(), DEFAULT_SNACKBAR_MAX_WIDTH) {
@@ -1297,6 +1329,7 @@ public class RXSnackbarHost extends Control {
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
             styleables.add(MARGIN);
+            styleables.add(POSITION);
             styleables.add(SNACKBAR_MAX_WIDTH);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

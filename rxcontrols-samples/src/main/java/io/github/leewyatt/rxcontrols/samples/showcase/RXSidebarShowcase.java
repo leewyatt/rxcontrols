@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSnackbars;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
@@ -41,6 +42,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     private RXSidebar sidebar;
     private Label selectedLabel;
     private Label statusLabel;
+    private VBox content = new VBox();
 
     @Override
     protected String title() {
@@ -87,7 +89,11 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         sidebar.getItems().addAll(dashboard, inbox, files, reports);
 
         RXSidebarActionItem settings = new RXSidebarActionItem("Settings", icon("settings"));
-        settings.setOnAction(event -> statusLabel.setText("Settings fired — selection unchanged."));
+        // An action item fires its command without touching the selection. The
+        // feedback is a snackbar confined to the content area: the facade routes
+        // to the nearest enclosing installed host, so an owner inside the content
+        // area lands in its host rather than over the whole scene.
+        settings.setOnAction(event -> RXSnackbars.info(content, "Settings fired — selection unchanged."));
         RXSidebarNavItem help = new RXSidebarNavItem("Help", icon("help"));
         sidebar.getBottomItems().addAll(settings, help);
 
@@ -108,9 +114,13 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         statusLabel.getStyleClass().add("status-label");
         statusLabel.setWrapText(true);
 
-        VBox content = new VBox(12.0, selectedLabel, statusLabel);
+        content.getChildren().addAll(selectedLabel, statusLabel);
+        content.setSpacing(12.0);
         content.setAlignment(Pos.CENTER);
         content.getStyleClass().add("content-area");
+        // The host is an unmanaged overlay covering the content area only (not
+        // the sidebar); empty host area stays click-through.
+        RXSnackbars.installInto(content).setPosition(Pos.CENTER);
 
         BorderPane frame = new BorderPane();
         frame.getStyleClass().add("app-frame");

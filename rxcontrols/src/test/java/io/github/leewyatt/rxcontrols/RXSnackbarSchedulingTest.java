@@ -2,10 +2,12 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXSnackbarEvent;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -30,9 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Headless tests for snackbar scheduling beyond plain FIFO — the REPLACE
  * strategy with its action protection, same-key in-place updates (displayed and
  * queued) with the fixed event order, duplicate prevention by key and by
- * message, severity style classes on the bar, and the {@code RXSnackbars}
- * facade (owner-scene resolution, no-scene settlement, host caching, and the
- * {@code installInto} escape hatch).
+ * message, severity style classes on the bar, the {@code -rx-snackbar-position}
+ * CSS hook, and the {@code RXSnackbars} facade (nearest-enclosing-host owner
+ * resolution with scene fallback, no-scope settlement, host caching, and the
+ * {@code installInto} entry points).
  */
 public class RXSnackbarSchedulingTest {
 
@@ -314,6 +317,19 @@ public class RXSnackbarSchedulingTest {
         });
     }
 
+    // ==================== CSS ====================
+
+    @Test
+    public void cssAppliesSnackbarPosition() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            assertEquals(RXSnackbarHost.DEFAULT_POSITION, host.getPosition());
+            host.setStyle("-rx-snackbar-position: top-center;");
+            host.applyCss();
+            assertEquals(Pos.TOP_CENTER, host.getPosition());
+        });
+    }
+
     // ==================== RXSnackbars facade ====================
 
     @Test
@@ -366,7 +382,27 @@ public class RXSnackbarSchedulingTest {
     }
 
     @Test
-    public void installIntoIsIdempotentPerContainerAndOutsideTheSceneCache() throws Exception {
+    public void installIntoSceneResolvesTheFacadeHostForUpFrontConfiguration() throws Exception {
+        runOnFx(() -> {
+            StackPane root = new StackPane();
+            Scene scene = new Scene(root, 400.0, 300.0);
+            Label owner = new Label("owner");
+            root.getChildren().add(owner);
+
+            RXSnackbarHost host = RXSnackbars.installInto(scene);
+            host.setPosition(Pos.TOP_CENTER);
+            assertSame(host, RXSnackbars.installInto(scene), "idempotent per scene");
+
+            RXSnackbars.show(owner, "routed");
+            assertSame(host, RXSnackbars.hostFor(owner).orElseThrow(),
+                    "the facade routes to the pre-installed host");
+            assertTrue(host.isShowing());
+            assertEquals(Pos.TOP_CENTER, host.getPosition(), "up-front configuration survives the first show");
+        });
+    }
+
+    @Test
+    public void installIntoIsIdempotentPerContainerAndOwnersOutsideFallToTheSceneHost() throws Exception {
         runOnFx(() -> {
             Pane container = new Pane();
             RXSnackbarHost installed = RXSnackbars.installInto(container);
@@ -379,12 +415,73 @@ public class RXSnackbarSchedulingTest {
             root.getChildren().add(owner);
             RXSnackbars.show(owner, "scene level");
             RXSnackbarHost sceneHost = RXSnackbars.hostFor(owner).orElseThrow();
-            assertNotSame(installed, sceneHost, "the facade never routes to an installInto host");
+            assertNotSame(installed, sceneHost, "an owner outside the container routes to the scene host");
 
             container.getChildren().remove(installed);
             RXSnackbarHost reinstalled = RXSnackbars.installInto(container);
             assertNotSame(installed, reinstalled, "a caller-removed host is not resurrected");
             assertSame(container, reinstalled.getParent());
+        });
+    }
+
+    @Test
+    public void installIntoHostIsAnUnmanagedOverlayInAnyPane() throws Exception {
+        runOnFx(() -> {
+            VBox column = new VBox(new Label("a"), new Label("b"));
+            RXSnackbarHost host = RXSnackbars.installInto(column);
+            assertFalse(host.isManaged(), "the host must not join the container's layout flow");
+            assertEquals(0.0, host.getLayoutX());
+            assertEquals(0.0, host.getLayoutY());
+            column.resize(200.0, 150.0);
+            assertEquals(200.0, host.getWidth(), "geometry follows the container width");
+            assertEquals(150.0, host.getHeight(), "geometry follows the container height");
+
+            column.getChildren().remove(host);
+            column.resize(300.0, 250.0);
+            assertEquals(200.0, host.getWidth(), "a removed host stops following the container");
+        });
+    }
+
+    @Test
+    public void facadeRoutesToTheNearestEnclosingInstalledHost() throws Exception {
+        runOnFx(() -> {
+            StackPane root = new StackPane();
+            new Scene(root, 400.0, 300.0);
+            Pane region = new Pane();
+            Pane inner = new Pane();
+            Label deepest = new Label("deepest");
+            inner.getChildren().add(deepest);
+            Label inside = new Label("inside");
+            region.getChildren().addAll(inside, inner);
+            Label sibling = new Label("sibling");
+            root.getChildren().addAll(region, sibling);
+
+            RXSnackbarHost regionHost = RXSnackbars.installInto(region);
+
+            RXSnackbarRequest deep = RXSnackbarRequest.builder("deep").build();
+            RXSnackbars.show(inside, deep);
+            assertSame(deep, regionHost.getCurrentRequest(), "a descendant owner routes to the region host");
+            assertSame(regionHost, RXSnackbars.hostFor(inside).orElseThrow(), "hostFor resolves the same scope");
+
+            regionHost.clear();
+            RXSnackbarRequest self = RXSnackbarRequest.builder("self").build();
+            RXSnackbars.show(region, self);
+            assertSame(self, regionHost.getCurrentRequest(), "the walk includes the owner itself");
+
+            regionHost.clear();
+            RXSnackbars.show(inside, RXSnackbarRequest.builder("keyed").key("job").build());
+            assertTrue(RXSnackbars.dismiss(inside, "job"), "dismiss resolves the same scope");
+
+            RXSnackbarHost innerHost = RXSnackbars.installInto(inner);
+            RXSnackbarRequest nested = RXSnackbarRequest.builder("nested").build();
+            RXSnackbars.show(deepest, nested);
+            assertSame(nested, innerHost.getCurrentRequest(), "the nearest enclosing host wins");
+
+            assertTrue(RXSnackbars.hostFor(sibling).isEmpty(),
+                    "scoped routing never installs the scene host");
+            RXSnackbars.show(sibling, "outside");
+            RXSnackbarHost sceneHost = RXSnackbars.hostFor(sibling).orElseThrow();
+            assertNotSame(regionHost, sceneHost, "owners outside any scope fall to the scene host");
         });
     }
 
