@@ -1910,8 +1910,11 @@
 }
 
 /* Items inherit modena's .button / .toggle-button chrome; flatten it to a row.
-   Static layout (alignment, content display, text overrun) lives here; the
-   dynamic left padding (icon column = miniWidth/2) is set in Java by the skin. */
+   Everything static lives here; the skin writes only what tracks a property it
+   owns — the left padding, which is the icon column and follows miniWidth, and
+   the content display, which collapses to icon-only in MINI. Overriding the
+   padding here is allowed and wins (author beats user-agent), but the icon
+   column then becomes the author's to place. */
 .rx-sidebar .item {
     -fx-background-color: transparent;
     -rx-ripple-enabled: false;
@@ -1946,9 +1949,16 @@
     -fx-background-color: -rx-primary-bg;
 }
 
+/* Opt-in slot for an item's icon: give the icon this class and the rail sizes it
+   to the column it centres on in MINI. max is pinned as well as pref, which the
+   usual "CSS gives pref, Java pins max" split would leave out — the icon belongs
+   to the caller, so there is no Java to pin it, and MINI's icon-only display would
+   otherwise stretch it to fill the row. */
 .rx-sidebar .item > .graphic {
     -fx-pref-width: 24;
     -fx-pref-height: 24;
+    -fx-max-width: 24;
+    -fx-max-height: 24;
 }
 
 /*******************************************************************************

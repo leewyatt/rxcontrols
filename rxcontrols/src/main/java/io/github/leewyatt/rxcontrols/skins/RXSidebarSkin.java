@@ -61,7 +61,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // ==================== Constants ====================
 
     private static final double ITEM_GAP = 4.0;
-    private static final double ICON_SIZE = 24.0;       // matches the CSS .graphic -fx-pref-* size
+    // The width the icon column is laid out for. The rail cannot measure the icon
+    // instead: items may carry icons of different sizes, and centring each one
+    // individually would give every row its own left edge — the column exists
+    // precisely so they share one. So this is the nominal size, and the stylesheet
+    // sizes an opted-in ".graphic" to match; the two must be changed together.
+    private static final double ICON_SIZE = 24.0;
     private static final double RIGHT_INSET = 12.0;
     private static final double MIN_LEFT_INSET = 0.0;
 

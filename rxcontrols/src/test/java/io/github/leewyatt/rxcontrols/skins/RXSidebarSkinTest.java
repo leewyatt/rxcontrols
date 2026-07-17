@@ -43,6 +43,8 @@ public class RXSidebarSkinTest {
 
     private static final double EPSILON = 0.01;
     private static final double COLUMN_TOLERANCE = 2.0; // absorbs pixel snapping
+    /** Mirrors RXSidebarSkin.ICON_SIZE and the stylesheet's .graphic size. */
+    private static final double NOMINAL_ICON_SIZE = 24.0;
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -598,20 +600,62 @@ public class RXSidebarSkinTest {
     }
 
     /**
-     * A graphic with style class "graphic" and no explicit size picks up the CSS
-     * {@code .item > .graphic} preferred 24x24, pinning the icon-column contract.
+     * The stylesheet's ".graphic" size and the skin's nominal icon size are two
+     * halves of one contract — the column is centred for the size the stylesheet
+     * hands out — and nothing but this test makes them move together.
+     *
+     * <p>Asserts the laid-out size, not the preferred size: MINI displays the icon
+     * alone, which stretches an icon whose maximum is not pinned to fill the whole
+     * row. Checking {@code prefWidth} would pass right through that.</p>
      */
     @Test
-    public void graphicWithoutExplicitSizeGetsCssPref() throws Exception {
+    public void styledGraphicKeepsTheNominalIconSizeInBothModes() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            Region icon = new Region();
+            icon.getStyleClass().add("graphic");   // the caller's whole obligation
+            sidebar.getItems().add(new RXSidebarNavItem("A", icon));
+            Pane host = hostFor(sidebar);
+
+            assertEquals(NOMINAL_ICON_SIZE, icon.getWidth(), EPSILON, "EXPANDED icon width");
+            assertEquals(NOMINAL_ICON_SIZE, icon.getHeight(), EPSILON, "EXPANDED icon height");
+
+            sidebar.setMode(SidebarMode.MINI);
+            host.applyCss();
+            host.layout();
+            assertEquals(NOMINAL_ICON_SIZE, icon.getWidth(), EPSILON,
+                    "MINI must not stretch the icon to fill the row");
+            assertEquals(NOMINAL_ICON_SIZE, icon.getHeight(), EPSILON,
+                    "MINI must not stretch the icon to fill the row");
+        });
+    }
+
+    /**
+     * The point of the column: every icon shares one left edge, and that edge does
+     * not move when the rail changes width. Asserted for a styled icon, i.e. one
+     * sized by the stylesheet rather than pinned in Java by the caller.
+     */
+    @Test
+    public void styledGraphicIsCentredInMiniAndDoesNotMove() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
             Region icon = new Region();
             icon.getStyleClass().add("graphic");
             sidebar.getItems().add(new RXSidebarNavItem("A", icon));
-            hostFor(sidebar);
+            Pane host = hostFor(sidebar);
 
-            assertEquals(24.0, icon.prefWidth(-1), EPSILON);
-            assertEquals(24.0, icon.prefHeight(-1), EPSILON);
+            double expandedX = icon.localToScene(0, 0).getX();
+            sidebar.setMode(SidebarMode.MINI);
+            host.applyCss();
+            host.layout();
+            double miniX = icon.localToScene(0, 0).getX();
+
+            assertEquals(expandedX, miniX, EPSILON, "the icon must not move between modes");
+            double iconCentre = miniX + NOMINAL_ICON_SIZE / 2.0;
+            assertEquals(sidebar.getWidth() / 2.0, iconCentre, COLUMN_TOLERANCE,
+                    "MINI centres the icon on the rail");
         });
     }
 
