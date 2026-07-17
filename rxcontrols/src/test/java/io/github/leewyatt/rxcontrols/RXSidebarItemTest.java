@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P1 gate tests for the sidebar item types: sealed {@link RXSidebarItem},
+ * Tests for the sidebar item types: sealed {@link RXSidebarItem},
  * {@link RXSidebarNavItem}, and {@link RXSidebarActionItem}. Verifies the
  * sealed permits, constructors, style classes, accessible roles, type
  * pseudo-classes, the {@code asNode()} invariant, and that items can be added
@@ -50,7 +50,7 @@ public class RXSidebarItemTest {
     }
 
     /**
-     * Verifies the sealed interface permits exactly the two V1 item types.
+     * Verifies the sealed interface permits exactly the two item types.
      */
     @Test
     public void sealedPermitsNavAndAction() {

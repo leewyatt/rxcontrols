@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.beans.NamedArg;
 import javafx.css.PseudoClass;
-import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 
@@ -42,7 +41,6 @@ public final class RXSidebarActionItem extends Button implements RXSidebarItem {
 
     private void init() {
         getStyleClass().add(RXSidebarItem.STYLE_CLASS);
-        setAccessibleRole(AccessibleRole.BUTTON);
         pseudoClassStateChanged(ACTION_PSEUDO_CLASS, true);
     }
 }

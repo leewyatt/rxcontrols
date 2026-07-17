@@ -12,7 +12,6 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
@@ -45,7 +44,6 @@ import java.util.List;
  */
 public class RXSidebar extends Control {
 
-    private static final String DEFAULT_STYLE_CLASS = "rx-sidebar";
     // ==================== Enums ====================
 
     /**
@@ -66,6 +64,8 @@ public class RXSidebar extends Control {
     }
 
     // ==================== Constants ====================
+
+    private static final String DEFAULT_STYLE_CLASS = "rx-sidebar";
 
     /**
      * Default mode (expanded).
@@ -95,9 +95,10 @@ public class RXSidebar extends Control {
     private static final PseudoClass EXPANDED_PSEUDO_CLASS = PseudoClass.getPseudoClass("expanded");
     private static final PseudoClass MINI_PSEUDO_CLASS = PseudoClass.getPseudoClass("mini");
 
-    private final ObservableList<RXSidebarItem> topItems = FXCollections.observableArrayList();
-    private final ObservableList<RXSidebarItem> items = FXCollections.observableArrayList();
-    private final ObservableList<RXSidebarItem> bottomItems = FXCollections.observableArrayList();
+    // Reject rather than silently corrupt: see SidebarItemList.
+    private final ObservableList<RXSidebarItem> topItems = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItem> items = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItem> bottomItems = new SidebarItemList(this);
 
     // ==================== Constructor ====================
 
@@ -507,19 +508,41 @@ public class RXSidebar extends Control {
     }
 
     // nav items auto-join the group on add and leave on remove; action items never join.
+    //
+    // Keyed off where the item ends up, not off the raw removed/added lists: a
+    // reorder, or a set() that replaces an item with itself, reports the same item
+    // as both removed and added, and pulling such an item out of the group — even
+    // for an instant — makes ToggleGroup clear a selection that never actually left
+    // the sidebar. So a removed nav only leaves the group once it is gone from all
+    // three lists.
     private void onItemListChanged(ListChangeListener.Change<? extends RXSidebarItem> c) {
         while (c.next()) {
             for (RXSidebarItem removed : c.getRemoved()) {
-                if (removed instanceof RXSidebarNavItem nav) {
+                if (removed instanceof RXSidebarNavItem nav && !contains(nav)) {
                     nav.setToggleGroup(null);
                 }
             }
             for (RXSidebarItem added : c.getAddedSubList()) {
-                if (added instanceof RXSidebarNavItem nav) {
+                if (added instanceof RXSidebarNavItem nav && nav.getToggleGroup() != navGroup) {
                     nav.setToggleGroup(navGroup);
                 }
             }
         }
+    }
+
+    private boolean contains(RXSidebarItem item) {
+        return containsIdentical(topItems, item)
+                || containsIdentical(items, item)
+                || containsIdentical(bottomItems, item);
+    }
+
+    private static boolean containsIdentical(List<RXSidebarItem> list, RXSidebarItem item) {
+        for (RXSidebarItem candidate : list) {
+            if (candidate == item) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Invoked from selectedItem.invalidated(). Mirrors selectedItem -> group and

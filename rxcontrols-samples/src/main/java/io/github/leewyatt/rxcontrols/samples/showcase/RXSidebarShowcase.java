@@ -66,7 +66,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         // pseudo-class (CSS), so there is no setText/swap in Java. The control has
         // no built-in collapse button by design — the trigger lives in the header.
         Button collapseButton = new Button();
-        collapseButton.getStyleClass().add("menu-button");
+        collapseButton.getStyleClass().add("collapse-button");
         collapseButton.setGraphic(icon("chevron"));
         collapseButton.setOnAction(event -> sidebar.setMode(
                 sidebar.getMode() == SidebarMode.MINI ? SidebarMode.EXPANDED : SidebarMode.MINI));

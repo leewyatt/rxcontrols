@@ -27,28 +27,34 @@
     -fx-max-width: 320;
 }
 
-/* Header collapse toggle: a flat icon button whose left edge lines up with the
-   item icon column (header padding 12 + button padding 8 = 20 = item left inset). */
+/* Header collapse toggle. Its left edge is nudged to sit under the item icon
+   column at the DEFAULT mini width (header padding 12 + button padding 8 = 20 =
+   (64 - 24) / 2). The rail centres the column on miniWidth, so at other mini
+   widths this fixed 20 no longer lines up — the column inset is the skin's own
+   geometry and a header has no handle on it. Fine for a fixed-width demo. */
 .rx-sidebar > .container > .header > .brand {
     -fx-padding: 6 0 6 12;
 }
 
-.menu-button {
+/* Scoped to the sidebar header, and named to avoid modena's own .menu-button
+   (which would drag MenuButton chrome onto this plain Button, and which an
+   unscoped rule here would in turn pull onto any real MenuButton in the scene). */
+.rx-sidebar > .container > .header .collapse-button {
     -fx-background-color: transparent;
     -fx-background-radius: 6;
     -fx-padding: 8;
     -fx-cursor: hand;
 }
 
-.menu-button:hover {
+.rx-sidebar > .container > .header .collapse-button:hover {
     -fx-background-color: -fx-hover-base;
 }
 
-.menu-button:armed {
+.rx-sidebar > .container > .header .collapse-button:armed {
     -fx-background-color: -fx-pressed-base;
 }
 
-.menu-button > .graphic {
+.rx-sidebar > .container > .header .collapse-button > .graphic {
     -fx-pref-width: 24;
     -fx-pref-height: 24;
     -fx-background-color: derive(-fx-text-base-color, 15%);
@@ -56,7 +62,7 @@
 }
 
 /* MINI: flip the chevron to point right (= expand). */
-.rx-sidebar:mini .menu-button > .graphic {
+.rx-sidebar:mini > .container > .header .collapse-button > .graphic {
     -fx-rotate: 180;
 }
 

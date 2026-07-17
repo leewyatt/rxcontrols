@@ -597,10 +597,15 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // Uses the scene focus owner (not Node.isFocused, which is false when the window
     // is unfocused — and always false headless) so roving is window-focus independent.
+    //
+    // Focus may sit on something the item contains rather than on the item itself —
+    // an item may carry a focusable graphic — and the rail still counts as focused
+    // there: arrows must keep roving from the owning item, not fall silent.
     private int indexOfFocused(List<Node> ring) {
         Scene scene = getSkinnable().getScene();
         Node focused = (scene == null) ? null : scene.getFocusOwner();
-        return (focused == null) ? -1 : ring.indexOf(focused);
+        Node member = ringMemberOf(focused, ring);
+        return (member == null) ? -1 : ring.indexOf(member);
     }
 
     // Single Tab stop: exactly one ring member is Tab-reachable. Idempotent, so

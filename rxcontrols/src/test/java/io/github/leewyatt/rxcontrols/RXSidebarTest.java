@@ -11,6 +11,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,10 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P2 gate tests for the {@link RXSidebar} control: property defaults, the
+ * Tests for the {@link RXSidebar} control: property defaults, the
  * control-owned selection wiring (selectedItem &lt;-&gt; internal ToggleGroup
  * two-way sync, nav membership), the read-only selection projection driven by
  * {@code selectItem} / {@code clearSelection}, and the {@code :expanded}/{@code :mini}
@@ -54,7 +56,7 @@ public class RXSidebarTest {
     }
 
     /**
-     * Verifies the V1 property defaults and the default style class.
+     * Verifies the property defaults and the default style class.
      */
     @Test
     public void propertyDefaults() {
@@ -473,6 +475,138 @@ public class RXSidebarTest {
         sidebar.selectItem(a);
         assertSame(a, sidebar.getSelectedItem());
         assertFalse(b.isSelected());
+    }
+
+    /**
+     * An item is a Node, so it can only be in one place. A second membership does
+     * not add a second row — it moves the one row and strips the item of its
+     * selection wiring — so the lists refuse it at the call site rather than
+     * corrupting quietly. Same answer JavaFX gives for the same impossibility in
+     * {@code Parent.getChildren()} and {@code ToggleGroup.getToggles()}.
+     */
+    @Test
+    public void listsRejectAnItemTheSidebarAlreadyHolds() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("Inbox");
+        sidebar.getItems().add(a);
+
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getItems().add(a),
+                "twice in the same list");
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getTopItems().add(a),
+                "already in another band");
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getBottomItems().add(a),
+                "already in another band");
+        assertThrows(NullPointerException.class, () -> sidebar.getItems().add(null));
+
+        assertEquals(1, sidebar.getItems().size(), "a rejected add must not change the list");
+    }
+
+    /**
+     * A rejected bulk call leaves the list untouched rather than half-applied.
+     */
+    @Test
+    public void aRejectedBulkAddChangesNothing() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        RXSidebarNavItem b = new RXSidebarNavItem("B");
+
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getItems().addAll(a, b, a),
+                "the same item twice in one call");
+        assertTrue(sidebar.getItems().isEmpty(), "nothing may be added when the call is refused");
+    }
+
+    /**
+     * The rejection must not catch the legitimate moves: reordering with setAll,
+     * removing and re-adding, and setting an index to the item already there all
+     * keep the "once in the sidebar" invariant.
+     */
+    @Test
+    public void legitimateListMovesAreNotRejected() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        RXSidebarNavItem b = new RXSidebarNavItem("B");
+        sidebar.getItems().addAll(a, b);
+
+        sidebar.getItems().setAll(List.of(b, a));   // reorder: both are already here
+        assertEquals(List.of(b, a), List.copyOf(sidebar.getItems()));
+
+        sidebar.getItems().remove(a);
+        sidebar.getItems().add(a);                  // gone, so addable again
+        assertEquals(2, sidebar.getItems().size());
+
+        int index = sidebar.getItems().indexOf(a);
+        sidebar.getItems().set(index, a);           // replacing an item with itself
+        assertEquals(2, sidebar.getItems().size());
+
+        // ...but a set that would duplicate it is still refused.
+        assertThrows(IllegalArgumentException.class,
+                () -> sidebar.getItems().set(1 - index, a));
+    }
+
+    /**
+     * A move that keeps the item in the sidebar keeps its selection too. A reorder
+     * or an in-place set reports the item as removed-then-added, but it never left,
+     * so the current navigation selection must survive it.
+     */
+    @Test
+    public void listMovesThatKeepTheItemKeepTheSelection() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        RXSidebarNavItem b = new RXSidebarNavItem("B");
+        sidebar.getItems().addAll(a, b);
+        sidebar.selectItem(a);
+
+        sidebar.getItems().setAll(List.of(b, a));   // reorder
+        assertSame(a, sidebar.getSelectedItem(), "reordering must not drop the selection");
+        assertTrue(a.isSelected());
+
+        int index = sidebar.getItems().indexOf(a);
+        sidebar.getItems().set(index, a);           // in-place replace with itself
+        assertSame(a, sidebar.getSelectedItem(), "an in-place set must not drop the selection");
+        assertTrue(a.isSelected());
+    }
+
+    /**
+     * setAll is defined as clear-then-add, so it must snapshot its argument: passing
+     * the list itself, or a live sublist of it, must not empty it mid-flight, and a
+     * rejected setAll must leave the list untouched.
+     */
+    @Test
+    public void setAllIsAtomicAgainstItsOwnContents() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        RXSidebarNavItem b = new RXSidebarNavItem("B");
+        sidebar.getItems().addAll(a, b);
+
+        sidebar.getItems().setAll(sidebar.getItems());
+        assertEquals(List.of(a, b), List.copyOf(sidebar.getItems()), "setAll(self) is a no-op");
+
+        sidebar.getItems().setAll(sidebar.getItems().subList(0, 2));
+        assertEquals(List.of(a, b), List.copyOf(sidebar.getItems()), "setAll(live sublist) keeps them");
+
+        // A rejected bulk call leaves the list intact — including one that names an
+        // item the other band already holds.
+        RXSidebarNavItem shared = new RXSidebarNavItem("Shared");
+        sidebar.getTopItems().add(shared);
+        assertThrows(IllegalArgumentException.class,
+                () -> sidebar.getItems().setAll(List.of(a, shared)));
+        assertEquals(List.of(a, b), List.copyOf(sidebar.getItems()), "a rejected setAll changes nothing");
+    }
+
+    /**
+     * Moving an item between bands still works — remove, then add.
+     */
+    @Test
+    public void anItemCanBeMovedBetweenBands() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarNavItem a = new RXSidebarNavItem("A");
+        sidebar.getItems().add(a);
+
+        sidebar.getItems().remove(a);
+        sidebar.getBottomItems().add(a);
+
+        assertTrue(sidebar.getItems().isEmpty());
+        assertEquals(List.of(a), List.copyOf(sidebar.getBottomItems()));
     }
 
     /**

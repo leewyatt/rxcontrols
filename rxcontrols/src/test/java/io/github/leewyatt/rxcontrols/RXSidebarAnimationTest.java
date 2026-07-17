@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P5 gate tests for the width-animation: the single {@code expansionFraction}
+ * Tests for the width-animation: the single {@code expansionFraction}
  * Timeline animates the rail width to its target, instant snap when animation is
  * disabled or the duration is illegal, mid-flight reversal converges, rapid
  * toggles are stable, and dispose stops the Timeline.

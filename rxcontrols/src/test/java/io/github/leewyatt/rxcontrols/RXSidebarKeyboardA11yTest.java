@@ -230,6 +230,37 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
+     * An item may carry focusable content of its own (an actionable badge, say).
+     * Focus sitting on that content is still focus in the rail: arrows keep roving
+     * from the owning item rather than falling silent, and the Tab stop moves to
+     * the owning item.
+     *
+     * <p>The content stays Tab-reachable in its own right — that is the caller's
+     * node and their call. An item whose graphic should not take focus makes it
+     * {@code focusTraversable = false}; the rail does not reach into an item and
+     * decide that for them.</p>
+     */
+    @Test
+    public void focusInsideAnItemStillRovesFromThatItem() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setAnimated(false);
+            Button badge = new Button("3");
+            RXSidebarNavItem a = new RXSidebarNavItem("Inbox", badge);
+            RXSidebarNavItem b = new RXSidebarNavItem("Files");
+            sidebar.getItems().addAll(a, b);
+            Scene scene = hostFor(sidebar).getScene();
+
+            badge.requestFocus();
+            assertSame(badge, scene.getFocusOwner());
+            assertSoleTabStop(a, a, b);   // the owning item, not the content
+
+            press(scene, KeyCode.DOWN);
+            assertSame(b, scene.getFocusOwner(), "arrows must rove on from the owning item");
+        });
+    }
+
+    /**
      * The Tab stop follows focus however focus arrived — including a plain
      * {@code requestFocus()} from the application, which no roving or click path
      * observes. Without it the item would be focused yet Tab-unreachable, with a
