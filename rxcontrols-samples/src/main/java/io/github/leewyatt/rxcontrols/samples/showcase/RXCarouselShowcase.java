@@ -430,6 +430,8 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
         wipe.put("Serpentine", AnimSerpentine::new);
         wipe.put("Ripple", AnimRipple::new);
         wipe.put("CircleWave", AnimCircleWave::new);
+        wipe.put("Wave", AnimWave::new);
+        wipe.put("Wave (choppy)", () -> new AnimWave(4, 16));
         wipe.put("Circles", AnimCircles::new);
         wipe.put("Spiral Tiles", AnimSpiralTiles::new);
         wipe.put("Spiral Tiles (8x10)", () -> new AnimSpiralTiles(8, 10));
