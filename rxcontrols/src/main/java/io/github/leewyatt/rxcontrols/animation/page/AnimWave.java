@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -44,6 +45,7 @@ public class AnimWave extends PageAnimationBase {
 
     private static final int DEFAULT_WAVE_COUNT = 2;
     private static final double DEFAULT_AMPLITUDE = 24.0;
+    private static final Interpolator DEFAULT_INTERPOLATOR = Interpolator.EASE_BOTH;
 
     /**
      * Number of surface sample points. Fixed and independent of the page width,
@@ -101,7 +103,7 @@ public class AnimWave extends PageAnimationBase {
 
     private int waveCount = DEFAULT_WAVE_COUNT;
     private double amplitude = DEFAULT_AMPLITUDE;
-    private Interpolator interpolator = Interpolator.EASE_BOTH;
+    private Interpolator interpolator = DEFAULT_INTERPOLATOR;
 
     private final DoubleProperty progress = new SimpleDoubleProperty(0);
     private ChangeListener<Number> progressListener;
@@ -111,6 +113,13 @@ public class AnimWave extends PageAnimationBase {
     private LineTo[] surface;
     private LineTo bottomRight;
     private LineTo bottomLeft;
+
+    /**
+     * The page currently wearing the water clip. Tracked so {@link #dispose()},
+     * which has no {@link TransitionContext}, can detach the clip if the skin is
+     * torn down mid-transition and the user reuses the page node elsewhere.
+     */
+    private Node clippedNode;
 
     // ==================== Constructors ====================
 
@@ -170,7 +179,8 @@ public class AnimWave extends PageAnimationBase {
     }
 
     /**
-     * Sets the wave crest height in pixels.
+     * Sets the wave crest height in pixels. Non-finite or negative values are
+     * treated as {@code 0} (a flat, wave-less reveal) when the surface is drawn.
      *
      * @param amplitude the amplitude (minimum 0)
      */
@@ -188,9 +198,11 @@ public class AnimWave extends PageAnimationBase {
     }
 
     /**
-     * Sets the interpolator that drives the water level.
+     * Sets the interpolator that drives the water level. A {@code null} value is
+     * tolerated and falls back to the default interpolator when the transition
+     * is built.
      *
-     * @param interpolator the interpolator
+     * @param interpolator the interpolator, or {@code null} for the default
      */
     public void setInterpolator(Interpolator interpolator) {
         this.interpolator = interpolator;
@@ -198,6 +210,9 @@ public class AnimWave extends PageAnimationBase {
 
     // ==================== Animation ====================
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Animation getAnimation(TransitionContext context) {
         Node currentPage = context.getCurrentPage();
@@ -212,7 +227,7 @@ public class AnimWave extends PageAnimationBase {
 
         // FORWARD fills water up over the next page to reveal it; BACKWARD drains
         // water off the current page to uncover the next one sitting underneath.
-        Node clippedNode = forward ? nextPage : currentPage;
+        clippedNode = forward ? nextPage : currentPage;
         ensureClipNodes();
         if (clippedNode != null) {
             clippedNode.toFront();
@@ -228,6 +243,7 @@ public class AnimWave extends PageAnimationBase {
                 nextPage.setClip(null);
                 nextPage.setVisible(true);
             }
+            clippedNode = null;
         };
         setFinishAction(finish);
 
@@ -247,9 +263,10 @@ public class AnimWave extends PageAnimationBase {
         // not flash at full size for one frame.
         updateSurface(0.0, forward, contentPane.getWidth(), contentPane.getHeight());
 
+        Interpolator interp = (interpolator == null) ? DEFAULT_INTERPOLATOR : interpolator;
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(progress, 0)),
-                new KeyFrame(duration, new KeyValue(progress, 1, interpolator))
+                new KeyFrame(duration, new KeyValue(progress, 1, interp))
         );
 
         timeline.setOnFinished(e -> {
@@ -305,7 +322,10 @@ public class AnimWave extends PageAnimationBase {
             return;
         }
 
-        double effAmplitude = Math.min(Math.max(0.0, amplitude), h * AMPLITUDE_MAX_RATIO);
+        // sanitizeFiniteNonNegative coerces NaN / infinite / negative amplitude to
+        // 0, so a bad configured value cannot poison every path coordinate.
+        double effAmplitude = Math.min(RXMath.sanitizeFiniteNonNegative(amplitude),
+                h * AMPLITUDE_MAX_RATIO);
         double sealedBottom = h + effAmplitude + 1.0;
 
         // level 0 -> surface parked at the bottom (page hidden);
@@ -353,6 +373,9 @@ public class AnimWave extends PageAnimationBase {
 
     // ==================== Cleanup ====================
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void clearEffects(TransitionContext context) {
         super.clearEffects(context);
@@ -363,13 +386,23 @@ public class AnimWave extends PageAnimationBase {
         for (Node child : context.getContentPane().getChildren()) {
             child.setClip(null);
         }
+        clippedNode = null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void dispose() {
         if (progressListener != null) {
             progress.removeListener(progressListener);
             progressListener = null;
+        }
+        // Timeline.stop() does not run onFinished, so a mid-transition dispose
+        // would otherwise leave the water clip on a page the user may reuse.
+        if (clippedNode != null) {
+            clippedNode.setClip(null);
+            clippedNode = null;
         }
         super.dispose();
     }
