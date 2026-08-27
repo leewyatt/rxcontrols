@@ -132,21 +132,24 @@ public class AnimWave extends PageAnimationBase {
     /**
      * Creates a wave animation with the given number of primary crests.
      *
-     * @param waveCount number of primary wave crests across the page width (minimum 1)
+     * @param waveCount number of primary wave crests across the page width;
+     *                  values below 1 are treated as 1 when the surface is drawn
      */
     public AnimWave(int waveCount) {
-        this.waveCount = Math.max(1, waveCount);
+        this.waveCount = waveCount;
     }
 
     /**
      * Creates a wave animation with the given crest count and amplitude.
      *
-     * @param waveCount number of primary wave crests across the page width (minimum 1)
-     * @param amplitude wave crest height in pixels (minimum 0)
+     * @param waveCount number of primary wave crests across the page width;
+     *                  values below 1 are treated as 1 when the surface is drawn
+     * @param amplitude wave crest height in pixels; non-finite or negative values
+     *                  are treated as 0 when the surface is drawn
      */
     public AnimWave(int waveCount, double amplitude) {
-        this.waveCount = Math.max(1, waveCount);
-        this.amplitude = Math.max(0.0, amplitude);
+        this.waveCount = waveCount;
+        this.amplitude = amplitude;
     }
 
     // ==================== Configuration ====================
@@ -161,12 +164,13 @@ public class AnimWave extends PageAnimationBase {
     }
 
     /**
-     * Sets the number of primary wave crests across the page width.
+     * Sets the number of primary wave crests across the page width. Values below
+     * 1 are treated as 1 when the surface is drawn.
      *
-     * @param waveCount the wave count (minimum 1)
+     * @param waveCount the wave count
      */
     public void setWaveCount(int waveCount) {
-        this.waveCount = Math.max(1, waveCount);
+        this.waveCount = waveCount;
     }
 
     /**
@@ -182,10 +186,10 @@ public class AnimWave extends PageAnimationBase {
      * Sets the wave crest height in pixels. Non-finite or negative values are
      * treated as {@code 0} (a flat, wave-less reveal) when the surface is drawn.
      *
-     * @param amplitude the amplitude (minimum 0)
+     * @param amplitude the amplitude
      */
     public void setAmplitude(double amplitude) {
-        this.amplitude = Math.max(0.0, amplitude);
+        this.amplitude = amplitude;
     }
 
     /**
