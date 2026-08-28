@@ -64,12 +64,17 @@ import java.util.Objects;
  * unbounded halo, or an animated transform all show up as a visible
  * native-window jump. Consumers that rebuild content mid-event must clip the
  * offending node or settle it ({@code applyCss()} + {@code layout()}) before
- * returning to the event loop. Bounds-affecting animations on the content are
- * legitimate in two shapes: when the window following them <em>is</em> the intended
- * effect (a dropdown unfolding out of its anchor), and when the anchor location is
- * {@code CONTENT_TOP_LEFT}, whose compensation keeps the content's layout origin
- * fixed while only the effect outsets move the window (a grow entrance scaling a
- * shadowed card). Both are in use; a third shape needs the same analysis first.
+ * returning to the event loop. Bounds-affecting animations on the content are the
+ * deliberate exception, and every popup here leans on the same guarantee to make
+ * them safe: {@code PopupControl} anchors at {@code CONTENT_TOP_LEFT} (never
+ * overridden), so the window movement caused by the content's own bounds changing
+ * is cancelled out and the content's layout origin stays put. That covers only
+ * that one source of movement — the framework autofix near a screen edge, and any
+ * gap between the measured preferred size and the actual one, still shift the
+ * popup. What differs per consumer is whether the window resize is the intended
+ * effect (a dropdown unfolding out of its anchor) or a tolerated side effect (a
+ * grow entrance, whose surface shrinks inside the unscaled shell, so only its
+ * shadow reaches the window at all).
  *
  * <p>Not thread-safe; use on the JavaFX Application Thread.
  */
