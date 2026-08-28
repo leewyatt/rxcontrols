@@ -4,6 +4,10 @@ import io.github.leewyatt.rxcontrols.event.RXMenuEvent;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
@@ -19,6 +23,9 @@ import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.StackPane;
+import javafx.scene.transform.Scale;
+import javafx.util.Duration;
 
 /**
  * A popup command menu: an {@link RXMenuList} wrapped in an anchored, animated
@@ -47,6 +54,8 @@ public class RXPopupMenu {
 
     // Small gap between the anchor and the menu surface (Material dropdown).
     private static final double MENU_GAP = 4.0;
+    // The surface grows from this scale to 1.0 on open (Material 2 menu surface).
+    private static final double ENTRANCE_START_SCALE = 0.8;
 
     /**
      * Why an {@link RXPopupMenu} closed. All values are produced:
@@ -75,7 +84,13 @@ public class RXPopupMenu {
     // ==================== State ====================
 
     private final RXMenuList menuList = new RXMenuList();
-    private final RXPopupSupport support = new RXPopupSupport(menuList);
+    // Private wrapper owned by this popup: the entrance scale and fade go here, so
+    // the card (background, border, radius, shadow) grows as one surface while the
+    // public RXMenuList keeps its own transforms and opacity untouched — a user may
+    // have bound either, and it is also usable inline outside any popup.
+    private final StackPane popupSurface = new StackPane(menuList);
+    private final RXPopupSupport support = new RXPopupSupport(popupSurface);
+    private final Scale entranceScale = new Scale(1.0, 1.0);
     private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
     private final EventHandler<KeyEvent> menuKeyFilter = this::onMenuKeyPressed;
     // While shown, watch the invoker's (effective) disabled state so a "disabled
@@ -83,6 +98,7 @@ public class RXPopupMenu {
     private final InvalidationListener invokerDisabledListener = obs -> closeIfInvokerDisabled();
 
     private Node invoker;
+    private Timeline entrance;
     private CloseReason pendingReason;
     private boolean shownFired;
     private boolean popupHadFocus;
@@ -94,6 +110,7 @@ public class RXPopupMenu {
      * Creates an empty popup menu.
      */
     public RXPopupMenu() {
+        popupSurface.getTransforms().add(entranceScale);
         support.setPlacement(RXPlacement.BOTTOM_START);
         support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
         support.setPopupStyleClass("rx-menu-popup");
@@ -274,12 +291,7 @@ public class RXPopupMenu {
             invoker.disabledProperty().addListener(invokerDisabledListener);
         }
         menuList.notifyAccessibleAttributeChanged(AccessibleAttribute.VISIBLE);
-        // Force the skin so the entrance pivot uses real dimensions this frame.
-        menuList.applyCss();
-        RXMenuListSkin skin = menuSkin();
-        if (skin != null) {
-            skin.playEntrance(support.isOpenAbove());
-        }
+        playEntrance();
         // Focus the initial item after the popup window realizes and takes focus.
         Platform.runLater(this::focusInitialSafe);
         fire(getOnShown(), RXMenuEvent.MENU_SHOWN, null);
@@ -331,10 +343,7 @@ public class RXPopupMenu {
         if (invoker != null) {
             invoker.disabledProperty().removeListener(invokerDisabledListener);
         }
-        RXMenuListSkin skin = menuSkin();
-        if (skin != null) {
-            skin.stopEntrance();
-        }
+        stopEntrance();
         if (!shownFired) {
             // Failed / never-shown open (showImpl raced to notifyHidden): reset quietly.
             pendingReason = null;
@@ -445,10 +454,7 @@ public class RXPopupMenu {
             return;
         }
         disposed = true;
-        RXMenuListSkin skin = menuSkin();
-        if (skin != null) {
-            skin.stopEntrance();
-        }
+        stopEntrance();
         menuList.removeEventFilter(KeyEvent.KEY_PRESSED, menuKeyFilter);
         menuList.setCommandActivator(null);
         // Clear the internal list so the skin tears down every per-item cell (its
@@ -462,6 +468,61 @@ public class RXPopupMenu {
         shownFired = false;
         popupHadFocus = false;
         showing.set(false);
+    }
+
+    // ==================== Entrance animation ====================
+
+    // Grows the whole surface from ENTRANCE_START_SCALE to 1.0 while fading it in,
+    // pivoting at the point nearest the trigger. The pivot comes from the resolved
+    // geometry rather than the laid-out node, so it is already right for a menu
+    // capped to the available height (whose cap reaches the node only one layout
+    // pass later) and for every placement, orientation, flip, and screen clamp.
+    private void playEntrance() {
+        // Also the reset for the skipped path below: the surface must never keep a
+        // half-scaled, half-faded pose from a previous open.
+        stopEntrance();
+        Duration duration = menuList.getAnimationDuration();
+        if (!menuList.isAnimated() || !isPositive(duration)) {
+            return;
+        }
+        entranceScale.setPivotX(support.getPivotX());
+        entranceScale.setPivotY(support.getPivotY());
+        Interpolator interpolator = menuList.getAnimationInterpolator();
+        if (interpolator == null) {
+            interpolator = Interpolator.EASE_OUT;
+        }
+        entrance = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(entranceScale.xProperty(), ENTRANCE_START_SCALE, interpolator),
+                        new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE, interpolator),
+                        new KeyValue(popupSurface.opacityProperty(), 0.0, interpolator)),
+                new KeyFrame(duration,
+                        new KeyValue(entranceScale.xProperty(), 1.0, interpolator),
+                        new KeyValue(entranceScale.yProperty(), 1.0, interpolator),
+                        new KeyValue(popupSurface.opacityProperty(), 1.0, interpolator)));
+        entrance.setOnFinished(e -> resetEntranceState());
+        entrance.playFromStart();
+    }
+
+    private void stopEntrance() {
+        // The timeline is rebuilt on every open, so it is stopped by reading the
+        // live field rather than through a registered teardown holding a stale one.
+        if (entrance != null) {
+            entrance.stop();
+            entrance = null;
+        }
+        resetEntranceState();
+    }
+
+    private void resetEntranceState() {
+        entranceScale.setX(1.0);
+        entranceScale.setY(1.0);
+        popupSurface.setOpacity(1.0);
+    }
+
+    private static boolean isPositive(Duration duration) {
+        return duration != null && !duration.isUnknown() && !duration.isIndefinite()
+                && duration.greaterThan(Duration.ZERO);
     }
 
     // ==================== Lifecycle callbacks ====================

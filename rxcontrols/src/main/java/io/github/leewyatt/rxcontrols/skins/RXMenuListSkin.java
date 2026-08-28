@@ -5,10 +5,6 @@ import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXMenuSeparator;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
@@ -28,8 +24,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.transform.Scale;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.util.ArrayList;
@@ -49,8 +43,6 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
 
     // A first-letter type-ahead burst resets after this idle gap.
     private static final long TYPE_AHEAD_RESET_MS = 1000L;
-    // The entrance surface grows from this scale to 1.0 (Material menu-surface).
-    private static final double ENTRANCE_START_SCALE = 0.8;
 
     private static final PseudoClass CHECKED_PSEUDO_CLASS = PseudoClass.getPseudoClass("checked");
     private static final PseudoClass DANGER_PSEUDO_CLASS = PseudoClass.getPseudoClass("danger");
@@ -60,13 +52,10 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
 
     private final VBox container = new VBox();
     private final ScrollPane scroller = new ScrollPane(container);
-    // Edge-anchored scale for the entrance (pivot set per open direction).
-    private final Scale entranceScale = new Scale(1.0, 1.0);
     private final IdentityHashMap<RXMenuItem, Region> cellByItem = new IdentityHashMap<>();
     private final List<Runnable> cellTeardowns = new ArrayList<>();
     private final StringBuilder typeAheadBuffer = new StringBuilder();
     private long lastTypeAheadTime;
-    private Timeline entrance;
 
     /**
      * Creates the skin.
@@ -81,7 +70,6 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroller.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroller.setFocusTraversable(false);
-        scroller.getTransforms().add(entranceScale);
         getChildren().add(scroller);
 
         rebuildCells();
@@ -283,69 +271,6 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         return -1;
     }
 
-    // ==================== Entrance animation ====================
-
-    /**
-     * Plays the Material grow entrance (scale {@value #ENTRANCE_START_SCALE}&rarr;1
-     * + opacity fade) on the content, pivoting at the edge nearest the trigger.
-     * The scale stays within the fixed popup shell, so the native window does not
-     * jump. A no-op reset when {@code animated=false} or the duration is
-     * non-positive. Called by the hosting popup when the menu opens.
-     *
-     * @param openAbove whether the popup opened above its anchor (pivot bottom)
-     */
-    public void playEntrance(boolean openAbove) {
-        stopEntrance();
-        RXMenuList control = getSkinnable();
-        Duration duration = control.getAnimationDuration();
-        if (!control.isAnimated() || !isPositive(duration)) {
-            return;
-        }
-        // Settle the content so the pivot uses real, laid-out dimensions.
-        scroller.applyCss();
-        scroller.layout();
-        entranceScale.setPivotX(0.0);
-        entranceScale.setPivotY(openAbove ? scroller.getHeight() : 0.0);
-        Interpolator interpolator = control.getAnimationInterpolator();
-        if (interpolator == null) {
-            interpolator = Interpolator.EASE_OUT;
-        }
-        entrance = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                        new KeyValue(entranceScale.xProperty(), ENTRANCE_START_SCALE, interpolator),
-                        new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE, interpolator),
-                        new KeyValue(scroller.opacityProperty(), 0.0, interpolator)),
-                new KeyFrame(duration,
-                        new KeyValue(entranceScale.xProperty(), 1.0, interpolator),
-                        new KeyValue(entranceScale.yProperty(), 1.0, interpolator),
-                        new KeyValue(scroller.opacityProperty(), 1.0, interpolator)));
-        entrance.setOnFinished(e -> resetEntranceState());
-        entrance.playFromStart();
-    }
-
-    /**
-     * Stops any running entrance animation and restores the content to its final
-     * (fully shown) state. Safe to call on any close path or on dispose.
-     */
-    public void stopEntrance() {
-        if (entrance != null) {
-            entrance.stop();
-            entrance = null;
-        }
-        resetEntranceState();
-    }
-
-    private void resetEntranceState() {
-        entranceScale.setX(1.0);
-        entranceScale.setY(1.0);
-        scroller.setOpacity(1.0);
-    }
-
-    private static boolean isPositive(Duration duration) {
-        return duration != null && !duration.isUnknown() && !duration.isIndefinite()
-                && duration.greaterThan(Duration.ZERO);
-    }
-
     private void focusIndex(int index) {
         RXMenuItem item = getSkinnable().getItems().get(index);
         Region cell = cellByItem.get(item);
@@ -473,7 +398,6 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
 
     @Override
     protected void disposeSkin() {
-        stopEntrance();
         teardownCells();
         cellByItem.clear();
         container.getChildren().clear();

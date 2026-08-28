@@ -174,4 +174,115 @@ public class RXPopupGeometryTest {
         assertEquals(300 + 6, r.anchorX, EPS, "opens to the right of the anchor with the gap");
         assertEquals(100, r.anchorY, EPS, "START aligns the popup top to the anchor top");
     }
+
+    // ==================== Entrance pivot ====================
+
+    @Test
+    public void pivotIsTheLeadingTopCornerBelowStart() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 120,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(0, r.pivotX, EPS, "START puts the growth origin on the leading edge");
+        assertEquals(0, r.pivotY, EPS, "opening below grows from the top edge");
+    }
+
+    @Test
+    public void pivotIsTheTrailingTopCornerBelowEnd() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 120,
+                RXPlacement.BOTTOM_END, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(r.width, r.pivotX, EPS, "END grows from the trailing edge, not the leading one");
+        assertEquals(0, r.pivotY, EPS, "opening below still grows from the top edge");
+    }
+
+    @Test
+    public void pivotIsTheAnchorCenterUnderCenterAlignment() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 120,
+                RXPlacement.BOTTOM, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(75, r.pivotX, EPS, "center alignment grows from the popup center");
+    }
+
+    @Test
+    public void pivotMirrorsUnderRtl() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 120,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, true, 1, 1);
+        assertEquals(r.width, r.pivotX, EPS,
+                "RTL resolves START to the physical right edge, and the pivot follows it");
+    }
+
+    @Test
+    public void pivotFollowsTheFlipToTheBottomEdge() {
+        // Anchor near the bottom: the popup flips above and must grow downward-up,
+        // i.e. from its own bottom edge.
+        RXPopupGeometry.Result r = resolve(100, 760, 200, 30, 150, 120,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertFalse(r.after, "precondition: flipped above");
+        assertEquals(r.height, r.pivotY, EPS, "opening above grows from the bottom edge");
+    }
+
+    @Test
+    public void pivotUsesTheCappedHeightNotTheNaturalOne() {
+        // An over-tall menu opening above: the pivot must sit on the truncated
+        // bottom edge, which the resolver knows a full layout pass before the node.
+        RXPopupGeometry.Result r = resolve(100, 700, 200, 30, 150, 900,
+                RXPlacement.TOP_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(700, r.height, EPS, "precondition: capped to the room above");
+        assertEquals(700, r.pivotY, EPS, "pivot is the capped bottom edge, not the natural one");
+    }
+
+    @Test
+    public void pivotIsOnTheNearVerticalEdgeForTheSideFamily() {
+        RXPopupGeometry.Result right = resolve(100, 100, 200, 30, 150, 80,
+                RXPlacement.RIGHT_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(0, right.pivotX, EPS, "opening right grows from the left edge");
+        assertEquals(0, right.pivotY, EPS, "START aligns the popup top to the anchor top");
+
+        RXPopupGeometry.Result left = resolve(500, 100, 200, 30, 150, 80,
+                RXPlacement.LEFT_END, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(left.width, left.pivotX, EPS, "opening left grows from the right edge");
+        assertEquals(left.height, left.pivotY, EPS, "END aligns the popup bottom to the anchor bottom");
+    }
+
+    @Test
+    public void pivotStaysAtTheTriggerWhenTheSideFamilyIsClamped() {
+        // A popup wider than the screen is pinned to screen-min-x, so its leading
+        // edge is nowhere near the anchor. A fixed 0 origin would grow it out of the
+        // screen corner; the projection keeps it on the trigger.
+        RXPopupGeometry.Result r = resolve(250, 100, 200, 30, 1200, 100,
+                RXPlacement.RIGHT_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(SCREEN_MIN_X, r.anchorX, EPS, "precondition: clamped to the screen minimum");
+        assertEquals(450, r.pivotX, EPS, "pivot projects the anchor right edge into the popup");
+    }
+
+    @Test
+    public void pivotFollowsTheOffsetRatherThanPinningToTheCorner() {
+        RXPopupGeometry.Result r = resolve(100, 100, 200, 30, 150, 120,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, -10, 0, false, 1, 1);
+        assertEquals(90, r.anchorX, EPS, "precondition: the nudge moved the popup left of the anchor");
+        assertEquals(10, r.pivotX, EPS, "the pivot tracks the anchor edge, not the popup corner");
+    }
+
+    @Test
+    public void pivotCollapsesOntoAPointAnchor() {
+        // Screen-point (context-menu) mode: a zero-size anchor makes all three
+        // secondary reference points coincide with the point itself.
+        RXPopupGeometry.Result start = resolve(400, 300, 0, 0, 150, 120,
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(0, start.pivotX, EPS);
+        assertEquals(0, start.pivotY, EPS);
+
+        RXPopupGeometry.Result end = resolve(400, 300, 0, 0, 150, 120,
+                RXPlacement.BOTTOM_END, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(end.width, end.pivotX, EPS, "END puts the point on the popup trailing edge");
+        assertEquals(0, end.pivotY, EPS);
+    }
+
+    @Test
+    public void pivotStaysInsidethePopupWhenTheSecondaryAxisIsClamped() {
+        // Anchor hard against the right screen edge: the popup is shifted left, so
+        // the END reference point no longer lands on its trailing edge — but it must
+        // still be a legal local coordinate.
+        RXPopupGeometry.Result r = resolve(950, 100, 40, 30, 200, 100,
+                RXPlacement.BOTTOM_END, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertTrue(r.pivotX >= 0 && r.pivotX <= r.width, "pivot stays within the popup width");
+        assertEquals(990 - r.anchorX, r.pivotX, EPS, "pivot projects the anchor right edge");
+    }
 }

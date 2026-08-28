@@ -6,6 +6,8 @@ import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.event.EventHandler;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
@@ -117,6 +119,8 @@ public final class RXPopupSupport {
 
     private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
     private final ReadOnlyBooleanWrapper openAbove = new ReadOnlyBooleanWrapper(this, "openAbove", false);
+    private final ReadOnlyDoubleWrapper pivotX = new ReadOnlyDoubleWrapper(this, "pivotX", 0.0);
+    private final ReadOnlyDoubleWrapper pivotY = new ReadOnlyDoubleWrapper(this, "pivotY", 0.0);
 
     // ==================== Constructor ====================
 
@@ -303,6 +307,53 @@ public final class RXPopupSupport {
      */
     public ReadOnlyBooleanProperty openAboveProperty() {
         return openAbove.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the horizontal transform origin for a grow entrance, in the content's
+     * own local coordinates: the anchor's alignment edge (or center, under center
+     * alignment) projected onto the popup and clamped into {@code [0, width]}.
+     * Consumers use it together with {@link #getPivotY()} so the popup grows out of
+     * the point nearest its trigger for every placement, orientation, flip, and
+     * screen clamp. Updated on every reposition; keeps its last value while hidden.
+     *
+     * @return the entrance pivot x
+     */
+    public double getPivotX() {
+        return pivotX.get();
+    }
+
+    /**
+     * Returns the {@link #getPivotX() entrance pivot x} as a read-only property.
+     *
+     * @return the read-only pivot-x property
+     */
+    public ReadOnlyDoubleProperty pivotXProperty() {
+        return pivotX.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns the vertical transform origin for a grow entrance, in the content's
+     * own local coordinates: the anchor edge nearest the popup (for the vertical
+     * family) or the alignment edge (for the side family), projected onto the popup
+     * and clamped into {@code [0, height]}. Because it comes from the resolved
+     * geometry rather than the laid-out node, it is already correct for a menu
+     * capped to the available height, whose cap only reaches the node one layout
+     * pass later. Updated on every reposition; keeps its last value while hidden.
+     *
+     * @return the entrance pivot y
+     */
+    public double getPivotY() {
+        return pivotY.get();
+    }
+
+    /**
+     * Returns the {@link #getPivotY() entrance pivot y} as a read-only property.
+     *
+     * @return the read-only pivot-y property
+     */
+    public ReadOnlyDoubleProperty pivotYProperty() {
+        return pivotY.getReadOnlyProperty();
     }
 
     /**
@@ -533,6 +584,8 @@ public final class RXPopupSupport {
         popup.setAnchorX(result.anchorX);
         popup.setAnchorY(result.anchorY);
         openAbove.set(placement.isVertical() && !result.after);
+        pivotX.set(result.pivotX);
+        pivotY.set(result.pivotY);
     }
 
     private void applyWidth(double width) {

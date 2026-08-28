@@ -21,7 +21,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.transform.Scale;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -498,60 +496,6 @@ public class RXMenuListSkinTest {
             Node scroll = list.lookup(".scroll");
             assertTrue(scroll instanceof ScrollPane, "content is wrapped in a ScrollPane");
             assertSame(list.lookup(".container"), ((ScrollPane) scroll).getContent());
-        });
-    }
-
-    /**
-     * stopEntrance snaps the content back to fully shown (opacity and both scale
-     * axes), the state every close path and dispose rely on. Whether the entrance
-     * animation actually plays or is skipped is a visual behavior confirmed
-     * manually — asserting it would require a production-only animation hook, which
-     * the skin deliberately does not expose.
-     */
-    @Test
-    public void stopEntranceResetsContentToFullyShown() throws Exception {
-        runOnFx(() -> {
-            RXMenuList list = new RXMenuList();
-            list.getItems().add(RXMenuItem.of("A"));
-            hostFor(list);
-            RXMenuListSkin skin = (RXMenuListSkin) list.getSkin();
-            ScrollPane scroll = (ScrollPane) list.lookup(".scroll");
-            Scale scale = (Scale) scroll.getTransforms().get(0);
-
-            skin.playEntrance(false);
-            // Force a mid-animation pose; stopEntrance must snap all of it back.
-            scroll.setOpacity(0.3);
-            scale.setX(0.8);
-            scale.setY(0.8);
-            skin.stopEntrance();
-
-            assertEquals(1.0, scroll.getOpacity(), 0.0, "opacity restored");
-            assertEquals(1.0, scale.getX(), 0.0, "scale x restored");
-            assertEquals(1.0, scale.getY(), 0.0, "scale y restored");
-        });
-    }
-
-    /**
-     * A null animationInterpolator coalesces to EASE_OUT: playEntrance must not
-     * reach a JavaFX KeyValue with a null interpolator (which throws). Observable
-     * without a production hook — the throw / no-throw is the assertion.
-     */
-    @Test
-    public void nullInterpolatorFallsBackWithoutThrowing() throws Exception {
-        runOnFx(() -> {
-            RXMenuList list = new RXMenuList();
-            list.getItems().add(RXMenuItem.of("A"));
-            list.setAnimationInterpolator(null);
-            hostFor(list);
-            RXMenuListSkin skin = (RXMenuListSkin) list.getSkin();
-            try {
-                assertDoesNotThrow(() -> skin.playEntrance(false),
-                        "null interpolator falls back to EASE_OUT instead of throwing at KeyValue");
-            } finally {
-                // playEntrance starts a live Timeline; stop it so no animation
-                // outlives the test.
-                skin.stopEntrance();
-            }
         });
     }
 

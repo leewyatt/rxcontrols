@@ -40,15 +40,27 @@ final class RXPopupGeometry {
          * such as the entrance-animation pivot.
          */
         final boolean after;
+        /**
+         * Transform origin for a grow entrance, in the popup's own local
+         * coordinates: the anchor reference point projected onto the popup and
+         * clamped into {@code [0, width]} / {@code [0, height]}. With a zero offset
+         * and no screen clamping this lands exactly on the corner nearest the
+         * trigger; when the popup is clamped or point-anchored it degrades to the
+         * closest legal point, which may sit inside the popup rather than on an edge.
+         */
+        final double pivotX;
+        final double pivotY;
 
         Result(double anchorX, double anchorY, double width, double height, double maxHeight,
-               boolean after) {
+               boolean after, double pivotX, double pivotY) {
             this.anchorX = anchorX;
             this.anchorY = anchorY;
             this.width = width;
             this.height = height;
             this.maxHeight = maxHeight;
             this.after = after;
+            this.pivotX = pivotX;
+            this.pivotY = pivotY;
         }
     }
 
@@ -126,12 +138,17 @@ final class RXPopupGeometry {
         boolean below = chooseAfter(placement.prefersAfter(), naturalH, availBelow, availAbove);
         double avail = below ? availBelow : availAbove;
         double height = effectiveExtent(naturalH, avail);
+        int sign = resolveSign(placement.alignSign(), rtl);
         double y = below ? (anchorBottom + offsetY) : (anchorY - offsetY - height);
-        double x = alignSecondary(placement.alignSign(), rtl, anchorX, anchorW, width) + offsetX;
+        double x = alignSecondary(sign, anchorX, anchorW, width) + offsetX;
         x = RXMath.clamp(x, screenMinX, screenMaxX - width);
         y = RXMath.clamp(y, screenMinY, screenMaxY - height);
         double cap = (height < naturalH) ? height : USE_COMPUTED_SIZE;
-        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap, below);
+        double popupX = snap(x, scaleX);
+        double popupY = snap(y, scaleY);
+        return new Result(popupX, popupY, width, height, cap, below,
+                pivot(crossAxisRef(sign, anchorX, anchorW), popupX, width),
+                pivot(below ? anchorBottom : anchorY, popupY, height));
     }
 
     private static Result resolveSide(double anchorX, double anchorY, double anchorW, double anchorH,
@@ -148,11 +165,16 @@ final class RXPopupGeometry {
         // The side family caps against the whole screen height; vertical alignment
         // is physical (START = top), so orientation does not flip it.
         double height = effectiveExtent(naturalH, screenMaxY - screenMinY);
-        double y = alignSecondary(placement.alignSign(), false, anchorY, anchorH, height) + offsetY;
+        int sign = placement.alignSign();
+        double y = alignSecondary(sign, anchorY, anchorH, height) + offsetY;
         x = RXMath.clamp(x, screenMinX, screenMaxX - width);
         y = RXMath.clamp(y, screenMinY, screenMaxY - height);
         double cap = (height < naturalH) ? height : USE_COMPUTED_SIZE;
-        return new Result(snap(x, scaleX), snap(y, scaleY), width, height, cap, right);
+        double popupX = snap(x, scaleX);
+        double popupY = snap(y, scaleY);
+        return new Result(popupX, popupY, width, height, cap, right,
+                pivot(right ? anchorRight : anchorX, popupX, width),
+                pivot(crossAxisRef(sign, anchorY, anchorH), popupY, height));
     }
 
     /**
@@ -188,15 +210,49 @@ final class RXPopupGeometry {
         return avail;
     }
 
-    private static double alignSecondary(int sign, boolean rtl, double start, double extent, double size) {
-        int s = rtl ? -sign : sign;
-        if (s < 0) {
+    /**
+     * Resolves the secondary-axis alignment sign against the anchor's orientation.
+     * Only the vertical family mirrors: the side family's vertical alignment is
+     * physical, so its callers pass {@code rtl = false}.
+     */
+    private static int resolveSign(int sign, boolean rtl) {
+        return rtl ? -sign : sign;
+    }
+
+    private static double alignSecondary(int sign, double start, double extent, double size) {
+        if (sign < 0) {
             return start;
         }
-        if (s > 0) {
+        if (sign > 0) {
             return start + extent - size;
         }
         return start + (extent - size) / 2.0;
+    }
+
+    /**
+     * The anchor's secondary-axis reference point for the entrance pivot: the edge
+     * the alignment pins to, or the anchor center under center alignment. Shares
+     * {@link #resolveSign} with {@link #alignSecondary} so the pivot can never
+     * disagree with the alignment it belongs to.
+     */
+    private static double crossAxisRef(int sign, double start, double extent) {
+        if (sign < 0) {
+            return start;
+        }
+        if (sign > 0) {
+            return start + extent;
+        }
+        return start + extent / 2.0;
+    }
+
+    /**
+     * Projects an anchor reference point onto the popup's local axis. Both axes use
+     * this one formula: writing the primary axis as a fixed 0 / extent would put the
+     * growth origin at a screen edge instead of the trigger whenever the popup is
+     * clamped (an over-wide side-family popup pinned to screen-min-x, say).
+     */
+    private static double pivot(double anchorRef, double popupStart, double extent) {
+        return RXMath.clamp(anchorRef - popupStart, 0.0, extent);
     }
 
     private static double snap(double value, double scale) {

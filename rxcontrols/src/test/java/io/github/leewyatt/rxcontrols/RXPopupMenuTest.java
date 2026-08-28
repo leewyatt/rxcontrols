@@ -11,6 +11,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.transform.Scale;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -35,10 +37,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RXPopupMenu}: the showing state machine, lifecycle callbacks,
  * the detached-owner / empty-menu guards, close-then-fire activation, the veto,
- * and the precise {@link CloseReason} paths. Pure state-machine cases run without
- * a shown window; cases that need a real popup window are tagged {@code "ui"}.
+ * the precise {@link CloseReason} paths, and the entrance animation's target,
+ * pivot, and reset. Pure state-machine cases run without a shown window; cases
+ * that need a real popup window are tagged {@code "ui"}.
  */
 public class RXPopupMenuTest {
+
+    // The pivot is a snapped geometry value compared against a laid-out node size.
+    private static final double PIVOT_EPS = 1e-6;
 
     private Stage stage;
 
@@ -540,7 +546,127 @@ public class RXPopupMenuTest {
         });
     }
 
+    // ==================== Entrance animation ====================
+
+    @Test
+    @Tag("ui")
+    public void closeSnapsTheEntranceSurfaceBackToFullyShown() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = new RXPopupMenu();
+            menu.getItems().add(RXMenuItem.of("A"));
+            menu.show(anchor);
+            Region surface = entranceSurface(menu);
+            Scale scale = (Scale) surface.getTransforms().get(0);
+
+            // Force a mid-animation pose; closing must snap all of it back, the state
+            // every close path and the next open rely on.
+            surface.setOpacity(0.3);
+            scale.setX(0.8);
+            scale.setY(0.8);
+            menu.hide();
+
+            assertEquals(1.0, surface.getOpacity(), 0.0, "opacity restored");
+            assertEquals(1.0, scale.getX(), 0.0, "scale x restored");
+            assertEquals(1.0, scale.getY(), 0.0, "scale y restored");
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void entranceScalesTheCardSurfaceNotTheMenuList() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = new RXPopupMenu();
+            menu.getItems().add(RXMenuItem.of("A"));
+            menu.show(anchor);
+
+            // The public list must stay untouched: a user may have bound its opacity
+            // or installed transforms of their own, and it is also usable inline.
+            assertTrue(menu.getMenuList().getTransforms().isEmpty(),
+                    "the entrance transform lives on the popup's own surface wrapper");
+            assertEquals(1.0, menu.getMenuList().getOpacity(), 0.0,
+                    "the entrance fade never touches the public list's opacity");
+            menu.hide();
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void endAlignedMenuGrowsFromItsTrailingEdge() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = new RXPopupMenu();
+            menu.getItems().add(RXMenuItem.of("Rename"));
+            menu.show(anchor, RXPlacement.BOTTOM_END);
+            Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
+
+            assertEquals(0.0, scale.getPivotY(), PIVOT_EPS, "opening below grows from the top edge");
+            assertEquals(entranceSurface(menu).getWidth(), scale.getPivotX(), PIVOT_EPS,
+                    "END alignment grows from the trailing edge, not the leading one");
+            menu.hide();
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void startAlignedMenuGrowsFromItsLeadingEdge() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = new RXPopupMenu();
+            menu.getItems().add(RXMenuItem.of("Rename"));
+            menu.show(anchor, RXPlacement.BOTTOM_START);
+            Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
+
+            assertEquals(0.0, scale.getPivotX(), PIVOT_EPS, "START grows from the leading edge");
+            assertEquals(0.0, scale.getPivotY(), PIVOT_EPS, "opening below grows from the top edge");
+            menu.hide();
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void nullInterpolatorOpensWithoutThrowing() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = new RXPopupMenu();
+            menu.getMenuList().setAnimationInterpolator(null);
+            menu.getItems().add(RXMenuItem.of("A"));
+            try {
+                assertDoesNotThrow(() -> menu.show(anchor),
+                        "a null interpolator falls back instead of throwing at KeyValue");
+                assertTrue(menu.isShowing());
+            } finally {
+                // The open starts a live Timeline; close so none outlives the test.
+                menu.hide();
+            }
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void animationDisabledLeavesTheSurfaceStatic() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            menu.show(anchor);
+            Region surface = entranceSurface(menu);
+            Scale scale = (Scale) surface.getTransforms().get(0);
+
+            assertEquals(1.0, surface.getOpacity(), 0.0, "animated=false opens fully opaque");
+            assertEquals(1.0, scale.getX(), 0.0, "animated=false opens at full scale");
+            assertEquals(1.0, scale.getY(), 0.0, "animated=false opens at full scale");
+            menu.hide();
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static Region entranceSurface(RXPopupMenu menu) {
+        // The popup's private wrapper around the menu list: what the entrance
+        // scale and fade are applied to.
+        return (Region) menu.getMenuList().getParent();
+    }
 
     private RXPopupMenu quietMenu(String... labels) {
         RXPopupMenu menu = new RXPopupMenu();
