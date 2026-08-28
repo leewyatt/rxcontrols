@@ -65,8 +65,11 @@ import java.util.Objects;
  * native-window jump. Consumers that rebuild content mid-event must clip the
  * offending node or settle it ({@code applyCss()} + {@code layout()}) before
  * returning to the event loop. Bounds-affecting animations on the content are
- * legitimate only when the window following them is the intended effect (the
- * suggestion popup's unfold entrance relies on exactly this tracking).
+ * legitimate in two shapes: when the window following them <em>is</em> the intended
+ * effect (a dropdown unfolding out of its anchor), and when the anchor location is
+ * {@code CONTENT_TOP_LEFT}, whose compensation keeps the content's layout origin
+ * fixed while only the effect outsets move the window (a grow entrance scaling a
+ * shadowed card). Both are in use; a third shape needs the same analysis first.
  *
  * <p>Not thread-safe; use on the JavaFX Application Thread.
  */

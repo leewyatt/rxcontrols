@@ -276,13 +276,15 @@ public class RXPopupGeometryTest {
     }
 
     @Test
-    public void pivotStaysInsidethePopupWhenTheSecondaryAxisIsClamped() {
-        // Anchor hard against the right screen edge: the popup is shifted left, so
-        // the END reference point no longer lands on its trailing edge — but it must
-        // still be a legal local coordinate.
+    public void pivotLandsInsideThePopupWhenTheSecondaryAxisIsClamped() {
+        // Anchor hard against the right screen edge: START would put the popup at
+        // x=950, so the shift pulls it back to 800 and its leading edge no longer
+        // touches the anchor. The pivot must then sit strictly inside the popup.
         RXPopupGeometry.Result r = resolve(950, 100, 40, 30, 200, 100,
-                RXPlacement.BOTTOM_END, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
-        assertTrue(r.pivotX >= 0 && r.pivotX <= r.width, "pivot stays within the popup width");
-        assertEquals(990 - r.anchorX, r.pivotX, EPS, "pivot projects the anchor right edge");
+                RXPlacement.BOTTOM_START, RXPopupWidthMode.PREF_CONTENT, 0, 0, false, 1, 1);
+        assertEquals(SCREEN_MAX_X - 200, r.anchorX, EPS, "precondition: shifted left by the clamp");
+        assertEquals(150, r.pivotX, EPS, "pivot projects the anchor left edge into the popup");
+        assertTrue(r.pivotX > 0 && r.pivotX < r.width,
+                "a clamped popup grows from an interior point, not from a corner");
     }
 }

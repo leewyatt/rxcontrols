@@ -487,6 +487,12 @@ public class RXPopupMenu {
         }
         entranceScale.setPivotX(support.getPivotX());
         entranceScale.setPivotY(support.getPivotY());
+        // Apply the t=0 pose synchronously: the timeline only reaches it on the next
+        // pulse, and the popup window is already realized, so leaving the surface at
+        // full size until then can paint one un-animated frame.
+        entranceScale.setX(ENTRANCE_START_SCALE);
+        entranceScale.setY(ENTRANCE_START_SCALE);
+        popupSurface.setOpacity(0.0);
         Interpolator interpolator = menuList.getAnimationInterpolator();
         if (interpolator == null) {
             interpolator = Interpolator.EASE_OUT;
