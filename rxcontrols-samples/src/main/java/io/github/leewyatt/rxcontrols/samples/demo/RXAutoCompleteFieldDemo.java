@@ -13,7 +13,7 @@ import java.util.Locale;
 /**
  * Minimal sample application for {@link RXAutoCompleteField}.
  *
- * <p>Shows two lightweight, realistic scenarios: a country field driven by the
+ * <p>Shows two lightweight, realistic scenarios: a fruit field driven by the
  * default case-insensitive substring filter, and an email field with a custom
  * filter + completion handler that completes the domain after {@code @}.
  *
@@ -22,13 +22,13 @@ import java.util.Locale;
  */
 public class RXAutoCompleteFieldDemo extends Application {
 
-    private static final List<String> COUNTRIES = List.of(
-            "Argentina", "Australia", "Austria", "Belgium", "Brazil", "Canada",
-            "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany",
-            "Greece", "India", "Indonesia", "Ireland", "Italy", "Japan", "Mexico",
-            "Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Singapore",
-            "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey",
-            "United Kingdom", "United States", "Vietnam");
+    private static final List<String> FRUITS = List.of(
+            "Apple", "Apricot", "Avocado", "Banana", "Blackberry", "Blueberry",
+            "Cherry", "Coconut", "Cranberry", "Date", "Dragon Fruit", "Fig",
+            "Grape", "Grapefruit", "Guava", "Kiwi", "Lemon", "Lime", "Lychee",
+            "Mango", "Melon", "Nectarine", "Orange", "Papaya", "Passion Fruit",
+            "Peach", "Pear", "Persimmon", "Pineapple", "Plum", "Pomegranate",
+            "Raspberry", "Strawberry", "Watermelon");
 
     private static final List<String> EMAIL_DOMAINS = List.of(
             "gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
@@ -39,9 +39,9 @@ public class RXAutoCompleteFieldDemo extends Application {
         VBox root = new VBox(16);
         root.setStyle("-fx-padding: 24; -fx-background-color: white;");
 
-        RXAutoCompleteField country = new RXAutoCompleteField();
-        country.setPromptText("Start typing a country");
-        country.getSuggestions().setAll(COUNTRIES);
+        RXAutoCompleteField fruit = new RXAutoCompleteField();
+        fruit.setPromptText("Start typing a fruit");
+        fruit.getSuggestions().setAll(FRUITS);
 
         RXAutoCompleteField email = new RXAutoCompleteField();
         email.setPromptText("you@example.com");
@@ -66,7 +66,7 @@ public class RXAutoCompleteFieldDemo extends Application {
         });
 
         root.getChildren().setAll(
-                new Label("Country (default substring filter)"), country,
+                new Label("Fruit (default substring filter)"), fruit,
                 new Label("Email (custom domain completion after @)"), email
         );
 

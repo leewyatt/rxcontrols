@@ -111,7 +111,7 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         field = new RXAutoCompleteField();
         field.setPromptText("Start typing, then use ↑ ↓ Enter");
-        field.getSuggestions().setAll(Dataset.COUNTRIES.items());
+        field.getSuggestions().setAll(Dataset.FRUITS.items());
         // Observation only: the default write-back stays; the event records the commit.
         field.setOnAutoCompleted(event ->
                 lastCompleted.set(event.getCompletion() == null ? "" : event.getCompletion()));
@@ -147,7 +147,7 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     private Node buildDataGrid() {
         ComboBox<Dataset> datasetBox = new ComboBox<>();
         datasetBox.getItems().setAll(Dataset.values());
-        datasetBox.setValue(Dataset.COUNTRIES);
+        datasetBox.setValue(Dataset.FRUITS);
         datasetBox.setMaxWidth(Double.MAX_VALUE);
         datasetBox.valueProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) {
@@ -210,13 +210,13 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
     // ==================== Datasets + filter modes ====================
 
     private enum Dataset {
-        COUNTRIES("Countries", List.of(
-                "Argentina", "Australia", "Austria", "Belgium", "Brazil", "Canada",
-                "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany",
-                "Greece", "India", "Indonesia", "Ireland", "Italy", "Japan", "Mexico",
-                "Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Singapore",
-                "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey",
-                "United Kingdom", "United States", "Vietnam")),
+        FRUITS("Fruits", List.of(
+                "Apple", "Apricot", "Avocado", "Banana", "Blackberry", "Blueberry",
+                "Cherry", "Coconut", "Cranberry", "Date", "Dragon Fruit", "Fig",
+                "Grape", "Grapefruit", "Guava", "Kiwi", "Lemon", "Lime", "Lychee",
+                "Mango", "Melon", "Nectarine", "Orange", "Papaya", "Passion Fruit",
+                "Peach", "Pear", "Persimmon", "Pineapple", "Plum", "Pomegranate",
+                "Raspberry", "Strawberry", "Watermelon")),
         LANGUAGES("Programming languages", List.of(
                 "C", "C++", "C#", "Clojure", "Dart", "Elixir", "Go", "Groovy",
                 "Haskell", "Java", "JavaScript", "Kotlin", "Perl", "PHP", "Python",
