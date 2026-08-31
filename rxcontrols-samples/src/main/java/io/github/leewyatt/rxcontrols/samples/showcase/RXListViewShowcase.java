@@ -41,7 +41,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
 
     private RXListView<Integer> list;
     private ObservableList<Integer> items;
-    private final Label actionStatus = new Label("Click to select \u00b7 double-click to activate");
+    private final Label actionStatus = new Label("Click to select · double-click to activate");
 
     @Override
     protected String title() {

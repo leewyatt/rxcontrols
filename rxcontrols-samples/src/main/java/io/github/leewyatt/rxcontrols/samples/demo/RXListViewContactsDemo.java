@@ -13,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -69,7 +70,7 @@ public class RXListViewContactsDemo extends Application {
                 + " -fx-padding: 6;");
         list.getSelectionModel().selectFirst();
 
-        VBox content = new VBox(14.0, createHeader(rawContacts.size()), list);
+        VBox content = new VBox(14.0, createHeader(rawContacts.size(), list), list);
         content.setMaxWidth(520.0);
         VBox.setVgrow(list, Priority.ALWAYS);
 
@@ -82,7 +83,7 @@ public class RXListViewContactsDemo extends Application {
         primaryStage.show();
     }
 
-    private static Node createHeader(int contactCount) {
+    private static Node createHeader(int contactCount, RXListView<Contact> list) {
         Label title = new Label("Team Directory");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #162033;");
 
@@ -102,7 +103,18 @@ public class RXListViewContactsDemo extends Application {
         Label subtitle = new Label("Design, engineering, operations, support");
         subtitle.setStyle("-fx-text-fill: #64748b; -fx-font-size: 13px;");
 
-        VBox header = new VBox(3.0, titleRow, subtitle);
+        CheckBox stickyHeaders = new CheckBox("Sticky section headers");
+        stickyHeaders.setStyle("-fx-text-fill: #475569; -fx-font-size: 12px;");
+        stickyHeaders.selectedProperty().bindBidirectional(list.stickySectionHeaderProperty());
+
+        CheckBox smoothScrolling = new CheckBox("Smooth scrolling");
+        smoothScrolling.setStyle("-fx-text-fill: #475569; -fx-font-size: 12px;");
+        smoothScrolling.selectedProperty().bindBidirectional(list.smoothScrollingProperty());
+
+        HBox optionsRow = new HBox(18.0, stickyHeaders, smoothScrolling);
+        optionsRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox header = new VBox(5.0, titleRow, subtitle, optionsRow);
         header.setPadding(new Insets(2.0, 4.0, 0.0, 4.0));
         return header;
     }
@@ -134,7 +146,37 @@ public class RXListViewContactsDemo extends Application {
                 new Contact("Reese Winter", "Mobile Engineer", "Remote", "000-000-0122", "#7e22ce"),
                 new Contact("Hayden Wells", "Sales Engineer", "Remote", "000-000-0115", "#4f46e5"),
                 new Contact("Kendall Moss", "UX Engineer", "Remote", "000-000-0118", "#c026d3"),
-                new Contact("Flynn Carter", "Backend Engineer", "Remote", "000-000-0112", "#0284c7"));
+                new Contact("Flynn Carter", "Backend Engineer", "Remote", "000-000-0112", "#0284c7"),
+                new Contact("Alton Bright", "Software Engineer", "Remote", "000-000-0127", "#2563eb"),
+                new Contact("Bella Cove", "Product Designer", "Remote", "000-000-0128", "#7c3aed"),
+                new Contact("Cody Meadow", "QA Engineer", "Remote", "000-000-0129", "#0d9488"),
+                new Contact("Dana Hill", "Data Analyst", "Remote", "000-000-0130", "#0369a1"),
+                new Contact("Elliot Hollow", "Support Specialist", "Remote", "000-000-0131", "#15803d"),
+                new Contact("Frankie Shore", "Program Manager", "Remote", "000-000-0132", "#be123c"),
+                new Contact("Glen Parker", "Frontend Engineer", "Remote", "000-000-0133", "#059669"),
+                new Contact("Holly Rivers", "Backend Engineer", "Remote", "000-000-0134", "#0284c7"),
+                new Contact("Indie Bloom", "Technical Writer", "Remote", "000-000-0135", "#9333ea"),
+                new Contact("Jamie Cross", "Operations Manager", "Remote", "000-000-0136", "#16a34a"),
+                new Contact("Kelly Monroe", "Security Engineer", "Remote", "000-000-0137", "#c2410c"),
+                new Contact("Lane Grant", "Product Manager", "Remote", "000-000-0138", "#65a30d"),
+                new Contact("Marlow Dean", "Mobile Engineer", "Remote", "000-000-0139", "#7e22ce"),
+                new Contact("Nolan Finch", "UX Engineer", "Remote", "000-000-0140", "#c026d3"),
+                new Contact("Oakley Dunn", "Release Manager", "Remote", "000-000-0141", "#ca8a04"),
+                new Contact("Presley Moon", "Research Analyst", "Remote", "000-000-0142", "#0891b2"),
+                new Contact("Quincy Ford", "Solutions Architect", "Remote", "000-000-0143", "#b45309"),
+                new Contact("Robin Nash", "Customer Success", "Remote", "000-000-0144", "#ea580c"),
+                new Contact("Sam Mills", "Finance Partner", "Remote", "000-000-0145", "#047857"),
+                new Contact("Toby Crane", "Brand Strategist", "Remote", "000-000-0146", "#db2777"),
+                new Contact("Upton Ray", "Infrastructure Lead", "Remote", "000-000-0147", "#1d4ed8"),
+                new Contact("Val Casey", "Developer Advocate", "Remote", "000-000-0148", "#0e7490"),
+                new Contact("Wes Cole", "Design Operations", "Remote", "000-000-0149", "#e11d48"),
+                new Contact("Xander Price", "Sales Engineer", "Remote", "000-000-0150", "#4f46e5"),
+                new Contact("Yates Owen", "Growth Analyst", "Remote", "000-000-0151", "#0369a1"),
+                new Contact("Zane Miller", "People Partner", "Remote", "000-000-0152", "#be123c"),
+                new Contact("April Wood", "Platform Engineer", "Remote", "000-000-0153", "#7c3aed"),
+                new Contact("Dale Benson", "Content Designer", "Remote", "000-000-0154", "#059669"),
+                new Contact("Merritt Snow", "Service Coordinator", "Remote", "000-000-0155", "#15803d"),
+                new Contact("Sydney Blake", "Project Coordinator", "Remote", "000-000-0156", "#ca8a04"));
     }
 
     private static final class ContactCell extends RXListCell<Contact> {
