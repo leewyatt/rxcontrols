@@ -22,11 +22,12 @@ import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -38,11 +39,10 @@ import java.util.function.Supplier;
 /**
  * Showcase application for {@link RXTransitionButton}.
  *
- * <p>Exercises the two flagship use cases — a social-style button whose icon
- * face swaps to a detail face, and a call-to-action button whose caption
- * swaps to a confirmation — plus the trigger modes (hover, pressed, none with
- * programmatic playback) and the transition presets shared with the other
- * page-animation hosts.</p>
+ * <p>Exercises the two flagship face pairings — an icon-only navigation
+ * button revealing its caption, and a copy action whose caption swaps to an
+ * icon + confirmation face — plus the trigger modes and the transition
+ * presets shared with the other page-animation hosts.</p>
  */
 public class RXTransitionButtonShowcase extends RXShowcaseApplication {
 
@@ -50,8 +50,8 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
 
     private final Map<String, Supplier<PageAnimation>> animationPresets = animationPresets();
 
-    private RXTransitionButton emailButton;
-    private RXTransitionButton downloadButton;
+    private RXTransitionButton navButton;
+    private RXTransitionButton copyButton;
 
     // ==================== Showcase wiring ====================
 
@@ -92,25 +92,43 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        emailButton = new RXTransitionButton("@  Email");
-        emailButton.getStyleClass().add("showcase-email-button");
-        emailButton.setPrefSize(240.0, 64.0);
-        Label address = new Label("hello@example.com");
-        emailButton.setAlternateContent(address);
+        navButton = new RXTransitionButton();
+        navButton.getStyleClass().addAll("showcase-button", "nav-button");
+        navButton.setGraphic(icon("home-icon"));
+        navButton.setAlternateContent(altContent(new Label("Home")));
 
-        downloadButton = new RXTransitionButton("Download");
-        downloadButton.getStyleClass().add("showcase-download-button");
-        downloadButton.setPrefSize(240.0, 64.0);
-        Label confirm = new Label("3.2 MB — click to start");
-        downloadButton.setAlternateContent(confirm);
+        copyButton = new RXTransitionButton("Copy text", icon("copy-icon"));
+        copyButton.getStyleClass().addAll("showcase-button", "copy-button");
+        copyButton.setAlternateContent(altContent(new Label("Copied!", icon("check-icon"))));
+        copyButton.setOnAction(event -> copyToClipboard());
 
-        Label hint = new Label("Hover swaps the faces; the action fires on click as usual.");
+        Label hint = new Label("Icon face in, caption face out — clicking still fires the action.");
         hint.getStyleClass().add("hint-label");
 
-        VBox preview = new VBox(18.0, emailButton, downloadButton, hint);
+        VBox preview = new VBox(18.0, navButton, copyButton, hint);
         preview.getStyleClass().add("transition-button-preview");
         preview.setAlignment(Pos.CENTER);
         return preview;
+    }
+
+    // The skin mirrors the button's own text fill onto the front face; the
+    // alternate node is a plain user node and is styled through this class.
+    private static Label altContent(Label label) {
+        label.getStyleClass().add("alt-content");
+        return label;
+    }
+
+    private static Region icon(String styleClass) {
+        Region icon = new Region();
+        icon.getStyleClass().add(styleClass);
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return icon;
+    }
+
+    private static void copyToClipboard() {
+        ClipboardContent content = new ClipboardContent();
+        content.putString("RXTransitionButton");
+        Clipboard.getSystemClipboard().setContent(content);
     }
 
     @Override
@@ -127,24 +145,16 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
         triggerBox.getItems().setAll(AnimationTrigger.values());
         triggerBox.setValue(RXAnimatedButton.DEFAULT_ANIMATION_TRIGGER);
         triggerBox.setMaxWidth(Double.MAX_VALUE);
-        emailButton.animationTriggerProperty().bind(triggerBox.valueProperty());
-        downloadButton.animationTriggerProperty().bind(triggerBox.valueProperty());
+        navButton.animationTriggerProperty().bind(triggerBox.valueProperty());
+        copyButton.animationTriggerProperty().bind(triggerBox.valueProperty());
 
-        Button playButton = new Button("playAnimation()");
-        playButton.setOnAction(event -> {
-            emailButton.playAnimation();
-            downloadButton.playAnimation();
-        });
-
-        Label hint = new Label("NONE disables automatic triggering; playAnimation() round-trips once.");
+        Label hint = new Label("PRESSED fits confirmation pairs; NONE disables automatic "
+                + "triggering, leaving playAnimation() as the only way in.");
         hint.getStyleClass().add("hint-label");
-
-        HBox controls = new HBox(12.0, playButton);
-        controls.setAlignment(Pos.CENTER_LEFT);
+        hint.setWrapText(true);
 
         return createGrid(
                 row("Trigger", triggerBox),
-                row(controls),
                 row(hint));
     }
 
@@ -156,8 +166,8 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
         animationBox.valueProperty().addListener((obs, oldValue, newValue) -> {
             Supplier<PageAnimation> preset = animationPresets.get(newValue);
             if (preset != null) {
-                emailButton.setAnimation(preset.get());
-                downloadButton.setAnimation(preset.get());
+                navButton.setAnimation(preset.get());
+                copyButton.setAnimation(preset.get());
             }
         });
 
@@ -166,8 +176,8 @@ public class RXTransitionButtonShowcase extends RXShowcaseApplication {
         var durationBinding = Bindings.createObjectBinding(
                 () -> Duration.millis(durationSlider.getValue()),
                 durationSlider.valueProperty());
-        emailButton.animationDurationProperty().bind(durationBinding);
-        downloadButton.animationDurationProperty().bind(durationBinding);
+        navButton.animationDurationProperty().bind(durationBinding);
+        copyButton.animationDurationProperty().bind(durationBinding);
 
         return createGrid(
                 row("Animation", animationBox),
