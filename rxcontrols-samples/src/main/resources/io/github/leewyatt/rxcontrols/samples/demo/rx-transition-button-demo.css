@@ -1,0 +1,20 @@
+.download-button {
+    -fx-font-size: 15px;
+    -fx-padding: 12px 28px;
+    -fx-background-color: #2563eb;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-graphic-text-gap: 9px;
+}
+
+.download-button .download-detail {
+    -fx-text-fill: white;
+}
+
+.download-button .download-icon {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 17.5px;
+    -fx-background-color: white;
+    -fx-shape: "M10 2 H14 V11 H19 L12 19 L5 11 H10 Z M4 20 H20 V22 H4 Z";
+}
