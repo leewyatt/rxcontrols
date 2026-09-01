@@ -22,11 +22,12 @@ public class RXClipPathImageViewDemo extends Application {
     public void start(Stage primaryStage) {
         Image image = new Image(RXClipPathImageViewDemo.class.getResource("/scenery/2.png").toExternalForm());
         RXClipPathImageView imageView = new RXClipPathImageView(image);
-        imageView.setPrefSize(260.0, 180.0);
-        imageView.setClipSvg(RXClipPathImageView.SHAPE_SHIELD);
+        imageView.setPrefSize(168.0, 145.0);
+        imageView.setMaxSize(168.0, 145.0);
+        imageView.setClipSvg(RXClipPathImageView.SHAPE_HEART);
 
         StackPane root = new StackPane(imageView);
-        root.setPadding(new Insets(40.0));
+        root.setPadding(new Insets(20.0));
 
         primaryStage.setScene(new Scene(root));
         primaryStage.setTitle("RXClipPathImageView Demo");
