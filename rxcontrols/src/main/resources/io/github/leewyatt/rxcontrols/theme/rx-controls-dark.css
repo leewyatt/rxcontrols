@@ -38,6 +38,7 @@
     -rx-primary-hover: derive(-rx-primary, 8%);
     -rx-primary-active: derive(-rx-primary, -10%);
     -rx-primary-bg: rgba(124, 134, 255, 0.18);
+    -rx-primary-overlay: rgba(124, 134, 255, 0.10);
     -rx-on-primary: white;
     /* semantic */
     -rx-success: #6cc04a;
@@ -86,6 +87,14 @@
 .rx-fill-button:filling,
 .rx-fill-label:filling {
     -fx-text-fill: -rx-on-primary;
+}
+
+/* The baseline focus outline darkens the fill colour, which reads as "focused"
+   only against a light surface; on the dark surface it moves toward the
+   background and the outline dims instead of standing out. Lighten here so the
+   shift keeps the same meaning in both themes. */
+.rx-fill-button:key-focused {
+    -fx-border-color: derive(-rx-fill, 25%);
 }
 
 /* Per-control dark re-points for controls whose colors are baseline LITERALS

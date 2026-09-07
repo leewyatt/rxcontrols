@@ -374,8 +374,9 @@ public class RXFillButtonTest {
                 }
             });
 
-            Rectangle fillClip = (Rectangle) fillContent(button).getClip();
-            assertEquals(50.0, fillClip.getWidth(), EPSILON);
+            Pane content = fillContent(button);
+            Rectangle fillClip = (Rectangle) content.getClip();
+            assertEquals(content.getWidth() * 0.5, fillClip.getWidth(), EPSILON);
         });
     }
 
