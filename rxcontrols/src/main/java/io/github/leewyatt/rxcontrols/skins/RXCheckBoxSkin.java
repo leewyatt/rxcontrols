@@ -45,8 +45,11 @@ import javafx.util.Duration;
  * <p>The state layer is <em>scoped to the box</em>: its hover / pressed feedback
  * follows the box's own pointer state, not the whole control, so hovering or
  * clicking the label toggles the control without lighting up a circle on the box.
- * Keyboard focus shows the focus tier (the focus indicator), while a pointer press
- * suppresses it (a JFX17 stand-in for {@code :focus-visible}).</p>
+ * Focus shows the focus tier (the focus indicator) unless the focus arrived from a
+ * pointer press, since a user who just clicked the control already knows where focus
+ * is. Focus a window hands out when it opens still shows the tier: this is deliberately
+ * wider than the platform {@code :focus-visible} rule, which counts only focus that a
+ * traversal key brought in.</p>
  *
  * <p>Mouse and keyboard interaction is installed directly (not via the internal
  * {@code com.sun} {@code ButtonBehavior}), matching the standard
@@ -92,11 +95,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
     /** True while armed via the keyboard; gates the mouse fire path and arms focus-loss disarm. */
     private boolean keyDown;
 
-    /**
-     * True when the current focus arrived via a pointer press, so the focus halo is
-     * suppressed — a JFX17 stand-in for {@code :focus-visible} (added in JFX19),
-     * which shows the focus state only for keyboard focus.
-     */
+    /** True when the focus the control currently holds arrived via a pointer press. */
     private boolean mouseFocus;
 
     // ==================== Constructor ====================
@@ -308,10 +307,9 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
 
     private void updateHaloState() {
         // Hover / pressed feedback is scoped to the box, not the whole control, so
-        // the label does not light up the box. Focus shows for keyboard focus only
-        // (mouseFocus suppresses pointer focus). A check box is never dragged.
-        boolean focusVisible = getSkinnable().isFocused() && !mouseFocus;
-        stateLayer.setState(box.isHover(), focusVisible, boxPressed || keyDown, false);
+        // the label does not light up the box. A check box is never dragged.
+        boolean showFocusTier = getSkinnable().isFocused() && !mouseFocus;
+        stateLayer.setState(box.isHover(), showFocusTier, boxPressed || keyDown, false);
     }
 
     private void syncRippleFill() {
@@ -324,7 +322,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
     private void handleFocusChanged() {
         RXCheckBox control = getSkinnable();
         if (!control.isFocused()) {
-            // Reset pointer-focus tracking so the next keyboard Tab is focus-visible.
+            // Reset pointer-focus tracking so the next focus shows the tier again.
             mouseFocus = false;
             // Losing focus while a key is held would otherwise strand the control armed
             // (the KEY_RELEASED goes to the new focus owner); matches ButtonBehavior.
@@ -358,7 +356,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
     private void onMousePressed(MouseEvent event) {
         RXCheckBox control = getSkinnable();
         // Record that focus (if gained or already held) is now pointer-driven, so the
-        // focus halo stays suppressed; cleared on focus loss so a later Tab is visible.
+        // focus halo stays suppressed; cleared on focus loss so a later Tab shows it.
         mouseFocus = true;
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();

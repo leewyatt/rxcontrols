@@ -43,9 +43,10 @@ import javafx.util.Duration;
  *
  * <p>The halo is <em>scoped to the indicator</em>: its hover / pressed feedback
  * follows the indicator's own pointer state, not the whole control, so hovering or
- * clicking the label selects the button without lighting up the ring. Keyboard focus
- * shows the focus tier, but a pointer click does not (a {@code :focus-visible}
- * stand-in), even when the click lands on the label. A primary press on the ring — or
+ * clicking the label selects the button without lighting up the ring. Focus shows the
+ * focus tier unless it arrived from a pointer click, even when the click lands on the
+ * label; focus a window hands out when it opens still shows the tier, which is wider
+ * than the platform {@code :focus-visible} rule. A primary press on the ring — or
  * keyboard activation (SPACE / ENTER off macOS) — deepens the halo to the pressed tier
  * and plays a centred M2 ripple ink (the {@code .ripple-layer}, drawn behind the ring with
  * the halo, clipped to the touch circle); a press on the label does not. The halo's round
@@ -104,11 +105,10 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
     private boolean pressedOnIndicator;
 
     /**
-     * True when the current focus arrived via a pointer press, so the focus tier is
-     * suppressed — a JFX17 stand-in for {@code :focus-visible} (added in JFX19), which
-     * shows the focus state only for keyboard focus. Matches {@link RXSwitchButtonSkin} /
-     * {@link RXCheckBoxSkin}; set by a capture-phase press filter (the inherited behavior
-     * owns {@code requestFocus}, so the filter must run before it) and reset on focus loss.
+     * True when the focus the control currently holds arrived via a pointer press, so the
+     * focus tier is suppressed. Matches {@link RXSwitchButtonSkin} / {@link RXCheckBoxSkin};
+     * set by a capture-phase press filter (the inherited behavior owns {@code requestFocus},
+     * so the filter must run before it) and reset on focus loss.
      */
     private boolean mouseFocus;
 
@@ -161,8 +161,8 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         // Dragging off the ring while held ends the press feedback (the pressed tier + ink).
         disposer.registerEventHandler(indicator, MouseEvent.MOUSE_EXITED, event -> endPress());
         // Any pointer press (ring OR label) marks the resulting focus as pointer-driven so
-        // the focus tier stays suppressed (:focus-visible stand-in). A capture-phase filter
-        // runs before the inherited behavior's requestFocus, so the focus listener sees it.
+        // the focus tier stays suppressed. A capture-phase filter runs before the inherited
+        // behavior's requestFocus, so the focus listener sees it.
         disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> mouseFocus = true);
         disposer.registerListener(control.focusedProperty(), this::handleFocusChanged);
         // Keyboard press feedback: the inherited behavior owns SPACE / ENTER activation;
@@ -373,19 +373,19 @@ public class RXRadioButtonSkin extends RadioButtonSkin {
         // No stateOverlayEnabled property (Pattern B): to turn the halo off, set the
         // tier opacities to 0 via CSS. A disabled control shows no halo.
         boolean enabled = !control.isDisabled();
-        // Focus-visible stand-in: show the focus tier only for keyboard focus, not after a
-        // pointer click (mouseFocus), even when the click landed on the label.
-        boolean focusVisible = control.isFocused() && !mouseFocus;
+        // Show the focus tier unless the focus came from a pointer click, even when the
+        // click landed on the label.
+        boolean showFocusTier = control.isFocused() && !mouseFocus;
         stateLayer.setState(
                 enabled && indicator.isHover(),     // hover: pointer over the ring (framework-maintained)
-                enabled && focusVisible,            // focus: keyboard focus only
+                enabled && showFocusTier,           // focus: suppressed after a pointer click
                 enabled && (pressedOnIndicator || keyDown),  // pressed: ring press OR keyboard activation
                 false);                             // dragged: a radio cannot be dragged
     }
 
     private void handleFocusChanged() {
         if (!getControl().isFocused()) {
-            // Reset so the next keyboard Tab focus is focus-visible (shows the focus tier).
+            // Reset so the next focus shows the tier again.
             mouseFocus = false;
             // Losing focus while an activation key is held would otherwise strand the
             // pressed tier + ink (the KEY_RELEASED goes to the new focus owner).

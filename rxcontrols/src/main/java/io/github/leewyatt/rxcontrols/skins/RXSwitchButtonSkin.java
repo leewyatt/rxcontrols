@@ -107,11 +107,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
      */
     private boolean pointerOnSwitch;
 
-    /**
-     * True when the current focus arrived via a pointer press, so the focus halo
-     * is suppressed — a JFX17 stand-in for {@code :focus-visible} (added in JFX19),
-     * which shows the focus state only for keyboard focus.
-     */
+    /** True when the focus the control currently holds arrived via a pointer press. */
     private boolean mouseFocus;
 
     // ==================== Constructor ====================
@@ -353,13 +349,14 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
 
     private void updateHaloState() {
         RXSwitchButton control = getSkinnable();
-        // Focus-visible stand-in: show the focus tier only for keyboard focus, not
-        // pointer focus (JFX17 lacks the :focus-visible pseudo-class added in JFX19).
-        boolean focusVisible = control.isFocused() && !mouseFocus;
+        // Show the focus tier unless the focus arrived from a pointer press. Focus a
+        // window hands out when it opens still shows it, which is wider than the
+        // platform :focus-visible rule.
+        boolean showFocusTier = control.isFocused() && !mouseFocus;
         // Hover / pressed / dragged feedback is scoped to the switch block (track +
         // thumb), so hovering or clicking the label does not light up the thumb.
         boolean pressed = (control.isArmed() && pointerOnSwitch) || keyDown;
-        stateLayer.setState(track.isHover(), focusVisible, pressed, dragging && pointerOnSwitch);
+        stateLayer.setState(track.isHover(), showFocusTier, pressed, dragging && pointerOnSwitch);
     }
 
     private void handleArmedChanged() {
@@ -387,7 +384,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
     private void handleFocusChanged() {
         RXSwitchButton control = getSkinnable();
         if (!control.isFocused()) {
-            // Reset pointer-focus tracking so the next keyboard Tab is focus-visible.
+            // Reset pointer-focus tracking so the next focus shows the tier again.
             mouseFocus = false;
             // Losing focus while a key is held would otherwise strand the control armed
             // (the KEY_RELEASED goes to the new focus owner); matches ButtonBehavior.
@@ -416,7 +413,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         RXSwitchButton control = getSkinnable();
         // Record that focus (if gained or already held) is now pointer-driven, so the
         // focus halo stays suppressed; set before requestFocus so the focus listener
-        // sees it. Cleared on focus loss, so a later keyboard Tab is focus-visible.
+        // sees it. Cleared on focus loss, so a later Tab shows the tier again.
         mouseFocus = true;
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();
