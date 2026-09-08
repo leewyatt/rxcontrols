@@ -34,10 +34,6 @@
     -rx-primary-hover: derive(-rx-primary, 8%);
     -rx-primary-active: derive(-rx-primary, -10%);
     -rx-primary-bg: derive(-rx-primary, 85%);
-    /* Focus state layer: the primary hue at the Material focus tier. JavaFX CSS
-       cannot take a looked-up color and change its alpha, so the channels repeat
-       -rx-primary as literals -- re-point both together. */
-    -rx-primary-overlay: rgba(97, 109, 255, 0.10);
     -rx-on-primary: white;
     /* semantic */
     -rx-success: #67c23a;
@@ -126,26 +122,15 @@
     -fx-text-fill: -rx-fill;
 }
 
-/* Holds the flat resting fill through every focused state. Without an explicit
-   rule the inherited .button:focused wins on specificity and paints a multi-layer
-   ring, which breaks the single-fill rule above. */
+/* The button ships no focus styling: this rule only holds the flat resting fill,
+   because without it the inherited .button:focused wins on specificity and paints a
+   multi-layer ring that breaks the single-fill rule above. Applications that want a
+   focus indicator add their own .rx-fill-button:focused rule; an author stylesheet
+   outranks this one whatever its specificity. */
 .rx-fill-button:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
-}
-
-/* Keyboard focus adds a state layer and a darker outline; a pointer click leaves
-   no indicator (see the key-focused pseudo-class on the button skin). The tint
-   alone is too faint to read as focus, and a hue-only outline swap would not
-   register for anyone who cannot separate the two hues, so the outline shifts in
-   lightness instead. Deriving from -rx-fill rather than -rx-focus keeps that shift
-   visible on themes whose focus color is the primary itself. */
-.rx-fill-button:key-focused {
-    -fx-background-color: -rx-primary-overlay;
-    -fx-background-insets: 0;
-    -fx-background-radius: 4px;
-    -fx-border-color: derive(-rx-fill, -25%);
 }
 
 .rx-fill-button:filling {
@@ -187,10 +172,10 @@
  *                                                                             *
  ******************************************************************************/
 
-/* No container and no border in any state: the animated line is the hover
-   feedback and keyboard focus is a background tint, so nothing needs a border width
-   reserved up front. The radius is what the ripple clip mirrors, so it has to
-   be declared even though the resting fill is transparent. */
+/* No container and no border in any state: the animated line is the only feedback,
+   so nothing needs a border width reserved up front. The radius is what the ripple
+   clip mirrors, so it has to be declared even though the resting fill is
+   transparent. */
 .rx-line-button {
     -rx-line-color: -rx-primary;
     -rx-line-animation: underline-center-out;
@@ -209,13 +194,6 @@
 /* Neutralizes the inherited .button:focused ring, as on the fill button. */
 .rx-line-button:focused {
     -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-background-radius: 4px;
-}
-
-/* No outline to darken here, so the state layer carries keyboard focus alone. */
-.rx-line-button:key-focused {
-    -fx-background-color: -rx-primary-overlay;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
 }

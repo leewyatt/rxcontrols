@@ -37,9 +37,6 @@
     -rx-primary-hover: derive(-color-accent-emphasis, 8%);
     -rx-primary-active: derive(-color-accent-emphasis, -10%);
     -rx-primary-bg: -color-accent-subtle;
-    /* AtlantaFX's subtle accent is already the accent at roughly the Material
-       focus-tier alpha, so the selected surface and the focus overlay share it. */
-    -rx-primary-overlay: -color-accent-subtle;
     -rx-on-primary: -color-fg-emphasis;
     /* semantic */
     -rx-success: -color-success-emphasis;
