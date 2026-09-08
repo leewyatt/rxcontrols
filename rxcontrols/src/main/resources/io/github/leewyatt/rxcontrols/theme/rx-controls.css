@@ -122,11 +122,8 @@
     -fx-text-fill: -rx-fill;
 }
 
-/* The button ships no focus styling: this rule only holds the flat resting fill,
-   because without it the inherited .button:focused wins on specificity and paints a
-   multi-layer ring that breaks the single-fill rule above. Applications that want a
-   focus indicator add their own .rx-fill-button:focused rule; an author stylesheet
-   outranks this one whatever its specificity. */
+/* No focus styling by design; the rule exists only to outrank the inherited
+   .button:focused, whose multi-layer ring would break the single-fill rule above. */
 .rx-fill-button:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;

@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -13,7 +14,11 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
+import javafx.scene.control.Control;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -36,6 +41,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -66,6 +72,10 @@ public class AtlantaFXThemeBridgeTest {
             "/io/github/leewyatt/rxcontrols/theme/rx-controls.css";
     private static final String BRIDGE_CSS =
             "/io/github/leewyatt/rxcontrols/theme/rx-controls-atlantafx.css";
+
+    /** Resting plus every AtlantaFX button state that rewrites the host background. */
+    private static final List<String> STATE_COMBINATIONS =
+            List.of("", "hover", "armed", "focused", "focused+hover", "focused+armed");
 
     private static final Pattern ROOT_SELECTOR_PATTERN = Pattern.compile("\\.(rx-[a-z0-9-]+)");
 
@@ -409,7 +419,54 @@ public class AtlantaFXThemeBridgeTest {
                         + "':armed' wins the user-agent tie and the label goes dark on the fill)");
     }
 
+    /**
+     * AtlantaFX repaints the button body on {@code :hover}, {@code :armed},
+     * {@code :focused} and the focused pairs, all of which outrank the baseline control
+     * roots. The bridge must hold both flat buttons at a single transparent fill in every
+     * one of those states, because their sweep and ripple clips mirror the host background
+     * fill list and a second layer would change the clipped geometry.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void flatButtonsStayOneTransparentFillInEveryAtlantaFxState() throws Exception {
+        assertSingleTransparentFillInEveryState("rx-fill-button", () -> new RXFillButton("x"));
+        assertSingleTransparentFillInEveryState("rx-line-button", () -> new RXLineButton("x"));
+    }
+
     // ==================== Helpers ====================
+
+    private static void assertSingleTransparentFillInEveryState(String name,
+                                                                Supplier<Control> factory)
+            throws Exception {
+        for (String state : STATE_COMBINATIONS) {
+            AtomicReference<Background> background = new AtomicReference<>();
+            runOnFx(() -> {
+                Control control = factory.get();
+                StackPane host = new StackPane(control);
+                Scene scene = new Scene(host, 160.0, 60.0);
+                AtlantaFXThemeBridge.install(scene);
+                host.applyCss();
+                for (String pseudo : state.split("\\+")) {
+                    if (!pseudo.isEmpty()) {
+                        control.pseudoClassStateChanged(PseudoClass.getPseudoClass(pseudo), true);
+                    }
+                }
+                host.applyCss();
+                host.layout();
+                background.set(control.getBackground());
+            });
+
+            String where = name + " [" + (state.isEmpty() ? "resting" : state) + "]";
+            List<BackgroundFill> fills = background.get().getFills();
+            assertEquals(1, fills.size(), where + " must keep exactly one background fill");
+            BackgroundFill fill = fills.get(0);
+            assertEquals(Color.TRANSPARENT, fill.getFill(), where + " must stay transparent");
+            assertEquals(Insets.EMPTY, fill.getInsets(), where + " must keep zero insets");
+            assertEquals(4.0, fill.getRadii().getTopLeftHorizontalRadius(), 0.0001,
+                    where + " must keep the clip radius");
+        }
+    }
 
     private static Region probe(String token) {
         Region region = new Region();

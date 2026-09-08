@@ -91,6 +91,15 @@
     -fx-text-fill: -rx-on-primary;
 }
 
+/* AtlantaFX repaints the button body on :hover / :armed / :focused and their pairs,
+   outranking the baseline roots; author origin beats all of them at once. */
+.rx-fill-button,
+.rx-line-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+}
+
 /* Per-control re-points for controls whose baseline colors are hardcoded literals
    (not role tokens / not -fx-*), so the token + compat layers above cannot reach
    them. Re-pointed at role tokens, which map to -color-* and therefore auto-flip
