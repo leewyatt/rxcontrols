@@ -12,7 +12,7 @@
        darker-than-base gray (tuned for light themes), unreadable on a dark base. */
     -fx-text-base-color: #e6e7ee;
     -fx-mid-text-color: #a6a8b5;
-    -fx-text-box-border: #3a3d4d;
+    -fx-text-box-border: #4d5166;
     -fx-accent: #7c86ff;
     -fx-focus-color: #7c86ff;
 }

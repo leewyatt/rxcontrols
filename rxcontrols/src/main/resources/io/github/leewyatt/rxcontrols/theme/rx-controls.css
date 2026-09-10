@@ -2032,7 +2032,8 @@
  ******************************************************************************/
 .rx-timeline-view {
     -rx-dot-fill: #409eff;
-    -rx-line-fill: -rx-outline-variant;
+    /* Same token as the tracks: -rx-outline-variant is too faint on dark themes. */
+    -rx-line-fill: -rx-outline;
     -rx-dot-size: 12;
     -rx-line-width: 2;
     -rx-item-spacing: 16;

@@ -92,8 +92,8 @@ public class RXThemeDarkTest {
         EXPECTED.put("on-surface", Color.web("#e6e7ee"));
         EXPECTED.put("on-surface-secondary", Color.web("#a6a8b5"));
         EXPECTED.put("on-surface-disabled", Color.rgb(255, 255, 255, 0.35));
-        EXPECTED.put("outline", Color.web("#3a3d4d"));
-        EXPECTED.put("outline-variant", Color.web("#2c2e3b"));
+        EXPECTED.put("outline", Color.web("#4d5166"));
+        EXPECTED.put("outline-variant", Color.web("#44475a"));
         EXPECTED.put("focus", Color.web("#7c86ff"));
         EXPECTED.put("selection", Color.rgb(124, 134, 255, 0.4));
         EXPECTED.put("state-overlay-color", Color.web("#ffffff"));
@@ -104,8 +104,8 @@ public class RXThemeDarkTest {
         COMPAT.put("-fx-text-base-color", Color.web("#e6e7ee"));
         COMPAT.put("-fx-text-inner-color", Color.web("#e6e7ee"));
         COMPAT.put("-fx-mid-text-color", Color.web("#a6a8b5"));
-        COMPAT.put("-fx-box-border", Color.web("#3a3d4d"));
-        COMPAT.put("-fx-text-box-border", Color.web("#3a3d4d"));
+        COMPAT.put("-fx-box-border", Color.web("#4d5166"));
+        COMPAT.put("-fx-text-box-border", Color.web("#4d5166"));
         COMPAT.put("-fx-accent", Color.web("#7c86ff"));
         COMPAT.put("-fx-focus-color", Color.web("#7c86ff"));
         COMPAT.put("-fx-faint-focus-color", Color.rgb(124, 134, 255, 0.4));
@@ -471,11 +471,11 @@ public class RXThemeDarkTest {
             fills.put("digit unlit", digit.getUnlitFill());
             fills.put("digit lit", digit.getLitFill());
         });
-        assertEquals(Color.web("#3a3d4d"), fills.get("progress bar track"),
+        assertEquals(Color.web("#4d5166"), fills.get("progress bar track"),
                 "progress bar track -> -rx-outline");
-        assertEquals(Color.web("#3a3d4d"), fills.get("step indicator track"),
+        assertEquals(Color.web("#4d5166"), fills.get("step indicator track"),
                 "step indicator track -> -rx-outline");
-        assertEquals(Color.web("#3a3d4d"), fills.get("digit unlit"),
+        assertEquals(Color.web("#4d5166"), fills.get("digit unlit"),
                 "digit unlit -> -rx-outline");
         assertEquals(Color.web("#e6e7ee"), fills.get("digit lit"),
                 "digit lit -> -rx-on-surface");
@@ -500,6 +500,27 @@ public class RXThemeDarkTest {
             track.set(trackFill(steps));
         });
         assertEquals(Color.rgb(255, 255, 255, 0.35), track.get());
+    }
+
+    /**
+     * Under dark, the timeline connector follows {@code -rx-outline}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void timelineConnectorFollowsOutlineUnderDark() throws Exception {
+        AtomicReference<Paint> connector = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTimelineView timeline = new RXTimelineView(new RXTimelineItem("First"), new RXTimelineItem("Second"));
+            StackPane host = new StackPane(timeline);
+            Scene scene = new Scene(host, 300, 200);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            host.layout();
+            Region line = (Region) timeline.lookup(".connector");
+            connector.set(line.getBackground().getFills().get(0).getFill());
+        });
+        assertEquals(Color.web("#4d5166"), connector.get());
     }
 
     // ==================== Revert ====================
