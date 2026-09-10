@@ -11,10 +11,15 @@ import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.theme.AtlantaFXThemeBridge;
 import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ComboBoxBase;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Shared theme choices for the samples — the built-in RxControls light/dark looks
@@ -55,6 +60,41 @@ public final class ShowcaseThemes {
                 new ThemeChoice("AtlantaFX — Cupertino Light", scene -> atlanta(scene, new CupertinoLight())),
                 new ThemeChoice("AtlantaFX — Cupertino Dark", scene -> atlanta(scene, new CupertinoDark())),
                 new ThemeChoice("AtlantaFX — Dracula", scene -> atlanta(scene, new Dracula())));
+    }
+
+    /**
+     * Makes selecting a choice in the picker apply that theme to the scene. A choice picked
+     * while the popup is still open is applied only after the popup has hidden, because
+     * switching themes under an open popup logs a burst of CSS lookup warnings.
+     *
+     * @param picker        the theme picker
+     * @param sceneSupplier supplies the scene to theme; nothing is applied while it returns
+     *                      {@code null}
+     */
+    public static void bindPicker(ComboBox<ThemeChoice> picker, Supplier<Scene> sceneSupplier) {
+        EventHandler<Event> applyWhenHidden = new EventHandler<>() {
+            @Override
+            public void handle(Event event) {
+                // Detach first so a theme that fails to apply cannot leave the handler behind.
+                picker.removeEventHandler(ComboBoxBase.ON_HIDDEN, this);
+                applyChoice(picker.getValue(), sceneSupplier.get());
+            }
+        };
+        picker.valueProperty().addListener((obs, old, choice) -> {
+            if (picker.isShowing()) {
+                // Several changes while the popup is open still leave a single pending apply.
+                picker.removeEventHandler(ComboBoxBase.ON_HIDDEN, applyWhenHidden);
+                picker.addEventHandler(ComboBoxBase.ON_HIDDEN, applyWhenHidden);
+            } else {
+                applyChoice(choice, sceneSupplier.get());
+            }
+        });
+    }
+
+    private static void applyChoice(ThemeChoice choice, Scene scene) {
+        if (choice != null && scene != null) {
+            choice.apply().accept(scene);
+        }
     }
 
     // Samples-owned application-level chrome (window background, standard controls,

@@ -57,11 +57,7 @@ public class RXThemeGallery extends Application {
         List<ThemeChoice> choices = ShowcaseThemes.all();
         ComboBox<ThemeChoice> picker = new ComboBox<>();
         picker.getItems().setAll(choices);
-        picker.valueProperty().addListener((obs, old, choice) -> {
-            if (choice != null) {
-                choice.apply().accept(scene);
-            }
-        });
+        ShowcaseThemes.bindPicker(picker, () -> scene);
         picker.setValue(choices.get(0)); // start on RxControls light
 
         HBox toolbar = new HBox(12, new Label("Theme:"), picker);

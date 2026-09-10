@@ -166,11 +166,7 @@ public abstract class RXShowcaseApplication extends Application {
         ComboBox<ThemeChoice> picker = new ComboBox<>();
         picker.getItems().setAll(ShowcaseThemes.all());
         picker.setMaxWidth(Double.MAX_VALUE);
-        picker.valueProperty().addListener((obs, old, choice) -> {
-            if (choice != null && scene != null) {
-                choice.apply().accept(scene);
-            }
-        });
+        ShowcaseThemes.bindPicker(picker, () -> scene);
         themePicker = picker;
 
         Label label = new Label("Theme");
