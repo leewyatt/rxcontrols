@@ -421,9 +421,7 @@ public class RXThemeDarkTest {
     }
 
     /**
-     * The check box, radio button and switch replace the Modena style classes that gave
-     * their label a theme-aware color, so their label must follow {@code -rx-on-surface}
-     * itself; otherwise it stays the default black on the dark surface.
+     * Check box, radio button and switch labels follow {@code -rx-on-surface} under dark.
      *
      * @throws Exception if the FX action fails
      */

@@ -302,9 +302,7 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     /**
-     * The check box, radio button and switch replace the Modena style classes that gave
-     * their label a theme-aware color; their label must follow {@code -rx-on-surface},
-     * which the bridge maps to {@code -color-fg-default}.
+     * Check box, radio button and switch labels follow {@code -rx-on-surface} under the bridge.
      *
      * @throws Exception if the FX action fails
      */
