@@ -61,7 +61,7 @@
 
     /* Modena base palette that AtlantaFX does not define. RxControls component
        rules that still reference raw -fx-* colors directly (the not-yet
-       role-tokenized recolor backlog: cascader, digit, focus glow, …) would
+       role-tokenized recolor backlog: cascader, focus glow, …) would
        otherwise fail to resolve under AtlantaFX and render transparent/black.
        Supplying them here (author origin, on the control roots) keeps those
        controls following the theme until they are migrated to role tokens. */

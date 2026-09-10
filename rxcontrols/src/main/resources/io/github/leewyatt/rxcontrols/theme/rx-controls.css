@@ -1399,7 +1399,7 @@
  ******************************************************************************/
 .rx-segmented-progress-bar {
     -rx-filled-color: -rx-primary;
-    -rx-unfilled-color: rgba(0, 0, 0, 0.12);
+    -rx-unfilled-color: -rx-outline;
 }
 
 .rx-segmented-progress-bar > .track {
@@ -1423,7 +1423,7 @@
  ******************************************************************************/
 .rx-segmented-step-indicator {
     -rx-filled-color: -rx-primary;
-    -rx-unfilled-color: rgba(0, 0, 0, 0.12);
+    -rx-unfilled-color: -rx-outline;
 }
 
 .rx-segmented-step-indicator > .track {
@@ -1434,6 +1434,16 @@
 .rx-segmented-step-indicator > .segment-fill {
     -fx-background-color: -rx-filled-color;
     -fx-background-radius: 2px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXDigit                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.rx-digit {
+    -rx-lit-fill: -rx-on-surface;
+    -rx-unlit-fill: -rx-outline;
 }
 
 /*******************************************************************************

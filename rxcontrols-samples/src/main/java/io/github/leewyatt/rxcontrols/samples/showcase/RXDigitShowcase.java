@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -17,6 +18,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
 import java.util.List;
 
@@ -25,6 +27,8 @@ import java.util.List;
  *
  * <p>Exercises every public knob: the displayed value (with out-of-range
  * clamping made observable), the lit/unlit segment colors, and the node size.
+ * Segment colors follow the active theme until "Custom colors" is checked; the
+ * digit strip under the live digit always follows the theme.
  * The size section is the focus — a width slider drives the control, an
  * optional height slider lets the box go off the intrinsic {@code 1 : 2} ratio,
  * and the dashed border around the live digit reveals how the glyph stays
@@ -166,32 +170,44 @@ public class RXDigitShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        ColorPicker litPicker = new ColorPicker(Color.BLACK);
-        litPicker.setMaxWidth(Double.MAX_VALUE);
-        liveDigit.litFillProperty().bind(litPicker.valueProperty());
+        CheckBox customColors = new CheckBox("Custom colors");
+        BooleanBinding usingThemeColors = customColors.selectedProperty().not();
 
-        ColorPicker unlitPicker = new ColorPicker(Color.web("#dddddd"));
-        unlitPicker.setMaxWidth(Double.MAX_VALUE);
+        ColorPicker litPicker = createFillPicker(usingThemeColors);
+        ColorPicker unlitPicker = createFillPicker(usingThemeColors);
 
-        CheckBox hideUnlit = new CheckBox("Hide unlit segments");
-        // Demonstrates the B1 null contract: a null unlitFill renders the unlit
-        // segments transparent (the classic single-color LED look).
-        liveDigit.unlitFillProperty().bind(Bindings.createObjectBinding(
-                () -> hideUnlit.isSelected() ? null : unlitPicker.getValue(),
-                hideUnlit.selectedProperty(), unlitPicker.valueProperty()));
-        unlitPicker.disableProperty().bind(hideUnlit.selectedProperty());
+        // Inline styles beat every stylesheet, and clearing them gives the colors
+        // back to the theme; a fill set or bound in code would keep its value.
+        Runnable applyColors = () -> liveDigit.setStyle(customColors.isSelected()
+                ? "-rx-lit-fill: " + SampleColors.toCss(litPicker.getValue())
+                + "; -rx-unlit-fill: " + SampleColors.toCss(unlitPicker.getValue()) + ";"
+                : "");
+        customColors.selectedProperty().addListener((obs, wasCustom, custom) -> {
+            if (custom) {
+                // Read both fills before the style changes: a new inline style resets
+                // them to their initial values until CSS is applied again.
+                Paint lit = liveDigit.getLitFill();
+                Paint unlit = liveDigit.getUnlitFill();
+                seedPicker(litPicker, lit);
+                seedPicker(unlitPicker, unlit);
+            }
+            applyColors.run();
+        });
+        litPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+        unlitPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
 
         Button randomize = new Button("Randomize colors");
         randomize.setMaxWidth(Double.MAX_VALUE);
+        randomize.disableProperty().bind(usingThemeColors);
         randomize.setOnAction(event -> {
             litPicker.setValue(SampleColors.randomDark());
             unlitPicker.setValue(SampleColors.randomLight());
         });
 
         return createGrid(
+                row(customColors),
                 row("Lit", litPicker),
                 row("Unlit", unlitPicker),
-                row(hideUnlit),
                 row(randomize));
     }
 
@@ -204,7 +220,6 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         for (int i = DIGIT_MIN; i <= DIGIT_MAX; i++) {
             RXDigit glyph = new RXDigit(i);
             glyph.setPrefSize(22.0, 44.0);
-            glyph.setLitFill(SampleColors.randomDark());
             strip.getChildren().add(glyph);
         }
         return strip;
@@ -214,6 +229,19 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         for (Node node : nodes) {
             node.visibleProperty().bind(visible);
             node.managedProperty().bind(node.visibleProperty());
+        }
+    }
+
+    private static ColorPicker createFillPicker(ObservableValue<Boolean> disabled) {
+        ColorPicker picker = new ColorPicker();
+        picker.setMaxWidth(Double.MAX_VALUE);
+        picker.disableProperty().bind(disabled);
+        return picker;
+    }
+
+    private static void seedPicker(ColorPicker picker, Paint fill) {
+        if (fill instanceof Color) {
+            picker.setValue((Color) fill);
         }
     }
 

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSeekBarDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -135,18 +136,10 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
         }
         seekBar.setStyle(String.format(Locale.ROOT,
                 "-rx-track-fill: %s; -rx-secondary-fill: %s; -rx-bar-fill: %s; -rx-thumb-fill: %s;",
-                toCss(trackPicker.getValue()),
-                toCss(secondaryPicker.getValue()),
-                toCss(barPicker.getValue()),
-                toCss(thumbPicker.getValue())));
-    }
-
-    private static String toCss(Color color) {
-        int red = (int) Math.round(color.getRed() * 255.0);
-        int green = (int) Math.round(color.getGreen() * 255.0);
-        int blue = (int) Math.round(color.getBlue() * 255.0);
-        return String.format(Locale.ROOT, "rgba(%d,%d,%d,%.3f)",
-                red, green, blue, color.getOpacity());
+                SampleColors.toCss(trackPicker.getValue()),
+                SampleColors.toCss(secondaryPicker.getValue()),
+                SampleColors.toCss(barPicker.getValue()),
+                SampleColors.toCss(thumbPicker.getValue())));
     }
 
     /**

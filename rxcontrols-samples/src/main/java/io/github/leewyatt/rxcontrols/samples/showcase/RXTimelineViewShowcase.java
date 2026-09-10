@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTimelineViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -19,7 +20,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Showcase application for {@link RXTimelineView}.
@@ -304,8 +304,8 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     // ==================== Helpers ====================
 
     private void applyViewColors() {
-        timeline.setStyle("-rx-dot-fill: " + toCss(viewDotFill)
-                + "; -rx-line-fill: " + toCss(viewLineFill) + ";");
+        timeline.setStyle("-rx-dot-fill: " + SampleColors.toCss(viewDotFill)
+                + "; -rx-line-fill: " + SampleColors.toCss(viewLineFill) + ";");
     }
 
     private void applyItemDotColor() {
@@ -379,14 +379,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         heading.setStyle("-fx-font-weight: bold;");
         Label body = new Label("Any Node via content.");
         return new VBox(4.0, heading, body);
-    }
-
-    private static String toCss(Color color) {
-        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
-                (int) Math.round(color.getRed() * 255.0),
-                (int) Math.round(color.getGreen() * 255.0),
-                (int) Math.round(color.getBlue() * 255.0),
-                color.getOpacity());
     }
 
     /**

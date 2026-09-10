@@ -2,19 +2,22 @@ package io.github.leewyatt.rxcontrols.samples.support;
 
 import javafx.scene.paint.Color;
 
+import java.util.Locale;
 import java.util.Random;
 
 /**
- * Random color helpers shared by the RXControls samples. Colors are generated
+ * Color helpers shared by the RXControls samples. Random colors are generated
  * in HSB space so brightness can be constrained per use case — a plain vivid
  * color, a dark one that reads on light backgrounds, or a light pastel that
- * reads on dark backgrounds.
+ * reads on dark backgrounds. {@link #toCss(Color)} turns a color into an
+ * inline-style value.
  */
 public final class SampleColors {
 
     private static final Random RANDOM = new Random();
 
     private static final double FULL_HUE = 360.0;
+    private static final double CHANNEL_MAX = 255.0;
 
     // Any vivid color (saturated, mid-bright).
     private static final double ANY_SATURATION_MIN = 0.55;
@@ -64,6 +67,20 @@ public final class SampleColors {
      */
     public static Color randomLight() {
         return hsb(LIGHT_SATURATION_MIN, LIGHT_SATURATION_MAX, LIGHT_BRIGHTNESS_MIN, LIGHT_BRIGHTNESS_MAX);
+    }
+
+    /**
+     * Formats a color as a CSS {@code rgba()} value for inline styles.
+     *
+     * @param color the color to format
+     * @return the CSS value, e.g. {@code rgba(97, 109, 254, 1.000)}
+     */
+    public static String toCss(Color color) {
+        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
+                (int) Math.round(color.getRed() * CHANNEL_MAX),
+                (int) Math.round(color.getGreen() * CHANNEL_MAX),
+                (int) Math.round(color.getBlue() * CHANNEL_MAX),
+                color.getOpacity());
     }
 
     private static Color hsb(double satMin, double satMax, double brightMin, double brightMax) {

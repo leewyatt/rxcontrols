@@ -5,9 +5,12 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
+import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
+import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
+import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
@@ -326,6 +329,39 @@ public class AtlantaFXThemeBridgeTest {
                 name + " label must follow -rx-on-surface -> -color-fg-default under the bridge"));
     }
 
+    /**
+     * Under the bridge, segmented tracks and unlit digit segments follow {@code -rx-outline}
+     * and lit digit segments follow {@code -rx-on-surface}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void unfilledTracksAndDigitSegmentsFollowTokensUnderTheBridge() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXSegmentedProgressBar bar = new RXSegmentedProgressBar();
+            RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator();
+            RXDigit digit = new RXDigit();
+            StackPane host = new StackPane(bar, steps, digit);
+            Scene scene = new Scene(host, 300, 120);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            host.layout();
+            fills.put("progress bar track", trackFill(bar));
+            fills.put("step indicator track", trackFill(steps));
+            fills.put("digit unlit", digit.getUnlitFill());
+            fills.put("digit lit", digit.getLitFill());
+        });
+        assertEquals(Color.web("#d0d7de"), fills.get("progress bar track"),
+                "progress bar track -> -color-border-default");
+        assertEquals(Color.web("#d0d7de"), fills.get("step indicator track"),
+                "step indicator track -> -color-border-default");
+        assertEquals(Color.web("#d0d7de"), fills.get("digit unlit"),
+                "digit unlit -> -color-border-default");
+        assertEquals(Color.web("#24292f"), fills.get("digit lit"),
+                "digit lit -> -color-fg-default");
+    }
+
     // ==================== Subtree scoping ====================
 
     /**
@@ -464,6 +500,11 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     // ==================== Helpers ====================
+
+    private static Paint trackFill(Node control) {
+        Region track = (Region) control.lookup(".track");
+        return track.getBackground().getFills().get(0).getFill();
+    }
 
     private static void assertSingleTransparentFillInEveryState(String name,
                                                                 Supplier<Control> factory)

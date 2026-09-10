@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXDotPulse.AnimationMode;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDotPulseDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -19,7 +20,6 @@ import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Showcase application for {@link RXDotPulse}.
@@ -196,18 +196,10 @@ public class RXDotPulseShowcase extends RXShowcaseApplication {
         ColorPicker colorPicker = new ColorPicker(Color.web("#616dfe"));
         colorPicker.setMaxWidth(Double.MAX_VALUE);
         colorPicker.valueProperty().addListener((obs, oldV, newV) ->
-                mainIndicator.setStyle("-rx-dot-fill: " + toCssRgba(newV) + ";"));
+                mainIndicator.setStyle("-rx-dot-fill: " + SampleColors.toCss(newV) + ";"));
 
         return createGrid(
                 row("Dot color", colorPicker));
-    }
-
-    private static String toCssRgba(Color c) {
-        return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.3f)",
-                (int) Math.round(c.getRed() * 255.0),
-                (int) Math.round(c.getGreen() * 255.0),
-                (int) Math.round(c.getBlue() * 255.0),
-                c.getOpacity());
     }
 
     private Node buildTimingGrid() {

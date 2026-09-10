@@ -9,7 +9,7 @@
  *                                                                             *
  * Scope = RxControls components only (all rules are on the control roots): the  *
  * role tokens plus a Modena -fx-* compat block on those roots, so our controls  *
- * that still use raw -fx-* (cascader, digit, …) render dark too. It does NOT    *
+ * that still use raw -fx-* (cascader, …) render dark too. It does NOT           *
  * theme the host window, standard JavaFX controls, or app chrome — that is the  *
  * application's job (the samples provide it via rx-showcase-dark.css). The      *
  * selector list MUST stay identical to the baseline in rx-controls.css.        *

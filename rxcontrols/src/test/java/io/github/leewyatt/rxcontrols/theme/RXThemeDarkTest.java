@@ -3,8 +3,11 @@ package io.github.leewyatt.rxcontrols.theme;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
+import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
+import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
+import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
@@ -445,6 +448,60 @@ public class RXThemeDarkTest {
                 name + " label must follow -rx-on-surface under dark"));
     }
 
+    /**
+     * Under dark, segmented tracks and unlit digit segments follow {@code -rx-outline}
+     * and lit digit segments follow {@code -rx-on-surface}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void unfilledTracksAndDigitSegmentsFollowTokensUnderDark() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXSegmentedProgressBar bar = new RXSegmentedProgressBar();
+            RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator();
+            RXDigit digit = new RXDigit();
+            StackPane host = new StackPane(bar, steps, digit);
+            Scene scene = new Scene(host, 300, 120);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            host.layout();
+            fills.put("progress bar track", trackFill(bar));
+            fills.put("step indicator track", trackFill(steps));
+            fills.put("digit unlit", digit.getUnlitFill());
+            fills.put("digit lit", digit.getLitFill());
+        });
+        assertEquals(Color.web("#3a3d4d"), fills.get("progress bar track"),
+                "progress bar track -> -rx-outline");
+        assertEquals(Color.web("#3a3d4d"), fills.get("step indicator track"),
+                "step indicator track -> -rx-outline");
+        assertEquals(Color.web("#3a3d4d"), fills.get("digit unlit"),
+                "digit unlit -> -rx-outline");
+        assertEquals(Color.web("#e6e7ee"), fills.get("digit lit"),
+                "digit lit -> -rx-on-surface");
+    }
+
+    /**
+     * The carousel navigator keeps its translucent white step track under dark.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void carouselNavigatorTrackStaysTranslucentWhiteUnderDark() throws Exception {
+        AtomicReference<Paint> track = new AtomicReference<>();
+        runOnFx(() -> {
+            RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator();
+            StackPane navigator = new StackPane(steps);
+            navigator.getStyleClass().add("segmented-progress-navigator");
+            Scene scene = new Scene(navigator, 300, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            navigator.applyCss();
+            navigator.layout();
+            track.set(trackFill(steps));
+        });
+        assertEquals(Color.rgb(255, 255, 255, 0.35), track.get());
+    }
+
     // ==================== Revert ====================
 
     /**
@@ -492,6 +549,11 @@ public class RXThemeDarkTest {
     }
 
     // ==================== Helpers ====================
+
+    private static Paint trackFill(Node control) {
+        Region track = (Region) control.lookup(".track");
+        return track.getBackground().getFills().get(0).getFill();
+    }
 
     private static Region probe(String paint) {
         Region region = new Region();
