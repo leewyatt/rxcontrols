@@ -2,9 +2,12 @@ package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
+import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -14,6 +17,7 @@ import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -414,6 +418,33 @@ public class RXThemeDarkTest {
                 "selected segment label must stay dark on the white pill (not light-on-white)");
         assertEquals(Color.web("#e6e7ee"), unselectedFill.get(),
                 "unselected segment label must be light on the dark track");
+    }
+
+    /**
+     * The check box, radio button and switch replace the Modena style classes that gave
+     * their label a theme-aware color, so their label must follow {@code -rx-on-surface}
+     * itself; otherwise it stays the default black on the dark surface.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void toggleLabelsFollowOnSurfaceUnderDark() throws Exception {
+        Map<String, Paint> textFills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            List<Labeled> toggles = List.of(
+                    new RXCheckBox("check"), new RXRadioButton("radio"), new RXSwitchButton("switch"));
+            StackPane host = new StackPane(toggles.toArray(new Node[0]));
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            host.layout();
+            for (Labeled toggle : toggles) {
+                textFills.put(toggle.getClass().getSimpleName(), toggle.getTextFill());
+            }
+        });
+        assertEquals(3, textFills.size());
+        textFills.forEach((name, fill) -> assertEquals(Color.web("#e6e7ee"), fill,
+                name + " label must follow -rx-on-surface under dark"));
     }
 
     // ==================== Revert ====================

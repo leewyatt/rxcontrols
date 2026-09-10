@@ -4,8 +4,11 @@ import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
+import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXLineButton;
+import io.github.leewyatt.rxcontrols.RXRadioButton;
+import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -16,6 +19,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.Control;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -295,6 +299,33 @@ public class AtlantaFXThemeBridgeTest {
         });
         assertEquals(Color.web("#24292f"), textFill.get(),
                 "RXTextView text must follow -rx-on-surface -> -color-fg-default under the bridge");
+    }
+
+    /**
+     * The check box, radio button and switch replace the Modena style classes that gave
+     * their label a theme-aware color; their label must follow {@code -rx-on-surface},
+     * which the bridge maps to {@code -color-fg-default}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void toggleLabelsFollowOnSurfaceUnderTheBridge() throws Exception {
+        Map<String, Paint> textFills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            List<Labeled> toggles = List.of(
+                    new RXCheckBox("check"), new RXRadioButton("radio"), new RXSwitchButton("switch"));
+            StackPane host = new StackPane(toggles.toArray(new Node[0]));
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            host.layout();
+            for (Labeled toggle : toggles) {
+                textFills.put(toggle.getClass().getSimpleName(), toggle.getTextFill());
+            }
+        });
+        assertEquals(3, textFills.size());
+        textFills.forEach((name, fill) -> assertEquals(Color.web("#24292f"), fill,
+                name + " label must follow -rx-on-surface -> -color-fg-default under the bridge"));
     }
 
     // ==================== Subtree scoping ====================

@@ -573,6 +573,8 @@
     /* transparent fill (not "no fill") so the whole control bounds is a click /
        touch target, including the gap between the box and the label. */
     -fx-background-color: transparent;
+    /* The Modena check-box class is replaced, so the label color is declared here. */
+    -fx-text-fill: -rx-on-surface;
 }
 
 /* The .box is the 40px circular touch target (= the halo size): a transparent base
@@ -642,6 +644,8 @@
     /* transparent fill (not "no fill") so the whole control bounds is a click /
        touch target, including the gap between the label and the switch block. */
     -fx-background-color: transparent;
+    /* No Modena control class styles this label, so its color is declared here. */
+    -fx-text-fill: -rx-on-surface;
 }
 .rx-switch-button:left {
     -fx-label-padding: 0 0 0 0.5em;
@@ -751,6 +755,8 @@
     /* transparent fill (not "no fill") so the whole control bounds is a click /
        touch target, including the gap between the ring and the label. */
     -fx-background-color: transparent;
+    /* The Modena radio-button class is replaced, so the label color is declared here. */
+    -fx-text-fill: -rx-on-surface;
 }
 
 /* The .radio is the 36px circular touch target (= the halo size): a transparent fill
