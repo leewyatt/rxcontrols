@@ -1,37 +1,24 @@
 .text-view-preview {
     -fx-padding: 24px;
-    -fx-background-color: #ffffff;
-    -fx-border-color: #d8e0ea;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.10), 16, 0, 0, 5);
 }
 
 .text-view-preview .showcase-text-view {
     -fx-padding: 16px;
-    -fx-background-color: #f8fafc;
-    -fx-border-color: #d5dde8;
+    -fx-background-color: -rx-surface-variant;
+    -fx-border-color: -rx-outline;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-font-size: 15px;
 }
 
 .text-view-preview .status-label {
-    -fx-text-fill: #344054;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-family: "Menlo", "Consolas", monospace;
 }
 
 .control-pane .text-area {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #cfd5df;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
     -fx-font-family: "Menlo", "Consolas", monospace;
     -fx-font-size: 12px;
-}
-
-.control-pane .text-area .content {
-    -fx-background-color: #ffffff;
 }
 
 .control-pane .value-label {

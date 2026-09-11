@@ -50,6 +50,7 @@
     -rx-outline-variant: #c0c4cc;
     -rx-focus: -fx-focus-color;
     -rx-selection: rgba(0, 120, 215, 0.3);
+    -rx-highlight: #ffff00;
     /* interaction state overlay (ripple / hover tint); dark theme flips to white */
     -rx-state-overlay-color: black;
     /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
@@ -226,13 +227,13 @@
 }
 
 .rx-text-view {
-    -rx-text-fill: #1b1f2a;
+    -rx-text-fill: -rx-on-surface;
     -rx-selection-fill: -rx-selection;
-    -rx-selected-text-fill: #1b1f2a;
+    -rx-selected-text-fill: -rx-on-surface;
 }
 
 .rx-highlight-text-view {
-    -rx-highlight-fill: #ffff00;
+    -rx-highlight-fill: -rx-highlight;
 }
 
 
@@ -2856,6 +2857,16 @@
 .rx-snackbar-host > .snackbar.rx-snackbar-warning > .action,
 .rx-snackbar-host > .snackbar.rx-snackbar-error > .action {
     -fx-text-fill: white;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSkeleton                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.rx-skeleton {
+    /* -8% measured to match the former #e0e0e0 on the light baseline */
+    -rx-base-color: ladder(-rx-surface, -rx-surface-variant 49%, derive(-rx-surface-variant, -8%) 50%);
 }
 
 /*******************************************************************************

@@ -17,7 +17,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 
 import java.util.List;
@@ -188,8 +187,8 @@ public class RXDigitShowcase extends RXShowcaseApplication {
                 // them to their initial values until CSS is applied again.
                 Paint lit = liveDigit.getLitFill();
                 Paint unlit = liveDigit.getUnlitFill();
-                seedPicker(litPicker, lit);
-                seedPicker(unlitPicker, unlit);
+                SampleColors.seed(litPicker, lit);
+                SampleColors.seed(unlitPicker, unlit);
             }
             applyColors.run();
         });
@@ -237,12 +236,6 @@ public class RXDigitShowcase extends RXShowcaseApplication {
         picker.setMaxWidth(Double.MAX_VALUE);
         picker.disableProperty().bind(disabled);
         return picker;
-    }
-
-    private static void seedPicker(ColorPicker picker, Paint fill) {
-        if (fill instanceof Color) {
-            picker.setValue((Color) fill);
-        }
     }
 
     /**

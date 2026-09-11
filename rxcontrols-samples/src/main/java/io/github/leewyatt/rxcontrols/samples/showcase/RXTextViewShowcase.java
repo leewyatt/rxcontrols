@@ -2,7 +2,10 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -15,7 +18,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.text.TextAlignment;
 
 import java.util.List;
@@ -27,7 +30,8 @@ import java.util.Locale;
  * <p>Exercises the editable source text, the selection API (select-all, deselect, select
  * a range, copy), the read-only selection-state readout, the {@code selectable} toggle,
  * text alignment, line spacing, preview width, and the colour properties for the text, the
- * selection background, and the selected-text foreground.</p>
+ * selection background, and the selected-text foreground. The colours follow the active
+ * theme until "Custom colors" is checked.</p>
  */
 public class RXTextViewShowcase extends RXShowcaseApplication {
 
@@ -40,9 +44,6 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
     private static final int SELECTED_TEXT_ABBREVIATION_LIMIT = 24;
 
     private RXTextView textView;
-    private ColorPicker textFillPicker;
-    private ColorPicker selectionFillPicker;
-    private ColorPicker selectedTextFillPicker;
 
     // ==================== Showcase wiring ====================
 
@@ -171,16 +172,39 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        // Opaque selection + white selected text out of the box, so the selected-text
-        // foreground override is visible without touching the pickers first.
-        textFillPicker = createColorPicker(Color.web("#1b1f2a"));
-        selectionFillPicker = createColorPicker(Color.web("#0078d7"));
-        selectedTextFillPicker = createColorPicker(Color.WHITE);
-        textFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
-        selectionFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
-        selectedTextFillPicker.valueProperty().addListener((obs, oldValue, newValue) -> updateColors());
-        updateColors();
+        CheckBox customColors = new CheckBox("Custom colors");
+        BooleanBinding usingThemeColors = customColors.selectedProperty().not();
+
+        ColorPicker textFillPicker = createColorPicker(usingThemeColors);
+        ColorPicker selectionFillPicker = createColorPicker(usingThemeColors);
+        ColorPicker selectedTextFillPicker = createColorPicker(usingThemeColors);
+
+        // Inline styles beat every stylesheet, and clearing them gives the colors
+        // back to the theme; a fill set in code would keep its value.
+        Runnable applyColors = () -> textView.setStyle(customColors.isSelected()
+                ? "-rx-text-fill: " + SampleColors.toCss(textFillPicker.getValue())
+                + "; -rx-selection-fill: " + SampleColors.toCss(selectionFillPicker.getValue())
+                + "; -rx-selected-text-fill: " + SampleColors.toCss(selectedTextFillPicker.getValue()) + ";"
+                : "");
+        customColors.selectedProperty().addListener((obs, wasCustom, custom) -> {
+            if (custom) {
+                // Read every fill before the style changes: a new inline style resets
+                // them to their initial values until CSS is applied again.
+                Paint text = textView.getTextFill();
+                Paint selection = textView.getSelectionFill();
+                Paint selectedText = textView.getSelectedTextFill();
+                SampleColors.seed(textFillPicker, text);
+                SampleColors.seed(selectionFillPicker, selection);
+                SampleColors.seed(selectedTextFillPicker, selectedText);
+            }
+            applyColors.run();
+        });
+        textFillPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+        selectionFillPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+        selectedTextFillPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+
         return createGrid(
+                row(customColors),
                 row("Text", textFillPicker),
                 row("Selection", selectionFillPicker),
                 row("Selected text", selectedTextFillPicker));
@@ -188,19 +212,11 @@ public class RXTextViewShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    private ColorPicker createColorPicker(Color color) {
-        ColorPicker picker = new ColorPicker(color);
+    private static ColorPicker createColorPicker(ObservableValue<Boolean> disabled) {
+        ColorPicker picker = new ColorPicker();
         picker.setMaxWidth(Double.MAX_VALUE);
+        picker.disableProperty().bind(disabled);
         return picker;
-    }
-
-    private void updateColors() {
-        if (textView == null) {
-            return;
-        }
-        textView.setTextFill(textFillPicker.getValue());
-        textView.setSelectionFill(selectionFillPicker.getValue());
-        textView.setSelectedTextFill(selectedTextFillPicker.getValue());
     }
 
     private String abbreviate(String text) {

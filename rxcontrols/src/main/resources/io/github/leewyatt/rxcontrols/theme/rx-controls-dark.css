@@ -55,6 +55,7 @@
     -rx-outline-variant: #44475a;
     -rx-focus: -rx-primary;
     -rx-selection: rgba(124, 134, 255, 0.4);
+    -rx-highlight: rgba(230, 162, 60, 0.4);
     /* interaction state overlay (ripple / hover tint) flips to white on dark */
     -rx-state-overlay-color: white;
     /* elevation: keep the umbra a black shadow on dark (a white one would glow);
@@ -94,12 +95,6 @@
    reach them. Each is re-pointed at a dark role token. The long-term fix is to
    tokenize these in the baseline (recolor backlog), at which point these drop out.
    First-cut values — tune on screen. */
-
-/* RXTextView body text is a literal near-black; would be unreadable on the dark surface. */
-.rx-text-view {
-    -rx-text-fill: -rx-on-surface;
-    -rx-selected-text-fill: -rx-on-surface;
-}
 
 /* Cascader field / column / hover-focus greys are baseline `derive(-fx-*, -N%)`
    formulas tuned for the light surface; on the dark surface they subtract from
@@ -151,12 +146,6 @@
 /* Avatar placeholder disc is a light-grey literal; the white glyph reads fine on a dark disc. */
 .rx-avatar > .default-icon-wrapper {
     -fx-background-color: -rx-surface-variant;
-}
-
-/* Skeleton base is a light-grey Java-side literal that would glare on the dark
-   surface; the translucent white shimmer stays and reads as a subtle sheen. */
-.rx-skeleton {
-    -rx-base-color: -rx-surface-variant;
 }
 
 /* Snackbar is an inverse surface: on the dark theme the bar flips light with

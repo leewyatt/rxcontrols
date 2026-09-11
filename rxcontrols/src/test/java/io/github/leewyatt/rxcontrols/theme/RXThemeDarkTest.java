@@ -5,11 +5,13 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
@@ -96,6 +98,7 @@ public class RXThemeDarkTest {
         EXPECTED.put("outline-variant", Color.web("#44475a"));
         EXPECTED.put("focus", Color.web("#7c86ff"));
         EXPECTED.put("selection", Color.rgb(124, 134, 255, 0.4));
+        EXPECTED.put("highlight", Color.rgb(230, 162, 60, 0.4));
         EXPECTED.put("state-overlay-color", Color.web("#ffffff"));
 
         COMPAT.put("-fx-base", Color.web("#1e1f2b"));
@@ -335,14 +338,12 @@ public class RXThemeDarkTest {
     }
 
     /**
-     * Controls whose colors are baseline literals (not tokens / not {@code -fx-*})
-     * are recolored dark by the overlay's per-control flip rules — guarded here via
-     * {@code RXTextView}, whose literal near-black text would otherwise be unreadable.
+     * Under dark, {@code RXTextView} text follows {@code -rx-on-surface}.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void darkOverlayRecolorsLiteralColoredControls() throws Exception {
+    public void textViewFollowsOnSurfaceUnderDark() throws Exception {
         AtomicReference<Paint> textFill = new AtomicReference<>();
         runOnFx(() -> {
             RXTextView textView = new RXTextView("hello");
@@ -354,7 +355,7 @@ public class RXThemeDarkTest {
             textFill.set(textView.getTextFill());
         });
         assertEquals(Color.web("#e6e7ee"), textFill.get(),
-                "RXTextView text must follow -rx-on-surface under dark (literal #1b1f2a would be unreadable)");
+                "RXTextView text must follow -rx-on-surface under dark");
     }
 
     /**
@@ -521,6 +522,74 @@ public class RXThemeDarkTest {
             connector.set(line.getBackground().getFills().get(0).getFill());
         });
         assertEquals(Color.web("#4d5166"), connector.get());
+    }
+
+    /**
+     * Under dark, the {@code RXHighlightTextView} keyword background follows {@code -rx-highlight}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void highlightFillFollowsHighlightTokenUnderDark() throws Exception {
+        AtomicReference<Paint> highlightFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXHighlightTextView view = new RXHighlightTextView("hello");
+            StackPane host = new StackPane(view);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            highlightFill.set(view.getHighlightFill());
+        });
+        assertEquals(Color.rgb(230, 162, 60, 0.4), highlightFill.get(),
+                "RXHighlightTextView keyword background must follow -rx-highlight under dark");
+    }
+
+    /**
+     * Under dark, text colors set in code on an {@code RXTextView} are kept.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void codeSetTextViewColorsSurviveDark() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXTextView textView = new RXTextView("hello");
+            textView.setTextFill(Color.RED);
+            textView.setSelectedTextFill(Color.BLUE);
+            StackPane host = new StackPane(textView);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            fills.put("text", textView.getTextFill());
+            fills.put("selected text", textView.getSelectedTextFill());
+        });
+        assertEquals(Color.RED, fills.get("text"), "text fill set in code");
+        assertEquals(Color.BLUE, fills.get("selected text"), "selected text fill set in code");
+    }
+
+    /**
+     * Under dark, a skeleton base color set in code is kept and the default follows {@code -rx-surface-variant}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void skeletonBaseColorUnderDark() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXSkeleton plain = new RXSkeleton();
+            RXSkeleton coded = new RXSkeleton();
+            coded.setBaseColor(Color.RED);
+            // One scene each: on JavaFX 17-23 a default sibling's cached style overrides values set in code.
+            for (RXSkeleton skeleton : List.of(plain, coded)) {
+                StackPane host = new StackPane(skeleton);
+                RXTheme.install(new Scene(host, 200, 80), RXTheme.Variant.DARK);
+                host.applyCss();
+            }
+            fills.put("default", plain.getBaseColor());
+            fills.put("code-set", coded.getBaseColor());
+        });
+        assertEquals(Color.web("#2a2c3a"), fills.get("default"), "default base -> -rx-surface-variant");
+        assertEquals(Color.RED, fills.get("code-set"), "base color set in code");
     }
 
     // ==================== Revert ====================

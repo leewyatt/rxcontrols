@@ -7,10 +7,12 @@ import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
+import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
@@ -111,6 +113,7 @@ public class AtlantaFXThemeBridgeTest {
         EXPECTED.put("outline-variant", Color.web("#d0d7de"));  // -color-border-muted
         EXPECTED.put("focus", Color.web("#0969da"));            // -color-accent-emphasis
         EXPECTED.put("selection", Color.rgb(84, 174, 255, 0.4)); // -color-accent-muted
+        EXPECTED.put("highlight", Color.rgb(212, 167, 44, 0.4)); // -color-warning-muted
         EXPECTED.put("state-overlay-color", Color.web("#24292f")); // -color-fg-default
     }
 
@@ -281,15 +284,12 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Controls whose baseline colors are hardcoded literals (text-view text, …)
-     * follow the bridge via the flip-list re-points; checked through
-     * {@code RXTextView}, whose literal near-black would be wrong under AtlantaFX
-     * dark themes. Under Primer Light the role token resolves to {@code fg-default}.
+     * Under the bridge, {@code RXTextView} text follows {@code -rx-on-surface}.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void literalColoredControlsFollowTheBridge() throws Exception {
+    public void textViewFollowsOnSurfaceUnderTheBridge() throws Exception {
         AtomicReference<Paint> textFill = new AtomicReference<>();
         runOnFx(() -> {
             RXTextView textView = new RXTextView("hello");
@@ -360,6 +360,76 @@ public class AtlantaFXThemeBridgeTest {
                 "digit unlit -> -color-border-default");
         assertEquals(Color.web("#24292f"), fills.get("digit lit"),
                 "digit lit -> -color-fg-default");
+    }
+
+    /**
+     * Under the bridge, the {@code RXHighlightTextView} keyword background follows {@code -rx-highlight}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void highlightFillFollowsHighlightTokenUnderTheBridge() throws Exception {
+        AtomicReference<Paint> highlightFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXHighlightTextView view = new RXHighlightTextView("hello");
+            StackPane host = new StackPane(view);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            highlightFill.set(view.getHighlightFill());
+        });
+        assertEquals(Color.rgb(212, 167, 44, 0.4), highlightFill.get(),
+                "RXHighlightTextView keyword background must follow -rx-highlight -> -color-warning-muted under the bridge");
+    }
+
+    /**
+     * Under the bridge, text colors set in code on an {@code RXTextView} are kept.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void codeSetTextViewColorsSurviveTheBridge() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXTextView textView = new RXTextView("hello");
+            textView.setTextFill(Color.RED);
+            textView.setSelectedTextFill(Color.BLUE);
+            StackPane host = new StackPane(textView);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            fills.put("text", textView.getTextFill());
+            fills.put("selected text", textView.getSelectedTextFill());
+        });
+        assertEquals(Color.RED, fills.get("text"), "text fill set in code");
+        assertEquals(Color.BLUE, fills.get("selected text"), "selected text fill set in code");
+    }
+
+    /**
+     * Under the bridge, a skeleton base color set in code is kept and the default follows the baseline rule.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void skeletonBaseColorUnderTheBridge() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        Region reference = probeFx(
+                "ladder(-rx-surface, -rx-surface-variant 49%, derive(-rx-surface-variant, -8%) 50%)");
+        runOnFx(() -> {
+            RXSkeleton plain = new RXSkeleton();
+            RXSkeleton coded = new RXSkeleton();
+            coded.setBaseColor(Color.RED);
+            // One scene each: on JavaFX 17-23 a default sibling's cached style overrides values set in code.
+            for (StackPane host : new StackPane[]{new StackPane(plain, reference), new StackPane(coded)}) {
+                AtlantaFXThemeBridge.install(new Scene(host, 200, 80));
+                host.applyCss();
+            }
+            fills.put("default", plain.getBaseColor());
+            fills.put("code-set", coded.getBaseColor());
+        });
+        assertEquals(reference.getBackground().getFills().get(0).getFill(), fills.get("default"),
+                "default base follows the baseline rule on Primer Light");
+        assertEquals(Color.RED, fills.get("code-set"), "base color set in code");
     }
 
     // ==================== Subtree scoping ====================

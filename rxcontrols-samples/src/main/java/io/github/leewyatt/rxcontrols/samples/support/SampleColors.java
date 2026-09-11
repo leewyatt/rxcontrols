@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.support;
 
+import javafx.scene.control.ColorPicker;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 
 import java.util.Locale;
 import java.util.Random;
@@ -10,7 +12,8 @@ import java.util.Random;
  * in HSB space so brightness can be constrained per use case — a plain vivid
  * color, a dark one that reads on light backgrounds, or a light pastel that
  * reads on dark backgrounds. {@link #toCss(Color)} turns a color into an
- * inline-style value.
+ * inline-style value, and {@link #seed(ColorPicker, Paint)} copies a current
+ * paint into a picker.
  */
 public final class SampleColors {
 
@@ -81,6 +84,19 @@ public final class SampleColors {
                 (int) Math.round(color.getGreen() * CHANNEL_MAX),
                 (int) Math.round(color.getBlue() * CHANNEL_MAX),
                 color.getOpacity());
+    }
+
+    /**
+     * Copies a paint into a color picker; a paint that is not a plain {@link Color},
+     * such as a gradient, leaves the picker unchanged.
+     *
+     * @param picker the picker to update
+     * @param paint the paint to copy
+     */
+    public static void seed(ColorPicker picker, Paint paint) {
+        if (paint instanceof Color) {
+            picker.setValue((Color) paint);
+        }
     }
 
     private static Color hsb(double satMin, double satMax, double brightMin, double brightMax) {
