@@ -16,7 +16,7 @@
 
 .dual-pane-preview .hint-label,
 .hint-label {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .face-caption {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
 

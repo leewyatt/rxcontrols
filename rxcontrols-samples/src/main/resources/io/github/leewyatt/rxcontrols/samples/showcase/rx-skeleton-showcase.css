@@ -17,7 +17,7 @@
 
 .preview-card .caption {
     -fx-font-size: 12px;
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .skeleton-backdrop {
@@ -38,7 +38,7 @@
 
 .anchor-label {
     -fx-font-size: 12px;
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .social-card {

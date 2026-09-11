@@ -7,7 +7,7 @@
 }
 
 .preview-card .caption {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 11px;
 }
 

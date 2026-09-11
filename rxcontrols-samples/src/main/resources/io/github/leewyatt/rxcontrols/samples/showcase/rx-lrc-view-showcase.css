@@ -25,7 +25,7 @@
 }
 
 .lrc-preview .showcase-lrc-view > .viewport > .placeholder {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .lrc-preview .rx-seek-bar {

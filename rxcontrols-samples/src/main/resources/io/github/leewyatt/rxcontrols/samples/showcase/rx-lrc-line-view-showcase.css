@@ -21,7 +21,7 @@
 }
 
 .lrc-line-preview .showcase-lrc-line-view > .placeholder {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .lrc-line-preview .rx-seek-bar {

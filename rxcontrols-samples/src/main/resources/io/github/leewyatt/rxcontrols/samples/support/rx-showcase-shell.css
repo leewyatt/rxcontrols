@@ -5,11 +5,14 @@
  * Modena (RxControls light), the RXTheme dark overlay, and the AtlantaFX bridge
  * (which maps these vars to -color-* on the root). The editing controls
  * (sliders, buttons, combos, check boxes) are intentionally left unstyled so they
- * pick up the active theme natively.
+ * pick up the active theme natively. Preview captions read -showcase-caption-color:
+ * a muted gray here that the dark and AtlantaFX chromes point at -fx-mid-text-color
+ * (Modena's own -fx-mid-text-color is near-black).
  */
 
 .root {
     -fx-background-color: -fx-background;
+    -showcase-caption-color: #667085;
 }
 
 .preview-pane {

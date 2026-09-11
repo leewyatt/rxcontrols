@@ -30,7 +30,7 @@
 
 .caption {
     -fx-font-size: 11px;
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .text-state-avatar > .text-wrapper {

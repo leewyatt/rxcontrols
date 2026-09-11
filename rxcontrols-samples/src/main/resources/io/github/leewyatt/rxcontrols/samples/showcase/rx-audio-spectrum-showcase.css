@@ -4,7 +4,7 @@
 
 .state-label,
 .fps-label {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
     -fx-font-family: "Menlo", "Consolas", monospace;
 }

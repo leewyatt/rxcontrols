@@ -8,7 +8,7 @@
 }
 
 .transition-label-preview .preview-caption {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
 
@@ -36,6 +36,6 @@
 }
 
 .hint-label {
-    -fx-text-fill: #667085;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
