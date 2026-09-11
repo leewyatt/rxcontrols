@@ -96,9 +96,10 @@ public class RXAudioSpectrum extends Control {
             new Stop(1.0, Color.web("#ff5e5e")));
 
     /**
-     * Default peak-cap paint: a brighter solid color.
+     * Default peak-cap paint: a near-white that reads clearly on dark backgrounds and
+     * leaves only a faint trace on light ones.
      */
-    public static final Paint DEFAULT_PEAK_FILL = Color.web("#ffffff", 0.85);
+    public static final Paint DEFAULT_PEAK_FILL = Color.web("#e6e6e6");
 
     /**
      * Default fraction of each band slot left empty between adjacent bars.
