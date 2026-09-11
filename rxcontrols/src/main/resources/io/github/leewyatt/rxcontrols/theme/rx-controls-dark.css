@@ -50,7 +50,7 @@
     -rx-on-surface: #e6e7ee;
     -rx-on-surface-secondary: #a6a8b5;
     -rx-on-surface-disabled: rgba(255, 255, 255, 0.35);
-    /* outlines lightened so lines stay visible on both surface and surface-variant */
+    /* outlines picked for a contrast of about 1.5-1.8 on surface-variant, in line with the light theme */
     -rx-outline: #4d5166;
     -rx-outline-variant: #44475a;
     -rx-focus: -rx-primary;

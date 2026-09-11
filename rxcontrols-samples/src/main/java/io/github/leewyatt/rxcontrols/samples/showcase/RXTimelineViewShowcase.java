@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTimelineViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
-import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -32,8 +31,7 @@ import java.util.List;
  * default here, so the centered axis with the timestamp column is visible); the
  * {@code dotSize} / {@code lineWidth} / {@code itemSpacing} / {@code axisSpacing}
  * styleable sizes (dot size reaches negative values and all reach the {@code 0}
- * boundary so non-negative sanitizing is observable); the view-level looked-up
- * colors {@code -rx-dot-fill} / {@code -rx-line-fill} via inline style; and
+ * boundary so non-negative sanitizing is observable); and
  * per-item {@code type}, {@code dotFill}, {@code dotGraphic}
  * (a {@code ProgressIndicator} loading marker), custom {@code content}, and
  * {@code disable} (muted, non-clickable) on a selected row. A width slider
@@ -48,9 +46,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
 
     private RXTimelineView timeline;
     private RXTimelineItem[] items;
-
-    private Color viewDotFill = Color.web("#409eff");
-    private Color viewLineFill = Color.web("#c0c4cc");
 
     private ChoiceBox<Integer> indexBox;
     private ChoiceBox<String> typeBox;
@@ -112,7 +107,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Display order", buildDisplayGrid()),
                 section("Metrics", buildMetricsGrid()),
-                section("View colors", buildViewColorsGrid()),
                 section("Selected item", buildSelectedItemGrid()),
                 section("Layout", buildLayoutGrid()),
                 section("Data", buildDataGrid()));
@@ -177,26 +171,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
                 row("Item spacing", itemSpacing, itemSpacingValue),
                 row("Axis spacing", axisSpacing, axisSpacingValue),
                 row("Connector gap", connectorGap, connectorGapValue));
-    }
-
-    private Node buildViewColorsGrid() {
-        ColorPicker dotFill = new ColorPicker(viewDotFill);
-        dotFill.setMaxWidth(Double.MAX_VALUE);
-        dotFill.valueProperty().addListener((obs, oldV, newV) -> {
-            viewDotFill = newV;
-            applyViewColors();
-        });
-
-        ColorPicker lineFill = new ColorPicker(viewLineFill);
-        lineFill.setMaxWidth(Double.MAX_VALUE);
-        lineFill.valueProperty().addListener((obs, oldV, newV) -> {
-            viewLineFill = newV;
-            applyViewColors();
-        });
-
-        return createGrid(
-                row("Dot fill", dotFill),
-                row("Line fill", lineFill));
     }
 
     private Node buildSelectedItemGrid() {
@@ -302,11 +276,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
     }
 
     // ==================== Helpers ====================
-
-    private void applyViewColors() {
-        timeline.setStyle("-rx-dot-fill: " + SampleColors.toCss(viewDotFill)
-                + "; -rx-line-fill: " + SampleColors.toCss(viewLineFill) + ";");
-    }
 
     private void applyItemDotColor() {
         if (syncing) {
