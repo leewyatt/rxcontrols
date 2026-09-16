@@ -1,0 +1,27 @@
+.root.demo-dark {
+    -fx-base: #1e1f2b;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+}
+
+.toolbar {
+    -fx-padding: 12px;
+}
+
+.case {
+    -fx-padding: 12px;
+    -fx-border-color: -fx-box-border;
+    -fx-border-radius: 6px;
+}
+
+.case-title {
+    -fx-font-weight: bold;
+}
+
+.case-hint {
+    -fx-text-fill: -fx-mid-text-color;
+}
+
+.status {
+    -fx-font-family: "Menlo", "Consolas", monospace;
+}
