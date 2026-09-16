@@ -2,7 +2,7 @@
  *                                                                             *
  * RxControls dark theme (author overlay)                                      *
  *                                                                             *
- * Author-origin overlay that re-defines the 19 -rx-* color role tokens with   *
+ * Author-origin overlay that re-defines the -rx-* color role tokens with      *
  * a self-contained dark palette (literal values — no host theme required).    *
  * Install via RXTheme.install(scene, Variant.DARK). On a control root the      *
  * author origin wins over the rx-controls.css UA baseline.                    *

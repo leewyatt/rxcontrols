@@ -545,12 +545,12 @@ public class RXThemeDarkTest {
     }
 
     /**
-     * Under dark, text colors set in code on an {@code RXTextView} are kept.
+     * Under dark, text colors set in code on a lone {@code RXTextView} are kept.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void codeSetTextViewColorsSurviveDark() throws Exception {
+    public void loneTextViewKeepsCodeSetColorsUnderDark() throws Exception {
         Map<String, Paint> fills = new LinkedHashMap<>();
         runOnFx(() -> {
             RXTextView textView = new RXTextView("hello");
@@ -568,7 +568,7 @@ public class RXThemeDarkTest {
     }
 
     /**
-     * Under dark, a skeleton base color set in code is kept and the default follows {@code -rx-surface-variant}.
+     * Under dark, the default skeleton base follows {@code -rx-surface-variant} and a base color set in code is kept on a skeleton alone in its scene.
      *
      * @throws Exception if the FX action fails
      */

@@ -383,12 +383,12 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, text colors set in code on an {@code RXTextView} are kept.
+     * Under the bridge, text colors set in code on a lone {@code RXTextView} are kept.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void codeSetTextViewColorsSurviveTheBridge() throws Exception {
+    public void loneTextViewKeepsCodeSetColorsUnderTheBridge() throws Exception {
         Map<String, Paint> fills = new LinkedHashMap<>();
         runOnFx(() -> {
             RXTextView textView = new RXTextView("hello");
@@ -406,7 +406,7 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, a skeleton base color set in code is kept and the default follows the baseline rule.
+     * Under the bridge, the default skeleton base follows the baseline rule and a base color set in code is kept on a skeleton alone in its scene.
      *
      * @throws Exception if the FX action fails
      */
