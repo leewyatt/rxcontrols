@@ -696,6 +696,31 @@ public class RXThemeDarkTest {
                 "an independent sub-scene install must survive the scene uninstall");
     }
 
+    /**
+     * Uninstalling leaves a scope class the application added itself.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void manuallyAddedScopeClassSurvivesUninstall() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        AtomicReference<Boolean> kept = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox box = new RXCheckBox("box");
+            StackPane host = new StackPane(box);
+            host.getStyleClass().add(RXTheme.getDarkScopeClass());
+            new Scene(host, 200, 80);
+            RXTheme.install(host, RXTheme.Variant.DARK);
+            RXTheme.uninstall(host);
+            host.applyCss();
+            kept.set(host.getStyleClass().contains(RXTheme.getDarkScopeClass()));
+            textFill.set(box.getTextFill());
+        });
+        assertTrue(kept.get(), "uninstall must keep a scope class the application added");
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the kept scope class must still resolve the dark tokens");
+    }
+
     // ==================== Revert ====================
 
     /**

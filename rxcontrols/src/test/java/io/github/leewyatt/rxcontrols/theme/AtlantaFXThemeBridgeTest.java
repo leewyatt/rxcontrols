@@ -23,6 +23,7 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.SubScene;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -532,6 +533,78 @@ public class AtlantaFXThemeBridgeTest {
         });
         assertEquals(Color.web("#24292f"), textFill.get(),
                 "the nearer bridge scope must win over the dark scene");
+    }
+
+    /**
+     * A theme installed on a sub-scene root wins over a scene bridge installed later.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void subSceneInstallWinsOverALaterSceneBridge() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the theme installed on the sub-scene root must survive a later scene install");
+    }
+
+    /**
+     * A bridge installed on a sub-scene root wins over the dark scene mirrored there.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void bridgeOnASubSceneRootWinsOverTheDarkScene() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(subRoot);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "the bridge installed on the sub-scene root must win over the scene theme");
+    }
+
+    /**
+     * A dark theme installed on a sub-scene root wins over the bridged scene mirrored there.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void darkOnASubSceneRootWinsOverTheBridgedScene() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the dark theme installed on the sub-scene root must win over the bridged scene");
     }
 
     // ==================== Modena compat layer ====================

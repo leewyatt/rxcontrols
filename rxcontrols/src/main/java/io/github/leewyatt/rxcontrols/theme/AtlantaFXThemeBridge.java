@@ -35,8 +35,9 @@ import javafx.scene.Scene;
  * it up until reopened.
  *
  * <p>{@link #install(Parent)} scopes the bridge to one subtree (useful for mixing
- * themes within a scene: the nearest scope wins, for the color tokens and for the
- * per-control rules alike, and one level of mixing is supported). A popup follows a parent-level bridge only when that
+ * themes within a scene: the nearest scope wins for the color tokens, one level of
+ * mixing is supported, and per-control rules follow the nearer install only where both
+ * themes carry a rule for the control). A popup follows a parent-level bridge only when that
  * parent is on the ancestor chain of the control that owns the popup; a bridge on
  * an unrelated parent does not reach the popup.
  *

@@ -8,6 +8,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +22,18 @@ import java.util.List;
  * found when installing: a sub-scene root is not a child of the sub-scene node,
  * so ancestor matching stops there.
  *
- * <p>Each install remembers the roots it marked, so uninstalling reaches a
- * sub-scene that has since left the scene graph. Marks are reference-counted per
- * node, so uninstalling one scope does not strip a mark another install owns.
+ * <p>A node ends up carrying two scope classes when a sub-scene root has a theme
+ * of its own and a scene theme is mirrored onto it. The scoped blocks read as
+ * descendant selectors, so two classes on one node would leave the file order to
+ * decide. Only the winning scope is kept on the node instead: a theme installed
+ * on that node beats one mirrored onto it, regardless of install order, and among
+ * equals the last install wins. Removing the winner restores the suppressed one.
+ *
+ * <p>Each install remembers the roots it marked, weakly, so uninstalling reaches a
+ * sub-scene that has since left the scene graph without keeping a detached one
+ * alive. Marks are counted per node, so uninstalling one scope does not strip a
+ * mark another install owns, and a scope class the application added itself is
+ * never removed.
  */
 final class ThemeScope {
 
@@ -31,8 +41,8 @@ final class ThemeScope {
     private static final String ROOT_LISTENER_KEY = "rx-theme-scope-root-listener:";
     /** Scene / parent property key for the roots one install marked. */
     private static final String MARKED_ROOTS_KEY = "rx-theme-scope-roots:";
-    /** Node property key for how many installs marked that node with one scope class. */
-    private static final String SCOPE_COUNT_KEY = "rx-theme-scope-count:";
+    /** Node property key for the scopes marked on that node, in install order. */
+    private static final String SCOPE_MARKS_KEY = "rx-theme-scope-marks";
 
     private ThemeScope() {
     }
@@ -64,10 +74,13 @@ final class ThemeScope {
     /** Marks the root and every nested sub-scene root, remembering what was marked. */
     private static void markTree(ObservableMap<Object, Object> owner, Parent root, String scopeClass) {
         unmarkTree(owner, scopeClass);
-        List<Parent> marked = new ArrayList<>();
-        collectRoots(root, marked);
-        for (Parent node : marked) {
-            mark(node, scopeClass);
+        List<Parent> roots = new ArrayList<>();
+        collectRoots(root, roots);
+        List<MarkedRoot> marked = new ArrayList<>();
+        for (int index = 0; index < roots.size(); index++) {
+            boolean direct = index == 0;
+            mark(roots.get(index), scopeClass, direct);
+            marked.add(new MarkedRoot(roots.get(index), direct));
         }
         owner.put(MARKED_ROOTS_KEY + scopeClass, marked);
     }
@@ -75,9 +88,13 @@ final class ThemeScope {
     @SuppressWarnings("unchecked")
     private static void unmarkTree(ObservableMap<Object, Object> owner, String scopeClass) {
         Object marked = owner.remove(MARKED_ROOTS_KEY + scopeClass);
-        if (marked instanceof List) {
-            for (Parent node : (List<Parent>) marked) {
-                unmark(node, scopeClass);
+        if (!(marked instanceof List)) {
+            return;
+        }
+        for (MarkedRoot root : (List<MarkedRoot>) marked) {
+            Parent node = root.node.get();
+            if (node != null) {
+                unmark(node, scopeClass, root.direct);
             }
         }
     }
@@ -92,27 +109,82 @@ final class ThemeScope {
         }
     }
 
-    private static void mark(Parent node, String scopeClass) {
-        int count = scopeCount(node, scopeClass);
-        node.getProperties().put(SCOPE_COUNT_KEY + scopeClass, count + 1);
-        if (count == 0) {
-            RXStyles.addClass(node, scopeClass);
+    private static void mark(Parent node, String scopeClass, boolean direct) {
+        ScopeMark mark = scopeMark(node, scopeClass, true);
+        mark.count++;
+        if (direct) {
+            mark.directCount++;
         }
+        applyWinner(node);
     }
 
-    private static void unmark(Parent node, String scopeClass) {
-        int count = scopeCount(node, scopeClass);
-        if (count > 1) {
-            node.getProperties().put(SCOPE_COUNT_KEY + scopeClass, count - 1);
+    private static void unmark(Parent node, String scopeClass, boolean direct) {
+        List<ScopeMark> marks = scopeMarks(node);
+        ScopeMark mark = scopeMark(node, scopeClass, false);
+        if (mark == null) {
             return;
         }
-        node.getProperties().remove(SCOPE_COUNT_KEY + scopeClass);
-        RXStyles.removeClass(node, scopeClass);
+        mark.count--;
+        if (direct) {
+            mark.directCount--;
+        }
+        if (mark.count <= 0) {
+            marks.remove(mark);
+            if (mark.owned) {
+                RXStyles.removeClass(node, scopeClass);
+            }
+            if (marks.isEmpty()) {
+                node.getProperties().remove(SCOPE_MARKS_KEY);
+            }
+        }
+        applyWinner(node);
     }
 
-    private static int scopeCount(Parent node, String scopeClass) {
-        Object count = node.getProperties().get(SCOPE_COUNT_KEY + scopeClass);
-        return count instanceof Integer ? (Integer) count : 0;
+    /** Keeps only the winning scope class on the node, leaving classes it did not add. */
+    private static void applyWinner(Parent node) {
+        List<ScopeMark> marks = scopeMarks(node);
+        ScopeMark winner = null;
+        for (ScopeMark mark : marks) {
+            if (mark.directCount > 0) {
+                winner = mark;
+            }
+        }
+        if (winner == null && !marks.isEmpty()) {
+            winner = marks.get(marks.size() - 1);
+        }
+        for (ScopeMark mark : marks) {
+            if (mark == winner) {
+                if (!node.getStyleClass().contains(mark.scopeClass)) {
+                    RXStyles.addClass(node, mark.scopeClass);
+                    mark.owned = true;
+                }
+            } else if (mark.owned) {
+                RXStyles.removeClass(node, mark.scopeClass);
+                mark.owned = false;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<ScopeMark> scopeMarks(Parent node) {
+        Object marks = node.getProperties().get(SCOPE_MARKS_KEY);
+        return marks instanceof List ? (List<ScopeMark>) marks : new ArrayList<>();
+    }
+
+    private static ScopeMark scopeMark(Parent node, String scopeClass, boolean create) {
+        List<ScopeMark> marks = scopeMarks(node);
+        for (ScopeMark mark : marks) {
+            if (mark.scopeClass.equals(scopeClass)) {
+                return mark;
+            }
+        }
+        if (!create) {
+            return null;
+        }
+        ScopeMark mark = new ScopeMark(scopeClass);
+        marks.add(mark);
+        node.getProperties().put(SCOPE_MARKS_KEY, marks);
+        return mark;
     }
 
     private static List<SubScene> subScenes(Parent root) {
@@ -152,6 +224,33 @@ final class ThemeScope {
         Object listener = scene.getProperties().remove(ROOT_LISTENER_KEY + scopeClass);
         if (listener != null) {
             scene.rootProperty().removeListener((ChangeListener<Parent>) listener);
+        }
+    }
+
+    // ==================== Records ====================
+
+    /** One scope on one node: how many installs marked it, and how many did so directly. */
+    private static final class ScopeMark {
+
+        private final String scopeClass;
+        private int count;
+        private int directCount;
+        private boolean owned;
+
+        private ScopeMark(String scopeClass) {
+            this.scopeClass = scopeClass;
+        }
+    }
+
+    /** One root an install marked, held weakly so a detached sub-scene stays collectable. */
+    private static final class MarkedRoot {
+
+        private final WeakReference<Parent> node;
+        private final boolean direct;
+
+        private MarkedRoot(Parent node, boolean direct) {
+            this.node = new WeakReference<>(node);
+            this.direct = direct;
         }
     }
 }
