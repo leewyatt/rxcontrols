@@ -28,10 +28,11 @@ import java.util.List;
  * decide. Only the winning scope is kept on the node instead: a theme installed
  * on that node beats one mirrored onto it, regardless of install order, and among
  * equals the last install wins. Removing the winner restores the suppressed one.
- * A mark carries the order of the install that added it rather than the order the
- * scope was first seen on the node, so reinstalling a theme already mirrored there
- * makes it the newest, and swapping the scene root re-marks the new root without
- * changing which install that is.
+ * Every install keeps its own order on the node rather than the scope carrying one
+ * aggregate order, so reinstalling a theme already mirrored there makes it the newest,
+ * removing one install falls back to the orders of the installs that remain, and
+ * swapping the scene root re-marks the new root without changing which install is
+ * newest.
  *
  * <p>Each install remembers the roots it marked, weakly, so uninstalling reaches a
  * sub-scene that has since left the scene graph without keeping a detached one
@@ -93,7 +94,7 @@ final class ThemeScope {
         for (int index = 0; index < roots.size(); index++) {
             boolean direct = index == 0;
             mark(roots.get(index), scopeClass, direct, order);
-            marked.add(new MarkedRoot(roots.get(index), direct));
+            marked.add(new MarkedRoot(roots.get(index), direct, order));
         }
         owner.put(MARKED_ROOTS_KEY + scopeClass, marked);
     }
@@ -107,7 +108,7 @@ final class ThemeScope {
         for (MarkedRoot root : (List<MarkedRoot>) marked) {
             Parent node = root.node.get();
             if (node != null) {
-                unmark(node, scopeClass, root.direct);
+                unmark(node, scopeClass, root.direct, root.order);
             }
         }
     }
@@ -124,26 +125,18 @@ final class ThemeScope {
 
     private static void mark(Parent node, String scopeClass, boolean direct, long order) {
         ScopeMark mark = scopeMark(node, scopeClass, true);
-        mark.count++;
-        mark.order = order;
-        if (direct) {
-            mark.directCount++;
-            mark.directOrder = order;
-        }
+        mark.contributions.add(new Contribution(direct, order));
         applyWinner(node);
     }
 
-    private static void unmark(Parent node, String scopeClass, boolean direct) {
+    private static void unmark(Parent node, String scopeClass, boolean direct, long order) {
         List<ScopeMark> marks = scopeMarks(node);
         ScopeMark mark = scopeMark(node, scopeClass, false);
         if (mark == null) {
             return;
         }
-        mark.count--;
-        if (direct) {
-            mark.directCount--;
-        }
-        if (mark.count <= 0) {
+        mark.remove(direct, order);
+        if (mark.contributions.isEmpty()) {
             marks.remove(mark);
             if (mark.owned) {
                 RXStyles.removeClass(node, scopeClass);
@@ -160,13 +153,13 @@ final class ThemeScope {
         List<ScopeMark> marks = scopeMarks(node);
         ScopeMark winner = null;
         for (ScopeMark mark : marks) {
-            if (mark.directCount > 0 && (winner == null || mark.directOrder > winner.directOrder)) {
+            if (mark.directOrder() > 0 && (winner == null || mark.directOrder() > winner.directOrder())) {
                 winner = mark;
             }
         }
         if (winner == null) {
             for (ScopeMark mark : marks) {
-                if (winner == null || mark.order > winner.order) {
+                if (winner == null || mark.order() > winner.order()) {
                     winner = mark;
                 }
             }
@@ -254,18 +247,57 @@ final class ThemeScope {
 
     // ==================== Records ====================
 
-    /** One scope on one node: how many installs marked it, how many did so directly, and when. */
+    /** One scope on one node, holding the order of every install that marked it. */
     private static final class ScopeMark {
 
         private final String scopeClass;
-        private int count;
-        private int directCount;
-        private long order;
-        private long directOrder;
+        private final List<Contribution> contributions = new ArrayList<>();
         private boolean owned;
 
         private ScopeMark(String scopeClass) {
             this.scopeClass = scopeClass;
+        }
+
+        private void remove(boolean direct, long order) {
+            for (int index = 0; index < contributions.size(); index++) {
+                Contribution contribution = contributions.get(index);
+                if (contribution.direct == direct && contribution.order == order) {
+                    contributions.remove(index);
+                    return;
+                }
+            }
+        }
+
+        /** The newest install that marked this scope, 0 when none is left. */
+        private long order() {
+            long newest = 0;
+            for (Contribution contribution : contributions) {
+                newest = Math.max(newest, contribution.order);
+            }
+            return newest;
+        }
+
+        /** The newest install that marked this scope on the node itself, 0 when none is left. */
+        private long directOrder() {
+            long newest = 0;
+            for (Contribution contribution : contributions) {
+                if (contribution.direct) {
+                    newest = Math.max(newest, contribution.order);
+                }
+            }
+            return newest;
+        }
+    }
+
+    /** One install marking one node, either as its root or as a sub-scene root under it. */
+    private static final class Contribution {
+
+        private final boolean direct;
+        private final long order;
+
+        private Contribution(boolean direct, long order) {
+            this.direct = direct;
+            this.order = order;
         }
     }
 
@@ -274,10 +306,12 @@ final class ThemeScope {
 
         private final WeakReference<Parent> node;
         private final boolean direct;
+        private final long order;
 
-        private MarkedRoot(Parent node, boolean direct) {
+        private MarkedRoot(Parent node, boolean direct, long order) {
             this.node = new WeakReference<>(node);
             this.direct = direct;
+            this.order = order;
         }
     }
 }

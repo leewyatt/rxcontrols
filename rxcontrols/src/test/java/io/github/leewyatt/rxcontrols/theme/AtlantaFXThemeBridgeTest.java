@@ -707,6 +707,81 @@ public class AtlantaFXThemeBridgeTest {
                 "a swapped scene root must carry the theme installed last");
     }
 
+    /**
+     * Uninstalling a sub-scene scope restores the newer of the scene themes.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void uninstallingASubSceneScopeRestoresTheNewerSceneTheme() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            RXTheme.uninstall(subRoot);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "the mirrored scope must fall back to its own install order");
+    }
+
+    /**
+     * Uninstalling a parent scope on the scene root restores the newer scene theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void uninstallingAParentScopeOnTheSceneRootRestoresTheNewerSceneTheme() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane host = new StackPane(inside);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(host, RXTheme.Variant.DARK);
+            RXTheme.uninstall(host);
+            host.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "the direct scope must fall back to its own install order");
+    }
+
+    /**
+     * Uninstalling a sub-scene bridge restores the newer dark scene theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void uninstallingASubSceneBridgeRestoresTheNewerDarkScene() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(subRoot);
+            AtlantaFXThemeBridge.uninstall(subRoot);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the mirrored bridge must fall back to its own install order");
+    }
+
     // ==================== Modena compat layer ====================
 
     /**
