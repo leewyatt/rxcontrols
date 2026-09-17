@@ -28,6 +28,10 @@ import java.util.List;
  * decide. Only the winning scope is kept on the node instead: a theme installed
  * on that node beats one mirrored onto it, regardless of install order, and among
  * equals the last install wins. Removing the winner restores the suppressed one.
+ * A mark carries the order of the install that added it rather than the order the
+ * scope was first seen on the node, so reinstalling a theme already mirrored there
+ * makes it the newest, and swapping the scene root re-marks the new root without
+ * changing which install that is.
  *
  * <p>Each install remembers the roots it marked, weakly, so uninstalling reaches a
  * sub-scene that has since left the scene graph without keeping a detached one
@@ -41,15 +45,22 @@ final class ThemeScope {
     private static final String ROOT_LISTENER_KEY = "rx-theme-scope-root-listener:";
     /** Scene / parent property key for the roots one install marked. */
     private static final String MARKED_ROOTS_KEY = "rx-theme-scope-roots:";
-    /** Node property key for the scopes marked on that node, in install order. */
+    /** Node property key for the scopes marked on that node. */
     private static final String SCOPE_MARKS_KEY = "rx-theme-scope-marks";
+    /** Scene / parent property key for the order of the install still in force. */
+    private static final String SCOPE_ORDER_KEY = "rx-theme-scope-order:";
+
+    /** Counter behind the install order every mark carries. */
+    private static long sequence;
 
     private ThemeScope() {
     }
 
     static void install(Scene scene, String scopeClass, String stylesheet) {
         RXStyles.addSheets(scene, stylesheet);
-        markTree(scene.getProperties(), scene.getRoot(), scopeClass);
+        long order = ++sequence;
+        scene.getProperties().put(SCOPE_ORDER_KEY + scopeClass, order);
+        markTree(scene.getProperties(), scene.getRoot(), scopeClass, order);
         trackRoot(scene, scopeClass);
     }
 
@@ -57,11 +68,12 @@ final class ThemeScope {
         RXStyles.removeSheets(scene, stylesheet);
         untrackRoot(scene, scopeClass);
         unmarkTree(scene.getProperties(), scopeClass);
+        scene.getProperties().remove(SCOPE_ORDER_KEY + scopeClass);
     }
 
     static void install(Parent parent, String scopeClass, String stylesheet) {
         RXStyles.addSheets(parent, stylesheet);
-        markTree(parent.getProperties(), parent, scopeClass);
+        markTree(parent.getProperties(), parent, scopeClass, ++sequence);
     }
 
     static void uninstall(Parent parent, String scopeClass, String stylesheet) {
@@ -72,14 +84,15 @@ final class ThemeScope {
     // ==================== Marking ====================
 
     /** Marks the root and every nested sub-scene root, remembering what was marked. */
-    private static void markTree(ObservableMap<Object, Object> owner, Parent root, String scopeClass) {
+    private static void markTree(ObservableMap<Object, Object> owner, Parent root, String scopeClass,
+                                 long order) {
         unmarkTree(owner, scopeClass);
         List<Parent> roots = new ArrayList<>();
         collectRoots(root, roots);
         List<MarkedRoot> marked = new ArrayList<>();
         for (int index = 0; index < roots.size(); index++) {
             boolean direct = index == 0;
-            mark(roots.get(index), scopeClass, direct);
+            mark(roots.get(index), scopeClass, direct, order);
             marked.add(new MarkedRoot(roots.get(index), direct));
         }
         owner.put(MARKED_ROOTS_KEY + scopeClass, marked);
@@ -109,11 +122,13 @@ final class ThemeScope {
         }
     }
 
-    private static void mark(Parent node, String scopeClass, boolean direct) {
+    private static void mark(Parent node, String scopeClass, boolean direct, long order) {
         ScopeMark mark = scopeMark(node, scopeClass, true);
         mark.count++;
+        mark.order = order;
         if (direct) {
             mark.directCount++;
+            mark.directOrder = order;
         }
         applyWinner(node);
     }
@@ -145,12 +160,16 @@ final class ThemeScope {
         List<ScopeMark> marks = scopeMarks(node);
         ScopeMark winner = null;
         for (ScopeMark mark : marks) {
-            if (mark.directCount > 0) {
+            if (mark.directCount > 0 && (winner == null || mark.directOrder > winner.directOrder)) {
                 winner = mark;
             }
         }
-        if (winner == null && !marks.isEmpty()) {
-            winner = marks.get(marks.size() - 1);
+        if (winner == null) {
+            for (ScopeMark mark : marks) {
+                if (winner == null || mark.order > winner.order) {
+                    winner = mark;
+                }
+            }
         }
         for (ScopeMark mark : marks) {
             if (mark == winner) {
@@ -213,10 +232,16 @@ final class ThemeScope {
         if (scene.getProperties().containsKey(key)) {
             return;
         }
-        ChangeListener<Parent> listener =
-                (observable, oldRoot, newRoot) -> markTree(scene.getProperties(), newRoot, scopeClass);
+        ChangeListener<Parent> listener = (observable, oldRoot, newRoot) ->
+                markTree(scene.getProperties(), newRoot, scopeClass, installOrder(scene, scopeClass));
         scene.rootProperty().addListener(listener);
         scene.getProperties().put(key, listener);
+    }
+
+    /** The order of the install still in force, so a root swap keeps its place among scopes. */
+    private static long installOrder(Scene scene, String scopeClass) {
+        Object order = scene.getProperties().get(SCOPE_ORDER_KEY + scopeClass);
+        return order instanceof Long ? (Long) order : ++sequence;
     }
 
     @SuppressWarnings("unchecked")
@@ -229,12 +254,14 @@ final class ThemeScope {
 
     // ==================== Records ====================
 
-    /** One scope on one node: how many installs marked it, and how many did so directly. */
+    /** One scope on one node: how many installs marked it, how many did so directly, and when. */
     private static final class ScopeMark {
 
         private final String scopeClass;
         private int count;
         private int directCount;
+        private long order;
+        private long directOrder;
         private boolean owned;
 
         private ScopeMark(String scopeClass) {

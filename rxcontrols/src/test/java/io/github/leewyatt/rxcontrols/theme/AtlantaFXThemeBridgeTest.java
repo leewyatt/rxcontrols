@@ -607,6 +607,106 @@ public class AtlantaFXThemeBridgeTest {
                 "the dark theme installed on the sub-scene root must win over the bridged scene");
     }
 
+    /**
+     * Reinstalling the scene theme on a sub-scene root wins over a bridge installed earlier.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void reinstallingDarkOnASubSceneRootWinsOverAnEarlierBridge() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(subRoot);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the last theme installed on the node must win over the earlier one");
+    }
+
+    /**
+     * Reinstalling the bridge on a sub-scene root wins over a dark theme installed earlier.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void reinstallingTheBridgeOnASubSceneRootWinsOverAnEarlierDark() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(subRoot);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "the last theme installed on the node must win over the earlier one");
+    }
+
+    /**
+     * Uninstalling the winning scope restores the one it suppressed.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void uninstallingTheWinningScopeRestoresTheEarlierOne() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(subRoot);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            RXTheme.uninstall(subRoot);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "uninstalling the winner must restore the bridge it suppressed");
+    }
+
+    /**
+     * Swapping the scene root keeps the theme installed last.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void sceneRootSwapKeepsTheThemeInstalledLast() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            Scene scene = new Scene(new StackPane(), 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane swapped = new StackPane(inside);
+            scene.setRoot(swapped);
+            swapped.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "a swapped scene root must carry the theme installed last");
+    }
+
     // ==================== Modena compat layer ====================
 
     /**
