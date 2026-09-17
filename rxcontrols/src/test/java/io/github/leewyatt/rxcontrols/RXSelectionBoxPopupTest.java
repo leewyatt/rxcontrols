@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.PopupControl;
@@ -14,6 +15,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.junit.jupiter.api.AfterEach;
@@ -333,6 +335,34 @@ public class RXSelectionBoxPopupTest {
             assertEquals("a", box.getSearchText());
             box.hide();
             assertEquals("", box.getSearchText(), "clearSearchOnHide wipes the query");
+        });
+    }
+
+    /**
+     * A color set in code on a control inside the popup is kept.
+     *
+     * @throws InterruptedException if the FX wait is interrupted
+     */
+    @Test
+    public void codeSetColorInsideThePopupIsKept() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b");
+            box.setShowClearButton(true);
+            box.show();
+
+            PopupControl popup = findPopup();
+            assertNotNull(popup, "popup should be showing");
+            Parent root = popup.getScene().getRoot();
+            root.applyCss();
+            root.layout();
+
+            RXButton clear = (RXButton) root.lookup(".clear-button");
+            assertNotNull(clear, "clear button should exist in the popup");
+            clear.setRippleFill(Color.RED);
+            root.applyCss();
+
+            assertEquals(Color.RED, clear.getRippleFill(),
+                    "a ripple fill set in code must survive the popup's own stylesheet");
         });
     }
 

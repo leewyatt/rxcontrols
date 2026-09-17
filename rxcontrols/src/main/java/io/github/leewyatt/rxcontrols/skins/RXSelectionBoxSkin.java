@@ -7,7 +7,6 @@ import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
-import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.animation.Interpolator;
@@ -192,7 +191,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
     private void buildPopup(RXSelectionBox<T> control) {
         popupBody.getStyleClass().add("popup-content");
-        popupBody.getStylesheets().add(RXResources.USER_AGENT_STYLESHEET);
         popupBody.getTransforms().add(entranceScale);
 
         Region searchIcon = new Region();

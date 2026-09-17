@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.popup;
 
 import io.github.leewyatt.rxcontrols.RXPlacement;
+import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.beans.InvalidationListener;
@@ -140,7 +141,7 @@ public final class RXPopupSupport {
      */
     public RXPopupSupport(Region content) {
         this.content = Objects.requireNonNull(content, "content");
-        this.shell = new StackPane(content);
+        this.shell = new PopupShell(content);
         // Backstop only: reconfigure() already clamps the content into the anchor
         // node's screen visual bounds using preferred sizes; the framework autofix
         // re-clamps with the window's actual bounds against the anchor point's
@@ -677,6 +678,26 @@ public final class RXPopupSupport {
                 Math.max(1.0, anchorScreen.getWidth()),
                 Math.max(1.0, anchorScreen.getHeight()));
         return screens.isEmpty() ? Screen.getPrimary() : screens.get(0);
+    }
+
+    // ==================== Popup shell ====================
+
+    /**
+     * Popup shell that supplies the RxControls stylesheet as a user-agent stylesheet,
+     * so the popup's own containers are styled without it entering the cascade at
+     * author origin — an author-origin copy would override colors the application set
+     * in code on controls inside the popup.
+     */
+    private static final class PopupShell extends StackPane {
+
+        private PopupShell(Region content) {
+            super(content);
+        }
+
+        @Override
+        public String getUserAgentStylesheet() {
+            return RXResources.USER_AGENT_STYLESHEET;
+        }
     }
 
     // ==================== Popup skin ====================
