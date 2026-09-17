@@ -245,6 +245,28 @@ RXTheme.uninstall(scene);                      // also back to the baseline</cod
    their descendants only — the same as on the light baseline. If you manage stylesheet lists yourself,
    add <code>RXTheme.getDarkScopeClass()</code> to the root as well; <code>install</code> does it for you.</p>
 
+<h3 id="themeNesting">Mixing themes in one scene</h3>
+<p>A subtree may carry a different theme than its scene: <code>RXTheme.install(Parent, Variant)</code>
+   and <code>AtlantaFXThemeBridge.install(Parent)</code> put their scope class on that root, and the
+   <b>nearest scope wins</b> for the color tokens. One level of mixing is supported.</p>
+<pre><code>RXTheme.install(scene, RXTheme.Variant.DARK);  // the window is dark
+AtlantaFXThemeBridge.install(panel);           // this subtree follows AtlantaFX instead</code></pre>
+<p><b>SubScene.</b> A sub-scene root is not a child of the sub-scene node, so the ancestor walk stops
+   there. A scene-level install mirrors the scope class onto the root of every <code>SubScene</code>
+   present at that moment; for a sub-scene created later, call <code>install(Parent)</code> on its root.</p>
+<p><b>Two scopes on one node.</b> That mirroring can leave a sub-scene root carrying both scope classes.
+   Only the winner is kept there: a theme installed on the node itself beats one mirrored onto it,
+   whichever was installed first, and between equals the newest install wins. Uninstalling the winner
+   restores the scope it suppressed.</p>
+<p><b>Uninstall</b> undoes only what that install marked, so a theme installed on a subtree of its own
+   survives the scene's <code>uninstall</code>, and a scope class you added yourself is left in place.</p>
+<p><b>Limit.</b> Only the token values follow the nearer scope everywhere. The per-control overlays
+   (<code>rx-controls-dark.css</code>, <code>rx-controls-atlantafx.css</code>) are author-origin and not
+   scoped, so a rule the outer theme defines and the inner one does not still reaches the inner subtree —
+   the dark snackbar colors and the bridge's <code>.rx-fill-button</code> / <code>.rx-line-button</code>
+   rules are the current cases. Where
+   that matters, set those colors on the subtree yourself.</p>
+
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
 <p>The RXAudioSpectrum control has all the properties of Control; pseudo-classes: :active, :silent</p>
