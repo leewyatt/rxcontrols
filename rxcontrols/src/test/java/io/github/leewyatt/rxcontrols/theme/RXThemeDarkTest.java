@@ -642,6 +642,60 @@ public class RXThemeDarkTest {
                 "a control inside a SubScene must follow the dark theme");
     }
 
+    /**
+     * A sub-scene detached before uninstall does not keep the dark scope.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void detachedSubSceneIsCleanedOnUninstall() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+
+            host.getChildren().remove(subScene);
+            RXTheme.uninstall(scene);
+
+            StackPane lightHost = new StackPane(subRoot);
+            new Scene(lightHost, 200, 80);
+            lightHost.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#333333"), textFill.get(),
+                "a detached sub-scene must lose the dark scope on uninstall");
+    }
+
+    /**
+     * Uninstalling the scene theme keeps a sub-scene that was themed on its own.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void sceneUninstallKeepsAnIndependentSubSceneInstall() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            RXTheme.install(subRoot, RXTheme.Variant.DARK);
+            RXTheme.uninstall(scene);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "an independent sub-scene install must survive the scene uninstall");
+    }
+
     // ==================== Revert ====================
 
     /**

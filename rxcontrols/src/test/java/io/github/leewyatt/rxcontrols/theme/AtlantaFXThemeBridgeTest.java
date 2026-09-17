@@ -490,6 +490,50 @@ public class AtlantaFXThemeBridgeTest {
                 "RXFillButton outside the bridged subtree keeps the built-in brand color");
     }
 
+    /**
+     * A dark subtree inside a bridged scene follows the nearer dark scope.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void nestedDarkInsideTheBridgeWins() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inner = new RXCheckBox("inner");
+            StackPane innerHost = new StackPane(inner);
+            StackPane host = new StackPane(innerHost);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            RXTheme.install(innerHost, RXTheme.Variant.DARK);
+            host.applyCss();
+            textFill.set(inner.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "the nearer dark scope must win over the bridged scene");
+    }
+
+    /**
+     * A bridged subtree inside a dark scene follows the nearer bridge scope.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void nestedBridgeInsideDarkWins() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inner = new RXCheckBox("inner");
+            StackPane innerHost = new StackPane(inner);
+            StackPane host = new StackPane(innerHost);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            AtlantaFXThemeBridge.install(innerHost);
+            host.applyCss();
+            textFill.set(inner.getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), textFill.get(),
+                "the nearer bridge scope must win over the dark scene");
+    }
+
     // ==================== Modena compat layer ====================
 
     /**

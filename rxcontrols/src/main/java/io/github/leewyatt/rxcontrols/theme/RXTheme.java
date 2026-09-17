@@ -42,6 +42,11 @@ import java.util.Objects;
  * the root of every {@link javafx.scene.SubScene} present at that moment; for a
  * sub-scene created later, call {@link #install(Parent, Variant)} on its root.
  *
+ * <p>A subtree may carry a different theme than its scene: the nearest scope wins, for
+ * the color tokens and for the per-control rules alike. One level of mixing is
+ * supported. Uninstalling undoes only what that install marked, so a theme installed
+ * on a subtree of its own survives the scene's uninstall.
+ *
  * <p>For matching an external <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
  * theme instead of the built-in palette, use {@link AtlantaFXThemeBridge}.
  */
