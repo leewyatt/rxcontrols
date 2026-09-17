@@ -1,17 +1,17 @@
 package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 
 /**
  * Makes RxControls follow an <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
  * theme. RxControls ships its own per-control user-agent stylesheet whose
- * {@code -rx-*} color role tokens default to a built-in palette; this helper layers
- * an <em>author-origin</em> bridge that re-points those tokens at AtlantaFX
- * {@code -color-*} functional tokens, so RxControls picks up the host's AtlantaFX
- * colors without replacing its own structural styling.
+ * {@code -rx-*} color role tokens default to a built-in palette; this helper puts the
+ * {@code rx-theme-atlantafx} scope style class on the bridged root — the mapping from
+ * those tokens to AtlantaFX {@code -color-*} functional tokens lives in the library's
+ * user-agent stylesheet under that scope — and adds a small author-origin stylesheet
+ * for the overrides that must beat AtlantaFX's own button states.
  *
  * <h2>Prerequisite — install the AtlantaFX theme first</h2>
  * The bridge only references {@code -color-*}; those resolve from the AtlantaFX
@@ -54,17 +54,33 @@ import javafx.scene.Scene;
  */
 public final class AtlantaFXThemeBridge {
 
+    /** Scope style class carried by the bridged root while the bridge is installed. */
+    private static final String SCOPE_CLASS = "rx-theme-atlantafx";
+
     private AtlantaFXThemeBridge() {
     }
 
     /**
      * Returns the external-form URL of the AtlantaFX bridge stylesheet (author
-     * origin), for callers that manage stylesheet lists themselves.
+     * origin), for callers that manage stylesheet lists themselves. Such callers must
+     * also add {@link #getScopeClass()} to the bridged root, otherwise the color role
+     * tokens stay at their light baseline.
      *
      * @return the bridge stylesheet URL
      */
     public static String getStylesheet() {
         return RXResources.ATLANTAFX_BRIDGE_STYLESHEET;
+    }
+
+    /**
+     * Returns the style class the bridge puts on the bridged root. {@link #install}
+     * adds it; callers that manage the stylesheet list themselves must add it too,
+     * otherwise the color role tokens stay at their light baseline.
+     *
+     * @return the bridge scope style class
+     */
+    public static String getScopeClass() {
+        return SCOPE_CLASS;
     }
 
     /**
@@ -75,7 +91,7 @@ public final class AtlantaFXThemeBridge {
      * @param scene the scene to bridge; must not be null
      */
     public static void install(Scene scene) {
-        RXStyles.addSheets(scene, getStylesheet());
+        ThemeScope.install(scene, SCOPE_CLASS, getStylesheet());
     }
 
     /**
@@ -85,7 +101,7 @@ public final class AtlantaFXThemeBridge {
      * @param parent the parent to bridge; must not be null
      */
     public static void install(Parent parent) {
-        RXStyles.addSheets(parent, getStylesheet());
+        ThemeScope.install(parent, SCOPE_CLASS, getStylesheet());
     }
 
     /**
@@ -94,7 +110,7 @@ public final class AtlantaFXThemeBridge {
      * @param scene the scene to unbridge; must not be null
      */
     public static void uninstall(Scene scene) {
-        RXStyles.removeSheets(scene, getStylesheet());
+        ThemeScope.uninstall(scene, SCOPE_CLASS, getStylesheet());
     }
 
     /**
@@ -103,6 +119,6 @@ public final class AtlantaFXThemeBridge {
      * @param parent the parent to unbridge; must not be null
      */
     public static void uninstall(Parent parent) {
-        RXStyles.removeSheets(parent, getStylesheet());
+        ThemeScope.uninstall(parent, SCOPE_CLASS, getStylesheet());
     }
 }

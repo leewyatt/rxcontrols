@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import io.github.leewyatt.rxcontrols.utils.RXStyles;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 
@@ -10,9 +9,10 @@ import java.util.Objects;
 /**
  * Switches RxControls between its built-in light and dark looks. RxControls ships
  * a per-control user-agent stylesheet whose {@code -rx-*} color role tokens default
- * to a light palette; {@link Variant#DARK} layers an <em>author-origin</em> overlay
- * that re-defines those tokens with a self-contained dark palette (no host theme
- * required), so the whole library turns dark without replacing its structure.
+ * to a light palette; {@link Variant#DARK} puts the {@code rx-theme-dark} scope style
+ * class on the themed root — the dark token values live in the same user-agent
+ * stylesheet under that scope — and adds a small author-origin overlay for the
+ * per-control re-points that must sit above the platform theme.
  *
  * <pre>{@code
  * RXTheme.install(scene, RXTheme.Variant.DARK); // go dark
@@ -31,15 +31,24 @@ import java.util.Objects;
  * background controls (text-view, timeline) only read well on a dark surface the app
  * provides.
  *
+ * <p>The {@code -rx-*} tokens resolve on RxControls controls and their descendants
+ * (that is where the library's user-agent stylesheet applies), exactly as they do on
+ * the light baseline. Application nodes outside any RxControls control should use
+ * their own colors rather than {@code -rx-*}.
+ *
  * <p>Apply at scene level (recommended) or to a single {@link Parent} subtree.
- * Popups (such as {@code RXCascader}'s) follow a scene-level overlay installed
- * before they open; switch the theme before opening popups, or reopen them
- * afterwards.
+ * Popups (such as {@code RXCascader}'s) follow a scene-level theme through their
+ * owner's style parent chain. A scene-level install also mirrors the scope class onto
+ * the root of every {@link javafx.scene.SubScene} present at that moment; for a
+ * sub-scene created later, call {@link #install(Parent, Variant)} on its root.
  *
  * <p>For matching an external <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
  * theme instead of the built-in palette, use {@link AtlantaFXThemeBridge}.
  */
 public final class RXTheme {
+
+    /** Scope style class carried by the themed root while the dark variant is installed. */
+    private static final String DARK_SCOPE_CLASS = "rx-theme-dark";
 
     private RXTheme() {
     }
@@ -56,6 +65,17 @@ public final class RXTheme {
     }
 
     /**
+     * Returns the style class the dark variant puts on the themed root. {@link #install}
+     * adds it; callers that manage the stylesheet list themselves must add it too,
+     * otherwise the color role tokens stay at their light baseline.
+     *
+     * @return the dark scope style class
+     */
+    public static String getDarkScopeClass() {
+        return DARK_SCOPE_CLASS;
+    }
+
+    /**
      * Sets the variant on the scene: installs the dark overlay for {@link Variant#DARK},
      * or removes it (reverting to the light baseline) for {@link Variant#LIGHT}.
      *
@@ -64,9 +84,9 @@ public final class RXTheme {
      */
     public static void install(Scene scene, Variant variant) {
         if (Objects.requireNonNull(variant, "variant") == Variant.DARK) {
-            RXStyles.addSheets(scene, RXResources.DARK_OVERLAY_STYLESHEET);
+            ThemeScope.install(scene, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
         } else {
-            RXStyles.removeSheets(scene, RXResources.DARK_OVERLAY_STYLESHEET);
+            ThemeScope.uninstall(scene, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
         }
     }
 
@@ -79,9 +99,9 @@ public final class RXTheme {
      */
     public static void install(Parent parent, Variant variant) {
         if (Objects.requireNonNull(variant, "variant") == Variant.DARK) {
-            RXStyles.addSheets(parent, RXResources.DARK_OVERLAY_STYLESHEET);
+            ThemeScope.install(parent, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
         } else {
-            RXStyles.removeSheets(parent, RXResources.DARK_OVERLAY_STYLESHEET);
+            ThemeScope.uninstall(parent, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
         }
     }
 
@@ -92,7 +112,7 @@ public final class RXTheme {
      * @param scene the scene to revert; must not be null
      */
     public static void uninstall(Scene scene) {
-        RXStyles.removeSheets(scene, RXResources.DARK_OVERLAY_STYLESHEET);
+        ThemeScope.uninstall(scene, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
     }
 
     /**
@@ -102,6 +122,6 @@ public final class RXTheme {
      * @param parent the parent to revert; must not be null
      */
     public static void uninstall(Parent parent) {
-        RXStyles.removeSheets(parent, RXResources.DARK_OVERLAY_STYLESHEET);
+        ThemeScope.uninstall(parent, DARK_SCOPE_CLASS, RXResources.DARK_OVERLAY_STYLESHEET);
     }
 }

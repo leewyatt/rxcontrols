@@ -2,6 +2,9 @@ package io.github.leewyatt.rxcontrols;
 
 import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
+import io.github.leewyatt.rxcontrols.theme.AtlantaFXThemeBridge;
+import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -73,7 +76,7 @@ public class RXShadowsTokenTest {
      */
     @Test
     public void umbraColorResolvesUnderLight() throws Exception {
-        Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.USER_AGENT_STYLESHEET);
+        Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.USER_AGENT_STYLESHEET, null);
         assertEquals(Color.rgb(0, 0, 0, 0.2), umbra,
                 "-rx-elevation-umbra-color should resolve to rgba(0, 0, 0, 0.2) under the light baseline");
     }
@@ -86,7 +89,8 @@ public class RXShadowsTokenTest {
      */
     @Test
     public void umbraColorResolvesUnderDark() throws Exception {
-        Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.DARK_OVERLAY_STYLESHEET);
+        Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.DARK_OVERLAY_STYLESHEET,
+                RXTheme.getDarkScopeClass());
         assertEquals(Color.rgb(0, 0, 0, 0.4), umbra,
                 "-rx-elevation-umbra-color should resolve to rgba(0, 0, 0, 0.4) under the dark overlay");
     }
@@ -101,7 +105,7 @@ public class RXShadowsTokenTest {
     @Test
     public void umbraColorResolvesUnderAtlantaFX() throws Exception {
         Color umbra = resolveUmbra(new PrimerLight().getUserAgentStylesheet(),
-                RXResources.ATLANTAFX_BRIDGE_STYLESHEET);
+                RXResources.ATLANTAFX_BRIDGE_STYLESHEET, AtlantaFXThemeBridge.getScopeClass());
         assertNotNull(umbra,
                 "-rx-elevation-umbra-color should resolve to a color via -color-shadow-default under AtlantaFX");
         assertTrue(umbra.getOpacity() > 0.0,
@@ -113,14 +117,17 @@ public class RXShadowsTokenTest {
      * control-root-classed node under the given UA + token stylesheet, forcing the
      * looked-up resolution.
      */
-    private static Color resolveUmbra(String userAgentStylesheet, String tokenStylesheet) throws Exception {
+    private static Color resolveUmbra(String userAgentStylesheet, String tokenStylesheet, String scopeClass)
+            throws Exception {
         AtomicReference<Color> umbraRef = new AtomicReference<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
-            Region probe = new Region();
-            probe.getStyleClass().add("rx-button");
+            RXBox probe = new RXBox();
             probe.setStyle("-fx-background-color: -rx-elevation-umbra-color;");
             StackPane root = new StackPane(probe);
+            if (scopeClass != null) {
+                root.getStyleClass().add(scopeClass);
+            }
             Scene scene = new Scene(root, 50, 50);
             scene.getStylesheets().add(tokenStylesheet);
             root.applyCss();

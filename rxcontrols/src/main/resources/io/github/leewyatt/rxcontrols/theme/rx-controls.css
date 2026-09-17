@@ -66,6 +66,436 @@
     -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
 }
 
+/* Theme scopes live in this user-agent stylesheet on purpose: when a looked-up
+   color is defined in an author stylesheet, JavaFX 17-23 raises the calculated
+   origin to AUTHOR (JDK-8336097), which then overrides colors the application
+   set in code. RXTheme / AtlantaFXThemeBridge only toggle the scope class. */
+.rx-theme-dark .rx-audio-spectrum,
+.rx-theme-dark.rx-audio-spectrum,
+.rx-theme-dark .rx-auto-complete-field,
+.rx-theme-dark.rx-auto-complete-field,
+.rx-theme-dark .rx-avatar,
+.rx-theme-dark.rx-avatar,
+.rx-theme-dark .rx-backdrop,
+.rx-theme-dark.rx-backdrop,
+.rx-theme-dark .rx-bar-spinner,
+.rx-theme-dark.rx-bar-spinner,
+.rx-theme-dark .rx-box,
+.rx-theme-dark.rx-box,
+.rx-theme-dark .rx-button,
+.rx-theme-dark.rx-button,
+.rx-theme-dark .rx-carousel,
+.rx-theme-dark.rx-carousel,
+.rx-theme-dark .rx-cascader,
+.rx-theme-dark.rx-cascader,
+.rx-theme-dark .rx-cascader-view,
+.rx-theme-dark.rx-cascader-view,
+.rx-theme-dark .rx-check-box,
+.rx-theme-dark.rx-check-box,
+.rx-theme-dark .rx-chip,
+.rx-theme-dark.rx-chip,
+.rx-theme-dark .rx-chip-set,
+.rx-theme-dark.rx-chip-set,
+.rx-theme-dark .rx-chip-input,
+.rx-theme-dark.rx-chip-input,
+.rx-theme-dark .rx-circular-progress-indicator,
+.rx-theme-dark.rx-circular-progress-indicator,
+.rx-theme-dark .rx-clip-path-image-view,
+.rx-theme-dark.rx-clip-path-image-view,
+.rx-theme-dark .rx-col,
+.rx-theme-dark.rx-col,
+.rx-theme-dark .rx-content-pane,
+.rx-theme-dark.rx-content-pane,
+.rx-theme-dark .rx-dialog,
+.rx-theme-dark.rx-dialog,
+.rx-theme-dark .rx-dialog-content,
+.rx-theme-dark.rx-dialog-content,
+.rx-theme-dark .rx-digit,
+.rx-theme-dark.rx-digit,
+.rx-theme-dark .rx-dot-pulse,
+.rx-theme-dark.rx-dot-pulse,
+.rx-theme-dark .rx-drawer-pane,
+.rx-theme-dark.rx-drawer-pane,
+.rx-theme-dark .rx-dual-pane,
+.rx-theme-dark.rx-dual-pane,
+.rx-theme-dark .rx-fill-button,
+.rx-theme-dark.rx-fill-button,
+.rx-theme-dark .rx-fill-label,
+.rx-theme-dark.rx-fill-label,
+.rx-theme-dark .rx-flow-pane,
+.rx-theme-dark.rx-flow-pane,
+.rx-theme-dark .rx-decimal-field,
+.rx-theme-dark.rx-decimal-field,
+.rx-theme-dark .rx-double-field,
+.rx-theme-dark.rx-double-field,
+.rx-theme-dark .rx-fab,
+.rx-theme-dark.rx-fab,
+.rx-theme-dark .rx-highlight-text-view,
+.rx-theme-dark.rx-highlight-text-view,
+.rx-theme-dark .rx-image-pane,
+.rx-theme-dark.rx-image-pane,
+.rx-theme-dark .rx-image-view,
+.rx-theme-dark.rx-image-view,
+.rx-theme-dark .rx-integer-field,
+.rx-theme-dark.rx-integer-field,
+.rx-theme-dark .rx-line-button,
+.rx-theme-dark.rx-line-button,
+.rx-theme-dark .rx-line-label,
+.rx-theme-dark.rx-line-label,
+.rx-theme-dark .rx-long-field,
+.rx-theme-dark.rx-long-field,
+.rx-theme-dark .rx-lrc-line-view,
+.rx-theme-dark.rx-lrc-line-view,
+.rx-theme-dark .rx-lrc-view,
+.rx-theme-dark.rx-lrc-view,
+.rx-theme-dark .rx-masonry-pane,
+.rx-theme-dark.rx-masonry-pane,
+.rx-theme-dark .rx-masonry-view,
+.rx-theme-dark.rx-masonry-view,
+.rx-theme-dark .rx-material-decimal-field,
+.rx-theme-dark.rx-material-decimal-field,
+.rx-theme-dark .rx-material-double-field,
+.rx-theme-dark.rx-material-double-field,
+.rx-theme-dark .rx-material-integer-field,
+.rx-theme-dark.rx-material-integer-field,
+.rx-theme-dark .rx-material-long-field,
+.rx-theme-dark.rx-material-long-field,
+.rx-theme-dark .rx-material-text-field,
+.rx-theme-dark.rx-material-text-field,
+.rx-theme-dark .rx-material-password-field,
+.rx-theme-dark.rx-material-password-field,
+.rx-theme-dark .rx-password-field,
+.rx-theme-dark.rx-password-field,
+.rx-theme-dark .rx-placeholder,
+.rx-theme-dark.rx-placeholder,
+.rx-theme-dark .rx-radio-button,
+.rx-theme-dark.rx-radio-button,
+.rx-theme-dark .rx-radio-toggle-button,
+.rx-theme-dark.rx-radio-toggle-button,
+.rx-theme-dark .rx-ripple-pane,
+.rx-theme-dark.rx-ripple-pane,
+.rx-theme-dark .rx-row,
+.rx-theme-dark.rx-row,
+.rx-theme-dark .rx-seek-bar,
+.rx-theme-dark.rx-seek-bar,
+.rx-theme-dark .rx-segmented-control,
+.rx-theme-dark.rx-segmented-control,
+.rx-theme-dark .rx-segmented-progress-bar,
+.rx-theme-dark.rx-segmented-progress-bar,
+.rx-theme-dark .rx-segmented-step-indicator,
+.rx-theme-dark.rx-segmented-step-indicator,
+.rx-theme-dark .rx-selection-box,
+.rx-theme-dark.rx-selection-box,
+.rx-theme-dark .rx-sidebar,
+.rx-theme-dark.rx-sidebar,
+.rx-theme-dark .rx-snackbar-host,
+.rx-theme-dark.rx-snackbar-host,
+.rx-theme-dark .rx-speed-dial,
+.rx-theme-dark.rx-speed-dial,
+.rx-theme-dark .rx-slider,
+.rx-theme-dark.rx-slider,
+.rx-theme-dark .rx-range-slider,
+.rx-theme-dark.rx-range-slider,
+.rx-theme-dark .rx-skeleton,
+.rx-theme-dark.rx-skeleton,
+.rx-theme-dark .rx-skeleton-pane,
+.rx-theme-dark.rx-skeleton-pane,
+.rx-theme-dark .rx-state-pane,
+.rx-theme-dark.rx-state-pane,
+.rx-theme-dark .rx-switch-button,
+.rx-theme-dark.rx-switch-button,
+.rx-theme-dark .rx-text-field,
+.rx-theme-dark.rx-text-field,
+.rx-theme-dark .rx-text-view,
+.rx-theme-dark.rx-text-view,
+.rx-theme-dark .rx-kanban-view,
+.rx-theme-dark.rx-kanban-view,
+.rx-theme-dark .rx-list-view,
+.rx-theme-dark.rx-list-view,
+.rx-theme-dark .rx-menu-button,
+.rx-theme-dark.rx-menu-button,
+.rx-theme-dark .rx-menu-list,
+.rx-theme-dark.rx-menu-list,
+.rx-theme-dark .rx-tab-pane,
+.rx-theme-dark.rx-tab-pane,
+.rx-theme-dark .rx-tile-pane,
+.rx-theme-dark.rx-tile-pane,
+.rx-theme-dark .rx-tile-view,
+.rx-theme-dark.rx-tile-view,
+.rx-theme-dark .rx-timeline-view,
+.rx-theme-dark.rx-timeline-view,
+.rx-theme-dark .rx-toggle-button,
+.rx-theme-dark.rx-toggle-button,
+.rx-theme-dark .rx-transition-button,
+.rx-theme-dark.rx-transition-button,
+.rx-theme-dark .rx-transition-label,
+.rx-theme-dark.rx-transition-label,
+.rx-theme-dark .rx-transition-pane,
+.rx-theme-dark.rx-transition-pane,
+.rx-theme-dark .rx-wave-progress-indicator,
+.rx-theme-dark.rx-wave-progress-indicator {
+    /* brand / primary (brand purple, lightened for dark contrast) */
+    -rx-primary: #7c86ff;
+    -rx-primary-hover: derive(-rx-primary, 8%);
+    -rx-primary-active: derive(-rx-primary, -10%);
+    -rx-primary-bg: rgba(124, 134, 255, 0.18);
+    -rx-on-primary: white;
+    /* semantic */
+    -rx-success: #6cc04a;
+    -rx-warning: #e6a23c;
+    -rx-danger: #f56c6c;
+    -rx-info: #a0a4ad;
+    /* surface / text / outline (dark) */
+    -rx-surface: #1e1f2b;
+    -rx-surface-variant: #2a2c3a;
+    -rx-on-surface: #e6e7ee;
+    -rx-on-surface-secondary: #a6a8b5;
+    -rx-on-surface-disabled: rgba(255, 255, 255, 0.35);
+    /* outlines picked for a contrast of about 1.5-1.8 on surface-variant, in line with the light theme */
+    -rx-outline: #4d5166;
+    -rx-outline-variant: #44475a;
+    -rx-focus: -rx-primary;
+    -rx-selection: rgba(124, 134, 255, 0.4);
+    -rx-highlight: rgba(230, 162, 60, 0.4);
+    /* interaction state overlay (ripple / hover tint) flips to white on dark */
+    -rx-state-overlay-color: white;
+    /* elevation: keep the umbra a black shadow on dark (a white one would glow);
+       a touch deeper than light so the card still reads against the dark surface.
+       Full Material surface-tint elevation is a V2 evaluation. */
+    -rx-elevation-umbra-color: rgba(0, 0, 0, 0.4);
+
+    /* Modena base palette, overridden to the dark role tokens so RxControls
+       rules still referencing raw -fx-* (not yet role-tokenized) render dark
+       instead of taking Modena's light .root values. */
+    -fx-base: -rx-surface;
+    -fx-color: -rx-surface;
+    -fx-control-inner-background: -rx-surface;
+    -fx-hover-base: derive(-rx-surface, 12%);
+    -fx-pressed-base: derive(-rx-surface, 18%);
+    -fx-text-base-color: -rx-on-surface;
+    -fx-text-inner-color: -rx-on-surface;
+    -fx-mid-text-color: -rx-on-surface-secondary;
+    -fx-box-border: -rx-outline;
+    -fx-text-box-border: -rx-outline;
+    -fx-accent: -rx-primary;
+    -fx-focus-color: -rx-primary;
+    -fx-faint-focus-color: -rx-selection;
+}
+
+.rx-theme-atlantafx .rx-audio-spectrum,
+.rx-theme-atlantafx.rx-audio-spectrum,
+.rx-theme-atlantafx .rx-auto-complete-field,
+.rx-theme-atlantafx.rx-auto-complete-field,
+.rx-theme-atlantafx .rx-avatar,
+.rx-theme-atlantafx.rx-avatar,
+.rx-theme-atlantafx .rx-backdrop,
+.rx-theme-atlantafx.rx-backdrop,
+.rx-theme-atlantafx .rx-bar-spinner,
+.rx-theme-atlantafx.rx-bar-spinner,
+.rx-theme-atlantafx .rx-box,
+.rx-theme-atlantafx.rx-box,
+.rx-theme-atlantafx .rx-button,
+.rx-theme-atlantafx.rx-button,
+.rx-theme-atlantafx .rx-carousel,
+.rx-theme-atlantafx.rx-carousel,
+.rx-theme-atlantafx .rx-cascader,
+.rx-theme-atlantafx.rx-cascader,
+.rx-theme-atlantafx .rx-cascader-view,
+.rx-theme-atlantafx.rx-cascader-view,
+.rx-theme-atlantafx .rx-check-box,
+.rx-theme-atlantafx.rx-check-box,
+.rx-theme-atlantafx .rx-chip,
+.rx-theme-atlantafx.rx-chip,
+.rx-theme-atlantafx .rx-chip-set,
+.rx-theme-atlantafx.rx-chip-set,
+.rx-theme-atlantafx .rx-chip-input,
+.rx-theme-atlantafx.rx-chip-input,
+.rx-theme-atlantafx .rx-circular-progress-indicator,
+.rx-theme-atlantafx.rx-circular-progress-indicator,
+.rx-theme-atlantafx .rx-clip-path-image-view,
+.rx-theme-atlantafx.rx-clip-path-image-view,
+.rx-theme-atlantafx .rx-col,
+.rx-theme-atlantafx.rx-col,
+.rx-theme-atlantafx .rx-content-pane,
+.rx-theme-atlantafx.rx-content-pane,
+.rx-theme-atlantafx .rx-dialog,
+.rx-theme-atlantafx.rx-dialog,
+.rx-theme-atlantafx .rx-dialog-content,
+.rx-theme-atlantafx.rx-dialog-content,
+.rx-theme-atlantafx .rx-digit,
+.rx-theme-atlantafx.rx-digit,
+.rx-theme-atlantafx .rx-dot-pulse,
+.rx-theme-atlantafx.rx-dot-pulse,
+.rx-theme-atlantafx .rx-drawer-pane,
+.rx-theme-atlantafx.rx-drawer-pane,
+.rx-theme-atlantafx .rx-dual-pane,
+.rx-theme-atlantafx.rx-dual-pane,
+.rx-theme-atlantafx .rx-fill-button,
+.rx-theme-atlantafx.rx-fill-button,
+.rx-theme-atlantafx .rx-fill-label,
+.rx-theme-atlantafx.rx-fill-label,
+.rx-theme-atlantafx .rx-flow-pane,
+.rx-theme-atlantafx.rx-flow-pane,
+.rx-theme-atlantafx .rx-decimal-field,
+.rx-theme-atlantafx.rx-decimal-field,
+.rx-theme-atlantafx .rx-double-field,
+.rx-theme-atlantafx.rx-double-field,
+.rx-theme-atlantafx .rx-fab,
+.rx-theme-atlantafx.rx-fab,
+.rx-theme-atlantafx .rx-highlight-text-view,
+.rx-theme-atlantafx.rx-highlight-text-view,
+.rx-theme-atlantafx .rx-image-pane,
+.rx-theme-atlantafx.rx-image-pane,
+.rx-theme-atlantafx .rx-image-view,
+.rx-theme-atlantafx.rx-image-view,
+.rx-theme-atlantafx .rx-integer-field,
+.rx-theme-atlantafx.rx-integer-field,
+.rx-theme-atlantafx .rx-line-button,
+.rx-theme-atlantafx.rx-line-button,
+.rx-theme-atlantafx .rx-line-label,
+.rx-theme-atlantafx.rx-line-label,
+.rx-theme-atlantafx .rx-long-field,
+.rx-theme-atlantafx.rx-long-field,
+.rx-theme-atlantafx .rx-lrc-line-view,
+.rx-theme-atlantafx.rx-lrc-line-view,
+.rx-theme-atlantafx .rx-lrc-view,
+.rx-theme-atlantafx.rx-lrc-view,
+.rx-theme-atlantafx .rx-masonry-pane,
+.rx-theme-atlantafx.rx-masonry-pane,
+.rx-theme-atlantafx .rx-masonry-view,
+.rx-theme-atlantafx.rx-masonry-view,
+.rx-theme-atlantafx .rx-material-decimal-field,
+.rx-theme-atlantafx.rx-material-decimal-field,
+.rx-theme-atlantafx .rx-material-double-field,
+.rx-theme-atlantafx.rx-material-double-field,
+.rx-theme-atlantafx .rx-material-integer-field,
+.rx-theme-atlantafx.rx-material-integer-field,
+.rx-theme-atlantafx .rx-material-long-field,
+.rx-theme-atlantafx.rx-material-long-field,
+.rx-theme-atlantafx .rx-material-text-field,
+.rx-theme-atlantafx.rx-material-text-field,
+.rx-theme-atlantafx .rx-material-password-field,
+.rx-theme-atlantafx.rx-material-password-field,
+.rx-theme-atlantafx .rx-password-field,
+.rx-theme-atlantafx.rx-password-field,
+.rx-theme-atlantafx .rx-placeholder,
+.rx-theme-atlantafx.rx-placeholder,
+.rx-theme-atlantafx .rx-radio-button,
+.rx-theme-atlantafx.rx-radio-button,
+.rx-theme-atlantafx .rx-radio-toggle-button,
+.rx-theme-atlantafx.rx-radio-toggle-button,
+.rx-theme-atlantafx .rx-ripple-pane,
+.rx-theme-atlantafx.rx-ripple-pane,
+.rx-theme-atlantafx .rx-row,
+.rx-theme-atlantafx.rx-row,
+.rx-theme-atlantafx .rx-seek-bar,
+.rx-theme-atlantafx.rx-seek-bar,
+.rx-theme-atlantafx .rx-segmented-control,
+.rx-theme-atlantafx.rx-segmented-control,
+.rx-theme-atlantafx .rx-segmented-progress-bar,
+.rx-theme-atlantafx.rx-segmented-progress-bar,
+.rx-theme-atlantafx .rx-segmented-step-indicator,
+.rx-theme-atlantafx.rx-segmented-step-indicator,
+.rx-theme-atlantafx .rx-selection-box,
+.rx-theme-atlantafx.rx-selection-box,
+.rx-theme-atlantafx .rx-sidebar,
+.rx-theme-atlantafx.rx-sidebar,
+.rx-theme-atlantafx .rx-snackbar-host,
+.rx-theme-atlantafx.rx-snackbar-host,
+.rx-theme-atlantafx .rx-speed-dial,
+.rx-theme-atlantafx.rx-speed-dial,
+.rx-theme-atlantafx .rx-slider,
+.rx-theme-atlantafx.rx-slider,
+.rx-theme-atlantafx .rx-range-slider,
+.rx-theme-atlantafx.rx-range-slider,
+.rx-theme-atlantafx .rx-skeleton,
+.rx-theme-atlantafx.rx-skeleton,
+.rx-theme-atlantafx .rx-skeleton-pane,
+.rx-theme-atlantafx.rx-skeleton-pane,
+.rx-theme-atlantafx .rx-state-pane,
+.rx-theme-atlantafx.rx-state-pane,
+.rx-theme-atlantafx .rx-switch-button,
+.rx-theme-atlantafx.rx-switch-button,
+.rx-theme-atlantafx .rx-text-field,
+.rx-theme-atlantafx.rx-text-field,
+.rx-theme-atlantafx .rx-text-view,
+.rx-theme-atlantafx.rx-text-view,
+.rx-theme-atlantafx .rx-kanban-view,
+.rx-theme-atlantafx.rx-kanban-view,
+.rx-theme-atlantafx .rx-list-view,
+.rx-theme-atlantafx.rx-list-view,
+.rx-theme-atlantafx .rx-menu-button,
+.rx-theme-atlantafx.rx-menu-button,
+.rx-theme-atlantafx .rx-menu-list,
+.rx-theme-atlantafx.rx-menu-list,
+.rx-theme-atlantafx .rx-tab-pane,
+.rx-theme-atlantafx.rx-tab-pane,
+.rx-theme-atlantafx .rx-tile-pane,
+.rx-theme-atlantafx.rx-tile-pane,
+.rx-theme-atlantafx .rx-tile-view,
+.rx-theme-atlantafx.rx-tile-view,
+.rx-theme-atlantafx .rx-timeline-view,
+.rx-theme-atlantafx.rx-timeline-view,
+.rx-theme-atlantafx .rx-toggle-button,
+.rx-theme-atlantafx.rx-toggle-button,
+.rx-theme-atlantafx .rx-transition-button,
+.rx-theme-atlantafx.rx-transition-button,
+.rx-theme-atlantafx .rx-transition-label,
+.rx-theme-atlantafx.rx-transition-label,
+.rx-theme-atlantafx .rx-transition-pane,
+.rx-theme-atlantafx.rx-transition-pane,
+.rx-theme-atlantafx .rx-wave-progress-indicator,
+.rx-theme-atlantafx.rx-wave-progress-indicator {
+    /* brand / primary */
+    -rx-primary: -color-accent-emphasis;
+    -rx-primary-hover: derive(-color-accent-emphasis, 8%);
+    -rx-primary-active: derive(-color-accent-emphasis, -10%);
+    -rx-primary-bg: -color-accent-subtle;
+    -rx-on-primary: -color-fg-emphasis;
+    /* semantic */
+    -rx-success: -color-success-emphasis;
+    -rx-warning: -color-warning-emphasis;
+    -rx-danger: -color-danger-emphasis;
+    -rx-info: -color-neutral-emphasis;
+    /* surface / text / outline */
+    -rx-surface: -color-bg-default;
+    -rx-surface-variant: -color-bg-subtle;
+    -rx-on-surface: -color-fg-default;
+    -rx-on-surface-secondary: -color-fg-muted;
+    -rx-on-surface-disabled: -color-fg-subtle;
+    -rx-outline: -color-border-default;
+    -rx-outline-variant: -color-border-muted;
+    -rx-focus: -color-accent-emphasis;
+    -rx-selection: -color-accent-muted;
+    -rx-highlight: -color-warning-muted;
+    /* interaction state overlay (ripple / hover tint); flips with the theme */
+    -rx-state-overlay-color: -color-fg-default;
+    /* elevation: follow AtlantaFX's own shadow color token, so the card shadow
+       tracks the active AtlantaFX theme (light / dark). */
+    -rx-elevation-umbra-color: -color-shadow-default;
+
+    /* Modena base palette that AtlantaFX does not define. RxControls component
+       rules that still reference raw -fx-* colors directly (the not-yet
+       role-tokenized recolor backlog: cascader, focus glow, …) would
+       otherwise fail to resolve under AtlantaFX and render transparent/black.
+       Supplying them here (author origin, on the control roots) keeps those
+       controls following the theme until they are migrated to role tokens. */
+    -fx-base: -color-bg-default;
+    -fx-color: -color-bg-default;
+    -fx-control-inner-background: -color-bg-default;
+    -fx-hover-base: -color-bg-subtle;
+    -fx-pressed-base: -color-bg-inset;
+    -fx-text-base-color: -color-fg-default;
+    -fx-text-inner-color: -color-fg-default;
+    -fx-mid-text-color: -color-fg-muted;
+    -fx-box-border: -color-border-default;
+    -fx-text-box-border: -color-border-default;
+    -fx-accent: -color-accent-emphasis;
+    -fx-focus-color: -color-accent-emphasis;
+    -fx-faint-focus-color: -color-accent-muted;
+}
+
+
 /*******************************************************************************
  *                                                                             *
  * Ripple / state-overlay primitives                                           *

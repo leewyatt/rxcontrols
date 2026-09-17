@@ -17,6 +17,7 @@ import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -173,14 +174,15 @@ public class AtlantaFXThemeBridgeTest {
      * would not follow / would be stale) fails here.
      */
     @Test
-    public void bridgeSelectorListMatchesTheBaseline() {
-        Set<String> baseline = controlRootSelectors(readResource(BASELINE_CSS));
-        Set<String> bridge = controlRootSelectors(readResource(BRIDGE_CSS));
+    public void bridgeScopeCoversTheBaselineControlRoots() {
+        String baseline = readResource(BASELINE_CSS);
+        Set<String> roots = tokenRuleRoots(baseline, null);
+        Set<String> bridgeRoots = tokenRuleRoots(baseline, "rx-theme-atlantafx");
 
-        assertTrue(bridge.size() >= 40,
-                "bridge selector scan found only " + bridge.size() + " roots; parse is probably broken: " + bridge);
-        assertEquals(baseline, bridge,
-                "rx-controls-atlantafx.css control roots must match the rx-controls.css baseline");
+        assertTrue(roots.size() >= 40,
+                "baseline token block scan found only " + roots.size() + " roots; parse is probably broken: " + roots);
+        assertEquals(roots, bridgeRoots,
+                "the .rx-theme-atlantafx scope must cover exactly the baseline control roots");
     }
 
     // ==================== Full mapping ====================
@@ -432,6 +434,28 @@ public class AtlantaFXThemeBridgeTest {
         assertEquals(Color.RED, fills.get("code-set"), "base color set in code");
     }
 
+    /**
+     * Under the bridge, a text color set in code survives next to a default sibling in the same scene.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void codeSetTextFillSurvivesNextToADefaultSiblingUnderTheBridge() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox plain = new RXCheckBox("plain");
+            RXCheckBox coded = new RXCheckBox("coded");
+            coded.setTextFill(Color.RED);
+            StackPane host = new StackPane(plain, coded);
+            Scene scene = new Scene(host, 200, 80);
+            AtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            textFill.set(coded.getTextFill());
+        });
+        assertEquals(Color.RED, textFill.get(),
+                "a text fill set in code must survive a default sibling under the bridge");
+    }
+
     // ==================== Subtree scoping ====================
 
     /**
@@ -541,7 +565,8 @@ public class AtlantaFXThemeBridgeTest {
             probe.getStyleClass().addAll("button", "rx-fill-button");
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("filling"), true);
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("armed"), true);
-            StackPane host = new StackPane(probe);
+            // Inside a real control root: a plain node gets no control user-agent stylesheet.
+            StackPane host = new StackPane(new RXBox(probe));
             Scene scene = new Scene(host, 120, 60);
             AtlantaFXThemeBridge.install(scene);
             host.applyCss();
@@ -608,11 +633,11 @@ public class AtlantaFXThemeBridgeTest {
         }
     }
 
+    /** A real control root: the role tokens live in the control user-agent stylesheet. */
     private static Region probe(String token) {
-        Region region = new Region();
-        region.getStyleClass().add("rx-button"); // a covered control root
-        region.setStyle("-fx-background-color: -rx-" + token + ";");
-        return region;
+        RXBox box = new RXBox();
+        box.setStyle("-fx-background-color: -rx-" + token + ";");
+        return box;
     }
 
     private static Region referenceProbe(String paint) {
@@ -621,11 +646,11 @@ public class AtlantaFXThemeBridgeTest {
         return region;
     }
 
+    /** A real control root: the compat colors live in the control user-agent stylesheet. */
     private static Region probeFx(String var) {
-        Region region = new Region();
-        region.getStyleClass().add("rx-button"); // a covered control root
-        region.setStyle("-fx-background-color: " + var + ";");
-        return region;
+        RXBox box = new RXBox();
+        box.setStyle("-fx-background-color: " + var + ";");
+        return box;
     }
 
     private static List<String> rxControlsResolutionFailures(List<String> messages) {
@@ -686,7 +711,8 @@ public class AtlantaFXThemeBridgeTest {
         return fill instanceof Color ? (Color) fill : null;
     }
 
-    private static Set<String> controlRootSelectors(String css) {
+    /** Control roots of the token rule; {@code scopeClass} null selects the unscoped baseline rule. */
+    private static Set<String> tokenRuleRoots(String css, String scopeClass) {
         // Strip comments, then locate the rule the token layer DEFINES (the one
         // whose body assigns -rx-primary) and harvest its .rx-* selectors. Matches
         // the position-independent approach used by RxControlsThemeBaselineTest.
@@ -704,16 +730,23 @@ public class AtlantaFXThemeBridgeTest {
             }
             if (stripped.substring(open + 1, close).contains("-rx-primary:")) {
                 int prevClose = stripped.lastIndexOf('}', open);
-                selectorText = stripped.substring(prevClose < 0 ? 0 : prevClose + 1, open);
-                break;
+                String text = stripped.substring(prevClose < 0 ? 0 : prevClose + 1, open);
+                boolean scoped = text.contains(".rx-theme-");
+                if (scopeClass == null ? !scoped : text.contains("." + scopeClass)) {
+                    selectorText = text;
+                    break;
+                }
             }
             from = close + 1;
         }
-        assertNotNull(selectorText, "rule defining -rx-primary not found");
+        assertNotNull(selectorText, "token rule not found for scope " + scopeClass);
         Set<String> selectors = new TreeSet<>();
         Matcher matcher = ROOT_SELECTOR_PATTERN.matcher(selectorText);
         while (matcher.find()) {
-            selectors.add(matcher.group(1));
+            String name = matcher.group(1);
+            if (!name.startsWith("rx-theme-")) {
+                selectors.add(name);
+            }
         }
         return selectors;
     }

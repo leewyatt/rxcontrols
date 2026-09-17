@@ -172,8 +172,11 @@
 
 <h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>
 <p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> can make RxControls
-   follow the host theme with <code>AtlantaFXThemeBridge</code>. It layers an <b>author-origin</b> stylesheet
-   (<code>rx-controls-atlantafx.css</code>) that re-points the color role tokens above at AtlantaFX
+   follow the host theme with <code>AtlantaFXThemeBridge</code>. It puts the <code>rx-theme-atlantafx</code>
+   scope style class on the bridged root — the mapping of the color role tokens above onto AtlantaFX
+   functional tokens lives in this user-agent stylesheet under that scope (so the values keep user-agent
+   origin) — and adds a small <b>author-origin</b> stylesheet
+   (<code>rx-controls-atlantafx.css</code>) that re-points the remaining per-control colors at AtlantaFX
    <code>-color-*</code> functional tokens. Install the AtlantaFX theme as the Application user-agent
    stylesheet <b>before</b> building the scene, then apply the bridge:</p>
 <pre><code>Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
@@ -224,16 +227,23 @@ AtlantaFXThemeBridge.install(scene);   // popups opened afterwards follow it too
 </table>
 
 <h3 id="rxThemeDark">Built-in dark theme</h3>
-<p>For a built-in dark look (no external theme needed), <code>RXTheme</code> layers an
-   <b>author-origin</b> overlay (<code>rx-controls-dark.css</code>) that re-defines the color role
-   tokens with a self-contained dark palette and overrides the Modena <code>-fx-*</code> base colors,
-   so the whole library — including controls still using raw <code>-fx-*</code> — turns dark:</p>
+<p>For a built-in dark look (no external theme needed), <code>RXTheme</code> puts the
+   <code>rx-theme-dark</code> scope style class on the themed root. The dark values of the color role
+   tokens and of the Modena <code>-fx-*</code> base colors live in this same user-agent stylesheet
+   under that scope, so the whole library — including controls still using raw <code>-fx-*</code> —
+   turns dark. A small <b>author-origin</b> overlay (<code>rx-controls-dark.css</code>) is added
+   alongside for the per-control re-points that must sit above the platform theme:</p>
 <pre><code>RXTheme.install(scene, RXTheme.Variant.DARK);  // go dark (popups follow if opened afterwards)
 RXTheme.install(scene, RXTheme.Variant.LIGHT); // back to the built-in light baseline
 RXTheme.uninstall(scene);                      // also back to the baseline</code></pre>
-<p>Unlike the AtlantaFX bridge (which references a host theme's <code>-color-*</code>), the dark overlay
+<p>Unlike the AtlantaFX bridge (which references a host theme's <code>-color-*</code>), the dark scope
    uses literal dark values, so it works on the default Modena baseline. It also flips
    <code>-rx-state-overlay-color</code> to white (ripple / hover tint on dark).</p>
+<p>The token values keep <b>user-agent origin</b>, which is what lets a color you set in code
+   (<code>setTextFill(…)</code>) survive: an author-origin token would be promoted over code-set values on
+   JavaFX 17–23 (JDK-8336097). The flip side is that <code>-rx-*</code> resolves on RxControls controls and
+   their descendants only — the same as on the light baseline. If you manage stylesheet lists yourself,
+   add <code>RXTheme.getDarkScopeClass()</code> to the root as well; <code>install</code> does it for you.</p>
 
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>

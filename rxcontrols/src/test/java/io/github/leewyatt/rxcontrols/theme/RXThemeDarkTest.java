@@ -16,11 +16,13 @@ import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
+import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.SubScene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
@@ -145,12 +147,13 @@ public class RXThemeDarkTest {
      * The dark overlay's control-root selector list must equal the baseline's.
      */
     @Test
-    public void darkOverlaySelectorListMatchesTheBaseline() {
-        Set<String> baseline = controlRootSelectors(readResource(BASELINE_CSS));
-        Set<String> dark = controlRootSelectors(readResource(DARK_CSS));
-        assertTrue(dark.size() >= 40, "dark overlay selector scan looks broken: " + dark);
-        assertEquals(baseline, dark,
-                "rx-controls-dark.css control roots must match the rx-controls.css baseline");
+    public void darkScopeCoversTheBaselineControlRoots() {
+        String baseline = readResource(BASELINE_CSS);
+        Set<String> roots = tokenRuleRoots(baseline, null);
+        Set<String> darkRoots = tokenRuleRoots(baseline, "rx-theme-dark");
+        assertTrue(roots.size() >= 40, "baseline token block scan looks broken: " + roots);
+        assertEquals(roots, darkRoots,
+                "the .rx-theme-dark scope must cover exactly the baseline control roots");
     }
 
     // ==================== Token mapping ====================
@@ -326,7 +329,8 @@ public class RXThemeDarkTest {
             probe.getStyleClass().addAll("button", "rx-fill-button");
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("filling"), true);
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("armed"), true);
-            StackPane host = new StackPane(probe);
+            // Inside a real control root: a plain node gets no control user-agent stylesheet.
+            StackPane host = new StackPane(new RXBox(probe));
             Scene scene = new Scene(host, 120, 60);
             RXTheme.install(scene, RXTheme.Variant.DARK);
             host.applyCss();
@@ -409,7 +413,8 @@ public class RXThemeDarkTest {
             StackPane control = new StackPane(selectedSeg, unselectedSeg);
             control.getStyleClass().add("rx-segmented-control");
 
-            StackPane host = new StackPane(control);
+            // Inside a real control root: a plain node gets no control user-agent stylesheet.
+            StackPane host = new StackPane(new RXBox(control));
             Scene scene = new Scene(host, 200, 80);
             RXTheme.install(scene, RXTheme.Variant.DARK);
             host.applyCss();
@@ -592,6 +597,51 @@ public class RXThemeDarkTest {
         assertEquals(Color.RED, fills.get("code-set"), "base color set in code");
     }
 
+    /**
+     * Under dark, a text color set in code survives next to a default sibling in the same scene.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void codeSetTextFillSurvivesNextToADefaultSiblingUnderDark() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox plain = new RXCheckBox("plain");
+            RXCheckBox coded = new RXCheckBox("coded");
+            coded.setTextFill(Color.RED);
+            StackPane host = new StackPane(plain, coded);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            textFill.set(coded.getTextFill());
+        });
+        assertEquals(Color.RED, textFill.get(),
+                "a text fill set in code must survive a default sibling under dark");
+    }
+
+    /**
+     * Under dark, a control inside a SubScene follows the theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void controlsInsideASubSceneFollowDark() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXCheckBox inside = new RXCheckBox("inside");
+            StackPane subRoot = new StackPane(inside);
+            SubScene subScene = new SubScene(subRoot, 200, 80);
+            StackPane host = new StackPane(subScene);
+            Scene scene = new Scene(host, 200, 80);
+            RXTheme.install(scene, RXTheme.Variant.DARK);
+            host.applyCss();
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+        assertEquals(Color.web("#e6e7ee"), textFill.get(),
+                "a control inside a SubScene must follow the dark theme");
+    }
+
     // ==================== Revert ====================
 
     /**
@@ -645,11 +695,11 @@ public class RXThemeDarkTest {
         return track.getBackground().getFills().get(0).getFill();
     }
 
+    /** A real control root: the role tokens live in the control user-agent stylesheet. */
     private static Region probe(String paint) {
-        Region region = new Region();
-        region.getStyleClass().add("rx-button"); // a covered control root
-        region.setStyle("-fx-background-color: " + paint + ";");
-        return region;
+        RXBox box = new RXBox();
+        box.setStyle("-fx-background-color: " + paint + ";");
+        return box;
     }
 
     private static Color fillRegionColor(RXFillButton button) {
@@ -695,7 +745,8 @@ public class RXThemeDarkTest {
         return (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
     }
 
-    private static Set<String> controlRootSelectors(String css) {
+    /** Control roots of the token rule; {@code scopeClass} null selects the unscoped baseline rule. */
+    private static Set<String> tokenRuleRoots(String css, String scopeClass) {
         String stripped = css.replaceAll("(?s)/\\*.*?\\*/", " ");
         String selectorText = null;
         int from = 0;
@@ -710,16 +761,23 @@ public class RXThemeDarkTest {
             }
             if (stripped.substring(open + 1, close).contains("-rx-primary:")) {
                 int prevClose = stripped.lastIndexOf('}', open);
-                selectorText = stripped.substring(prevClose < 0 ? 0 : prevClose + 1, open);
-                break;
+                String text = stripped.substring(prevClose < 0 ? 0 : prevClose + 1, open);
+                boolean scoped = text.contains(".rx-theme-");
+                if (scopeClass == null ? !scoped : text.contains("." + scopeClass)) {
+                    selectorText = text;
+                    break;
+                }
             }
             from = close + 1;
         }
-        assertNotNull(selectorText, "rule defining -rx-primary not found");
+        assertNotNull(selectorText, "token rule not found for scope " + scopeClass);
         Set<String> selectors = new TreeSet<>();
         Matcher matcher = ROOT_SELECTOR_PATTERN.matcher(selectorText);
         while (matcher.find()) {
-            selectors.add(matcher.group(1));
+            String name = matcher.group(1);
+            if (!name.startsWith("rx-theme-")) {
+                selectors.add(name);
+            }
         }
         return selectors;
     }
