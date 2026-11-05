@@ -1,17 +1,27 @@
 /*
  * Showcase shell chrome. Colors are expressed through the Modena base looked-up
  * vars (-fx-background, -fx-control-inner-background, -fx-text-base-color,
- * -fx-mid-text-color, -fx-text-box-border) so the chrome follows the active theme:
- * Modena and AtlantaFX (where rx-showcase-atlantafx.css maps these vars to
- * -color-* on the root). The editing controls (sliders, buttons, combos, check
- * boxes) are intentionally left unstyled so they pick up the active theme natively. Preview captions read -showcase-caption-color:
- * a muted gray here that the AtlantaFX chrome points at -fx-mid-text-color
- * (Modena's own -fx-mid-text-color is near-black).
+ * -fx-mid-text-color, -fx-text-box-border) so the chrome follows the active theme.
+ * AtlantaFX does not define these vars, so the .rx-theme-atlantafx block maps them
+ * to -color-*; the scope class is present while RXAtlantaFXThemeBridge is installed
+ * on the scene. The editing controls (sliders, buttons, combos, check boxes) are
+ * intentionally left unstyled so they pick up the active theme natively. Preview
+ * captions read -showcase-caption-color: a muted gray under Modena (whose own
+ * -fx-mid-text-color is near-black), the theme's muted text color under AtlantaFX.
  */
 
 .root {
     -fx-background-color: -fx-background;
     -showcase-caption-color: #667085;
+}
+
+.root.rx-theme-atlantafx {
+    -fx-background: -color-bg-default;
+    -fx-control-inner-background: -color-bg-subtle;
+    -fx-text-base-color: -color-fg-default;
+    -fx-mid-text-color: -color-fg-muted;
+    -showcase-caption-color: -fx-mid-text-color;
+    -fx-text-box-border: -color-border-default;
 }
 
 .preview-pane {

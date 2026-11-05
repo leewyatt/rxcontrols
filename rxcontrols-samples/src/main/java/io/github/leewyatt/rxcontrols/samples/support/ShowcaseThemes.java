@@ -96,27 +96,13 @@ public final class ShowcaseThemes {
         }
     }
 
-    // Samples-owned showcase chrome mapped onto AtlantaFX colors. The bridge only themes
-    // the RxControls components; this supplies the rest for the demos.
-    private static final String ATLANTAFX_CHROME =
-            ShowcaseThemes.class.getResource("rx-showcase-atlantafx.css").toExternalForm();
-
     private static void modena(Scene scene) {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
         RXAtlantaFXThemeBridge.uninstall(scene);
-        setChrome(scene, null);
     }
 
     private static void atlanta(Scene scene, Theme theme) {
         Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
         RXAtlantaFXThemeBridge.install(scene);
-        setChrome(scene, ATLANTAFX_CHROME);
-    }
-
-    private static void setChrome(Scene scene, String sheet) {
-        scene.getStylesheets().remove(ATLANTAFX_CHROME);
-        if (sheet != null) {
-            scene.getStylesheets().add(sheet);
-        }
     }
 }
