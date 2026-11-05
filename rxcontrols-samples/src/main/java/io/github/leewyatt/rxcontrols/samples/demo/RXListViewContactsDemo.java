@@ -84,7 +84,7 @@ public class RXListViewContactsDemo extends Application {
     }
 
     private static Node createHeader(int contactCount, RXListView<Contact> list) {
-        Label title = new Label("Team Directory");
+        Label title = new Label("Contacts");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #162033;");
 
         Label count = new Label(contactCount + " contacts");
