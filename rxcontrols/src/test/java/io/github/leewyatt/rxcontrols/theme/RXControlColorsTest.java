@@ -10,6 +10,9 @@ import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXSeekBar;
+import io.github.leewyatt.rxcontrols.RXSegmentedControl;
+import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
@@ -336,7 +339,8 @@ public class RXControlColorsTest {
 
     /**
      * Under the bridge, an application stylesheet added before {@code install} still
-     * colors the avatar placeholder and the selected tile / masonry cell.
+     * colors the avatar placeholder, the selected tile / masonry cell and the seek bar
+     * track token.
      *
      * @throws Exception if the FX action fails
      */
@@ -346,11 +350,12 @@ public class RXControlColorsTest {
         runOnFx(() -> {
             Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
             RXAvatar avatar = new RXAvatar();
+            RXSeekBar seekBar = new RXSeekBar();
             RXTileView<String> tile = new RXTileView<>();
             tile.getItems().add("alpha");
             RXMasonryView<String> masonry = new RXMasonryView<>();
             masonry.getItems().add("alpha");
-            StackPane root = new StackPane(avatar, tile, masonry);
+            StackPane root = new StackPane(avatar, seekBar, tile, masonry);
             Scene scene = new Scene(root, 600, 400);
             scene.getStylesheets().add(OVERRIDES);
             RXAtlantaFXThemeBridge.install(scene);
@@ -360,6 +365,7 @@ public class RXControlColorsTest {
             root.layout();
             colors.put("avatar disc", ThemeColorSamples.hex(fill(avatar.lookup(".default-icon-wrapper"))));
             colors.put("avatar icon", ThemeColorSamples.hex(fill(avatar.lookup(".default-icon"))));
+            colors.put("seek track", ThemeColorSamples.hex(fill(seekBar.lookup(".track"))));
             for (Node cell : List.of(tile.lookup(".rx-tile-cell:selected"), masonry.lookup(".rx-masonry-cell:selected"))) {
                 String name = cell.getStyleClass().contains("rx-tile-cell") ? "tile" : "masonry";
                 colors.put(name + " background", ThemeColorSamples.hex(fill(cell)));
@@ -369,11 +375,35 @@ public class RXControlColorsTest {
         Map<String, String> expected = new LinkedHashMap<>();
         expected.put("avatar disc", "#4f46e5ff");
         expected.put("avatar icon", "#ff0000ff");
+        expected.put("seek track", "#0000ffff");
         expected.put("tile background", "#00ff00ff");
         expected.put("tile text", "#ff0000ff");
         expected.put("masonry background", "#00ff00ff");
         expected.put("masonry text", "#ff0000ff");
         assertEquals(expected, colors);
+    }
+
+    /**
+     * Under the bridge a disabled segment label takes the disabled text role, not the
+     * scoped default label color.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void disabledSegmentLabelUnderTheBridge() throws Exception {
+        String stylesheet = new PrimerLight().getUserAgentStylesheet();
+        AtomicReference<String> label = new AtomicReference<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(stylesheet);
+            RXSegmentedControl<String> segmented = new RXSegmentedControl<>(
+                    new RXSegmentedItem<>("on", "On"), new RXSegmentedItem<>("off", "Off"));
+            segmented.setDisable(true);
+            StackPane root = new StackPane(segmented);
+            RXAtlantaFXThemeBridge.install(new Scene(root, 300, 100));
+            root.applyCss();
+            label.set(ThemeColorSamples.hex(((Labeled) segmented.lookup(".segment .label")).getTextFill()));
+        });
+        assertEquals(roles(stylesheet, RXAtlantaFXThemeBridge::install).get("on-surface-disabled"), label.get());
     }
 
     private static Paint fill(Node node) {
@@ -479,7 +509,7 @@ public class RXControlColorsTest {
     /** The role tokens resolved under a host, as 8-bit hex. */
     private static Map<String, String> roles(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
         List<String> tokens = List.of("info", "surface", "surface-variant", "on-surface",
-                "on-surface-secondary", "outline");
+                "on-surface-secondary", "on-surface-disabled", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);

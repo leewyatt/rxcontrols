@@ -3,13 +3,16 @@
  * RxControls x AtlantaFX bridge (author stylesheet)                           *
  *                                                                             *
  * Author-origin overrides for the parts that must beat AtlantaFX's own button *
- * states, plus per-control re-points onto role tokens.                        *
+ * rules. Those include compound and context selectors (.button.flat:hover,    *
+ * .button.button-outlined, ...) whose specificity no fixed user-agent         *
+ * selector is sure to exceed; author origin beats them all.                   *
  *                                                                             *
- * The -rx-* <- -color-* token mapping and the Modena -fx-* compat block are   *
- * NOT here: they live in rx-controls.css under the .rx-theme-atlantafx scope  *
- * class, so they keep user-agent origin. RXAtlantaFXThemeBridge.install puts  *
- * the scope class on the scene and adds this stylesheet; -color-* resolves    *
- * from the AtlantaFX theme set as the Application user-agent stylesheet.      *
+ * Everything else is NOT here: the -rx-* <- -color-* token mapping, the       *
+ * Modena -fx-* compat block and the per-control AtlantaFX rules live in       *
+ * rx-controls.css under the .rx-theme-atlantafx scope class, so they keep     *
+ * user-agent origin. RXAtlantaFXThemeBridge.install puts the scope class on   *
+ * the scene and adds this stylesheet; -color-* resolves from the AtlantaFX    *
+ * theme set as the Application user-agent stylesheet.                         *
  *                                                                             *
  ******************************************************************************/
 /* AtlantaFX's .button:armed sets a themed text color (-color-fg-default: dark on
@@ -30,38 +33,4 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
-}
-
-/* Per-control re-points onto role tokens, which map to -color-* and so follow
-   light and dark AtlantaFX themes alike. The default rules keep their original
-   Modena values on a light host (a literal or a light-only formula) and only switch
-   to the role token on a dark one, so on a light AtlantaFX theme they would not
-   pick up the theme's colors without these re-points. */
-/* Cascader field / column / hover-focus greys: the defaults derive them from the
-   Modena field colors. The active path is accent + bold text only. */
-.rx-cascader > .display > .label:empty {
-    -fx-text-fill: -rx-on-surface-secondary;
-}
-.rx-cascader-view > .columns > .column {
-    -fx-border-color: transparent -rx-outline transparent transparent;
-}
-.rx-cascader-view > .columns > .column .list-cell:filled:hover,
-.rx-cascader-view > .columns > .column .list-cell:filled:focused {
-    -fx-background-color: -rx-surface-variant;
-}
-.rx-segmented-control > .segment .label {
-    -fx-text-fill: -rx-on-surface;
-}
-.rx-segmented-control > .segment:selected .label {
-    -fx-text-fill: rgba(0, 0, 0, 0.88); /* on the white indicator pill */
-}
-.rx-seek-bar {
-    -rx-track-fill: -rx-surface-variant;
-    -rx-secondary-fill: -rx-outline;
-}
-.rx-slider, .rx-range-slider {
-    -rx-slider-track: -rx-outline;
-}
-.rx-wave-progress-indicator > .wave-container {
-    -fx-background-color: -rx-surface-variant;
 }

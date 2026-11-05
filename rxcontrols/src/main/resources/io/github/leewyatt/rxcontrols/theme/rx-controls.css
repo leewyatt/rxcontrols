@@ -79,7 +79,10 @@
 /* The AtlantaFX scope lives in this user-agent stylesheet on purpose: when a
    looked-up color is defined in an author stylesheet, JavaFX 17-23 raises the
    calculated origin to AUTHOR (JDK-8336097), which then overrides colors the
-   application set in code. The bridge only toggles the scope class. */
+   application set in code. The per-control .rx-theme-atlantafx rules next to each
+   control's defaults stay here for the same reason, and so that application
+   stylesheets override them whatever their loading order. The bridge only toggles
+   the scope class. */
 .rx-theme-atlantafx .rx-audio-spectrum,
 .rx-theme-atlantafx.rx-audio-spectrum,
 .rx-theme-atlantafx .rx-auto-complete-field,
@@ -628,6 +631,11 @@
     -rx-thumb-fill: #1fdba4;
 }
 
+.rx-theme-atlantafx .rx-seek-bar {
+    -rx-track-fill: -rx-surface-variant;
+    -rx-secondary-fill: -rx-outline;
+}
+
 .rx-seek-bar > .track {
     -fx-background-color: -rx-track-fill;
     -fx-background-radius: 3px;
@@ -674,6 +682,11 @@
     -rx-slider-tick: derive(-rx-slider-track, -20%);
     -rx-slider-indicator-bg: #424242;
     -rx-ripple-fill: -rx-slider-thumb;
+}
+
+.rx-theme-atlantafx .rx-slider,
+.rx-theme-atlantafx .rx-range-slider {
+    -rx-slider-track: -rx-outline;
 }
 
 .rx-slider > .track,
@@ -1431,6 +1444,10 @@
     -fx-text-fill: ladder(-fx-control-inner-background, -rx-on-surface-secondary 45%, derive(-fx-control-inner-background, -30%) 46%);
 }
 
+.rx-theme-atlantafx .rx-cascader > .display > .label:empty {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
 .rx-cascader > .display > .clear-button,
 .rx-cascader > .display > .arrow-button {
     -fx-alignment: center;
@@ -1513,6 +1530,10 @@
     -fx-border-width: 0 1px 0 0;
 }
 
+.rx-theme-atlantafx .rx-cascader-view > .columns > .column {
+    -fx-border-color: transparent -rx-outline transparent transparent;
+}
+
 .rx-cascader-view > .columns > .column .list-cell {
     -fx-background-color: transparent;
     -fx-padding: 0;
@@ -1523,6 +1544,11 @@
 .rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-cascader-view > .columns > .column .list-cell:filled:focused {
     -fx-background-color: ladder(-fx-control-inner-background, derive(-fx-control-inner-background, 12%) 45%, derive(-fx-control-inner-background, -8%) 46%);
+}
+
+.rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:hover,
+.rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:focused {
+    -fx-background-color: -rx-surface-variant;
 }
 
 /* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
@@ -1594,6 +1620,10 @@
     -fx-border-color: #1e90ff;
     -fx-border-width: 4px;
     -fx-border-radius: 50%;
+}
+
+.rx-theme-atlantafx .rx-wave-progress-indicator > .wave-container {
+    -fx-background-color: -rx-surface-variant;
 }
 
 .rx-wave-progress-indicator:empty {
@@ -2399,6 +2429,19 @@
 }
 
 .rx-segmented-control > .segment:disabled .label {
+    -fx-text-fill: -rx-on-surface-disabled;
+}
+
+/* The scope class outranks the state pseudo-classes, so the states repeat under it. */
+.rx-theme-atlantafx .rx-segmented-control > .segment .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-segmented-control > .segment:selected .label {
+    -fx-text-fill: rgba(0, 0, 0, 0.88);
+}
+
+.rx-theme-atlantafx .rx-segmented-control > .segment:disabled .label {
     -fx-text-fill: -rx-on-surface-disabled;
 }
 

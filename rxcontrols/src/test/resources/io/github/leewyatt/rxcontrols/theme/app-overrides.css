@@ -13,3 +13,7 @@
     -fx-background-color: #00ff00;
     -fx-text-fill: #ff0000;
 }
+
+.rx-seek-bar {
+    -rx-track-fill: #0000ff;
+}
