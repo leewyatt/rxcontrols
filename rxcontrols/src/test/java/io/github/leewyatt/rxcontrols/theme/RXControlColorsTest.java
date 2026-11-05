@@ -1,11 +1,22 @@
 package io.github.leewyatt.rxcontrols.theme;
 
+import atlantafx.base.theme.CupertinoDark;
+import atlantafx.base.theme.CupertinoLight;
+import atlantafx.base.theme.Dracula;
+import atlantafx.base.theme.NordDark;
+import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
+import atlantafx.base.theme.Theme;
+import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -13,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +146,7 @@ public class RXControlColorsTest {
 
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
+    private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
     /**
      * Starts the toolkit.
@@ -250,6 +263,121 @@ public class RXControlColorsTest {
         assertNotEquals("#2a2c3aff", samples.get("cascader.cell.hover"), "cascader hover must differ from the column");
         double segmentRatio = contrastRatio(Color.web(samples.get("segmented.unselected")), Color.web("#262735"));
         assertTrue(segmentRatio >= WCAG_AA_CONTRAST, "unselected segment label contrast " + segmentRatio);
+    }
+
+    // ==================== Tile / masonry cells ====================
+
+    /**
+     * Under default Modena a selected tile or masonry cell keeps its selection-bar
+     * background with black text, and an unselected cell keeps black text.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void defaultModenaKeepsTheCellColors() throws Exception {
+        List<String> samples = cellSamples(Application.STYLESHEET_MODENA, scene -> { });
+        assertEquals(List.of(
+                "RXTileView unselected text #000000ff", "RXTileView selected #0096c9ff text #000000ff",
+                "RXMasonryView unselected text #000000ff", "RXMasonryView selected #0096c9ff text #000000ff"),
+                samples);
+    }
+
+    /**
+     * Cell text stays legible, selected or not, on a dark application palette and under
+     * every AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void cellTextStaysLegibleOnEveryHost() throws Exception {
+        Map<String, List<Double>> ratios = new LinkedHashMap<>();
+        ratios.put("dark palette", cellContrasts(Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette));
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            ratios.put(theme.getName(), cellContrasts(theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install));
+        }
+        ratios.forEach((host, values) -> values.forEach(ratio ->
+                assertTrue(ratio >= WCAG_AA_CONTRAST, "cell text contrast under " + host + ": " + values)));
+    }
+
+    /** "View unselected text #…" and "View selected #background text #…" for a tile and a masonry view. */
+    private static List<String> cellSamples(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
+        List<String> samples = new ArrayList<>();
+        for (CellColors colors : cellColors(userAgentStylesheet, themer)) {
+            samples.add(colors.view + " unselected text " + ThemeColorSamples.hex(colors.unselectedText));
+            samples.add(colors.view + " selected " + ThemeColorSamples.hex(colors.selectedBackground)
+                    + " text " + ThemeColorSamples.hex(colors.selectedText));
+        }
+        return samples;
+    }
+
+    /** Unselected text on the view surface, then selected text on the selected cell, per view. */
+    private static List<Double> cellContrasts(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
+        List<Double> ratios = new ArrayList<>();
+        for (CellColors colors : cellColors(userAgentStylesheet, themer)) {
+            ratios.add(contrastRatio(colors.unselectedText, colors.surface));
+            ratios.add(contrastRatio(colors.selectedText, composite(colors.selectedBackground, colors.surface)));
+        }
+        return ratios;
+    }
+
+    /** The resolved cell colors of one view. */
+    private record CellColors(String view, Color surface, Color unselectedText, Color selectedBackground,
+                              Color selectedText) {
+    }
+
+    private static List<CellColors> cellColors(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
+        List<CellColors> found = new ArrayList<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXTileView<String> tile = new RXTileView<>();
+            tile.getItems().addAll("alpha", "beta");
+            RXMasonryView<String> masonry = new RXMasonryView<>();
+            masonry.getItems().addAll("alpha", "beta");
+            StackPane root = new StackPane(tile, masonry);
+            Scene scene = new Scene(root, 600, 400);
+            themer.accept(scene);
+            root.applyCss();
+            root.layout();
+            tile.getSelectionModel().select(0);
+            masonry.getSelectionModel().select(0);
+            root.applyCss();
+            root.layout();
+            found.add(cellColors("RXTileView", tile, ".rx-tile-cell"));
+            found.add(cellColors("RXMasonryView", masonry, ".rx-masonry-cell"));
+        });
+        return found;
+    }
+
+    private static CellColors cellColors(String name, Region view, String cellSelector) {
+        Labeled selected = null;
+        Labeled unselected = null;
+        for (Node node : view.lookupAll(cellSelector)) {
+            if (!(node instanceof Labeled) || ((Labeled) node).getText() == null) {
+                continue;
+            }
+            if (node.getPseudoClassStates().contains(SELECTED)) {
+                selected = (Labeled) node;
+            } else {
+                unselected = (Labeled) node;
+            }
+        }
+        assertTrue(selected != null && unselected != null, name + ": a selected and an unselected cell");
+        List<?> layers = view.getBackground().getFills();
+        Color surface = (Color) view.getBackground().getFills().get(layers.size() - 1).getFill();
+        Color selectedBackground = (Color) selected.getBackground().getFills().get(0).getFill();
+        return new CellColors(name, surface, (Color) unselected.getTextFill(), selectedBackground,
+                (Color) selected.getTextFill());
+    }
+
+    /** Alpha-composites a (possibly translucent) fill over its backdrop. */
+    private static Color composite(Color fill, Color backdrop) {
+        double alpha = fill.getOpacity();
+        return new Color(
+                fill.getRed() * alpha + backdrop.getRed() * (1.0 - alpha),
+                fill.getGreen() * alpha + backdrop.getGreen() * (1.0 - alpha),
+                fill.getBlue() * alpha + backdrop.getBlue() * (1.0 - alpha),
+                1.0);
     }
 
     // ==================== Helpers ====================

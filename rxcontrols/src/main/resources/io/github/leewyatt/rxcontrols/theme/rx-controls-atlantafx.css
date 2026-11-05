@@ -68,3 +68,12 @@
 .rx-avatar > .default-icon-wrapper {
     -fx-background-color: -rx-surface-variant;
 }
+
+/* A selected tile / masonry cell takes AtlantaFX's own selected-cell look: a subtle
+   accent tint with the default text, ringed by the accent. No single text color
+   reads on a solid accent background across every AtlantaFX theme. */
+.rx-tile-cell:selected,
+.rx-masonry-cell:selected {
+    -fx-background-color: -rx-primary-bg;
+    -fx-text-fill: -rx-on-surface;
+}

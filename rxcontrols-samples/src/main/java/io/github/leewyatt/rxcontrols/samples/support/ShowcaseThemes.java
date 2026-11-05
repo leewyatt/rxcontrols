@@ -45,6 +45,8 @@ public final class ShowcaseThemes {
     }
 
     /**
+     * Returns the theme choices offered by the samples.
+     *
      * @return the ordered list of theme choices (Modena first, then the AtlantaFX themes)
      */
     public static List<ThemeChoice> all() {

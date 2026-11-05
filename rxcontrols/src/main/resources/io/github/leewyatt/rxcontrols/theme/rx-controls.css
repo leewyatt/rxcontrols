@@ -2570,6 +2570,12 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }
 
+/* The cell's own text: unthemed black on a light host as before, the surface text
+   on a dark one. */
+.rx-tile-cell {
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+}
+
 .rx-tile-cell:focused {
     -fx-border-color: -fx-focus-color;
     -fx-border-width: 2;
@@ -2582,6 +2588,8 @@
    background. */
 .rx-tile-cell:selected {
     -fx-background-color: -fx-selection-bar;
+    /* reads on Modena's mid-bright selection bar on light and dark hosts alike */
+    -fx-text-fill: black;
     -fx-border-color: -fx-selection-bar;
     -fx-border-width: 2;
     -fx-border-insets: 1;
@@ -2884,6 +2892,12 @@
     -fx-stroke-width: 1;
 }
 
+/* The cell's own text: unthemed black on a light host as before, the surface text
+   on a dark one. */
+.rx-masonry-cell {
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+}
+
 .rx-masonry-cell:focused {
     -fx-border-color: -fx-focus-color;
     -fx-border-width: 2;
@@ -2896,6 +2910,8 @@
    background. */
 .rx-masonry-cell:selected {
     -fx-background-color: -fx-selection-bar;
+    /* reads on Modena's mid-bright selection bar on light and dark hosts alike */
+    -fx-text-fill: black;
     -fx-border-color: -fx-selection-bar;
     -fx-border-width: 2;
     -fx-border-insets: 1;

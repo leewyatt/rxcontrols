@@ -223,8 +223,8 @@
 <h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>
 <p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> make RxControls follow
    the AtlantaFX theme with <code>RXAtlantaFXThemeBridge</code>. The application sets the AtlantaFX
-   theme as the Application user-agent stylesheet; the bridge only marks the scene, so switching is
-   the stylesheet plus the bridge:</p>
+   theme as the Application user-agent stylesheet; the bridge marks the scene's roots and adds its own
+   stylesheet, so switching is the user-agent stylesheet plus the bridge:</p>
 <pre><code>// Modena -&gt; any AtlantaFX theme (before the scene is first shown, or at any time later)
 Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
 RXAtlantaFXThemeBridge.install(scene);
@@ -243,7 +243,7 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
     <li>Popups opened afterwards follow (they copy the owner scene's stylesheets when they show); a
         popup that is already open follows once reopened.</li>
     <li>Swapping the scene root keeps the bridge. Sub-scenes present at install time are bridged;
-        for a sub-scene added later, call <code>install(scene)</code> again.</li>
+        for a sub-scene added later, or one given a new root, call <code>install(scene)</code> again.</li>
 </ul>
 <p><b>How it works.</b> The bridge puts the <code>rx-theme-atlantafx</code> scope style class on the
    scene root (and on sub-scene roots). The mapping of the role tokens onto AtlantaFX functional

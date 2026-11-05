@@ -129,7 +129,9 @@ public final class RXAtlantaFXThemeBridge {
 
     /**
      * Removes the bridge from the scene, including the roots it marked that have
-     * since left the scene. Does nothing if the scene is not bridged.
+     * since left the scene. Does nothing if the scene is not bridged. It also removes the
+     * bridge stylesheet when the caller added it through {@link #getStylesheet()}, so do
+     * not mix the two on one scene.
      *
      * @param scene the scene to unbridge
      * @throws NullPointerException if {@code scene} is null

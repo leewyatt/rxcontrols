@@ -407,7 +407,7 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, the default skeleton base follows the baseline rule and a base color set in code is kept on a skeleton alone in its scene.
+     * Under the bridge, the default skeleton base follows its default rule and a base color set in code is kept on a skeleton alone in its scene.
      *
      * @throws Exception if the FX action fails
      */
@@ -415,7 +415,7 @@ public class RXAtlantaFXThemeBridgeTest {
     public void skeletonBaseColorUnderTheBridge() throws Exception {
         Map<String, Paint> fills = new LinkedHashMap<>();
         Region reference = probeFx(
-                "ladder(-rx-surface, -rx-surface-variant 49%, derive(-rx-surface-variant, -8%) 50%)");
+                "ladder(-rx-surface, -rx-surface-variant 45%, derive(-rx-surface-variant, -8%) 46%)");
         runOnFx(() -> {
             RXSkeleton plain = new RXSkeleton();
             RXSkeleton coded = new RXSkeleton();

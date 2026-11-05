@@ -64,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RXAtlantaFXCompatTest {
 
     private static final String CSS = "/io/github/leewyatt/rxcontrols/theme/rx-controls.css";
+    private static final String BRIDGE_CSS = "/io/github/leewyatt/rxcontrols/theme/rx-controls-atlantafx.css";
     private static final String SCOPE_CLASS = "rx-theme-atlantafx";
 
     /** {@code -fx-*} names in value position: not followed by another name character. */
@@ -132,8 +133,9 @@ public class RXAtlantaFXCompatTest {
     }
 
     /**
-     * Every Modena palette token a component rule reads directly is declared by the
-     * AtlantaFX scope's compat block or listed as a reasoned exception.
+     * Every Modena palette token a component rule reads directly, in the default
+     * stylesheet or in the bridge's author stylesheet, is declared by the AtlantaFX
+     * scope's compat block or listed as a reasoned exception.
      *
      * @throws Exception if the FX action fails
      */
@@ -145,7 +147,9 @@ public class RXAtlantaFXCompatTest {
         Set<String> supplied = declarations(scope.body).keySet();
 
         Map<String, String> referencedAt = new TreeMap<>();
-        for (Rule rule : rules) {
+        List<Rule> componentRules = new ArrayList<>(rules);
+        componentRules.addAll(rules(BRIDGE_CSS));
+        for (Rule rule : componentRules) {
             if (rule == defaults || rule == scope) {
                 continue;
             }
@@ -237,7 +241,11 @@ public class RXAtlantaFXCompatTest {
     }
 
     private static List<Rule> rules() {
-        String css = readCss().replaceAll("(?s)/\\*.*?\\*/", " ");
+        return rules(CSS);
+    }
+
+    private static List<Rule> rules(String resource) {
+        String css = readCss(resource).replaceAll("(?s)/\\*.*?\\*/", " ");
         List<Rule> rules = new ArrayList<>();
         int from = 0;
         while (true) {
@@ -364,9 +372,9 @@ public class RXAtlantaFXCompatTest {
         throw new IllegalStateException("Could not locate src/main/java; tried " + candidates);
     }
 
-    private static String readCss() {
-        try (InputStream in = RXAtlantaFXCompatTest.class.getResourceAsStream(CSS)) {
-            assertNotNull(in, CSS + " not found on classpath");
+    private static String readCss(String resource) {
+        try (InputStream in = RXAtlantaFXCompatTest.class.getResourceAsStream(resource)) {
+            assertNotNull(in, resource + " not found on classpath");
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException error) {
             throw new UncheckedIOException(error);

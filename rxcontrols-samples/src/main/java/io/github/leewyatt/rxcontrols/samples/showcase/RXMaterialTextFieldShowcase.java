@@ -18,7 +18,7 @@ import java.util.List;
  *
  * <p>Exercises the text-field styleable + runtime properties: floating label +
  * scale, animation toggle + duration, invalid / helper / error supporting text,
- * leading / trailing nodes, and the built-in clear button. The theme bar (Modena / dark /
+ * leading / trailing nodes, and the built-in clear button. The theme bar (Modena /
  * AtlantaFX) shows the role-token theming. The password sibling has its own
  * {@link RXMaterialPasswordFieldShowcase}.</p>
  */
