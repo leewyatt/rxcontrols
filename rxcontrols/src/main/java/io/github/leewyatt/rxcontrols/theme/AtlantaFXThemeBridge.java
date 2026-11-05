@@ -7,7 +7,7 @@ import javafx.scene.Scene;
 /**
  * Makes RxControls follow an <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>
  * theme. RxControls ships its own per-control user-agent stylesheet whose
- * {@code -rx-*} color role tokens default to a built-in palette; this helper puts the
+ * {@code -rx-*} color role tokens default to colors derived from Modena; this helper puts the
  * {@code rx-theme-atlantafx} scope style class on the bridged root — the mapping from
  * those tokens to AtlantaFX {@code -color-*} functional tokens lives in the library's
  * user-agent stylesheet under that scope — and adds a small author-origin stylesheet
@@ -34,10 +34,7 @@ import javafx.scene.Scene;
  * before opening popups; popups already open when the bridge is added do not pick
  * it up until reopened.
  *
- * <p>{@link #install(Parent)} scopes the bridge to one subtree (useful for mixing
- * themes within a scene: the nearest scope wins for the color tokens, one level of
- * mixing is supported, and per-control rules follow the nearer install only where both
- * themes carry a rule for the control). A popup follows a parent-level bridge only when that
+ * <p>{@link #install(Parent)} scopes the bridge to one subtree. A popup follows a parent-level bridge only when that
  * parent is on the ancestor chain of the control that owns the popup; a bridge on
  * an unrelated parent does not reach the popup.
  *
@@ -66,7 +63,7 @@ public final class AtlantaFXThemeBridge {
      * Returns the external-form URL of the AtlantaFX bridge stylesheet (author
      * origin), for callers that manage stylesheet lists themselves. Such callers must
      * also add {@link #getScopeClass()} to the bridged root, otherwise the color role
-     * tokens stay at their light baseline.
+     * tokens stay at their default values.
      *
      * @return the bridge stylesheet URL
      */
@@ -77,7 +74,7 @@ public final class AtlantaFXThemeBridge {
     /**
      * Returns the style class the bridge puts on the bridged root. {@link #install}
      * adds it; callers that manage the stylesheet list themselves must add it too,
-     * otherwise the color role tokens stay at their light baseline.
+     * otherwise the color role tokens stay at their default values.
      *
      * @return the bridge scope style class
      */

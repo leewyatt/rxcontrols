@@ -123,7 +123,7 @@ public abstract class RXShowcaseApplication extends Application {
 
     /**
      * Whether to show the built-in theme picker at the top of the window (lets the
-     * showcase be viewed under the RxControls light/dark and AtlantaFX themes).
+     * showcase be viewed under Modena and the AtlantaFX themes).
      * Override to return {@code false} to opt out.
      *
      * @return {@code true} to show the theme picker

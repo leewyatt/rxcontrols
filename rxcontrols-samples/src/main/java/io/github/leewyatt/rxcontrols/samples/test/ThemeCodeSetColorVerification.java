@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.samples.test;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
-import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -27,9 +26,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Manual check for colors set in code under the RxControls dark theme. On JavaFX 17–23 such a
- * color can be reset to the theme color once a default control of the same kind has filled the
- * shared CSS style cache; on JavaFX 24 and later every case keeps red.
+ * Manual check for colors set in code while the application flips the Modena palette to dark
+ * from an author stylesheet (RxControls follows that palette). On JavaFX 17–23 such a color can
+ * be reset to the palette color once a default control of the same kind has filled the shared
+ * CSS style cache; on JavaFX 24 and later every case keeps red.
  */
 public class ThemeCodeSetColorVerification extends Application {
 
@@ -43,7 +43,7 @@ public class ThemeCodeSetColorVerification extends Application {
     @Override
     public void start(Stage primaryStage) {
         stage = primaryStage;
-        stage.setTitle("Code-set colors under RXTheme");
+        stage.setTitle("Code-set colors under an app dark palette");
         rebuild();
         stage.show();
     }
@@ -65,12 +65,12 @@ public class ThemeCodeSetColorVerification extends Application {
                 System.getProperty("javafx.runtime.version"), System.getProperty("java.version")));
         version.getStyleClass().add("case-title");
 
-        Button darkButton = new Button("RX Dark");
+        Button darkButton = new Button("Dark palette");
         darkButton.setOnAction(event -> {
             dark = true;
             applyTheme(stage.getScene());
         });
-        Button lightButton = new Button("RX Light");
+        Button lightButton = new Button("Modena");
         lightButton.setOnAction(event -> {
             dark = false;
             applyTheme(stage.getScene());
@@ -90,7 +90,6 @@ public class ThemeCodeSetColorVerification extends Application {
     }
 
     private void applyTheme(Scene scene) {
-        RXTheme.install(scene, dark ? RXTheme.Variant.DARK : RXTheme.Variant.LIGHT);
         List<String> classes = scene.getRoot().getStyleClass();
         classes.remove(DARK_ROOT_CLASS);
         if (dark) {
@@ -120,7 +119,7 @@ public class ThemeCodeSetColorVerification extends Application {
         delete.setTextFill(Color.RED);
         return casePane(1, "Default control first",
                 "\"Delete all data\" is set to red with setTextFill. "
-                        + "Under RX Dark: JavaFX 17–23 reset at once, JavaFX 24+ red.",
+                        + "Under the dark palette: JavaFX 17–23 reset at once, JavaFX 24+ red.",
                 new VBox(6, accept, delete),
                 status("Delete all data", delete.textFillProperty()));
     }
@@ -140,7 +139,7 @@ public class ThemeCodeSetColorVerification extends Application {
         resetClasses.setOnAction(event -> delete.getStyleClass().setAll(new ArrayList<>(delete.getStyleClass())));
 
         return casePane(2, "Red control first",
-                "Starts red. Under RX Dark on JavaFX 17–23 it is reset after any of: check \"Accept terms\" and then "
+                "Starts red. Under the dark palette on JavaFX 17–23 it is reset after any of: check \"Accept terms\" and then "
                         + "\"Delete all data\"; hover \"Accept terms\" and then \"Delete all data\"; either button. "
                         + "Checking only \"Delete all data\" keeps red.",
                 boxes,
@@ -177,7 +176,7 @@ public class ThemeCodeSetColorVerification extends Application {
         RXDigit third = digit(3);
         third.setLitFill(Color.RED);
         return casePane(5, "RXDigit clock",
-                "The third digit is set to red with setLitFill. Under RX Dark: JavaFX 17–23 reset, JavaFX 24+ red.",
+                "The third digit is set to red with setLitFill. Under the dark palette: JavaFX 17–23 reset, JavaFX 24+ red.",
                 new HBox(6, first, second, third),
                 status("Third digit", third.litFillProperty()));
     }
@@ -188,7 +187,7 @@ public class ThemeCodeSetColorVerification extends Application {
         second.setHighlightFill(Color.RED);
         return casePane(6, "RXHighlightTextView results",
                 "The second result sets its highlight to red with setHighlightFill. "
-                        + "Under RX Dark: JavaFX 17–23 reset, JavaFX 24+ red.",
+                        + "Under the dark palette: JavaFX 17–23 reset, JavaFX 24+ red.",
                 new VBox(6, first, second),
                 status("Second highlight", second.highlightFillProperty()));
     }

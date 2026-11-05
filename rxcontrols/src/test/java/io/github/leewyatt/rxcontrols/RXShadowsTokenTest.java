@@ -4,7 +4,6 @@ import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.theme.AtlantaFXThemeBridge;
-import io.github.leewyatt.rxcontrols.theme.RXTheme;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -25,24 +24,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Guards the RXShadows elevation token added to the {@code rx-controls.css}
- * baseline and its dark / AtlantaFX re-points. {@code -rx-elevation-umbra-color}
+ * default token block and its AtlantaFX re-point. {@code -rx-elevation-umbra-color}
  * must resolve to a {@link Color} under each theme — in JFX17 an unresolved
  * looked-up color falls through to a {@code String}, which surfaces as a
  * {@code ClassCastException String -> Paint} the moment it is used as a dropshadow
- * color (the failure mode design doc §A.8 warns about). The light and dark literals
- * are asserted exactly; the AtlantaFX mapping ({@code -color-shadow-default}) is
+ * color. The default literal
+ * is asserted exactly; the AtlantaFX mapping ({@code -color-shadow-default}) is
  * asserted to resolve to a non-null color (its exact value is AtlantaFX's to own).
  *
  * <p>Each test sets the Application user-agent stylesheet it needs, because that
- * setting is global: light / dark resolve under Modena (the dark overlay is
- * self-contained literals), the AtlantaFX mapping needs a real AtlantaFX UA so
+ * setting is global: the default resolves under Modena, the AtlantaFX mapping needs a real AtlantaFX UA so
  * {@code -color-shadow-default} resolves.</p>
  */
 public class RXShadowsTokenTest {
 
     /**
      * Starts the JavaFX toolkit. The user-agent stylesheet is set per test, not
-     * here, because the three themes need different ones.
+     * here, because the two cases need different ones.
      *
      * @throws InterruptedException if the startup wait is interrupted
      */
@@ -70,29 +68,15 @@ public class RXShadowsTokenTest {
     }
 
     /**
-     * Light baseline: the umbra resolves to the documented translucent black.
+     * Default style: the umbra resolves to the documented translucent black.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void umbraColorResolvesUnderLight() throws Exception {
+    public void umbraColorResolvesUnderTheDefaultStyle() throws Exception {
         Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.USER_AGENT_STYLESHEET, null);
         assertEquals(Color.rgb(0, 0, 0, 0.2), umbra,
-                "-rx-elevation-umbra-color should resolve to rgba(0, 0, 0, 0.2) under the light baseline");
-    }
-
-    /**
-     * Dark overlay: the umbra stays a (slightly deeper) translucent black, not a
-     * glow. The dark sheet is self-contained, so Modena as the UA is fine.
-     *
-     * @throws Exception if the FX action fails
-     */
-    @Test
-    public void umbraColorResolvesUnderDark() throws Exception {
-        Color umbra = resolveUmbra(Application.STYLESHEET_MODENA, RXResources.DARK_OVERLAY_STYLESHEET,
-                RXTheme.getDarkScopeClass());
-        assertEquals(Color.rgb(0, 0, 0, 0.4), umbra,
-                "-rx-elevation-umbra-color should resolve to rgba(0, 0, 0, 0.4) under the dark overlay");
+                "-rx-elevation-umbra-color should resolve to rgba(0, 0, 0, 0.2) under the default style");
     }
 
     /**

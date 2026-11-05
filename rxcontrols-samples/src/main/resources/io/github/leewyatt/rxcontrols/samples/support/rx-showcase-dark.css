@@ -1,8 +1,7 @@
 /*
- * Samples-only: the application-level part of "dark". RXTheme only themes the
- * RxControls components; this overlay darkens the demo window, the standard JavaFX
- * controls, and the showcase chrome by flipping Modena's base palette on the scene
- * root. Applied by ShowcaseThemes when the RxControls Dark theme is selected.
+ * Samples-only: an application-owned dark Modena palette. It darkens the demo window,
+ * the standard JavaFX controls, and the showcase chrome by flipping Modena's base
+ * palette on the scene root; RxControls follows the same palette without any theme API.
  */
 .root {
     -fx-base: #1e1f2b;
