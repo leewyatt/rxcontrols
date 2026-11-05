@@ -32,15 +32,13 @@
     -fx-background-radius: 4px;
 }
 
-/* Per-control re-points for controls whose baseline colors are hardcoded literals
-   (not role tokens / not -fx-*), so the token + compat layers above cannot reach
-   them. Re-pointed at role tokens, which map to -color-* and therefore auto-flip
-   for both light and dark AtlantaFX themes. (Same flip-list as the dark overlay;
-   the long-term fix is to tokenize these in the baseline.) */
-/* Cascader field / column / hover-focus greys are baseline `derive(-fx-*, -N%)`
-   formulas tuned for the Modena light surface; under an AtlantaFX theme (light or
-   dark) they collapse into the background. Re-point to role tokens, which map to
-   -color-* and auto-flip for both. The active path is accent + bold text only. */
+/* Per-control re-points onto role tokens, which map to -color-* and so follow
+   light and dark AtlantaFX themes alike. The default rules keep their original
+   Modena values on a light host (a literal or a light-only formula) and only switch
+   to the role token on a dark one, so on a light AtlantaFX theme they would not
+   pick up the theme's colors without these re-points. */
+/* Cascader field / column / hover-focus greys: the defaults derive them from the
+   Modena field colors. The active path is accent + bold text only. */
 .rx-cascader > .display > .label:empty {
     -fx-text-fill: -rx-on-surface-secondary;
 }

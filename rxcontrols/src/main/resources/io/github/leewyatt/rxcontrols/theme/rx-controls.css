@@ -471,7 +471,7 @@
 }
 
 .rx-avatar > .default-icon-wrapper {
-    -fx-background-color: #e0e0e0;
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 49%, #e0e0e0 50%);
 }
 
 .rx-avatar > .default-icon-wrapper > .default-icon {
@@ -604,8 +604,8 @@
  *                                                                             *
  ******************************************************************************/
 .rx-seek-bar {
-    -rx-track-fill: #eaeaea;
-    -rx-secondary-fill: #dadada;
+    -rx-track-fill: ladder(-rx-surface, -rx-surface-variant 49%, #eaeaea 50%);
+    -rx-secondary-fill: ladder(-rx-surface, -rx-outline 49%, #dadada 50%);
     -rx-bar-fill: #1ecc94;
     -rx-thumb-fill: #1fdba4;
 }
@@ -650,7 +650,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-slider, .rx-range-slider {
-    -rx-slider-track: #e0e0e0;
+    -rx-slider-track: ladder(-rx-surface, -rx-outline 49%, #e0e0e0 50%);
     -rx-slider-fill: -rx-primary;
     -rx-slider-thumb: -rx-primary;
     -rx-slider-tick: derive(-rx-slider-track, -20%);
@@ -1407,7 +1407,7 @@
 }
 
 .rx-cascader > .display > .label:empty {
-    -fx-text-fill: derive(-fx-control-inner-background, -30%);
+    -fx-text-fill: ladder(-fx-control-inner-background, -rx-on-surface-secondary 49%, derive(-fx-control-inner-background, -30%) 50%);
 }
 
 .rx-cascader > .display > .clear-button,
@@ -1488,7 +1488,7 @@
 .rx-cascader-view > .columns > .column {
     -fx-background-color: -fx-control-inner-background;
     -fx-padding: 0.333em 0 0.333em 0; /* 4 0 4 0 */
-    -fx-border-color: transparent derive(-fx-color, -17%) transparent transparent;
+    -fx-border-color: transparent ladder(-fx-color, -rx-outline 49%, derive(-fx-color, -17%) 50%) transparent transparent;
     -fx-border-width: 0 1px 0 0;
 }
 
@@ -1501,7 +1501,7 @@
    focus), styled like hover per ElementUI. */
 .rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-cascader-view > .columns > .column .list-cell:filled:focused {
-    -fx-background-color: derive(-fx-control-inner-background, -8%);
+    -fx-background-color: ladder(-fx-control-inner-background, derive(-fx-control-inner-background, 12%) 49%, derive(-fx-control-inner-background, -8%) 50%);
 }
 
 /* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
@@ -1567,7 +1567,7 @@
  ******************************************************************************/
 .rx-wave-progress-indicator > .wave-container {
     -fx-padding: 8px;
-    -fx-background-color: #e8f4ff;
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 49%, #e8f4ff 50%);
     -fx-background-radius: 50%;
     -fx-background-insets: 8px;
     -fx-border-color: #1e90ff;
@@ -2369,9 +2369,10 @@
 }
 
 .rx-segmented-control > .segment .label {
-    -fx-text-fill: rgba(0, 0, 0, 0.65);
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 49%, rgba(0, 0, 0, 0.65) 50%);
 }
 
+/* The selected label sits on the white indicator pill on every host. */
 .rx-segmented-control > .segment:selected .label {
     -fx-text-fill: rgba(0, 0, 0, 0.88);
 }
@@ -2513,19 +2514,19 @@
  *                                                                             *
  ******************************************************************************/
 .rx-tile-view {
-    -fx-background-color: -fx-box-border, -fx-background;
+    -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
 }
 
 .rx-tile-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -fx-background;
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
     -fx-background-insets: -1.4, -0.3, 1;
     -fx-background-radius: 2, 0, 0;
 }
 
 .rx-tile-view > .viewport {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -rx-surface;
 }
 
 .rx-tile-view > .viewport > .scroll-bar:vertical {
@@ -2555,7 +2556,7 @@
 }
 
 .rx-tile-view .rx-tile-section-header.sticky {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -rx-surface;
 }
 
 .rx-tile-view .rx-tile-section-header.sticky:pinned {
@@ -2593,19 +2594,19 @@
  *                                                                             *
  ******************************************************************************/
 .rx-list-view {
-    -fx-background-color: -fx-box-border, -fx-background;
+    -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
 }
 
 .rx-list-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -fx-background;
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
     -fx-background-insets: -1.4, -0.3, 1;
     -fx-background-radius: 2, 0, 0;
 }
 
 .rx-list-view > .viewport {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -rx-surface;
 }
 
 .rx-list-view > .viewport > .scroll-bar:vertical {
@@ -2840,19 +2841,19 @@
  *                                                                             *
  ******************************************************************************/
 .rx-masonry-view {
-    -fx-background-color: -fx-box-border, -fx-background;
+    -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
 }
 
 .rx-masonry-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -fx-background;
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
     -fx-background-insets: -1.4, -0.3, 1;
     -fx-background-radius: 2, 0, 0;
 }
 
 .rx-masonry-view > .viewport {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -rx-surface;
 }
 
 .rx-masonry-view > .viewport > .scroll-bar:vertical {
@@ -3000,8 +3001,10 @@
  *                                                                             *
  ******************************************************************************/
 
+/* An inverse surface: a dark bar on a light host, a light bar on a dark one. The
+   severity bars below keep their tinted background and white text on both. */
 .rx-snackbar-host > .snackbar {
-    -fx-background-color: #323232;
+    -fx-background-color: ladder(-rx-surface, #e0e0e0 49%, #323232 50%);
     -fx-background-radius: 4;
     -fx-padding: 6 16;
     -fx-spacing: 12;
@@ -3017,19 +3020,19 @@
 }
 
 .rx-snackbar-host > .snackbar > .message {
-    -fx-text-fill: rgba(255, 255, 255, 0.87);
+    -fx-text-fill: ladder(-rx-surface, rgba(0, 0, 0, 0.87) 49%, rgba(255, 255, 255, 0.87) 50%);
 }
 
 .rx-snackbar-host > .snackbar > .action {
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -fx-padding: 6 8 6 8;
-    -fx-text-fill: derive(-rx-primary, 30%);
+    -fx-text-fill: ladder(-rx-surface, -rx-primary 49%, derive(-rx-primary, 30%) 50%);
     -fx-font-weight: bold;
 }
 
 .rx-snackbar-host > .snackbar > .action:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 49%, rgba(255, 255, 255, 0.08) 50%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button {
@@ -3040,17 +3043,17 @@
 }
 
 .rx-snackbar-host > .snackbar > .close-button:hover {
-    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 49%, rgba(255, 255, 255, 0.08) 50%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button:focused {
-    -fx-background-color: rgba(255, 255, 255, 0.16);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.16) 49%, rgba(255, 255, 255, 0.16) 50%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button > .icon {
     -fx-pref-width: 10;
     -fx-pref-height: 10;
-    -fx-background-color: rgba(255, 255, 255, 0.7);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.6) 49%, rgba(255, 255, 255, 0.7) 50%);
     -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
 }
 
@@ -3082,6 +3085,31 @@
 .rx-snackbar-host > .snackbar.rx-snackbar-warning > .action,
 .rx-snackbar-host > .snackbar.rx-snackbar-error > .action {
     -fx-text-fill: white;
+}
+
+.rx-snackbar-host > .snackbar.rx-snackbar-info > .action:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-success > .action:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-warning > .action:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-error > .action:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-info > .close-button:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-success > .close-button:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-warning > .close-button:hover,
+.rx-snackbar-host > .snackbar.rx-snackbar-error > .close-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+}
+
+.rx-snackbar-host > .snackbar.rx-snackbar-info > .close-button:focused,
+.rx-snackbar-host > .snackbar.rx-snackbar-success > .close-button:focused,
+.rx-snackbar-host > .snackbar.rx-snackbar-warning > .close-button:focused,
+.rx-snackbar-host > .snackbar.rx-snackbar-error > .close-button:focused {
+    -fx-background-color: rgba(255, 255, 255, 0.16);
+}
+
+.rx-snackbar-host > .snackbar.rx-snackbar-info > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-success > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-warning > .close-button > .icon,
+.rx-snackbar-host > .snackbar.rx-snackbar-error > .close-button > .icon {
+    -fx-background-color: rgba(255, 255, 255, 0.7);
 }
 
 /*******************************************************************************

@@ -52,7 +52,7 @@ public final class ShowcaseThemes {
     public static List<ThemeChoice> all() {
         return List.of(
                 new ThemeChoice("Modena (default)", scene -> modena(scene, null)),
-                new ThemeChoice("Modena — app dark palette (preview)", scene -> modena(scene, APP_DARK_PALETTE)),
+                new ThemeChoice("Modena — app dark palette", scene -> modena(scene, APP_DARK_PALETTE)),
                 new ThemeChoice("AtlantaFX — Primer Light", scene -> atlanta(scene, new PrimerLight())),
                 new ThemeChoice("AtlantaFX — Primer Dark", scene -> atlanta(scene, new PrimerDark())),
                 new ThemeChoice("AtlantaFX — Nord Light", scene -> atlanta(scene, new NordLight())),

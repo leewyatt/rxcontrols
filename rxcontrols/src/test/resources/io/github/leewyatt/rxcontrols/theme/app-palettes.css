@@ -9,6 +9,9 @@
     -fx-dark-text-color: black;
     -fx-light-text-color: white;
     -fx-mid-text-color: #a6a8b5;
+    /* Modena derives a near-black text-box border on a dark background; dark
+       palettes set their own, as standard text fields need it too. */
+    -fx-text-box-border: #4d5166;
     -fx-accent: #7c86ff;
     -fx-focus-color: #7c86ff;
 }
@@ -20,6 +23,9 @@
     -fx-dark-text-color: black;
     -fx-light-text-color: white;
     -fx-mid-text-color: #333333;
+    /* The dark palette sets this derived token explicitly, so a light container
+       has to restore Modena's own formula. */
+    -fx-text-box-border: ladder(-fx-background, black 10%, derive(-fx-background, -15%) 30%);
     -fx-accent: #0096c9;
     -fx-focus-color: #039ed3;
 }

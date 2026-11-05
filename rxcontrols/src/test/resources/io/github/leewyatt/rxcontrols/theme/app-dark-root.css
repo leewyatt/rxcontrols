@@ -1,0 +1,10 @@
+/* A dark application palette written the usual way, on the unqualified .root, so it
+   also reaches popup windows that snapshot the owner scene's stylesheets. */
+.root {
+    -fx-base: #2b2c3a;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+    -fx-light-text-color: white;
+    -fx-mid-text-color: #a6a8b5;
+    -fx-text-box-border: #4d5166;
+}
