@@ -1,0 +1,15 @@
+/* Plain application overrides of themed control parts, at the specificity a
+   user would naturally write. */
+.rx-avatar > .default-icon-wrapper {
+    -fx-background-color: #4f46e5;
+}
+
+.rx-avatar > .default-icon-wrapper > .default-icon {
+    -fx-background-color: #ff0000;
+}
+
+.rx-tile-cell:selected,
+.rx-masonry-cell:selected {
+    -fx-background-color: #00ff00;
+    -fx-text-fill: #ff0000;
+}

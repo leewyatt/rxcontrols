@@ -8,6 +8,7 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
+import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
@@ -20,6 +21,7 @@ import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,8 @@ public class RXControlColorsTest {
 
     private static final String PALETTES =
             RXControlColorsTest.class.getResource("app-palettes.css").toExternalForm();
+    private static final String OVERRIDES =
+            RXControlColorsTest.class.getResource("app-overrides.css").toExternalForm();
 
     private static final Map<String, String> DEFAULT_MODENA = new LinkedHashMap<>();
     private static final Map<String, String> PRIMER_LIGHT = new LinkedHashMap<>();
@@ -149,8 +153,6 @@ public class RXControlColorsTest {
 
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
-    /** WCAG 2.1 non-text contrast for graphical objects. */
-    private static final double NON_TEXT_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
     /**
@@ -221,7 +223,7 @@ public class RXControlColorsTest {
     @Test
     public void darkPaletteRecolorsEveryControl() throws Exception {
         Map<String, String> samples = sampleUnder(Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
-        Map<String, String> roles = darkRoles();
+        Map<String, String> roles = roles(Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
 
         assertEquals(roles.get("on-surface-secondary"), samples.get("cascader.prompt"), "cascader prompt");
         assertEquals(roles.get("outline"), samples.get("cascader.column.border"), "cascader column separator");
@@ -307,27 +309,75 @@ public class RXControlColorsTest {
     }
 
     /**
-     * The avatar placeholder disc never takes the surface-variant panel color, and its
-     * icon meets the 3:1 non-text contrast, on a dark application palette and under every
-     * AtlantaFX theme.
+     * The avatar placeholder disc differs from both surface roles, and its icon from the
+     * disc, on default Modena, a dark application palette and every AtlantaFX theme.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void avatarPlaceholderStandsOutOnEveryHost() throws Exception {
-        Map<String, Map<String, String>> hosts = new LinkedHashMap<>();
-        hosts.put("dark palette", sampleUnder(Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette));
+    public void avatarPlaceholderDiscDiffersFromSurfacesOnEveryHost() throws Exception {
+        assertAvatarDiscDiffers("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertAvatarDiscDiffers("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
         for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
                 new CupertinoLight(), new CupertinoDark(), new Dracula())) {
-            hosts.put(theme.getName(), sampleUnder(theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install));
+            assertAvatarDiscDiffers(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
         }
-        hosts.forEach((host, samples) -> {
-            String disc = samples.get("avatar.icon-disc");
-            // The wave container is painted with the surface-variant role on every host.
-            assertNotEquals(samples.get("wave.container"), disc, "avatar disc is the panel color under " + host);
-            double ratio = contrastRatio(Color.web(samples.get("avatar.icon")), Color.web(disc));
-            assertTrue(ratio >= NON_TEXT_CONTRAST, "avatar icon contrast under " + host + ": " + ratio);
+    }
+
+    private static void assertAvatarDiscDiffers(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        Map<String, String> roles = roles(userAgentStylesheet, themer);
+        String disc = samples.get("avatar.icon-disc");
+        assertNotEquals(roles.get("surface"), disc, "avatar disc is the surface color under " + host);
+        assertNotEquals(roles.get("surface-variant"), disc, "avatar disc is the panel color under " + host);
+        assertNotEquals(disc, samples.get("avatar.icon"), "avatar icon is the disc color under " + host);
+    }
+
+    /**
+     * Under the bridge, an application stylesheet added before {@code install} still
+     * colors the avatar placeholder and the selected tile / masonry cell.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void applicationStylesheetOverridesThemedPartsUnderTheBridge() throws Exception {
+        Map<String, String> colors = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+            RXAvatar avatar = new RXAvatar();
+            RXTileView<String> tile = new RXTileView<>();
+            tile.getItems().add("alpha");
+            RXMasonryView<String> masonry = new RXMasonryView<>();
+            masonry.getItems().add("alpha");
+            StackPane root = new StackPane(avatar, tile, masonry);
+            Scene scene = new Scene(root, 600, 400);
+            scene.getStylesheets().add(OVERRIDES);
+            RXAtlantaFXThemeBridge.install(scene);
+            tile.getSelectionModel().select(0);
+            masonry.getSelectionModel().select(0);
+            root.applyCss();
+            root.layout();
+            colors.put("avatar disc", ThemeColorSamples.hex(fill(avatar.lookup(".default-icon-wrapper"))));
+            colors.put("avatar icon", ThemeColorSamples.hex(fill(avatar.lookup(".default-icon"))));
+            for (Node cell : List.of(tile.lookup(".rx-tile-cell:selected"), masonry.lookup(".rx-masonry-cell:selected"))) {
+                String name = cell.getStyleClass().contains("rx-tile-cell") ? "tile" : "masonry";
+                colors.put(name + " background", ThemeColorSamples.hex(fill(cell)));
+                colors.put(name + " text", ThemeColorSamples.hex(((Labeled) cell).getTextFill()));
+            }
         });
+        Map<String, String> expected = new LinkedHashMap<>();
+        expected.put("avatar disc", "#4f46e5ff");
+        expected.put("avatar icon", "#ff0000ff");
+        expected.put("tile background", "#00ff00ff");
+        expected.put("tile text", "#ff0000ff");
+        expected.put("masonry background", "#00ff00ff");
+        expected.put("masonry text", "#ff0000ff");
+        assertEquals(expected, colors);
+    }
+
+    private static Paint fill(Node node) {
+        return ((Region) node).getBackground().getFills().get(0).getFill();
     }
 
     /** "View unselected text #…" and "View selected #background text #…" for a tile and a masonry view. */
@@ -426,13 +476,13 @@ public class RXControlColorsTest {
         return samples.get();
     }
 
-    /** The role tokens resolved on the dark application palette, as 8-bit hex. */
-    private static Map<String, String> darkRoles() throws Exception {
+    /** The role tokens resolved under a host, as 8-bit hex. */
+    private static Map<String, String> roles(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
         List<String> tokens = List.of("info", "surface", "surface-variant", "on-surface",
                 "on-surface-secondary", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
         runOnFx(() -> {
-            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            Application.setUserAgentStylesheet(userAgentStylesheet);
             Map<String, Region> probes = new LinkedHashMap<>();
             StackPane root = new StackPane();
             for (String token : tokens) {
@@ -442,7 +492,7 @@ public class RXControlColorsTest {
                 root.getChildren().add(probe);
             }
             Scene scene = new Scene(root, 100, 100);
-            darkPalette(scene);
+            themer.accept(scene);
             root.applyCss();
             probes.forEach((token, probe) ->
                     roles.put(token, ThemeColorSamples.hex(probe.getBackground().getFills().get(0).getFill())));

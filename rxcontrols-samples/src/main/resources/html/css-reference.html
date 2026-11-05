@@ -254,6 +254,8 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
    and colors set in code keep winning on JavaFX 17–23. A small <b>author-origin</b> stylesheet
    (<code>rx-controls-atlantafx.css</code>) carries the few per-control overrides that must beat
    AtlantaFX's own button states, and re-points the per-control light literals at role tokens.
+   The avatar placeholder and the selected tile / masonry cell are themed in the user-agent scope
+   instead, so an application stylesheet restyles them whatever its loading order.
    Because AtlantaFX does not define the Modena <code>-fx-*</code> palette, the scope also supplies
    the Modena base colors RxControls rules still read directly (<code>-fx-control-inner-background</code>,
    <code>-fx-accent</code>, <code>-fx-selection-bar</code>, …) mapped to <code>-color-*</code>.

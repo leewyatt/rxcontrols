@@ -485,6 +485,20 @@
     -fx-pref-height: 24px;
 }
 
+/* Under the AtlantaFX bridge the disc takes the theme's neutral emphasis pair, tuned
+   per theme for a fill and its foreground: a surface color would vanish on any panel
+   painted with it. Kept in this user-agent stylesheet so application stylesheets
+   still override it. */
+.rx-theme-atlantafx .rx-avatar > .default-icon-wrapper,
+.rx-theme-atlantafx.rx-avatar > .default-icon-wrapper {
+    -fx-background-color: -color-neutral-emphasis;
+}
+
+.rx-theme-atlantafx .rx-avatar > .default-icon-wrapper > .default-icon,
+.rx-theme-atlantafx.rx-avatar > .default-icon-wrapper > .default-icon {
+    -fx-background-color: -color-fg-emphasis;
+}
+
 .rx-avatar > .text-wrapper {
     -fx-background-color: #5c6bc0;
     -fx-alignment: center;
@@ -2603,6 +2617,14 @@
     -fx-border-insets: 0, 2;
 }
 
+/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
+   look, a subtle accent tint with the default text: no single text color reads on
+   a solid accent across every AtlantaFX theme. */
+.rx-theme-atlantafx .rx-tile-cell:selected {
+    -fx-background-color: -rx-primary-bg;
+    -fx-text-fill: -rx-on-surface;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXListView                                                                  *
@@ -2923,6 +2945,14 @@
     -fx-border-color: -fx-selection-bar, -fx-focus-color;
     -fx-border-width: 2, 1;
     -fx-border-insets: 0, 2;
+}
+
+/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
+   look, a subtle accent tint with the default text: no single text color reads on
+   a solid accent across every AtlantaFX theme. */
+.rx-theme-atlantafx .rx-masonry-cell:selected {
+    -fx-background-color: -rx-primary-bg;
+    -fx-text-fill: -rx-on-surface;
 }
 
 /*******************************************************************************
