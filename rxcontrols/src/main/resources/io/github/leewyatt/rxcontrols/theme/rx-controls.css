@@ -33,26 +33,32 @@
     -rx-primary: #616dff;
     -rx-primary-hover: derive(-rx-primary, 8%);
     -rx-primary-active: derive(-rx-primary, -10%);
-    -rx-primary-bg: derive(-rx-primary, 85%);
+    /* a tint behind on-surface text: lightened on a light host, darkened on a dark one */
+    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 49%, derive(-rx-primary, 85%) 50%);
     -rx-on-primary: white;
     /* semantic */
     -rx-success: #67c23a;
     -rx-warning: #e6a23c;
     -rx-danger: #f56c6c;
     -rx-info: #909399;
-    /* surface / text / outline — alias modena so the default tracks the host theme */
+    /* surface / text / outline: derived from the Modena palette so the defaults
+       follow an application that recolors Modena, globally or on one container.
+       Every ladder keys on -fx-background, the same reference Modena uses for
+       -fx-text-background-color and -fx-text-box-border, so all roles agree on
+       whether the host is light or dark. The light side keeps the original
+       values. Each role is an independent override point. */
     -rx-surface: -fx-background;
-    -rx-surface-variant: #f5f5f5;
-    -rx-on-surface: -fx-text-base-color;
-    -rx-on-surface-secondary: -fx-mid-text-color;
-    -rx-on-surface-disabled: rgba(0, 0, 0, 0.25);
+    -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 49%, #f5f5f5 50%);
+    -rx-on-surface: -fx-text-background-color;
+    -rx-on-surface-secondary: ladder(-fx-background, derive(-fx-light-text-color, -32%) 49%, -fx-mid-text-color 50%);
+    -rx-on-surface-disabled: ladder(-fx-background, rgba(255, 255, 255, 0.35) 49%, rgba(0, 0, 0, 0.25) 50%);
     -rx-outline: -fx-text-box-border;
-    -rx-outline-variant: #c0c4cc;
+    -rx-outline-variant: ladder(-fx-background, derive(-fx-background, 25%) 49%, #c0c4cc 50%);
     -rx-focus: -fx-focus-color;
     -rx-selection: rgba(0, 120, 215, 0.3);
-    -rx-highlight: #ffff00;
+    -rx-highlight: ladder(-fx-background, rgba(230, 162, 60, 0.4) 49%, #ffff00 50%);
     /* interaction state overlay (ripple / hover tint) */
-    -rx-state-overlay-color: black;
+    -rx-state-overlay-color: ladder(-fx-background, white 49%, black 50%);
     /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
        resolves only the COLOR of -fx-effect: dropshadow(...) through looked-up
        tokens, never radius / spread / offset, so each consumer writes those as

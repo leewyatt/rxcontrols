@@ -22,7 +22,8 @@ import java.util.function.Supplier;
 
 /**
  * Shared theme choices for the samples — plain Modena, where RxControls uses its
- * default style, and the AtlantaFX themes ({@link AtlantaFXThemeBridge}). Used by the
+ * default style, an application-owned dark Modena palette that RxControls follows
+ * without any theme API, and the AtlantaFX themes ({@link AtlantaFXThemeBridge}). Used by the
  * theme gallery and by every {@code RXShowcaseApplication} that enables theming.
  */
 public final class ShowcaseThemes {
@@ -45,11 +46,13 @@ public final class ShowcaseThemes {
     }
 
     /**
-     * @return the ordered list of theme choices (Modena first, then the AtlantaFX themes)
+     * @return the ordered list of theme choices (Modena first, then the app dark palette,
+     *         then the AtlantaFX themes)
      */
     public static List<ThemeChoice> all() {
         return List.of(
-                new ThemeChoice("Modena (default)", ShowcaseThemes::modena),
+                new ThemeChoice("Modena (default)", scene -> modena(scene, null)),
+                new ThemeChoice("Modena — app dark palette (preview)", scene -> modena(scene, APP_DARK_PALETTE)),
                 new ThemeChoice("AtlantaFX — Primer Light", scene -> atlanta(scene, new PrimerLight())),
                 new ThemeChoice("AtlantaFX — Primer Dark", scene -> atlanta(scene, new PrimerDark())),
                 new ThemeChoice("AtlantaFX — Nord Light", scene -> atlanta(scene, new NordLight())),
@@ -94,15 +97,18 @@ public final class ShowcaseThemes {
         }
     }
 
-    // Samples-owned showcase chrome mapped onto AtlantaFX colors. The bridge only themes
-    // the RxControls components; this supplies the rest for the demos.
+    // Samples-owned stylesheets. The dark palette flips Modena for the whole window, and
+    // RxControls follows it on its own. The AtlantaFX chrome maps the showcase chrome onto
+    // AtlantaFX colors; the bridge only themes the RxControls components.
+    private static final String APP_DARK_PALETTE =
+            ShowcaseThemes.class.getResource("rx-showcase-dark.css").toExternalForm();
     private static final String ATLANTAFX_CHROME =
             ShowcaseThemes.class.getResource("rx-showcase-atlantafx.css").toExternalForm();
 
-    private static void modena(Scene scene) {
+    private static void modena(Scene scene, String palette) {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
         AtlantaFXThemeBridge.uninstall(scene);
-        setChrome(scene, null);
+        setChrome(scene, palette);
     }
 
     private static void atlanta(Scene scene, Theme theme) {
@@ -112,7 +118,7 @@ public final class ShowcaseThemes {
     }
 
     private static void setChrome(Scene scene, String sheet) {
-        scene.getStylesheets().remove(ATLANTAFX_CHROME);
+        scene.getStylesheets().removeAll(APP_DARK_PALETTE, ATLANTAFX_CHROME);
         if (sheet != null) {
             scene.getStylesheets().add(sheet);
         }

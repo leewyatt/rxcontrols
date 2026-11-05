@@ -1,0 +1,25 @@
+/* Fixed application palettes for the default-style tests. Every Modena token the
+   defaults read is set explicitly so the results do not depend on Modena's own
+   derivations or on the samples' CSS. */
+.root.dark-palette,
+.dark-region {
+    -fx-base: #2b2c3a;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+    -fx-dark-text-color: black;
+    -fx-light-text-color: white;
+    -fx-mid-text-color: #a6a8b5;
+    -fx-accent: #7c86ff;
+    -fx-focus-color: #7c86ff;
+}
+
+.light-region {
+    -fx-base: #ececec;
+    -fx-background: #f4f4f4;
+    -fx-control-inner-background: white;
+    -fx-dark-text-color: black;
+    -fx-light-text-color: white;
+    -fx-mid-text-color: #333333;
+    -fx-accent: #0096c9;
+    -fx-focus-color: #039ed3;
+}
