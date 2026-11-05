@@ -25,6 +25,15 @@
     -fx-background-color: transparent;
 }
 
+.virtual-gallery {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.virtual-gallery > .viewport {
+    -fx-background-color: transparent;
+}
+
 .section-label {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
@@ -39,6 +48,13 @@
 
 .note-card {
     -fx-spacing: 7;
+    -fx-padding: 16;
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 10, 0.08, 0, 3);
+}
+
+.virtual-note-card {
     -fx-padding: 16;
     -fx-background-color: white;
     -fx-background-radius: 10;
