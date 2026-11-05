@@ -28,30 +28,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Window-dependent acceptance for AtlantaFX-bridge propagation into the
- * {@link RXCascader} popup (proposal §7, states ① and ③). Two CSS paths reach a
- * popup: <strong>A</strong> — {@code PopupWindow.showImpl} snapshots the owner
- * scene's stylesheets at show time; <strong>B</strong> — the popup content's
- * {@code CSSBridge} collects stylesheets from the owner node's {@code Parent}
- * ancestor chain. The POC confirmed: a scene-level bridge reaches the popup (A);
- * a parent-level bridge reaches it only when that parent is on the cascader's
- * ancestor chain (B); a bridge on an unrelated parent does not.
+ * Window-dependent acceptance for the AtlantaFX bridge reaching the {@link RXCascader}
+ * popup: {@code PopupWindow} snapshots the owner scene's stylesheets when it shows, so a
+ * scene-level bridge installed before opening themes the popup content.
  *
  * <p>The cascader view consumes no {@code -rx-*} role token directly, so a tiny
  * test-only probe stylesheet makes its border consume {@code -rx-primary}; the
- * border color then reports whether the bridge reached the popup. Both the bridge
- * and the probe are applied at the same level so they travel the same path.
+ * border color then reports whether the bridge reached the popup.
  *
  * <p>Tagged {@code "ui"} (needs a shown {@link Stage}); a headless CI excludes it
  * with {@code -DexcludedGroups=ui}.
  */
 @Tag("ui")
-public class AtlantaFXThemeBridgePopupTest {
+public class RXAtlantaFXThemeBridgePopupTest {
 
     private static final Color ACCENT_EMPHASIS = Color.web("#0969da");
 
@@ -114,7 +107,7 @@ public class AtlantaFXThemeBridgePopupTest {
         });
     }
 
-    // ==================== Path A — scene level ====================
+    // ==================== Scene-level bridge ====================
 
     /**
      * A scene-level bridge installed before opening is snapshotted into the popup
@@ -134,7 +127,7 @@ public class AtlantaFXThemeBridgePopupTest {
             // Install the bridge before showing so the first CSS pass already
             // resolves the Modena compat tokens (no unresolved-token warnings).
             stage = stageFor(root);
-            AtlantaFXThemeBridge.install(stage.getScene());
+            RXAtlantaFXThemeBridge.install(stage.getScene());
             stage.getScene().getStylesheets().add(probeUrl);
             stage.show();
             cascader.applyCss();
@@ -144,92 +137,19 @@ public class AtlantaFXThemeBridgePopupTest {
             PopupControl popup = findCascaderPopup();
             assertNotNull(popup, "popup should be present");
             popupSceneHasBridge.set(popup.getScene().getStylesheets()
-                    .contains(AtlantaFXThemeBridge.getStylesheet()));
+                    .contains(RXAtlantaFXThemeBridge.getStylesheet()));
             border.set(cascaderViewBorder(popup));
             background.set(cascaderViewBackground(popup));
         });
 
         assertTrue(popupSceneHasBridge.get(),
-                "path A: the popup scene should snapshot the owner scene's bridge stylesheet");
+                "the popup scene should snapshot the owner scene's bridge stylesheet");
         assertEquals(ACCENT_EMPHASIS, border.get(),
-                "path A: cascader view inside the popup follows AtlantaFX accent");
+                "cascader view inside the popup follows AtlantaFX accent");
         // The view background uses raw -fx-control-inner-background; the bridge's
         // Modena compat layer must resolve it (it rendered transparent before).
         assertEquals(Color.web("#ffffff"), background.get(),
-                "path A: cascader view background resolves via the bridge's Modena compat layer");
-    }
-
-    // ==================== Path B — parent level ====================
-
-    /**
-     * A parent-level bridge whose parent is on the cascader's ancestor chain
-     * reaches the popup via the CSSBridge styleable-parent chain, even though the
-     * popup scene did not snapshot it.
-     *
-     * @throws Exception if the FX action fails
-     */
-    @Test
-    public void popupFollowsAncestorParentBridge() throws Exception {
-        AtomicReference<Boolean> popupSceneHasBridge = new AtomicReference<>();
-        AtomicReference<Color> border = new AtomicReference<>();
-
-        runOnFx(() -> {
-            RXCascader<String> cascader = newCascader();
-            StackPane ancestor = new StackPane(cascader);
-            StackPane root = new StackPane(ancestor);
-            stage = stageFor(root);
-            AtlantaFXThemeBridge.install(ancestor);
-            ancestor.getStylesheets().add(probeUrl);
-            stage.show();
-            cascader.applyCss();
-            cascader.layout();
-            cascader.show();
-
-            PopupControl popup = findCascaderPopup();
-            assertNotNull(popup, "popup should be present");
-            popupSceneHasBridge.set(popup.getScene().getStylesheets()
-                    .contains(AtlantaFXThemeBridge.getStylesheet()));
-            border.set(cascaderViewBorder(popup));
-        });
-
-        assertFalse(popupSceneHasBridge.get(),
-                "path B precondition: a parent-level bridge is not in the popup scene stylesheets");
-        assertEquals(ACCENT_EMPHASIS, border.get(),
-                "path B: an ancestor-parent bridge reaches the popup via the CSSBridge parent chain");
-    }
-
-    /**
-     * A bridge on a parent that is NOT on the cascader's ancestor chain must not
-     * reach the popup (neither path A nor B carries it).
-     *
-     * @throws Exception if the FX action fails
-     */
-    @Test
-    public void popupIgnoresNonAncestorParentBridge() throws Exception {
-        AtomicReference<Color> border = new AtomicReference<>();
-
-        runOnFx(() -> {
-            RXCascader<String> cascader = newCascader();
-            StackPane cascaderHolder = new StackPane(cascader);
-            StackPane unrelated = new StackPane();
-            StackPane root = new StackPane(cascaderHolder, unrelated);
-            // The cascader is deliberately unbridged here, so unresolved-Modena-
-            // token warnings during this test are expected noise.
-            stage = stageFor(root);
-            AtlantaFXThemeBridge.install(unrelated);
-            unrelated.getStylesheets().add(probeUrl);
-            stage.show();
-            cascader.applyCss();
-            cascader.layout();
-            cascader.show();
-
-            PopupControl popup = findCascaderPopup();
-            assertNotNull(popup, "popup should be present");
-            border.set(cascaderViewBorder(popup));
-        });
-
-        assertFalse(ACCENT_EMPHASIS.equals(border.get()),
-                "a bridge on a non-ancestor parent must not theme the popup; got " + border.get());
+                "cascader view background resolves via the bridge's Modena compat layer");
     }
 
     // ==================== Helpers ====================

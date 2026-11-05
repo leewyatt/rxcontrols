@@ -287,6 +287,7 @@
     -fx-accent: -color-accent-emphasis;
     -fx-focus-color: -color-accent-emphasis;
     -fx-faint-focus-color: -color-accent-muted;
+    -fx-selection-bar: -color-accent-emphasis;
 }
 
 

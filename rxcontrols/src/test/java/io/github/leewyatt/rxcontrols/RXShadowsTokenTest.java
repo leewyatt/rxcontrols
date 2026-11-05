@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
-import io.github.leewyatt.rxcontrols.theme.AtlantaFXThemeBridge;
+import io.github.leewyatt.rxcontrols.theme.RXAtlantaFXThemeBridge;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -89,7 +89,7 @@ public class RXShadowsTokenTest {
     @Test
     public void umbraColorResolvesUnderAtlantaFX() throws Exception {
         Color umbra = resolveUmbra(new PrimerLight().getUserAgentStylesheet(),
-                RXResources.ATLANTAFX_BRIDGE_STYLESHEET, AtlantaFXThemeBridge.getScopeClass());
+                RXResources.ATLANTAFX_BRIDGE_STYLESHEET, RXAtlantaFXThemeBridge.getScopeClass());
         assertNotNull(umbra,
                 "-rx-elevation-umbra-color should resolve to a color via -color-shadow-default under AtlantaFX");
         assertTrue(umbra.getOpacity() > 0.0,

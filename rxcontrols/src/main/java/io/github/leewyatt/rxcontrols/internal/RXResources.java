@@ -6,9 +6,8 @@ public final class RXResources {
             RXResources.class.getResource("/io/github/leewyatt/rxcontrols/theme/rx-controls.css").toExternalForm();
 
     /**
-     * Author-origin stylesheet that re-points the {@code -rx-*} color role tokens
-     * at AtlantaFX {@code -color-*} functional tokens. Applied (not as a UA sheet)
-     * to a Scene or Parent via {@code AtlantaFXThemeBridge}.
+     * Author-origin stylesheet with the per-control overrides of the AtlantaFX bridge.
+     * Added to a scene (not as a UA sheet) by {@code RXAtlantaFXThemeBridge}.
      */
     public static final String ATLANTAFX_BRIDGE_STYLESHEET =
             RXResources.class.getResource("/io/github/leewyatt/rxcontrols/theme/rx-controls-atlantafx.css").toExternalForm();

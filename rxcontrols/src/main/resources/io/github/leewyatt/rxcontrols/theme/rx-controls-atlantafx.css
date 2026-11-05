@@ -7,9 +7,9 @@
  *                                                                             *
  * The -rx-* <- -color-* token mapping and the Modena -fx-* compat block are   *
  * NOT here: they live in rx-controls.css under the .rx-theme-atlantafx scope  *
- * class, so they keep user-agent origin. AtlantaFXThemeBridge.install toggles *
- * the scope class and adds this stylesheet; -color-* still resolves from the  *
- * AtlantaFX theme installed as the Application user-agent stylesheet.         *
+ * class, so they keep user-agent origin. RXAtlantaFXThemeBridge.install puts  *
+ * the scope class on the scene and adds this stylesheet; -color-* resolves    *
+ * from the AtlantaFX theme set as the Application user-agent stylesheet.      *
  *                                                                             *
  ******************************************************************************/
 /* AtlantaFX's .button:armed sets a themed text color (-color-fg-default: dark on

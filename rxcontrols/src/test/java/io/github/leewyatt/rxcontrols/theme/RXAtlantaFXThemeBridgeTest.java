@@ -22,7 +22,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SubScene;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -60,23 +62,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless acceptance + drift-proofing for the AtlantaFX author bridge
- * ({@code rx-controls-atlantafx.css} + {@link AtlantaFXThemeBridge}). Installs a real
- * {@link PrimerLight} Application UA so {@code -color-*} resolves, applies the
- * bridge, and asserts each {@code -rx-*} role token resolves to its mapped
- * AtlantaFX functional token (proposal §2). Popup propagation is covered by the
- * window-dependent {@code AtlantaFXThemeBridgePopupTest}.
- *
- * <p>Assertions are value-based, not "zero unresolved lookups": AtlantaFX does
- * not define the Modena {@code -fx-*} palette, so RxControls rules still using raw
- * {@code -fx-*} colors are expected to be unresolved under AtlantaFX — that is the
- * untokenized-recolor backlog, not a bridge defect.
+ * Headless acceptance for the AtlantaFX bridge ({@link RXAtlantaFXThemeBridge} and
+ * {@code rx-controls-atlantafx.css}) under a real {@link PrimerLight} Application UA:
+ * each {@code -rx-*} role token resolves to its mapped AtlantaFX functional token, real
+ * controls follow it, and the scene-level install / uninstall contract holds.
+ * Completeness under every AtlantaFX theme is covered by {@code RXAtlantaFXCompatTest},
+ * popup propagation by the window-dependent {@code RXAtlantaFXThemeBridgePopupTest}.
  */
-public class AtlantaFXThemeBridgeTest {
+public class RXAtlantaFXThemeBridgeTest {
 
     private static final String BASELINE_CSS =
             "/io/github/leewyatt/rxcontrols/theme/rx-controls.css";
@@ -215,7 +214,7 @@ public class AtlantaFXThemeBridgeTest {
             host.getChildren().addAll(probes.values());
             host.getChildren().addAll(refHover, refActive);
             Scene scene = new Scene(host, 200, 200);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -263,7 +262,7 @@ public class AtlantaFXThemeBridgeTest {
 
             StackPane host = new StackPane(fillButton, plain, timeline);
             Scene scene = new Scene(host, 360, 220);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
 
@@ -297,7 +296,7 @@ public class AtlantaFXThemeBridgeTest {
             RXTextView textView = new RXTextView("hello");
             StackPane host = new StackPane(textView);
             Scene scene = new Scene(host, 200, 80);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             textFill.set(textView.getTextFill());
@@ -319,7 +318,7 @@ public class AtlantaFXThemeBridgeTest {
                     new RXCheckBox("check"), new RXRadioButton("radio"), new RXSwitchButton("switch"));
             StackPane host = new StackPane(toggles.toArray(new Node[0]));
             Scene scene = new Scene(host, 200, 80);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             for (Labeled toggle : toggles) {
@@ -346,7 +345,7 @@ public class AtlantaFXThemeBridgeTest {
             RXDigit digit = new RXDigit();
             StackPane host = new StackPane(bar, steps, digit);
             Scene scene = new Scene(host, 300, 120);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             fills.put("progress bar track", trackFill(bar));
@@ -376,7 +375,7 @@ public class AtlantaFXThemeBridgeTest {
             RXHighlightTextView view = new RXHighlightTextView("hello");
             StackPane host = new StackPane(view);
             Scene scene = new Scene(host, 200, 80);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             highlightFill.set(view.getHighlightFill());
         });
@@ -398,7 +397,7 @@ public class AtlantaFXThemeBridgeTest {
             textView.setSelectedTextFill(Color.BLUE);
             StackPane host = new StackPane(textView);
             Scene scene = new Scene(host, 200, 80);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             fills.put("text", textView.getTextFill());
             fills.put("selected text", textView.getSelectedTextFill());
@@ -423,7 +422,7 @@ public class AtlantaFXThemeBridgeTest {
             coded.setBaseColor(Color.RED);
             // One scene each: on JavaFX 17-23 a default sibling's cached style overrides values set in code.
             for (StackPane host : new StackPane[]{new StackPane(plain, reference), new StackPane(coded)}) {
-                AtlantaFXThemeBridge.install(new Scene(host, 200, 80));
+                RXAtlantaFXThemeBridge.install(new Scene(host, 200, 80));
                 host.applyCss();
             }
             fills.put("default", plain.getBaseColor());
@@ -448,7 +447,7 @@ public class AtlantaFXThemeBridgeTest {
             coded.setTextFill(Color.RED);
             StackPane host = new StackPane(plain, coded);
             Scene scene = new Scene(host, 200, 80);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             textFill.set(coded.getTextFill());
         });
@@ -456,38 +455,180 @@ public class AtlantaFXThemeBridgeTest {
                 "a text fill set in code must survive a default sibling under the bridge");
     }
 
-    // ==================== Subtree scoping ====================
+    // ==================== Scene bridge contract ====================
 
     /**
-     * A parent-level bridge themes only its own subtree: an {@code RXFillButton}
-     * inside follows AtlantaFX while a sibling outside keeps the built-in brand
-     * color. Both are real controls (each carries the rx-controls.css UA baseline);
-     * the bridge is an author stylesheet on the inner subtree only.
+     * Installing twice adds the stylesheet and the scope class once, and one uninstall
+     * removes both.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void parentLevelBridgeScopesToItsSubtree() throws Exception {
-        AtomicReference<Color> inside = new AtomicReference<>();
-        AtomicReference<Color> outside = new AtomicReference<>();
-
+    public void installIsIdempotent() throws Exception {
         runOnFx(() -> {
-            RXFillButton insideButton = new RXFillButton("in");
-            RXFillButton outsideButton = new RXFillButton("out");
-            StackPane subtree = new StackPane(insideButton);
-            StackPane root = new StackPane(subtree, outsideButton);
-            Scene scene = new Scene(root, 320, 200);
-            AtlantaFXThemeBridge.install(subtree);
-            root.applyCss();
-            root.layout();
-            inside.set(fillRegionColor(insideButton));
-            outside.set(fillRegionColor(outsideButton));
-        });
+            StackPane root = new StackPane();
+            Scene scene = new Scene(root, 100, 100);
+            RXAtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
+            assertEquals(1, count(scene.getStylesheets(), RXAtlantaFXThemeBridge.getStylesheet()), "stylesheet once");
+            assertEquals(1, count(root.getStyleClass(), RXAtlantaFXThemeBridge.getScopeClass()), "scope class once");
 
-        assertEquals(ACCENT_EMPHASIS, inside.get(),
-                "RXFillButton inside the bridged subtree follows AtlantaFX");
-        assertEquals(Color.web("#616dff"), outside.get(),
-                "RXFillButton outside the bridged subtree keeps the built-in brand color");
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertBridgeGone(scene, root);
+        });
+    }
+
+    /**
+     * Uninstalling a scene that was never bridged changes nothing, and uninstalling twice is safe.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void uninstallIsIdempotent() throws Exception {
+        runOnFx(() -> {
+            StackPane root = new StackPane();
+            Scene scene = new Scene(root, 100, 100);
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertBridgeGone(scene, root);
+            RXAtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertBridgeGone(scene, root);
+        });
+    }
+
+    /**
+     * Repeated switching between AtlantaFX and Modena leaves no stylesheet, class or
+     * scene property behind, and each install follows the theme again.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void switchingBackAndForthLeavesNothingBehind() throws Exception {
+        AtomicReference<Color> bridged = new AtomicReference<>();
+        AtomicReference<Color> modena = new AtomicReference<>();
+        runOnFx(() -> {
+            RXFillButton button = new RXFillButton("go");
+            StackPane root = new StackPane(button);
+            Scene scene = new Scene(root, 200, 100);
+            int baselineProperties = scene.getProperties().size();
+            try {
+                for (int round = 0; round < 3; round++) {
+                    RXAtlantaFXThemeBridge.install(scene);
+                    root.applyCss();
+                    bridged.set(fillRegionColor(button));
+                    Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+                    RXAtlantaFXThemeBridge.uninstall(scene);
+                    root.applyCss();
+                    modena.set(fillRegionColor(button));
+                    Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+                }
+                assertBridgeGone(scene, root);
+                assertEquals(baselineProperties, scene.getProperties().size(), "no scene property left behind");
+            } finally {
+                Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+            }
+        });
+        assertEquals(ACCENT_EMPHASIS, bridged.get(), "bridged fill follows AtlantaFX");
+        assertEquals(Color.web("#616dff"), modena.get(), "unbridged fill is the default brand color");
+    }
+
+    /**
+     * Swapping the scene root keeps the bridge on the new root and clears the old one.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void swappingTheRootKeepsTheBridge() throws Exception {
+        AtomicReference<Color> fill = new AtomicReference<>();
+        runOnFx(() -> {
+            StackPane oldRoot = new StackPane();
+            Scene scene = new Scene(oldRoot, 200, 100);
+            RXAtlantaFXThemeBridge.install(scene);
+            RXFillButton button = new RXFillButton("go");
+            StackPane newRoot = new StackPane(button);
+            scene.setRoot(newRoot);
+            newRoot.applyCss();
+            fill.set(fillRegionColor(button));
+            assertTrue(newRoot.getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()), "new root marked");
+            assertFalse(oldRoot.getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()), "old root cleared");
+
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertBridgeGone(scene, newRoot);
+            scene.setRoot(new StackPane());
+            assertFalse(scene.getRoot().getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()),
+                    "no root listener left after uninstall");
+        });
+        assertEquals(ACCENT_EMPHASIS, fill.get(), "a control under the swapped root follows AtlantaFX");
+    }
+
+    /**
+     * A sub-scene found at install time is bridged, and uninstall clears it even after
+     * it has left the scene.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void subScenesAreBridgedAndClearedAfterDetaching() throws Exception {
+        AtomicReference<Color> fill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXFillButton button = new RXFillButton("go");
+            StackPane subRoot = new StackPane(button);
+            SubScene subScene = new SubScene(subRoot, 200, 100);
+            StackPane root = new StackPane(subScene);
+            Scene scene = new Scene(root, 200, 100);
+            RXAtlantaFXThemeBridge.install(scene);
+            root.applyCss();
+            subRoot.applyCss();
+            fill.set(fillRegionColor(button));
+            assertTrue(subRoot.getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()), "sub-scene root marked");
+
+            root.getChildren().remove(subScene);
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertFalse(subRoot.getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()),
+                    "a detached sub-scene root is cleared on uninstall");
+        });
+        assertEquals(ACCENT_EMPHASIS, fill.get(), "a control inside the sub-scene follows AtlantaFX");
+    }
+
+    /**
+     * A scope class the application put on the root itself survives uninstall.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void scopeClassAddedByTheApplicationSurvivesUninstall() throws Exception {
+        runOnFx(() -> {
+            StackPane root = new StackPane();
+            root.getStyleClass().add(RXAtlantaFXThemeBridge.getScopeClass());
+            Scene scene = new Scene(root, 100, 100);
+            RXAtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.uninstall(scene);
+            assertEquals(1, count(root.getStyleClass(), RXAtlantaFXThemeBridge.getScopeClass()),
+                    "the application's own scope class stays");
+        });
+    }
+
+    /** A null scene is rejected. */
+    @Test
+    public void nullSceneIsRejected() {
+        assertThrows(NullPointerException.class, () -> RXAtlantaFXThemeBridge.install(null));
+        assertThrows(NullPointerException.class, () -> RXAtlantaFXThemeBridge.uninstall(null));
+    }
+
+    private static int count(List<String> values, String value) {
+        int found = 0;
+        for (String item : values) {
+            if (item.equals(value)) {
+                found++;
+            }
+        }
+        return found;
+    }
+
+    private static void assertBridgeGone(Scene scene, Parent root) {
+        assertFalse(scene.getStylesheets().contains(RXAtlantaFXThemeBridge.getStylesheet()), "stylesheet removed");
+        assertFalse(root.getStyleClass().contains(RXAtlantaFXThemeBridge.getScopeClass()), "scope class removed");
     }
 
     // ==================== Modena compat layer ====================
@@ -510,7 +651,7 @@ public class AtlantaFXThemeBridgeTest {
             StackPane host = new StackPane();
             host.getChildren().addAll(probes.values());
             Scene scene = new Scene(host, 200, 200);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -535,7 +676,7 @@ public class AtlantaFXThemeBridgeTest {
             cascader.getRootItems().add(new RXCascaderItem<>("a"));
             StackPane host = new StackPane(cascader);
             Scene scene = new Scene(host, 320, 120);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
         });
@@ -568,7 +709,7 @@ public class AtlantaFXThemeBridgeTest {
             // Inside a real control root: a plain node gets no control user-agent stylesheet.
             StackPane host = new StackPane(new RXBox(probe));
             Scene scene = new Scene(host, 120, 60);
-            AtlantaFXThemeBridge.install(scene);
+            RXAtlantaFXThemeBridge.install(scene);
             host.applyCss();
             host.layout();
             textFill.set(probe.getTextFill());
@@ -610,7 +751,7 @@ public class AtlantaFXThemeBridgeTest {
                 Control control = factory.get();
                 StackPane host = new StackPane(control);
                 Scene scene = new Scene(host, 160.0, 60.0);
-                AtlantaFXThemeBridge.install(scene);
+                RXAtlantaFXThemeBridge.install(scene);
                 host.applyCss();
                 for (String pseudo : state.split("\\+")) {
                     if (!pseudo.isEmpty()) {
@@ -752,7 +893,7 @@ public class AtlantaFXThemeBridgeTest {
     }
 
     private static String readResource(String path) {
-        try (InputStream in = AtlantaFXThemeBridgeTest.class.getResourceAsStream(path)) {
+        try (InputStream in = RXAtlantaFXThemeBridgeTest.class.getResourceAsStream(path)) {
             assertNotNull(in, path + " not found on classpath");
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException error) {

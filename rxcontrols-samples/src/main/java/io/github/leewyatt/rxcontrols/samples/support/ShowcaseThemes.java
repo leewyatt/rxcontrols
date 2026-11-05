@@ -8,7 +8,7 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
-import io.github.leewyatt.rxcontrols.theme.AtlantaFXThemeBridge;
+import io.github.leewyatt.rxcontrols.theme.RXAtlantaFXThemeBridge;
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 /**
  * Shared theme choices for the samples — plain Modena, where RxControls uses its
  * default style, an application-owned dark Modena palette that RxControls follows
- * without any theme API, and the AtlantaFX themes ({@link AtlantaFXThemeBridge}). Used by the
+ * without any theme API, and the AtlantaFX themes ({@link RXAtlantaFXThemeBridge}). Used by the
  * theme gallery and by every {@code RXShowcaseApplication} that enables theming.
  */
 public final class ShowcaseThemes {
@@ -107,13 +107,13 @@ public final class ShowcaseThemes {
 
     private static void modena(Scene scene, String palette) {
         Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
-        AtlantaFXThemeBridge.uninstall(scene);
+        RXAtlantaFXThemeBridge.uninstall(scene);
         setChrome(scene, palette);
     }
 
     private static void atlanta(Scene scene, Theme theme) {
         Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
-        AtlantaFXThemeBridge.install(scene);
+        RXAtlantaFXThemeBridge.install(scene);
         setChrome(scene, ATLANTAFX_CHROME);
     }
 

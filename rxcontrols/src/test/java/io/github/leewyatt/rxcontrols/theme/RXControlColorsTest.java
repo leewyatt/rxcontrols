@@ -179,7 +179,7 @@ public class RXControlColorsTest {
     @Test
     public void lightAtlantaFxThemeKeepsEveryControlColor() throws Exception {
         assertSamples(PRIMER_LIGHT, sampleUnder(new PrimerLight().getUserAgentStylesheet(),
-                AtlantaFXThemeBridge::install), "Primer Light");
+                RXAtlantaFXThemeBridge::install), "Primer Light");
     }
 
     /**
@@ -190,7 +190,7 @@ public class RXControlColorsTest {
     @Test
     public void darkAtlantaFxThemeKeepsEveryControlColor() throws Exception {
         assertSamples(PRIMER_DARK, sampleUnder(new PrimerDark().getUserAgentStylesheet(),
-                AtlantaFXThemeBridge::install), "Primer Dark");
+                RXAtlantaFXThemeBridge::install), "Primer Dark");
     }
 
     // ==================== Dark application palette ====================
