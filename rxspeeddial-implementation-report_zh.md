@@ -1,5 +1,7 @@
 # RXSpeedDial 实施报告
 
+> 历史文档：主题相关内容已过期。内置暗色主题（`rx-controls-dark.css`、`RXTheme`）已移除，默认样式跟随 Modena，AtlantaFX 经 `RXAtlantaFXThemeBridge` 接入。
+
 ## 完成状态
 
 - PR1–PR6 已全部落地：`RXFloatingActionButton`、`RXSpeedDial`、action model、事件、Skin、动画、键盘/a11y、Demo、Showcase、AppShowcase、ThemeGallery、三主题样式均已实现。

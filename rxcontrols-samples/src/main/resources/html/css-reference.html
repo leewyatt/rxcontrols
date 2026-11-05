@@ -121,78 +121,138 @@
 <h2 id="colorTokens">Global Color Tokens</h2>
 <p>RxControls ships a <b>looked-up color role layer</b> declared on every control root in the
    user-agent stylesheet (<code>rx-controls.css</code>). Every control — and its descendants, via
-   the looked-up walk-up — resolves the full set with zero setup. To retheme, override a token in
-   an author stylesheet on the control root selector (a future <code>RXTheme</code> overlay does
-   exactly this).</p>
+   the looked-up walk-up — resolves the full set with zero setup. These are the <b>default
+   style</b>: there is no theme to install. The defaults are derived from the Modena palette, so
+   RxControls follows an application that recolors Modena (see
+   <a href="#modenaPalettes">Following a Modena palette</a>); for other looks, use AtlantaFX with
+   the <a href="#atlantafxBridge">bridge</a>.</p>
 <p>Three layers — do not confuse them:</p>
 <ul>
     <li><b>Global color tokens</b> (table below) — looked-up colors with role names
         (<code>-rx-primary</code>, <code>-rx-on-surface</code>, …). Defined on the control root,
-        referenced from any descendant rule; this is the theming override point.</li>
+        referenced from any descendant rule. Each one is an independent override point: overriding
+        one role changes only that role.</li>
     <li><b>Component styleable properties</b> — part names (<code>-rx-fill</code>,
         <code>-rx-line-color</code>, <code>-rx-dot-fill</code>, <code>-rx-ripple-fill</code>, …),
-        documented per control. Their defaults now reference a role token; they remain the
+        documented per control. Their defaults reference a role token; they remain the
         per-control override point.</li>
     <li><b>Non-color</b> (radius, spacing, elevation / shadow, state opacity, sizes) — <b>not</b>
         global tokens. JavaFX&nbsp;17 resolves looked-up values only for colors, so these stay
         literal per component or remain component styleable Number / Insets properties.</li>
 </ul>
+<p>In the table, <i>ladder(light | dark)</i> means the role takes the first value on a light
+   <code>-fx-background</code> and the second on a dark one — the same reference Modena uses for
+   its own text and border colors. On the default Modena palette every role has its light value.</p>
 <table>
     <thead>
     <tr>
         <th>Token</th>
         <th>Type</th>
-        <th>Default (baseline)</th>
+        <th>Default</th>
         <th>Role</th>
     </tr>
     </thead>
     <tbody>
-    <tr><td>-rx-primary</td><td>Paint</td><td>#616dff</td><td>Brand / primary accent</td></tr>
+    <tr><td>-rx-primary</td><td>Paint</td><td>#616dff</td><td>Brand / primary accent (fixed)</td></tr>
     <tr><td>-rx-primary-hover</td><td>Paint</td><td>derive(-rx-primary, 8%)</td><td>Primary, hover state</td></tr>
     <tr><td>-rx-primary-active</td><td>Paint</td><td>derive(-rx-primary, -10%)</td><td>Primary, pressed / active state</td></tr>
-    <tr><td>-rx-primary-bg</td><td>Paint</td><td>derive(-rx-primary, 85%)</td><td>Light primary tint (soft / selected background)</td></tr>
+    <tr><td>-rx-primary-bg</td><td>Paint</td><td>ladder(derive(-rx-primary, 85%) | derive(-rx-primary, -60%))</td><td>Primary tint behind on-surface text (soft / selected background)</td></tr>
     <tr><td>-rx-on-primary</td><td>Paint</td><td>white</td><td>Foreground on a primary fill</td></tr>
-    <tr><td>-rx-success</td><td>Paint</td><td>#67c23a</td><td>Success / positive</td></tr>
-    <tr><td>-rx-warning</td><td>Paint</td><td>#e6a23c</td><td>Warning</td></tr>
-    <tr><td>-rx-danger</td><td>Paint</td><td>#f56c6c</td><td>Danger / error</td></tr>
-    <tr><td>-rx-info</td><td>Paint</td><td>#909399</td><td>Info / neutral</td></tr>
-    <tr><td>-rx-surface</td><td>Paint</td><td>-fx-background</td><td>Panel / surface background (tracks host theme)</td></tr>
-    <tr><td>-rx-surface-variant</td><td>Paint</td><td>#f5f5f5</td><td>Secondary surface (containers)</td></tr>
-    <tr><td>-rx-on-surface</td><td>Paint</td><td>-fx-text-base-color</td><td>Primary text on a surface (tracks host theme)</td></tr>
-    <tr><td>-rx-on-surface-secondary</td><td>Paint</td><td>-fx-mid-text-color</td><td>Secondary / muted text (tracks host theme)</td></tr>
-    <tr><td>-rx-on-surface-disabled</td><td>Paint</td><td>rgba(0, 0, 0, 0.25)</td><td>Disabled text</td></tr>
-    <tr><td>-rx-outline</td><td>Paint</td><td>-fx-text-box-border</td><td>Border / outline (tracks host theme)</td></tr>
-    <tr><td>-rx-outline-variant</td><td>Paint</td><td>#c0c4cc</td><td>Subtle divider / connector</td></tr>
-    <tr><td>-rx-focus</td><td>Paint</td><td>-fx-focus-color</td><td>Focus ring (tracks host theme)</td></tr>
-    <tr><td>-rx-selection</td><td>Paint</td><td>rgba(0, 120, 215, 0.3)</td><td>Text selection highlight</td></tr>
-    <tr><td>-rx-highlight</td><td>Paint</td><td>#ffff00</td><td>Keyword highlight background</td></tr>
-    <tr><td>-rx-state-overlay-color</td><td>Paint</td><td>black</td><td>Ripple / hover-overlay tint (dark theme flips to white)</td></tr>
+    <tr><td>-rx-success</td><td>Paint</td><td>#67c23a</td><td>Success / positive (fixed)</td></tr>
+    <tr><td>-rx-warning</td><td>Paint</td><td>#e6a23c</td><td>Warning (fixed)</td></tr>
+    <tr><td>-rx-danger</td><td>Paint</td><td>#f56c6c</td><td>Danger / error (fixed)</td></tr>
+    <tr><td>-rx-info</td><td>Paint</td><td>#909399</td><td>Info / neutral (fixed)</td></tr>
+    <tr><td>-rx-surface</td><td>Paint</td><td>-fx-background</td><td>Panel / surface background</td></tr>
+    <tr><td>-rx-surface-variant</td><td>Paint</td><td>ladder(#f5f5f5 | derive(-fx-background, 8%))</td><td>Secondary surface (containers, tracks)</td></tr>
+    <tr><td>-rx-on-surface</td><td>Paint</td><td>-fx-text-background-color</td><td>Primary text on a surface</td></tr>
+    <tr><td>-rx-on-surface-secondary</td><td>Paint</td><td>ladder(-fx-mid-text-color | derive(-fx-light-text-color, -32%))</td><td>Secondary / muted text</td></tr>
+    <tr><td>-rx-on-surface-disabled</td><td>Paint</td><td>ladder(rgba(0, 0, 0, 0.25) | rgba(255, 255, 255, 0.35))</td><td>Disabled text</td></tr>
+    <tr><td>-rx-outline</td><td>Paint</td><td>-fx-text-box-border</td><td>Border / outline</td></tr>
+    <tr><td>-rx-outline-variant</td><td>Paint</td><td>ladder(#c0c4cc | derive(-fx-background, 25%))</td><td>Subtle divider / connector</td></tr>
+    <tr><td>-rx-focus</td><td>Paint</td><td>-fx-focus-color</td><td>Focus ring</td></tr>
+    <tr><td>-rx-selection</td><td>Paint</td><td>rgba(0, 120, 215, 0.3)</td><td>Text selection highlight (translucent, any background)</td></tr>
+    <tr><td>-rx-highlight</td><td>Paint</td><td>ladder(#ffff00 | rgba(230, 162, 60, 0.4))</td><td>Keyword highlight background</td></tr>
+    <tr><td>-rx-state-overlay-color</td><td>Paint</td><td>ladder(black | white)</td><td>Ripple / hover-overlay tint</td></tr>
+    <tr><td>-rx-elevation-umbra-color</td><td>Paint</td><td>rgba(0, 0, 0, 0.2)</td><td>Shadow color (any background)</td></tr>
     </tbody>
 </table>
+<p>A few per-control colors that are literals on a light surface (seek bar and slider tracks, the
+   wave indicator disc, the avatar placeholder, the segmented control labels, the cascader prompt
+   and separators) switch to the matching role token on a dark one in the same way. The snackbar is
+   an inverse surface: a dark bar on a light host and a light bar on a dark one; the severity bars
+   (info / success / warning / error) keep their tinted background and white text on both.</p>
+
+<h3 id="modenaPalettes">Following a Modena palette</h3>
+<p>An application that recolors Modena — for example its own dark palette — gets RxControls in the
+   same colors without calling any RxControls API. Put the palette on the unqualified
+   <code>.root</code> of a scene stylesheet:</p>
+<pre><code>.root {
+    -fx-base: #2b2c3a;
+    -fx-background: #1e1f2b;
+    -fx-control-inner-background: #2a2c3a;
+    -fx-light-text-color: #e6e7ee;
+    -fx-mid-text-color: #a6a8b5;
+    -fx-text-box-border: #4d5166;  /* Modena derives a near-black border on a dark background */
+    -fx-accent: #7c86ff;
+    -fx-focus-color: #7c86ff;
+}</code></pre>
+<ul>
+    <li><b>Set the base text colors</b> (<code>-fx-light-text-color</code>, <code>-fx-dark-text-color</code>,
+        <code>-fx-mid-text-color</code>) rather than the derived ones such as
+        <code>-fx-text-base-color</code>: Modena and RxControls both derive their text from them.</li>
+    <li><b>Use the unqualified <code>.root</code>.</b> A popup copies its owner scene's stylesheets when
+        it shows, and its own root matches <code>.root</code>, so popups follow the palette. A selector
+        such as <code>.root.dark</code> does not reach popups, whose root lacks the extra class.</li>
+    <li><b>One container only.</b> The same declarations on any container (a style class on a pane)
+        recolor the RxControls and the standard controls inside it. If the scene root overrides a
+        derived token such as <code>-fx-text-box-border</code>, a container with a different palette
+        must override it too.</li>
+    <li><b>SubScene.</b> A sub-scene root does not inherit looked-up colors from the scene root; put the
+        palette class on the sub-scene root as well.</li>
+    <li><b>Colors set in code.</b> On JavaFX 17–23 a palette in an author stylesheet can override a
+        color set in code (<code>setTextFill(…)</code>) once a default control of the same kind has
+        been styled (JDK-8336097, fixed in JavaFX 24). Standard controls are affected the same way;
+        an inline style (<code>setStyle("-fx-text-fill: red;")</code>) is not.</li>
+</ul>
 
 <h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>
-<p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> can make RxControls
-   follow the host theme with <code>AtlantaFXThemeBridge</code>. It puts the <code>rx-theme-atlantafx</code>
-   scope style class on the bridged root — the mapping of the color role tokens above onto AtlantaFX
-   functional tokens lives in this user-agent stylesheet under that scope (so the values keep user-agent
-   origin) — and adds a small <b>author-origin</b> stylesheet
-   (<code>rx-controls-atlantafx.css</code>) that re-points the remaining per-control colors at AtlantaFX
-   <code>-color-*</code> functional tokens. Install the AtlantaFX theme as the Application user-agent
-   stylesheet <b>before</b> building the scene, then apply the bridge:</p>
-<pre><code>Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
-Scene scene = new Scene(root);
-AtlantaFXThemeBridge.install(scene);   // popups opened afterwards follow it too</code></pre>
-<p>Apply at scene level (recommended) or to a single <code>Parent</code> subtree
-   (<code>install(Parent)</code>) when mixing themes. A scene-level bridge reaches popups (e.g.
-   <code>RXCascader</code>'s) because the popup snapshots its owner scene's stylesheets at show time;
-   a parent-level bridge reaches a popup only when that parent is on the owning control's ancestor
-   chain.</p>
-<p><b>Scope.</b> The bridge re-points the color role tokens and, because AtlantaFX does not define the
-   Modena <code>-fx-*</code> palette, also supplies the few Modena base colors RxControls rules still
-   reference directly (<code>-fx-control-inner-background</code>, <code>-fx-accent</code>,
-   <code>-fx-text-base-color</code>, …) mapped to <code>-color-*</code> — so controls not yet migrated
-   to role tokens (e.g. the cascader) follow the theme too. Non-color values (radius, spacing, sizes)
-   are not themed.</p>
+<p>Apps built on <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> make RxControls follow
+   the AtlantaFX theme with <code>RXAtlantaFXThemeBridge</code>. The application sets the AtlantaFX
+   theme as the Application user-agent stylesheet; the bridge only marks the scene, so switching is
+   the stylesheet plus the bridge:</p>
+<pre><code>// Modena -&gt; any AtlantaFX theme (before the scene is first shown, or at any time later)
+Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+RXAtlantaFXThemeBridge.install(scene);
+
+// between AtlantaFX themes: the bridge stays as it is
+Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+
+// AtlantaFX -&gt; Modena: remove the bridge too, Modena does not define -color-*
+Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
+<ul>
+    <li>Call it on the JavaFX Application Thread; it takes effect before it returns.
+        <code>install</code> and <code>uninstall</code> are idempotent.</li>
+    <li>The bridge covers a whole scene. Install it on every scene that shows RxControls (each
+        window, dialog and stage); scenes created later are not bridged automatically.</li>
+    <li>Popups opened afterwards follow (they copy the owner scene's stylesheets when they show); a
+        popup that is already open follows once reopened.</li>
+    <li>Swapping the scene root keeps the bridge. Sub-scenes present at install time are bridged;
+        for a sub-scene added later, call <code>install(scene)</code> again.</li>
+</ul>
+<p><b>How it works.</b> The bridge puts the <code>rx-theme-atlantafx</code> scope style class on the
+   scene root (and on sub-scene roots). The mapping of the role tokens onto AtlantaFX functional
+   tokens lives in the user-agent stylesheet under that scope, so the values keep user-agent origin
+   and colors set in code keep winning on JavaFX 17–23. A small <b>author-origin</b> stylesheet
+   (<code>rx-controls-atlantafx.css</code>) carries the few per-control overrides that must beat
+   AtlantaFX's own button states, and re-points the per-control light literals at role tokens.
+   Because AtlantaFX does not define the Modena <code>-fx-*</code> palette, the scope also supplies
+   the Modena base colors RxControls rules still read directly (<code>-fx-control-inner-background</code>,
+   <code>-fx-accent</code>, <code>-fx-selection-bar</code>, …) mapped to <code>-color-*</code>.
+   Non-color values (radius, spacing, sizes) are not themed.</p>
+<p><code>RXAtlantaFXThemeBridge.getStylesheet()</code> and <code>getScopeClass()</code> are available for
+   applications that manage stylesheet lists themselves; a scope built that way is theirs to keep
+   complete.</p>
 <table>
     <thead>
     <tr>
@@ -225,47 +285,6 @@ AtlantaFXThemeBridge.install(scene);   // popups opened afterwards follow it too
     <tr><td>-rx-state-overlay-color</td><td>-color-fg-default</td><td>#24292f</td><td>#c9d1d9</td></tr>
     </tbody>
 </table>
-
-<h3 id="rxThemeDark">Built-in dark theme</h3>
-<p>For a built-in dark look (no external theme needed), <code>RXTheme</code> puts the
-   <code>rx-theme-dark</code> scope style class on the themed root. The dark values of the color role
-   tokens and of the Modena <code>-fx-*</code> base colors live in this same user-agent stylesheet
-   under that scope, so the whole library — including controls still using raw <code>-fx-*</code> —
-   turns dark. A small <b>author-origin</b> overlay (<code>rx-controls-dark.css</code>) is added
-   alongside for the per-control re-points that must sit above the platform theme:</p>
-<pre><code>RXTheme.install(scene, RXTheme.Variant.DARK);  // go dark (popups follow if opened afterwards)
-RXTheme.install(scene, RXTheme.Variant.LIGHT); // back to the built-in light baseline
-RXTheme.uninstall(scene);                      // also back to the baseline</code></pre>
-<p>Unlike the AtlantaFX bridge (which references a host theme's <code>-color-*</code>), the dark scope
-   uses literal dark values, so it works on the default Modena baseline. It also flips
-   <code>-rx-state-overlay-color</code> to white (ripple / hover tint on dark).</p>
-<p>The token values keep <b>user-agent origin</b>, which is what lets a color you set in code
-   (<code>setTextFill(…)</code>) survive: an author-origin token would be promoted over code-set values on
-   JavaFX 17–23 (JDK-8336097). The flip side is that <code>-rx-*</code> resolves on RxControls controls and
-   their descendants only — the same as on the light baseline. If you manage stylesheet lists yourself,
-   add <code>RXTheme.getDarkScopeClass()</code> to the root as well; <code>install</code> does it for you.</p>
-
-<h3 id="themeNesting">Mixing themes in one scene</h3>
-<p>A subtree may carry a different theme than its scene: <code>RXTheme.install(Parent, Variant)</code>
-   and <code>AtlantaFXThemeBridge.install(Parent)</code> put their scope class on that root, and the
-   <b>nearest scope wins</b> for the color tokens. One level of mixing is supported.</p>
-<pre><code>RXTheme.install(scene, RXTheme.Variant.DARK);  // the window is dark
-AtlantaFXThemeBridge.install(panel);           // this subtree follows AtlantaFX instead</code></pre>
-<p><b>SubScene.</b> A sub-scene root is not a child of the sub-scene node, so the ancestor walk stops
-   there. A scene-level install mirrors the scope class onto the root of every <code>SubScene</code>
-   present at that moment; for a sub-scene created later, call <code>install(Parent)</code> on its root.</p>
-<p><b>Two scopes on one node.</b> That mirroring can leave a sub-scene root carrying both scope classes.
-   Only the winner is kept there: a theme installed on the node itself beats one mirrored onto it,
-   whichever was installed first, and between equals the newest install wins. Uninstalling the winner
-   restores the scope it suppressed.</p>
-<p><b>Uninstall</b> undoes only what that install marked, so a theme installed on a subtree of its own
-   survives the scene's <code>uninstall</code>, and a scope class you added yourself is left in place.</p>
-<p><b>Limit.</b> Only the token values follow the nearer scope everywhere. The per-control overlays
-   (<code>rx-controls-dark.css</code>, <code>rx-controls-atlantafx.css</code>) are author-origin and not
-   scoped, so a rule the outer theme defines and the inner one does not still reaches the inner subtree —
-   the dark snackbar colors and the bridge's <code>.rx-fill-button</code> / <code>.rx-line-button</code>
-   rules are the current cases. Where
-   that matters, set those colors on the subtree yourself.</p>
 
 <h3 id="rxAudioSpectrum">RXAudioSpectrum</h3>
 <p class="fxClass">Style class: rx-audio-spectrum</p>
