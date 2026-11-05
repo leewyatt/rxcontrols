@@ -475,7 +475,7 @@
 }
 
 .rx-avatar > .default-icon-wrapper {
-    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, #e0e0e0 46%);
+    -fx-background-color: ladder(-rx-surface, #757575 45%, #bdbdbd 46%);
 }
 
 .rx-avatar > .default-icon-wrapper > .default-icon {

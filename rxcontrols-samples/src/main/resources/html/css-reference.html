@@ -177,10 +177,13 @@
     </tbody>
 </table>
 <p>A few per-control colors that are literals on a light surface (seek bar and slider tracks, the
-   wave indicator disc, the avatar placeholder, the segmented control labels, the cascader prompt
-   and separators) switch to the matching role token on a dark one in the same way. The snackbar is
-   an inverse surface: a dark bar on a light host and a light bar on a dark one; the severity bars
-   (info / success / warning / error) keep their tinted background and white text on both.</p>
+   wave indicator disc, the segmented control labels, the cascader prompt and separators) switch to
+   the matching role token on a dark one in the same way. The snackbar is an inverse surface: a dark
+   bar on a light host and a light bar on a dark one; the severity bars (info / success / warning /
+   error) keep their tinted background and white text on both. The avatar placeholder is a filled
+   disc rather than a surface, so it never takes a surface color: a mid gray with a white icon
+   (#bdbdbd on a light host, #757575 on a dark one), and AtlantaFX's
+   <code>-color-neutral-emphasis</code> / <code>-color-fg-emphasis</code> pair under the bridge.</p>
 
 <h3 id="modenaPalettes">Following a Modena palette</h3>
 <p>An application that recolors Modena — for example its own dark palette — gets RxControls in the

@@ -136,6 +136,7 @@ final class ThemeColorSamples {
         samples.put("slider.track", background(slider.lookup(".track")));
         samples.put("wave.container", background(wave.lookup(".wave-container")));
         samples.put("avatar.icon-disc", background(avatar.lookup(".default-icon-wrapper")));
+        samples.put("avatar.icon", background(avatar.lookup(".default-icon-wrapper > .default-icon")));
 
         samples.put("snackbar.bar", background(plainHost.lookup(".snackbar")));
         samples.put("snackbar.message", text(plainHost.lookup(".snackbar > .message")));

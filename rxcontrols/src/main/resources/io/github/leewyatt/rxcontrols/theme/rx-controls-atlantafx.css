@@ -65,8 +65,14 @@
 .rx-wave-progress-indicator > .wave-container {
     -fx-background-color: -rx-surface-variant;
 }
+/* The placeholder disc is a filled object, not a container: a surface color would
+   vanish on any panel or card painted with it. AtlantaFX's neutral emphasis pair is
+   tuned per theme for a fill and its foreground, and no role token carries it. */
 .rx-avatar > .default-icon-wrapper {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -color-neutral-emphasis;
+}
+.rx-avatar > .default-icon-wrapper > .default-icon {
+    -fx-background-color: -color-fg-emphasis;
 }
 
 /* A selected tile / masonry cell takes AtlantaFX's own selected-cell look: a subtle

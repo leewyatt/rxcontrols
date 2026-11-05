@@ -42,9 +42,9 @@
 }
 
 .icon-state-avatar > .default-icon-wrapper {
-    -fx-background-color: #eef2ff;
+    -fx-background-color: #4f46e5;
 }
 
 .icon-state-avatar > .default-icon-wrapper > .default-icon {
-    -fx-background-color: #4f46e5;
+    -fx-background-color: white;
 }

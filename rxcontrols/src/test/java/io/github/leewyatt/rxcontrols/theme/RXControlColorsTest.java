@@ -62,7 +62,8 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("seek.secondary", "#dadadaff");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
-        DEFAULT_MODENA.put("avatar.icon-disc", "#e0e0e0ff");
+        DEFAULT_MODENA.put("avatar.icon-disc", "#bdbdbdff");
+        DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
         DEFAULT_MODENA.put("snackbar.message", "#ffffffde");
         DEFAULT_MODENA.put("snackbar.action", "#8791ffff");
@@ -92,7 +93,8 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("seek.secondary", "#d0d7deff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
-        PRIMER_LIGHT.put("avatar.icon-disc", "#f6f8faff");
+        PRIMER_LIGHT.put("avatar.icon-disc", "#6e7781ff");
+        PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
         PRIMER_LIGHT.put("snackbar.message", "#ffffffde");
         PRIMER_LIGHT.put("snackbar.action", "#3787e2ff");
@@ -123,7 +125,8 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("seek.secondary", "#30363dff");
         PRIMER_DARK.put("slider.track", "#30363dff");
         PRIMER_DARK.put("wave.container", "#161b22ff");
-        PRIMER_DARK.put("avatar.icon-disc", "#161b22ff");
+        PRIMER_DARK.put("avatar.icon-disc", "#6e7681ff");
+        PRIMER_DARK.put("avatar.icon", "#ffffffff");
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
         PRIMER_DARK.put("snackbar.bar", "#e0e0e0ff");
         PRIMER_DARK.put("snackbar.message", "#000000de");
@@ -146,6 +149,8 @@ public class RXControlColorsTest {
 
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
+    /** WCAG 2.1 non-text contrast for graphical objects. */
+    private static final double NON_TEXT_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
     /**
@@ -226,7 +231,8 @@ public class RXControlColorsTest {
         assertEquals(roles.get("outline"), samples.get("seek.secondary"), "seek bar buffer");
         assertEquals(roles.get("outline"), samples.get("slider.track"), "slider track");
         assertEquals(roles.get("surface-variant"), samples.get("wave.container"), "wave container");
-        assertEquals(roles.get("surface-variant"), samples.get("avatar.icon-disc"), "avatar placeholder disc");
+        assertEquals("#757575ff", samples.get("avatar.icon-disc"), "avatar placeholder disc");
+        assertEquals("#ffffffff", samples.get("avatar.icon"), "avatar placeholder icon");
         assertEquals("#e0e0e0ff", samples.get("snackbar.bar"), "snackbar turns into a light bar");
         assertEquals("#000000de", samples.get("snackbar.message"), "snackbar message on the light bar");
         double actionRatio = contrastRatio(Color.web(samples.get("snackbar.action")), Color.web(samples.get("snackbar.bar")));
@@ -298,6 +304,30 @@ public class RXControlColorsTest {
         }
         ratios.forEach((host, values) -> values.forEach(ratio ->
                 assertTrue(ratio >= WCAG_AA_CONTRAST, "cell text contrast under " + host + ": " + values)));
+    }
+
+    /**
+     * The avatar placeholder disc never takes the surface-variant panel color, and its
+     * icon meets the 3:1 non-text contrast, on a dark application palette and under every
+     * AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void avatarPlaceholderStandsOutOnEveryHost() throws Exception {
+        Map<String, Map<String, String>> hosts = new LinkedHashMap<>();
+        hosts.put("dark palette", sampleUnder(Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette));
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            hosts.put(theme.getName(), sampleUnder(theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install));
+        }
+        hosts.forEach((host, samples) -> {
+            String disc = samples.get("avatar.icon-disc");
+            // The wave container is painted with the surface-variant role on every host.
+            assertNotEquals(samples.get("wave.container"), disc, "avatar disc is the panel color under " + host);
+            double ratio = contrastRatio(Color.web(samples.get("avatar.icon")), Color.web(disc));
+            assertTrue(ratio >= NON_TEXT_CONTRAST, "avatar icon contrast under " + host + ": " + ratio);
+        });
     }
 
     /** "View unselected text #…" and "View selected #background text #…" for a tile and a masonry view. */
