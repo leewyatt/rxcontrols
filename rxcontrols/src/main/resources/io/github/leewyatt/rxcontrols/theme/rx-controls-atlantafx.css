@@ -3,9 +3,11 @@
  * RxControls x AtlantaFX bridge (author stylesheet)                           *
  *                                                                             *
  * Author-origin overrides for the parts that must beat AtlantaFX's own button *
- * rules. Those include compound and context selectors (.button.flat:hover,    *
- * .button.button-outlined, ...) whose specificity no fixed user-agent         *
- * selector is sure to exceed; author origin beats them all.                   *
+ * rules. Those include state, compound and context selectors                  *
+ * (.button:focused:armed, .button.left-pill:hover,                            *
+ * .tool-bar > .container > .button:hover, ...). A user-agent selector would   *
+ * only win by padding its specificity past whatever the AtlantaFX version in  *
+ * use ships; author origin beats them all.                                    *
  *                                                                             *
  * Everything else is NOT here: the -rx-* <- -color-* token mapping, the       *
  * Modena -fx-* compat block and the per-control AtlantaFX rules live in       *

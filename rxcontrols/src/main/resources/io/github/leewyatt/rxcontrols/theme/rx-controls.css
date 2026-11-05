@@ -631,7 +631,8 @@
     -rx-thumb-fill: #1fdba4;
 }
 
-.rx-theme-atlantafx .rx-seek-bar {
+.rx-theme-atlantafx .rx-seek-bar,
+.rx-theme-atlantafx.rx-seek-bar {
     -rx-track-fill: -rx-surface-variant;
     -rx-secondary-fill: -rx-outline;
 }
@@ -685,7 +686,9 @@
 }
 
 .rx-theme-atlantafx .rx-slider,
-.rx-theme-atlantafx .rx-range-slider {
+.rx-theme-atlantafx.rx-slider,
+.rx-theme-atlantafx .rx-range-slider,
+.rx-theme-atlantafx.rx-range-slider {
     -rx-slider-track: -rx-outline;
 }
 
@@ -1444,7 +1447,8 @@
     -fx-text-fill: ladder(-fx-control-inner-background, -rx-on-surface-secondary 45%, derive(-fx-control-inner-background, -30%) 46%);
 }
 
-.rx-theme-atlantafx .rx-cascader > .display > .label:empty {
+.rx-theme-atlantafx .rx-cascader > .display > .label:empty,
+.rx-theme-atlantafx.rx-cascader > .display > .label:empty {
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
@@ -1530,7 +1534,8 @@
     -fx-border-width: 0 1px 0 0;
 }
 
-.rx-theme-atlantafx .rx-cascader-view > .columns > .column {
+.rx-theme-atlantafx .rx-cascader-view > .columns > .column,
+.rx-theme-atlantafx.rx-cascader-view > .columns > .column {
     -fx-border-color: transparent -rx-outline transparent transparent;
 }
 
@@ -1547,7 +1552,9 @@
 }
 
 .rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:hover,
-.rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:focused {
+.rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:hover,
+.rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:focused,
+.rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:focused {
     -fx-background-color: -rx-surface-variant;
 }
 
@@ -1622,7 +1629,8 @@
     -fx-border-radius: 50%;
 }
 
-.rx-theme-atlantafx .rx-wave-progress-indicator > .wave-container {
+.rx-theme-atlantafx .rx-wave-progress-indicator > .wave-container,
+.rx-theme-atlantafx.rx-wave-progress-indicator > .wave-container {
     -fx-background-color: -rx-surface-variant;
 }
 
@@ -2433,15 +2441,18 @@
 }
 
 /* The scope class outranks the state pseudo-classes, so the states repeat under it. */
-.rx-theme-atlantafx .rx-segmented-control > .segment .label {
+.rx-theme-atlantafx .rx-segmented-control > .segment .label,
+.rx-theme-atlantafx.rx-segmented-control > .segment .label {
     -fx-text-fill: -rx-on-surface;
 }
 
-.rx-theme-atlantafx .rx-segmented-control > .segment:selected .label {
+.rx-theme-atlantafx .rx-segmented-control > .segment:selected .label,
+.rx-theme-atlantafx.rx-segmented-control > .segment:selected .label {
     -fx-text-fill: rgba(0, 0, 0, 0.88);
 }
 
-.rx-theme-atlantafx .rx-segmented-control > .segment:disabled .label {
+.rx-theme-atlantafx .rx-segmented-control > .segment:disabled .label,
+.rx-theme-atlantafx.rx-segmented-control > .segment:disabled .label {
     -fx-text-fill: -rx-on-surface-disabled;
 }
 

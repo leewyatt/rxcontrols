@@ -255,7 +255,9 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
    literals re-pointed at role tokens, the avatar placeholder, the selected tile / masonry cell)
    live under the same scope, so an application stylesheet restyles them whatever its loading
    order. Only the fill / line button overrides that must beat AtlantaFX's own button rules sit in
-   a small <b>author-origin</b> stylesheet (<code>rx-controls-atlantafx.css</code>).
+   a small <b>author-origin</b> stylesheet (<code>rx-controls-atlantafx.css</code>), which
+   <code>install</code> appends to the scene. To restyle those buttons' background under the
+   bridge, add your rule after <code>install</code> or give it a more specific selector.
    Because AtlantaFX does not define the Modena <code>-fx-*</code> palette, the scope also supplies
    the Modena base colors RxControls rules still read directly (<code>-fx-control-inner-background</code>,
    <code>-fx-accent</code>, <code>-fx-selection-bar</code>, …) mapped to <code>-color-*</code>.

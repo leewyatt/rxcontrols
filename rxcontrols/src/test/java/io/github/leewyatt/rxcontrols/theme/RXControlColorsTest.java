@@ -9,11 +9,17 @@ import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.RXAvatar;
+import io.github.leewyatt.rxcontrols.RXCascader;
+import io.github.leewyatt.rxcontrols.RXCascaderItem;
+import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -37,6 +43,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -157,6 +165,7 @@ public class RXControlColorsTest {
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
+    private static final PseudoClass HOVER = PseudoClass.getPseudoClass("hover");
 
     /**
      * Starts the toolkit.
@@ -404,6 +413,76 @@ public class RXControlColorsTest {
             label.set(ThemeColorSamples.hex(((Labeled) segmented.lookup(".segment .label")).getTextFill()));
         });
         assertEquals(roles(stylesheet, RXAtlantaFXThemeBridge::install).get("on-surface-disabled"), label.get());
+    }
+
+    /**
+     * A control that is itself the bridged scene root takes the same scoped colors as
+     * one nested under the root.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void controlAsSceneRootTakesTheBridgedColors() throws Exception {
+        Map<String, String> asRoot = new LinkedHashMap<>();
+        Map<String, String> nested = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+            Function<Region, String> track = control -> ThemeColorSamples.hex(fill(control.lookup(".track")));
+            sampleBothWays("seek track", RXSeekBar::new, track, asRoot, nested);
+            sampleBothWays("slider track", RXSlider::new, track, asRoot, nested);
+            sampleBothWays("range slider track", RXRangeSlider::new, track, asRoot, nested);
+            sampleBothWays("wave container", RXWaveProgressIndicator::new,
+                    control -> ThemeColorSamples.hex(fill(control.lookup(".wave-container"))), asRoot, nested);
+            sampleBothWays("segment labels", () -> {
+                RXSegmentedControl<String> segmented = new RXSegmentedControl<>(
+                        new RXSegmentedItem<>("on", "On"), new RXSegmentedItem<>("off", "Off"));
+                segmented.select("on");
+                return segmented;
+            }, control -> {
+                StringBuilder labels = new StringBuilder();
+                for (Node label : control.lookupAll(".segment .label")) {
+                    labels.append(ThemeColorSamples.hex(((Labeled) label).getTextFill())).append(' ');
+                }
+                return labels.toString().trim();
+            }, asRoot, nested);
+            sampleBothWays("cascader prompt", () -> {
+                RXCascader<String> cascader = new RXCascader<>();
+                cascader.setPromptText("Select");
+                return cascader;
+            }, control -> ThemeColorSamples.hex(((Labeled) control.lookup(".display .label")).getTextFill()),
+                    asRoot, nested);
+            sampleBothWays("cascader view column and hover cell", () -> {
+                RXCascaderView<String> view = new RXCascaderView<>();
+                RXCascaderItem<String> parent = new RXCascaderItem<>("parent");
+                parent.getChildren().add(new RXCascaderItem<>("child"));
+                view.getRootItems().add(parent);
+                return view;
+            }, control -> {
+                Region column = (Region) control.lookup(".column");
+                Node cell = control.lookup(".list-cell");
+                cell.pseudoClassStateChanged(HOVER, true);
+                control.applyCss();
+                return ThemeColorSamples.hex(column.getBorder().getStrokes().get(0).getRightStroke())
+                        + " " + ThemeColorSamples.hex(fill(cell));
+            }, asRoot, nested);
+        });
+        assertEquals(nested, asRoot);
+    }
+
+    private static void sampleBothWays(String name, Supplier<Region> factory, Function<Region, String> reader,
+            Map<String, String> asRoot, Map<String, String> nested) {
+        Region rootControl = factory.get();
+        RXAtlantaFXThemeBridge.install(new Scene(rootControl, 300, 200));
+        rootControl.applyCss();
+        rootControl.layout();
+        asRoot.put(name, reader.apply(rootControl));
+
+        Region nestedControl = factory.get();
+        StackPane root = new StackPane(nestedControl);
+        RXAtlantaFXThemeBridge.install(new Scene(root, 300, 200));
+        root.applyCss();
+        root.layout();
+        nested.put(name, reader.apply(nestedControl));
     }
 
     private static Paint fill(Node node) {
