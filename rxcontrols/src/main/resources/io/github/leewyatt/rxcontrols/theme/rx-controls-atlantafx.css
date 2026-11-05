@@ -3,7 +3,7 @@
  * RxControls x AtlantaFX bridge (author stylesheet)                           *
  *                                                                             *
  * Author-origin overrides for the parts that must beat AtlantaFX's own button *
- * states, plus the per-control re-points whose baseline colors are literals.  *
+ * states, plus per-control re-points onto role tokens.                        *
  *                                                                             *
  * The -rx-* <- -color-* token mapping and the Modena -fx-* compat block are   *
  * NOT here: they live in rx-controls.css under the .rx-theme-atlantafx scope  *
@@ -24,7 +24,7 @@
 }
 
 /* AtlantaFX repaints the button body on :hover / :armed / :focused and their pairs,
-   outranking the baseline roots; author origin beats all of them at once. */
+   outranking the default control rules; author origin beats all of them at once. */
 .rx-fill-button,
 .rx-line-button {
     -fx-background-color: transparent;

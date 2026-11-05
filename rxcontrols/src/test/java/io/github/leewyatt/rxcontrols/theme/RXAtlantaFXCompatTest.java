@@ -79,6 +79,9 @@ public class RXAtlantaFXCompatTest {
      */
     private static final Map<String, String> EXCEPTIONS = Map.of();
 
+    /** Held strongly: the log manager keeps loggers weakly, and a fresh one would drop the handler. */
+    private static final Logger CSS_LOGGER = Logger.getLogger("javafx.css");
+
     private static final List<Theme> THEMES = List.of(new PrimerLight(), new PrimerDark(), new NordLight(),
             new NordDark(), new CupertinoLight(), new CupertinoDark(), new Dracula());
 
@@ -286,7 +289,7 @@ public class RXAtlantaFXCompatTest {
                 root.getChildren().add(probe);
             }
             new Scene(root, 100, 100);
-            Logger css = Logger.getLogger("javafx.css");
+            Logger css = CSS_LOGGER;
             Level previous = css.getLevel();
             css.setLevel(Level.OFF);
             try {
@@ -389,7 +392,7 @@ public class RXAtlantaFXCompatTest {
             public void close() {
             }
         };
-        Logger css = Logger.getLogger("javafx.css");
+        Logger css = CSS_LOGGER;
         css.addHandler(handler);
         try {
             runOnFx(fxBody);

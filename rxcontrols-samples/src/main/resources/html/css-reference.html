@@ -141,8 +141,8 @@
         literal per component or remain component styleable Number / Insets properties.</li>
 </ul>
 <p>In the table, <i>ladder(light | dark)</i> means the role takes the first value on a light
-   <code>-fx-background</code> and the second on a dark one — the same reference Modena uses for
-   its own text and border colors. On the default Modena palette every role has its light value.</p>
+   <code>-fx-background</code> and the second on a dark one, switching where Modena switches its own
+   text color (around 45% brightness). On the default Modena palette every role has its light value.</p>
 <table>
     <thead>
     <tr>
@@ -207,12 +207,17 @@
         recolor the RxControls and the standard controls inside it. If the scene root overrides a
         derived token such as <code>-fx-text-box-border</code>, a container with a different palette
         must override it too.</li>
-    <li><b>SubScene.</b> A sub-scene root does not inherit looked-up colors from the scene root; put the
-        palette class on the sub-scene root as well.</li>
+    <li><b>SubScene.</b> A sub-scene root does not inherit looked-up colors from the scene root, but it
+        carries the <code>root</code> style class, so a palette on the unqualified <code>.root</code> reaches
+        it. A palette keyed on an extra class needs that class on the sub-scene root as well.</li>
+    <li><b>Local Modena backgrounds.</b> Modena itself sets a local <code>-fx-background</code> in a few
+        places (a focused selected list / table cell, a tooltip). RxControls placed there follow it like a
+        standard label does: on a focused selected row their text turns light.</li>
     <li><b>Colors set in code.</b> On JavaFX 17–23 a palette in an author stylesheet can override a
-        color set in code (<code>setTextFill(…)</code>) once a default control of the same kind has
-        been styled (JDK-8336097, fixed in JavaFX 24). Standard controls are affected the same way;
-        an inline style (<code>setStyle("-fx-text-fill: red;")</code>) is not.</li>
+        color set in code once a default control of the same kind has been styled (JDK-8336097, fixed
+        in JavaFX 24). This applies to every color that follows the palette — text fills, ripple and
+        highlight fills, and so on — and standard controls are affected the same way. An inline style
+        (<code>setStyle("-fx-text-fill: red;")</code>) is not affected.</li>
 </ul>
 
 <h3 id="atlantafxBridge">AtlantaFX theme bridge</h3>

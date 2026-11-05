@@ -10,6 +10,9 @@
  * defines tokens on leaves too and so blocks author overrides). New control   *
  * roots MUST be added below; RxControlsThemeBaselineTest fails otherwise.     *
  *                                                                             *
+ * The defaults derive from the Modena palette. The .rx-theme-atlantafx        *
+ * scope further down re-declares every role for the AtlantaFX bridge.         *
+ *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
@@ -34,7 +37,7 @@
     -rx-primary-hover: derive(-rx-primary, 8%);
     -rx-primary-active: derive(-rx-primary, -10%);
     /* a tint behind on-surface text: lightened on a light host, darkened on a dark one */
-    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 49%, derive(-rx-primary, 85%) 50%);
+    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 45%, derive(-rx-primary, 85%) 46%);
     -rx-on-primary: white;
     /* semantic */
     -rx-success: #67c23a;
@@ -43,22 +46,23 @@
     -rx-info: #909399;
     /* surface / text / outline: derived from the Modena palette so the defaults
        follow an application that recolors Modena, globally or on one container.
-       Every ladder keys on -fx-background, the same reference Modena uses for
-       -fx-text-background-color and -fx-text-box-border, so all roles agree on
-       whether the host is light or dark. The light side keeps the original
-       values. Each role is an independent override point. */
+       Every ladder keys on -fx-background with the 45% / 46% stops Modena uses
+       for -fx-text-background-color, so all roles agree with Modena's own text
+       on whether the host is light or dark. The light side keeps the original
+       values. Each role is an independent override point; the AtlantaFX scope
+       below re-declares every one of them. */
     -rx-surface: -fx-background;
-    -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 49%, #f5f5f5 50%);
+    -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 45%, #f5f5f5 46%);
     -rx-on-surface: -fx-text-background-color;
-    -rx-on-surface-secondary: ladder(-fx-background, derive(-fx-light-text-color, -32%) 49%, -fx-mid-text-color 50%);
-    -rx-on-surface-disabled: ladder(-fx-background, rgba(255, 255, 255, 0.35) 49%, rgba(0, 0, 0, 0.25) 50%);
+    -rx-on-surface-secondary: ladder(-fx-background, derive(-fx-light-text-color, -32%) 45%, -fx-mid-text-color 46%);
+    -rx-on-surface-disabled: ladder(-fx-background, rgba(255, 255, 255, 0.35) 45%, rgba(0, 0, 0, 0.25) 46%);
     -rx-outline: -fx-text-box-border;
-    -rx-outline-variant: ladder(-fx-background, derive(-fx-background, 25%) 49%, #c0c4cc 50%);
+    -rx-outline-variant: ladder(-fx-background, derive(-fx-background, 25%) 45%, #c0c4cc 46%);
     -rx-focus: -fx-focus-color;
     -rx-selection: rgba(0, 120, 215, 0.3);
-    -rx-highlight: ladder(-fx-background, rgba(230, 162, 60, 0.4) 49%, #ffff00 50%);
+    -rx-highlight: ladder(-fx-background, rgba(230, 162, 60, 0.4) 45%, #ffff00 46%);
     /* interaction state overlay (ripple / hover tint) */
-    -rx-state-overlay-color: ladder(-fx-background, white 49%, black 50%);
+    -rx-state-overlay-color: ladder(-fx-background, white 45%, black 46%);
     /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
        resolves only the COLOR of -fx-effect: dropshadow(...) through looked-up
        tokens, never radius / spread / offset, so each consumer writes those as
@@ -268,12 +272,11 @@
        tracks the active AtlantaFX theme (light / dark). */
     -rx-elevation-umbra-color: -color-shadow-default;
 
-    /* Modena base palette that AtlantaFX does not define. RxControls component
-       rules that still reference raw -fx-* colors directly (the not-yet
-       role-tokenized recolor backlog: cascader, focus glow, …) would
-       otherwise fail to resolve under AtlantaFX and render transparent/black.
-       Supplying them here (on the control roots) keeps those
-       controls following the theme until they are migrated to role tokens. */
+    /* Modena base palette that AtlantaFX does not define. Component rules that
+       read these -fx-* colors directly (cascader field, focus glow, selection,
+       …) would otherwise fail to resolve under AtlantaFX and render
+       transparent or black. Every Modena palette token a component rule reads
+       must be supplied here. */
     -fx-base: -color-bg-default;
     -fx-color: -color-bg-default;
     -fx-control-inner-background: -color-bg-default;
@@ -472,7 +475,7 @@
 }
 
 .rx-avatar > .default-icon-wrapper {
-    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 49%, #e0e0e0 50%);
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, #e0e0e0 46%);
 }
 
 .rx-avatar > .default-icon-wrapper > .default-icon {
@@ -605,8 +608,8 @@
  *                                                                             *
  ******************************************************************************/
 .rx-seek-bar {
-    -rx-track-fill: ladder(-rx-surface, -rx-surface-variant 49%, #eaeaea 50%);
-    -rx-secondary-fill: ladder(-rx-surface, -rx-outline 49%, #dadada 50%);
+    -rx-track-fill: ladder(-rx-surface, -rx-surface-variant 45%, #eaeaea 46%);
+    -rx-secondary-fill: ladder(-rx-surface, -rx-outline 45%, #dadada 46%);
     -rx-bar-fill: #1ecc94;
     -rx-thumb-fill: #1fdba4;
 }
@@ -651,7 +654,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-slider, .rx-range-slider {
-    -rx-slider-track: ladder(-rx-surface, -rx-outline 49%, #e0e0e0 50%);
+    -rx-slider-track: ladder(-rx-surface, -rx-outline 45%, #e0e0e0 46%);
     -rx-slider-fill: -rx-primary;
     -rx-slider-thumb: -rx-primary;
     -rx-slider-tick: derive(-rx-slider-track, -20%);
@@ -1407,8 +1410,11 @@
     -fx-text-overrun: ellipsis;
 }
 
+/* The field greys ladder on the field's own background (inner background for the
+   field and rows, -fx-color for the column separator), matching the Modena text-field
+   formulas they replace on a light host. */
 .rx-cascader > .display > .label:empty {
-    -fx-text-fill: ladder(-fx-control-inner-background, -rx-on-surface-secondary 49%, derive(-fx-control-inner-background, -30%) 50%);
+    -fx-text-fill: ladder(-fx-control-inner-background, -rx-on-surface-secondary 45%, derive(-fx-control-inner-background, -30%) 46%);
 }
 
 .rx-cascader > .display > .clear-button,
@@ -1489,7 +1495,7 @@
 .rx-cascader-view > .columns > .column {
     -fx-background-color: -fx-control-inner-background;
     -fx-padding: 0.333em 0 0.333em 0; /* 4 0 4 0 */
-    -fx-border-color: transparent ladder(-fx-color, -rx-outline 49%, derive(-fx-color, -17%) 50%) transparent transparent;
+    -fx-border-color: transparent ladder(-fx-color, -rx-outline 45%, derive(-fx-color, -17%) 46%) transparent transparent;
     -fx-border-width: 0 1px 0 0;
 }
 
@@ -1502,7 +1508,7 @@
    focus), styled like hover per ElementUI. */
 .rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-cascader-view > .columns > .column .list-cell:filled:focused {
-    -fx-background-color: ladder(-fx-control-inner-background, derive(-fx-control-inner-background, 12%) 49%, derive(-fx-control-inner-background, -8%) 50%);
+    -fx-background-color: ladder(-fx-control-inner-background, derive(-fx-control-inner-background, 12%) 45%, derive(-fx-control-inner-background, -8%) 46%);
 }
 
 /* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
@@ -1568,7 +1574,7 @@
  ******************************************************************************/
 .rx-wave-progress-indicator > .wave-container {
     -fx-padding: 8px;
-    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 49%, #e8f4ff 50%);
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, #e8f4ff 46%);
     -fx-background-radius: 50%;
     -fx-background-insets: 8px;
     -fx-border-color: #1e90ff;
@@ -2370,7 +2376,7 @@
 }
 
 .rx-segmented-control > .segment .label {
-    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 49%, rgba(0, 0, 0, 0.65) 50%);
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.65) 46%);
 }
 
 /* The selected label sits on the white indicator pill on every host. */
@@ -3005,7 +3011,7 @@
 /* An inverse surface: a dark bar on a light host, a light bar on a dark one. The
    severity bars below keep their tinted background and white text on both. */
 .rx-snackbar-host > .snackbar {
-    -fx-background-color: ladder(-rx-surface, #e0e0e0 49%, #323232 50%);
+    -fx-background-color: ladder(-rx-surface, #e0e0e0 45%, #323232 46%);
     -fx-background-radius: 4;
     -fx-padding: 6 16;
     -fx-spacing: 12;
@@ -3021,19 +3027,19 @@
 }
 
 .rx-snackbar-host > .snackbar > .message {
-    -fx-text-fill: ladder(-rx-surface, rgba(0, 0, 0, 0.87) 49%, rgba(255, 255, 255, 0.87) 50%);
+    -fx-text-fill: ladder(-rx-surface, rgba(0, 0, 0, 0.87) 45%, rgba(255, 255, 255, 0.87) 46%);
 }
 
 .rx-snackbar-host > .snackbar > .action {
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -fx-padding: 6 8 6 8;
-    -fx-text-fill: ladder(-rx-surface, -rx-primary 49%, derive(-rx-primary, 30%) 50%);
+    -fx-text-fill: ladder(-rx-surface, derive(-rx-primary, -30%) 45%, derive(-rx-primary, 30%) 46%);
     -fx-font-weight: bold;
 }
 
 .rx-snackbar-host > .snackbar > .action:hover {
-    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 49%, rgba(255, 255, 255, 0.08) 50%);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 45%, rgba(255, 255, 255, 0.08) 46%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button {
@@ -3044,17 +3050,17 @@
 }
 
 .rx-snackbar-host > .snackbar > .close-button:hover {
-    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 49%, rgba(255, 255, 255, 0.08) 50%);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.08) 45%, rgba(255, 255, 255, 0.08) 46%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button:focused {
-    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.16) 49%, rgba(255, 255, 255, 0.16) 50%);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.16) 45%, rgba(255, 255, 255, 0.16) 46%);
 }
 
 .rx-snackbar-host > .snackbar > .close-button > .icon {
     -fx-pref-width: 10;
     -fx-pref-height: 10;
-    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.6) 49%, rgba(255, 255, 255, 0.7) 50%);
+    -fx-background-color: ladder(-rx-surface, rgba(0, 0, 0, 0.6) 45%, rgba(255, 255, 255, 0.7) 46%);
     -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
 }
 
@@ -3120,7 +3126,7 @@
  ******************************************************************************/
 .rx-skeleton {
     /* -8% measured to match the former #e0e0e0 under default Modena */
-    -rx-base-color: ladder(-rx-surface, -rx-surface-variant 49%, derive(-rx-surface-variant, -8%) 50%);
+    -rx-base-color: ladder(-rx-surface, -rx-surface-variant 45%, derive(-rx-surface-variant, -8%) 46%);
 }
 
 /*******************************************************************************

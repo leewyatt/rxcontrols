@@ -2,8 +2,8 @@
  * Showcase shell chrome. Colors are expressed through the Modena base looked-up
  * vars (-fx-background, -fx-control-inner-background, -fx-text-base-color,
  * -fx-mid-text-color, -fx-text-box-border) so the chrome follows the active theme:
- * Modena (optionally with the app dark palette) and the AtlantaFX bridge
- * (which maps these vars to -color-* on the root). The editing controls
+ * Modena (optionally with the app dark palette) and AtlantaFX (where
+ * rx-showcase-atlantafx.css maps these vars to -color-* on the root). The editing controls
  * (sliders, buttons, combos, check boxes) are intentionally left unstyled so they
  * pick up the active theme natively. Preview captions read -showcase-caption-color:
  * a muted gray here that the dark and AtlantaFX chromes point at -fx-mid-text-color

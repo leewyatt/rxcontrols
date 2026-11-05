@@ -51,11 +51,13 @@ import java.util.Objects;
  *       RxControls (each window, dialog and stage); it is not applied to scenes
  *       created later.</li>
  *   <li>Swapping the scene root keeps the bridge. Sub-scenes found at install time
- *       are bridged too; for a sub-scene added afterwards, call {@link #install}
- *       again.</li>
+ *       are bridged too; for a sub-scene added afterwards, or one given a new root,
+ *       call {@link #install} again.</li>
  *   <li>A popup copies its owner scene's stylesheets when it shows, so popups opened
  *       after the change follow it; a popup already open follows once reopened.</li>
- *   <li>A scope style class the application added itself is never removed.</li>
+ *   <li>A scope style class the application put on a root before the install is
+ *       left in place on uninstall. The scope class and the bridge stylesheet are
+ *       otherwise the bridge's to manage while it is installed.</li>
  * </ul>
  *
  * <h2>Scope</h2>

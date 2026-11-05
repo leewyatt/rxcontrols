@@ -23,18 +23,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Guards the RXShadows elevation token added to the {@code rx-controls.css}
- * default token block and its AtlantaFX re-point. {@code -rx-elevation-umbra-color}
- * must resolve to a {@link Color} under each theme — in JFX17 an unresolved
- * looked-up color falls through to a {@code String}, which surfaces as a
- * {@code ClassCastException String -> Paint} the moment it is used as a dropshadow
- * color. The default literal
+ * Guards the RXShadows elevation token in the {@code rx-controls.css} default token
+ * block and its AtlantaFX re-point. {@code -rx-elevation-umbra-color} must resolve to
+ * a {@link Color} under each theme — in JFX17 an unresolved looked-up color falls
+ * through to a {@code String}, which surfaces as a {@code ClassCastException
+ * String -> Paint} the moment it is used as a dropshadow color. The default literal
  * is asserted exactly; the AtlantaFX mapping ({@code -color-shadow-default}) is
  * asserted to resolve to a non-null color (its exact value is AtlantaFX's to own).
  *
  * <p>Each test sets the Application user-agent stylesheet it needs, because that
- * setting is global: the default resolves under Modena, the AtlantaFX mapping needs a real AtlantaFX UA so
- * {@code -color-shadow-default} resolves.</p>
+ * setting is global: the default resolves under Modena, while the AtlantaFX mapping
+ * needs a real AtlantaFX UA so {@code -color-shadow-default} resolves.</p>
  */
 public class RXShadowsTokenTest {
 

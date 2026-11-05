@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Test-side sampler for the per-control colors the theme refactor touches: builds the
+ * Test-side sampler for the per-control colors that differ between light and dark hosts: builds the
  * controls in a fresh scene, lets the caller theme that scene, applies CSS and reads the
  * final styled values. Values are reported as 8-bit hex so a derive() result and an
  * equal literal compare equal. Must be called on the FX thread.

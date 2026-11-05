@@ -20,6 +20,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -60,13 +61,16 @@ public class RXDefaultStyleTest {
     private static final String PALETTES =
             RXDefaultStyleTest.class.getResource("app-palettes.css").toExternalForm();
 
+    private static final String DARK_ROOT =
+            RXDefaultStyleTest.class.getResource("app-dark-root.css").toExternalForm();
+
     private static final String DARK_PALETTE = "dark-palette";
     private static final String DARK_REGION = "dark-region";
     private static final String LIGHT_REGION = "light-region";
 
     private static final double WCAG_AA_CONTRAST = 4.5;
 
-    /** Every role token resolved under default Modena before the tokens followed the palette. */
+    /** Every role token resolved under default Modena; the default look must not change. */
     private static final Map<String, Color> DEFAULTS = new LinkedHashMap<>();
 
     static {
@@ -113,6 +117,9 @@ public class RXDefaultStyleTest {
         DARK_REFERENCES.put("highlight", "rgba(230, 162, 60, 0.4)");
         DARK_REFERENCES.put("state-overlay-color", "white");
     }
+
+    /** Held strongly: the log manager keeps loggers weakly, and a fresh one would drop the handler. */
+    private static final Logger CSS_LOGGER = Logger.getLogger("javafx.css");
 
     private final List<LogRecord> cssWarnings = new CopyOnWriteArrayList<>();
     private final Handler cssWarningHandler = new Handler() {
@@ -162,13 +169,13 @@ public class RXDefaultStyleTest {
     @BeforeEach
     public void captureCssWarnings() {
         cssWarnings.clear();
-        Logger.getLogger("javafx.css").addHandler(cssWarningHandler);
+        CSS_LOGGER.addHandler(cssWarningHandler);
     }
 
     /** Stops collecting CSS warnings. */
     @AfterEach
     public void releaseCssWarnings() {
-        Logger.getLogger("javafx.css").removeHandler(cssWarningHandler);
+        CSS_LOGGER.removeHandler(cssWarningHandler);
     }
 
     // ==================== Default palette ====================
@@ -295,6 +302,33 @@ public class RXDefaultStyleTest {
         assertNoCssWarnings();
     }
 
+    /**
+     * Where Modena itself sets a local {@code -fx-background} (a focused selected cell
+     * uses the selection bar), RxControls agree with a standard label in the same
+     * place, and keep the defaults next to it.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void controlsInALocalModenaBackgroundAgreeWithAStandardLabel() throws Exception {
+        Label standardInside = new Label("inside");
+        RXTextView rxInside = new RXTextView("inside");
+        Label standardOutside = new Label("outside");
+        RXTextView rxOutside = new RXTextView("outside");
+        runOnFx(() -> {
+            StackPane selected = new StackPane(standardInside, rxInside);
+            selected.setStyle("-fx-background: -fx-selection-bar;");
+            applyCss(scene(new StackPane(selected, standardOutside, rxOutside), false));
+        });
+
+        assertEquals(standardInside.getTextFill(), rxInside.getTextFill(),
+                "RXTextView on the selection bar agrees with a standard label");
+        assertEquals(standardOutside.getTextFill(), rxOutside.getTextFill(),
+                "RXTextView outside agrees with a standard label");
+        assertNotEquals(rxOutside.getTextFill(), rxInside.getTextFill(), "the selection bar flips the text");
+        assertNoCssWarnings();
+    }
+
     // ==================== Real controls on a dark palette ====================
 
     /**
@@ -409,8 +443,32 @@ public class RXDefaultStyleTest {
     }
 
     /**
-     * A control inside a SubScene follows the palette once the sub-scene root carries
-     * it too: a sub-scene root does not inherit looked-up colors from the scene root.
+     * A palette on the unqualified {@code .root} also reaches a SubScene: the sub-scene
+     * root carries the {@code root} style class too.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void controlsInsideASubSceneFollowAPaletteOnTheUnqualifiedRoot() throws Exception {
+        AtomicReference<Paint> textFill = new AtomicReference<>();
+        runOnFx(() -> {
+            RXTextView inside = new RXTextView("inside");
+            StackPane subRoot = new StackPane(inside);
+            StackPane root = new StackPane(new SubScene(subRoot, 200, 80));
+            Scene scene = new Scene(root, 400, 300);
+            scene.getStylesheets().add(DARK_ROOT);
+            applyCss(scene);
+            subRoot.applyCss();
+            textFill.set(inside.getTextFill());
+        });
+
+        assertEquals(Color.WHITE, textFill.get(), "a control inside a SubScene follows a .root palette");
+    }
+
+    /**
+     * A palette keyed on a style class reaches a SubScene only once the sub-scene root
+     * carries that class: a sub-scene root does not inherit looked-up colors from the
+     * scene root.
      *
      * @throws Exception if the FX action fails
      */

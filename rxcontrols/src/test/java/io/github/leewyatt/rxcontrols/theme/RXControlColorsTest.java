@@ -95,7 +95,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("digit.unlit", "#d0d7deff");
         PRIMER_LIGHT.put("fill-button.filling-armed.text", "#ffffffff");
         PRIMER_LIGHT.put("list-view.background", "#d0d7deff #ffffffff");
-        // Was unresolved before the views read -rx-surface instead of -fx-background.
+        // The views read -rx-surface; AtlantaFX does not define -fx-background.
         PRIMER_LIGHT.put("tile-view.background", "#d0d7deff #ffffffff");
         PRIMER_LIGHT.put("masonry-view.background", "#d0d7deff #ffffffff");
     }
@@ -115,7 +115,7 @@ public class RXControlColorsTest {
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
         PRIMER_DARK.put("snackbar.bar", "#e0e0e0ff");
         PRIMER_DARK.put("snackbar.message", "#000000de");
-        PRIMER_DARK.put("snackbar.action", "#1f6febff");
+        PRIMER_DARK.put("snackbar.action", "#164fa4ff");
         PRIMER_DARK.put("snackbar.close-icon", "#00000099");
         PRIMER_DARK.put("snackbar.info.bar", "#6e7681ff");
         PRIMER_DARK.put("snackbar.info.message", "#ffffffff");
@@ -127,7 +127,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("digit.unlit", "#30363dff");
         PRIMER_DARK.put("fill-button.filling-armed.text", "#ffffffff");
         PRIMER_DARK.put("list-view.background", "#30363dff #0d1117ff");
-        // Was unresolved before the views read -rx-surface instead of -fx-background.
+        // The views read -rx-surface; AtlantaFX does not define -fx-background.
         PRIMER_DARK.put("tile-view.background", "#30363dff #0d1117ff");
         PRIMER_DARK.put("masonry-view.background", "#30363dff #0d1117ff");
     }
@@ -216,7 +216,8 @@ public class RXControlColorsTest {
         assertEquals(roles.get("surface-variant"), samples.get("avatar.icon-disc"), "avatar placeholder disc");
         assertEquals("#e0e0e0ff", samples.get("snackbar.bar"), "snackbar turns into a light bar");
         assertEquals("#000000de", samples.get("snackbar.message"), "snackbar message on the light bar");
-        assertEquals(roles.get("primary"), samples.get("snackbar.action"), "snackbar action on the light bar");
+        double actionRatio = contrastRatio(Color.web(samples.get("snackbar.action")), Color.web(samples.get("snackbar.bar")));
+        assertTrue(actionRatio >= WCAG_AA_CONTRAST, "snackbar action on the light bar: contrast " + actionRatio);
         assertEquals("#00000099", samples.get("snackbar.close-icon"), "snackbar close icon on the light bar");
         assertEquals(roles.get("info"), samples.get("snackbar.info.bar"), "severity bar keeps its tint");
         assertEquals("#ffffffff", samples.get("snackbar.info.message"), "severity bar keeps white text");
@@ -269,7 +270,7 @@ public class RXControlColorsTest {
 
     /** The role tokens resolved on the dark application palette, as 8-bit hex. */
     private static Map<String, String> darkRoles() throws Exception {
-        List<String> tokens = List.of("primary", "info", "surface", "surface-variant", "on-surface",
+        List<String> tokens = List.of("info", "surface", "surface-variant", "on-surface",
                 "on-surface-secondary", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
         runOnFx(() -> {

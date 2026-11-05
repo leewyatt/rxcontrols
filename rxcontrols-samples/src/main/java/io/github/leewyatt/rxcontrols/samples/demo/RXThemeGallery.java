@@ -26,7 +26,8 @@ import java.util.List;
 /**
  * Theme gallery: a scrollable, alphabetised grid of color-relevant RxControls
  * (each in a labelled card) with a theme switcher to compare the default style
- * under Modena against the AtlantaFX themes (see {@link ShowcaseThemes}).
+ * under Modena, under an application dark Modena palette, and under the AtlantaFX
+ * themes (see {@link ShowcaseThemes}).
  * Pure layout containers (RXBox / RXRow / RXCol / RXMasonryPane / RXFlowPane)
  * are omitted; the displayed controls are built by {@link ThemeGalleryCards}.
  */
@@ -58,7 +59,7 @@ public class RXThemeGallery extends Application {
         ComboBox<ThemeChoice> picker = new ComboBox<>();
         picker.getItems().setAll(choices);
         ShowcaseThemes.bindPicker(picker, () -> scene);
-        picker.setValue(choices.get(0)); // start on RxControls light
+        picker.setValue(choices.get(0)); // start on plain Modena
 
         HBox toolbar = new HBox(12, new Label("Theme:"), picker);
         toolbar.setAlignment(Pos.CENTER_LEFT);
