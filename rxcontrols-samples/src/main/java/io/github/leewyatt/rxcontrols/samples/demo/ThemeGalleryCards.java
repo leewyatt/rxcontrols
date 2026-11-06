@@ -519,7 +519,10 @@ final class ThemeGalleryCards {
             RXFillLabel tag = new RXFillLabel(texts[i]);
             tag.setFillAnimation(sweeps[i]);
             tag.setFillCornerRadius(new CornerRadii(12.0));
-            tag.setStyle("-fx-padding: 6 14 6 14; -fx-background-color: -rx-primary, derive(-rx-primary, 80%); -fx-background-radius: 12; -fx-background-insets: 0, 1;");
+            // The ring is a border, not a background layer: -rx-primary-bg is translucent on
+            // dark AtlantaFX themes and would let a primary layer beneath show through.
+            tag.setStyle("-fx-padding: 6 14 6 14; -fx-background-color: -rx-primary-bg; -fx-background-radius: 12; "
+                    + "-fx-border-color: -rx-primary; -fx-border-radius: 12;");
             tags.getChildren().add(tag);
         }
         return tags;

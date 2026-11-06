@@ -4,8 +4,10 @@
 
 .tag {
     -fx-padding: 4px 12px;
-    -fx-background-color: #eef0ff;
+    -fx-background-color: -rx-primary-bg;
     -fx-background-radius: 999px;
+    -fx-border-color: -rx-primary;
+    -fx-border-radius: 999px;
     -rx-fill-corner-radius: 999;
 }
 
