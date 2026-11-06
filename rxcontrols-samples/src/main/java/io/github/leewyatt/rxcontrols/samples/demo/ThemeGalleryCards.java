@@ -568,10 +568,6 @@ final class ThemeGalleryCards {
         pane.setPrefSize(280.0, 200.0);
         pane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        Region scrim = new Region();
-        scrim.setStyle("-fx-background-color: linear-gradient(to top, rgba(0,0,0,0.65), transparent);");
-        scrim.setMouseTransparent(true);
-
         Label eyebrow = new Label("SCENERY");
         eyebrow.setStyle("-fx-text-fill: rgba(255,255,255,0.8); -fx-font-size: 10px;");
         Label title = new Label("Overlay children over an encapsulated image");
@@ -579,8 +575,10 @@ final class ThemeGalleryCards {
         title.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         VBox caption = new VBox(4.0, eyebrow, title);
         caption.setMaxWidth(220.0);
+        // Text sits straight on the photo: fixed light colors plus a shadow for contrast.
+        caption.setStyle("-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 8, 0.3, 0, 1);");
 
-        pane.getOverlayChildren().addAll(scrim, caption);
+        pane.getOverlayChildren().add(caption);
         RXImagePane.setAlignment(caption, Pos.BOTTOM_LEFT);
         RXImagePane.setMargin(caption, new Insets(16.0));
         return pane;
