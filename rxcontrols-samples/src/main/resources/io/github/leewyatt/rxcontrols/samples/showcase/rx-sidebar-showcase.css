@@ -4,7 +4,7 @@
 
 .app-frame {
     -fx-background-color: -fx-background;
-    -fx-border-color: derive(-fx-base, -12%);
+    -fx-border-color: -fx-text-box-border;
     -fx-border-width: 1;
     -fx-border-radius: 10;
     -fx-background-radius: 10;
