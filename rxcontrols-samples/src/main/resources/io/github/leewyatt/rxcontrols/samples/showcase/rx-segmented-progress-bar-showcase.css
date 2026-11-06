@@ -1,6 +1,6 @@
 .preview-card {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #d9dee8;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 16px 20px;
@@ -12,7 +12,7 @@
 }
 
 .preview-card .inline-text {
-    -fx-text-fill: #344054;
+    -fx-text-fill: -fx-text-base-color;
     -fx-font-size: 13px;
     -fx-font-family: monospace;
 }

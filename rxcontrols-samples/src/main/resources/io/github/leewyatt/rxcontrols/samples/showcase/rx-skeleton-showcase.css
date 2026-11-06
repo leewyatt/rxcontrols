@@ -8,8 +8,8 @@
 }
 
 .preview-card {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #e4e7ec;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 16px 18px;
@@ -21,16 +21,16 @@
 }
 
 .skeleton-backdrop {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #e4e7ec;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 24px;
 }
 
 .stretch-row {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #e4e7ec;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 16px 18px;
@@ -42,8 +42,8 @@
 }
 
 .social-card {
-    -fx-background-color: #ffffff;
-    -fx-border-color: #e4e7ec;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-padding: 16px 18px;
@@ -66,12 +66,12 @@
 .real-name {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1d2433;
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .real-body {
     -fx-font-size: 13px;
-    -fx-text-fill: #344054;
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .preview-card .button {
