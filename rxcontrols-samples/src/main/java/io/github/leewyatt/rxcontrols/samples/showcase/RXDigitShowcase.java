@@ -17,6 +17,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 
 import java.util.List;
@@ -171,16 +172,19 @@ public class RXDigitShowcase extends RXShowcaseApplication {
     private Node buildColorGrid() {
         CheckBox customColors = new CheckBox("Custom colors");
         BooleanBinding usingThemeColors = customColors.selectedProperty().not();
+        CheckBox ghostUnlit = new CheckBox("Unlit = ghost of lit (default)");
+        ghostUnlit.setSelected(true);
+        ghostUnlit.disableProperty().bind(usingThemeColors);
 
         ColorPicker litPicker = createFillPicker(usingThemeColors);
-        ColorPicker unlitPicker = createFillPicker(usingThemeColors);
+        ColorPicker unlitPicker = createFillPicker(usingThemeColors.or(ghostUnlit.selectedProperty()));
 
         // Inline styles beat every stylesheet, and clearing them gives the colors
         // back to the theme; a fill set or bound in code would keep its value.
-        Runnable applyColors = () -> liveDigit.setStyle(customColors.isSelected()
-                ? "-rx-lit-fill: " + SampleColors.toCss(litPicker.getValue())
-                + "; -rx-unlit-fill: " + SampleColors.toCss(unlitPicker.getValue()) + ";"
-                : "");
+        // Leaving -rx-unlit-fill out keeps it null, so the skin draws the ghost.
+        Runnable applyColors = () -> liveDigit.setStyle(!customColors.isSelected() ? ""
+                : "-rx-lit-fill: " + SampleColors.toCss(litPicker.getValue()) + ";"
+                + (ghostUnlit.isSelected() ? "" : " -rx-unlit-fill: " + SampleColors.toCss(unlitPicker.getValue()) + ";"));
         customColors.selectedProperty().addListener((obs, wasCustom, custom) -> {
             if (custom) {
                 // Read both fills before the style changes: a new inline style resets
@@ -188,26 +192,34 @@ public class RXDigitShowcase extends RXShowcaseApplication {
                 Paint lit = liveDigit.getLitFill();
                 Paint unlit = liveDigit.getUnlitFill();
                 SampleColors.seed(litPicker, lit);
-                SampleColors.seed(unlitPicker, unlit);
+                SampleColors.seed(unlitPicker, unlit != null ? unlit : ghostOf(litPicker.getValue()));
             }
             applyColors.run();
         });
+        ghostUnlit.selectedProperty().addListener((obs, wasGhost, ghost) -> applyColors.run());
         litPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
         unlitPicker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
 
-        Button randomize = new Button("Randomize colors");
+        Button randomize = new Button("Randomize lit color");
         randomize.setMaxWidth(Double.MAX_VALUE);
         randomize.disableProperty().bind(usingThemeColors);
         randomize.setOnAction(event -> {
-            litPicker.setValue(SampleColors.randomDark());
-            unlitPicker.setValue(SampleColors.randomLight());
+            Color lit = SampleColors.random();
+            litPicker.setValue(lit);
+            unlitPicker.setValue(ghostOf(lit));
         });
 
         return createGrid(
                 row(customColors),
                 row("Lit", litPicker),
+                row(ghostUnlit),
                 row("Unlit", unlitPicker),
                 row(randomize));
+    }
+
+    /** Seeds the unlit picker with the skin's own default ghost (the lit color at 15%). */
+    private static Color ghostOf(Color lit) {
+        return lit == null ? null : lit.deriveColor(0.0, 1.0, 1.0, 0.15);
     }
 
     // ==================== Preview helpers ====================
