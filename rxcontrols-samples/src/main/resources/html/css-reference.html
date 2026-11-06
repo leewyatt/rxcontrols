@@ -959,8 +959,8 @@ ripple-layer — Region<br/><br/>
 (from the start of the enter sweep until the reverse sweep finishes); use it
 to restyle text, graphics or any sub-structure, e.g.
 <code>.rx-fill-button:filling { -fx-text-fill: white; }</code></p>
-<p>Focus: <code>:focused</code> adds a <code>-rx-focus</code> ring as an extra
-border stroke drawn outside the bounds, so the sweep area does not move.</p>
+<p>Focus: <code>:focused</code> thickens the border outward to 1.5px; its inner
+edge stays put, so the size and the sweep area do not move.</p>
 
 <h3 id="rxFillLabel">RXFillLabel</h3>
 <p class="fxClass">Style class: rx-fill-label (also: label)</p>
@@ -1212,8 +1212,8 @@ ripple-layer — Region<br/><br/>
 <p>Pseudo class: <code>:line-showing</code> — active while any line is visible
 (from the start of the enter run until the reverse run finishes), e.g.
 <code>.rx-line-button:line-showing { -fx-text-fill: -rx-line-color; }</code></p>
-<p>Focus: <code>:focused</code> adds a <code>-rx-focus</code> ring as a border
-stroke drawn outside the bounds.</p>
+<p>Focus: <code>:focused</code> shows the text in <code>-rx-line-color</code>,
+as while the line is showing.</p>
 
 <h3 id="rxLineLabel">RXLineLabel</h3>
 <p class="fxClass">Style class: rx-line-label (also: label)</p>

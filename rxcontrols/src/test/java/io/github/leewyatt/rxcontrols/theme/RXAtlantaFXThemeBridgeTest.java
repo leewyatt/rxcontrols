@@ -54,6 +54,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -724,26 +725,28 @@ public class RXAtlantaFXThemeBridgeTest {
     /**
      * AtlantaFX recolors {@code .button} text on {@code :hover}, {@code :focused} and
      * {@code :armed} and fades it to 0.9 opacity on {@code :hover}; the flat buttons keep
-     * their own text color and full opacity in every one of those states.
+     * their own text color (the line button takes its line color when focused) and full
+     * opacity in every one of those states.
      *
      * @throws Exception if the FX action fails
      */
     @Test
     public void flatButtonsKeepTheirTextAndOpacityInEveryAtlantaFxState() throws Exception {
-        assertTextAndOpacityInEveryState("rx-fill-button", () -> new RXFillButton("x"), ACCENT_EMPHASIS);
-        assertTextAndOpacityInEveryState("rx-line-button", () -> new RXLineButton("x"), Color.web("#24292f"));
+        assertTextAndOpacityInEveryState("rx-fill-button", () -> new RXFillButton("x"), state -> ACCENT_EMPHASIS);
+        assertTextAndOpacityInEveryState("rx-line-button", () -> new RXLineButton("x"),
+                state -> state.contains("focused") ? ACCENT_EMPHASIS : Color.web("#24292f"));
     }
 
     /**
-     * A focused flat button draws a {@code -rx-focus} ring wholly outside its bounds, so
-     * its insets (and with them the sweep and ripple clips) do not move; disabled still fades.
+     * Focusing a flat button leaves its insets (and with them the sweep, line and ripple
+     * areas) in place; disabled still fades.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void flatButtonsDrawAnOutsideFocusRingAndFadeWhenDisabled() throws Exception {
-        assertFocusRingAndDisabledFade(() -> new RXFillButton("x"));
-        assertFocusRingAndDisabledFade(() -> new RXLineButton("x"));
+    public void flatButtonsKeepTheirInsetsWhenFocusedAndFadeWhenDisabled() throws Exception {
+        assertFocusKeepsInsetsAndDisabledFades(() -> new RXFillButton("x"));
+        assertFocusKeepsInsetsAndDisabledFades(() -> new RXLineButton("x"));
     }
 
     /**
@@ -769,7 +772,8 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     private static void assertTextAndOpacityInEveryState(String name, Supplier<Control> factory,
-                                                         Color expectedText) throws Exception {
+                                                         Function<String, Color> expectedText)
+            throws Exception {
         for (String state : STATE_COMBINATIONS) {
             AtomicReference<Paint> text = new AtomicReference<>();
             AtomicReference<Double> opacity = new AtomicReference<>();
@@ -790,15 +794,14 @@ public class RXAtlantaFXThemeBridgeTest {
             });
 
             String where = name + " [" + (state.isEmpty() ? "resting" : state) + "]";
-            assertEquals(expectedText, text.get(), where + " text");
+            assertEquals(expectedText.apply(state), text.get(), where + " text");
             assertEquals(1.0, opacity.get(), 0.0001, where + " opacity");
         }
     }
 
-    private static void assertFocusRingAndDisabledFade(Supplier<Control> factory) throws Exception {
+    private static void assertFocusKeepsInsetsAndDisabledFades(Supplier<Control> factory) throws Exception {
         AtomicReference<Insets> resting = new AtomicReference<>();
         AtomicReference<Insets> focused = new AtomicReference<>();
-        AtomicReference<Paint> ring = new AtomicReference<>();
         AtomicReference<Double> disabledOpacity = new AtomicReference<>();
         runOnFx(() -> {
             Control control = factory.get();
@@ -810,15 +813,13 @@ public class RXAtlantaFXThemeBridgeTest {
             control.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
             host.applyCss();
             focused.set(control.getInsets());
-            ring.set(control.getBorder().getStrokes().get(0).getTopStroke());
             control.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), false);
             control.setDisable(true);
             host.applyCss();
             disabledOpacity.set(control.getOpacity());
         });
 
-        assertEquals(resting.get(), focused.get(), "the focus ring must not change the insets");
-        assertEquals(ACCENT_EMPHASIS, ring.get(), "focus ring -> -rx-focus (-color-accent-emphasis)");
+        assertEquals(resting.get(), focused.get(), "focus must not change the insets");
         assertEquals(0.4, disabledOpacity.get(), 0.0001, "disabled opacity");
     }
 

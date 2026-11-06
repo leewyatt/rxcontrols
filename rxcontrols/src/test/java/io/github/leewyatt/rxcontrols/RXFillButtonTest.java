@@ -516,26 +516,29 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies the focus ring is an outside border stroke that leaves the sweep area in place.
+     * Verifies focus thickens the border outward only and leaves the sweep area in place.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void focusRingLeavesTheSweepAreaInPlace() throws Exception {
+    public void focusThickensTheBorderOutwardWithoutMovingTheSweepArea() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             StackPane root = new StackPane(button);
             new Scene(root);
             root.applyCss();
             layout(button, 100.0, 40.0);
-            int restingStrokes = button.getBorder().getStrokes().size();
             Insets restingArea = new Insets(fillContent(button).getLayoutY(), 0.0, 0.0, fillContent(button).getLayoutX());
 
             button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
             root.applyCss();
             layout(button, 100.0, 40.0);
 
-            assertEquals(restingStrokes + 1, button.getBorder().getStrokes().size(), "focus adds a ring stroke");
+            BorderStroke stroke = button.getBorder().getStrokes().get(0);
+            assertEquals(1, button.getBorder().getStrokes().size(), "focus keeps a single border");
+            assertTrue(stroke.getWidths().getTop() > 1.0, "focus thickens the border");
+            assertEquals(1.0, stroke.getInsets().getTop() + stroke.getWidths().getTop(), EPSILON,
+                    "the border's inner edge stays put");
             assertEquals(restingArea,
                     new Insets(fillContent(button).getLayoutY(), 0.0, 0.0, fillContent(button).getLayoutX()));
             assertEquals(98.0, fillContent(button).getWidth(), EPSILON);
