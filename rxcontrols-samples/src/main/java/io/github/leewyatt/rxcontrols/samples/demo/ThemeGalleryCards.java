@@ -554,7 +554,6 @@ final class ThemeGalleryCards {
                         + "architecture for building reusable user interface components.");
         view.getKeywords().setAll("JavaFX", "CSS", "skin", "binding");
         view.setMatchRules(RXHighlightTextView.MatchRules.LITERAL_IGNORE_CASE);
-        view.setHighlightFill(Color.web("#fff1a8"));
         view.setLineSpacing(6.0);
         view.setPrefWidth(280.0);
         view.setMaxWidth(Double.MAX_VALUE);
