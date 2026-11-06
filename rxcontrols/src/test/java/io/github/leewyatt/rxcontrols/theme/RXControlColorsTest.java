@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -77,6 +78,8 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("seek.secondary", "#dadadaff");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
+        DEFAULT_MODENA.put("circular.track", "#81cee7ff");
+        DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
         DEFAULT_MODENA.put("avatar.icon-disc", "#bdbdbdff");
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
@@ -108,6 +111,8 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("seek.secondary", "#d0d7deff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
+        PRIMER_LIGHT.put("circular.track", "#54aeff66");
+        PRIMER_LIGHT.put("circular.progress", "#0969daff");
         PRIMER_LIGHT.put("avatar.icon-disc", "#6e7781ff");
         PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
@@ -140,6 +145,8 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("seek.secondary", "#30363dff");
         PRIMER_DARK.put("slider.track", "#30363dff");
         PRIMER_DARK.put("wave.container", "#161b22ff");
+        PRIMER_DARK.put("circular.track", "#388bfd66");
+        PRIMER_DARK.put("circular.progress", "#1f6febff");
         PRIMER_DARK.put("avatar.icon-disc", "#6e7681ff");
         PRIMER_DARK.put("avatar.icon", "#ffffffff");
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
@@ -164,6 +171,7 @@ public class RXControlColorsTest {
 
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
+    private static final double TRACK_CONTRAST = 1.3;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass HOVER = PseudoClass.getPseudoClass("hover");
 
@@ -283,6 +291,47 @@ public class RXControlColorsTest {
         assertNotEquals("#2a2c3aff", samples.get("cascader.cell.hover"), "cascader hover must differ from the column");
         double segmentRatio = contrastRatio(Color.web(samples.get("segmented.unselected")), Color.web("#262735"));
         assertTrue(segmentRatio >= WCAG_AA_CONTRAST, "unselected segment label contrast " + segmentRatio);
+    }
+
+    // ==================== Circular progress ====================
+
+    /**
+     * The circular progress track stays visible on both surface roles yet weaker than the
+     * progress arc, on default Modena, a dark application palette and every AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void circularTrackIsVisibleButBelowTheProgressOnEveryHost() throws Exception {
+        // Modena panels and fields paint -fx-control-inner-background; AtlantaFX panels are -rx-surface-variant.
+        List<String> modenaBackdrops = List.of("-rx-surface", "-rx-surface-variant", "-fx-control-inner-background");
+        List<String> atlantaFxBackdrops = List.of("-rx-surface", "-rx-surface-variant");
+        assertCircularTrack("default Modena", Application.STYLESHEET_MODENA, scene -> { }, modenaBackdrops);
+        assertCircularTrack("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette,
+                modenaBackdrops);
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            assertCircularTrack(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                    atlantaFxBackdrops);
+        }
+    }
+
+    private static void assertCircularTrack(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            List<String> backdrops) throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        Map<String, String> resolved = resolve(userAgentStylesheet, themer, backdrops);
+        Color trackPaint = Color.web(samples.get("circular.track"));
+        for (String backdropName : backdrops) {
+            Color backdrop = Color.web(resolved.get(backdropName));
+            double trackRatio = contrastRatio(composite(trackPaint, backdrop), backdrop);
+            assertTrue(trackRatio >= TRACK_CONTRAST,
+                    "circular track vs " + backdropName + " " + trackRatio + " under " + host);
+        }
+        Color surface = Color.web(resolved.get("-rx-surface"));
+        double trackRatio = contrastRatio(composite(trackPaint, surface), surface);
+        double progressRatio = contrastRatio(composite(Color.web(samples.get("circular.progress")), surface), surface);
+        assertTrue(trackRatio < progressRatio,
+                "circular track " + trackRatio + " outweighs the progress " + progressRatio + " under " + host);
     }
 
     // ==================== Tile / masonry cells ====================
@@ -433,6 +482,9 @@ public class RXControlColorsTest {
             sampleBothWays("range slider track", RXRangeSlider::new, track, asRoot, nested);
             sampleBothWays("wave container", RXWaveProgressIndicator::new,
                     control -> ThemeColorSamples.hex(fill(control.lookup(".wave-container"))), asRoot, nested);
+            sampleBothWays("circular track", RXCircularProgressIndicator::new,
+                    control -> ThemeColorSamples.hex(((RXCircularProgressIndicator) control).getTrackStroke()),
+                    asRoot, nested);
             sampleBothWays("segment labels", () -> {
                 RXSegmentedControl<String> segmented = new RXSegmentedControl<>(
                         new RXSegmentedItem<>("on", "On"), new RXSegmentedItem<>("off", "Off"));
@@ -590,23 +642,34 @@ public class RXControlColorsTest {
         List<String> tokens = List.of("info", "surface", "surface-variant", "on-surface",
                 "on-surface-secondary", "on-surface-disabled", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
+        List<String> expressions = new ArrayList<>();
+        tokens.forEach(token -> expressions.add("-rx-" + token));
+        Map<String, String> resolved = resolve(userAgentStylesheet, themer, expressions);
+        tokens.forEach(token -> roles.put(token, resolved.get("-rx-" + token)));
+        return roles;
+    }
+
+    /** Background color expressions resolved under a host, as 8-bit hex. */
+    private static Map<String, String> resolve(String userAgentStylesheet, Consumer<Scene> themer,
+            List<String> expressions) throws Exception {
+        Map<String, String> resolved = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
             Map<String, Region> probes = new LinkedHashMap<>();
             StackPane root = new StackPane();
-            for (String token : tokens) {
+            for (String expression : expressions) {
                 RXBox probe = new RXBox();
-                probe.setStyle("-fx-background-color: -rx-" + token + ";");
-                probes.put(token, probe);
+                probe.setStyle("-fx-background-color: " + expression + ";");
+                probes.put(expression, probe);
                 root.getChildren().add(probe);
             }
             Scene scene = new Scene(root, 100, 100);
             themer.accept(scene);
             root.applyCss();
-            probes.forEach((token, probe) ->
-                    roles.put(token, ThemeColorSamples.hex(probe.getBackground().getFills().get(0).getFill())));
+            probes.forEach((expression, probe) ->
+                    resolved.put(expression, ThemeColorSamples.hex(probe.getBackground().getFills().get(0).getFill())));
         });
-        return roles;
+        return resolved;
     }
 
     private static void assertSamples(Map<String, String> expected, Map<String, String> actual, String host) {

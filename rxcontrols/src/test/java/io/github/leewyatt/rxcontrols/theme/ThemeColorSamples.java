@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXListView;
@@ -76,6 +77,7 @@ final class ThemeColorSamples {
         RXSeekBar seekBar = new RXSeekBar();
         RXSlider slider = new RXSlider();
         RXWaveProgressIndicator wave = new RXWaveProgressIndicator();
+        RXCircularProgressIndicator circular = new RXCircularProgressIndicator();
         RXAvatar avatar = new RXAvatar();
 
         RXSnackbarHost plainHost = new RXSnackbarHost();
@@ -95,7 +97,7 @@ final class ThemeColorSamples {
         RXListView<String> listView = new RXListView<>();
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
-        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, avatar,
+        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, avatar,
                 plainHost, severityHost, progressBar, steps, navigator, digit, fillButton, tileView, listView,
                 masonryView);
         Scene scene = new Scene(root, 800, 1600);
@@ -135,6 +137,8 @@ final class ThemeColorSamples {
         samples.put("seek.secondary", background(seekBar.lookup(".secondary-bar")));
         samples.put("slider.track", background(slider.lookup(".track")));
         samples.put("wave.container", background(wave.lookup(".wave-container")));
+        samples.put("circular.track", hex(circular.getTrackStroke()));
+        samples.put("circular.progress", hex(circular.getProgressStroke()));
         samples.put("avatar.icon-disc", background(avatar.lookup(".default-icon-wrapper")));
         samples.put("avatar.icon", background(avatar.lookup(".default-icon-wrapper > .default-icon")));
 
