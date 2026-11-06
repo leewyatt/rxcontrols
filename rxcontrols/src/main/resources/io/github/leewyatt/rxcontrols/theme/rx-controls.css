@@ -681,6 +681,7 @@
     -rx-slider-fill: -rx-primary;
     -rx-slider-thumb: -rx-primary;
     -rx-slider-tick: derive(-rx-slider-track, -20%);
+    -rx-slider-tick-label: -rx-on-surface-secondary;
     /* Inverse surface, like the snackbar: dark on a light host, light on a dark one. */
     -rx-slider-indicator-bg: ladder(-rx-surface, #e0e0e0 45%, #424242 46%);
     -rx-ripple-fill: -rx-slider-thumb;
@@ -766,7 +767,7 @@
 
 .rx-slider > .tick-label,
 .rx-range-slider > .tick-label {
-    -fx-text-fill: -rx-slider-tick;
+    -fx-text-fill: -rx-slider-tick-label;
     -fx-font-size: 0.83em;
 }
 

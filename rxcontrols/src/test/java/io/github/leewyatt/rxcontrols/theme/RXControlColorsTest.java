@@ -83,6 +83,8 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("slider.indicator.caret", "#424242ff");
         DEFAULT_MODENA.put("range-slider.indicator", "#424242ff");
         DEFAULT_MODENA.put("range-slider.indicator.text", "#ffffffff");
+        DEFAULT_MODENA.put("slider.tick-label", "#333333ff");
+        DEFAULT_MODENA.put("range-slider.tick-label", "#333333ff");
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
         DEFAULT_MODENA.put("circular.track", "#81cee7ff");
         DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
@@ -126,6 +128,8 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("slider.indicator.caret", "#424242ff");
         PRIMER_LIGHT.put("range-slider.indicator", "#424242ff");
         PRIMER_LIGHT.put("range-slider.indicator.text", "#ffffffff");
+        PRIMER_LIGHT.put("slider.tick-label", "#57606aff");
+        PRIMER_LIGHT.put("range-slider.tick-label", "#57606aff");
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
         PRIMER_LIGHT.put("circular.track", "#54aeff66");
         PRIMER_LIGHT.put("circular.progress", "#0969daff");
@@ -170,6 +174,8 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("slider.indicator.caret", "#e0e0e0ff");
         PRIMER_DARK.put("range-slider.indicator", "#e0e0e0ff");
         PRIMER_DARK.put("range-slider.indicator.text", "#000000de");
+        PRIMER_DARK.put("slider.tick-label", "#8b949eff");
+        PRIMER_DARK.put("range-slider.tick-label", "#8b949eff");
         PRIMER_DARK.put("wave.container", "#161b22ff");
         PRIMER_DARK.put("circular.track", "#388bfd66");
         PRIMER_DARK.put("circular.progress", "#1f6febff");
@@ -409,12 +415,13 @@ public class RXControlColorsTest {
 
     /**
      * The slider and range slider value bubble stands out from the surface and keeps its
-     * text legible on default Modena, a dark application palette and every AtlantaFX theme.
+     * text legible, and the tick labels stay legible on the surface, on default Modena, a
+     * dark application palette and every AtlantaFX theme.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void sliderValueBubbleStandsOutOnEveryHost() throws Exception {
+    public void sliderBubbleAndTickLabelsStayLegibleOnEveryHost() throws Exception {
         assertSliderBubble("default Modena", Application.STYLESHEET_MODENA, scene -> { });
         assertSliderBubble("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
         for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
@@ -437,6 +444,10 @@ public class RXControlColorsTest {
         }
         assertEquals(samples.get("slider.indicator"), samples.get("slider.indicator.caret"),
                 "caret matches the bubble under " + host);
+        for (String slider : List.of("slider", "range-slider")) {
+            double tick = contrastRatio(Color.web(samples.get(slider + ".tick-label")), surface);
+            assertTrue(tick >= WCAG_AA_CONTRAST, slider + " tick label " + tick + " under " + host);
+        }
     }
 
     // ==================== Tile / masonry cells ====================

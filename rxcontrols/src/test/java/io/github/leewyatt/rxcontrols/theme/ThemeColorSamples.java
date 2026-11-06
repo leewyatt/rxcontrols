@@ -80,6 +80,8 @@ final class ThemeColorSamples {
         RXSeekBar seekBar = new RXSeekBar();
         RXSlider slider = new RXSlider();
         RXRangeSlider rangeSlider = new RXRangeSlider();
+        slider.setShowTickLabels(true);
+        rangeSlider.setShowTickLabels(true);
         RXWaveProgressIndicator wave = new RXWaveProgressIndicator();
         RXCircularProgressIndicator circular = new RXCircularProgressIndicator();
         RXCircularProgressIndicator completedCircular = new RXCircularProgressIndicator(1.0);
@@ -156,6 +158,8 @@ final class ThemeColorSamples {
         samples.put("slider.indicator.caret", background(slider.lookup(".value-indicator > .caret")));
         samples.put("range-slider.indicator", background(rangeSlider.lookup(".value-indicator")));
         samples.put("range-slider.indicator.text", text(rangeSlider.lookup(".value-indicator > .label")));
+        samples.put("slider.tick-label", text(slider.lookup(".tick-label")));
+        samples.put("range-slider.tick-label", text(rangeSlider.lookup(".tick-label")));
         samples.put("wave.container", background(wave.lookup(".wave-container")));
         samples.put("circular.track", hex(circular.getTrackStroke()));
         samples.put("circular.progress", hex(circular.getProgressStroke()));
