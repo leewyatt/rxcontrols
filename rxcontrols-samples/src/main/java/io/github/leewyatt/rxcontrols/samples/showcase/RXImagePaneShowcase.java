@@ -32,7 +32,6 @@ public class RXImagePaneShowcase extends RXShowcaseApplication {
     private static final double PREVIEW_HEIGHT = 260.0;
 
     private RXImagePane imagePane;
-    private Region scrim;
     private VBox titleOverlay;
     private Label badgeOverlay;
     private HBox actionOverlay;
@@ -84,10 +83,6 @@ public class RXImagePaneShowcase extends RXShowcaseApplication {
         imagePane.setImageRadius(22.0);
         imagePane.setPrefSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
         imagePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-
-        scrim = new Region();
-        scrim.getStyleClass().add("image-scrim");
-        scrim.setMouseTransparent(true);
 
         titleOverlay = createTitleOverlay();
         badgeOverlay = createBadgeOverlay();
@@ -314,7 +309,7 @@ public class RXImagePaneShowcase extends RXShowcaseApplication {
                 break;
             case EDITORIAL:
             default:
-                imagePane.getOverlayChildren().addAll(scrim, titleOverlay);
+                imagePane.getOverlayChildren().add(titleOverlay);
                 alignedOverlay = titleOverlay;
                 break;
         }
