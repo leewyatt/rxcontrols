@@ -15,8 +15,6 @@ import java.util.Objects;
  * @param romanization     reserved for a future romanization track; may be {@code null}
  * @param rawLine          the original source line that produced this lyric line
  * @param sourceLineNumber the 1-based source line number
- * @throws NullPointerException if {@code time}, {@code duration}, {@code text}, or {@code rawLine}
- *                              is {@code null}
  */
 public record LrcLine(int index, Duration time, Duration duration, String text,
                       String translation, String romanization,
@@ -24,6 +22,9 @@ public record LrcLine(int index, Duration time, Duration duration, String text,
 
     /**
      * Creates an immutable lyric line.
+     *
+     * @throws NullPointerException if {@code time}, {@code duration}, {@code text}, or {@code rawLine}
+     *                              is {@code null}
      */
     public LrcLine {
         Objects.requireNonNull(time, "time");

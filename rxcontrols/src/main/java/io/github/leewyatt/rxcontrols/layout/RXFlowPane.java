@@ -56,7 +56,7 @@ import java.util.Set;
  * FlowPane centers each run independently against the inside size, so the lone last run
  * drifts to the middle; RXFlowPane centers the bounding block of all runs once and lays
  * each run out at the block's leading edge. A vertical flow mirrors this with
- * {@code columnValignment}.</p>
+ * {@code columnValignment}.
  *
  * <h2>Alignment model</h2>
  *

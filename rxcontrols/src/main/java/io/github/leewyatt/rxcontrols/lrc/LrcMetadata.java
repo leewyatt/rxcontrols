@@ -13,7 +13,6 @@ import java.util.Objects;
  * entries.</p>
  *
  * @param tags all parsed metadata tags keyed by lower-case tag name
- * @throws NullPointerException if {@code tags}, one of its keys, or one of its values is {@code null}
  */
 public record LrcMetadata(Map<String, String> tags) {
 
@@ -26,6 +25,8 @@ public record LrcMetadata(Map<String, String> tags) {
 
     /**
      * Creates immutable LRC metadata.
+     *
+     * @throws NullPointerException if {@code tags}, one of its keys, or one of its values is {@code null}
      */
     public LrcMetadata {
         Objects.requireNonNull(tags, "tags");

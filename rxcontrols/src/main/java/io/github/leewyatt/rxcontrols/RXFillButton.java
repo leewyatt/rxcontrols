@@ -177,8 +177,8 @@ public class RXFillButton extends RXAnimatedButton {
      * values let it bleed outside the bounds as a pure visual effect that
      * never affects the button's size. The default {@code null} follows the
      * inner edge of the button's real border automatically. Faux borders
-     * painted as layered background fills and shape-based buttons cannot be
-     * inset.
+     * painted as layered background fills cannot be inset, and neither can a
+     * clip that follows a plain filled {@code shape}.
      *
      * @return the fill insets property
      */
@@ -228,13 +228,16 @@ public class RXFillButton extends RXAnimatedButton {
      * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
      * background layers entirely — the escape hatch for stateful multi-layer
      * backgrounds such as focus rings. The default {@code null} mirrors the
-     * button's painted background geometry, with each radius reduced by a real
-     * border's width; set explicit radii when the border is rounded differently
-     * from the background. From CSS,
+     * button's painted background geometry; while {@link #fillInsetsProperty()
+     * fillInsets} is also {@code null}, each absolute radius is reduced by the
+     * border inset on its side (explicit insets keep the background radii). Set
+     * explicit radii when the border is rounded differently from the background
+     * or has several strokes. From CSS,
      * {@code -rx-fill-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when
-     * the button uses a {@code shape}.
+     * the button uses a plain filled {@code shape} (no stroke, no transforms, not
+     * part of a scene graph); the clip then follows that shape.
      *
      * @return the fill corner radius property
      */

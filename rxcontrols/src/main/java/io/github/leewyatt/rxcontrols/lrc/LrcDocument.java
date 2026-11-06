@@ -11,7 +11,6 @@ import java.util.Objects;
  *
  * @param metadata the parsed metadata
  * @param lines    the normalized lyric lines, sorted by time
- * @throws NullPointerException if {@code metadata}, {@code lines}, or one of the lines is {@code null}
  */
 public record LrcDocument(LrcMetadata metadata, List<LrcLine> lines) {
 
@@ -21,6 +20,8 @@ public record LrcDocument(LrcMetadata metadata, List<LrcLine> lines) {
 
     /**
      * Creates an immutable LRC document.
+     *
+     * @throws NullPointerException if {@code metadata}, {@code lines}, or one of the lines is {@code null}
      */
     public LrcDocument {
         Objects.requireNonNull(metadata, "metadata");

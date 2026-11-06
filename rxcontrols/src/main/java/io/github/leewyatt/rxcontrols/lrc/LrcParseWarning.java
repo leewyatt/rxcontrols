@@ -9,13 +9,14 @@ import java.util.Objects;
  * @param line       the source line or fragment associated with this warning
  * @param code       the warning category
  * @param message    the human-readable warning message
- * @throws NullPointerException if {@code line}, {@code code}, or {@code message} is {@code null}
  */
 public record LrcParseWarning(int lineNumber, String line,
                               LrcWarningCode code, String message) {
 
     /**
      * Creates an immutable parse warning.
+     *
+     * @throws NullPointerException if {@code line}, {@code code}, or {@code message} is {@code null}
      */
     public LrcParseWarning {
         Objects.requireNonNull(line, "line");

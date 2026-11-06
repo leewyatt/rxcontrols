@@ -495,7 +495,8 @@ public class RXRipplePane extends Region {
      * The default {@code null} follows the inner edge of the pane's real border
      * automatically. Only the ripple clip is inset; the layer keeps full bounds,
      * so press location and radius are unaffected and the state overlay shares
-     * the same inset region. Shape-based clips ignore these insets.
+     * the same inset region. A clip that follows a plain filled {@code shape}
+     * ignores these insets.
      *
      * @return the ripple insets property
      */
@@ -545,13 +546,16 @@ public class RXRipplePane extends Region {
      * the {@link #rippleInsetsProperty() rippleInsets} box), ignoring the pane
      * background layers entirely — the escape hatch for stateful multi-layer
      * backgrounds such as focus rings. The default {@code null} mirrors the
-     * pane's painted background geometry, with each radius reduced by a real
-     * border's width; set explicit radii when the border is rounded differently
-     * from the background. From CSS,
+     * pane's painted background geometry; while {@link #rippleInsetsProperty()
+     * rippleInsets} is also {@code null}, each absolute radius is reduced by the
+     * border inset on its side (explicit insets keep the background radii). Set
+     * explicit radii when the border is rounded differently from the background
+     * or has several strokes. From CSS,
      * {@code -rx-ripple-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when
-     * the pane uses a {@code shape}.
+     * the pane uses a plain filled {@code shape} (no stroke, no transforms, not
+     * part of a scene graph); the clip then follows that shape.
      *
      * @return the ripple corner radius property
      */

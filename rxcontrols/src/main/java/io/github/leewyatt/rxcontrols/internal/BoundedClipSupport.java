@@ -39,14 +39,14 @@ import java.util.Objects;
  * its adjacent side (clamped at zero), as a CSS padding box does; otherwise a
  * too-round clip leaves a sliver of the background showing in each corner
  * between the border and a decoration. For the common single, uniform inside
- * stroke this deliberately rounds a little inside the true inner arc, which
- * JavaFX draws at the original radius half a stroke width in: a clip on exactly
- * that arc antialiases against the stroke and can still let the background show
- * through, while the slightly tighter clip tucks under the stroke. Percentage
- * radii and explicit insets keep their radii as-is, and the geometry stays that
- * of the background, so the automatic clip only suits a border rounded like the
- * background; for anything else (other radii, several strokes, other stroke
- * types) callers should pass explicit corner radii. Background fills with any negative inset
+ * stroke the clip's corner reaches slightly under the stroke rather than ending
+ * on its inner arc, which JavaFX draws at the original radius half a stroke
+ * width in: a clip on exactly that arc antialiases against the stroke and can
+ * still let the background show through. Percentage radii and explicit insets
+ * keep their radii as-is, and the geometry stays that of the background, so the
+ * automatic clip only suits a border rounded like the background; for anything
+ * else (other radii, several strokes, other stroke types) callers should pass
+ * explicit corner radii. Background fills with any negative inset
  * component are treated as decorations (focus rings, shadow highlights — the
  * modena focused state paints several) and excluded from the mirror, unless
  * no fill would remain. Faux borders painted as non-negative background fills

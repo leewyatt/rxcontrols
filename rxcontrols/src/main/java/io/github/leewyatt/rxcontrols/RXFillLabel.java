@@ -222,13 +222,16 @@ public class RXFillLabel extends RXAnimatedLabel {
      * to a single rounded rectangle with these radii (and the
      * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
      * background layers entirely. The default {@code null} mirrors the
-     * label's painted background geometry, with each radius reduced by a real
-     * border's width; set explicit radii when the border is rounded differently
-     * from the background. From CSS,
+     * label's painted background geometry; while {@link #fillInsetsProperty()
+     * fillInsets} is also {@code null}, each absolute radius is reduced by the
+     * border inset on its side (explicit insets keep the background radii). Set
+     * explicit radii when the border is rounded differently from the background
+     * or has several strokes. From CSS,
      * {@code -rx-fill-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when
-     * the label uses a {@code shape}.
+     * the label uses a plain filled {@code shape} (no stroke, no transforms, not
+     * part of a scene graph); the clip then follows that shape.
      *
      * @return the fill corner radius property
      */

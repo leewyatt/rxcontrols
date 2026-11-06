@@ -33,7 +33,7 @@ import java.util.List;
  * Both advance proportionally to animation progress, so the fold line
  * transitions smoothly from a corner triangle into a near-vertical
  * spine sweep with no phase discontinuity. The initial fold angle is
- * determined naturally by the page's aspect ratio.</p>
+ * determined naturally by the page's aspect ratio.
  *
  * <p>The fold-back region is computed by mirroring the entire peeled
  * polygon across the fold line and clipping to the page bounds.</p>

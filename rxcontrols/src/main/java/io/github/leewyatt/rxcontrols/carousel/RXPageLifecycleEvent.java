@@ -65,9 +65,9 @@ public class RXPageLifecycleEvent extends Event {
 
     /**
      * Fired when a page is evicted from the page cache. This happens when
-     * the page falls outside the {@link RXCarousel#cacheDistanceProperty()
+     * the page falls outside the {@link io.github.leewyatt.rxcontrols.RXCarousel#cacheDistanceProperty()
      * cacheDistance} window after a page transition, or when the application
-     * explicitly calls {@link RXCarousel#clearPageCache()}.
+     * explicitly calls {@link io.github.leewyatt.rxcontrols.RXCarousel#clearPageCache()}.
      *
      * <p>This is an advanced event that most applications do not need.
      * With the default {@code cacheDistance} of -1 (cache all pages), this

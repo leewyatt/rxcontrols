@@ -8,13 +8,14 @@ import java.util.Objects;
  *
  * @param document the parsed document; never {@code null}
  * @param warnings non-fatal parse warnings
- * @throws NullPointerException if {@code document}, {@code warnings}, or one of the warnings is
- *                              {@code null}
  */
 public record LrcParseResult(LrcDocument document, List<LrcParseWarning> warnings) {
 
     /**
      * Creates an immutable parse result.
+     *
+     * @throws NullPointerException if {@code document}, {@code warnings}, or one of the warnings is
+     *                              {@code null}
      */
     public LrcParseResult {
         Objects.requireNonNull(document, "document");
