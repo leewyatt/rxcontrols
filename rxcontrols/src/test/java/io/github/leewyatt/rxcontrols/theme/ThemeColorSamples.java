@@ -19,6 +19,8 @@ import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbarSeverity;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXTimelineItem;
+import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -96,13 +98,21 @@ final class ThemeColorSamples {
         RXDigit digit = new RXDigit();
 
         RXFillButton fillButton = new RXFillButton("fill");
+        RXTimelineItem plainItem = new RXTimelineItem("plain");
+        RXTimelineItem primaryItem = new RXTimelineItem("primary");
+        primaryItem.setType(RXTimelineItem.Type.PRIMARY);
+        RXTimelineItem hollowItem = new RXTimelineItem("hollow");
+        hollowItem.setHollow(true);
+        RXTimelineView plainTimeline = new RXTimelineView(plainItem);
+        RXTimelineView primaryTimeline = new RXTimelineView(primaryItem);
+        RXTimelineView hollowTimeline = new RXTimelineView(hollowItem);
         RXTileView<String> tileView = new RXTileView<>();
         RXListView<String> listView = new RXListView<>();
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
-        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, completedCircular, avatar,
-                plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit, fillButton, tileView, listView,
-                masonryView);
+        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, completedCircular,
+                avatar, plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit,
+                fillButton, plainTimeline, primaryTimeline, hollowTimeline, tileView, listView, masonryView);
         Scene scene = new Scene(root, 800, 1600);
         themer.accept(scene);
         refresh(root);
@@ -162,6 +172,9 @@ final class ThemeColorSamples {
         samples.put("digit.unlit", hex(digit.getUnlitFill()));
 
         samples.put("fill-button.filling-armed.text", fillingArmedText);
+        samples.put("timeline.dot", background(plainTimeline.lookup(".dot")));
+        samples.put("timeline.primary-dot", background(primaryTimeline.lookup(".dot")));
+        samples.put("timeline.hollow-dot.border", hollowBorder(hollowTimeline.lookup(".dot")));
 
         for (Map.Entry<String, Region> view : Map.<String, Region>of(
                 "tile-view", tileView, "list-view", listView, "masonry-view", masonryView).entrySet()) {
@@ -202,6 +215,17 @@ final class ThemeColorSamples {
             return "null";
         }
         return hex(background.getFills().get(0).getFill());
+    }
+
+    private static String hollowBorder(Node node) {
+        if (!(node instanceof Region)) {
+            return "missing";
+        }
+        Border border = ((Region) node).getBorder();
+        if (border == null || border.getStrokes().isEmpty()) {
+            return "null";
+        }
+        return hex(border.getStrokes().get(0).getTopStroke());
     }
 
     private static List<String> layers(Background background) {

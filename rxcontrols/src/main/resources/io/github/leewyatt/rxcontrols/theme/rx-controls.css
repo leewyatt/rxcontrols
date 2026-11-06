@@ -2321,7 +2321,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-timeline-view {
-    -rx-dot-fill: #409eff;
+    -rx-dot-fill: -rx-primary;
     -rx-line-fill: -rx-outline;
     -rx-dot-size: 12;
     -rx-line-width: 2;

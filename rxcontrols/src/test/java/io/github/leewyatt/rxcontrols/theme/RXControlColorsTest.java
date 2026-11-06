@@ -98,6 +98,9 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("digit.lit", "#333333ff");
         DEFAULT_MODENA.put("digit.unlit", "#cfcfcfff");
         DEFAULT_MODENA.put("fill-button.filling-armed.text", "#ffffffff");
+        DEFAULT_MODENA.put("timeline.dot", "#616dffff");
+        DEFAULT_MODENA.put("timeline.primary-dot", "#616dffff");
+        DEFAULT_MODENA.put("timeline.hollow-dot.border", "#616dffff");
         DEFAULT_MODENA.put("list-view.background", "#c9c9c9ff #f4f4f4ff");
         DEFAULT_MODENA.put("tile-view.background", "#c9c9c9ff #f4f4f4ff");
         DEFAULT_MODENA.put("masonry-view.background", "#c9c9c9ff #f4f4f4ff");
@@ -133,6 +136,9 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("digit.lit", "#24292fff");
         PRIMER_LIGHT.put("digit.unlit", "#d0d7deff");
         PRIMER_LIGHT.put("fill-button.filling-armed.text", "#ffffffff");
+        PRIMER_LIGHT.put("timeline.dot", "#0969daff");
+        PRIMER_LIGHT.put("timeline.primary-dot", "#0969daff");
+        PRIMER_LIGHT.put("timeline.hollow-dot.border", "#0969daff");
         PRIMER_LIGHT.put("list-view.background", "#d0d7deff #ffffffff");
         // The views read -rx-surface; AtlantaFX does not define -fx-background.
         PRIMER_LIGHT.put("tile-view.background", "#d0d7deff #ffffffff");
@@ -170,6 +176,9 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("digit.lit", "#c9d1d9ff");
         PRIMER_DARK.put("digit.unlit", "#30363dff");
         PRIMER_DARK.put("fill-button.filling-armed.text", "#ffffffff");
+        PRIMER_DARK.put("timeline.dot", "#1f6febff");
+        PRIMER_DARK.put("timeline.primary-dot", "#1f6febff");
+        PRIMER_DARK.put("timeline.hollow-dot.border", "#1f6febff");
         PRIMER_DARK.put("list-view.background", "#30363dff #0d1117ff");
         // The views read -rx-surface; AtlantaFX does not define -fx-background.
         PRIMER_DARK.put("tile-view.background", "#30363dff #0d1117ff");
@@ -278,6 +287,9 @@ public class RXControlColorsTest {
         assertEquals(roles.get("on-surface"), samples.get("digit.lit"), "lit digit segment");
         assertEquals(roles.get("outline"), samples.get("digit.unlit"), "unlit digit segment");
         assertEquals("#ffffffff", samples.get("fill-button.filling-armed.text"), "filling fill button text");
+        assertEquals(roles.get("primary"), samples.get("timeline.dot"), "default timeline dot");
+        assertEquals(roles.get("primary"), samples.get("timeline.primary-dot"), "primary timeline dot");
+        assertEquals(roles.get("primary"), samples.get("timeline.hollow-dot.border"), "hollow timeline dot outline");
         for (String view : List.of("tile-view", "list-view", "masonry-view")) {
             assertTrue(samples.get(view + ".background").endsWith(roles.get("surface")),
                     view + " background ends on -rx-surface: " + samples.get(view + ".background"));
