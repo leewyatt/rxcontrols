@@ -332,8 +332,8 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, segmented tracks follow {@code -rx-outline}, lit digit segments
-     * follow {@code -rx-on-surface}, and unlit digit segments are their 15% ghost.
+     * Under the bridge, segmented tracks and unlit digit segments follow {@code -rx-outline}
+     * and lit digit segments follow {@code -rx-on-surface}.
      *
      * @throws Exception if the FX action fails
      */
@@ -358,8 +358,8 @@ public class RXAtlantaFXThemeBridgeTest {
                 "progress bar track -> -color-border-default");
         assertEquals(Color.web("#d0d7de"), fills.get("step indicator track"),
                 "step indicator track -> -color-border-default");
-        assertEquals(Color.web("#24292f", 0.15), fills.get("digit unlit"),
-                "digit unlit -> ghost of -color-fg-default");
+        assertEquals(Color.web("#d0d7de"), fills.get("digit unlit"),
+                "digit unlit -> -color-border-default");
         assertEquals(Color.web("#24292f"), fills.get("digit lit"),
                 "digit lit -> -color-fg-default");
     }

@@ -7,9 +7,6 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
 import javafx.scene.shape.Polygon;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -68,55 +65,6 @@ public class RXDigitTest {
                 .collect(Collectors.toSet());
         assertTrue(properties.contains("-rx-lit-fill"));
         assertTrue(properties.contains("-rx-unlit-fill"));
-        assertNull(digit.getUnlitFill());
-    }
-
-    /**
-     * Verifies unlit segments default to the lit color at 15% opacity and follow it.
-     */
-    @Test
-    public void unlitSegmentsGhostTheLitFillByDefault() {
-        RXDigit digit = withSkin();
-        digit.setDigit(1);
-        digit.setLitFill(Color.RED);
-
-        assertEquals(Color.RED, segments(digit).get(4).getFill(), "upper-right is lit");
-        assertEquals(Color.color(1.0, 0.0, 0.0, 0.15), segments(digit).get(0).getFill(), "top is a ghost");
-    }
-
-    /**
-     * Verifies an explicit unlit fill, including a transparent one, replaces the ghost.
-     */
-    @Test
-    public void explicitUnlitFillReplacesTheGhost() {
-        RXDigit digit = withSkin();
-        digit.setDigit(1);
-        digit.setUnlitFill(Color.GREEN);
-        assertEquals(Color.GREEN, segments(digit).get(0).getFill());
-
-        digit.setUnlitFill(Color.TRANSPARENT);
-        assertEquals(Color.TRANSPARENT, segments(digit).get(0).getFill());
-
-        digit.setUnlitFill(null);
-        assertEquals(((Color) digit.getLitFill()).deriveColor(0.0, 1.0, 1.0, 0.15), segments(digit).get(0).getFill());
-    }
-
-    /**
-     * Verifies a gradient lit fill ghosts each stop, and a null lit fill leaves no ghost.
-     */
-    @Test
-    public void gradientLitFillGhostsEveryStop() {
-        RXDigit digit = withSkin();
-        digit.setDigit(1);
-        digit.setLitFill(new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.RED), new Stop(1, Color.BLUE)));
-
-        LinearGradient ghost = (LinearGradient) segments(digit).get(0).getFill();
-        assertEquals(Color.color(1.0, 0.0, 0.0, 0.15), ghost.getStops().get(0).getColor());
-        assertEquals(Color.color(0.0, 0.0, 1.0, 0.15), ghost.getStops().get(1).getColor());
-
-        digit.setLitFill(null);
-        assertNull(segments(digit).get(0).getFill());
     }
 
     /**
@@ -166,6 +114,21 @@ public class RXDigitTest {
         for (Polygon segment : segments(digit)) {
             assertNull(segment.getFill());
         }
+    }
+
+    /**
+     * Verifies a null unlitFill leaves unlit segments transparent rather than deriving from litFill.
+     */
+    @Test
+    public void nullUnlitFillRendersTransparent() {
+        RXDigit digit = withSkin();
+        digit.setDigit(1);
+        digit.setLitFill(Color.RED);
+        digit.setUnlitFill(null);
+        layout(digit, 50.0, 100.0);
+
+        assertEquals(Color.RED, segments(digit).get(4).getFill(), "upper-right is lit");
+        assertNull(segments(digit).get(0).getFill(), "top is unlit");
     }
 
     /**

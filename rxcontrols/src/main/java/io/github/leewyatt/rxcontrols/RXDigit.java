@@ -23,10 +23,9 @@ import java.util.List;
 
 /**
  * A single seven-segment numeric glyph. Renders one digit (0–9) as seven
- * beveled segments; lit segments use {@link #litFillProperty() litFill}, and unlit
- * segments show a faint ghost of that color unless
- * {@link #unlitFillProperty() unlitFill} is set, giving the classic LED/LCD
- * readout look. The control is purely decorative — the displayed value
+ * beveled segments; lit segments use {@link #litFillProperty() litFill} and
+ * unlit segments use {@link #unlitFillProperty() unlitFill}, giving the classic
+ * LED/LCD readout look. The control is purely decorative — the displayed value
  * is driven by application code (for example a clock that calls
  * {@link #setDigit(int)} every second).
  *
@@ -58,6 +57,11 @@ public class RXDigit extends Control {
      * Default fill for lit segments.
      */
     private static final Paint DEFAULT_LIT_FILL = Color.BLACK;
+
+    /**
+     * Default fill for unlit segments.
+     */
+    private static final Paint DEFAULT_UNLIT_FILL = Color.web("#dddddd");
 
     // ==================== Constructors ====================
 
@@ -147,14 +151,14 @@ public class RXDigit extends Control {
     // ==================== Unlit Fill ====================
 
     private final ObjectProperty<Paint> unlitFill =
-            new SimpleStyleableObjectProperty<>(StyleableProperties.UNLIT_FILL, this, "unlitFill");
+            new SimpleStyleableObjectProperty<>(StyleableProperties.UNLIT_FILL, this, "unlitFill", DEFAULT_UNLIT_FILL);
 
     /**
-     * Fill applied to unlit segments. Defaults to {@code null}, which draws each
-     * unlit segment as a ghost of {@link #litFillProperty() litFill}: the lit color
-     * at 15% opacity (a lit gradient keeps its stops at 15% opacity; other paints
-     * leave unlit segments unfilled). Set a paint, alpha included, to override the
-     * ghost; {@code Color.TRANSPARENT} hides the unlit segments.
+     * Fill applied to unlit segments. Initial value is {@link #DEFAULT_UNLIT_FILL};
+     * setting {@code null} renders the unlit segments with no fill (transparent)
+     * per the JavaFX {@code Shape.setFill} convention. Unlit fill does not follow
+     * {@link #litFillProperty() litFill}; set the two as a pair, the unlit one a
+     * weak tone of the lit one (for example the lit color with low alpha).
      *
      * @return the unlit-fill property
      */
@@ -189,7 +193,7 @@ public class RXDigit extends Control {
                 };
 
         private static final CssMetaData<RXDigit, Paint> UNLIT_FILL =
-                new CssMetaData<>("-rx-unlit-fill", PaintConverter.getInstance()) {
+                new CssMetaData<>("-rx-unlit-fill", PaintConverter.getInstance(), DEFAULT_UNLIT_FILL) {
                     @Override
                     public boolean isSettable(RXDigit n) {
                         return !n.unlitFill.isBound();

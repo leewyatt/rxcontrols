@@ -3,16 +3,10 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.scene.Group;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Paint;
-import javafx.scene.paint.RadialGradient;
-import javafx.scene.paint.Stop;
 import javafx.scene.shape.Polygon;
 import javafx.scene.transform.Scale;
 import javafx.scene.transform.Translate;
-
-import java.util.List;
 
 /**
  * Default skin for {@link RXDigit}. Renders the digit with seven {@link Polygon}
@@ -46,9 +40,6 @@ public class RXDigitSkin extends RXSkinBase<RXDigit> {
     private static final int MAX_DIGIT = 9;
 
     private static final double HALF = 0.5;
-
-    /** Opacity of the lit paint when it is reused as the unlit ghost. */
-    private static final double UNLIT_GHOST_OPACITY = 0.15;
 
     /**
      * Segment shapes in design-grid coordinates. Index order:
@@ -133,44 +124,9 @@ public class RXDigitSkin extends RXSkinBase<RXDigit> {
         int d = RXMath.clamp(getSkinnable().getDigit(), MIN_DIGIT, MAX_DIGIT);
         Paint lit = getSkinnable().getLitFill();
         Paint unlit = getSkinnable().getUnlitFill();
-        if (unlit == null) {
-            unlit = ghostOf(lit);
-        }
         for (int i = 0; i < SEGMENT_COUNT; i++) {
             segments[i].setFill(SEGMENTS_BY_DIGIT[d][i] ? lit : unlit);
         }
-    }
-
-    // The ghost is baked into the paint rather than set as node opacity, so a
-    // stylesheet styling .segment opacity cannot cancel it.
-    private static Paint ghostOf(Paint lit) {
-        if (lit instanceof Color) {
-            return fade((Color) lit);
-        }
-        if (lit instanceof LinearGradient) {
-            LinearGradient g = (LinearGradient) lit;
-            return new LinearGradient(g.getStartX(), g.getStartY(), g.getEndX(), g.getEndY(),
-                    g.isProportional(), g.getCycleMethod(), fade(g.getStops()));
-        }
-        if (lit instanceof RadialGradient) {
-            RadialGradient g = (RadialGradient) lit;
-            return new RadialGradient(g.getFocusAngle(), g.getFocusDistance(), g.getCenterX(), g.getCenterY(),
-                    g.getRadius(), g.isProportional(), g.getCycleMethod(), fade(g.getStops()));
-        }
-        return null;
-    }
-
-    private static Color fade(Color color) {
-        return color.deriveColor(0.0, 1.0, 1.0, UNLIT_GHOST_OPACITY);
-    }
-
-    private static Stop[] fade(List<Stop> stops) {
-        Stop[] faded = new Stop[stops.size()];
-        for (int i = 0; i < faded.length; i++) {
-            Stop stop = stops.get(i);
-            faded[i] = new Stop(stop.getOffset(), fade(stop.getColor()));
-        }
-        return faded;
     }
 
     // ==================== Layout ====================
