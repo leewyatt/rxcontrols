@@ -63,6 +63,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -332,8 +333,8 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, segmented tracks and unlit digit segments follow {@code -rx-outline}
-     * and lit digit segments follow {@code -rx-on-surface}.
+     * Under the bridge, segmented tracks follow {@code -rx-outline}, lit digit segments
+     * follow {@code -rx-on-surface}, and unlit digit segments stay undrawn.
      *
      * @throws Exception if the FX action fails
      */
@@ -358,8 +359,7 @@ public class RXAtlantaFXThemeBridgeTest {
                 "progress bar track -> -color-border-default");
         assertEquals(Color.web("#d0d7de"), fills.get("step indicator track"),
                 "step indicator track -> -color-border-default");
-        assertEquals(Color.web("#d0d7de"), fills.get("digit unlit"),
-                "digit unlit -> -color-border-default");
+        assertNull(fills.get("digit unlit"), "digit unlit is not drawn");
         assertEquals(Color.web("#24292f"), fills.get("digit lit"),
                 "digit lit -> -color-fg-default");
     }

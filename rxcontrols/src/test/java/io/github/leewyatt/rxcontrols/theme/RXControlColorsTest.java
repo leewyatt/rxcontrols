@@ -103,7 +103,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("step-indicator.track", "#cfcfcfff");
         DEFAULT_MODENA.put("carousel-navigator.track", "#ffffff59");
         DEFAULT_MODENA.put("digit.lit", "#333333ff");
-        DEFAULT_MODENA.put("digit.unlit", "#cfcfcfff");
+        DEFAULT_MODENA.put("digit.unlit", "null");
         DEFAULT_MODENA.put("fill-button.filling-armed.text", "#ffffffff");
         DEFAULT_MODENA.put("sidebar.background", "#ecececff");
         DEFAULT_MODENA.put("sidebar.selected", "#ccd1ffff");
@@ -151,7 +151,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("step-indicator.track", "#d0d7deff");
         PRIMER_LIGHT.put("carousel-navigator.track", "#ffffff59");
         PRIMER_LIGHT.put("digit.lit", "#24292fff");
-        PRIMER_LIGHT.put("digit.unlit", "#d0d7deff");
+        PRIMER_LIGHT.put("digit.unlit", "null");
         PRIMER_LIGHT.put("fill-button.filling-armed.text", "#ffffffff");
         PRIMER_LIGHT.put("sidebar.background", "#ffffffff");
         PRIMER_LIGHT.put("sidebar.selected", "#ddf4ffff");
@@ -201,7 +201,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("step-indicator.track", "#30363dff");
         PRIMER_DARK.put("carousel-navigator.track", "#ffffff59");
         PRIMER_DARK.put("digit.lit", "#c9d1d9ff");
-        PRIMER_DARK.put("digit.unlit", "#30363dff");
+        PRIMER_DARK.put("digit.unlit", "null");
         PRIMER_DARK.put("fill-button.filling-armed.text", "#ffffffff");
         PRIMER_DARK.put("sidebar.background", "#0d1117ff");
         PRIMER_DARK.put("sidebar.selected", "#388bfd26");
@@ -318,7 +318,7 @@ public class RXControlColorsTest {
         assertEquals(roles.get("outline"), samples.get("step-indicator.track"), "step indicator track");
         assertEquals("#ffffff59", samples.get("carousel-navigator.track"), "carousel navigator stays translucent white");
         assertEquals(roles.get("on-surface"), samples.get("digit.lit"), "lit digit segment");
-        assertEquals(roles.get("outline"), samples.get("digit.unlit"), "unlit digit segment");
+        assertEquals("null", samples.get("digit.unlit"), "unlit digit segment is not drawn");
         assertEquals("#ffffffff", samples.get("fill-button.filling-armed.text"), "filling fill button text");
         assertEquals(roles.get("primary"), samples.get("timeline.dot"), "default timeline dot");
         assertEquals(roles.get("primary"), samples.get("timeline.primary-dot"), "primary timeline dot");

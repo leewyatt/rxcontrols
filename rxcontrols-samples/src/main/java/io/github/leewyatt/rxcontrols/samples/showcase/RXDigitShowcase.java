@@ -189,7 +189,8 @@ public class RXDigitShowcase extends RXShowcaseApplication {
                 Paint lit = liveDigit.getLitFill();
                 Paint unlit = liveDigit.getUnlitFill();
                 SampleColors.seed(litPicker, lit);
-                SampleColors.seed(unlitPicker, unlit);
+                // A null unlit fill draws nothing; seed transparent rather than leave the picker's white.
+                SampleColors.seed(unlitPicker, unlit != null ? unlit : Color.TRANSPARENT);
             }
             applyColors.run();
         });

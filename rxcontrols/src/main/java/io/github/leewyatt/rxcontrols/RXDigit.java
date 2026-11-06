@@ -23,9 +23,9 @@ import java.util.List;
 
 /**
  * A single seven-segment numeric glyph. Renders one digit (0–9) as seven
- * beveled segments; lit segments use {@link #litFillProperty() litFill} and
- * unlit segments use {@link #unlitFillProperty() unlitFill}, giving the classic
- * LED/LCD readout look. The control is purely decorative — the displayed value
+ * beveled segments filled with {@link #litFillProperty() litFill}. Unlit segments
+ * are hidden unless {@link #unlitFillProperty() unlitFill} is set, which gives the
+ * classic LED/LCD readout look. The control is purely decorative — the displayed value
  * is driven by application code (for example a clock that calls
  * {@link #setDigit(int)} every second).
  *
@@ -57,11 +57,6 @@ public class RXDigit extends Control {
      * Default fill for lit segments.
      */
     private static final Paint DEFAULT_LIT_FILL = Color.BLACK;
-
-    /**
-     * Default fill for unlit segments.
-     */
-    private static final Paint DEFAULT_UNLIT_FILL = null;
 
     // ==================== Constructors ====================
 
@@ -151,14 +146,14 @@ public class RXDigit extends Control {
     // ==================== Unlit Fill ====================
 
     private final ObjectProperty<Paint> unlitFill =
-            new SimpleStyleableObjectProperty<>(StyleableProperties.UNLIT_FILL, this, "unlitFill", DEFAULT_UNLIT_FILL);
+            new SimpleStyleableObjectProperty<>(StyleableProperties.UNLIT_FILL, this, "unlitFill");
 
     /**
-     * Fill applied to unlit segments. Initial value is {@link #DEFAULT_UNLIT_FILL};
-     * setting {@code null} renders the unlit segments with no fill (transparent)
-     * per the JavaFX {@code Shape.setFill} convention. Unlit fill does not follow
-     * {@link #litFillProperty() litFill}; set the two as a pair, the unlit one a
-     * weak tone of the lit one (for example the lit color with low alpha).
+     * Fill applied to unlit segments. Defaults to {@code null}, so unlit segments are
+     * not drawn (the JavaFX {@code Shape.setFill} convention). Unlit fill does not
+     * follow {@link #litFillProperty() litFill}; for the LED/LCD look set the two as
+     * a pair, the unlit one a weak tone of the lit one (for example the lit color
+     * with low alpha).
      *
      * @return the unlit-fill property
      */
@@ -193,7 +188,7 @@ public class RXDigit extends Control {
                 };
 
         private static final CssMetaData<RXDigit, Paint> UNLIT_FILL =
-                new CssMetaData<>("-rx-unlit-fill", PaintConverter.getInstance(), DEFAULT_UNLIT_FILL) {
+                new CssMetaData<>("-rx-unlit-fill", PaintConverter.getInstance()) {
                     @Override
                     public boolean isSettable(RXDigit n) {
                         return !n.unlitFill.isBound();
