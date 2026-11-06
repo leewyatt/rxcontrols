@@ -2301,8 +2301,11 @@
     -fx-background-color: -fx-hover-base;
 }
 
+/* The text color is set alongside the tint: a theme's own toggle-button:selected
+   text color is meant for a solid accent fill and is unreadable on this one. */
 .rx-sidebar .item:selected {
     -fx-background-color: -rx-primary-bg;
+    -fx-text-fill: -rx-on-surface;
 }
 
 /* Opt-in slot for an item's icon: give the icon this class and the rail sizes it

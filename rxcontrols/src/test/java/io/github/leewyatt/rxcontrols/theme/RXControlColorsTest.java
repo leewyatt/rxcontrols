@@ -105,6 +105,9 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("digit.lit", "#333333ff");
         DEFAULT_MODENA.put("digit.unlit", "#cfcfcfff");
         DEFAULT_MODENA.put("fill-button.filling-armed.text", "#ffffffff");
+        DEFAULT_MODENA.put("sidebar.background", "#ecececff");
+        DEFAULT_MODENA.put("sidebar.selected", "#ccd1ffff");
+        DEFAULT_MODENA.put("sidebar.selected.text", "#333333ff");
         DEFAULT_MODENA.put("timeline.dot", "#616dffff");
         DEFAULT_MODENA.put("timeline.primary-dot", "#616dffff");
         DEFAULT_MODENA.put("timeline.hollow-dot.border", "#616dffff");
@@ -150,6 +153,9 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("digit.lit", "#24292fff");
         PRIMER_LIGHT.put("digit.unlit", "#d0d7deff");
         PRIMER_LIGHT.put("fill-button.filling-armed.text", "#ffffffff");
+        PRIMER_LIGHT.put("sidebar.background", "#ffffffff");
+        PRIMER_LIGHT.put("sidebar.selected", "#ddf4ffff");
+        PRIMER_LIGHT.put("sidebar.selected.text", "#24292fff");
         PRIMER_LIGHT.put("timeline.dot", "#0969daff");
         PRIMER_LIGHT.put("timeline.primary-dot", "#0969daff");
         PRIMER_LIGHT.put("timeline.hollow-dot.border", "#0969daff");
@@ -197,6 +203,9 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("digit.lit", "#c9d1d9ff");
         PRIMER_DARK.put("digit.unlit", "#30363dff");
         PRIMER_DARK.put("fill-button.filling-armed.text", "#ffffffff");
+        PRIMER_DARK.put("sidebar.background", "#0d1117ff");
+        PRIMER_DARK.put("sidebar.selected", "#388bfd26");
+        PRIMER_DARK.put("sidebar.selected.text", "#c9d1d9ff");
         PRIMER_DARK.put("timeline.dot", "#1f6febff");
         PRIMER_DARK.put("timeline.primary-dot", "#1f6febff");
         PRIMER_DARK.put("timeline.hollow-dot.border", "#1f6febff");
@@ -448,6 +457,37 @@ public class RXControlColorsTest {
             double tick = contrastRatio(Color.web(samples.get(slider + ".tick-label")), surface);
             assertTrue(tick >= WCAG_AA_CONTRAST, slider + " tick label " + tick + " under " + host);
         }
+    }
+
+    // ==================== Sidebar ====================
+
+    /**
+     * The selected sidebar item keeps its label legible on its tint, on default Modena, a
+     * dark application palette and every AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void sidebarSelectedItemStaysLegibleOnEveryHost() throws Exception {
+        Map<String, Double> ratios = new LinkedHashMap<>();
+        ratios.put("default Modena", sidebarSelectedContrast(Application.STYLESHEET_MODENA, scene -> { }));
+        ratios.put("dark palette", sidebarSelectedContrast(Application.STYLESHEET_MODENA,
+                RXControlColorsTest::darkPalette));
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            ratios.put(theme.getName(), sidebarSelectedContrast(theme.getUserAgentStylesheet(),
+                    RXAtlantaFXThemeBridge::install));
+        }
+        ratios.forEach((host, ratio) -> assertTrue(ratio >= WCAG_AA_CONTRAST,
+                "selected sidebar item text " + ratio + " under " + host));
+    }
+
+    private static double sidebarSelectedContrast(String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        Color tint = composite(Color.web(samples.get("sidebar.selected")), Color.web(samples.get("sidebar.background")));
+        Color text = composite(Color.web(samples.get("sidebar.selected.text")), tint);
+        return contrastRatio(text, tint);
     }
 
     // ==================== Tile / masonry cells ====================
