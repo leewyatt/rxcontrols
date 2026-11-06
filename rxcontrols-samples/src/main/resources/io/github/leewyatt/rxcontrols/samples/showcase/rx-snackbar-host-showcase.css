@@ -1,17 +1,16 @@
 .preview-content {
-    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);
     -fx-padding: 24;
 }
 
 .preview-heading {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0f172a;
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .preview-hint {
     -fx-font-size: 13px;
-    -fx-text-fill: #475569;
+    -fx-text-fill: -showcase-caption-color;
     -fx-max-width: 420;
 }
 
@@ -20,9 +19,11 @@
     -fx-padding: 10 22;
 }
 
+/* Painted with the scene background the snackbar picks its bar color against,
+   so the preview shows the contrast an application window would get. */
 .snackbar-area {
-    -fx-background-color: white;
-    -fx-border-color: #cbd5e1;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-style: dashed;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
