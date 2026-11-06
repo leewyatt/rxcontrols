@@ -69,7 +69,6 @@ public class RXStatePaneShowcase extends RXShowcaseApplication {
         pane.setContent(createContent());
         pane.addEventHandler(RXStatePane.RETRY, e -> lastEvent.set("RETRY"));
         StackPane host = new StackPane(pane);
-        host.getStyleClass().add("preview-host");
         return host;
     }
 

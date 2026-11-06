@@ -1,7 +1,3 @@
-.preview-host {
-    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #eef2ff);
-}
-
 .preview-content {
     -fx-padding: 32;
 }
@@ -9,12 +5,12 @@
 .preview-heading {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: #0f172a;
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .preview-hint {
     -fx-font-size: 13px;
-    -fx-text-fill: #475569;
+    -fx-text-fill: -showcase-caption-color;
     -fx-max-width: 340;
 }
 
