@@ -78,6 +78,7 @@ final class ThemeColorSamples {
         RXSlider slider = new RXSlider();
         RXWaveProgressIndicator wave = new RXWaveProgressIndicator();
         RXCircularProgressIndicator circular = new RXCircularProgressIndicator();
+        RXCircularProgressIndicator completedCircular = new RXCircularProgressIndicator(1.0);
         RXAvatar avatar = new RXAvatar();
 
         RXSnackbarHost plainHost = new RXSnackbarHost();
@@ -86,6 +87,8 @@ final class ThemeColorSamples {
         severityHost.setAnimated(false);
 
         RXSegmentedProgressBar progressBar = new RXSegmentedProgressBar();
+        RXSegmentedProgressBar completedProgressBar = new RXSegmentedProgressBar();
+        completedProgressBar.setProgress(1.0);
         RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator();
         RXSegmentedStepIndicator navigatorSteps = new RXSegmentedStepIndicator();
         StackPane navigator = new StackPane(navigatorSteps);
@@ -97,8 +100,8 @@ final class ThemeColorSamples {
         RXListView<String> listView = new RXListView<>();
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
-        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, avatar,
-                plainHost, severityHost, progressBar, steps, navigator, digit, fillButton, tileView, listView,
+        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, completedCircular, avatar,
+                plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit, fillButton, tileView, listView,
                 masonryView);
         Scene scene = new Scene(root, 800, 1600);
         themer.accept(scene);
@@ -139,6 +142,7 @@ final class ThemeColorSamples {
         samples.put("wave.container", background(wave.lookup(".wave-container")));
         samples.put("circular.track", hex(circular.getTrackStroke()));
         samples.put("circular.progress", hex(circular.getProgressStroke()));
+        samples.put("circular.completed", hex(completedCircular.getProgressStroke()));
         samples.put("avatar.icon-disc", background(avatar.lookup(".default-icon-wrapper")));
         samples.put("avatar.icon", background(avatar.lookup(".default-icon-wrapper > .default-icon")));
 
@@ -151,6 +155,7 @@ final class ThemeColorSamples {
         samples.put("snackbar.info.close-icon", background(severityHost.lookup(".close-button > .icon")));
 
         samples.put("progress-bar.track", background(progressBar.lookup(".track")));
+        samples.put("progress-bar.completed", background(completedProgressBar.lookup(".segment-fill")));
         samples.put("step-indicator.track", background(steps.lookup(".track")));
         samples.put("carousel-navigator.track", background(navigatorSteps.lookup(".track")));
         samples.put("digit.lit", hex(digit.getLitFill()));

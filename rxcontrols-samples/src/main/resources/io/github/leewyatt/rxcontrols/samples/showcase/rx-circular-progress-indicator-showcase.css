@@ -18,7 +18,7 @@
 
 .rx-circular-progress-indicator:determinate:completed .state-icon {
     -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
-    -fx-background-color: #2ecc71;
+    -fx-background-color: -rx-success;
     -fx-pref-width: 17.59px;
     -fx-pref-height: 13.41px;
 }

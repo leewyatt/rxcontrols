@@ -1405,7 +1405,7 @@
 }
 
 .rx-circular-progress-indicator:completed {
-    -rx-progress-stroke: #2ecc71;
+    -rx-progress-stroke: -rx-success;
 }
 
 .rx-circular-progress-indicator > .progress-label {
@@ -1703,7 +1703,7 @@
 }
 
 .rx-segmented-progress-bar:completed {
-    -rx-filled-color: #2ecc71;
+    -rx-filled-color: -rx-success;
 }
 
 /*******************************************************************************

@@ -81,6 +81,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
         DEFAULT_MODENA.put("circular.track", "#81cee7ff");
         DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
+        DEFAULT_MODENA.put("circular.completed", "#67c23aff");
         DEFAULT_MODENA.put("avatar.icon-disc", "#bdbdbdff");
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
@@ -91,6 +92,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("snackbar.info.message", "#ffffffff");
         DEFAULT_MODENA.put("snackbar.info.close-icon", "#ffffffb2");
         DEFAULT_MODENA.put("progress-bar.track", "#cfcfcfff");
+        DEFAULT_MODENA.put("progress-bar.completed", "#67c23aff");
         DEFAULT_MODENA.put("step-indicator.track", "#cfcfcfff");
         DEFAULT_MODENA.put("carousel-navigator.track", "#ffffff59");
         DEFAULT_MODENA.put("digit.lit", "#333333ff");
@@ -114,6 +116,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
         PRIMER_LIGHT.put("circular.track", "#54aeff66");
         PRIMER_LIGHT.put("circular.progress", "#0969daff");
+        PRIMER_LIGHT.put("circular.completed", "#2da44eff");
         PRIMER_LIGHT.put("avatar.icon-disc", "#6e7781ff");
         PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
@@ -124,6 +127,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("snackbar.info.message", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.info.close-icon", "#ffffffb2");
         PRIMER_LIGHT.put("progress-bar.track", "#d0d7deff");
+        PRIMER_LIGHT.put("progress-bar.completed", "#2da44eff");
         PRIMER_LIGHT.put("step-indicator.track", "#d0d7deff");
         PRIMER_LIGHT.put("carousel-navigator.track", "#ffffff59");
         PRIMER_LIGHT.put("digit.lit", "#24292fff");
@@ -148,6 +152,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("wave.container", "#161b22ff");
         PRIMER_DARK.put("circular.track", "#388bfd66");
         PRIMER_DARK.put("circular.progress", "#1f6febff");
+        PRIMER_DARK.put("circular.completed", "#238636ff");
         PRIMER_DARK.put("avatar.icon-disc", "#6e7681ff");
         PRIMER_DARK.put("avatar.icon", "#ffffffff");
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
@@ -159,6 +164,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("snackbar.info.message", "#ffffffff");
         PRIMER_DARK.put("snackbar.info.close-icon", "#ffffffb2");
         PRIMER_DARK.put("progress-bar.track", "#30363dff");
+        PRIMER_DARK.put("progress-bar.completed", "#238636ff");
         PRIMER_DARK.put("step-indicator.track", "#30363dff");
         PRIMER_DARK.put("carousel-navigator.track", "#ffffff59");
         PRIMER_DARK.put("digit.lit", "#c9d1d9ff");
@@ -265,6 +271,8 @@ public class RXControlColorsTest {
         assertEquals("#ffffffff", samples.get("snackbar.info.message"), "severity bar keeps white text");
         assertEquals("#ffffffb2", samples.get("snackbar.info.close-icon"), "severity bar keeps a light close icon");
         assertEquals(roles.get("outline"), samples.get("progress-bar.track"), "segmented progress track");
+        assertEquals(roles.get("success"), samples.get("progress-bar.completed"), "completed segmented progress fill");
+        assertEquals(roles.get("success"), samples.get("circular.completed"), "completed circular progress arc");
         assertEquals(roles.get("outline"), samples.get("step-indicator.track"), "step indicator track");
         assertEquals("#ffffff59", samples.get("carousel-navigator.track"), "carousel navigator stays translucent white");
         assertEquals(roles.get("on-surface"), samples.get("digit.lit"), "lit digit segment");
@@ -646,7 +654,7 @@ public class RXControlColorsTest {
 
     /** The role tokens resolved under a host, as 8-bit hex. */
     private static Map<String, String> roles(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
-        List<String> tokens = List.of("info", "surface", "surface-variant", "on-surface",
+        List<String> tokens = List.of("primary", "success", "info", "surface", "surface-variant", "on-surface",
                 "on-surface-secondary", "on-surface-disabled", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
         List<String> expressions = new ArrayList<>();
