@@ -159,9 +159,9 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("cascader.prompt", "#8b949eff");
         PRIMER_DARK.put("cascader.column.border", "#30363dff");
         PRIMER_DARK.put("cascader.cell.hover", "#161b22ff");
-        PRIMER_DARK.put("segmented.selected", "#000000e0");
+        PRIMER_DARK.put("segmented.selected", "#c9d1d9ff");
         PRIMER_DARK.put("segmented.unselected", "#c9d1d9ff");
-        PRIMER_DARK.put("segmented.indicator", "#ffffffff");
+        PRIMER_DARK.put("segmented.indicator", "#343d4aff");
         PRIMER_DARK.put("seek.track", "#161b22ff");
         PRIMER_DARK.put("seek.secondary", "#30363dff");
         PRIMER_DARK.put("slider.track", "#30363dff");
@@ -204,6 +204,8 @@ public class RXControlColorsTest {
     private static final double PLACEHOLDER_CONTRAST = 3.0;
     private static final double TRACK_CONTRAST = 1.3;
     private static final double NON_TEXT_CONTRAST = 3.0;
+    private static final double PILL_MIN_CONTRAST = 1.04;
+    private static final double PILL_MAX_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass HOVER = PseudoClass.getPseudoClass("hover");
 
@@ -280,7 +282,7 @@ public class RXControlColorsTest {
         assertEquals(roles.get("on-surface-secondary"), samples.get("cascader.prompt"), "cascader prompt");
         assertEquals(roles.get("outline"), samples.get("cascader.column.border"), "cascader column separator");
         assertEquals(roles.get("on-surface"), samples.get("segmented.unselected"), "unselected segment label");
-        assertEquals("#000000e0", samples.get("segmented.selected"), "selected segment label on the white pill");
+        assertEquals(roles.get("on-surface"), samples.get("segmented.selected"), "selected segment label on the dark pill");
         assertEquals(roles.get("surface-variant"), samples.get("seek.track"), "seek bar track");
         assertEquals(roles.get("outline"), samples.get("seek.secondary"), "seek bar buffer");
         assertEquals(roles.get("outline"), samples.get("slider.track"), "slider track");
@@ -369,6 +371,38 @@ public class RXControlColorsTest {
         double progressRatio = contrastRatio(composite(Color.web(samples.get("circular.progress")), surface), surface);
         assertTrue(trackRatio < progressRatio,
                 "circular track " + trackRatio + " outweighs the progress " + progressRatio + " under " + host);
+    }
+
+    // ==================== Segmented pill ====================
+
+    /**
+     * The segmented selection pill stands apart from its track without glaring over it, and
+     * keeps the selected label legible, on default Modena, a dark application palette and every
+     * AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void segmentedPillStandsOutOnEveryHost() throws Exception {
+        assertSegmentedPill("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertSegmentedPill("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            assertSegmentedPill(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        }
+    }
+
+    private static void assertSegmentedPill(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        Color track = Color.web(roles(userAgentStylesheet, themer).get("surface-variant"));
+        Color pill = composite(Color.web(samples.get("segmented.indicator")), track);
+        Color label = composite(Color.web(samples.get("segmented.selected")), pill);
+        double edge = contrastRatio(pill, track);
+        double text = contrastRatio(label, pill);
+        assertTrue(edge >= PILL_MIN_CONTRAST && edge <= PILL_MAX_CONTRAST,
+                "segmented pill vs track " + edge + " under " + host);
+        assertTrue(text >= WCAG_AA_CONTRAST, "selected segment label " + text + " under " + host);
     }
 
     // ==================== Slider value bubble ====================

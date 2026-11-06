@@ -2414,8 +2414,9 @@
     -fx-padding: 2;
 }
 
+/* White pill on a light host; on a dark one a neutral lifted above the track. */
 .rx-segmented-control > .indicator {
-    -fx-background-color: white;
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 30%) 45%, white 46%);
     -fx-background-radius: 4;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.10), 4, 0, 0, 2);
 }
@@ -2437,9 +2438,8 @@
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.65) 46%);
 }
 
-/* The selected label sits on the white indicator pill on every host. */
 .rx-segmented-control > .segment:selected .label {
-    -fx-text-fill: rgba(0, 0, 0, 0.88);
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.88) 46%);
 }
 
 .rx-segmented-control > .segment:disabled .label {
@@ -2454,7 +2454,7 @@
 
 .rx-theme-atlantafx .rx-segmented-control > .segment:selected .label,
 .rx-theme-atlantafx.rx-segmented-control > .segment:selected .label {
-    -fx-text-fill: rgba(0, 0, 0, 0.88);
+    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.88) 46%);
 }
 
 .rx-theme-atlantafx .rx-segmented-control > .segment:disabled .label,
