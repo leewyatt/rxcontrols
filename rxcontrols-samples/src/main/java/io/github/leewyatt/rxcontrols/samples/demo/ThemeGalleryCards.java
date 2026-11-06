@@ -617,7 +617,6 @@ final class ThemeGalleryCards {
         button.setLineAnimation(LineAnimation.UNDERLINE_LEFT_TO_RIGHT);
         button.setLineThickness(2.0);
         button.setLineGap(3.0);
-        button.setStyle("-rx-line-color: #616dff;");
         button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
