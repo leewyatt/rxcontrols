@@ -61,7 +61,7 @@ public class RXDigit extends Control {
     /**
      * Default fill for unlit segments.
      */
-    private static final Paint DEFAULT_UNLIT_FILL = Color.web("#dddddd");
+    private static final Paint DEFAULT_UNLIT_FILL = null;
 
     // ==================== Constructors ====================
 
