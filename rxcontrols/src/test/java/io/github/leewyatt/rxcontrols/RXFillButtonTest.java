@@ -546,13 +546,13 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies the fill and ripple clips round off at the border's inner edge (radius minus
-     * border width), so no background shows between the border and the fill in the corners.
+     * Verifies the fill and ripple clips sit inside the default 1px border with the radius
+     * reduced by it (4px to 3px), so no background shows in the corners.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void clipsMeetTheBorderInnerCorner() throws Exception {
+    public void clipsInsetByTheBorderReduceTheirCornerRadius() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             StackPane root = new StackPane(button);
@@ -563,7 +563,8 @@ public class RXFillButtonTest {
             BackgroundFill fillClip = ((Region) fillLayer(button).getClip()).getBackground().getFills().get(0);
             RippleLayer rippleLayer = (RippleLayer) button.getChildrenUnmodifiable().get(1);
             BackgroundFill rippleClip = ((Region) rippleLayer.getClip()).getBackground().getFills().get(0);
-            assertEquals(new Insets(1.0), fillClip.getInsets());
+            assertEquals(new Insets(1.0), fillClip.getInsets(), "fill clip insets");
+            assertEquals(new Insets(1.0), rippleClip.getInsets(), "ripple clip insets");
             assertEquals(3.0, fillClip.getRadii().getTopLeftHorizontalRadius(), EPSILON, "fill clip radius");
             assertEquals(3.0, rippleClip.getRadii().getTopLeftHorizontalRadius(), EPSILON, "ripple clip radius");
         });
