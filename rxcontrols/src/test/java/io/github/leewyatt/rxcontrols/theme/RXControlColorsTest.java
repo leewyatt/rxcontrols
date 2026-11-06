@@ -78,6 +78,11 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("seek.track", "#eaeaeaff");
         DEFAULT_MODENA.put("seek.secondary", "#dadadaff");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
+        DEFAULT_MODENA.put("slider.indicator", "#424242ff");
+        DEFAULT_MODENA.put("slider.indicator.text", "#ffffffff");
+        DEFAULT_MODENA.put("slider.indicator.caret", "#424242ff");
+        DEFAULT_MODENA.put("range-slider.indicator", "#424242ff");
+        DEFAULT_MODENA.put("range-slider.indicator.text", "#ffffffff");
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
         DEFAULT_MODENA.put("circular.track", "#81cee7ff");
         DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
@@ -116,6 +121,11 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("seek.track", "#f6f8faff");
         PRIMER_LIGHT.put("seek.secondary", "#d0d7deff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
+        PRIMER_LIGHT.put("slider.indicator", "#424242ff");
+        PRIMER_LIGHT.put("slider.indicator.text", "#ffffffff");
+        PRIMER_LIGHT.put("slider.indicator.caret", "#424242ff");
+        PRIMER_LIGHT.put("range-slider.indicator", "#424242ff");
+        PRIMER_LIGHT.put("range-slider.indicator.text", "#ffffffff");
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
         PRIMER_LIGHT.put("circular.track", "#54aeff66");
         PRIMER_LIGHT.put("circular.progress", "#0969daff");
@@ -155,6 +165,11 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("seek.track", "#161b22ff");
         PRIMER_DARK.put("seek.secondary", "#30363dff");
         PRIMER_DARK.put("slider.track", "#30363dff");
+        PRIMER_DARK.put("slider.indicator", "#e0e0e0ff");
+        PRIMER_DARK.put("slider.indicator.text", "#000000de");
+        PRIMER_DARK.put("slider.indicator.caret", "#e0e0e0ff");
+        PRIMER_DARK.put("range-slider.indicator", "#e0e0e0ff");
+        PRIMER_DARK.put("range-slider.indicator.text", "#000000de");
         PRIMER_DARK.put("wave.container", "#161b22ff");
         PRIMER_DARK.put("circular.track", "#388bfd66");
         PRIMER_DARK.put("circular.progress", "#1f6febff");
@@ -188,6 +203,7 @@ public class RXControlColorsTest {
     private static final double WCAG_AA_CONTRAST = 4.5;
     private static final double PLACEHOLDER_CONTRAST = 3.0;
     private static final double TRACK_CONTRAST = 1.3;
+    private static final double NON_TEXT_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass HOVER = PseudoClass.getPseudoClass("hover");
 
@@ -353,6 +369,40 @@ public class RXControlColorsTest {
         double progressRatio = contrastRatio(composite(Color.web(samples.get("circular.progress")), surface), surface);
         assertTrue(trackRatio < progressRatio,
                 "circular track " + trackRatio + " outweighs the progress " + progressRatio + " under " + host);
+    }
+
+    // ==================== Slider value bubble ====================
+
+    /**
+     * The slider and range slider value bubble stands out from the surface and keeps its
+     * text legible on default Modena, a dark application palette and every AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void sliderValueBubbleStandsOutOnEveryHost() throws Exception {
+        assertSliderBubble("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertSliderBubble("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            assertSliderBubble(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        }
+    }
+
+    private static void assertSliderBubble(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        Color surface = Color.web(roles(userAgentStylesheet, themer).get("surface"));
+        for (String slider : List.of("slider", "range-slider")) {
+            Color bubble = Color.web(samples.get(slider + ".indicator"));
+            Color text = composite(Color.web(samples.get(slider + ".indicator.text")), bubble);
+            double edge = contrastRatio(bubble, surface);
+            double label = contrastRatio(text, bubble);
+            assertTrue(edge >= NON_TEXT_CONTRAST, slider + " bubble vs surface " + edge + " under " + host);
+            assertTrue(label >= WCAG_AA_CONTRAST, slider + " bubble text " + label + " under " + host);
+        }
+        assertEquals(samples.get("slider.indicator"), samples.get("slider.indicator.caret"),
+                "caret matches the bubble under " + host);
     }
 
     // ==================== Tile / masonry cells ====================

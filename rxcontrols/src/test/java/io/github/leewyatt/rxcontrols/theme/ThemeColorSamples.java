@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
@@ -78,6 +79,7 @@ final class ThemeColorSamples {
 
         RXSeekBar seekBar = new RXSeekBar();
         RXSlider slider = new RXSlider();
+        RXRangeSlider rangeSlider = new RXRangeSlider();
         RXWaveProgressIndicator wave = new RXWaveProgressIndicator();
         RXCircularProgressIndicator circular = new RXCircularProgressIndicator();
         RXCircularProgressIndicator completedCircular = new RXCircularProgressIndicator(1.0);
@@ -110,7 +112,7 @@ final class ThemeColorSamples {
         RXListView<String> listView = new RXListView<>();
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
-        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, wave, circular, completedCircular,
+        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, slider, rangeSlider, wave, circular, completedCircular,
                 avatar, plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit,
                 fillButton, plainTimeline, primaryTimeline, hollowTimeline, tileView, listView, masonryView);
         Scene scene = new Scene(root, 800, 1600);
@@ -149,6 +151,11 @@ final class ThemeColorSamples {
         samples.put("seek.track", background(seekBar.lookup(".track")));
         samples.put("seek.secondary", background(seekBar.lookup(".secondary-bar")));
         samples.put("slider.track", background(slider.lookup(".track")));
+        samples.put("slider.indicator", background(slider.lookup(".value-indicator")));
+        samples.put("slider.indicator.text", text(slider.lookup(".value-indicator > .label")));
+        samples.put("slider.indicator.caret", background(slider.lookup(".value-indicator > .caret")));
+        samples.put("range-slider.indicator", background(rangeSlider.lookup(".value-indicator")));
+        samples.put("range-slider.indicator.text", text(rangeSlider.lookup(".value-indicator > .label")));
         samples.put("wave.container", background(wave.lookup(".wave-container")));
         samples.put("circular.track", hex(circular.getTrackStroke()));
         samples.put("circular.progress", hex(circular.getProgressStroke()));
