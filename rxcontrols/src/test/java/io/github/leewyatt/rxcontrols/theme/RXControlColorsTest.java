@@ -26,6 +26,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Labeled;
 import javafx.scene.layout.Region;
@@ -491,11 +492,17 @@ public class RXControlColorsTest {
                 segmented.select("on");
                 return segmented;
             }, control -> {
-                StringBuilder labels = new StringBuilder();
-                for (Node label : control.lookupAll(".segment .label")) {
-                    labels.append(ThemeColorSamples.hex(((Labeled) label).getTextFill())).append(' ');
+                String selected = "missing";
+                String unselected = "missing";
+                for (Node segment : control.lookupAll(".segment")) {
+                    String text = ThemeColorSamples.hex(((Labeled) ((Parent) segment).lookup(".label")).getTextFill());
+                    if (segment.getPseudoClassStates().contains(SELECTED)) {
+                        selected = text;
+                    } else {
+                        unselected = text;
+                    }
                 }
-                return labels.toString().trim();
+                return "selected " + selected + " unselected " + unselected;
             }, asRoot, nested);
             sampleBothWays("cascader prompt", () -> {
                 RXCascader<String> cascader = new RXCascader<>();
