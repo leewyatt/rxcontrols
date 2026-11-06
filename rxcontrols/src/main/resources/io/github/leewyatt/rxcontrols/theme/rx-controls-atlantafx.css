@@ -9,6 +9,10 @@
  * only win by padding its specificity past whatever the AtlantaFX version in  *
  * use ships; author origin beats them all.                                    *
  *                                                                             *
+ * Text color and opacity stay in the user-agent scope rules: AtlantaFX sets   *
+ * them only on plain .button states, and an author rule would also override   *
+ * values the application sets in code (a fade animation on opacity).          *
+ *                                                                             *
  * Everything else is NOT here: the -rx-* <- -color-* token mapping, the       *
  * Modena -fx-* compat block and the per-control AtlantaFX rules live in       *
  * rx-controls.css under the .rx-theme-atlantafx scope class, so they keep     *
@@ -17,17 +21,6 @@
  * theme set as the Application user-agent stylesheet.                         *
  *                                                                             *
  ******************************************************************************/
-/* AtlantaFX's .button:armed sets a themed text color (-color-fg-default: dark on
-   light themes) that ties on specificity with rx-controls' .rx-fill-button:filling
-   in the user-agent cascade and can win when a fill button is pressed while filling,
-   leaving hard-to-read dark text on the dark pressed fill. Re-assert the on-primary
-   text from author origin (always beats the user-agent tie) wherever the fill covers
-   the label. */
-.rx-fill-button:filling,
-.rx-fill-label:filling {
-    -fx-text-fill: -rx-on-primary;
-}
-
 /* AtlantaFX repaints the button body on :hover / :armed / :focused and their pairs,
    outranking the default control rules; author origin beats all of them at once. */
 .rx-fill-button,

@@ -516,6 +516,33 @@ public class RXFillButtonTest {
     }
 
     /**
+     * Verifies the focus ring is an outside border stroke that leaves the sweep area in place.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusRingLeavesTheSweepAreaInPlace() throws Exception {
+        runOnFx(() -> {
+            RXFillButton button = withSkin(new RXFillButton("Fill"));
+            StackPane root = new StackPane(button);
+            new Scene(root);
+            root.applyCss();
+            layout(button, 100.0, 40.0);
+            int restingStrokes = button.getBorder().getStrokes().size();
+            Insets restingArea = new Insets(fillContent(button).getLayoutY(), 0.0, 0.0, fillContent(button).getLayoutX());
+
+            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            root.applyCss();
+            layout(button, 100.0, 40.0);
+
+            assertEquals(restingStrokes + 1, button.getBorder().getStrokes().size(), "focus adds a ring stroke");
+            assertEquals(restingArea,
+                    new Insets(fillContent(button).getLayoutY(), 0.0, 0.0, fillContent(button).getLayoutX()));
+            assertEquals(98.0, fillContent(button).getWidth(), EPSILON);
+        });
+    }
+
+    /**
      * Verifies the fill and ripple corner-radius overrides clip their own
      * layers independently on the same button.
      *

@@ -691,8 +691,8 @@ public class RXAtlantaFXThemeBridgeTest {
     /**
      * A fill button pressed while filling is both {@code :armed} (AtlantaFX sets a
      * themed, light-theme-dark text there) and {@code :filling} (rx-controls sets
-     * on-primary). Those user-agent rules tie on specificity; the bridge re-asserts
-     * on-primary from author origin so the label stays readable on the dark fill.
+     * on-primary). The scoped {@code :filling} rule outranks AtlantaFX, so the label
+     * stays readable on the dark fill.
      *
      * @throws Exception if the FX action fails
      */
@@ -702,7 +702,7 @@ public class RXAtlantaFXThemeBridgeTest {
 
         runOnFx(() -> {
             // Reproduce the cascade on one node: .button (AtlantaFX :armed text rule)
-            // + .rx-fill-button:filling (the bridge's author on-primary text rule).
+            // + .rx-fill-button:filling (the scoped on-primary text rule).
             Label probe = new Label("x");
             probe.getStyleClass().addAll("button", "rx-fill-button");
             probe.pseudoClassStateChanged(PseudoClass.getPseudoClass("filling"), true);
@@ -718,7 +718,32 @@ public class RXAtlantaFXThemeBridgeTest {
 
         assertEquals(Color.web("#ffffff"), textFill.get(),
                 "a filling+armed fill button must keep -rx-on-primary text (else AtlantaFX "
-                        + "':armed' wins the user-agent tie and the label goes dark on the fill)");
+                        + "':armed' wins and the label goes dark on the fill)");
+    }
+
+    /**
+     * AtlantaFX recolors {@code .button} text on {@code :hover}, {@code :focused} and
+     * {@code :armed} and fades it to 0.9 opacity on {@code :hover}; the flat buttons keep
+     * their own text color and full opacity in every one of those states.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void flatButtonsKeepTheirTextAndOpacityInEveryAtlantaFxState() throws Exception {
+        assertTextAndOpacityInEveryState("rx-fill-button", () -> new RXFillButton("x"), ACCENT_EMPHASIS);
+        assertTextAndOpacityInEveryState("rx-line-button", () -> new RXLineButton("x"), Color.web("#24292f"));
+    }
+
+    /**
+     * A focused flat button draws a {@code -rx-focus} ring wholly outside its bounds, so
+     * its insets (and with them the sweep and ripple clips) do not move; disabled still fades.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void flatButtonsDrawAnOutsideFocusRingAndFadeWhenDisabled() throws Exception {
+        assertFocusRingAndDisabledFade(() -> new RXFillButton("x"));
+        assertFocusRingAndDisabledFade(() -> new RXLineButton("x"));
     }
 
     /**
@@ -741,6 +766,60 @@ public class RXAtlantaFXThemeBridgeTest {
     private static Paint trackFill(Node control) {
         Region track = (Region) control.lookup(".track");
         return track.getBackground().getFills().get(0).getFill();
+    }
+
+    private static void assertTextAndOpacityInEveryState(String name, Supplier<Control> factory,
+                                                         Color expectedText) throws Exception {
+        for (String state : STATE_COMBINATIONS) {
+            AtomicReference<Paint> text = new AtomicReference<>();
+            AtomicReference<Double> opacity = new AtomicReference<>();
+            runOnFx(() -> {
+                Control control = factory.get();
+                StackPane host = new StackPane(control);
+                Scene scene = new Scene(host, 160.0, 60.0);
+                RXAtlantaFXThemeBridge.install(scene);
+                host.applyCss();
+                for (String pseudo : state.split("\\+")) {
+                    if (!pseudo.isEmpty()) {
+                        control.pseudoClassStateChanged(PseudoClass.getPseudoClass(pseudo), true);
+                    }
+                }
+                host.applyCss();
+                text.set(((Labeled) control).getTextFill());
+                opacity.set(control.getOpacity());
+            });
+
+            String where = name + " [" + (state.isEmpty() ? "resting" : state) + "]";
+            assertEquals(expectedText, text.get(), where + " text");
+            assertEquals(1.0, opacity.get(), 0.0001, where + " opacity");
+        }
+    }
+
+    private static void assertFocusRingAndDisabledFade(Supplier<Control> factory) throws Exception {
+        AtomicReference<Insets> resting = new AtomicReference<>();
+        AtomicReference<Insets> focused = new AtomicReference<>();
+        AtomicReference<Paint> ring = new AtomicReference<>();
+        AtomicReference<Double> disabledOpacity = new AtomicReference<>();
+        runOnFx(() -> {
+            Control control = factory.get();
+            StackPane host = new StackPane(control);
+            Scene scene = new Scene(host, 160.0, 60.0);
+            RXAtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            resting.set(control.getInsets());
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            host.applyCss();
+            focused.set(control.getInsets());
+            ring.set(control.getBorder().getStrokes().get(0).getTopStroke());
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), false);
+            control.setDisable(true);
+            host.applyCss();
+            disabledOpacity.set(control.getOpacity());
+        });
+
+        assertEquals(resting.get(), focused.get(), "the focus ring must not change the insets");
+        assertEquals(ACCENT_EMPHASIS, ring.get(), "focus ring -> -rx-focus (-color-accent-emphasis)");
+        assertEquals(0.4, disabledOpacity.get(), 0.0001, "disabled opacity");
     }
 
     private static void assertSingleTransparentFillInEveryState(String name,
