@@ -1,7 +1,8 @@
 /*
  * Showcase shell chrome. Colors are expressed through the Modena base looked-up
  * vars (-fx-background, -fx-control-inner-background, -fx-text-base-color,
- * -fx-mid-text-color, -fx-text-box-border) so the chrome follows the active theme.
+ * -fx-mid-text-color, -fx-text-box-border, -fx-accent) so the chrome and the
+ * showcases' own stylesheets follow the active theme.
  * AtlantaFX does not define these vars, so the .rx-theme-atlantafx block maps them
  * to -color-*; the scope class is present while RXAtlantaFXThemeBridge is installed
  * on the scene. The editing controls (sliders, buttons, combos, check boxes) are
@@ -21,6 +22,7 @@
     -fx-mid-text-color: -color-fg-muted;
     -showcase-caption-color: -fx-mid-text-color;
     -fx-text-box-border: -color-border-default;
+    -fx-accent: -color-accent-emphasis;
 }
 
 .preview-pane {
