@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Unit tests for how {@link BoundedClipSupport} insets the mirrored background geometry:
  * a border inset shrinks absolute corner radii side by side, while explicit insets,
- * percentage radii and border-less hosts keep the background radii.
+ * explicit radii, percentage radii and border-less hosts keep the background radii.
  */
 public class BoundedClipSupportTest {
 
@@ -87,6 +87,36 @@ public class BoundedClipSupportTest {
         assertEquals(9.0, clip.getRadii().getTopLeftHorizontalRadius());
     }
 
+    /** With several strokes each side takes its deepest inner edge, possibly from different strokes. */
+    @Test
+    public void severalStrokesInsetEachSideByItsDeepestStroke() {
+        Region host = host(RADII, Insets.EMPTY, null);
+        host.setBorder(new Border(
+                new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, RADII, new BorderWidths(3.0, 1.0, 1.0, 1.0)),
+                new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, RADII, new BorderWidths(1.0, 2.0, 1.0, 4.0))));
+
+        BackgroundFill clip = clipFill(host, null);
+
+        assertEquals(new Insets(3.0, 2.0, 1.0, 4.0), clip.getInsets());
+        assertEquals(7.0, clip.getRadii().getTopLeftVerticalRadius(), "top from the first stroke");
+        assertEquals(6.0, clip.getRadii().getTopLeftHorizontalRadius(), "left from the second stroke");
+        assertEquals(8.0, clip.getRadii().getTopRightHorizontalRadius(), "right from the second stroke");
+    }
+
+    /** Explicit radii bypass the reduction and keep their values inside the border inset. */
+    @Test
+    public void explicitRadiiBypassTheReduction() {
+        Region host = host(RADII, Insets.EMPTY, new BorderWidths(1.0));
+        CornerRadii explicit = new CornerRadii(6.0);
+        Pane owner = new Pane();
+
+        new BoundedClipSupport(owner).updateClipFor(host, WIDTH, HEIGHT, null, explicit);
+
+        BackgroundFill clip = ((Region) owner.getClip()).getBackground().getFills().get(0);
+        assertEquals(new Insets(1.0), clip.getInsets());
+        assertEquals(explicit, clip.getRadii());
+    }
+
     /** Explicit insets replace the border inset and keep the background radii. */
     @Test
     public void explicitInsetsKeepTheRadii() {
@@ -112,7 +142,7 @@ public class BoundedClipSupportTest {
     /** Percentage radii keep their value; only the inset changes. */
     @Test
     public void percentageRadiiKeepTheirValue() {
-        CornerRadii percent = new CornerRadii(50.0, true);
+        CornerRadii percent = new CornerRadii(0.5, true);
         Region host = host(percent, Insets.EMPTY, new BorderWidths(1.0));
 
         BackgroundFill clip = clipFill(host, null);

@@ -545,7 +545,9 @@ public class RXRipplePane extends Region {
      * the {@link #rippleInsetsProperty() rippleInsets} box), ignoring the pane
      * background layers entirely — the escape hatch for stateful multi-layer
      * backgrounds such as focus rings. The default {@code null} mirrors the
-     * pane's painted background geometry. From CSS,
+     * pane's painted background geometry, with each radius reduced by a real
+     * border's width; set explicit radii when the border is rounded differently
+     * from the background. From CSS,
      * {@code -rx-ripple-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when

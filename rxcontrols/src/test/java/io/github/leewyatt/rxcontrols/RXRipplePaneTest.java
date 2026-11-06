@@ -1117,7 +1117,7 @@ public class RXRipplePaneTest {
         assertEquals(Color.RED, circleFill.getFill());
         assertTrue(circleFill.getRadii().isTopLeftHorizontalRadiusAsPercentage(),
                 "CIRCLE fill uses percentage radii");
-        assertClose(50.0, circleFill.getRadii().getTopLeftHorizontalRadius(), "CIRCLE fill is 50% round");
+        assertClose(0.5, circleFill.getRadii().getTopLeftHorizontalRadius(), "CIRCLE fill is 50% round");
 
         StateLayer flat = new StateLayer();
         flat.setFill(Color.RED);

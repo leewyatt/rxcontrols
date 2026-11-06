@@ -222,7 +222,9 @@ public class RXFillLabel extends RXAnimatedLabel {
      * to a single rounded rectangle with these radii (and the
      * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
      * background layers entirely. The default {@code null} mirrors the
-     * label's painted background geometry. From CSS,
+     * label's painted background geometry, with each radius reduced by a real
+     * border's width; set explicit radii when the border is rounded differently
+     * from the background. From CSS,
      * {@code -rx-fill-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when

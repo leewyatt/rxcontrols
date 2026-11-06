@@ -209,7 +209,7 @@ public final class StateLayer extends Region {
             return;
         }
         CornerRadii radii = clipMode == ClipMode.CIRCLE
-                ? new CornerRadii(50.0, true)
+                ? new CornerRadii(0.5, true)
                 : CornerRadii.EMPTY;
         setBackground(new Background(new BackgroundFill(fill, radii, Insets.EMPTY)));
     }

@@ -228,7 +228,9 @@ public class RXFillButton extends RXAnimatedButton {
      * {@link #fillInsetsProperty() fillInsets} box), ignoring the host
      * background layers entirely — the escape hatch for stateful multi-layer
      * backgrounds such as focus rings. The default {@code null} mirrors the
-     * button's painted background geometry. From CSS,
+     * button's painted background geometry, with each radius reduced by a real
+     * border's width; set explicit radii when the border is rounded differently
+     * from the background. From CSS,
      * {@code -rx-fill-corner-radius} accepts 1 to 4 sizes in
      * {@code border-radius} order (top-left, top-right, bottom-right,
      * bottom-left); a negative value selects automatic mirroring. Ignored when
