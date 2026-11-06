@@ -401,21 +401,17 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXDigit() {
-        Color lit = Color.web("#22dd66");
-        Color unlit = Color.web("#1a3322");
         int[] values = {1, 2, 0, 8};
         HBox readout = new HBox(4.0);
         readout.setAlignment(Pos.CENTER);
         for (int i = 0; i < values.length; i++) {
             if (i == 2) {
                 Label colon = new Label(":");
-                colon.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #22dd66;");
+                colon.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
                 readout.getChildren().add(colon);
             }
             RXDigit glyph = new RXDigit(values[i]);
             glyph.setPrefSize(30.0, 60.0);
-            glyph.setLitFill(lit);
-            glyph.setUnlitFill(unlit);
             readout.getChildren().add(glyph);
         }
         readout.setMaxSize(280.0, 90.0);
