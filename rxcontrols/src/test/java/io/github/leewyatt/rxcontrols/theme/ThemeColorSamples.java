@@ -35,6 +35,7 @@ import javafx.scene.layout.Border;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Shape;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 
@@ -186,7 +187,9 @@ final class ThemeColorSamples {
         samples.put("step-indicator.track", background(steps.lookup(".track")));
         samples.put("carousel-navigator.track", background(navigatorSteps.lookup(".track")));
         samples.put("digit.lit", hex(digit.getLitFill()));
-        samples.put("digit.unlit", hex(digit.getUnlitFill()));
+        // Digit 0 leaves the middle segment unlit; read what it actually paints.
+        Node unlitSegment = digit.lookup(".segment.middle");
+        samples.put("digit.unlit", unlitSegment instanceof Shape ? hex(((Shape) unlitSegment).getFill()) : "missing");
 
         samples.put("fill-button.filling-armed.text", fillingArmedText);
         samples.put("sidebar.background", background(sidebar));

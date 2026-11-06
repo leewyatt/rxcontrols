@@ -35,6 +35,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Shape;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -331,8 +332,8 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     /**
-     * Under the bridge, segmented tracks and unlit digit segments follow {@code -rx-outline}
-     * and lit digit segments follow {@code -rx-on-surface}.
+     * Under the bridge, segmented tracks follow {@code -rx-outline}, lit digit segments
+     * follow {@code -rx-on-surface}, and unlit digit segments are their 15% ghost.
      *
      * @throws Exception if the FX action fails
      */
@@ -350,15 +351,15 @@ public class RXAtlantaFXThemeBridgeTest {
             host.layout();
             fills.put("progress bar track", trackFill(bar));
             fills.put("step indicator track", trackFill(steps));
-            fills.put("digit unlit", digit.getUnlitFill());
+            fills.put("digit unlit", ((Shape) digit.lookup(".segment.middle")).getFill());
             fills.put("digit lit", digit.getLitFill());
         });
         assertEquals(Color.web("#d0d7de"), fills.get("progress bar track"),
                 "progress bar track -> -color-border-default");
         assertEquals(Color.web("#d0d7de"), fills.get("step indicator track"),
                 "step indicator track -> -color-border-default");
-        assertEquals(Color.web("#d0d7de"), fills.get("digit unlit"),
-                "digit unlit -> -color-border-default");
+        assertEquals(Color.web("#24292f", 0.15), fills.get("digit unlit"),
+                "digit unlit -> ghost of -color-fg-default");
         assertEquals(Color.web("#24292f"), fills.get("digit lit"),
                 "digit lit -> -color-fg-default");
     }
