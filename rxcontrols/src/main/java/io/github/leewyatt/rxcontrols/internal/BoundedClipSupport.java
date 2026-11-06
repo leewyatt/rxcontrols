@@ -34,9 +34,12 @@ import java.util.Objects;
  * <p>The mirrored geometry is additionally inset so decorations stay inside a
  * real {@link Border} (matching the web convention where overlays cover the
  * padding box, not the border ring); callers may override that inset with
- * explicit values, including negative ones for overflow effects. Corner radii
- * are kept as-is when insetting — for usual 1-2px borders the deviation from
- * the true inner edge is invisible. Background fills with any negative inset
+ * explicit values, including negative ones for overflow effects. When the
+ * inset follows the border, absolute corner radii shrink by it (clamped at
+ * zero) so the clip meets the border's inner edge, as a CSS padding box does;
+ * otherwise a too-round clip leaves a sliver of the background showing in each
+ * corner between the border and a decoration. Percentage radii and explicit
+ * insets keep their radii as-is. Background fills with any negative inset
  * component are treated as decorations (focus rings, shadow highlights — the
  * modena focused state paints several) and excluded from the mirror, unless
  * no fill would remain. Faux borders painted as non-negative background fills
@@ -163,7 +166,7 @@ public final class BoundedClipSupport {
                 appliedRadiiOverride = radiiOverride;
                 Background mirrored = radiiOverride != null
                         ? new Background(new BackgroundFill(Color.BLACK, radiiOverride, extraInsets))
-                        : geometryOf(hostBackground, extraInsets);
+                        : geometryOf(hostBackground, extraInsets, insetsOverride == null);
                 // Geometry-identical swaps (e.g. modena hover/pressed
                 // recoloring) must not re-rasterize the clip.
                 if (!mirrored.equals(clipNode.getBackground())) {
@@ -214,7 +217,7 @@ public final class BoundedClipSupport {
                 && shape.getLocalToParentTransform().isIdentity();
     }
 
-    private static Background geometryOf(Background background, Insets extraInsets) {
+    private static Background geometryOf(Background background, Insets extraInsets, boolean shrinkRadii) {
         List<BackgroundFill> sources =
                 background == null ? List.of() : background.getFills();
         List<BackgroundFill> bodies = new ArrayList<>(sources.size());
@@ -236,10 +239,37 @@ public final class BoundedClipSupport {
         BackgroundFill[] fills = new BackgroundFill[bodies.size()];
         for (int i = 0; i < fills.length; i++) {
             BackgroundFill fill = bodies.get(i);
-            fills[i] = new BackgroundFill(Color.BLACK, fill.getRadii(),
-                    add(fill.getInsets(), extraInsets));
+            CornerRadii radii = shrinkRadii ? shrink(fill.getRadii(), extraInsets) : fill.getRadii();
+            fills[i] = new BackgroundFill(Color.BLACK, radii, add(fill.getInsets(), extraInsets));
         }
         return new Background(fills);
+    }
+
+    private static CornerRadii shrink(CornerRadii radii, Insets by) {
+        if (radii == null || Insets.EMPTY.equals(by)) {
+            return radii;
+        }
+        return new CornerRadii(
+                shrink(radii.getTopLeftHorizontalRadius(), radii.isTopLeftHorizontalRadiusAsPercentage(), by.getLeft()),
+                shrink(radii.getTopLeftVerticalRadius(), radii.isTopLeftVerticalRadiusAsPercentage(), by.getTop()),
+                shrink(radii.getTopRightVerticalRadius(), radii.isTopRightVerticalRadiusAsPercentage(), by.getTop()),
+                shrink(radii.getTopRightHorizontalRadius(), radii.isTopRightHorizontalRadiusAsPercentage(), by.getRight()),
+                shrink(radii.getBottomRightHorizontalRadius(), radii.isBottomRightHorizontalRadiusAsPercentage(),
+                        by.getRight()),
+                shrink(radii.getBottomRightVerticalRadius(), radii.isBottomRightVerticalRadiusAsPercentage(),
+                        by.getBottom()),
+                shrink(radii.getBottomLeftVerticalRadius(), radii.isBottomLeftVerticalRadiusAsPercentage(),
+                        by.getBottom()),
+                shrink(radii.getBottomLeftHorizontalRadius(), radii.isBottomLeftHorizontalRadiusAsPercentage(),
+                        by.getLeft()),
+                radii.isTopLeftHorizontalRadiusAsPercentage(), radii.isTopLeftVerticalRadiusAsPercentage(),
+                radii.isTopRightVerticalRadiusAsPercentage(), radii.isTopRightHorizontalRadiusAsPercentage(),
+                radii.isBottomRightHorizontalRadiusAsPercentage(), radii.isBottomRightVerticalRadiusAsPercentage(),
+                radii.isBottomLeftVerticalRadiusAsPercentage(), radii.isBottomLeftHorizontalRadiusAsPercentage());
+    }
+
+    private static double shrink(double radius, boolean asPercentage, double by) {
+        return asPercentage ? radius : Math.max(0.0, radius - by);
     }
 
     private static boolean hasNegativeInset(Insets insets) {
