@@ -43,18 +43,11 @@ public class RXPlaceholderShowcase extends RXShowcaseApplication {
     }
 
     @Override
-    protected String stylesheetPath() {
-        return getClass().getResource("rx-placeholder-showcase.css").toExternalForm();
-    }
-
-    @Override
     protected Node createPreview() {
-        placeholder = new RXPlaceholder(Status.EMPTY, "No data");
-        placeholder.setDescription("Everything you load will show up here. "
+        placeholder = new RXPlaceholder(Status.EMPTY, "Placeholder Title");
+        placeholder.setDescription("Placeholder Description: Everything you load will show up here. "
                 + "Use the panel on the right to explore every slot.");
-        StackPane host = new StackPane(placeholder);
-        host.getStyleClass().add("preview-host");
-        return host;
+        return placeholder;
     }
 
     @Override
