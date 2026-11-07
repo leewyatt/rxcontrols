@@ -1347,6 +1347,15 @@
     -rx-text-padding: 0 0.583em 0.25em 0.583em;
 }
 
+/* mirrors the -rx-text-padding bottom (text-to-line gap) so slot content centers
+   on the text line rather than on the editor area that includes the gap */
+.rx-material-text-field > .leading-wrapper,
+.rx-material-text-field > .trailing-wrapper,
+.rx-material-password-field > .leading-wrapper,
+.rx-material-password-field > .trailing-wrapper {
+    -fx-padding: 0 0 0.25em 0;
+}
+
 .rx-material-text-field > .label,
 .rx-material-password-field > .label {
     -fx-text-fill: -rx-on-surface-secondary;
