@@ -18,7 +18,8 @@ import javafx.scene.layout.StackPane;
  * {@link LabeledSkinBase} (the built-in {@code .text} node, ellipsis-truncated)
  * and, when the chip is {@link RXChip#removableProperty() removable}, a trailing
  * {@code .close-button} wrapper around a shape-backed {@code .close-icon} placed
- * beside the label. A bounded {@link RippleDecoration} sits below the content,
+ * beside the label. A {@link RXChip#selectableProperty() selectable} chip reserves a
+ * leading slot for a shape-backed {@code .check} mark that shows while it is selected. A bounded {@link RippleDecoration} sits below the content,
  * clipped to the pill geometry; a press anywhere on the pill except the close
  * button ripples.</p>
  *
@@ -43,6 +44,7 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
     private final StackPane closeButton = new StackPane();
     private final Region closeIcon = new Region();
+    private final Region check = new Region();
     private final RippleDecoration ripple;
 
     /** True while armed via the keyboard; gates the mouse path and arms focus-loss disarm. */
@@ -72,6 +74,10 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         closeIcon.setMouseTransparent(true);
         closeButton.getStyleClass().add("close-button");
         closeButton.getChildren().setAll(closeIcon);
+        check.getStyleClass().add("check");
+        check.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        check.setMouseTransparent(true);
+        updateCheckVisibility();
 
         ripple = new RippleDecoration(control, control.rippleEnabledProperty(),
                 control.stateOverlayEnabledProperty(), control.rippleFillProperty(),
@@ -84,6 +90,13 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
         // Toggling removable adds / removes the close button through updateChildren.
         disposer.registerListener(control.removableProperty(), this::updateChildren);
+        // The check slot exists only on a selectable chip; selection shows the mark
+        // and shifts the label, so it needs a new layout but never a new size.
+        disposer.registerListener(control.selectableProperty(), this::updateChildren);
+        disposer.registerListener(control.selectedProperty(), () -> {
+            updateCheckVisibility();
+            control.requestLayout();
+        });
         disposer.registerListener(control.textProperty(), this::updateCloseAccessibleText);
 
         // The close button consumes its own press so it never arms / ripples the
@@ -107,6 +120,10 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         if (ripple != null) {
             getChildren().add(0, ripple.getLayer());
         }
+        if (check != null && getSkinnable().isSelectable()) {
+            getChildren().add(check);
+            updateCheckVisibility();
+        }
         if (closeButton != null && getSkinnable().isRemovable()) {
             getChildren().add(closeButton);
         }
@@ -115,6 +132,11 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     private void updateCloseAccessibleText() {
         String text = getSkinnable().getText();
         closeButton.setAccessibleText("Remove " + (text == null ? "" : text));
+    }
+
+    private void updateCheckVisibility() {
+        RXChip control = getSkinnable();
+        check.setVisible(control.isSelectable() && control.isSelected());
     }
 
     // ==================== Layout ====================
@@ -126,10 +148,22 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         double closeW = removable ? snapSizeX(closeButton.prefWidth(-1)) : 0.0;
         double closeH = removable ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
 
-        // The label (base-managed text + graphic) fills the area minus the trailing
-        // close button; layoutLabelInArea truncates the text within that width.
-        double labelW = Math.max(0.0, w - closeW);
-        layoutLabelInArea(x, y, labelW, h, control.getAlignment());
+        // The label (base-managed text + graphic) fills the area minus the check slot
+        // and the trailing close button; layoutLabelInArea truncates the text within
+        // that width. The slot is reserved whether or not the chip is selected, so a
+        // toggle never resizes it or reflows its container: selected, the check fills
+        // the slot; unselected, the label takes half of it on each side and stays
+        // centred in the pill.
+        double slotW = checkSlotWidth();
+        double labelW = Math.max(0.0, w - slotW - closeW);
+        double labelX = control.isSelected() ? x + slotW : x + slotW / 2.0;
+        layoutLabelInArea(labelX, y, labelW, h, control.getAlignment());
+
+        if (slotW > 0.0) {
+            double checkW = snapSizeX(check.prefWidth(-1));
+            double checkH = snapSizeY(check.prefHeight(-1));
+            check.resizeRelocate(snapPositionX(x), snapPositionY(y + (h - checkH) / 2.0), checkW, checkH);
+        }
 
         if (removable) {
             double closeX = x + w - closeW;
@@ -144,14 +178,14 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
         return super.computeMinWidth(height, topInset, rightInset, bottomInset, leftInset)
-                + closeWidth();
+                + checkSlotWidth() + closeWidth();
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         return super.computePrefWidth(height, topInset, rightInset, bottomInset, leftInset)
-                + closeWidth();
+                + checkSlotWidth() + closeWidth();
     }
 
     @Override
@@ -170,17 +204,27 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        double labelWidth = width < 0.0 ? width : Math.max(0.0, width - closeWidth());
+        double labelWidth = width < 0.0 ? width : Math.max(0.0, width - checkSlotWidth() - closeWidth());
         double closeH = getSkinnable().isRemovable() ? snapSizeY(closeButton.prefHeight(-1)) : 0.0;
+        double checkH = getSkinnable().isSelectable() ? snapSizeY(check.prefHeight(-1)) : 0.0;
         return Math.max(
                 super.computePrefHeight(labelWidth, topInset, rightInset, bottomInset, leftInset),
-                topInset + closeH + bottomInset);
+                topInset + Math.max(closeH, checkH) + bottomInset);
     }
 
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
+    }
+
+    /** The check mark plus the graphic-text gap before the label; zero unless selectable. */
+    private double checkSlotWidth() {
+        RXChip control = getSkinnable();
+        if (!control.isSelectable()) {
+            return 0.0;
+        }
+        return snapSizeX(check.prefWidth(-1)) + snapSpaceX(control.getGraphicTextGap());
     }
 
     private double closeWidth() {

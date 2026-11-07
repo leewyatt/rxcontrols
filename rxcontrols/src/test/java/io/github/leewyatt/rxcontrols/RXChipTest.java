@@ -19,6 +19,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +48,7 @@ public class RXChipTest {
     private static final PseudoClass SELECTABLE = PseudoClass.getPseudoClass("selectable");
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass REMOVABLE = PseudoClass.getPseudoClass("removable");
+    private static final PseudoClass FOCUSED = PseudoClass.getPseudoClass("focused");
 
     /**
      * Starts the JavaFX toolkit so skins, CSS and events can run.
@@ -425,6 +427,83 @@ public class RXChipTest {
             RXChip chip = attach(new RXChip("x"));
             assertTrue(chip.prefHeight(-1) > 0.0);
             assertTrue(chip.getHeight() > 0.0);
+        });
+    }
+
+    /**
+     * Verifies selecting a selectable chip shows the check without changing the chip width.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void selectingShowsTheCheckWithoutResizing() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = attach(selectableChip("Design"));
+            Region check = (Region) chip.lookup(".check");
+            assertNotNull(check);
+            assertFalse(check.isVisible());
+            double restingWidth = chip.getWidth();
+
+            chip.setSelected(true);
+            chip.getParent().layout();
+
+            assertTrue(check.isVisible());
+            assertEquals(restingWidth, chip.getWidth(), 0.01);
+            Node text = chip.lookup(".text");
+            assertTrue(text.getBoundsInParent().getMinX() >= check.getBoundsInParent().getMaxX());
+        });
+    }
+
+    /**
+     * Verifies an unselected selectable chip keeps its label centred in the reserved width.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void unselectedLabelIsCentred() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = attach(selectableChip("Design"));
+            Node text = chip.lookup(".text");
+            double left = text.getBoundsInParent().getMinX() - chip.snappedLeftInset();
+            double right = chip.getWidth() - chip.snappedRightInset() - text.getBoundsInParent().getMaxX();
+            assertEquals(left, right, 1.0);
+        });
+    }
+
+    /**
+     * Verifies a chip that is not selectable reserves no check slot.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void nonSelectableChipHasNoCheckSlot() throws Exception {
+        runOnFx(() -> {
+            RXChip plain = attach(new RXChip("Design"));
+            RXChip selectable = attach(selectableChip("Design"));
+            assertNull(plain.lookup(".check"));
+            assertTrue(selectable.getWidth() > plain.getWidth());
+        });
+    }
+
+    /**
+     * Verifies a selected chip still shows a focus ring beside its selection outline.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void selectedChipShowsTheFocusRing() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = selectableChip("Design");
+            chip.setSelected(true);
+            attach(chip);
+            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
+            assertEquals(1, chip.getBorder().getStrokes().size());
+
+            chip.pseudoClassStateChanged(FOCUSED, true);
+            chip.applyCss();
+
+            assertEquals(2, chip.getBorder().getStrokes().size());
+            assertEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
         });
     }
 
