@@ -338,6 +338,13 @@ public class RXWaveProgressIndicatorSkin extends RXSkinBase<RXWaveProgressIndica
         });
         disposer.registerListener(control.textFactoryProperty(), this::applyCenterContent);
 
+        // The unmanaged labels are their own layout roots: a CSS font or padding
+        // change (a theme switch, an author font size) alters their pref size
+        // without asking the control to lay out again, so they would keep a stale
+        // width and ellipsize. The below-water label mirrors both properties.
+        disposer.registerListener(progressLabel.fontProperty(), control::requestLayout);
+        disposer.registerListener(progressLabel.paddingProperty(), control::requestLayout);
+
         // The frame timer reads displayedProgress directly; a change only needs
         // to make sure the timer is running so the motion is drawn.
         disposer.registerListener(displayedProgress, this::startWaveTimer);
