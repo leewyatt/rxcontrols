@@ -511,7 +511,7 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies the shown focus recolours and thickens the outline of a selected chip without changing its size or insets.
+     * Verifies the shown focus recolours the outline of a selected chip without resizing it or drawing outside it.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -531,7 +531,7 @@ public class RXChipTest {
             chip.getParent().layout();
 
             assertNotEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
-            assertTrue(chip.getBorder().getStrokes().get(0).getWidths().getTop() > 1.0);
+            assertEquals(Insets.EMPTY, chip.getBorder().getOutsets());
             assertEquals(restingInsets, chip.getInsets());
             assertEquals(restingWidth, chip.getWidth(), 0.01);
             assertEquals(restingHeight, chip.getHeight(), 0.01);
@@ -713,6 +713,28 @@ public class RXChipTest {
             chip.setSkin(new RXChipSkin(chip) {
             });
 
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies replacing the skin of a chip focused by a pointer press keeps the indicator hidden.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void skinReplacementKeepsPointerFocusHidden() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.setSkin(new RXChipSkin(chip) {
+            });
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.RIGHT));
             assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
         });
     }

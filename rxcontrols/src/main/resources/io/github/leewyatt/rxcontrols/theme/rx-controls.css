@@ -1215,13 +1215,11 @@
     -fx-background-color: -rx-on-surface;
 }
 
-/* Focus: the outline thickens outward in the focus colour. Its inner edge stays at
-   1px, so the insets, size and ripple clip do not change. :focus-shown is set by the
-   skin: focus, unless it came from a pointer press and no key has been pressed since. */
+/* Focus: the outline takes the focus colour at its resting width, so nothing moves
+   and nothing is drawn outside the chip. :focus-shown is set by the skin: focus,
+   unless it came from a pointer press and no key has been pressed since. */
 .rx-chip:focus-shown {
     -fx-border-color: -rx-focus;
-    -fx-border-width: 1.5px;
-    -fx-border-insets: -0.5px;
 }
 
 .rx-chip:disabled {
