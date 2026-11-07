@@ -81,6 +81,7 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         check.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         check.setMouseTransparent(true);
         focusRing.getStyleClass().add("focus-ring");
+        focusRing.setManaged(false);
         focusRing.setMouseTransparent(true);
         updateCheckVisibility();
 
