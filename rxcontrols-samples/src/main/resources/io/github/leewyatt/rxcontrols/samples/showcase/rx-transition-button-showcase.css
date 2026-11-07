@@ -12,40 +12,40 @@
     -fx-padding: 12px 26px;
     -fx-background-insets: 0;
     -fx-background-radius: 8px;
-    -fx-text-fill: white;
+    -fx-text-fill: -rx-on-primary;
     -fx-graphic-text-gap: 8px;
 }
 
 .showcase-button .alt-content {
-    -fx-text-fill: white;
+    -fx-text-fill: -rx-on-primary;
     -fx-graphic-text-gap: 8px;
 }
 
 .nav-button {
-    -fx-background-color: #4f5bd5;
+    -fx-background-color: -rx-primary;
 }
 
 .copy-button {
-    -fx-background-color: #0f766e;
+    -fx-background-color: -rx-success;
 }
 
 .showcase-button .home-icon {
     -fx-pref-width: 22px;
     -fx-pref-height: 19px;
-    -fx-background-color: white;
+    -fx-background-color: -rx-on-primary;
     -fx-shape: "M12 2 L1 12 H4 V21 H10 V15 H14 V21 H20 V12 H23 Z";
 }
 
 .showcase-button .copy-icon {
     -fx-pref-width: 14.4px;
     -fx-pref-height: 16px;
-    -fx-background-color: white;
+    -fx-background-color: -rx-on-primary;
     -fx-shape: "M3 2 H17 V4 H5 V17 H3 Z M7 6 H21 V22 H7 Z M9 8 V20 H19 V8 Z";
 }
 
 .showcase-button .check-icon {
     -fx-pref-width: 16px;
     -fx-pref-height: 12.2px;
-    -fx-background-color: white;
+    -fx-background-color: -rx-on-primary;
     -fx-shape: "M9 16.2 L4.8 12 L3.4 13.4 L9 19 L21 7 L19.6 5.6 Z";
 }
