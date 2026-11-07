@@ -153,7 +153,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("digit.lit", "#24292fff");
         PRIMER_LIGHT.put("digit.unlit", "null");
         PRIMER_LIGHT.put("fill-button.filling-armed.text", "#ffffffff");
-        PRIMER_LIGHT.put("sidebar.background", "#ffffffff");
+        PRIMER_LIGHT.put("sidebar.background", "#f6f8faff");
         PRIMER_LIGHT.put("sidebar.selected", "#ddf4ffff");
         PRIMER_LIGHT.put("sidebar.selected.text", "#24292fff");
         PRIMER_LIGHT.put("timeline.dot", "#0969daff");
@@ -203,7 +203,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("digit.lit", "#c9d1d9ff");
         PRIMER_DARK.put("digit.unlit", "null");
         PRIMER_DARK.put("fill-button.filling-armed.text", "#ffffffff");
-        PRIMER_DARK.put("sidebar.background", "#0d1117ff");
+        PRIMER_DARK.put("sidebar.background", "#161b22ff");
         PRIMER_DARK.put("sidebar.selected", "#388bfd26");
         PRIMER_DARK.put("sidebar.selected.text", "#c9d1d9ff");
         PRIMER_DARK.put("timeline.dot", "#1f6febff");

@@ -2313,6 +2313,17 @@
     -fx-background-color: -fx-base;
 }
 
+/* Under the AtlantaFX bridge -fx-base maps to -color-bg-default, the page
+   background itself, so the rail would merge into the content beside it. Sit the
+   rail on the subtle surface instead, and step the item hover / pressed fills off
+   that surface (lighter on dark themes, darker on light ones): the bridge's own
+   hover color is that same subtle surface and would vanish against it. */
+.rx-theme-atlantafx .rx-sidebar {
+    -fx-background-color: -rx-surface-variant;
+    -fx-hover-base: ladder(-rx-surface-variant, derive(-rx-surface-variant, 15%) 49%, derive(-rx-surface-variant, -5%) 50%);
+    -fx-pressed-base: ladder(-rx-surface-variant, derive(-rx-surface-variant, 25%) 49%, derive(-rx-surface-variant, -10%) 50%);
+}
+
 .rx-sidebar > .container > .content {
     -fx-background-color: transparent;
 }
