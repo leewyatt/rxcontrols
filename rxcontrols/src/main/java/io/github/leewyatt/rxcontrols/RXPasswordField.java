@@ -53,7 +53,7 @@ public class RXPasswordField extends PasswordField {
     private static final PseudoClass REVEALED_PSEUDO_CLASS = PseudoClass.getPseudoClass("revealed");
 
     /**
-     * Default echo character (U+25CF BULLET) used when {@link #echoCharProperty()}
+     * Default echo character (U+25CF BLACK CIRCLE) used when {@link #echoCharProperty()}
      * has not been explicitly set, and as the in-place fallback inside the skin
      * when {@link #getEchoChar()} returns {@code null} (e.g. {@code setEchoChar(null)}
      * was called, or a binding source produced {@code null}).
@@ -226,7 +226,7 @@ public class RXPasswordField extends PasswordField {
      * {@link javafx.scene.control.Labeled#textFillProperty()}.
      *
      * @return the echo character property
-     * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BULLET)
+     * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BLACK CIRCLE)
      */
     public final ObjectProperty<Character> echoCharProperty() {
         if (echoChar == null) {

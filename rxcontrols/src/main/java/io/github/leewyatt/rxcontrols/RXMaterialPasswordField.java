@@ -71,7 +71,7 @@ public class RXMaterialPasswordField extends PasswordField {
     private static final double DEFAULT_SUPPORTING_GAP = 4.0;
     /** Default of {@link #labelFloatScaleProperty()}. */
     public static final double DEFAULT_LABEL_FLOAT_SCALE = 0.85;
-    /** Default mask character (U+25CF BULLET); this control's own constant. */
+    /** Default mask character (U+25CF BLACK CIRCLE); this control's own constant. */
     public static final char DEFAULT_ECHO_CHAR = '●';
 
     // ==================== Pseudo-classes ====================
@@ -665,7 +665,7 @@ public class RXMaterialPasswordField extends PasswordField {
      * {@code null}.
      *
      * @return the echo character property
-     * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BULLET)
+     * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BLACK CIRCLE)
      */
     public final ObjectProperty<Character> echoCharProperty() {
         return echoChar;
