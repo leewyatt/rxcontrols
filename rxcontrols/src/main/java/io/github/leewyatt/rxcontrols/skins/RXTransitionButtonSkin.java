@@ -80,6 +80,14 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         // the mnemonic affordance without firing the button.
         frontLabel.setMnemonicParsing(false);
         frontLabel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        // setAll drops the built-in .label class. Its text fill and font are
+        // bound to the button, so .label rules cannot style it anyway, and the
+        // class does harm: .label:disabled dims it a second time inside the
+        // disabled button, and it shares JavaFX's style cache with a .label on
+        // the alternate page. The bound text fill leaves no cached -fx-text-fill
+        // in that shared entry, so once the button is focused the alternate
+        // label's text fill resets to black.
+        frontLabel.getStyleClass().setAll("front");
         pages.getPageA().getChildren().add(frontLabel);
         bindFrontLabel(button);
 

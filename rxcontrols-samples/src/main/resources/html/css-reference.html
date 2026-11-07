@@ -1995,7 +1995,8 @@ pane.</p>
 user-agent stylesheet disables the state overlay by default to avoid stacking it
 with the face transition. The normal face mirrors the button's own
 text and graphic in an internal label
-(<code>.rx-transition-button .label</code>), the alternate face hosts the
+(<code>.front</code>; its text fill and font follow the button, so style the
+button itself), the alternate face hosts the
 <code>alternateContent</code> node. The face swap plays a
 <code>PageAnimation</code> (Java-only); trigger and duration are settable
 from CSS. Replaces the removed RXTranslationButton (the
@@ -2004,7 +2005,7 @@ presets and the transition direction).</p>
 <h4>Substructure</h4>
 .content-pane — StackPane <br>
 &emsp;&emsp;.page — StackPane (two fixed faces)<br>
-&emsp;&emsp;&emsp;&emsp;.label — Label (front face) / (alternate content)<br>
+&emsp;&emsp;&emsp;&emsp;.front — Label (front face) / (alternate content)<br>
 <table>
     <thead>
     <tr>

@@ -10,6 +10,7 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
 import javafx.event.Event;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -22,6 +23,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -147,6 +149,36 @@ public class RXTransitionButtonTest {
             Label icon = new Label("icon");
             button.setGraphic(icon);
             assertSame(icon, front.getGraphic());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void alternateLabelKeepsThemeTextFillOnFocus() {
+        Label alternate = new Label("Alt");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+
+        try {
+            Paint resting = alternate.getTextFill();
+            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            button.getParent().applyCss();
+
+            assertEquals(resting, alternate.getTextFill());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void disabledFrontFaceIsNotDimmedTwice() {
+        RXTransitionButton button = laidOutButton("Front", null);
+
+        try {
+            button.setDisable(true);
+            button.getParent().applyCss();
+
+            assertEquals(1.0, frontLabel(button).getOpacity());
         } finally {
             button.getSkin().dispose();
         }
