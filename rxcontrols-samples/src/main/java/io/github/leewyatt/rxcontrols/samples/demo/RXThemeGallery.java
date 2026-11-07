@@ -46,6 +46,7 @@ public class RXThemeGallery extends Application {
         root.setCenter(scroll);
 
         Scene scene = new Scene(root, 1100, 820);
+        scene.getStylesheets().add(getClass().getResource("rx-theme-gallery.css").toExternalForm());
         root.setTop(buildToolbar(scene)); // applies the initial theme
 
         primaryStage.setScene(scene);

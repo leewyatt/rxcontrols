@@ -104,7 +104,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
@@ -540,7 +539,8 @@ final class ThemeGalleryCards {
         field.setNumberFormat(NumberFormat.getNumberInstance(Locale.US));
         field.setPrefColumnCount(14);
         Label badge = new Label("$");
-        badge.setPadding(new Insets(0, 6, 0, 8));
+        badge.getStyleClass().add("slot-badge");
+        field.getStyleClass().add("addon-leading");
         field.setLeading(badge);
         field.setAlignment(Pos.CENTER_RIGHT);
         field.setMaxWidth(Double.MAX_VALUE);
@@ -606,6 +606,7 @@ final class ThemeGalleryCards {
         badge.getStyleClass().add("slot-badge");
         Label unit = new Label("pcs");
         unit.getStyleClass().add("slot-unit");
+        field.getStyleClass().addAll("addon-leading", "addon-trailing");
         field.setLeading(badge);
         field.setTrailing(unit);
         field.setMaxWidth(Double.MAX_VALUE);
@@ -658,6 +659,7 @@ final class ThemeGalleryCards {
         badge.getStyleClass().add("slot-badge");
         Label unit = new Label("id");
         unit.getStyleClass().add("slot-unit");
+        field.getStyleClass().addAll("addon-leading", "addon-trailing");
         field.setLeading(badge);
         field.setTrailing(unit);
         field.setMaxWidth(Double.MAX_VALUE);
@@ -752,7 +754,8 @@ final class ThemeGalleryCards {
         field.setMax(100.0);
         field.setPrefColumnCount(12);
         Label unit = new Label("USD");
-        unit.setPadding(new Insets(0, 8, 0, 8));
+        unit.getStyleClass().add("slot-unit");
+        field.getStyleClass().add("addon-trailing");
         field.setTrailing(unit);
         field.setMaxWidth(Double.MAX_VALUE);
         return field;
@@ -763,21 +766,13 @@ final class ThemeGalleryCards {
         field.setPromptText("Password");
         field.setMaxWidth(Double.MAX_VALUE);
 
-        SVGPath lockPath = new SVGPath();
-        lockPath.setContent("M8 1a3 3 0 0 0-3 3v3H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3zm2 6H6V4a2 2 0 1 1 4 0v3z");
-        lockPath.setFill(Color.web("#6c757d"));
-        StackPane lock = new StackPane(lockPath);
-        lock.setMinWidth(Region.USE_PREF_SIZE);
-        lock.setPrefWidth(16);
-        field.setLeading(lock);
+        field.getStyleClass().add("addon-leading");
+        field.setLeading(slotIcon("lock-glyph"));
 
         ToggleButton eye = new ToggleButton();
         eye.setFocusTraversable(false);
-        eye.getStyleClass().add("eye-toggle");
-        SVGPath eyePath = new SVGPath();
-        eyePath.setContent("M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8zM8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z");
-        eyePath.setFill(Color.web("#495057"));
-        eye.setGraphic(eyePath);
+        eye.getStyleClass().add("slot-button");
+        eye.setGraphic(slotGlyph("eye-glyph"));
         field.revealPasswordProperty().bind(eye.selectedProperty());
         field.setTrailing(eye);
 
@@ -999,20 +994,31 @@ final class ThemeGalleryCards {
         field.setPromptText("Search...");
         field.setMaxWidth(Double.MAX_VALUE);
 
-        SVGPath path = new SVGPath();
-        path.setContent("M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.012 1.012 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z");
-        path.setFill(Color.web("#6c757d"));
-        StackPane icon = new StackPane(path);
-        icon.setMinWidth(Region.USE_PREF_SIZE);
-        icon.setPrefWidth(16);
-        field.setLeading(icon);
+        field.getStyleClass().add("addon-leading");
+        field.setLeading(slotIcon("search-glyph"));
 
-        Button clear = new Button("✕");
+        Button clear = new Button();
         clear.setFocusTraversable(false);
+        clear.getStyleClass().add("slot-button");
+        clear.setGraphic(slotGlyph("clear-glyph"));
         clear.setOnAction(e -> field.clear());
         field.setTrailing(clear);
 
         return field;
+    }
+
+    private static StackPane slotIcon(String glyphClass) {
+        StackPane icon = new StackPane(slotGlyph(glyphClass));
+        icon.getStyleClass().add("slot-icon");
+        return icon;
+    }
+
+    private static Region slotGlyph(String glyphClass) {
+        Region glyph = new Region();
+        glyph.getStyleClass().addAll("glyph", glyphClass);
+        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        glyph.setMouseTransparent(true);
+        return glyph;
     }
 
     private static Node buildRXTextView() {
