@@ -1217,18 +1217,19 @@
     -fx-background-color: -rx-on-surface;
 }
 
-/* Focus: a separate ring 2px outside the pill, so it never reads as the selection
-   outline (or as a doubled border) and never reflows the chip. The chip-focus navigation relies on it to show
-   which chip Delete / Backspace will act on. */
-.rx-chip:focused {
-    -fx-border-color: -rx-outline, -rx-focus;
-    -fx-border-width: 1px, 2px;
-    -fx-border-insets: 0, -4px;
-    -fx-border-radius: 999px, 999px;
+/* Focus: a ring just inside the pill outline, drawn by its own node so it adds no
+   insets (the chip never resizes), stays within the chip bounds at zero gaps, and
+   paints no fill over a translucent selected tint. The chip-focus navigation relies
+   on it to show which chip Delete / Backspace will act on. */
+.rx-chip > .focus-ring {
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+    -fx-border-insets: 1px;
+    -fx-border-radius: 999px;
 }
 
-.rx-chip:selectable:selected:focused {
-    -fx-border-color: -rx-primary, -rx-focus;
+.rx-chip:focused > .focus-ring {
+    -fx-border-color: -rx-focus;
 }
 
 .rx-chip:disabled {
@@ -1261,7 +1262,7 @@
     -fx-border-color: -rx-outline;
     -fx-border-width: 1px;
     -fx-border-radius: 4px;
-    -fx-padding: 0.167em;
+    -fx-padding: 0.25em 0.5em;
 }
 
 /* Highlight the input while its suggestion dropdown is open (JavaFX 17 has no
@@ -1276,11 +1277,9 @@
 }
 
 /* .content (the chip-flow pane) and .editor are descendants because a maxRows input
-   nests them inside a scroll pane; the direct-child form would miss that structure.
-   The padding keeps a chip's outer focus ring (4px) inside that scroll pane's clip;
-   the input's own padding gives up the same amount. */
+   nests them inside a scroll pane; the direct-child form would miss that structure. */
 .rx-chip-input .content {
-    -fx-padding: 0.333em;
+    -fx-padding: 0.25em 0;
 }
 
 .rx-chip-input .editor {

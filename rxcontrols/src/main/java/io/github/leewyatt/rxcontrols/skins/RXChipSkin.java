@@ -19,7 +19,9 @@ import javafx.scene.layout.StackPane;
  * and, when the chip is {@link RXChip#removableProperty() removable}, a trailing
  * {@code .close-button} wrapper around a shape-backed {@code .close-icon} placed
  * beside the label. A {@link RXChip#selectableProperty() selectable} chip reserves a
- * leading slot for a shape-backed {@code .check} mark that shows while it is selected. A bounded {@link RippleDecoration} sits below the content,
+ * leading slot for a shape-backed {@code .check} mark that shows while it is selected,
+ * ahead of any graphic, which stays in place. A {@code .focus-ring} region covering the
+ * chip draws the focus indicator without affecting its size. A bounded {@link RippleDecoration} sits below the content,
  * clipped to the pill geometry; a press anywhere on the pill except the close
  * button ripples.</p>
  *
@@ -45,6 +47,7 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     private final StackPane closeButton = new StackPane();
     private final Region closeIcon = new Region();
     private final Region check = new Region();
+    private final Region focusRing = new Region();
     private final RippleDecoration ripple;
 
     /** True while armed via the keyboard; gates the mouse path and arms focus-loss disarm. */
@@ -77,6 +80,8 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         check.getStyleClass().add("check");
         check.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         check.setMouseTransparent(true);
+        focusRing.getStyleClass().add("focus-ring");
+        focusRing.setMouseTransparent(true);
         updateCheckVisibility();
 
         ripple = new RippleDecoration(control, control.rippleEnabledProperty(),
@@ -127,6 +132,9 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         if (closeButton != null && getSkinnable().isRemovable()) {
             getChildren().add(closeButton);
         }
+        if (focusRing != null) {
+            getChildren().add(focusRing);
+        }
     }
 
     private void updateCloseAccessibleText() {
@@ -172,6 +180,7 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         }
 
         ripple.layout(control.getWidth(), control.getHeight());
+        focusRing.resizeRelocate(0.0, 0.0, control.getWidth(), control.getHeight());
     }
 
     @Override

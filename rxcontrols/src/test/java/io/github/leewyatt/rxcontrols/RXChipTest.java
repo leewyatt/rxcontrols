@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
@@ -17,9 +18,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Paint;
+import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -486,24 +489,61 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies a selected chip still shows a focus ring beside its selection outline.
+     * Verifies focus shows the ring inside the chip bounds without changing the chip size or insets.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void selectedChipShowsTheFocusRing() throws Exception {
+    public void focusRingStaysInsideTheChipWithoutResizing() throws Exception {
         runOnFx(() -> {
             RXChip chip = selectableChip("Design");
             chip.setSelected(true);
             attach(chip);
-            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
-            assertEquals(1, chip.getBorder().getStrokes().size());
+            Region ring = (Region) chip.lookup(".focus-ring");
+            assertEquals(Color.TRANSPARENT, ring.getBorder().getStrokes().get(0).getTopStroke());
+            double restingWidth = chip.getWidth();
+            Insets restingInsets = chip.getInsets();
 
             chip.pseudoClassStateChanged(FOCUSED, true);
             chip.applyCss();
+            chip.getParent().layout();
 
-            assertEquals(2, chip.getBorder().getStrokes().size());
-            assertEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
+            BorderStroke stroke = ring.getBorder().getStrokes().get(0);
+            assertNotEquals(Color.TRANSPARENT, stroke.getTopStroke());
+            assertTrue(stroke.getInsets().getLeft() >= 0.0 && stroke.getInsets().getTop() >= 0.0
+                    && stroke.getInsets().getRight() >= 0.0 && stroke.getInsets().getBottom() >= 0.0);
+            assertEquals(0.0, ring.getLayoutX(), 0.01);
+            assertEquals(0.0, ring.getLayoutY(), 0.01);
+            assertEquals(chip.getWidth(), ring.getWidth(), 0.01);
+            assertEquals(chip.getHeight(), ring.getHeight(), 0.01);
+            assertEquals(restingWidth, chip.getWidth(), 0.01);
+            assertEquals(restingInsets, chip.getInsets());
+        });
+    }
+
+    /**
+     * Verifies a selectable chip keeps its graphic beside the check when selected.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void graphicStaysBesideTheCheckWhenSelected() throws Exception {
+        runOnFx(() -> {
+            Region graphic = new Region();
+            graphic.setPrefSize(10.0, 10.0);
+            RXChip chip = selectableChip("Design");
+            chip.setGraphic(graphic);
+            attach(chip);
+            double restingWidth = chip.getWidth();
+
+            chip.setSelected(true);
+            chip.getParent().layout();
+
+            Region check = (Region) chip.lookup(".check");
+            assertSame(chip, graphic.getParent());
+            assertTrue(graphic.isVisible());
+            assertTrue(graphic.getBoundsInParent().getMinX() >= check.getBoundsInParent().getMaxX());
+            assertEquals(restingWidth, chip.getWidth(), 0.01);
         });
     }
 
