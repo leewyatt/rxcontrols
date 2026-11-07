@@ -2569,14 +2569,10 @@
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
-/* Roving keyboard focus: a distinct inset ring (not just the state-layer fill) so
-   focus reads clearly in both themes and is separable from the selection underline. */
+/* Roving focus: a Material 2 style tint over the whole tab, the same box as the
+   hover overlay, no ring. */
 .rx-tab-pane > .header > .tab:focused {
     -fx-background-color: -rx-primary-bg;
-    -fx-border-color: -rx-primary;
-    -fx-border-width: 2;
-    -fx-border-insets: 3;
-    -fx-border-radius: 4;
 }
 
 .rx-tab-pane > .header > .tab .label {
