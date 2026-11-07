@@ -740,6 +740,29 @@ public class RXChipTest {
     }
 
     /**
+     * Verifies replacing the skin while the window is inactive keeps a pointer focus hidden.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void skinReplacementInInactiveWindowKeepsPointerFocusHidden() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+            chip.focus(false);
+
+            chip.setSkin(new RXChipSkin(chip) {
+            });
+            chip.focus(true);
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.RIGHT));
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
      * Verifies a selectable chip keeps its graphic beside the check when selected.
      *
      * @throws Exception if the FX-thread assertion fails

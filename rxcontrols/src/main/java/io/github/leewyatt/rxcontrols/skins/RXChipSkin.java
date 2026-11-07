@@ -257,10 +257,11 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerEventHandler(control, KeyEvent.KEY_RELEASED, this::onKeyReleased);
         disposer.registerListener(control.focusedProperty(), this::handleFocusChanged);
-        // A replacing skin is built while the old one is still installed; take over
-        // its pointer-focus state, which the hidden indicator on the chip records.
-        mouseFocus = control.getSkin() instanceof RXChipSkin && control.isFocused()
-                && !control.getPseudoClassStates().contains(FOCUS_SHOWN);
+        // A replacing skin is built while the old one is still installed; take over its
+        // pointer-focus state, which also holds while the window is inactive.
+        if (control.getSkin() instanceof RXChipSkin oldSkin) {
+            mouseFocus = oldSkin.mouseFocus;
+        }
         disposer.registerDisposeTask(() -> {
             // A replacing RXChipSkin is built (and sets the state) before this skin is
             // disposed; leave its state alone and clear only for any other successor.
