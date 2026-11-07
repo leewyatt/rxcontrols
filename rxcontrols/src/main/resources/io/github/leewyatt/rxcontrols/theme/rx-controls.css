@@ -668,17 +668,19 @@
  * RXSeekBar                                                                   *
  *                                                                             *
  ******************************************************************************/
+/* The track is a line, not a surface: it takes the slider's track color so it
+   stays visible on both the default and the subtle surface. The buffered layer
+   uses the disabled-text role, a step stronger than any outline. */
 .rx-seek-bar {
-    -rx-track-fill: ladder(-rx-surface, -rx-surface-variant 45%, #eaeaea 46%);
-    -rx-secondary-fill: ladder(-rx-surface, -rx-outline 45%, #dadada 46%);
+    -rx-track-fill: ladder(-rx-surface, -rx-outline 45%, #e0e0e0 46%);
+    -rx-secondary-fill: -rx-on-surface-disabled;
     -rx-bar-fill: #1ecc94;
     -rx-thumb-fill: #1fdba4;
 }
 
 .rx-theme-atlantafx .rx-seek-bar,
 .rx-theme-atlantafx.rx-seek-bar {
-    -rx-track-fill: -rx-surface-variant;
-    -rx-secondary-fill: -rx-outline;
+    -rx-track-fill: -rx-outline;
 }
 
 .rx-seek-bar > .track {
