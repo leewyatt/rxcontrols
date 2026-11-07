@@ -4,6 +4,8 @@ import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import javafx.css.PseudoClass;
+import javafx.scene.Scene;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -20,10 +22,9 @@ import javafx.scene.layout.StackPane;
  * {@code .close-button} wrapper around a shape-backed {@code .close-icon} placed
  * beside the label. A {@link RXChip#selectableProperty() selectable} chip reserves a
  * leading slot for a shape-backed {@code .check} mark that shows while it is selected,
- * ahead of any graphic, which stays in place. A {@code .focus-ring} region covering the
- * chip draws the focus indicator without affecting its size. A bounded {@link RippleDecoration} sits below the content,
- * clipped to the pill geometry; a press anywhere on the pill except the close
- * button ripples.</p>
+ * ahead of any graphic, which stays in place. A bounded {@link RippleDecoration}
+ * sits below the content, clipped to the pill geometry; a press anywhere on the
+ * pill except the close button ripples.</p>
  *
  * <p>Mouse and keyboard interaction is installed directly (not via the internal
  * {@code com.sun} {@code ButtonBehavior}), matching {@code ButtonBase}
@@ -32,6 +33,11 @@ import javafx.scene.layout.StackPane;
  * removable chip requests removal. A {@link RXChip#selectableProperty() selectable}
  * chip toggles its selected state through {@link RXChip#fire()}. The close button consumes its
  * own press so it never arms or ripples the pill.</p>
+ *
+ * <p>The focus indicator follows the {@code :focus-shown} pseudo-class rather than
+ * {@code :focused}: it is held back while the focus came from a pointer press, since
+ * a user who just clicked the chip knows where focus is, and comes back on the next
+ * non-modifier key press or the next time focus arrives without one.</p>
  */
 public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
@@ -40,6 +46,10 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     /** ENTER activates the chip everywhere except macOS (matching ButtonBehavior). */
     private static final boolean MAC = RXOS.isMacOS();
 
+    // Not :focus-visible: from JavaFX 19 the platform writes that pseudo-class on
+    // every node, and two writers would overwrite each other.
+    private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
+
     // ==================== Fields ====================
 
     private final SkinDisposer disposer = new SkinDisposer();
@@ -47,7 +57,6 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     private final StackPane closeButton = new StackPane();
     private final Region closeIcon = new Region();
     private final Region check = new Region();
-    private final Region focusRing = new Region();
     private final RippleDecoration ripple;
 
     /** True while armed via the keyboard; gates the mouse path and arms focus-loss disarm. */
@@ -61,6 +70,9 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
      * on {@code isPressed()} alone would fire the primary action from a close gesture.
      */
     private boolean pressedOnChip;
+
+    /** True when the focus the chip currently holds arrived via a pointer press. */
+    private boolean mouseFocus;
 
     // ==================== Constructor ====================
 
@@ -80,9 +92,6 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         check.getStyleClass().add("check");
         check.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         check.setMouseTransparent(true);
-        focusRing.getStyleClass().add("focus-ring");
-        focusRing.setManaged(false);
-        focusRing.setMouseTransparent(true);
         updateCheckVisibility();
 
         ripple = new RippleDecoration(control, control.rippleEnabledProperty(),
@@ -133,9 +142,6 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         if (closeButton != null && getSkinnable().isRemovable()) {
             getChildren().add(closeButton);
         }
-        if (focusRing != null) {
-            getChildren().add(focusRing);
-        }
     }
 
     private void updateCloseAccessibleText() {
@@ -181,7 +187,6 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         }
 
         ripple.layout(control.getWidth(), control.getHeight());
-        focusRing.resizeRelocate(0.0, 0.0, control.getWidth(), control.getHeight());
     }
 
     @Override
@@ -252,13 +257,29 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerEventHandler(control, KeyEvent.KEY_RELEASED, this::onKeyReleased);
         disposer.registerListener(control.focusedProperty(), this::handleFocusChanged);
+        disposer.registerDisposeTask(() -> {
+            // A replacing RXChipSkin is built (and sets the state) before this skin is
+            // disposed; leave its state alone and clear only for any other successor.
+            if (control.getSkin() == this || !(control.getSkin() instanceof RXChipSkin)) {
+                control.pseudoClassStateChanged(FOCUS_SHOWN, false);
+            }
+        });
+        updateFocusShown();
     }
 
     private void onMousePressed(MouseEvent event) {
         RXChip control = getSkinnable();
+        // Set before requestFocus so the focus change already sees a pointer focus;
+        // a press that does not make the chip the focus owner must not mark a later
+        // focus. Ownership, not isFocused(): a click into an inactive window makes the
+        // chip the owner before the window activation focuses it.
+        mouseFocus = true;
         if (control.isFocusTraversable() && !control.isFocused()) {
             control.requestFocus();
         }
+        Scene scene = control.getScene();
+        mouseFocus = scene != null && scene.getFocusOwner() == control;
+        updateFocusShown();
         if (RXMouse.isPlainPrimaryPress(event) && !control.isArmed()) {
             // Reached only for a pill press: the close button consumes its own press,
             // so this handler never runs for a close gesture.
@@ -305,6 +326,13 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
     private void onKeyPressed(KeyEvent event) {
         RXChip control = getSkinnable();
+        // A key press means the user is on the keyboard now, so show the indicator.
+        // Modifiers and shortcut chords (Cmd+C, Cmd+Tab) do not count.
+        if (mouseFocus && !event.getCode().isModifierKey()
+                && !event.isMetaDown() && !event.isControlDown() && !event.isAltDown()) {
+            mouseFocus = false;
+            updateFocusShown();
+        }
         if (isActivationKey(event.getCode())) {
             if (!control.isPressed() && !control.isArmed()) {
                 keyDown = true;
@@ -337,13 +365,28 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
 
     private void handleFocusChanged() {
         RXChip control = getSkinnable();
-        if (!control.isFocused() && keyDown) {
-            // Losing focus while a key is held would otherwise strand the chip armed
-            // (the KEY_RELEASED goes to the new focus owner); matches ButtonBehavior.
-            keyDown = false;
-            control.disarm();
-            ripple.release();
+        if (!control.isFocused()) {
+            // Reset pointer-focus tracking so the next focus shows the indicator again,
+            // but only when focus left the chip: a window deactivation keeps the scene's
+            // focus owner, and returning to the window should not reveal the indicator.
+            Scene scene = control.getScene();
+            if (scene == null || scene.getFocusOwner() != control) {
+                mouseFocus = false;
+            }
+            if (keyDown) {
+                // Losing focus while a key is held would otherwise strand the chip armed
+                // (the KEY_RELEASED goes to the new focus owner); matches ButtonBehavior.
+                keyDown = false;
+                control.disarm();
+                ripple.release();
+            }
         }
+        updateFocusShown();
+    }
+
+    private void updateFocusShown() {
+        RXChip control = getSkinnable();
+        control.pseudoClassStateChanged(FOCUS_SHOWN, control.isFocused() && !mouseFocus);
     }
 
     private static boolean isActivationKey(KeyCode code) {

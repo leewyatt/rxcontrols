@@ -1183,13 +1183,11 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* Selectable chip selected: a check mark, a primary outline and label over a
-   primary tint. The check and outline keep the state readable where a theme's tint
-   sits close to the resting surface. */
+/* Selectable chip selected: the check mark plus a primary tint. The outline and
+   label stay as they are, so the outline is left for focus alone; the check keeps the
+   state readable where a theme's tint sits close to the resting surface. */
 .rx-chip:selectable:selected {
     -fx-background-color: -rx-primary-bg;
-    -fx-border-color: -rx-primary;
-    -fx-text-fill: -rx-primary;
 }
 
 .rx-chip > .check {
@@ -1217,19 +1215,13 @@
     -fx-background-color: -rx-on-surface;
 }
 
-/* Focus: a ring just inside the pill outline, drawn by its own node so it adds no
-   insets (the chip never resizes), stays within the chip bounds at zero gaps, and
-   paints no fill over a translucent selected tint. The chip-focus navigation relies
-   on it to show which chip Delete / Backspace will act on. */
-.rx-chip > .focus-ring {
-    -fx-border-color: transparent;
-    -fx-border-width: 2px;
-    -fx-border-insets: 1px;
-    -fx-border-radius: 999px;
-}
-
-.rx-chip:focused > .focus-ring {
+/* Focus: the outline thickens outward in the focus colour. Its inner edge stays at
+   1px, so the insets, size and ripple clip do not change. :focus-shown is set by the
+   skin: focus, unless it came from a pointer press and no key has been pressed since. */
+.rx-chip:focus-shown {
     -fx-border-color: -rx-focus;
+    -fx-border-width: 1.5px;
+    -fx-border-insets: -0.5px;
 }
 
 .rx-chip:disabled {

@@ -18,10 +18,9 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
-import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -52,6 +51,7 @@ public class RXChipTest {
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass REMOVABLE = PseudoClass.getPseudoClass("removable");
     private static final PseudoClass FOCUSED = PseudoClass.getPseudoClass("focused");
+    private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
 
     /**
      * Starts the JavaFX toolkit so skins, CSS and events can run.
@@ -489,35 +489,231 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies focus shows the ring inside the chip bounds without changing the chip size or insets.
+     * Verifies selection leaves the outline and label colours as they are.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void focusRingStaysInsideTheChipWithoutResizing() throws Exception {
+    public void selectionKeepsTheOutlineAndLabelColours() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = attach(selectableChip("Design"));
+            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
+            Paint label = chip.getTextFill();
+            Paint fill = chip.getBackground().getFills().get(0).getFill();
+
+            chip.setSelected(true);
+            chip.applyCss();
+
+            assertEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
+            assertEquals(label, chip.getTextFill());
+            assertNotEquals(fill, chip.getBackground().getFills().get(0).getFill());
+        });
+    }
+
+    /**
+     * Verifies the shown focus recolours and thickens the outline of a selected chip without changing its size or insets.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusRecoloursTheOutlineWithoutResizing() throws Exception {
         runOnFx(() -> {
             RXChip chip = selectableChip("Design");
             chip.setSelected(true);
             attach(chip);
-            Region ring = (Region) chip.lookup(".focus-ring");
-            assertEquals(Color.TRANSPARENT, ring.getBorder().getStrokes().get(0).getTopStroke());
+            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
             double restingWidth = chip.getWidth();
+            double restingHeight = chip.getHeight();
             Insets restingInsets = chip.getInsets();
 
-            chip.pseudoClassStateChanged(FOCUSED, true);
+            chip.pseudoClassStateChanged(FOCUS_SHOWN, true);
             chip.applyCss();
             chip.getParent().layout();
 
-            BorderStroke stroke = ring.getBorder().getStrokes().get(0);
-            assertNotEquals(Color.TRANSPARENT, stroke.getTopStroke());
-            assertTrue(stroke.getInsets().getLeft() >= 0.0 && stroke.getInsets().getTop() >= 0.0
-                    && stroke.getInsets().getRight() >= 0.0 && stroke.getInsets().getBottom() >= 0.0);
-            assertEquals(0.0, ring.getLayoutX(), 0.01);
-            assertEquals(0.0, ring.getLayoutY(), 0.01);
-            assertEquals(chip.getWidth(), ring.getWidth(), 0.01);
-            assertEquals(chip.getHeight(), ring.getHeight(), 0.01);
-            assertEquals(restingWidth, chip.getWidth(), 0.01);
+            assertNotEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
+            assertTrue(chip.getBorder().getStrokes().get(0).getWidths().getTop() > 1.0);
             assertEquals(restingInsets, chip.getInsets());
+            assertEquals(restingWidth, chip.getWidth(), 0.01);
+            assertEquals(restingHeight, chip.getHeight(), 0.01);
+        });
+    }
+
+    /**
+     * Verifies focus that does not come from a pointer press shows the indicator.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusWithoutPointerPressShowsTheIndicator() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+
+            chip.requestFocus();
+
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies focus from a pointer press hides the indicator until a non-modifier key press.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void pointerFocusHidesTheIndicatorUntilAKeyPress() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+            assertTrue(chip.isFocused());
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.SHIFT));
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.RIGHT));
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies focus leaving the chip resets pointer tracking, so the next focus shows the indicator.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusLossResetsPointerTracking() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            FocusableChip other = new FocusableChip("Other");
+            StackPane root = new StackPane(chip, other);
+            new Scene(root, 240.0, 80.0);
+            root.applyCss();
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+
+            other.requestFocus();
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+            chip.requestFocus();
+
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies a window deactivation keeps pointer tracking, so returning does not show the indicator.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void windowDeactivationKeepsPointerTracking() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+
+            // The scene keeps the chip as its focus owner while the window is inactive.
+            chip.focus(false);
+            chip.focus(true);
+
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies a click into an inactive window still hides the indicator once the window activates.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void clickIntoInactiveWindowHidesTheIndicator() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            chip.windowActive = false;
+            attach(chip);
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+            assertFalse(chip.isFocused());
+
+            chip.focus(true);
+
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies a press on a chip that cannot take focus does not hide a later focus.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void pressWithoutFocusDoesNotHideALaterFocus() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            chip.setFocusTraversable(false);
+            attach(chip);
+            chip.fireEvent(mouse(chip, MouseEvent.MOUSE_PRESSED, 8.0, 8.0, MouseButton.PRIMARY, true, false));
+            assertFalse(chip.isFocused());
+
+            chip.requestFocus();
+
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies focus alone, without the skin's shown-focus state, leaves the outline as it is.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void focusWithoutShownStateKeepsTheOutline() throws Exception {
+        runOnFx(() -> {
+            RXChip chip = attach(selectableChip("Design"));
+            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
+
+            chip.pseudoClassStateChanged(FOCUSED, true);
+            chip.applyCss();
+
+            assertEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
+        });
+    }
+
+    /**
+     * Verifies disposing the skin clears the shown-focus state of a focused chip.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void disposeClearsTheShownFocusState() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+            chip.requestFocus();
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+
+            chip.getSkin().dispose();
+
+            assertFalse(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
+        });
+    }
+
+    /**
+     * Verifies replacing the skin of a focused chip keeps the indicator the new skin set.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void skinReplacementKeepsTheShownFocusState() throws Exception {
+        runOnFx(() -> {
+            FocusableChip chip = new FocusableChip("Design");
+            attach(chip);
+            chip.requestFocus();
+
+            chip.setSkin(new RXChipSkin(chip) {
+            });
+
+            assertTrue(chip.getPseudoClassStates().contains(FOCUS_SHOWN));
         });
     }
 
@@ -571,6 +767,31 @@ public class RXChipTest {
     }
 
     // ==================== Helpers ====================
+
+    // An unshown scene never sets isFocused(); Node.setFocused is protected, so a
+    // test-side subclass drives real focus changes for the skin's focus listener.
+    // requestFocus behaves as in a focused window (unless windowActive is cleared):
+    // the scene takes the chip as its focus owner, then the chip becomes focused.
+    private static final class FocusableChip extends RXChip {
+
+        private boolean windowActive = true;
+
+        private FocusableChip(String text) {
+            super(text);
+        }
+
+        @Override
+        public void requestFocus() {
+            super.requestFocus();
+            if (windowActive && getScene() != null && getScene().getFocusOwner() == this) {
+                setFocused(true);
+            }
+        }
+
+        private void focus(boolean value) {
+            setFocused(value);
+        }
+    }
 
     private static RXChip attach(RXChip chip) {
         chip.setSkin(new RXChipSkin(chip));
