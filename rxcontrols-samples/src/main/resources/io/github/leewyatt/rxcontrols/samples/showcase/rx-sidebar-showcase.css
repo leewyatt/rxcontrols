@@ -24,6 +24,39 @@
     -fx-max-width: 320;
 }
 
+/* AtlantaFX defines none of the Modena colors above, and the bridge supplies them
+   only on the library's own controls; repaint this demo chrome from AtlantaFX's
+   palette when the bridge scope is on. */
+.rx-theme-atlantafx .app-frame {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-default;
+}
+
+.rx-theme-atlantafx .content-area {
+    -fx-background-color: -color-bg-default;
+}
+
+.rx-theme-atlantafx .content-area > .selected-title {
+    -fx-text-fill: -color-fg-default;
+}
+
+.rx-theme-atlantafx .content-area > .status-label {
+    -fx-text-fill: -color-fg-muted;
+}
+
+/* Dividers between the header / footer slots and the item body. Kept in the
+   showcase: the skin keeps both slots in the layout even when empty, so a
+   library default would draw a stray line on a sidebar without a header. */
+.rx-sidebar > .container > .header {
+    -fx-border-color: transparent transparent -rx-outline-variant transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.rx-sidebar > .container > .footer {
+    -fx-border-color: -rx-outline-variant transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
 /* Header collapse toggle. Its left edge is nudged to sit under the item icon
    column at the DEFAULT mini width (header padding 12 + button padding 8 = 20 =
    (64 - 24) / 2). The rail centres the column on miniWidth, so at other mini
