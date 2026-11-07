@@ -14,6 +14,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 import java.util.Locale;
@@ -69,7 +70,15 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
                 () -> "seeking: " + seekBar.isSeeking(),
                 seekBar.seekingProperty()));
 
-        VBox box = new VBox(18.0, new StackPane(seekBar), stateLabel);
+        Label description = new Label("A playback progress bar: drag or click to jump to a position, "
+                + "while the lighter layer shows how much is buffered. Typical in audio and video "
+                + "players, podcast apps and any timeline the user can scrub.");
+        description.getStyleClass().add("description");
+        description.setWrapText(true);
+        description.setTextAlignment(TextAlignment.CENTER);
+        description.setMaxWidth(460.0);
+
+        VBox box = new VBox(18.0, new StackPane(seekBar), stateLabel, description);
         box.getStyleClass().add("seek-preview");
         box.setAlignment(Pos.CENTER);
         return box;

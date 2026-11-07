@@ -5,5 +5,16 @@
 
 .seek-preview .state-label {
     -fx-font-size: 12px;
-    -fx-text-fill: #52606d;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.seek-preview .description {
+    -fx-font-size: 14px;
+    -fx-text-fill: -showcase-caption-color;
+    -fx-padding: 12px 16px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 8px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8px;
 }
