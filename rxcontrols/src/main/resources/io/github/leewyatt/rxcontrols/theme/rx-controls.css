@@ -1317,6 +1317,10 @@
     -rx-label-gap: 4px;
     -rx-supporting-gap: 4px;
     -rx-text-padding: 0 0 0.25em 0; /* bottom = text-to-line gap, 3px; the :has-leading / :has-trailing tiers must carry it */
+    /* zero horizontal padding: the lines and supporting text span the content box
+       while the slot wrappers sit flush with the outer bounds; any side inset
+       would push the slots past the line ends */
+    -fx-padding: 0.333333em 0 0.333333em 0;
     /* no box, no native prompt — the floating label and the activation line
        carry the affordance */
     -fx-background-color: transparent;
