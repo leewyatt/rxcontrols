@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -25,10 +26,13 @@ import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.geometry.Insets;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Labeled;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -439,6 +443,78 @@ public class RXControlColorsTest {
             double ratio = contrastRatio(composite(Color.web(samples.get("segmented.unselected")), track), track);
             assertTrue(ratio >= MUTED_LABEL_CONTRAST, "unselected segment label " + ratio + " under " + theme.getName());
         }
+    }
+
+    // ==================== Drawer ====================
+
+    /**
+     * The drawer panel is a raised surface (the content surface on a light host, lighter than
+     * the window on a dark one) with a hairline on the edge that faces the content, and only an
+     * overlaying drawer casts a shadow, on default Modena, a dark application palette and under
+     * the bridge.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void drawerIsARaisedSurfaceWithAContentEdge() throws Exception {
+        assertDrawer("default Modena", Application.STYLESHEET_MODENA, scene -> { }, "-fx-control-inner-background");
+        assertDrawer("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette,
+                "-rx-surface-variant");
+        assertDrawer("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                "-fx-control-inner-background");
+        assertDrawer("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                "-rx-surface-variant");
+    }
+
+    private static void assertDrawer(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            String surfaceExpression) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(surfaceExpression, "-rx-surface", "-rx-outline-variant"));
+        Map<String, String> overlay = new LinkedHashMap<>();
+        Map<String, String> push = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXDrawerPane drawer = new RXDrawerPane();
+            drawer.setSide(Side.LEFT);
+            drawer.setDrawerContent(new StackPane());
+            StackPane root = new StackPane(drawer);
+            themer.accept(new Scene(root, 400, 300));
+            root.applyCss();
+            sampleDrawer((Region) drawer.lookup(".drawer-wrapper"), overlay);
+            drawer.setDrawerMode(RXDrawerPane.DrawerMode.PUSH);
+            root.applyCss();
+            sampleDrawer((Region) drawer.lookup(".drawer-wrapper"), push);
+        });
+        String surface = expected.get(surfaceExpression);
+        String edge = expected.get("-rx-outline-variant") + " 0/1/0/0";
+        assertEquals(surface, overlay.get("fill"), "drawer surface under " + host);
+        assertEquals(surface, push.get("fill"), "pushing drawer surface under " + host);
+        if (surfaceExpression.equals("-rx-surface-variant")) {
+            double drawerLuminance = relativeLuminance(Color.web(surface));
+            double windowLuminance = relativeLuminance(Color.web(expected.get("-rx-surface")));
+            assertTrue(drawerLuminance > windowLuminance, "drawer is lighter than the window under " + host);
+        }
+        assertEquals(edge, overlay.get("border"), "overlay drawer edge faces the content under " + host);
+        assertEquals(edge, push.get("border"), "pushing drawer edge faces the content under " + host);
+        assertEquals("true", overlay.get("shadow"), "overlay drawer shadow under " + host);
+        assertEquals("false", push.get("shadow"), "pushing drawer shadow under " + host);
+        // A border stroke would count toward the insets and thicken the drawer.
+        assertEquals("false", overlay.get("stroke"), "overlay drawer has no border under " + host);
+        assertEquals("false", push.get("stroke"), "pushing drawer has no border under " + host);
+    }
+
+    // The surface is the top background layer; the hairline is the layer beneath it,
+    // left showing on the side where the surface is inset.
+    private static void sampleDrawer(Region wrapper, Map<String, String> into) {
+        List<BackgroundFill> fills = wrapper.getBackground().getFills();
+        BackgroundFill surface = fills.get(fills.size() - 1);
+        into.put("fill", ThemeColorSamples.hex(surface.getFill()));
+        into.put("shadow", String.valueOf(wrapper.getEffect() != null));
+        Insets insets = surface.getInsets();
+        into.put("border", fills.size() < 2 ? "none" : ThemeColorSamples.hex(fills.get(0).getFill()) + " "
+                + (int) insets.getTop() + "/" + (int) insets.getRight() + "/"
+                + (int) insets.getBottom() + "/" + (int) insets.getLeft());
+        into.put("stroke", String.valueOf(wrapper.getBorder() != null && !wrapper.getBorder().getStrokes().isEmpty()));
     }
 
     // ==================== Slider value bubble ====================

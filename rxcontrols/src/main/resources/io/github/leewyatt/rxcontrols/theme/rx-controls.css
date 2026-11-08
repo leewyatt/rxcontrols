@@ -2007,27 +2007,32 @@
     -fx-background-color: rgba(0, 0, 0, 0.32);
 }
 
+/* A raised surface: on a light host the content surface (white on a gray Modena
+   window), on a dark one a step lighter than the window so the drawer reads as a
+   layer above the content. A hairline on the edge that faces the content keeps
+   that edge visible where the shadow is not (dark hosts, a pushing drawer); it is
+   a background layer rather than a border, because border widths count toward the
+   insets and would make the drawer thicker than its content. */
 .rx-drawer-pane > .drawer-wrapper {
-    -fx-background-color: -rx-surface;
+    -fx-background-color: -rx-outline-variant,
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 0 0 0 1;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 16, 0, 0, 0);
 }
 
-.rx-drawer-pane:right > .drawer-wrapper {
-    -fx-background-radius: 8 0 0 8;
-}
-
 .rx-drawer-pane:left > .drawer-wrapper {
-    -fx-background-radius: 0 8 8 0;
+    -fx-background-insets: 0, 0 1 0 0;
 }
 
 .rx-drawer-pane:top > .drawer-wrapper {
-    -fx-background-radius: 0 0 8 8;
+    -fx-background-insets: 0, 0 0 1 0;
 }
 
 .rx-drawer-pane:bottom > .drawer-wrapper {
-    -fx-background-radius: 8 8 0 0;
+    -fx-background-insets: 0, 1 0 0 0;
 }
 
+/* A pushing drawer sits beside the content like a sidebar. */
 .rx-drawer-pane:push > .drawer-wrapper {
     -fx-effect: null;
 }
