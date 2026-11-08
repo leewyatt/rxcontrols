@@ -2493,11 +2493,13 @@
     -fx-padding: 2;
 }
 
-/* White pill on a light host; on a dark one a neutral lifted above the track. */
 .rx-segmented-control > .indicator {
-    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 30%) 45%, white 46%);
+    -fx-background-color: -rx-primary;
     -fx-background-radius: 4;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.10), 4, 0, 0, 2);
+}
+
+.rx-segmented-control:disabled > .indicator {
+    -fx-opacity: 0.4;
 }
 
 /* Each segment is an RXRipplePane: a transparent fill keeps it pickable and
@@ -2518,7 +2520,7 @@
 }
 
 .rx-segmented-control > .segment:selected .label {
-    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.88) 46%);
+    -fx-text-fill: -rx-on-primary;
 }
 
 .rx-segmented-control > .segment:disabled .label {
@@ -2528,12 +2530,12 @@
 /* The scope class outranks the state pseudo-classes, so the states repeat under it. */
 .rx-theme-atlantafx .rx-segmented-control > .segment .label,
 .rx-theme-atlantafx.rx-segmented-control > .segment .label {
-    -fx-text-fill: -rx-on-surface;
+    -fx-text-fill: -rx-on-surface-secondary;
 }
 
 .rx-theme-atlantafx .rx-segmented-control > .segment:selected .label,
 .rx-theme-atlantafx.rx-segmented-control > .segment:selected .label {
-    -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, rgba(0, 0, 0, 0.88) 46%);
+    -fx-text-fill: -rx-on-primary;
 }
 
 .rx-theme-atlantafx .rx-segmented-control > .segment:disabled .label,

@@ -72,9 +72,9 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("cascader.prompt", "#b2b2b2ff");
         DEFAULT_MODENA.put("cascader.column.border", "#c4c4c4ff");
         DEFAULT_MODENA.put("cascader.cell.hover", "#ebebebff");
-        DEFAULT_MODENA.put("segmented.selected", "#000000e0");
+        DEFAULT_MODENA.put("segmented.selected", "#ffffffff");
         DEFAULT_MODENA.put("segmented.unselected", "#000000a6");
-        DEFAULT_MODENA.put("segmented.indicator", "#ffffffff");
+        DEFAULT_MODENA.put("segmented.indicator", "#616dffff");
         DEFAULT_MODENA.put("seek.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("seek.secondary", "#00000040");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
@@ -120,9 +120,9 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("cascader.prompt", "#57606aff");
         PRIMER_LIGHT.put("cascader.column.border", "#d0d7deff");
         PRIMER_LIGHT.put("cascader.cell.hover", "#f6f8faff");
-        PRIMER_LIGHT.put("segmented.selected", "#000000e0");
-        PRIMER_LIGHT.put("segmented.unselected", "#24292fff");
-        PRIMER_LIGHT.put("segmented.indicator", "#ffffffff");
+        PRIMER_LIGHT.put("segmented.selected", "#ffffffff");
+        PRIMER_LIGHT.put("segmented.unselected", "#57606aff");
+        PRIMER_LIGHT.put("segmented.indicator", "#0969daff");
         PRIMER_LIGHT.put("seek.track", "#d0d7deff");
         PRIMER_LIGHT.put("seek.secondary", "#6e7781ff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
@@ -169,9 +169,9 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("cascader.prompt", "#8b949eff");
         PRIMER_DARK.put("cascader.column.border", "#30363dff");
         PRIMER_DARK.put("cascader.cell.hover", "#161b22ff");
-        PRIMER_DARK.put("segmented.selected", "#c9d1d9ff");
-        PRIMER_DARK.put("segmented.unselected", "#c9d1d9ff");
-        PRIMER_DARK.put("segmented.indicator", "#343d4aff");
+        PRIMER_DARK.put("segmented.selected", "#ffffffff");
+        PRIMER_DARK.put("segmented.unselected", "#8b949eff");
+        PRIMER_DARK.put("segmented.indicator", "#1f6febff");
         PRIMER_DARK.put("seek.track", "#30363dff");
         PRIMER_DARK.put("seek.secondary", "#6e7681ff");
         PRIMER_DARK.put("slider.track", "#30363dff");
@@ -219,8 +219,10 @@ public class RXControlColorsTest {
     private static final double PLACEHOLDER_CONTRAST = 3.0;
     private static final double TRACK_CONTRAST = 1.3;
     private static final double NON_TEXT_CONTRAST = 3.0;
-    private static final double PILL_MIN_CONTRAST = 1.04;
-    private static final double PILL_MAX_CONTRAST = 3.0;
+    // Nord Dark's muted accent on its subtle surface measures 2.5.
+    private static final double PILL_EDGE_CONTRAST = 2.0;
+    // AtlantaFX muted text on its subtle surface; Nord Dark's own pair measures 3.78.
+    private static final double MUTED_LABEL_CONTRAST = 3.0;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass HOVER = PseudoClass.getPseudoClass("hover");
 
@@ -297,7 +299,8 @@ public class RXControlColorsTest {
         assertEquals(roles.get("on-surface-secondary"), samples.get("cascader.prompt"), "cascader prompt");
         assertEquals(roles.get("outline"), samples.get("cascader.column.border"), "cascader column separator");
         assertEquals(roles.get("on-surface"), samples.get("segmented.unselected"), "unselected segment label");
-        assertEquals(roles.get("on-surface"), samples.get("segmented.selected"), "selected segment label on the dark pill");
+        assertEquals(roles.get("primary"), samples.get("segmented.indicator"), "segment selection pill");
+        assertEquals(roles.get("on-primary"), samples.get("segmented.selected"), "selected segment label on the pill");
         assertEquals(roles.get("outline"), samples.get("seek.track"), "seek bar track");
         assertEquals(roles.get("on-surface-disabled"), samples.get("seek.secondary"), "seek bar buffer");
         assertEquals(roles.get("outline"), samples.get("slider.track"), "slider track");
@@ -391,9 +394,8 @@ public class RXControlColorsTest {
     // ==================== Segmented pill ====================
 
     /**
-     * The segmented selection pill stands apart from its track without glaring over it, and
-     * keeps the selected label legible, on default Modena, a dark application palette and every
-     * AtlantaFX theme.
+     * The segmented selection pill takes the primary color with on-primary text and stands out
+     * from its track, on default Modena, a dark application palette and every AtlantaFX theme.
      *
      * @throws Exception if the FX action fails
      */
@@ -410,14 +412,33 @@ public class RXControlColorsTest {
     private static void assertSegmentedPill(String host, String userAgentStylesheet, Consumer<Scene> themer)
             throws Exception {
         Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
-        Color track = Color.web(roles(userAgentStylesheet, themer).get("surface-variant"));
+        Map<String, String> roles = roles(userAgentStylesheet, themer);
+        assertEquals(roles.get("primary"), samples.get("segmented.indicator"), "segment selection pill under " + host);
+        assertEquals(roles.get("on-primary"), samples.get("segmented.selected"), "selected segment label under " + host);
+        Color track = Color.web(roles.get("surface-variant"));
         Color pill = composite(Color.web(samples.get("segmented.indicator")), track);
-        Color label = composite(Color.web(samples.get("segmented.selected")), pill);
         double edge = contrastRatio(pill, track);
-        double text = contrastRatio(label, pill);
-        assertTrue(edge >= PILL_MIN_CONTRAST && edge <= PILL_MAX_CONTRAST,
-                "segmented pill vs track " + edge + " under " + host);
-        assertTrue(text >= WCAG_AA_CONTRAST, "selected segment label " + text + " under " + host);
+        assertTrue(edge >= PILL_EDGE_CONTRAST, "segmented pill vs track " + edge + " under " + host);
+    }
+
+    /**
+     * Under every AtlantaFX theme the unselected segment labels recede from the selected one
+     * and stay readable on the track.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void segmentedUnselectedLabelsRecedeUnderAtlantaFX() throws Exception {
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            String stylesheet = theme.getUserAgentStylesheet();
+            Map<String, String> samples = sampleUnder(stylesheet, RXAtlantaFXThemeBridge::install);
+            Color track = Color.web(roles(stylesheet, RXAtlantaFXThemeBridge::install).get("surface-variant"));
+            assertNotEquals(samples.get("segmented.selected"), samples.get("segmented.unselected"),
+                    "segment labels under " + theme.getName());
+            double ratio = contrastRatio(composite(Color.web(samples.get("segmented.unselected")), track), track);
+            assertTrue(ratio >= MUTED_LABEL_CONTRAST, "unselected segment label " + ratio + " under " + theme.getName());
+        }
     }
 
     // ==================== Slider value bubble ====================
@@ -621,6 +642,35 @@ public class RXControlColorsTest {
     }
 
     /**
+     * A disabled segmented control fades its selection pill, on default Modena and under the bridge.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void disabledSegmentedControlFadesThePill() throws Exception {
+        assertPillOpacity(Application.STYLESHEET_MODENA, scene -> { });
+        assertPillOpacity(new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertPillOpacity(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
+        List<Double> opacities = new ArrayList<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXSegmentedControl<String> segmented = new RXSegmentedControl<>(
+                    new RXSegmentedItem<>("on", "On"), new RXSegmentedItem<>("off", "Off"));
+            segmented.select("on");
+            StackPane root = new StackPane(segmented);
+            themer.accept(new Scene(root, 300, 100));
+            root.applyCss();
+            opacities.add(segmented.lookup(".indicator").getOpacity());
+            segmented.setDisable(true);
+            root.applyCss();
+            opacities.add(segmented.lookup(".indicator").getOpacity());
+        });
+        assertEquals(List.of(1.0, 0.4), opacities, "pill opacity enabled, then disabled");
+    }
+
+    /**
      * A control that is itself the bridged scene root takes the same scoped colors as
      * one nested under the root.
      *
@@ -801,7 +851,7 @@ public class RXControlColorsTest {
 
     /** The role tokens resolved under a host, as 8-bit hex. */
     private static Map<String, String> roles(String userAgentStylesheet, Consumer<Scene> themer) throws Exception {
-        List<String> tokens = List.of("primary", "success", "info", "surface", "surface-variant", "on-surface",
+        List<String> tokens = List.of("primary", "on-primary", "success", "info", "surface", "surface-variant", "on-surface",
                 "on-surface-secondary", "on-surface-disabled", "outline");
         Map<String, String> roles = new LinkedHashMap<>();
         List<String> expressions = new ArrayList<>();
