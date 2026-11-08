@@ -34,9 +34,9 @@ import java.util.List;
  * boundary so non-negative sanitizing is observable); and
  * per-item {@code type}, {@code dotFill}, {@code dotGraphic}
  * (a {@code ProgressIndicator} loading marker), custom {@code content}, and
- * {@code disable} (muted, non-clickable) on a selected row. A width slider
- * verifies wrapped-height layout, and the data section toggles the empty state
- * with and without a placeholder.
+ * {@code disable} (muted, non-clickable) on a selected row. The data section
+ * toggles the empty state with and without a placeholder. Narrowing the window
+ * wraps the vertical timeline's text taller.
  *
  * <p>For a minimal "few lines of code" example see {@link RXTimelineViewDemo}.
  */
@@ -108,7 +108,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
                 section("Display order", buildDisplayGrid()),
                 section("Metrics", buildMetricsGrid()),
                 section("Selected item", buildSelectedItemGrid()),
-                section("Layout", buildLayoutGrid()),
                 section("Data", buildDataGrid()));
     }
 
@@ -247,13 +246,6 @@ public class RXTimelineViewShowcase extends RXShowcaseApplication {
                 row(loadingToggle),
                 row(customContentToggle),
                 row(disableToggle));
-    }
-
-    private Node buildLayoutGrid() {
-        Slider widthSlider = createSlider(220.0, 1000.0, 1000.0);
-        timeline.maxWidthProperty().bind(widthSlider.valueProperty());
-        Label widthValue = createValueLabel(widthSlider, "%.0f px");
-        return createGrid(row("Max width", widthSlider, widthValue));
     }
 
     private Node buildDataGrid() {
