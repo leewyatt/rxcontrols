@@ -1,5 +1,5 @@
 .control-pane .showcase-page-label {
-    -fx-text-fill: #333333;
+    -fx-text-fill: -fx-text-base-color;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
 }
@@ -13,4 +13,8 @@
     -fx-font-size: 36px;
     -fx-text-fill: white;
     -fx-font-weight: bold;
+}
+
+.light-page > .color-page-label {
+    -fx-text-fill: #3d3d3d;
 }

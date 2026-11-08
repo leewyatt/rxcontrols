@@ -57,9 +57,10 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
     private int screenshotCounter;
     private Timeline screenshotTimeline;
 
+    // The last page is light so the navigator can be checked against light content.
     private static final String[] COLORS = {
             "#4A90D9", "#E06C75", "#56B870", "#D19A66",
-            "#C678DD", "#2DBCB6", "#E5855A", "#5C6BC0"
+            "#C678DD", "#2DBCB6", "#E5855A", "#5C6BC0", "#F2EFE9"
     };
 
     private RXCarousel carousel;
@@ -140,7 +141,11 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
 
     private StackPane createColorPage(int index) {
         StackPane page = new StackPane();
-        page.setStyle("-fx-background-color: " + COLORS[index % COLORS.length] + ";");
+        String color = COLORS[index % COLORS.length];
+        page.setStyle("-fx-background-color: " + color + ";");
+        if (Color.web(color).getBrightness() > 0.85) {
+            page.getStyleClass().add("light-page");
+        }
 
         Label label = new Label("Page " + (index + 1));
         label.getStyleClass().add("color-page-label");
