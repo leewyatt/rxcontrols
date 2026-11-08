@@ -70,7 +70,8 @@
          level 1: 4  / 0.0 / 2     level 4: 16 / 0.0 / 8
          level 2: 8  / 0.0 / 2     level 5: 16 / 0.0 / 12
          level 3: 12 / 0.0 / 8
-       The RXDialog card consumes this token at level 4. Pre-existing structural
+       The RXDialog card does not use it: it sits on a scrim, where an opaque
+       light-gray theme shadow reads as a glow. Pre-existing structural
        shadows (drawer / avatar / segmented) are not yet retrofitted onto
        the token — that is a separate visual pass. */
     -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
@@ -2047,13 +2048,21 @@
     -fx-background-color: rgba(0, 0, 0, 0.32);
 }
 
+/* A raised surface, as for the drawer: the content surface on a light host, a step
+   lighter than the window on a dark one. On a dark host a 1px outline edge (the
+   lower background layer, so the card keeps its size) separates the card from the
+   near-black scrim, where no shadow shows. The shadow is translucent black rather
+   than the elevation token: a theme's opaque light-gray shadow is lighter than the
+   scrim around the card and reads as a glow. */
 .rx-dialog > .dialog-card {
-    -fx-background-color: -rx-surface;
-    -fx-background-radius: 12;
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-control-inner-background 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
     /* The card's min/pref/max size (and the resize bounds) come from the dialog's
        -rx-card-* properties, which the skin binds onto this node; do not set -fx-*-width
        / -fx-*-height here (a bound property ignores them). */
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 8);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 16, 0.0, 0, 8);
 }
 
 .rx-dialog > .dialog-card > .actions {

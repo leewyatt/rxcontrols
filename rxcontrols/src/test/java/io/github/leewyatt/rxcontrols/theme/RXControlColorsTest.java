@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
@@ -31,7 +32,9 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Labeled;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -515,6 +518,67 @@ public class RXControlColorsTest {
                 + (int) insets.getTop() + "/" + (int) insets.getRight() + "/"
                 + (int) insets.getBottom() + "/" + (int) insets.getLeft());
         into.put("stroke", String.valueOf(wrapper.getBorder() != null && !wrapper.getBorder().getStrokes().isEmpty()));
+    }
+
+    // ==================== Dialog card ====================
+
+    /**
+     * The dialog card is a raised surface (the content surface on a light host, lighter than
+     * the window on a dark one), outlined only on a dark host, and casts a translucent black
+     * shadow, on default Modena, a dark application palette and under the bridge.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void dialogCardIsARaisedSurface() throws Exception {
+        assertDialogCard("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertDialogCard("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertDialogCard("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+        assertDialogCard("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                true);
+    }
+
+    private static void assertDialogCard(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        String surfaceExpression = dark ? "-rx-surface-variant" : "-fx-control-inner-background";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(surfaceExpression, "-rx-surface", "-rx-outline"));
+        Map<String, String> card = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            Region owner = new Region();
+            StackPane root = new StackPane(owner);
+            Scene scene = new Scene(root, 400, 300);
+            themer.accept(scene);
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            dialog.setAnimated(false);
+            dialog.show(owner);
+            scene.getRoot().applyCss();
+            Region dialogCard = (Region) dialog.lookup(".dialog-card");
+            List<BackgroundFill> fills = dialogCard.getBackground().getFills();
+            BackgroundFill surface = fills.get(fills.size() - 1);
+            card.put("surface", ThemeColorSamples.hex(surface.getFill()));
+            card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+            card.put("inset", String.valueOf(surface.getInsets()));
+            card.put("border", String.valueOf(dialogCard.getBorder() != null && !dialogCard.getBorder().getStrokes().isEmpty()));
+            card.put("shadow", dialogCard.getEffect() instanceof DropShadow
+                    ? ThemeColorSamples.hex(((DropShadow) dialogCard.getEffect()).getColor()) : "none");
+        });
+        String surface = expected.get(surfaceExpression);
+        assertEquals(surface, card.get("surface"), "dialog card surface under " + host);
+        if (dark) {
+            assertTrue(relativeLuminance(Color.web(surface)) > relativeLuminance(Color.web(expected.get("-rx-surface"))),
+                    "dialog card is lighter than the window under " + host);
+        }
+        // The edge is the lower layer showing around a 1px-inset surface: outlined on a dark
+        // host, invisible (the surface color) on a light one, and never a border that would
+        // change the card's size.
+        assertEquals(dark ? expected.get("-rx-outline") : surface, card.get("edge"), "dialog card edge under " + host);
+        assertEquals(String.valueOf(new Insets(1)), card.get("inset"), "dialog card surface inset under " + host);
+        assertEquals("false", card.get("border"), "dialog card has no border under " + host);
+        // An opaque light-gray theme shadow would read as a glow on the scrim.
+        assertEquals("#0000004d", card.get("shadow"), "dialog card shadow under " + host);
     }
 
     // ==================== Slider value bubble ====================
