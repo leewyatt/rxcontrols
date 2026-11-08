@@ -21,6 +21,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -70,7 +71,11 @@ public class RXDrawerPaneShowcase extends RXShowcaseApplication {
         drawer.setDrawerContent(createDrawerContent());
         drawer.addEventHandler(RXDrawerEvent.ANY, e -> lastEvent.set(
                 e.getEventType().getName()));
-        return drawer;
+        // The frame stands in for the application window the drawer pane would fill,
+        // so its edges stay visible inside the larger preview area.
+        StackPane frame = new StackPane(drawer);
+        frame.getStyleClass().add("drawer-frame");
+        return frame;
     }
 
     private Region createMainContent() {

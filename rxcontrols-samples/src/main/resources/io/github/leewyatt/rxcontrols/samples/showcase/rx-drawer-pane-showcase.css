@@ -1,5 +1,11 @@
+.drawer-frame {
+    -fx-border-color: -fx-text-box-border;
+}
+
+/* The application's window surface, so the raised drawer reads against it. */
 .preview-content {
     -fx-padding: 32;
+    -fx-background-color: -rx-surface;
 }
 
 .preview-heading {
