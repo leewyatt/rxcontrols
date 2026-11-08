@@ -26,7 +26,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -502,6 +501,24 @@ public class RXTimelineViewTest {
             showSqueezed(new HBox(new VBox(view)), 40.0, 30.0);
 
             assertKeepsContent(view, position + " horizontal");
+        }
+    }
+
+    @Test
+    public void axisKeepsTheDotSizeBelowTheViewMinimum() {
+        for (Orientation orientation : Orientation.values()) {
+            RXTimelineView view = textTimeline();
+            view.setOrientation(orientation);
+            // Lowering the minimum lets the parent squeeze the rows across the axis.
+            view.setMinSize(0.0, 0.0);
+            boolean vertical = orientation == Orientation.VERTICAL;
+            showSqueezed(vertical ? new VBox(new HBox(view)) : new HBox(new VBox(view)),
+                    vertical ? 10.0 : 600.0, vertical ? 600.0 : 10.0);
+
+            for (Node dot : view.lookupAll(".dot")) {
+                assertEquals(view.getDotSize(), ((Region) dot).getWidth(), 0.5, orientation + " dot width");
+                assertEquals(view.getDotSize(), ((Region) dot).getHeight(), 0.5, orientation + " dot height");
+            }
         }
     }
 
@@ -1142,30 +1159,30 @@ public class RXTimelineViewTest {
         return new RXTimelineView(placed, stock);
     }
 
-    // Every label shows its whole words, every dot keeps its size, and nothing is
-    // laid out past the view's own bounds.
+    // Items follow one another without overlapping, every label stays inside the
+    // view, and every dot keeps its full size.
     private static void assertKeepsContent(RXTimelineView view, String host) {
         Bounds viewBounds = view.localToScene(view.getLayoutBounds());
+        boolean vertical = view.getOrientation() == Orientation.VERTICAL;
+        List<Node> items = itemNodes(view);
+        for (int i = 1; i < items.size(); i++) {
+            Bounds previous = items.get(i - 1).localToScene(items.get(i - 1).getLayoutBounds());
+            Bounds next = items.get(i).localToScene(items.get(i).getLayoutBounds());
+            double gap = vertical ? next.getMinY() - previous.getMaxY() : next.getMinX() - previous.getMaxX();
+            assertTrue(gap >= -0.5, "item " + i + " does not overlap the one before under " + host);
+        }
         for (Node node : view.lookupAll(".label")) {
             Labeled label = (Labeled) node;
             if (!label.isVisible() || label.getText() == null || label.getText().isEmpty()) {
                 continue;
             }
-            // Wide enough for its longest word, so wrapping never splits or elides a word.
-            double longestWord = 0.0;
-            for (String word : label.getText().trim().split("\\s+")) {
-                Text measure = new Text(word);
-                measure.setFont(label.getFont());
-                longestWord = Math.max(longestWord, measure.getLayoutBounds().getWidth());
-            }
-            assertTrue(label.getWidth() + 0.5 >= longestWord,
-                    "label '" + label.getText() + "' keeps its longest word under " + host);
             Bounds bounds = label.localToScene(label.getLayoutBounds());
             assertTrue(bounds.getMaxX() <= viewBounds.getMaxX() + 0.5 && bounds.getMaxY() <= viewBounds.getMaxY() + 0.5,
                     "label '" + label.getText() + "' stays inside the view under " + host);
         }
         for (Node dot : view.lookupAll(".dot")) {
-            assertEquals(view.getDotSize(), ((Region) dot).getWidth(), 0.5, "dot keeps its size under " + host);
+            assertEquals(view.getDotSize(), ((Region) dot).getWidth(), 0.5, "dot width under " + host);
+            assertEquals(view.getDotSize(), ((Region) dot).getHeight(), 0.5, "dot height under " + host);
         }
     }
 

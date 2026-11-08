@@ -24,7 +24,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
@@ -160,8 +159,8 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
         // The view does not scroll, so it never reports less than its items need: a
-        // horizontal timeline keeps its full length; a vertical one may narrow until a
-        // label would have to cut a word (the height then grows, see computeMinHeight).
+        // horizontal timeline keeps its full length; a vertical one narrows to its
+        // items' minimum width, wrapping text taller (see computeMinHeight).
         if (orientationOrDefault() == Orientation.HORIZONTAL) {
             return computePrefWidth(height, topInset, rightInset, bottomInset, leftInset);
         }
@@ -389,39 +388,6 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.4f)", r, g, b, color.getOpacity());
     }
 
-    // ==================== Word-keeping label ====================
-
-    // A wrapping label whose minimum width keeps its longest word whole, so a narrowed
-    // vertical timeline wraps text onto more lines instead of truncating it. Without
-    // wrapping (horizontal timelines) it keeps the Label minimum.
-    private static final class WordKeepingLabel extends Label {
-
-        private static final Text MEASURE = new Text();
-
-        @Override
-        protected double computeMinWidth(double height) {
-            double min = super.computeMinWidth(height);
-            String text = getText();
-            if (!isWrapText() || text == null || text.isBlank()) {
-                return min;
-            }
-            double longestWord = 0.0;
-            for (String word : text.trim().split("\\s+")) {
-                longestWord = Math.max(longestWord, textWidth(word));
-            }
-            // The preferred width is the whole text on one line plus padding; swap the
-            // line for the longest word to keep that padding.
-            double padding = super.computePrefWidth(height) - textWidth(text);
-            return Math.max(min, snapSizeX(padding + longestWord));
-        }
-
-        private double textWidth(String value) {
-            MEASURE.setFont(getFont());
-            MEASURE.setText(value);
-            return MEASURE.getLayoutBounds().getWidth();
-        }
-    }
-
     // ==================== Item Node ====================
 
     private static final class ItemNode extends RXBox {
@@ -454,9 +420,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         // (empty) whenever the axis is centered (ALTERNATE, or showOppositeContent),
         // so the axis stays aligned across rows even when this item has none.
         private final StackPane oppositeHolder = new StackPane();
-        private final Label title = new WordKeepingLabel();
-        private final Label description = new WordKeepingLabel();
-        private final Label timestamp = new WordKeepingLabel();
+        private final Label title = new Label();
+        private final Label description = new Label();
+        private final Label timestamp = new Label();
         // Set by applyPosition: whether the row is centered and which halves flank the axis.
         private boolean centered;
         private Region leadingHalf = content;
