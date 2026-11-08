@@ -24,6 +24,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
@@ -158,7 +159,17 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return leftInset + rightInset;
+        // The view does not scroll, so it never reports less than its items need: a
+        // horizontal timeline keeps its full length; a vertical one may narrow until a
+        // label would have to cut a word (the height then grows, see computeMinHeight).
+        if (orientationOrDefault() == Orientation.HORIZONTAL) {
+            return computePrefWidth(height, topInset, rightInset, bottomInset, leftInset);
+        }
+        Region active = activeRegion();
+        if (active == null) {
+            return leftInset + rightInset;
+        }
+        return leftInset + active.minWidth(-1) + rightInset;
     }
 
     /**
@@ -167,7 +178,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return topInset + bottomInset;
+        // Items never overlap: the minimum height is the preferred height at the given
+        // width (a narrower vertical timeline wraps its text taller).
+        return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
     }
 
     /**
@@ -176,7 +189,9 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        // Sized to its items like a Label: a parent such as StackPane centers it
+        // instead of stretching empty space around the items.
+        return getSkinnable().prefWidth(height);
     }
 
     /**
@@ -185,7 +200,7 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        return Double.MAX_VALUE;
+        return getSkinnable().prefHeight(width);
     }
 
     // ==================== Rebuild ====================
@@ -374,6 +389,39 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         return String.format(Locale.ROOT, "rgba(%d, %d, %d, %.4f)", r, g, b, color.getOpacity());
     }
 
+    // ==================== Word-keeping label ====================
+
+    // A wrapping label whose minimum width keeps its longest word whole, so a narrowed
+    // vertical timeline wraps text onto more lines instead of truncating it. Without
+    // wrapping (horizontal timelines) it keeps the Label minimum.
+    private static final class WordKeepingLabel extends Label {
+
+        private static final Text MEASURE = new Text();
+
+        @Override
+        protected double computeMinWidth(double height) {
+            double min = super.computeMinWidth(height);
+            String text = getText();
+            if (!isWrapText() || text == null || text.isBlank()) {
+                return min;
+            }
+            double longestWord = 0.0;
+            for (String word : text.trim().split("\\s+")) {
+                longestWord = Math.max(longestWord, textWidth(word));
+            }
+            // The preferred width is the whole text on one line plus padding; swap the
+            // line for the longest word to keep that padding.
+            double padding = super.computePrefWidth(height) - textWidth(text);
+            return Math.max(min, snapSizeX(padding + longestWord));
+        }
+
+        private double textWidth(String value) {
+            MEASURE.setFont(getFont());
+            MEASURE.setText(value);
+            return MEASURE.getLayoutBounds().getWidth();
+        }
+    }
+
     // ==================== Item Node ====================
 
     private static final class ItemNode extends RXBox {
@@ -406,9 +454,13 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
         // (empty) whenever the axis is centered (ALTERNATE, or showOppositeContent),
         // so the axis stays aligned across rows even when this item has none.
         private final StackPane oppositeHolder = new StackPane();
-        private final Label title = new Label();
-        private final Label description = new Label();
-        private final Label timestamp = new Label();
+        private final Label title = new WordKeepingLabel();
+        private final Label description = new WordKeepingLabel();
+        private final Label timestamp = new WordKeepingLabel();
+        // Set by applyPosition: whether the row is centered and which halves flank the axis.
+        private boolean centered;
+        private Region leadingHalf = content;
+        private Region trailingHalf = oppositeHolder;
 
         private final ChangeListener<Node> contentListener =
                 (observable, oldValue, newValue) -> updateContent(newValue);
@@ -546,14 +598,6 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             setOrientation(vertical ? Orientation.HORIZONTAL : Orientation.VERTICAL);
             // Dot pinned to the axis leading edge: top (vertical) or left (horizontal).
             StackPane.setAlignment(dot, vertical ? Pos.TOP_CENTER : Pos.CENTER_LEFT);
-            // Lock the axis cross-size to its preferred so it never collapses.
-            if (vertical) {
-                axis.setMinWidth(USE_PREF_SIZE);
-                axis.setMinHeight(USE_COMPUTED_SIZE);
-            } else {
-                axis.setMinHeight(USE_PREF_SIZE);
-                axis.setMinWidth(USE_COMPUTED_SIZE);
-            }
             // A vertical timeline wraps the description by width; a horizontal one
             // lets items take their natural width.
             title.setWrapText(vertical);
@@ -570,19 +614,21 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             // StackPane's own min/pref would otherwise include those margins (so a huge gap
             // would grow the item). fillCrossAxis still stretches the axis to the content-
             // driven row size, within which the connector fills (clamping to zero if huge).
+            // The axis column's width across the row (dot size) is also its minimum, so a
+            // squeezed row never collapses the dot.
             if (vertical) {
                 connector.setPrefWidth(lineWidth);
                 connector.setPrefHeight(USE_COMPUTED_SIZE);
                 axis.setMinHeight(dotSize);
                 axis.setPrefHeight(dotSize);
-                axis.setMinWidth(USE_COMPUTED_SIZE);
+                axis.setMinWidth(USE_PREF_SIZE);
                 axis.setPrefWidth(USE_COMPUTED_SIZE);
             } else {
                 connector.setPrefHeight(lineWidth);
                 connector.setPrefWidth(USE_COMPUTED_SIZE);
                 axis.setMinWidth(dotSize);
                 axis.setPrefWidth(dotSize);
-                axis.setMinHeight(USE_COMPUTED_SIZE);
+                axis.setMinHeight(USE_PREF_SIZE);
                 axis.setPrefHeight(USE_COMPUTED_SIZE);
             }
             configureConnector(lineWidth, dotSize, connectorGap);
@@ -716,25 +762,11 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
                 contentBeforeAxis = !leftSide;
             }
 
-            // Reset overrides; the centered form forces equal halves by zeroing BOTH
-            // the main-axis min and preferred size on content and the opposite holder,
-            // so grow splits evenly even when natural min would resist shrinking.
-            content.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
-            content.setMinSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
-            oppositeHolder.setPrefSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
-            oppositeHolder.setMinSize(USE_COMPUTED_SIZE, USE_COMPUTED_SIZE);
+            this.centered = centered;
+            leadingHalf = contentBeforeAxis ? content : oppositeHolder;
+            trailingHalf = contentBeforeAxis ? oppositeHolder : content;
             if (centered) {
-                if (contentBeforeAxis) {
-                    getChildren().setAll(content, axis, oppositeHolder);
-                } else {
-                    getChildren().setAll(oppositeHolder, axis, content);
-                }
-                setMainPref(content, 0.0);
-                setMainMin(content, 0.0);
-                setGrow(content, Priority.ALWAYS);
-                setMainPref(oppositeHolder, 0.0);
-                setMainMin(oppositeHolder, 0.0);
-                setGrow(oppositeHolder, Priority.ALWAYS);
+                getChildren().setAll(leadingHalf, axis, trailingHalf);
             } else if (contentBeforeAxis) {
                 getChildren().setAll(content, axis);
                 setGrow(content, Priority.ALWAYS);
@@ -766,20 +798,149 @@ public class RXTimelineViewSkin extends RXSkinBase<RXTimelineView> {
             pseudoClassStateChanged(RIGHT_PSEUDO_CLASS, !leftSide);
         }
 
-        private void setMainPref(Region node, double value) {
-            if (orientation == Orientation.VERTICAL) {
-                node.setPrefWidth(value);
+        // ==================== Centered layout ====================
+
+        // The centered form lays out its own row: two equal halves around the axis,
+        // each as large as the larger half needs, so the axis lands on the same line
+        // in every row. The box's grow distribution cannot do this without zeroing the
+        // halves' preferred sizes, which would hide them from the row's own size.
+        // "Main" is the row direction: width in a vertical timeline, height in a
+        // horizontal one.
+
+        @Override
+        protected double computePrefWidth(double height) {
+            if (!centered) {
+                return super.computePrefWidth(height);
+            }
+            return isVertical() ? centeredMainSize(height, false) : centeredCrossSize(height, false);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            if (!centered) {
+                return super.computePrefHeight(width);
+            }
+            return isVertical() ? centeredCrossSize(width, false) : centeredMainSize(width, false);
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            if (!centered) {
+                return super.computeMinWidth(height);
+            }
+            return isVertical() ? centeredMainSize(height, true) : centeredCrossSize(height, true);
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            if (!centered) {
+                return super.computeMinHeight(width);
+            }
+            return isVertical() ? centeredCrossSize(width, true) : centeredMainSize(width, true);
+        }
+
+        @Override
+        protected void layoutChildren() {
+            if (!centered) {
+                super.layoutChildren();
+                return;
+            }
+            boolean vertical = isVertical();
+            double left = snappedLeftInset();
+            double top = snappedTopInset();
+            double contentWidth = Math.max(0.0, getWidth() - left - snappedRightInset());
+            double contentHeight = Math.max(0.0, getHeight() - top - snappedBottomInset());
+            double axisMain = mainPref(axis);
+            double space = mainSpacing();
+            double half = halfMain(vertical ? getWidth() : getHeight());
+            double trailingStart = half + space + axisMain + space;
+            // The halves take exactly their slot, even when a parent squeezes the row below
+            // its minimum, so an oversized half overflows on its own side through its
+            // alignment instead of growing over the axis.
+            if (vertical) {
+                leadingHalf.resizeRelocate(snapPositionX(left), snapPositionY(top),
+                        snapSizeX(half), snapSizeY(contentHeight));
+                layoutInArea(axis, left + half + space, top, axisMain, contentHeight,
+                        -1, Insets.EMPTY, true, true, HPos.LEFT, VPos.TOP);
+                trailingHalf.resizeRelocate(snapPositionX(left + trailingStart), snapPositionY(top),
+                        snapSizeX(half), snapSizeY(contentHeight));
             } else {
-                node.setPrefHeight(value);
+                leadingHalf.resizeRelocate(snapPositionX(left), snapPositionY(top),
+                        snapSizeX(contentWidth), snapSizeY(half));
+                layoutInArea(axis, left, top + half + space, contentWidth, axisMain,
+                        -1, Insets.EMPTY, true, true, HPos.LEFT, VPos.TOP);
+                trailingHalf.resizeRelocate(snapPositionX(left), snapPositionY(top + trailingStart),
+                        snapSizeX(contentWidth), snapSizeY(half));
             }
         }
 
-        private void setMainMin(Region node, double value) {
-            if (orientation == Orientation.VERTICAL) {
-                node.setMinWidth(value);
-            } else {
-                node.setMinHeight(value);
+        // Insets + axis + both gaps + two halves sized to the larger half (its minimum
+        // for the minimum). Every slot fills the row's cross length, so a given one
+        // (-1: unknown) is passed on for children whose main size depends on it.
+        private double centeredMainSize(double cross, boolean minimum) {
+            double inner = cross < 0 ? -1 : Math.max(0.0, cross - crossInsets());
+            double axisMain = minimum ? mainMin(axis, inner) : mainPref(axis, inner);
+            // The opposite side holds short metadata such as a time, kept whole.
+            double halves = minimum
+                    ? 2.0 * Math.max(mainMin(content, inner), mainPref(oppositeHolder, inner))
+                    : 2.0 * Math.max(mainPref(content, inner), mainPref(oppositeHolder, inner));
+            double size = mainInsets() + axisMain + 2.0 * mainSpacing() + halves;
+            return isVertical() ? snapSizeX(size) : snapSizeY(size);
+        }
+
+        // Cross size for a given row length (-1: the preferred one), measuring each
+        // half at the length it is actually given, so wrapped text sizes correctly.
+        private double centeredCrossSize(double main, boolean minimum) {
+            double rowMain = main < 0 ? centeredMainSize(-1, false) : main;
+            double half = halfMain(rowMain);
+            double axisMain = mainPref(axis);
+            double cross = Math.max(crossSize(axis, axisMain, minimum),
+                    Math.max(crossSize(content, half, minimum), crossSize(oppositeHolder, half, minimum)));
+            return crossInsets() + cross;
+        }
+
+        private double halfMain(double rowMain) {
+            double free = rowMain - mainInsets() - mainPref(axis) - 2.0 * mainSpacing();
+            return Math.max(0.0, free / 2.0);
+        }
+
+        private boolean isVertical() {
+            return orientation == Orientation.VERTICAL;
+        }
+
+        private double mainInsets() {
+            return isVertical()
+                    ? snappedLeftInset() + snappedRightInset()
+                    : snappedTopInset() + snappedBottomInset();
+        }
+
+        private double crossInsets() {
+            return isVertical()
+                    ? snappedTopInset() + snappedBottomInset()
+                    : snappedLeftInset() + snappedRightInset();
+        }
+
+        private double mainSpacing() {
+            return isVertical() ? snapSpaceX(getSpacing()) : snapSpaceY(getSpacing());
+        }
+
+        private double mainPref(Region node) {
+            return mainPref(node, -1);
+        }
+
+        private double mainPref(Region node, double cross) {
+            return isVertical() ? node.prefWidth(cross) : node.prefHeight(cross);
+        }
+
+        private double mainMin(Region node, double cross) {
+            return isVertical() ? node.minWidth(cross) : node.minHeight(cross);
+        }
+
+        private double crossSize(Region node, double main, boolean minimum) {
+            if (isVertical()) {
+                return minimum ? node.minHeight(main) : node.prefHeight(main);
             }
+            return minimum ? node.minWidth(main) : node.prefWidth(main);
         }
 
         private RXTimelineItem getItem() {

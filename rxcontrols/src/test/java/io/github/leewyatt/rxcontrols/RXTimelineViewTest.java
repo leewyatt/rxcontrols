@@ -12,16 +12,21 @@ import javafx.event.Event;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.AccessibleRole;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -402,6 +407,124 @@ public class RXTimelineViewTest {
         double baseY = dotCenterY((Region) itemNodes(view).get(0).lookup(".dot"));
         double otherY = dotCenterY((Region) itemNodes(view).get(1).lookup(".dot"));
         assertEquals(baseY, otherY, 0.5, "dot center y must align across horizontal rows");
+    }
+
+    @Test
+    public void centeredVerticalPrefWidthFitsBothHalves() {
+        RXTimelineItem first = new RXTimelineItem("a");
+        first.setContent(fixedRegion(120.0, 30.0));
+        RXTimelineItem second = new RXTimelineItem("b");
+        second.setContent(fixedRegion(80.0, 30.0));
+        RXTimelineView view = new RXTimelineView(first, second);
+        view.setPosition(Position.ALTERNATE);
+        showAtPrefSize(view);
+
+        List<Node> items = itemNodes(view);
+        for (Node item : items) {
+            assertTrue(((Region) item.lookup(".content")).getWidth() >= 120.0,
+                    "each half must fit the widest content at the preferred width");
+        }
+        assertEquals(dotCenterX((Region) items.get(0).lookup(".dot")),
+                dotCenterX((Region) items.get(1).lookup(".dot")), 0.5, "axis aligned across rows");
+    }
+
+    @Test
+    public void centeredHorizontalPrefHeightFitsBothHalves() {
+        RXTimelineItem first = new RXTimelineItem("a");
+        first.setContent(fixedRegion(80.0, 60.0));
+        first.setOppositeContent(fixedRegion(40.0, 20.0));
+        RXTimelineItem second = new RXTimelineItem("b");
+        second.setContent(fixedRegion(80.0, 30.0));
+        RXTimelineView view = new RXTimelineView(first, second);
+        view.setOrientation(Orientation.HORIZONTAL);
+        view.setShowOppositeContent(true);
+        showAtPrefSize(view);
+
+        List<Node> items = itemNodes(view);
+        for (Node item : items) {
+            assertTrue(((Region) item.lookup(".content")).getHeight() >= 60.0,
+                    "each half must fit the tallest content at the preferred height");
+            assertTrue(((Region) item.lookup(".opposite")).getHeight() >= 60.0,
+                    "the opposite half matches the content half");
+        }
+        assertEquals(dotCenterY((Region) items.get(0).lookup(".dot")),
+                dotCenterY((Region) items.get(1).lookup(".dot")), 0.5, "axis aligned across rows");
+    }
+
+    @Test
+    public void narrowCenteredRowKeepsEqualHalvesAndRestoresOnLeft() {
+        RXTimelineItem first = new RXTimelineItem("a");
+        first.setContent(fixedRegion(120.0, 30.0));
+        RXTimelineView view = new RXTimelineView(first, new RXTimelineItem("b"));
+        view.setPosition(Position.ALTERNATE);
+        StackPane root = new StackPane(view);
+        new Scene(root, 200, 300);
+        root.applyCss();
+        root.layout();
+
+        Region row = (Region) itemNodes(view).get(0);
+        Region content = (Region) row.lookup(".content");
+        Region opposite = (Region) row.lookup(".opposite");
+        Region axis = (Region) row.lookup(".axis");
+        assertEquals(content.getWidth(), opposite.getWidth(), 1.0, "halves stay equal below the preferred width");
+        assertTrue(content.getBoundsInParent().getMaxX() <= axis.getBoundsInParent().getMinX() + 1.0,
+                "the leading half ends before the axis");
+        assertTrue(axis.getBoundsInParent().getMaxX() <= opposite.getBoundsInParent().getMinX() + 1.0,
+                "the trailing half starts after the axis");
+
+        view.setPosition(Position.LEFT);
+        root.layout();
+        assertNull(row.lookup(".opposite"), "the opposite half leaves the row");
+        assertEquals(row.getWidth() - axis.getWidth() - ((RXBox) row).getSpacing(), content.getWidth(), 1.0,
+                "content takes the rest of the row again");
+    }
+
+    @Test
+    public void squeezedVerticalTimelineKeepsItsContent() {
+        for (Position position : List.of(Position.LEFT, Position.ALTERNATE)) {
+            RXTimelineView view = textTimeline();
+            view.setPosition(position);
+            view.setShowOppositeContent(position == Position.ALTERNATE);
+            // Too short for the items, and too narrow for any of the text.
+            showSqueezed(new VBox(new HBox(view)), 30.0, 40.0);
+
+            assertKeepsContent(view, position + " vertical");
+        }
+    }
+
+    @Test
+    public void squeezedHorizontalTimelineKeepsItsContent() {
+        for (Position position : List.of(Position.LEFT, Position.ALTERNATE)) {
+            RXTimelineView view = textTimeline();
+            view.setOrientation(Orientation.HORIZONTAL);
+            view.setPosition(position);
+            view.setShowOppositeContent(position == Position.ALTERNATE);
+            showSqueezed(new HBox(new VBox(view)), 40.0, 30.0);
+
+            assertKeepsContent(view, position + " horizontal");
+        }
+    }
+
+    @Test
+    public void viewIsCenteredNotStretchedUnlessMaxSizeIsRaised() {
+        for (Orientation orientation : Orientation.values()) {
+            RXTimelineView view = textTimeline();
+            view.setOrientation(orientation);
+            StackPane root = new StackPane(view);
+            showSqueezed(root, 900.0, 700.0);
+
+            double width = view.prefWidth(-1);
+            double height = view.prefHeight(width);
+            assertEquals(width, view.getWidth(), 0.5, orientation + " width stays preferred");
+            assertEquals(height, view.getHeight(), 0.5, orientation + " height stays preferred");
+            assertEquals((900.0 - width) / 2.0, view.getLayoutX(), 1.0, orientation + " centered horizontally");
+            assertEquals((700.0 - height) / 2.0, view.getLayoutY(), 1.0, orientation + " centered vertically");
+
+            view.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            root.layout();
+            assertEquals(900.0, view.getWidth(), 0.5, orientation + " stretches once max is raised");
+            assertEquals(700.0, view.getHeight(), 0.5, orientation + " stretches once max is raised");
+        }
     }
 
     @Test
@@ -994,6 +1117,64 @@ public class RXTimelineViewTest {
         new Scene(root, 420, 480);
         root.applyCss();
         root.layout();
+    }
+
+    // A Group sizes its child to the child's preferred size.
+    private static void showAtPrefSize(RXTimelineView view) {
+        Group root = new Group(view);
+        new Scene(root, 1000, 1000);
+        root.applyCss();
+        root.layout();
+    }
+
+    private static void showSqueezed(Region root, double width, double height) {
+        new Scene(root, width, height);
+        root.applyCss();
+        root.layout();
+    }
+
+    private static RXTimelineView textTimeline() {
+        RXTimelineItem placed = new RXTimelineItem("Placed", "06-12 09:24");
+        placed.setDescription("Order created.");
+        placed.setOppositeContent(new Label("06-12 09:24"));
+        RXTimelineItem stock = new RXTimelineItem("Low stock");
+        stock.setDescription("One SKU low.");
+        return new RXTimelineView(placed, stock);
+    }
+
+    // Every label shows its whole words, every dot keeps its size, and nothing is
+    // laid out past the view's own bounds.
+    private static void assertKeepsContent(RXTimelineView view, String host) {
+        Bounds viewBounds = view.localToScene(view.getLayoutBounds());
+        for (Node node : view.lookupAll(".label")) {
+            Labeled label = (Labeled) node;
+            if (!label.isVisible() || label.getText() == null || label.getText().isEmpty()) {
+                continue;
+            }
+            // Wide enough for its longest word, so wrapping never splits or elides a word.
+            double longestWord = 0.0;
+            for (String word : label.getText().trim().split("\\s+")) {
+                Text measure = new Text(word);
+                measure.setFont(label.getFont());
+                longestWord = Math.max(longestWord, measure.getLayoutBounds().getWidth());
+            }
+            assertTrue(label.getWidth() + 0.5 >= longestWord,
+                    "label '" + label.getText() + "' keeps its longest word under " + host);
+            Bounds bounds = label.localToScene(label.getLayoutBounds());
+            assertTrue(bounds.getMaxX() <= viewBounds.getMaxX() + 0.5 && bounds.getMaxY() <= viewBounds.getMaxY() + 0.5,
+                    "label '" + label.getText() + "' stays inside the view under " + host);
+        }
+        for (Node dot : view.lookupAll(".dot")) {
+            assertEquals(view.getDotSize(), ((Region) dot).getWidth(), 0.5, "dot keeps its size under " + host);
+        }
+    }
+
+    private static Region fixedRegion(double width, double height) {
+        Region region = new Region();
+        region.setMinSize(width, height);
+        region.setPrefSize(width, height);
+        region.setMaxSize(width, height);
+        return region;
     }
 
     private static List<Node> itemNodes(RXTimelineView view) {

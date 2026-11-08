@@ -53,6 +53,13 @@ import java.util.List;
  * {@code ScrollPane}; wrap it in {@code ScrollPane} with {@code
  * setFitToWidth(true)} (vertical) or {@code setFitToHeight(true)} (horizontal)
  * when scrolling is needed.
+ *
+ * <p>The view sizes itself to its items. Its minimum never cuts into them: a vertical
+ * timeline narrows only until a word would no longer fit on a line (its text wraps
+ * taller instead), and a horizontal one keeps its preferred size. Like a
+ * {@code Label}, its maximum is its preferred size, so a parent such as
+ * {@code StackPane} centers it instead of stretching it; call
+ * {@code setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE)} to let a parent stretch it.
  */
 public class RXTimelineView extends Control {
 
