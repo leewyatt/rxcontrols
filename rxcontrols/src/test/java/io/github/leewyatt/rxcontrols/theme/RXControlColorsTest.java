@@ -9,6 +9,7 @@ import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.RXAvatar;
+import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
@@ -579,6 +580,46 @@ public class RXControlColorsTest {
         assertEquals("false", card.get("border"), "dialog card has no border under " + host);
         // An opaque light-gray theme shadow would read as a glow on the scrim.
         assertEquals("#0000004d", card.get("shadow"), "dialog card shadow under " + host);
+    }
+
+    // ==================== Carousel navigator ====================
+
+    /**
+     * The carousel navigator rows keep the same translucent dark capsule on every host, and the
+     * compact buttons rest transparent on it, on default Modena, a dark application palette and
+     * under the bridge.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void carouselNavigatorKeepsAFixedCapsule() throws Exception {
+        assertCarouselNavigator("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertCarouselNavigator("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        assertCarouselNavigator("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertCarouselNavigator(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXCarousel dots = new RXCarousel();
+            dots.setPageCount(5);
+            dots.setPageFactory(i -> new StackPane());
+            RXCarousel compact = new RXCarousel();
+            compact.setPageCount(30);
+            compact.setPageFactory(i -> new StackPane());
+            StackPane root = new StackPane(dots, compact);
+            themer.accept(new Scene(root, 400, 300));
+            root.applyCss();
+            root.layout();
+            fills.put("dots", ThemeColorSamples.hex(fill(dots.lookup(".carousel-navigator > .dot-indicator"))));
+            fills.put("compact", ThemeColorSamples.hex(fill(compact.lookup(".carousel-navigator > .compact-navigator"))));
+            fills.put("button", ThemeColorSamples.hex(fill(compact.lookup(".compact-navigator > .prev-button"))));
+        });
+        assertEquals("#0000004d", fills.get("dots"), "dot row capsule under " + host);
+        assertEquals("#0000004d", fills.get("compact"), "compact row capsule under " + host);
+        assertEquals("#00000000", fills.get("button"), "compact button rests transparent under " + host);
     }
 
     // ==================== Slider value bubble ====================
