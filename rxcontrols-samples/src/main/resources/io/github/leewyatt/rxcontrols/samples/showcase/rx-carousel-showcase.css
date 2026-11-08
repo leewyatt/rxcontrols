@@ -14,7 +14,3 @@
     -fx-text-fill: white;
     -fx-font-weight: bold;
 }
-
-.light-page > .color-page-label {
-    -fx-text-fill: #3d3d3d;
-}

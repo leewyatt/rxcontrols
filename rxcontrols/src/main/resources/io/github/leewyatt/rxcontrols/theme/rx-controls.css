@@ -1887,15 +1887,10 @@
     -fx-padding: 5 10;
 }
 
-/* The navigator sits on page content (often an image), so it keeps fixed colors
-   whatever the theme. Like the arrow buttons, each row has a translucent dark
-   capsule behind its white marks, so they stay visible on a light page. */
 .carousel-navigator > .dot-indicator {
     -fx-spacing: 6;
     -fx-alignment: center;
-    -fx-padding: 5 8;
-    -fx-background-color: rgba(0, 0, 0, 0.3);
-    -fx-background-radius: 999;
+    -fx-padding: 4;
 }
 
 .carousel-navigator > .dot-indicator > .dot {
@@ -1915,9 +1910,6 @@
 .carousel-navigator > .compact-navigator {
     -fx-alignment: center;
     -fx-spacing: 6;
-    -fx-padding: 3 4;
-    -fx-background-color: rgba(0, 0, 0, 0.3);
-    -fx-background-radius: 999;
 }
 
 .carousel-navigator > .compact-navigator > .fraction-label {
@@ -1925,10 +1917,9 @@
     -fx-font-size: 14;
 }
 
-/* The capsule is the resting backing; hover / focus / press darken the button on top of it. */
 .carousel-navigator > .compact-navigator > .prev-button,
 .carousel-navigator > .compact-navigator > .next-button {
-    -fx-background-color: transparent;
+    -fx-background-color: rgba(0, 0, 0, 0.3);
     -fx-background-radius: 50;
     -fx-min-width: 24;
     -fx-min-height: 24;
