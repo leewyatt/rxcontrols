@@ -1033,41 +1033,70 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     // Live reorder preview: the dragged column stays at its natural slot (its translate
     // follows the pointer) while every other visible column is repositioned to open a
-    // column-wide gap at the hover index, so neighbours glide aside to make way.
+    // column-wide gap at the hover index, so neighbours glide aside to make way. The
+    // preview is the normal layout of the previewed order: same widths, same weighted
+    // gaps (a column mid hide / show contributes only its shown fraction), so it spans
+    // exactly the normal layout's extent and stays inside the board.
     private void layoutColumnsWithReorderGap(int columnCount, double height) {
         int dragged = reorderDraggedIndex;
-        double draggedWidth = cachedColumnW[dragged];
         double gap = layoutColumnGap;
         boolean flip = !pendingColumnFlipFromX.isEmpty() && animationEnabled();
-        double cursor = layoutColumnStartX;
+
+        // The other columns in model order, with the dragged one inserted before the
+        // visible column at reorderPreviewIndex (counted over visible, non-dragged columns).
+        int[] order = new int[columnCount];
+        int count = 0;
         int slot = 0;
+        boolean placed = false;
         for (int i = 0; i < columnCount; i++) {
+            if (i == dragged) {
+                continue;
+            }
+            if (boxes.get(i).getHideProgress() < 1.0) {
+                if (!placed && slot == reorderPreviewIndex) {
+                    order[count++] = dragged;
+                    placed = true;
+                }
+                slot++;
+            }
+            order[count++] = i;
+        }
+        if (!placed) {
+            order[count++] = dragged;
+        }
+
+        // A gap counts only to the degree a later column (in the previewed order) is shown.
+        double[] shownAfter = new double[columnCount];
+        double maxAfter = 0.0;
+        for (int k = columnCount - 1; k >= 0; k--) {
+            shownAfter[k] = maxAfter;
+            maxAfter = Math.max(maxAfter, 1.0 - boxes.get(order[k]).getHideProgress());
+        }
+
+        double cursor = layoutColumnStartX;
+        for (int k = 0; k < columnCount; k++) {
+            int i = order[k];
             KanbanColumnBox<T> box = boxes.get(i);
+            double weight = 1.0 - box.getHideProgress();
             if (i == dragged) {
                 // Kept at its natural slot; the drag support's translate offsets it to the
                 // pointer, so this layout x must stay fixed for that offset to hold.
                 box.setVisible(true);
                 box.resizeRelocate(snapPositionX(cachedColumnX[i] - boardScrollX), 0.0,
                         cachedColumnW[i], height);
-                continue;
-            }
-            box.setVisible(box.getHideProgress() < 1.0);
-            if (!box.isVisible()) {
-                box.resizeRelocate(snapPositionX(cursor - boardScrollX), 0.0, cachedColumnW[i], height);
-                continue;
-            }
-            if (slot == reorderPreviewIndex) {
-                cursor += draggedWidth + gap;
-            }
-            double x = snapPositionX(cursor - boardScrollX);
-            box.resizeRelocate(x, 0.0, cachedColumnW[i], height);
-            if (flip) {
-                applyColumnFlip(box, x);
             } else {
-                box.setTranslateX(0.0);
+                box.setVisible(weight > 0.0);
+                double x = snapPositionX(cursor - boardScrollX);
+                box.resizeRelocate(x, 0.0, cachedColumnW[i], height);
+                if (box.isVisible()) {
+                    if (flip) {
+                        applyColumnFlip(box, x);
+                    } else {
+                        box.setTranslateX(0.0);
+                    }
+                }
             }
-            cursor += cachedColumnW[i] + gap;
-            slot++;
+            cursor += cachedColumnW[i] + gap * weight * shownAfter[k];
         }
         if (!pendingColumnFlipFromX.isEmpty()) {
             pendingColumnFlipFromX.clear();

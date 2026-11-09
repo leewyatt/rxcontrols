@@ -1146,6 +1146,58 @@ public class RXKanbanViewSkinTest {
         assertLastColumnInsideDuringHideAndShow(150.0, true);
     }
 
+    @Test
+    public void reorderPreviewStaysInsideTheBoardWhileAColumnShows() throws Exception {
+        final double durationMillis = 1200.0;
+        AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
+        AtomicReference<StackPane> root = new AtomicReference<>();
+        AtomicReference<double[]> pointer = new AtomicReference<>();
+        onFx(() -> {
+            board.set(threeColumnBoard());
+            board.get().setPrefColumnWidth(200.0);
+            board.get().setColumnSpacing(12.0);
+            board.get().setMinColumnWidth(0.0);
+            board.get().setColumnsJustify(ItemsJustify.STRETCH);
+            board.get().setColumnReorderEnabled(true);
+            board.get().setAnimated(false);
+            board.get().getColumns().get(1).setVisible(false);
+            root.set(host(board.get(), 300, 400));
+            pump(root.get());
+            board.get().setAnimationDuration(Duration.millis(durationMillis));
+            board.get().setAnimationInterpolator(Interpolator.LINEAR);
+            board.get().setAnimated(true);
+            board.get().getColumns().get(1).setVisible(true);
+        });
+        waitForFx(durationMillis / 2.0);
+        onFx(() -> {
+            pump(root.get());
+            Region b = boxOf(board.get(), "B");
+            Region c = boxOf(board.get(), "C");
+            assertTrue(b.getWidth() > 0.0 && b.getWidth() < c.getWidth(),
+                    "column B is mid show: " + b.getWidth() + " of " + c.getWidth());
+            // Drag A's header past B's center and hold it there.
+            Node headerA = headerOf(board.get(), "A");
+            Node headerB = headerOf(board.get(), "B");
+            Bounds ha = headerA.localToScene(headerA.getBoundsInLocal());
+            Bounds hb = headerB.localToScene(headerB.getBoundsInLocal());
+            double sx = (ha.getMinX() + ha.getMaxX()) / 2.0;
+            double sy = (ha.getMinY() + ha.getMaxY()) / 2.0;
+            double pastB = (hb.getMinX() + hb.getMaxX()) / 2.0 + 6.0;
+            pointer.set(new double[]{pastB, sy});
+            headerA.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerA));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board.get()));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, pastB, sy, board.get()));
+            pump(root.get());
+            for (String title : List.of("B", "C")) {
+                Region column = boxOf(board.get(), title);
+                double edge = column.getLayoutX() + column.getWidth();
+                assertTrue(edge <= contentWidth(board.get()) + 1e-9, "previewed column " + title
+                        + " stays inside the board: " + edge + " > " + contentWidth(board.get()));
+            }
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_RELEASED, pointer.get()[0], pointer.get()[1], board.get()));
+        });
+    }
+
     // Hides then re-shows the middle column through its real (slowed, linear) animation and
     // checks every frame, so fractional hide weights are sampled across the whole range.
     private static void assertLastColumnInsideDuringHideAndShow(double minColumnWidth, boolean scrollToEnd)
@@ -1154,7 +1206,8 @@ public class RXKanbanViewSkinTest {
         AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
         AtomicReference<AnimationTimer> timer = new AtomicReference<>();
         List<String> overruns = new ArrayList<>();
-        AtomicInteger frames = new AtomicInteger();
+        Set<Double> partialWidths = new HashSet<>();
+        AtomicReference<Double> fullWidth = new AtomicReference<>();
         onFx(() -> {
             board.set(threeColumnBoard());
             board.get().setPrefColumnWidth(200.0);
@@ -1165,6 +1218,7 @@ public class RXKanbanViewSkinTest {
             board.get().setAnimationInterpolator(Interpolator.LINEAR);
             StackPane root = host(board.get(), 300, 400);
             pump(root);
+            fullWidth.set(boxOf(board.get(), "B").getWidth());
             timer.set(new AnimationTimer() {
                 @Override
                 public void handle(long now) {
@@ -1177,9 +1231,12 @@ public class RXKanbanViewSkinTest {
                         }
                         pump(root);
                     }
+                    double hidingWidth = boxOf(board.get(), "B").getWidth();
+                    if (hidingWidth > 0.0 && hidingWidth < fullWidth.get()) {
+                        partialWidths.add(hidingWidth);
+                    }
                     Region c = boxOf(board.get(), "C");
                     double edge = c.getLayoutX() + c.getWidth();
-                    frames.incrementAndGet();
                     if (edge > contentWidth(board.get()) + 1e-9 && overruns.size() < 5) {
                         overruns.add(edge + " > " + contentWidth(board.get()));
                     }
@@ -1192,7 +1249,8 @@ public class RXKanbanViewSkinTest {
         onFx(() -> board.get().getColumns().get(1).setVisible(true));
         waitForFx(durationMillis + 200.0);
         onFx(() -> timer.get().stop());
-        assertTrue(frames.get() > 20, "the hide / show animation was sampled: " + frames.get() + " frames");
+        assertTrue(partialWidths.size() > 10,
+                "frames mid hide / show were sampled: " + partialWidths.size() + " distinct widths");
         assertTrue(overruns.isEmpty(), "last column stays inside the board on every frame: " + overruns);
     }
 
