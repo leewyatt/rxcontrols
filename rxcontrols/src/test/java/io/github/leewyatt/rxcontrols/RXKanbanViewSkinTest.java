@@ -1198,6 +1198,60 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    @Test
+    public void reorderPreviewStaysInsideTheBoardWhileTwoColumnsShow() throws Exception {
+        final double durationMillis = 1200.0;
+        AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
+        AtomicReference<StackPane> root = new AtomicReference<>();
+        onFx(() -> {
+            board.set(threeColumnBoard());
+            board.get().setPrefColumnWidth(200.0);
+            board.get().setColumnSpacing(40.0);   // a wide gap magnifies any order-dependent gap total
+            board.get().setMinColumnWidth(0.0);
+            board.get().setColumnsJustify(ItemsJustify.STRETCH);
+            board.get().setColumnReorderEnabled(true);
+            board.get().setAnimated(false);
+            board.get().getColumns().get(1).setVisible(false);
+            board.get().getColumns().get(2).setVisible(false);
+            root.set(host(board.get(), 300, 400));
+            pump(root.get());
+            board.get().setAnimationDuration(Duration.millis(durationMillis));
+            board.get().setAnimationInterpolator(Interpolator.LINEAR);
+            board.get().setAnimated(true);
+            board.get().getColumns().get(1).setVisible(true);
+        });
+        // Staggered starts leave B and C at different fractional shown weights.
+        waitForFx(durationMillis / 4.0);
+        onFx(() -> board.get().getColumns().get(2).setVisible(true));
+        waitForFx(durationMillis / 4.0);
+        onFx(() -> {
+            pump(root.get());
+            Region a = boxOf(board.get(), "A");
+            Region b = boxOf(board.get(), "B");
+            Region c = boxOf(board.get(), "C");
+            assertTrue(b.getWidth() > c.getWidth() && c.getWidth() > 0.0 && b.getWidth() < a.getWidth(),
+                    "B and C are both mid show at different widths: " + b.getWidth() + ", " + c.getWidth());
+            double bNaturalX = b.getLayoutX();
+            // Drag A's header past B's center (previewed order B, A, C) and hold it there.
+            Node headerA = headerOf(board.get(), "A");
+            Node headerB = headerOf(board.get(), "B");
+            Bounds ha = headerA.localToScene(headerA.getBoundsInLocal());
+            Bounds hb = headerB.localToScene(headerB.getBoundsInLocal());
+            double sx = (ha.getMinX() + ha.getMaxX()) / 2.0;
+            double sy = (ha.getMinY() + ha.getMaxY()) / 2.0;
+            double pastB = (hb.getMinX() + hb.getMaxX()) / 2.0 + 6.0;
+            headerA.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, headerA));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board.get()));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, pastB, sy, board.get()));
+            pump(root.get());
+            assertTrue(b.getLayoutX() < bNaturalX, "the preview moved B ahead of A: " + b.getLayoutX());
+            double edge = c.getLayoutX() + c.getWidth();
+            assertTrue(edge <= contentWidth(board.get()) + 1e-9,
+                    "previewed last column stays inside the board: " + edge + " > " + contentWidth(board.get()));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_RELEASED, pastB, sy, board.get()));
+        });
+    }
+
     // Hides then re-shows the middle column through its real (slowed, linear) animation and
     // checks every frame, so fractional hide weights are sampled across the whole range.
     private static void assertLastColumnInsideDuringHideAndShow(double minColumnWidth, boolean scrollToEnd)

@@ -858,12 +858,12 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         // hiding column shrinks its width AND its trailing gap toward zero, so a fully
         // hidden column leaves no footprint and the board reflows to fill the gap.
         double sumWeight = 0.0;      // sum of (1 - hideProgress): the effective column count
-        double sumGapWeight = 0.0;   // sum of weight_i * shownAfter[i]: the effective gap count
+        double sumGapWeight = 0.0;   // sum of gapWeight(weight_i, shownAfter[i]): the effective gap count
         int shownCount = 0;          // columns not fully hidden — justify denominators
         for (int i = 0; i < columnCount; i++) {
             double weight = 1.0 - boxes.get(i).getHideProgress();
             sumWeight += weight;
-            sumGapWeight += weight * shownAfter[i];
+            sumGapWeight += gapWeight(weight, shownAfter[i]);
             if (weight > 0.0) {
                 shownCount++;
             }
@@ -930,7 +930,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             cursorX += width;
             // The trailing gap fades with this column AND collapses once nothing later
             // is shown (shownAfter[last] == 0), so the last visible column hugs the edge.
-            cursorX += effectiveGap * weight * shownAfter[i];
+            cursorX += effectiveGap * gapWeight(weight, shownAfter[i]);
         }
         layoutColumnStartX = startX;
         layoutColumnGap = effectiveGap;
@@ -1031,12 +1031,21 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
     }
 
+    // The share of a column's trailing gap: it fades with the column and collapses once
+    // nothing later is shown. min (not the product) keeps the total over a row equal to
+    // sum(weights) - max(weight) in ANY order, so a reorder preview spans the same width
+    // as the normal layout even while several columns hide or show at once.
+    private static double gapWeight(double weight, double shownAfter) {
+        return Math.min(weight, shownAfter);
+    }
+
     // Live reorder preview: the dragged column stays at its natural slot (its translate
     // follows the pointer) while every other visible column is repositioned to open a
     // column-wide gap at the hover index, so neighbours glide aside to make way. The
     // preview is the normal layout of the previewed order: same widths, same weighted
-    // gaps (a column mid hide / show contributes only its shown fraction), so it spans
-    // exactly the normal layout's extent and stays inside the board.
+    // gaps (a column mid hide / show contributes only its shown fraction), and the gap
+    // total does not depend on the order, so it spans exactly the normal layout's extent
+    // and stays inside the board.
     private void layoutColumnsWithReorderGap(int columnCount, double height) {
         int dragged = reorderDraggedIndex;
         double gap = layoutColumnGap;
@@ -1096,7 +1105,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
                     }
                 }
             }
-            cursor += cachedColumnW[i] + gap * weight * shownAfter[k];
+            cursor += cachedColumnW[i] + gap * gapWeight(weight, shownAfter[k]);
         }
         if (!pendingColumnFlipFromX.isEmpty()) {
             pendingColumnFlipFromX.clear();
