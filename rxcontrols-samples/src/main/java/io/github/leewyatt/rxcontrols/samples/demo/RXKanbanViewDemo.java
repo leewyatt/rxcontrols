@@ -31,9 +31,10 @@ public class RXKanbanViewDemo extends Application {
                 column("DONE", "Column model", "Virtualized viewport", "Board scroll")));
 
         BorderPane root = new BorderPane(board);
+        root.setPadding(new Insets(8.0));
         root.setTop(createHeader());
 
-        Scene scene = new Scene(root, 860.0, 600.0);
+        Scene scene = new Scene(root, 960.0, 600.0);
         primaryStage.setScene(scene);
         primaryStage.setTitle("RXKanbanView Demo");
         primaryStage.show();
