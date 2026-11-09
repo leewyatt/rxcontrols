@@ -277,9 +277,11 @@
     -rx-highlight: -color-warning-muted;
     /* interaction state overlay (ripple / hover tint); flips with the theme */
     -rx-state-overlay-color: -color-fg-default;
-    /* elevation: follow AtlantaFX's own shadow color token, so the card shadow
-       tracks the active AtlantaFX theme (light / dark). */
-    -rx-elevation-umbra-color: -color-shadow-default;
+    /* elevation: AtlantaFX's own shadow color on a light host. On a dark host
+       -color-shadow-default is an opaque near-black, sized for AtlantaFX's small
+       popup shadows; drawn at full strength under an offset elevation shadow it
+       becomes a large, heavy dark halo, so a dark host takes a translucent black. */
+    -rx-elevation-umbra-color: ladder(-rx-surface, rgba(0, 0, 0, 0.5) 45%, -color-shadow-default 46%);
 
     /* Modena base palette that AtlantaFX does not define. Component rules that
        read these -fx-* colors directly (cascader field, focus glow, selection,
@@ -2262,29 +2264,35 @@
     -fx-background-color: transparent;
 }
 
+/* Action buttons sit on the surface they float over, so each carries the label
+   pills' outline ring over a raised fill (the dialog card's tone: a step lighter
+   on a dark host, the content white on a light one); a surface-colored button
+   blends into that surface. */
 .rx-speed-dial > .actions > .action > .rx-fab {
-    -fx-background-color: -rx-surface;
-    -fx-background-insets: 0;
-    -fx-background-radius: 50%;
+    -fx-background-color: -rx-outline,
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 50%, 50%;
     -fx-text-fill: -rx-on-surface;
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab:hover,
 .rx-speed-dial > .actions > .action > .rx-fab:armed {
-    -fx-background-color: -rx-surface-variant;
-    -fx-background-insets: 0;
-    -fx-background-radius: 50%;
+    -fx-background-color: -rx-outline, -rx-surface-variant;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 50%, 50%;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab:pressed {
-    -fx-background-color: -rx-outline-variant;
-    -fx-background-insets: 0;
-    -fx-background-radius: 50%;
+    -fx-background-color: -rx-outline, -rx-outline-variant;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 50%, 50%;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab:focused {
-    -fx-background-color: -rx-focus, -rx-surface;
+    -fx-background-color: -rx-focus,
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
     -fx-background-insets: 0, 2px;
     -fx-background-radius: 50%, 50%;
 }

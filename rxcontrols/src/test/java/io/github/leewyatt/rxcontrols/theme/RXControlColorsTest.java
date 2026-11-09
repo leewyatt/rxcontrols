@@ -23,6 +23,8 @@ import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSlider;
+import io.github.leewyatt.rxcontrols.RXSpeedDial;
+import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
@@ -674,6 +676,45 @@ public class RXControlColorsTest {
                 false);
         assertDialogCard("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
                 true);
+    }
+
+    @Test
+    public void speedDialActionsStandOutFromTheSurface() throws Exception {
+        assertSpeedDialAction("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertSpeedDialAction("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertSpeedDialAction("Primer Light", new PrimerLight().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, false);
+        assertSpeedDialAction("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, true);
+    }
+
+    private static void assertSpeedDialAction(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        String raisedExpression = dark ? "-rx-surface-variant" : "-fx-control-inner-background";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(raisedExpression, "-rx-surface", "-rx-outline"));
+        Map<String, String> action = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXSpeedDial dial = new RXSpeedDial(new Region(), new RXSpeedDialAction("Run", new Region()));
+            StackPane root = new StackPane(dial);
+            Scene scene = new Scene(root, 300, 300);
+            themer.accept(scene);
+            root.applyCss();
+            Region button = (Region) dial.lookup(".actions > .action > .rx-fab");
+            List<BackgroundFill> fills = button.getBackground().getFills();
+            action.put("ring", ThemeColorSamples.hex(fills.get(0).getFill()));
+            action.put("fill", ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
+            action.put("inset", String.valueOf(fills.get(fills.size() - 1).getInsets()));
+        });
+        // An action button is outlined over a raised fill, so it never blends into the
+        // surface it floats over (a surface-colored button vanished on dark hosts).
+        assertEquals(expected.get("-rx-outline"), action.get("ring"), "action ring under " + host);
+        assertEquals(expected.get(raisedExpression), action.get("fill"), "action fill under " + host);
+        assertEquals(String.valueOf(new Insets(1)), action.get("inset"), "action fill inset under " + host);
+        if (dark) {
+            assertNotEquals(expected.get("-rx-surface"), action.get("fill"), "action fill differs from the surface under " + host);
+        }
     }
 
     private static void assertDialogCard(String host, String userAgentStylesheet, Consumer<Scene> themer,

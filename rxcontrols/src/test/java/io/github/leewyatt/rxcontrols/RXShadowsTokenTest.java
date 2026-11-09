@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
@@ -93,6 +94,20 @@ public class RXShadowsTokenTest {
                 "-rx-elevation-umbra-color should resolve to a color via -color-shadow-default under AtlantaFX");
         assertTrue(umbra.getOpacity() > 0.0,
                 "the AtlantaFX shadow color should be at least partly opaque");
+    }
+
+    /**
+     * AtlantaFX dark theme: the umbra is a translucent black, not AtlantaFX's opaque
+     * near-black shadow color, which draws an elevation shadow at full strength.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void umbraIsADarkShadowUnderAnAtlantaFXDarkTheme() throws Exception {
+        Color umbra = resolveUmbra(new PrimerDark().getUserAgentStylesheet(),
+                RXResources.ATLANTAFX_BRIDGE_STYLESHEET, RXAtlantaFXThemeBridge.getScopeClass());
+        assertEquals(Color.rgb(0, 0, 0, 0.5), umbra,
+                "-rx-elevation-umbra-color should be a translucent black on a dark AtlantaFX host");
     }
 
     /**
