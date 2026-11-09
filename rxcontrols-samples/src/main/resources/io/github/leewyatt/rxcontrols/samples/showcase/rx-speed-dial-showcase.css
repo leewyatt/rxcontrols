@@ -7,9 +7,9 @@
 }
 
 .preview-surface {
-    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #e0f2fe);
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: #d8dee9;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-padding: 26px;
     -fx-min-width: 440px;
@@ -17,6 +17,6 @@
 }
 
 .state-label {
-    -fx-text-fill: #64748b;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 16px;
 }
