@@ -126,11 +126,13 @@
     -fx-background-radius: 12px;
     -fx-border-radius: 12px;
     -fx-padding: 11px 12px;
-    -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.10), 12, 0, 0, 4);
+    /* Kept short and mostly downward: cards span the clipped card area, so the
+       sideways part of a wider shadow is cut off into a hard-edged band. */
+    -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.08), 4, 0, 0, 1);
 }
 
 .kanban-showcase-board .rx-kanban-card-cell:hover {
-    -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.16), 18, 0, 0, 7);
+    -fx-effect: dropshadow(gaussian, rgba(31, 42, 68, 0.14), 6, 0, 0, 2);
 }
 
 .kanban-showcase-board .scroll-bar:vertical,
