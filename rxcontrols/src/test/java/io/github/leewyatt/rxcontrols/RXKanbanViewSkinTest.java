@@ -8,6 +8,7 @@ import javafx.collections.ObservableList;
 import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
 import io.github.leewyatt.rxcontrols.event.RXCardMovedEvent;
 import io.github.leewyatt.rxcontrols.event.RXColumnMovedEvent;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.geometry.Bounds;
@@ -1815,6 +1816,35 @@ public class RXKanbanViewSkinTest {
             Event.fireEvent(cell, mouse(MouseEvent.MOUSE_EXITED, 5, 5, cell));
             Event.fireEvent(cell, mouse(MouseEvent.MOUSE_ENTERED, 5, 5, cell));
             assertNotNull(rippleLayer.getClip(), "the hover overlay of a recycled card stays clipped");
+        });
+    }
+
+    @Test
+    public void cardRecycledMidPressDropsThePressTint() throws Exception {
+        AtomicReference<StackPane> root = new AtomicReference<>();
+        AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
+        AtomicReference<RXKanbanCardCell<?>> cell = new AtomicReference<>();
+        onFx(() -> {
+            board.set(board("A", 3));
+            root.set(host(board.get(), 400, 500));
+            pump(root.get());
+            cell.set(cellByText(board.get(), "card-0"));
+            Event.fireEvent(cell.get(), mouse(MouseEvent.MOUSE_ENTERED, 5, 5, cell.get()));
+            Event.fireEvent(cell.get(), mouse(MouseEvent.MOUSE_PRESSED, 5, 5, cell.get()));
+        });
+        waitForFx(400);
+        onFx(() -> {
+            RippleLayer layer = (RippleLayer) cell.get().getChildrenUnmodifiable().get(0);
+            Node overlay = layer.lookup(".state-overlay");
+            double pressedOpacity = overlay.getOpacity();
+            assertTrue(pressedOpacity > 0.0, "the held press tinted the overlay");
+
+            ObservableList<String> cards = board.get().getColumns().get(0).getCards();
+            cards.add(cards.remove(0));
+            pump(root.get());
+            assertTrue(layer.getOverlayTargetOpacity() < pressedOpacity, "the overlay settles on the hover tier");
+            assertTrue(overlay.getOpacity() <= layer.getOverlayTargetOpacity(),
+                    "the re-indexed card does not inherit the deeper press tint");
         });
     }
 

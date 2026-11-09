@@ -185,17 +185,19 @@ public final class RippleDecoration {
     }
 
     /**
-     * Cancels any in-flight press and removes the ripple circles, for hosts
+     * Cancels any in-flight press and tears down live ripple visuals, for hosts
      * (recycled cells) that may be reused while still pressed: the press belongs
-     * to the old item and must not deepen the overlay on the next one. The
-     * ambient pointer-inside (hover) state is kept, so the overlay settles on the
-     * hover tier when the pointer is still over the row. The bounded clip is
-     * kept too: a recycled cell is often not re-laid out, and a dropped clip
-     * would leave the next hover overlay square.
+     * to the old item and must not deepen the overlay on the next one, so the
+     * overlay snaps to hidden rather than fading down from the pressed tier. The
+     * ambient pointer-inside (hover) state is kept, so the hover tint fades in
+     * again when the pointer is still over the row. The bounded clip is kept: a
+     * recycled cell is often not re-laid out, and a dropped clip would leave the
+     * next hover overlay square.
      */
     public void cancelInteraction() {
         pressed = false;
         behavior.clear();
+        layer.resetOverlay();
         updateOverlay();
     }
 

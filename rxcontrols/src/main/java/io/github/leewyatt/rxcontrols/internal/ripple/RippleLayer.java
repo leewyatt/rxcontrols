@@ -129,6 +129,14 @@ public final class RippleLayer extends Region {
     public void clearClip() {
         boundedClip.clearClip();
         bleed = Insets.EMPTY;
+        resetOverlay();
+    }
+
+    /**
+     * Snaps the state overlay to hidden and detaches it, keeping the bounded
+     * clip, for a host whose painted geometry is unchanged.
+     */
+    public void resetOverlay() {
         stateOverlay.reset();
         getChildren().remove(stateOverlay);
     }
