@@ -28,8 +28,10 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -1086,7 +1088,14 @@ public class RXTilePane extends Pane {
                 double used = justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue;
                 startX = Math.max(0.0, (contentWidth - used) / 2.0);
             } else {
-                tileWidth = snapSizeX(Math.max(0.0, ideal));
+                // Floored, not ceiled (snapSizeX): ceiling each tile overruns the content
+                // area by up to a pixel per column, into the right padding and past the
+                // pane. The few spare pixels go into the gaps, so the tiles stay equal and
+                // the row still fills edge to edge.
+                tileWidth = snapFloorX(Math.max(0.0, ideal));
+                double spare = Math.max(0.0,
+                        contentWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
+                effectiveHgap = hgapValue + (justifyColumns > 1 ? spare / (justifyColumns - 1) : 0.0);
                 startX = 0.0;
             }
         } else {
@@ -1118,11 +1127,14 @@ public class RXTilePane extends Pane {
         boolean collectMoves = animate || animator.hasActiveState();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
         List<PaneRelayoutAnimator.Move> moves = null;
+        // The rounded x is capped so the last tile's edge cannot pass the content width
+        // (which need not sit on the pixel grid).
+        double maxX = snapFloorX(contentWidth - tileWidth);
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
             int row = i / columns;
-            double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
+            double x = left + Math.min(snapPositionX(startX + column * (tileWidth + effectiveHgap)), maxX);
             double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An
@@ -1372,6 +1384,22 @@ public class RXTilePane extends Pane {
     private static Insets marginOrEmpty(Node child) {
         Insets margin = getMargin(child);
         return margin == null ? Insets.EMPTY : margin;
+    }
+
+    // Floors to the pixel grid of the pane's window (the snapSizeX counterpart that
+    // never rounds up); a no-op when the pane does not snap to pixels.
+    private double snapFloorX(double value) {
+        if (!isSnapToPixel()) {
+            return value;
+        }
+        Scene scene = getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            scale = 1.0;
+        }
+        double scaled = value * scale;
+        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     private double maxTileWidthOrUnbounded() {

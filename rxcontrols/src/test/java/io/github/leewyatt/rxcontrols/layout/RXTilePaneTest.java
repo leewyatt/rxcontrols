@@ -291,6 +291,44 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void justifiedRowsStayInsideTheContentArea() {
+        RXTilePane pane = new RXTilePane();
+        pane.setPadding(new Insets(10));
+        pane.setHgap(10);
+        pane.setPrefTileWidth(60);
+        for (int i = 0; i < 12; i++) {
+            // Unbounded max width: each tile fills its whole tile area, so the area edges show.
+            Region tile = new Region();
+            tile.setPrefSize(60, 40);
+            pane.getChildren().add(tile);
+        }
+        for (ItemsJustify mode : List.of(ItemsJustify.STRETCH, ItemsJustify.CENTER, ItemsJustify.END,
+                ItemsJustify.SPACE_BETWEEN, ItemsJustify.SPACE_AROUND, ItemsJustify.SPACE_EVENLY)) {
+            pane.setItemsJustify(mode);
+            // Most widths (half-pixel steps included) leave a fractional tile width or gap.
+            for (double width = 300.0; width <= 700.0; width += 0.5) {
+                layout(pane, width, 300);
+                double left = pane.snappedLeftInset();
+                double right = pane.getWidth() - pane.snappedRightInset();
+                double minX = Double.MAX_VALUE;
+                double maxEdge = 0.0;
+                for (Node child : pane.getChildren()) {
+                    minX = Math.min(minX, child.getLayoutX());
+                    maxEdge = Math.max(maxEdge, child.getLayoutX() + ((Region) child).getWidth());
+                }
+                assertTrue(maxEdge <= right + 1e-9,
+                        mode + " at width " + width + ": tile edge " + maxEdge + " > content right " + right);
+                if (mode == ItemsJustify.STRETCH) {
+                    // An uncapped stretch fills the row edge to edge.
+                    assertEquals(left, minX, 1e-9, "STRETCH first tile x at width " + width);
+                    assertTrue(maxEdge >= right - 1.0,
+                            "STRETCH fills the row at width " + width + ": " + maxEdge + " < " + right);
+                }
+            }
+        }
+    }
+
+    @Test
     public void maxTileWidthCapsAndCentersStretch() {
         RXTilePane pane = filledPane(2);
         pane.setMaxColumns(2);
