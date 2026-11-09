@@ -127,9 +127,9 @@ public class RXCol extends StackPane {
 
     /**
      * Number of columns occupied by this column before responsive overrides.
-     * A value of {@code 0} keeps the column in a deterministic zero-size
-     * layout state. RXBreakpoint specs are mobile-first and override this base
-     * value only for the fields they define.
+     * A value of {@code 0} hides the column like {@link #hiddenProperty() hidden}:
+     * it takes no slot and is not shown. RXBreakpoint specs are mobile-first and
+     * override this base value only for the fields they define.
      *
      * @return the span property
      */

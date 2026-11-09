@@ -4,6 +4,7 @@ import javafx.scene.layout.Region;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -118,6 +119,60 @@ public class RXRowTest {
 
         assertEquals(RXBreakpoint.XXXL, row.getActiveBreakpoint());
         assertClose(500.0, col.getWidth(), "xxxl inherits xxl span 6");
+    }
+
+    /**
+     * Verifies a zero span hides the column, and restores it once the span is positive.
+     */
+    @Test
+    public void zeroSpanHidesTheColumnLikeHidden() {
+        RXRow row = new RXRow();
+        RXCol first = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        RXCol zero = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        RXCol last = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        first.setSpan(8);
+        zero.setSpan(0);
+        last.setSpan(8);
+        row.getChildren().addAll(first, zero, last);
+
+        RXRow reference = new RXRow();
+        RXCol referenceFirst = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        RXCol referenceLast = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        referenceFirst.setSpan(8);
+        referenceLast.setSpan(8);
+        reference.getChildren().addAll(referenceFirst, referenceLast);
+
+        layout(row, 1000.0, 40.0);
+        layout(reference, 1000.0, 40.0);
+
+        assertFalse(zero.isVisible(), "zero-span column is not shown");
+        assertFalse(zero.isManaged(), "zero-span column takes no slot");
+        assertClose(referenceLast.getLayoutX(), last.getLayoutX(), "following column x");
+
+        zero.setSpan(8);
+        layout(row, 1000.0, 40.0);
+
+        assertTrue(zero.isVisible(), "positive span shows the column again");
+        assertTrue(zero.isManaged(), "positive span restores its slot");
+        assertTrue(last.getLayoutX() > zero.getLayoutX(), "the restored column precedes the last one");
+    }
+
+    /**
+     * Verifies a breakpoint spec with a zero span hides the column only at that breakpoint.
+     */
+    @Test
+    public void zeroSpanSpecHidesTheColumnAtItsBreakpoint() {
+        RXRow row = new RXRow();
+        RXCol col = new RXCol(fixedRegion(40.0, 10.0, 80.0, 20.0));
+        col.setXs(RXColSpec.of(0));
+        col.setLg(RXColSpec.of(8));
+        row.getChildren().add(col);
+
+        layout(row, 360.0, 40.0);
+        assertFalse(col.isVisible(), "hidden at xs");
+
+        layout(row, 1000.0, 40.0);
+        assertTrue(col.isVisible(), "shown at lg");
     }
 
     private FixedRegion fixedRegion(double minWidth, double minHeight,

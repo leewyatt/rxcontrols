@@ -622,12 +622,8 @@ public class RXRow extends Pane {
             double right = snapPositionX(rawX + rawWidth);
             double width = Math.max(0.0, right - x);
 
-            if (item.span() == 0) {
-                child.resizeRelocate(x, snapPositionY(y), 0.0, 0.0);
-            } else {
-                layoutInArea(child, x, y, width, line.height(), 0.0, null,
-                        true, fillHeight, HPos.LEFT, vpos);
-            }
+            layoutInArea(child, x, y, width, line.height(), 0.0, null,
+                    true, fillHeight, HPos.LEFT, vpos);
         }
     }
 
@@ -659,9 +655,7 @@ public class RXRow extends Pane {
             int start = cursor + spec.offset();
             int end = start + spec.span();
             double outerWidth = contentWidth * spec.span() / columnsCount;
-            double childHeight = spec.span() == 0
-                    ? 0.0
-                    : computeChildPrefHeight(child, outerWidth, gutterValue);
+            double childHeight = computeChildPrefHeight(child, outerWidth, gutterValue);
             items.add(new LineItem(child, start, spec.span()));
             cursor = end;
             maxEndColumn = Math.max(maxEndColumn, end);
@@ -846,7 +840,10 @@ public class RXRow extends Pane {
         } else {
             coercedSpecWarnings.remove(child);
         }
-        return new EffectiveSpec(coercedSpan, coercedOffset, order, hidden);
+        // A zero span hides the column, as span 0 does in 24-column web grids: it takes
+        // no slot and paints nothing (a zero-size StackPane would still paint its
+        // content at min size over the neighbours).
+        return new EffectiveSpec(coercedSpan, coercedOffset, order, hidden || coercedSpan == 0);
     }
 
     private boolean shouldWarnSpecCoercion(int span, int offset, int coercedSpan,
@@ -900,9 +897,6 @@ public class RXRow extends Pane {
             for (LayoutCandidate candidate : candidates) {
                 Node child = candidate.child();
                 EffectiveSpec spec = candidate.spec();
-                if (spec.span() == 0) {
-                    continue;
-                }
                 double childWidth = min ? computeChildMinWidth(child, height, gutterValue)
                         : computeChildPrefWidth(child, height, gutterValue);
                 contentWidth = Math.max(contentWidth, childWidth * columnsCount / spec.span());
