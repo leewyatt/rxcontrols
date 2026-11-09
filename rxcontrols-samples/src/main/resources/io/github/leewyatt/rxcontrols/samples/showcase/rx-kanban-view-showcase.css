@@ -195,8 +195,3 @@
 .kanban-showcase-board .scroll-bar .thumb:hover {
     -fx-background-color: rgba(100, 116, 139, 0.58);
 }
-
-.hint {
-    -fx-font-size: 11px;
-    -fx-text-fill: -rx-on-surface-secondary;
-}

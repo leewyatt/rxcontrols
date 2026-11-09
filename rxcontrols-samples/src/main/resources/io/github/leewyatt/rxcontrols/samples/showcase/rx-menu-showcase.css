@@ -15,22 +15,22 @@
 
 .live-panel {
     -fx-padding: 10px;
-    -fx-background-color: -rx-surface;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: -rx-outline;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
 }
 
 .context-card {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: -rx-outline;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-border-style: segments(6, 4) line-cap round;
 }
 
 .context-card .card-hint {
-    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
 

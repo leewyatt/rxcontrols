@@ -8,10 +8,10 @@
 }
 
 .resolved-label {
-    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-text-fill: -showcase-caption-color;
 }
 
 .hint {
     -fx-font-size: 11px;
-    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-text-fill: -showcase-caption-color;
 }
