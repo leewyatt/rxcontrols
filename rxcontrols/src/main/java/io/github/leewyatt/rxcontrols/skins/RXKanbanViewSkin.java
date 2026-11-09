@@ -922,7 +922,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double cursorX = startX;
         for (int i = 0; i < columnCount; i++) {
             double weight = 1.0 - boxes.get(i).getHideProgress();
-            double width = snapSizeX(baseWidth * weight);
+            // Fractional weights (a column mid hide / show) round per column too, so a
+            // fitting board floors here as well to stay within the slack computed above.
+            double width = overflow ? snapSizeX(baseWidth * weight) : snapFloorX(baseWidth * weight);
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
             cursorX += width;
@@ -933,14 +935,17 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         layoutColumnStartX = startX;
         layoutColumnGap = effectiveGap;
 
-        // Only genuine overflow (columns cannot fit even at minColumnWidth) scrolls; the
-        // packed extent (base gaps, no justify spread) drives the scrollbar range.
-        double packedWidth = baseWidth * sumWeight + baseGap * sumGapWeight;
+        // Only genuine overflow (columns cannot fit even at minColumnWidth) scrolls. The
+        // scroll range comes from the laid-out extent (an overflowing board has no justify
+        // start or spread), ceiled to the pixel grid: the continuous width * weight sum
+        // falls short of the per-column snapped widths, and rounding the scrolled column
+        // positions could then still push the last column past the clip at full scroll.
+        double packedWidth = cursorX;
         boolean needHbar = overflow;
         double hbarBreadth = needHbar ? snapSizeY(hbar.prefHeight(-1)) : 0.0;
         double columnsAreaHeight = Math.max(0.0, contentHeight - hbarBreadth);
 
-        cachedMaxBoardScrollX = needHbar ? Math.max(0.0, packedWidth - contentWidth) : 0.0;
+        cachedMaxBoardScrollX = needHbar ? Math.max(0.0, snapSizeX(packedWidth - contentWidth)) : 0.0;
         double correctedBoardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
         double boardScrollCorrection = correctedBoardScrollX - boardScrollX;
         boardScrollX = correctedBoardScrollX;

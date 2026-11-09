@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.animation.AnimationTimer;
+import javafx.animation.Interpolator;
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -34,6 +36,7 @@ import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -1131,6 +1134,66 @@ public class RXKanbanViewSkinTest {
                                 + (c.getLayoutX() + c.getWidth()) + " > " + contentWidth(board));
             }
         });
+    }
+
+    @Test
+    public void fittedColumnsStayInsideTheBoardWhileAColumnHides() throws Exception {
+        assertLastColumnInsideDuringHideAndShow(0.0, false);
+    }
+
+    @Test
+    public void scrolledColumnsStayInsideTheBoardWhileAColumnHides() throws Exception {
+        assertLastColumnInsideDuringHideAndShow(150.0, true);
+    }
+
+    // Hides then re-shows the middle column through its real (slowed, linear) animation and
+    // checks every frame, so fractional hide weights are sampled across the whole range.
+    private static void assertLastColumnInsideDuringHideAndShow(double minColumnWidth, boolean scrollToEnd)
+            throws Exception {
+        final double durationMillis = 1200.0;
+        AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
+        AtomicReference<AnimationTimer> timer = new AtomicReference<>();
+        List<String> overruns = new ArrayList<>();
+        AtomicInteger frames = new AtomicInteger();
+        onFx(() -> {
+            board.set(threeColumnBoard());
+            board.get().setPrefColumnWidth(200.0);
+            board.get().setColumnSpacing(12.0);
+            board.get().setMinColumnWidth(minColumnWidth);
+            board.get().setColumnsJustify(ItemsJustify.STRETCH);
+            board.get().setAnimationDuration(Duration.millis(durationMillis));
+            board.get().setAnimationInterpolator(Interpolator.LINEAR);
+            StackPane root = host(board.get(), 300, 400);
+            pump(root);
+            timer.set(new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    pump(root);
+                    if (scrollToEnd) {
+                        for (Node node : board.get().lookupAll(".scroll-bar")) {
+                            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.HORIZONTAL) {
+                                bar.setValue(bar.getMax());
+                            }
+                        }
+                        pump(root);
+                    }
+                    Region c = boxOf(board.get(), "C");
+                    double edge = c.getLayoutX() + c.getWidth();
+                    frames.incrementAndGet();
+                    if (edge > contentWidth(board.get()) + 1e-9 && overruns.size() < 5) {
+                        overruns.add(edge + " > " + contentWidth(board.get()));
+                    }
+                }
+            });
+            timer.get().start();
+            board.get().getColumns().get(1).setVisible(false);
+        });
+        waitForFx(durationMillis + 200.0);
+        onFx(() -> board.get().getColumns().get(1).setVisible(true));
+        waitForFx(durationMillis + 200.0);
+        onFx(() -> timer.get().stop());
+        assertTrue(frames.get() > 20, "the hide / show animation was sampled: " + frames.get() + " frames");
+        assertTrue(overruns.isEmpty(), "last column stays inside the board on every frame: " + overruns);
     }
 
     @Test
