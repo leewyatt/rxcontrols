@@ -119,19 +119,8 @@ public final class MasonryColumns {
                 int lastColumn = startColumn + Math.max(1, span) - 1;
                 return columnX(startX, lastColumn) + trackWidth - columnX(startX, startColumn);
             }
-            return snapCeil(nominalSpanWidth(span), snapScale);
-        }
-
-        /**
-         * Returns the unsnapped width of a {@code span}-column slot, independent of the
-         * column it starts in.
-         *
-         * @param span the number of columns spanned, at least one
-         * @return {@code span * trackWidth + (span - 1) * hgap}
-         */
-        public double nominalSpanWidth(int span) {
-            int clamped = Math.max(1, span);
-            return clamped * trackWidth + (clamped - 1) * hgap;
+            int count = Math.max(1, span);
+            return snapCeil(count * trackWidth + (count - 1) * hgap, snapScale);
         }
     }
 

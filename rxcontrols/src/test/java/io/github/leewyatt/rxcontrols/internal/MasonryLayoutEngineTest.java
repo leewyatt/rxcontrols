@@ -395,4 +395,40 @@ public class MasonryLayoutEngineTest {
         assertThrows(IllegalArgumentException.class,
                 () -> MasonryLayoutEngine.place(new double[]{Double.NaN}, 0.0, new int[]{1}, new double[]{1.0}));
     }
+
+    /**
+     * Verifies the height-callback overload asks each item at its chosen columns, after
+     * they are chosen, and places exactly as the array overload fed the same heights.
+     */
+    @Test
+    public void heightCallbackSeesTheChosenColumnsAndMatchesTheArrayOverload() {
+        Random random = new Random(7);
+        int count = 200;
+        int[] spans = new int[count];
+        double[] heights = new double[count];
+        for (int i = 0; i < count; i++) {
+            spans[i] = 1 + random.nextInt(4);
+            heights[i] = random.nextInt(120);
+        }
+        double[] outline = {3.0, 0.0, 9.0, 1.0};
+        int[] askedStart = new int[count];
+        int[] askedSpan = new int[count];
+        OutlineResult byCallback = MasonryLayoutEngine.place(outline, 6.0, spans, (index, start, span) -> {
+            askedStart[index] = start;
+            askedSpan[index] = span;
+            return heights[index];
+        });
+        OutlineResult byArray = MasonryLayoutEngine.place(outline, 6.0, spans, heights);
+
+        assertArrayEquals(byArray.startColumns(), byCallback.startColumns());
+        assertArrayEquals(byArray.tops(), byCallback.tops(), DELTA);
+        assertArrayEquals(byArray.endOutline(), byCallback.endOutline(), DELTA);
+        assertEquals(byArray.contentHeight(), byCallback.contentHeight(), DELTA);
+        assertArrayEquals(byArray.startColumns(), askedStart);
+        for (int i = 0; i < count; i++) {
+            assertEquals(Math.min(spans[i], outline.length), askedSpan[i]);
+        }
+        assertThrows(IllegalArgumentException.class, () -> MasonryLayoutEngine.place(
+                outline, 0.0, new int[]{1}, (index, start, span) -> Double.NaN));
+    }
 }

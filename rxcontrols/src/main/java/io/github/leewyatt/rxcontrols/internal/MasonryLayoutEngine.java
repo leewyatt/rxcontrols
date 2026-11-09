@@ -52,6 +52,24 @@ public final class MasonryLayoutEngine {
                                 double contentHeight) {
     }
 
+    /**
+     * Supplies an item's vertical extent once its columns are known, so a caller whose
+     * heights depend on the slot width can measure against the columns the item lands in.
+     */
+    @FunctionalInterface
+    public interface BlockHeight {
+
+        /**
+         * Returns the vertical extent of an item placed at the given columns.
+         *
+         * @param index       the item's source index
+         * @param startColumn the leftmost column the item occupies
+         * @param span        the number of columns the item occupies, already clamped
+         * @return the vertical extent, including margins; must be finite and non-negative
+         */
+        double heightOf(int index, int startColumn, int span);
+    }
+
     private MasonryLayoutEngine() {
     }
 
@@ -109,12 +127,44 @@ public final class MasonryLayoutEngine {
             }
         }
         for (double blockHeight : blockHeights) {
-            if (!Double.isFinite(blockHeight) || blockHeight < 0.0) {
-                throw new IllegalArgumentException("block heights must be finite and non-negative");
+            checkHeight(blockHeight);
+        }
+        return place(startOutline, vgap, spans, (index, startColumn, span) -> blockHeights[index]);
+    }
+
+    /**
+     * Places items into columns using the stable shortest-column strategy, asking each
+     * item's extent only after its columns are chosen. The column choice never depends
+     * on the item's own extent, so the result equals the array overload fed the same
+     * extents.
+     *
+     * @param startOutline each column's current bottom; its length is the column count
+     * @param vgap         the vertical gap inserted below each placed item; may be negative to overlap
+     * @param spans        the column span per item, each clamped to {@code [1, columns]}
+     * @param blockHeight  the extent per item, asked once per item in source order
+     * @return the placement result, including the end outline for continuation
+     * @throws NullPointerException     if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code startOutline} is empty, {@code vgap} or
+     *                                  any outline value is not finite, or an extent is
+     *                                  not finite and non-negative
+     */
+    public static OutlineResult place(double[] startOutline, double vgap, int[] spans, BlockHeight blockHeight) {
+        Objects.requireNonNull(startOutline, "startOutline cannot be null");
+        Objects.requireNonNull(spans, "spans cannot be null");
+        Objects.requireNonNull(blockHeight, "blockHeight cannot be null");
+        if (startOutline.length < 1) {
+            throw new IllegalArgumentException("startOutline must have at least one column");
+        }
+        if (!Double.isFinite(vgap)) {
+            throw new IllegalArgumentException("vgap must be finite");
+        }
+        for (double bottom : startOutline) {
+            if (!Double.isFinite(bottom)) {
+                throw new IllegalArgumentException("start outline values must be finite");
             }
         }
         int columnCount = startOutline.length;
-        int itemCount = blockHeights.length;
+        int itemCount = spans.length;
         int[] startColumns = new int[itemCount];
         double[] tops = new double[itemCount];
         // Copy so the caller's start outline is never mutated; this becomes the end outline.
@@ -135,7 +185,7 @@ public final class MasonryLayoutEngine {
             }
             startColumns[i] = start;
             tops[i] = top;
-            double itemBottom = top + blockHeights[i];
+            double itemBottom = top + checkHeight(blockHeight.heightOf(i, start, span));
             if (itemBottom > maxItemBottom) {
                 maxItemBottom = itemBottom;
             }
@@ -146,6 +196,13 @@ public final class MasonryLayoutEngine {
         }
 
         return new OutlineResult(startColumns, tops, columnBottoms, maxItemBottom);
+    }
+
+    private static double checkHeight(double blockHeight) {
+        if (!Double.isFinite(blockHeight) || blockHeight < 0.0) {
+            throw new IllegalArgumentException("block heights must be finite and non-negative");
+        }
+        return blockHeight;
     }
 
     private static int clampSpan(int span, int columnCount) {

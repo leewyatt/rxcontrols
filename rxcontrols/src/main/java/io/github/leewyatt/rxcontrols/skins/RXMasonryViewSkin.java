@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.event.RXMasonryViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
+import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
@@ -1160,14 +1161,20 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             // Precise path: exact height from the provider, immutable shortest-column
             // placement rebuilt each pass. The persistent cache is never touched.
             for (int i = 0; i < count; i++) {
-                T item = items.get(i);
-                int span = resolveSpan(spanFactory, item, columns);
-                spans[i] = span;
-                double cellWidth = resolution.nominalSpanWidth(span);
-                double provided = provider.computeHeight(
-                        new CellHeightContext<>(item, i, cellWidth, span, track, columns));
-                heights[i] = snapSizeY(Double.isFinite(provided) && provided >= 0.0 ? provided : estimated);
+                spans[i] = resolveSpan(spanFactory, items.get(i), columns);
             }
+            // The column choice ignores the item's own height, so each height is asked
+            // once its columns are known, at the width it is laid out at; the placement
+            // below re-runs the same deterministic fold over these heights.
+            MasonryLayoutEngine.place(new double[Math.max(1, columns)], snappedVgap, spans,
+                    (index, startColumn, span) -> {
+                        double cellWidth = resolution.spanWidth(startX, startColumn, span);
+                        double provided = provider.computeHeight(new CellHeightContext<>(
+                                items.get(index), index, cellWidth, spans[index], track, columns));
+                        heights[index] = snapSizeY(Double.isFinite(provided) && provided >= 0.0
+                                ? provided : estimated);
+                        return heights[index];
+                    });
             return new RXMasonryPlacement(resolution, snappedVgap, startX, heights, spans);
         }
 

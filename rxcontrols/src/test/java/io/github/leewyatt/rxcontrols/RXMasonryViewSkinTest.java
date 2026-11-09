@@ -977,16 +977,19 @@ public class RXMasonryViewSkinTest {
                 return 40.0;
             });
             StackPane root = host(view, 300, 400);
-            for (double width = 300.0; width <= 500.0; width += 0.5) {
-                root.resize(width, 400);
-                pump(root);
-                for (Node node : view.lookupAll(".rx-masonry-cell")) {
-                    if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
-                        double context = asked.get(cell.getIndex());
-                        // A single column is exact; a span snaps per column, within one pixel.
-                        double tolerance = (Integer) cell.getItem() % 3 == 1 ? 1.0 : 1e-9;
-                        assertEquals(context, cell.getWidth(), tolerance,
-                                "item " + cell.getIndex() + " at width " + width);
+            Stage stage = new Stage();
+            stage.setScene(root.getScene());
+            for (double scale : new double[] {1.0, 1.5, 2.0}) {
+                stage.setRenderScaleX(scale);
+                for (double width = 300.0; width <= 500.0; width += 0.5) {
+                    root.resize(width, 400);
+                    view.requestLayout();
+                    pump(root);
+                    for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                        if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                            assertEquals(asked.get(cell.getIndex()), cell.getWidth(), 1e-9,
+                                    "item " + cell.getIndex() + " at scale " + scale + ", width " + width);
+                        }
                     }
                 }
             }
