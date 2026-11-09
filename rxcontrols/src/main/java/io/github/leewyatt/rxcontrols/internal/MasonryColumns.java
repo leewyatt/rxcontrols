@@ -28,7 +28,9 @@ import java.util.Objects;
  * column width and a finite gap). To stay equivalent to the pane, snap them with the
  * matching node helper — {@code columnWidth} as a size ({@code snapSizeX}, which
  * rounds up) and {@code hgap} as a space ({@code snapSpaceX}, which rounds to
- * nearest) — since those round differently on fractional pixels.</p>
+ * nearest) — since those round differently on fractional pixels. The caller also
+ * passes its render scale ({@code snapScale}), so the resolved column edges land on
+ * the same device-pixel grid the caller's nodes snap to.</p>
  */
 public final class MasonryColumns {
 
@@ -61,15 +63,76 @@ public final class MasonryColumns {
     private static final double MIN_COLUMN_STEP_RATIO = 0.1;
 
     /**
-     * Resolved column geometry for a layout pass.
-     *
-     * @param columns         the number of columns, at least one
-     * @param trackWidth      the width of a single column track
-     * @param usedWidth       the total width the resolved tracks plus gaps occupy
-     * @param activeBreakpoint the breakpoint resolved from {@code breakpointWidth}
+     * Tolerance the JavaFX Region snapping helpers apply before flooring / ceiling,
+     * so a value that is on the grid up to rounding noise is not moved a whole pixel.
      */
-    public record Resolution(int columns, double trackWidth, double usedWidth,
-                             RXBreakpoint activeBreakpoint) {
+    private static final double SNAP_EPSILON = 1e-14;
+
+    /**
+     * Resolved column geometry for a layout pass. Column edges come from
+     * {@link #columnX(double, int)} and {@link #spanWidth(double, int, int)}, already
+     * snapped to the device-pixel grid, so callers place items at those values as is.
+     *
+     * <p>With {@code fillWidth} the track width is floored to the grid and the few
+     * spare pixels widen the gaps: the columns stay equal, the first starts at the
+     * leading edge, the last ends at the trailing edge, and no item passes the layout
+     * width. A multi-column item spans from its first column's left edge to its last
+     * column's right edge. Without {@code fillWidth} the edges round and the widths
+     * ceil, exactly as a node's {@code snapPositionX} / {@code snapSizeX} would.</p>
+     *
+     * @param columns          the number of columns, at least one
+     * @param trackWidth       the width of a single column track
+     * @param hgap             the gap between columns as laid out (with {@code fillWidth},
+     *                         the requested gap plus its share of the spare pixels)
+     * @param usedWidth        the total width the resolved tracks plus gaps occupy
+     * @param activeBreakpoint the breakpoint resolved from {@code breakpointWidth}
+     * @param snapScale        the render scale edges snap to, or {@code 0} for none
+     * @param fillWidth        whether the tracks stretch to fill the layout width
+     */
+    public record Resolution(int columns, double trackWidth, double hgap, double usedWidth,
+                             RXBreakpoint activeBreakpoint, double snapScale, boolean fillWidth) {
+
+        /**
+         * Returns the snapped left edge of a column.
+         *
+         * @param startX the x of the first column before snapping (alignment offset)
+         * @param column the column index
+         * @return the column's left edge
+         */
+        public double columnX(double startX, int column) {
+            return snapRound(startX + column * (trackWidth + hgap), snapScale);
+        }
+
+        /**
+         * Returns the snapped width of an item spanning {@code span} columns from
+         * {@code startColumn}.
+         *
+         * @param startX      the x of the first column before snapping (alignment offset)
+         * @param startColumn the item's first column
+         * @param span        the number of columns spanned, at least one
+         * @return the item's laid-out width
+         */
+        public double spanWidth(double startX, int startColumn, int span) {
+            if (fillWidth) {
+                // From the first column's left edge to the last column's right edge, so a
+                // spanning item ends exactly where its last column does.
+                int lastColumn = startColumn + Math.max(1, span) - 1;
+                return columnX(startX, lastColumn) + trackWidth - columnX(startX, startColumn);
+            }
+            return snapCeil(nominalSpanWidth(span), snapScale);
+        }
+
+        /**
+         * Returns the unsnapped width of a {@code span}-column slot, independent of the
+         * column it starts in.
+         *
+         * @param span the number of columns spanned, at least one
+         * @return {@code span * trackWidth + (span - 1) * hgap}
+         */
+        public double nominalSpanWidth(int span) {
+            int clamped = Math.max(1, span);
+            return clamped * trackWidth + (clamped - 1) * hgap;
+        }
     }
 
     private MasonryColumns() {
@@ -95,6 +158,10 @@ public final class MasonryColumns {
      * @param profile          the breakpoint profile; must not be {@code null}
      * @param breakpointColumns the per-breakpoint column overrides, keyed by tier;
      *                          {@code null} or empty means no overrides
+     * @param snapScale        the caller's render scale, so edges snap to its device
+     *                         pixels; {@code 0} (or any non-positive or non-finite
+     *                         value) disables snapping, as for a node that does not
+     *                         snap to pixels
      * @return the resolved column geometry
      * @throws NullPointerException if {@code profile} is {@code null}
      */
@@ -102,7 +169,8 @@ public final class MasonryColumns {
                                      int columnCount, double columnWidth, double hgap,
                                      int maxColumns, boolean fillWidth,
                                      RXBreakpointProfile profile,
-                                     Map<RXBreakpoint, Integer> breakpointColumns) {
+                                     Map<RXBreakpoint, Integer> breakpointColumns,
+                                     double snapScale) {
         Objects.requireNonNull(profile, "profile cannot be null");
         // NaN or infinite widths (typical before the first sized layout pass) resolve
         // as zero instead of poisoning the track geometry with NaN.
@@ -115,14 +183,37 @@ public final class MasonryColumns {
         RXBreakpoint activeBreakpoint = profile.resolve(breakpointWidth);
         int columns = computeColumns(layoutWidth, columnCount, columnWidth, hgap, maxColumns,
                 profile, breakpointColumns, activeBreakpoint);
+        double scale = Double.isFinite(snapScale) && snapScale > 0.0 ? snapScale : 0.0;
         double trackWidth;
+        double effectiveHgap = hgap;
         if (fillWidth) {
-            trackWidth = Math.max(0.0, (layoutWidth - (columns - 1) * hgap) / columns);
+            // Floor the width and the track to the device grid (ceiling them would push
+            // the last column past the layout width) and spread the spare pixels into
+            // the gaps, so the equal columns still reach both edges.
+            double width = snapFloor(layoutWidth, scale);
+            trackWidth = Math.max(0.0, snapFloor((width - (columns - 1) * hgap) / columns, scale));
+            if (columns > 1) {
+                double spare = Math.max(0.0, width - (columns * trackWidth + (columns - 1) * hgap));
+                effectiveHgap = hgap + spare / (columns - 1);
+            }
         } else {
             trackWidth = columnWidth;
         }
-        double usedWidth = columns * trackWidth + (columns - 1) * hgap;
-        return new Resolution(columns, trackWidth, usedWidth, activeBreakpoint);
+        double usedWidth = columns * trackWidth + (columns - 1) * effectiveHgap;
+        return new Resolution(columns, trackWidth, effectiveHgap, usedWidth, activeBreakpoint, scale, fillWidth);
+    }
+
+    // Same arithmetic as the JavaFX Region snapping helpers; a scale of 0 disables it.
+    private static double snapRound(double value, double scale) {
+        return scale > 0.0 ? Math.round(value * scale) / scale : value;
+    }
+
+    private static double snapFloor(double value, double scale) {
+        return scale > 0.0 ? Math.floor(value * scale + SNAP_EPSILON) / scale : value;
+    }
+
+    private static double snapCeil(double value, double scale) {
+        return scale > 0.0 ? Math.ceil(value * scale - SNAP_EPSILON) / scale : value;
     }
 
     private static int computeColumns(double layoutWidth, int columnCount, double columnWidth,

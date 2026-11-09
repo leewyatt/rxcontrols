@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
+import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.skins.RXMasonryPlacement.Geometry;
 
 import org.junit.jupiter.api.Test;
@@ -17,9 +19,15 @@ public class RXMasonryPlacementTest {
 
     private static final double DELTA = 1.0e-9;
 
+    // Unsnapped fixed-width columns: the continuous geometry these tests pin.
+    private static Resolution resolution(int columns, double trackWidth, double hgap) {
+        return new Resolution(columns, trackWidth, hgap, columns * trackWidth + (columns - 1) * hgap,
+                RXBreakpoint.XS, 0.0, false);
+    }
+
     private static RXMasonryPlacement basic() {
         // 3 columns, track 100, hgap 10, vgap 5, startX 0.
-        return new RXMasonryPlacement(3, 100.0, 10.0, 5.0, 0.0,
+        return new RXMasonryPlacement(resolution(3, 100.0, 10.0), 5.0, 0.0,
                 new double[]{140.0, 220.0, 160.0, 120.0}, new int[]{1, 1, 1, 1});
     }
 
@@ -41,7 +49,7 @@ public class RXMasonryPlacementTest {
 
     @Test
     public void startXOffsetsEveryColumn() {
-        RXMasonryPlacement placement = new RXMasonryPlacement(2, 100.0, 10.0, 0.0, 30.0,
+        RXMasonryPlacement placement = new RXMasonryPlacement(resolution(2, 100.0, 10.0), 0.0, 30.0,
                 new double[]{50.0, 60.0}, new int[]{1, 1});
         assertGeometry(placement.geometryOf(0), 30.0, 0.0, 100.0, 50.0);
         assertGeometry(placement.geometryOf(1), 140.0, 0.0, 100.0, 60.0);
@@ -79,7 +87,7 @@ public class RXMasonryPlacementTest {
     @Test
     public void spanItemOccupiesEveryColumnItCovers() {
         // item0 spans 2 columns; item1 fills col2; item2 lands in the shortest column.
-        RXMasonryPlacement placement = new RXMasonryPlacement(3, 100.0, 10.0, 0.0, 0.0,
+        RXMasonryPlacement placement = new RXMasonryPlacement(resolution(3, 100.0, 10.0), 0.0, 0.0,
                 new double[]{50.0, 80.0, 30.0}, new int[]{2, 1, 1});
 
         assertGeometry(placement.geometryOf(0), 0.0, 0.0, 210.0, 50.0);
@@ -107,7 +115,7 @@ public class RXMasonryPlacementTest {
     // 3 columns, track 100, hgap 10, vgap 0, two tiers of equal-height items so the
     // columns line up: tier 0 = items 0,1,2; tier 1 = items 3,4,5.
     private static RXMasonryPlacement twoTier() {
-        return new RXMasonryPlacement(3, 100.0, 10.0, 0.0, 0.0,
+        return new RXMasonryPlacement(resolution(3, 100.0, 10.0), 0.0, 0.0,
                 new double[]{100.0, 100.0, 100.0, 50.0, 50.0, 50.0}, new int[]{1, 1, 1, 1, 1, 1});
     }
 
@@ -149,7 +157,7 @@ public class RXMasonryPlacementTest {
 
     @Test
     public void emptyPlacementAnswersAllQueriesSafely() {
-        RXMasonryPlacement placement = new RXMasonryPlacement(3, 100.0, 10.0, 5.0, 0.0,
+        RXMasonryPlacement placement = new RXMasonryPlacement(resolution(3, 100.0, 10.0), 5.0, 0.0,
                 new double[]{}, new int[]{});
         assertEquals(0, placement.itemCount());
         assertEquals(0.0, placement.contentHeight(), DELTA);

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine.OutlineResult;
 
@@ -31,7 +32,8 @@ final class RXMasonryPlacement {
 
     /**
      * An item's rectangle in content coordinates (before the scroll offset is folded
-     * in).
+     * in). The x and width are already snapped to the device-pixel grid, so the
+     * viewport places a cell at them as is and every query sees the same edges.
      *
      * @param x      the left edge
      * @param y      the top edge
@@ -41,9 +43,8 @@ final class RXMasonryPlacement {
     record Geometry(double x, double y, double width, double height) {
     }
 
+    private final Resolution resolution;
     private final int columns;
-    private final double trackWidth;
-    private final double hgap;
     private final double startX;
     private final int[] startColumns;
     private final double[] tops;
@@ -60,19 +61,16 @@ final class RXMasonryPlacement {
     /**
      * Builds the placement.
      *
-     * @param columns    the number of columns, at least one
-     * @param trackWidth the width of a single column track
-     * @param hgap       the horizontal gap between columns
+     * @param resolution the resolved column geometry (count, track, gap, snapping)
      * @param vgap       the vertical gap between stacked items
      * @param startX     the content-space x offset of the first column (alignment)
      * @param heights    the effective height per item; must be finite and non-negative
      * @param spans      the column span per item
      */
-    RXMasonryPlacement(int columns, double trackWidth, double hgap, double vgap, double startX,
+    RXMasonryPlacement(Resolution resolution, double vgap, double startX,
                        double[] heights, int[] spans) {
-        this.columns = Math.max(1, columns);
-        this.trackWidth = trackWidth;
-        this.hgap = hgap;
+        this.resolution = resolution;
+        this.columns = Math.max(1, resolution.columns());
         this.startX = startX;
         this.heights = heights.clone();
         this.spans = spans.clone();
@@ -148,7 +146,7 @@ final class RXMasonryPlacement {
             return null;
         }
         return new Geometry(columnX(startColumns[index]), tops[index],
-                spanWidth(spans[index]), heights[index]);
+                spanWidth(startColumns[index], spans[index]), heights[index]);
     }
 
     int startColumnOf(int index) {
@@ -170,7 +168,7 @@ final class RXMasonryPlacement {
         if (index < 0 || index >= startColumns.length) {
             return Double.NaN;
         }
-        return columnX(startColumns[index]) + spanWidth(spans[index]) / 2.0;
+        return columnX(startColumns[index]) + spanWidth(startColumns[index], spans[index]) / 2.0;
     }
 
     /**
@@ -206,7 +204,7 @@ final class RXMasonryPlacement {
                 continue;
             }
             double left = columnX(startColumns[j]);
-            double right = left + spanWidth(spans[j]);
+            double right = left + spanWidth(startColumns[j], spans[j]);
             double distanceX = refX < left ? left - refX : (refX > right ? refX - right : 0.0);
             double gapY = Math.abs(top - sourceTop);
             // Lower horizontal distance wins; within an EPSILON tie the smaller vertical
@@ -226,12 +224,11 @@ final class RXMasonryPlacement {
     }
 
     private double columnX(int startColumn) {
-        return startX + startColumn * (trackWidth + hgap);
+        return resolution.columnX(startX, startColumn);
     }
 
-    private double spanWidth(int span) {
-        int clamped = clampSpan(span);
-        return clamped * trackWidth + (clamped - 1) * hgap;
+    private double spanWidth(int startColumn, int span) {
+        return resolution.spanWidth(startX, startColumn, clampSpan(span));
     }
 
     /**
@@ -274,11 +271,21 @@ final class RXMasonryPlacement {
         if (startColumns.length == 0 || y < 0.0 || y >= contentHeight) {
             return -1;
         }
-        double step = trackWidth + hgap;
-        if (step <= 0.0 || x < startX) {
+        double step = resolution.trackWidth() + resolution.hgap();
+        if (step <= 0.0 || x < columnX(0)) {
             return -1;
         }
         int column = (int) Math.floor((x - startX) / step);
+        // The continuous estimate can be one column off near a snapped edge; prefer the
+        // neighbouring column whose snapped track actually contains x. A point in a gap
+        // keeps the estimate, so a spanning item still answers for the gaps it covers.
+        for (int candidate = column - 1; candidate <= column + 1; candidate++) {
+            if (candidate >= 0 && candidate < columns && x >= columnX(candidate)
+                    && x <= columnX(candidate) + resolution.trackWidth()) {
+                column = candidate;
+                break;
+            }
+        }
         if (column < 0 || column >= columns) {
             return -1;
         }

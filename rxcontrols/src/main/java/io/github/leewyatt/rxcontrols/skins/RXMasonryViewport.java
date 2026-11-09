@@ -330,8 +330,10 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
             applyCssAfterCellUpdate(cell, oldStyle);
             // Only a carry-over cell (the one that rendered this item last pass) glides;
             // a freshly repurposed or entering cell pops in at its slot.
-            placeCell(cell, snapPositionX(geometry.x()), snapPositionY(geometry.y() - scrollY),
-                    snapSizeX(geometry.width()), snapSizeY(geometry.height()), cell == prior);
+            // x and width come pre-snapped from the placement (edges on the device grid);
+            // snapping them again would ceil a filled track past the clip.
+            placeCell(cell, geometry.x(), snapPositionY(geometry.y() - scrollY),
+                    geometry.width(), snapSizeY(geometry.height()), cell == prior);
             measureCell(cell, itemIndex, geometry);
             if (geometry.y() < anchorCandidateTop) {
                 anchorCandidateTop = geometry.y();

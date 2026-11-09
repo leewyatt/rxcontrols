@@ -26,9 +26,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -875,6 +879,100 @@ public class RXMasonryViewSkinTest {
     }
 
     // ==================== Placement cache ====================
+
+    @Test
+    public void filledColumnsStayInsideTheClip() throws Exception {
+        onFx(() -> assertFilledRowsInsideClip(uniformGallery(40), "single-column items", true));
+    }
+
+    @Test
+    public void filledSpanningItemsStayInsideTheClip() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(40);
+            // Spans 2 from a middle column, the full row, and singles mixed.
+            view.setColumnSpanFactory(item -> item % 7 == 3 ? 99 : item % 3 == 1 ? 2 : 1);
+            // A span may not fit the columns left in a row, so rows need not fill here.
+            assertFilledRowsInsideClip(view, "mixed spans", false);
+        });
+    }
+
+    @Test
+    public void cellHeightContextWidthMatchesTheLaidOutWidth() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> items = FXCollections.observableArrayList();
+            for (int i = 0; i < 30; i++) {
+                items.add(i);
+            }
+            RXMasonryView<Integer> view = new RXMasonryView<>(items);
+            view.setColumnWidth(60);
+            view.setHgap(10);
+            view.setColumnSpanFactory(item -> item % 3 == 1 ? 2 : 1);
+            Map<Integer, Double> asked = new HashMap<>();
+            view.setCellHeightProvider(context -> {
+                asked.put(context.index(), context.cellWidth());
+                return 40.0;
+            });
+            StackPane root = host(view, 300, 400);
+            for (double width = 300.0; width <= 500.0; width += 0.5) {
+                root.resize(width, 400);
+                pump(root);
+                for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                    if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                        double context = asked.get(cell.getIndex());
+                        // A single column is exact; a span snaps per column, within one pixel.
+                        double tolerance = (Integer) cell.getItem() % 3 == 1 ? 1.0 : 1e-9;
+                        assertEquals(context, cell.getWidth(), tolerance,
+                                "item " + cell.getIndex() + " at width " + width);
+                    }
+                }
+            }
+        });
+    }
+
+    // Sweeps the view width (half pixels included) with fillWidth on, checking every
+    // row of equal-height items against the content clip and the configured hgap.
+    private static void assertFilledRowsInsideClip(RXMasonryView<Integer> view, String fixture,
+                                                   boolean firstRowFills) {
+        view.setColumnWidth(60);
+        view.setHgap(10);
+        StackPane root = host(view, 300, 400);
+        for (double width = 300.0; width <= 700.0; width += 0.5) {
+            root.resize(width, 400);
+            pump(root);
+            Rectangle clip = (Rectangle) view.lookup(".viewport > .content").getClip();
+            double clipRight = clip.getX() + clip.getWidth();
+            Map<Double, List<Region>> rows = new TreeMap<>();
+            for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                    rows.computeIfAbsent(cell.getLayoutY(), y -> new ArrayList<>()).add(cell);
+                }
+            }
+            String at = fixture + " at width " + width;
+            assertFalse(rows.isEmpty(), at + ": cells are laid out");
+            for (List<Region> row : rows.values()) {
+                row.sort(Comparator.comparingDouble(Region::getLayoutX));
+                for (int i = 0; i < row.size(); i++) {
+                    Region cell = row.get(i);
+                    assertTrue(cell.getLayoutX() + cell.getWidth() <= clipRight + 1e-9,
+                            at + ": cell edge " + (cell.getLayoutX() + cell.getWidth()) + " > clip " + clipRight);
+                    if (i > 0) {
+                        Region previous = row.get(i - 1);
+                        double gap = cell.getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                        assertTrue(gap >= 10.0 - 1e-9, at + ": gap " + gap + " < hgap");
+                    }
+                }
+            }
+            if (!firstRowFills) {
+                continue;
+            }
+            // The first row of single-column, equal-height items spans the clip edge to edge.
+            List<Region> first = rows.values().iterator().next();
+            Region last = first.get(first.size() - 1);
+            assertEquals(0.0, first.get(0).getLayoutX(), 1e-9, at + ": first column at the leading edge");
+            assertTrue(last.getLayoutX() + last.getWidth() >= clipRight - 1.0,
+                    at + ": columns fill the clip, ending at " + (last.getLayoutX() + last.getWidth()));
+        }
+    }
 
     private static RXMasonryView<Integer> countingProviderView(AtomicInteger calls) {
         ObservableList<Integer> items = FXCollections.observableArrayList();

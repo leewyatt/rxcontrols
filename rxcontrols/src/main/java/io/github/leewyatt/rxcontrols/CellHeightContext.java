@@ -9,6 +9,11 @@ package io.github.leewyatt.rxcontrols;
  * ({@code span * trackWidth + (span - 1) * hgap}), not a single column track. An
  * image gallery typically returns {@code cellWidth() / aspectRatio}.
  *
+ * <p>A single-column slot is laid out at exactly this width. Column edges snap to the
+ * device-pixel grid and the height is asked before the item is assigned a column, so
+ * a multi-column slot can be laid out up to one device pixel narrower or wider than
+ * this value, depending on the columns it lands in.</p>
+ *
  * @param <T>         the item type
  * @param item        the item whose height is requested, possibly {@code null}
  * @param index       the item's index in the items list

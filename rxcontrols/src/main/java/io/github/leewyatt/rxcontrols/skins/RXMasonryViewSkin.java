@@ -26,6 +26,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
@@ -35,6 +36,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Window;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
@@ -1093,16 +1095,18 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         RXBreakpointProfile profile = breakpointProfileOrDefault(control);
         Map<RXBreakpoint, Integer> overrides = control.getBreakpointColumnOverrides();
 
+        double snapScale = snapScaleX();
         Resolution first = MasonryColumns.resolve(breakpointWidth, breakpointWidth, control.getColumnCount(),
-                snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);
+                snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides,
+                snapScale);
         // The overflow decision needs a content height. On the estimated path that build
         // must NOT drive the cache (it is at the pre-scrollbar width and may be discarded);
         // only the chosen, settled-width placement below writes the cache.
         boolean estimated = estimatedPath();
-        RXMasonryPlacement firstPlacement = placementFor(first, breakpointWidth, snappedHgap, snappedVgap, !estimated);
+        RXMasonryPlacement firstPlacement = placementFor(first, breakpointWidth, snappedVgap, !estimated);
         if (firstPlacement.contentHeight() <= availableHeight) {
             RXMasonryPlacement finalPlacement = estimated
-                    ? placementFor(first, breakpointWidth, snappedHgap, snappedVgap, true)
+                    ? placementFor(first, breakpointWidth, snappedVgap, true)
                     : firstPlacement;
             return new PlacementResult(finalPlacement, first.activeBreakpoint());
         }
@@ -1111,8 +1115,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // the narrower width. The active breakpoint is unchanged (it ignores layoutWidth).
         double layoutWidth = Math.max(0.0, breakpointWidth - viewport.scrollBarBreadth());
         Resolution second = MasonryColumns.resolve(breakpointWidth, layoutWidth, control.getColumnCount(),
-                snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides);
-        RXMasonryPlacement secondPlacement = placementFor(second, layoutWidth, snappedHgap, snappedVgap, true);
+                snappedColumnWidth, snappedHgap, control.getMaxColumns(), control.isFillWidth(), profile, overrides,
+                snapScale);
+        RXMasonryPlacement secondPlacement = placementFor(second, layoutWidth, snappedVgap, true);
         return new PlacementResult(secondPlacement, second.activeBreakpoint());
     }
 
@@ -1121,13 +1126,17 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // builds at the pre-scrollbar width with driveCache=false, so the two widths in one
     // pass do not thrash the cache and drop every measured height.
     private RXMasonryPlacement placementFor(Resolution resolution, double layoutWidth,
-                                            double snappedHgap, double snappedVgap, boolean driveCache) {
+                                            double snappedVgap, boolean driveCache) {
         RXMasonryView<T> control = getSkinnable();
         ObservableList<T> items = control.getItems();
         int count = items == null ? 0 : items.size();
         int columns = resolution.columns();
         double track = resolution.trackWidth();
-        double startX = horizontalAlignmentOffset(control, layoutWidth, resolution.usedWidth());
+        // Filled tracks already span the layout width, so the alignment has no slack to
+        // place; the few sub-pixel leftovers of the floored width stay at the trailing edge.
+        double startX = resolution.fillWidth()
+                ? 0.0
+                : horizontalAlignmentOffset(control, layoutWidth, resolution.usedWidth());
         double estimated = estimatedCellHeightOrDefault(control);
         Callback<T, Integer> spanFactory = control.getColumnSpanFactory();
 
@@ -1142,12 +1151,12 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
                 T item = items.get(i);
                 int span = resolveSpan(spanFactory, item, columns);
                 spans[i] = span;
-                double cellWidth = span * track + (span - 1) * snappedHgap;
+                double cellWidth = resolution.nominalSpanWidth(span);
                 double provided = provider.computeHeight(
                         new CellHeightContext<>(item, i, cellWidth, span, track, columns));
                 heights[i] = snapSizeY(Double.isFinite(provided) && provided >= 0.0 ? provided : estimated);
             }
-            return new RXMasonryPlacement(columns, track, snappedHgap, snappedVgap, startX, heights, spans);
+            return new RXMasonryPlacement(resolution, snappedVgap, startX, heights, spans);
         }
 
         // Estimated path: heights come from the persistent cache (measured or estimated);
@@ -1171,7 +1180,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             spans[i] = span;
             heights[i] = snapSizeY(heightCache.heightAt(i, estimated));
         }
-        return new RXMasonryPlacement(columns, track, snappedHgap, snappedVgap, startX, heights, spans);
+        return new RXMasonryPlacement(resolution, snappedVgap, startX, heights, spans);
     }
 
     // The estimated-path measure sink (installed on the viewport): a changed measured
@@ -1268,6 +1277,19 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         finishMarquee();
         viewport.dispose();
         placeholderRegion.getChildren().clear();
+    }
+
+    // The render scale column edges snap to: the window's, or 0 when the view does not
+    // snap to pixels (or is not in a window yet).
+    private double snapScaleX() {
+        RXMasonryView<T> control = getSkinnable();
+        if (!control.isSnapToPixel()) {
+            return 0.0;
+        }
+        Scene scene = control.getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        return Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
     }
 
     // ==================== Lenient value helpers ====================

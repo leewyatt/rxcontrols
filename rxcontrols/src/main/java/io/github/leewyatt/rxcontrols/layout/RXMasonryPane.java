@@ -1475,7 +1475,7 @@ public class RXMasonryPane extends Pane {
         return MasonryColumns.resolve(contentWidth, contentWidth, getColumnCount(),
                 snapSizeX(columnWidthOrDefault()), snapSpaceX(sanitizedHgap()),
                 getMaxColumns(), isFillWidth(), breakpointProfileOrDefault(),
-                breakpointColumns).columns();
+                breakpointColumns, 0.0).columns();
     }
 
     private int childColumnSpan(Node child) {
