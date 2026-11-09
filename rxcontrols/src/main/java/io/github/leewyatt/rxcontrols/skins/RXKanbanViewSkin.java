@@ -896,7 +896,17 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             // overruns the board by up to a pixel per column, and the columns clip then cuts
             // the last column's trailing edge. Only an overflowing (scrolling) board ceils.
             baseWidth = overflow ? snapSizeX(baseWidth) : snapFloorX(baseWidth);
-            double slack = Math.max(0.0, contentWidth - (baseWidth * sumWeight + baseGap * sumGapWeight));
+            // The slack comes from the actual per-column widths: a column mid hide / show
+            // has a fractional weight and its width snaps on its own, so the continuous
+            // baseWidth * sumWeight would miss the pixels that snapping drops.
+            double usedWidth = 0.0;
+            for (int i = 0; i < columnCount; i++) {
+                double weight = 1.0 - boxes.get(i).getHideProgress();
+                double width = overflow ? snapSizeX(baseWidth * weight) : snapFloorX(baseWidth * weight);
+                cachedColumnW[i] = width;
+                usedWidth += width;
+            }
+            double slack = Math.max(0.0, contentWidth - (usedWidth + baseGap * sumGapWeight));
             if (justify == ItemsJustify.STRETCH) {
                 if (capped) {
                     // A capped stretch centers the filled block.
@@ -930,9 +940,8 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double cursorX = startX;
         for (int i = 0; i < columnCount; i++) {
             double weight = 1.0 - boxes.get(i).getHideProgress();
-            // Fractional weights (a column mid hide / show) round per column too, so a
-            // fitting board floors here as well to stay within the slack computed above.
-            double width = overflow ? snapSizeX(baseWidth * weight) : snapFloorX(baseWidth * weight);
+            // Widths were snapped per column above; with every column hidden there are none.
+            double width = sumWeight > 0.0 ? cachedColumnW[i] : 0.0;
             cachedColumnX[i] = cursorX;
             cachedColumnW[i] = width;
             cursorX += width;
@@ -945,15 +954,15 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
         // Only genuine overflow (columns cannot fit even at minColumnWidth) scrolls. The
         // scroll range comes from the laid-out extent (an overflowing board has no justify
-        // start or spread), ceiled to the pixel grid: the continuous width * weight sum
-        // falls short of the per-column snapped widths, and rounding the scrolled column
-        // positions could then still push the last column past the clip at full scroll.
+        // start or spread), not the continuous width * weight sum, which falls short of
+        // the per-column snapped widths. At full scroll the last column then sits at
+        // contentWidth - its width, on the pixel grid, so it ends exactly at the clip.
         double packedWidth = cursorX;
         boolean needHbar = overflow;
         double hbarBreadth = needHbar ? snapSizeY(hbar.prefHeight(-1)) : 0.0;
         double columnsAreaHeight = Math.max(0.0, contentHeight - hbarBreadth);
 
-        cachedMaxBoardScrollX = needHbar ? Math.max(0.0, snapSizeX(packedWidth - contentWidth)) : 0.0;
+        cachedMaxBoardScrollX = needHbar ? Math.max(0.0, packedWidth - contentWidth) : 0.0;
         double correctedBoardScrollX = RXMath.clamp(boardScrollX, 0.0, cachedMaxBoardScrollX);
         double boardScrollCorrection = correctedBoardScrollX - boardScrollX;
         boardScrollX = correctedBoardScrollX;

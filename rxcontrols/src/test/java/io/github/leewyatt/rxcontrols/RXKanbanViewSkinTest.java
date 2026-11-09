@@ -31,6 +31,7 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
@@ -1265,6 +1266,7 @@ public class RXKanbanViewSkinTest {
         AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
         AtomicReference<AnimationTimer> timer = new AtomicReference<>();
         List<String> overruns = new ArrayList<>();
+        List<String> underfills = new ArrayList<>();
         Set<Double> partialWidths = new HashSet<>();
         AtomicReference<Double> fullWidth = new AtomicReference<>();
         onFx(() -> {
@@ -1296,8 +1298,15 @@ public class RXKanbanViewSkinTest {
                     }
                     Region c = boxOf(board.get(), "C");
                     double edge = c.getLayoutX() + c.getWidth();
-                    if (edge > contentWidth(board.get()) + 1e-9 && overruns.size() < 5) {
-                        overruns.add(edge + " > " + contentWidth(board.get()));
+                    // The columns clip is the skin's pixel-snapped content width.
+                    double clipWidth = ((Rectangle) c.getParent().getClip()).getWidth();
+                    if (edge > clipWidth + 1e-9 && overruns.size() < 5) {
+                        overruns.add(edge + " > " + clipWidth);
+                    }
+                    // An uncapped stretch (or a board scrolled to its end) reaches the
+                    // trailing edge on every frame, not just once the animation settles.
+                    if (edge < clipWidth - 1e-6 && underfills.size() < 5) {
+                        underfills.add(edge + " < " + clipWidth);
                     }
                 }
             });
@@ -1311,6 +1320,7 @@ public class RXKanbanViewSkinTest {
         assertTrue(partialWidths.size() > 10,
                 "frames mid hide / show were sampled: " + partialWidths.size() + " distinct widths");
         assertTrue(overruns.isEmpty(), "last column stays inside the board on every frame: " + overruns);
+        assertTrue(underfills.isEmpty(), "last column reaches the trailing edge on every frame: " + underfills);
     }
 
     @Test
