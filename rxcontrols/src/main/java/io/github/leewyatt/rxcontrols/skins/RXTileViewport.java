@@ -11,8 +11,10 @@ import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import javafx.animation.Interpolator;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.util.Callback;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -489,8 +491,13 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                     firstItem = rowStart;
                     firstDataRow = info.dataRowIndex();
                 }
-                double x = snapPositionX(startX);
+                // Each x is derived from the row start, not the previous snapped x, so
+                // fractional justify gaps never accumulate rounding; the rounded x is
+                // capped so the last cell's edge cannot pass the clipped content width.
+                double step = cellWidth + hgap;
+                double maxX = snapFloorX(contentWidth - cellWidth);
                 for (int column = 0; column < cellsInRow; column++) {
+                    double x = Math.min(snapPositionX(startX + column * step), maxX);
                     int itemIndex = rowStart + column;
                     RXTileCell<T> prior = reorderPass ? priorItemToCell.get(itemIndex) : null;
                     RXTileCell<T> cell = reorderPass
@@ -513,7 +520,6 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                     // Only a carry-over cell (the one that rendered this item last pass)
                     // glides; a freshly repurposed or entering cell pops in at its slot.
                     placeCell(cell, x, rowTop, cellWidth, cellHeight, cell == prior);
-                    x = snapPositionX(x + cellWidth + hgap);
                 }
                 if (cellsInRow > 0) {
                     lastItem = rowStart + cellsInRow - 1;
@@ -573,8 +579,12 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 double used = cols * cellWidth + (cols - 1) * hgap;
                 startX = Math.max(0.0, (contentWidth - used) / 2.0);
             } else {
-                cellWidth = snapSizeX(Math.max(0.0, ideal));
-                startX = 0.0;
+                // Floored, not ceiled (snapSizeX): ceiling each of cols cells overruns
+                // the content by up to a pixel per column, and the viewport clip then
+                // cuts the last column. The spare pixels are centered.
+                cellWidth = snapFloorX(Math.max(0.0, ideal));
+                double used = cols * cellWidth + (cols - 1) * hgap;
+                startX = Math.max(0.0, (contentWidth - used) / 2.0);
             }
         } else {
             cellWidth = baseWidth;
@@ -599,6 +609,22 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
             }
         }
         return new CellGeometry(cellWidth, cellHeight, effectiveGap, startX);
+    }
+
+    // Floors to the pixel grid of the viewport's window (the snapSizeX counterpart
+    // that never rounds up); a no-op when the viewport does not snap to pixels.
+    private double snapFloorX(double value) {
+        if (!isSnapToPixel()) {
+            return value;
+        }
+        Scene scene = getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            scale = 1.0;
+        }
+        double scaled = value * scale;
+        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     private static double maxTileWidthOrUnbounded(RXTileView<?> control) {

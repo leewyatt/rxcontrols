@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -862,31 +863,64 @@ public class RXTileViewSkinTest {
             view.setHgap(10);
             StackPane root = host(view, 400, 400);
 
-            // Fixture: N=4, prefTileWidth=60, hgap=10, row width 400 (no scroll bar),
-            // so slack S = 400 - (4*60 + 3*10) = 130. Absolute values pin each divisor.
+            // Fixture: N=4, prefTileWidth=60, hgap=10, no scroll bar; the slack is
+            // S = content width - (4*60 + 3*10), read from the clipped content area
+            // (the view's chrome leaves less than 400). Absolute values pin each
+            // divisor. Each cell x is snapped on its own (no accumulated rounding), so
+            // an edge is within half a pixel of exact and a gap within one pixel.
             view.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
             pump(root);
+            double slack = ((Rectangle) view.lookup(".viewport > .content").getClip()).getWidth()
+                    - (4 * 60.0 + 3 * 10.0);
             double betweenEdge = firstCellX(view);
             double betweenGap = firstGap(view);
             assertEquals(0.0, betweenEdge, 0.5, "SPACE_BETWEEN keeps the edges flush");
-            assertEquals(10.0 + 130.0 / 3.0, betweenGap, 0.5, "between gap = hgap + S/(N-1)");
+            assertEquals(10.0 + slack / 3.0, betweenGap, 1.0, "between gap = hgap + S/(N-1)");
 
             view.setItemsJustify(ItemsJustify.SPACE_AROUND);
             pump(root);
             double aroundEdge = firstCellX(view);
             double aroundGap = firstGap(view);
-            assertEquals(130.0 / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
-            assertEquals(10.0 + 130.0 / 4.0, aroundGap, 0.5, "AROUND gap = hgap + S/N");
+            assertEquals(slack / 8.0, aroundEdge, 0.5, "AROUND edge = S/(2N)");
+            assertEquals(10.0 + slack / 4.0, aroundGap, 1.0, "AROUND gap = hgap + S/N");
 
             view.setItemsJustify(ItemsJustify.SPACE_EVENLY);
             pump(root);
             double evenlyEdge = firstCellX(view);
             double evenlyGap = firstGap(view);
-            assertEquals(130.0 / 5.0, evenlyEdge, 0.5, "EVENLY edge = S/(N+1)");
-            assertEquals(10.0 + 130.0 / 5.0, evenlyGap, 0.5, "EVENLY gap = hgap + S/(N+1)");
+            assertEquals(slack / 5.0, evenlyEdge, 0.5, "EVENLY edge = S/(N+1)");
+            assertEquals(10.0 + slack / 5.0, evenlyGap, 1.0, "EVENLY gap = hgap + S/(N+1)");
 
             assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
                     "the edge gap grows BETWEEN < AROUND < EVENLY");
+        });
+    }
+
+    @Test
+    public void justifiedRowsNeverOverrunTheContentClip() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(30);
+            view.setPrefTileWidth(60);
+            view.setHgap(10);
+            StackPane root = host(view, 400, 400);
+            for (ItemsJustify mode : List.of(ItemsJustify.STRETCH, ItemsJustify.CENTER, ItemsJustify.END,
+                    ItemsJustify.SPACE_BETWEEN, ItemsJustify.SPACE_AROUND, ItemsJustify.SPACE_EVENLY)) {
+                view.setItemsJustify(mode);
+                // Most widths leave a fractional cell width or justify gap that must not
+                // round the last column past the clipped content area.
+                for (int width = 300; width <= 700; width++) {
+                    root.resize(width, 400);
+                    pump(root);
+                    Node contentLayer = view.lookup(".viewport > .content");
+                    Rectangle clip = (Rectangle) contentLayer.getClip();
+                    List<RXTileCell<?>> row = rowCells(view, 0);
+                    RXTileCell<?> last = row.get(row.size() - 1);
+                    assertSame(contentLayer, last.getParent(), "cells live in the clipped content layer");
+                    double edge = last.getLayoutX() + last.getWidth();
+                    assertTrue(edge <= clip.getX() + clip.getWidth() + 1e-9, mode + " at width " + width
+                            + ": last cell edge " + edge + " > clip " + (clip.getX() + clip.getWidth()));
+                }
+            }
         });
     }
 
