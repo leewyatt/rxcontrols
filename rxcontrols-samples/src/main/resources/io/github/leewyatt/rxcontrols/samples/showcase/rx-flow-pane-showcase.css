@@ -1,9 +1,9 @@
 /* Background + border show the pane bounds, so whole-block alignment
    (the centering of the content within the pane) is visible. */
 .showcase-flow {
-    -fx-background-color: #f8fafc;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: #cbd5e1;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-padding: 12px;
 }
@@ -21,5 +21,5 @@
 
 .note-label {
     -fx-font-size: 12px;
-    -fx-text-fill: #64748b;
+    -fx-text-fill: -showcase-caption-color;
 }

@@ -1,7 +1,7 @@
 .masonry-scroll {
-    -fx-background-color: white;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: #cbd5e1;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-padding: 0;
 }
@@ -11,7 +11,7 @@
 }
 
 .showcase-masonry {
-    -fx-background-color: #f8fafc;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
 }
 
@@ -29,6 +29,6 @@
 
 .resolved-label {
     -fx-font-weight: bold;
-    -fx-text-fill: #334155;
+    -fx-text-fill: -fx-text-base-color;
     -fx-padding: 6px 0 0 0;
 }

@@ -1,15 +1,15 @@
 .box-frame {
-    -fx-background-color: white;
+    -fx-background-color: -fx-background;
     -fx-background-radius: 8px;
-    -fx-border-color: #cbd5e1;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 12, 0.1, 0, 4);
 }
 
 .showcase-box {
-    -fx-background-color: #eef2ff;
+    -fx-background-color: -fx-control-inner-background;
     -fx-background-radius: 8px;
-    -fx-border-color: #c7d2fe;
+    -fx-border-color: -fx-accent;
     -fx-border-radius: 8px;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .showcase-baseline-text {
-    -fx-fill: #1d4ed8;
+    -fx-fill: -fx-accent;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
 }

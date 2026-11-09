@@ -1,15 +1,15 @@
 .transition-pane-preview {
     -fx-padding: 22px;
-    -fx-background-color: #ffffff;
-    -fx-border-color: #d9e0e8;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 16, 0, 0, 5);
 }
 
 .transition-pane-preview .showcase-transition-pane {
-    -fx-background-color: #f9fafb;
-    -fx-border-color: #d5dce5;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
 }
@@ -25,8 +25,9 @@
     -fx-background-radius: 8px;
 }
 
+/* The cards keep fixed pastel fills in every theme, so their text keeps fixed colors. */
 .state-card .step-number {
-    -fx-text-fill: -showcase-caption-color;
+    -fx-text-fill: #667085;
     -fx-font-size: 12px;
 }
 
