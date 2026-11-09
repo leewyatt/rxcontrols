@@ -285,6 +285,9 @@ public class RXMasonryPane extends Pane {
         // pseudo-class state inside layoutChildren.
         widthProperty().addListener((obs, oldWidth, newWidth) -> updateActiveBreakpoint());
         insetsProperty().addListener((obs, oldInsets, newInsets) -> updateActiveBreakpoint());
+        // Region only re-lays out the parent on a snapToPixel change, and the pane keeps its
+        // size, so without this the filled column edges would stay on the old grid.
+        snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();

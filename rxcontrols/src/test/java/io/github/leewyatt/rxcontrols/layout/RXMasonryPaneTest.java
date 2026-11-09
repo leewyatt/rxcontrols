@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -930,6 +931,38 @@ public class RXMasonryPaneTest {
                     }
                 }
             }
+        });
+    }
+
+    /**
+     * Verifies filled columns move to the new grid on a snapToPixel change with no other
+     * layout request, and on a render scale change at the next layout.
+     */
+    @Test
+    public void filledColumnsFollowASnapOrRenderScaleChange() throws Exception {
+        runOnFx(() -> {
+            Region[] cards = {card(40.0, 30.0), card(40.0, 30.0), card(40.0, 30.0)};
+            RXMasonryPane pane = pane(60.0, 10.0, 6.0, cards);
+            pane.setAnimated(false);
+            pane.setColumnCount(3);
+            Region host = new StackPane(pane);
+            Stage stage = stageFor(host);
+            layout(host, 301.0, 400.0);
+            assertClose(93.0, cards[0].getWidth(), "snapped at 1x");
+
+            pane.setSnapToPixel(false);
+            host.layout();
+            assertClose(281.0 / 3.0, cards[0].getWidth(), "unsnapped");
+            pane.setSnapToPixel(true);
+            host.layout();
+            assertClose(93.0, cards[0].getWidth(), "snapped again");
+
+            // A render scale change requests no layout (JavaFX Region behaves the same),
+            // so the new grid applies at the pane's next layout.
+            stage.setRenderScaleX(2.0);
+            pane.requestLayout();
+            host.layout();
+            assertClose(93.5, cards[0].getWidth(), "snapped at 2x");
         });
     }
 

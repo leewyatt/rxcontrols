@@ -918,12 +918,14 @@ public class RXMasonryViewSkinTest {
                 pump(root);
                 assertFirstRowFills(view, 2.0, "2x after 1x at width " + width);
             }
-            // JavaFX only re-lays out the parent on a snapToPixel change (and nothing on a
-            // render scale change), so the next layout of the view is what must pick it up.
+            // A render scale change requests no layout (JavaFX Region behaves the same), so
+            // the sweep above asks for one; a snapToPixel change needs no help.
             view.setSnapToPixel(false);
-            view.requestLayout();
             pump(root);
             assertFirstRowFills(view, 0.0, "unsnapped");
+            view.setSnapToPixel(true);
+            pump(root);
+            assertFirstRowFills(view, 2.0, "snapped again");
         });
     }
 

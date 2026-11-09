@@ -214,6 +214,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         disposer.registerListener(control.alignmentProperty(), this::requestRelayout);
         disposer.registerListener(control.breakpointProfileProperty(), this::requestRelayout);
         disposer.registerListener(control.estimatedCellHeightProperty(), this::requestRelayout);
+        // Region only re-lays out the parent on a snapToPixel change, and the control keeps
+        // its size, so without this the column edges would stay on the old grid.
+        disposer.registerListener(control.snapToPixelProperty(), this::requestRelayout);
         // Switching the height source (provider <-> estimated, or a different provider)
         // makes the persistent cache stale; drop it.
         disposer.registerListener(control.cellHeightProviderProperty(), this::onHeightSourceChanged);
