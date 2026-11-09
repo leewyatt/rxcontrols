@@ -20,6 +20,7 @@ import javafx.event.EventTarget;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -29,6 +30,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -231,6 +233,23 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     private static double finitePositiveOrDefault(double value, double fallback) {
         return Double.isFinite(value) && value > 0.0 ? value : fallback;
+    }
+
+    // Floors to the pixel grid of the control's window (the snapSizeX counterpart that
+    // never rounds up); a no-op when the control does not snap to pixels.
+    private double snapFloorX(double value) {
+        RXKanbanView<?> control = getSkinnable();
+        if (!control.isSnapToPixel()) {
+            return value;
+        }
+        Scene scene = control.getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            scale = 1.0;
+        }
+        double scaled = value * scale;
+        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     // ==================== Columns wiring ====================
@@ -871,7 +890,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
                 baseWidth = Math.max(fill, minWidth);
                 overflow = fill < minWidth - SCROLL_BAR_SYNC_EPSILON;
             }
-            baseWidth = snapSizeX(baseWidth);
+            // A width that must fit the board floors to the pixel grid: ceiling it (snapSizeX)
+            // overruns the board by up to a pixel per column, and the columns clip then cuts
+            // the last column's trailing edge. Only an overflowing (scrolling) board ceils.
+            baseWidth = overflow ? snapSizeX(baseWidth) : snapFloorX(baseWidth);
             double slack = Math.max(0.0, contentWidth - (baseWidth * sumWeight + baseGap * sumGapWeight));
             if (justify == ItemsJustify.STRETCH) {
                 // An exact fill has no slack; a capped stretch centers the filled block.

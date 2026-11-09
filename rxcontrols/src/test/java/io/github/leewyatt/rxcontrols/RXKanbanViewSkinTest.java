@@ -1113,6 +1113,27 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void fittedColumnsNeverOverrunTheBoard() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(200.0);
+            board.setColumnSpacing(12.0);
+            board.setMinColumnWidth(0.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setAnimated(false);
+            // Stretched (wide) and shrunk-to-fit (narrow) boards: most widths leave a
+            // fractional column width that must not round up past the columns clip.
+            for (int width = 500; width <= 1000; width++) {
+                pump(host(board, width, 400));
+                Region c = boxOf(board, "C");
+                assertTrue(c.getLayoutX() + c.getWidth() <= contentWidth(board) + 1e-9,
+                        "last column stays inside the board at width " + width + ": "
+                                + (c.getLayoutX() + c.getWidth()) + " > " + contentWidth(board));
+            }
+        });
+    }
+
+    @Test
     public void startLeavesTrailingSlack() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = threeColumnBoard();
