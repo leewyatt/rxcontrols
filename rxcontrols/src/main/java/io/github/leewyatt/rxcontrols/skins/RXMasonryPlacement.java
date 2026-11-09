@@ -313,7 +313,9 @@ final class RXMasonryPlacement {
      * @return the intersecting item indices
      */
     int[] itemsIntersecting(double minX, double minY, double maxX, double maxY) {
-        if (startColumns.length == 0 || maxY <= 0.0 || minY >= contentHeight || maxX < startX) {
+        // The first column's snapped edge, not the raw startX: rounding can move it left
+        // of startX, and that sliver still belongs to the first column's items.
+        if (startColumns.length == 0 || maxY <= 0.0 || minY >= contentHeight || maxX < columnX(0)) {
             return new int[0];
         }
         // As in visibleItems: collect the intersecting hits and de-duplicate by sort,

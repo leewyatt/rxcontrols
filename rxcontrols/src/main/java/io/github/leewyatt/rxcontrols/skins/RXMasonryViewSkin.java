@@ -114,6 +114,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private double cachedContentWidth = -1.0;
     private double cachedContentHeight = -1.0;
     private double cachedScrollBarBreadth = -1.0;
+    // The placement holds pixel-snapped column edges, so a new device grid (a move to a
+    // screen with another render scale, or toggling snapToPixel) must rebuild it.
+    private double cachedSnapScale = -1.0;
     private boolean placementDirty = true;
 
     private final ListChangeListener<T> itemsContentListener = this::onItemsContentChanged;
@@ -953,15 +956,23 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
 
         double barBreadth = viewport.scrollBarBreadth();
+        double snapScale = snapScaleX();
         PlacementResult result;
         if (placementDirty || cachedPlacement == null
                 || contentWidth != cachedContentWidth || contentHeight != cachedContentHeight
-                || barBreadth != cachedScrollBarBreadth) {
+                || barBreadth != cachedScrollBarBreadth || snapScale != cachedSnapScale) {
+            if (snapScale != cachedSnapScale) {
+                // A new device grid is the one geometry input that does not route through
+                // requestRelayout, and the viewport keeps its size, so dirty it here or the
+                // cells would keep the edges of the previous grid.
+                viewport.requestLayout();
+            }
             result = buildPlacement(contentWidth, contentHeight);
             cachedPlacement = result;
             cachedContentWidth = contentWidth;
             cachedContentHeight = contentHeight;
             cachedScrollBarBreadth = barBreadth;
+            cachedSnapScale = snapScale;
             placementDirty = false;
         } else {
             // Pure scroll (geometry inputs unchanged): reuse the placement and only re-fill
@@ -1036,6 +1047,7 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
             cachedContentWidth = contentWidth;
             cachedContentHeight = contentHeight;
             cachedScrollBarBreadth = viewport.scrollBarBreadth();
+            cachedSnapScale = snapScaleX();
             placementDirty = false;
         }
     }
@@ -1279,8 +1291,8 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         placeholderRegion.getChildren().clear();
     }
 
-    // The render scale column edges snap to: the window's, or 0 when the view does not
-    // snap to pixels (or is not in a window yet).
+    // The render scale column edges snap to: the window's, 1 before the view is in a
+    // window, or 0 when it does not snap to pixels.
     private double snapScaleX() {
         RXMasonryView<T> control = getSkinnable();
         if (!control.isSnapToPixel()) {

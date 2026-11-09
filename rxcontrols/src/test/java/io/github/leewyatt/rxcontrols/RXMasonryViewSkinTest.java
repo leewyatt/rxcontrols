@@ -21,6 +21,7 @@ import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -894,6 +895,69 @@ public class RXMasonryViewSkinTest {
             // A span may not fit the columns left in a row, so rows need not fill here.
             assertFilledRowsInsideClip(view, "mixed spans", false);
         });
+    }
+
+    @Test
+    public void filledColumnsFollowARenderScaleOrSnapChange() throws Exception {
+        onFx(() -> {
+            // Few enough items for no scroll bar: the size inputs stay put across the grid
+            // change, so only the snap scale tells the cached placement it is stale.
+            RXMasonryView<Integer> view = uniformGallery(12);
+            view.setColumnWidth(60);
+            view.setHgap(10);
+            StackPane root = host(view, 300, 400);
+            Stage stage = new Stage();
+            stage.setScene(root.getScene());
+            for (double width = 300.0; width <= 420.0; width += 0.25) {
+                stage.setRenderScaleX(1.0);
+                root.resize(width, 400);
+                view.requestLayout();
+                pump(root);
+                stage.setRenderScaleX(2.0);
+                view.requestLayout();
+                pump(root);
+                assertFirstRowFills(view, 2.0, "2x after 1x at width " + width);
+            }
+            // JavaFX only re-lays out the parent on a snapToPixel change (and nothing on a
+            // render scale change), so the next layout of the view is what must pick it up.
+            view.setSnapToPixel(false);
+            view.requestLayout();
+            pump(root);
+            assertFirstRowFills(view, 0.0, "unsnapped");
+        });
+    }
+
+    // The first row of equal-height single-column items: every track is the viewport
+    // width share floored to the device grid (scale 0: unsnapped), every x lies on that
+    // grid, and the row ends within one device pixel of the viewport's right edge.
+    private static void assertFirstRowFills(RXMasonryView<?> view, double scale, String at) {
+        double layoutWidth = ((Region) view.lookup(".viewport")).getWidth();
+        ScrollBar bar = verticalBar(view);
+        assertTrue(bar == null || !bar.isVisible(), at + ": fixture stays without a scroll bar");
+        int columns = view.getActualColumnCount();
+        double share = (layoutWidth - (columns - 1) * view.getHgap()) / columns;
+        double expectedTrack = scale > 0.0 ? Math.floor(share * scale + 1e-14) / scale : share;
+        double top = Double.MAX_VALUE;
+        for (Node node : view.lookupAll(".rx-masonry-cell")) {
+            if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                top = Math.min(top, cell.getLayoutY());
+            }
+        }
+        double edge = 0.0;
+        for (Node node : view.lookupAll(".rx-masonry-cell")) {
+            if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()
+                    && cell.getLayoutY() == top) {
+                assertEquals(expectedTrack, cell.getWidth(), 1e-9, at + ": track width");
+                if (scale > 0.0) {
+                    double scaled = cell.getLayoutX() * scale;
+                    assertEquals(Math.rint(scaled), scaled, 1e-6, at + ": x " + cell.getLayoutX() + " on the grid");
+                }
+                edge = Math.max(edge, cell.getLayoutX() + cell.getWidth());
+            }
+        }
+        double tolerance = scale > 0.0 ? 1.0 / scale : 1e-9;
+        assertTrue(edge <= layoutWidth + 1e-9, at + ": edge " + edge + " > layout width " + layoutWidth);
+        assertTrue(edge >= layoutWidth - tolerance, at + ": edge " + edge + " stops short of " + layoutWidth);
     }
 
     @Test

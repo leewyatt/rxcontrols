@@ -1,23 +1,22 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * Context handed to a {@link CellHeightProvider} so it can return the exact pixel
- * height a masonry cell needs at its resolved width.
+ * Context handed to a {@link CellHeightProvider} so it can return the pixel height a
+ * masonry cell needs for its slot.
  *
- * <p>The width is span-aware: {@link #cellWidth()} is the effective width of the
- * slot the item occupies, already accounting for a multi-column span
- * ({@code span * trackWidth + (span - 1) * hgap}), not a single column track. An
- * image gallery typically returns {@code cellWidth() / aspectRatio}.
+ * <p>{@link #cellWidth()} is the slot's nominal width, span-aware:
+ * {@code span * trackWidth + (span - 1) * hgap}, where {@code hgap} is the gap as
+ * laid out. An image gallery typically returns {@code cellWidth() / aspectRatio}.</p>
  *
- * <p>A single-column slot is laid out at exactly this width. Column edges snap to the
- * device-pixel grid and the height is asked before the item is assigned a column, so
- * a multi-column slot can be laid out up to one device pixel narrower or wider than
- * this value, depending on the columns it lands in.</p>
+ * <p>A single-column slot is laid out at exactly this width. The height is asked
+ * before the item is assigned a column, and column edges snap to the device-pixel
+ * grid, so a multi-column slot can be laid out up to one device pixel narrower or
+ * wider than this nominal width, depending on the columns it lands in.</p>
  *
  * @param <T>         the item type
  * @param item        the item whose height is requested, possibly {@code null}
  * @param index       the item's index in the items list
- * @param cellWidth   the effective width of the item's slot, spanning its columns
+ * @param cellWidth   the nominal width of the item's slot, spanning its columns
  * @param columnSpan  the number of columns the item spans, at least one
  * @param trackWidth  the width of a single column track
  * @param columnCount the resolved number of columns this layout pass

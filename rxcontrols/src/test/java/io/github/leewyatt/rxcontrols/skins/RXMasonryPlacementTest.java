@@ -173,4 +173,15 @@ public class RXMasonryPlacementTest {
         assertEquals(width, geometry.width(), DELTA, "width");
         assertEquals(height, geometry.height(), DELTA, "height");
     }
+
+    @Test
+    public void marqueeReachesTheFirstColumnLeftOfAFractionalStartX() {
+        // Fixed-width columns snapped at 1x: startX 7.3 rounds the first column to x 7, so
+        // the sliver [7, 7.3) belongs to the first column's item.
+        Resolution snapped = new Resolution(3, 100.0, 10.0, 320.0, RXBreakpoint.XS, 1.0, false);
+        RXMasonryPlacement placement = new RXMasonryPlacement(snapped, 0.0, 7.3,
+                new double[]{50.0, 50.0, 50.0}, new int[]{1, 1, 1});
+        assertEquals(7.0, placement.geometryOf(0).x(), DELTA);
+        assertArrayEquals(new int[]{0}, placement.itemsIntersecting(7.1, 0.0, 7.2, 10.0));
+    }
 }
