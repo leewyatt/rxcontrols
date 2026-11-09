@@ -8,15 +8,21 @@ import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLrcViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -33,9 +39,12 @@ import java.util.List;
 public class RXLrcViewShowcase extends RXShowcaseApplication {
 
     private static final double TRACK_MILLIS = 32_000.0;
+    private static final double TICK_MILLIS = 50.0;
     private static final DocumentPreset DEFAULT_DOCUMENT = DocumentPreset.NOCTURNE;
+    private static final PseudoClass PLAYING = PseudoClass.getPseudoClass("playing");
 
     private final DoubleProperty playbackMillis = new SimpleDoubleProperty(0.0);
+    private final Timeline playTimeline = createPlayTimeline();
 
     private RXLrcView lrcView;
     private RXSeekBar seekBar;
@@ -93,10 +102,11 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
         lrcView.setOnLineClicked(event -> setPlaybackTime(event.getTime()));
 
         seekBar = createSeekBar();
-        Label timeLabel = createTimeLabel();
+        HBox transportRow = new HBox(10.0, createPlayButton(), createTimeLabel());
+        transportRow.setAlignment(Pos.CENTER);
         Label currentLineLabel = createCurrentLineLabel();
 
-        VBox preview = new VBox(14.0, lrcView, seekBar, timeLabel, currentLineLabel);
+        VBox preview = new VBox(14.0, lrcView, seekBar, transportRow, currentLineLabel);
         preview.getStyleClass().add("lrc-preview");
         preview.setAlignment(Pos.CENTER);
         return preview;
@@ -202,6 +212,53 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
     }
 
     // ==================== Preview helpers ====================
+
+    private Timeline createPlayTimeline() {
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(TICK_MILLIS), event -> advancePlayback()));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        return timeline;
+    }
+
+    // The seek bar owns the time while it is dragged; playback stops at the end of the track.
+    private void advancePlayback() {
+        if (seekBar.isSeeking()) {
+            return;
+        }
+        double next = playbackMillis.get() + TICK_MILLIS;
+        if (next >= TRACK_MILLIS) {
+            setPlaybackMillis(TRACK_MILLIS);
+            playTimeline.stop();
+        } else {
+            setPlaybackMillis(next);
+        }
+    }
+
+    private Button createPlayButton() {
+        Region icon = new Region();
+        icon.getStyleClass().add("icon");
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        Button button = new Button("Play", icon);
+        button.getStyleClass().add("play-button");
+        button.setOnAction(event -> togglePlayback());
+        playTimeline.statusProperty().addListener((obs, oldStatus, status) -> {
+            boolean playing = status == Animation.Status.RUNNING;
+            button.setText(playing ? "Pause" : "Play");
+            button.pseudoClassStateChanged(PLAYING, playing);
+        });
+        return button;
+    }
+
+    private void togglePlayback() {
+        if (playTimeline.getStatus() == Animation.Status.RUNNING) {
+            playTimeline.pause();
+            return;
+        }
+        if (playbackMillis.get() >= TRACK_MILLIS) {
+            setPlaybackMillis(0.0);
+        }
+        playTimeline.play();
+    }
 
     private RXSeekBar createSeekBar() {
         RXSeekBar bar = new RXSeekBar();

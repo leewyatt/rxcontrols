@@ -31,13 +31,16 @@ import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.PseudoClass;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -60,6 +63,7 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
     private static final double TICK_MILLIS = 50.0;
     private static final DocumentPreset DEFAULT_DOCUMENT = DocumentPreset.NOCTURNE;
     private static final String DEFAULT_ANIMATION = "Fade";
+    private static final PseudoClass PLAYING = PseudoClass.getPseudoClass("playing");
 
     private final DoubleProperty playbackMillis = new SimpleDoubleProperty(0.0);
     private final Map<String, Supplier<PageAnimation>> animationPresets = animationPresets();
@@ -120,10 +124,11 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
                 playbackMillis));
 
         seekBar = createSeekBar();
-        Label timeLabel = createTimeLabel();
+        HBox transportRow = new HBox(10.0, createPlayButton(), createTimeLabel());
+        transportRow.setAlignment(Pos.CENTER);
         Label currentLineLabel = createCurrentLineLabel();
 
-        VBox preview = new VBox(14.0, lineView, seekBar, timeLabel, currentLineLabel);
+        VBox preview = new VBox(14.0, lineView, seekBar, transportRow, currentLineLabel);
         preview.getStyleClass().add("lrc-line-preview");
         preview.setAlignment(Pos.CENTER);
         return preview;
@@ -156,15 +161,6 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
     }
 
     private Node buildPlaybackGrid() {
-        CheckBox playBox = new CheckBox("Auto play");
-        playBox.selectedProperty().addListener((obs, oldValue, selected) -> {
-            if (selected) {
-                playTimeline.play();
-            } else {
-                playTimeline.pause();
-            }
-        });
-
         timeSlider = createSlider(0.0, TRACK_MILLIS, playbackMillis.get());
         timeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
             if (!syncingTimeSlider) {
@@ -174,9 +170,7 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
         playbackMillis.addListener((obs, oldValue, newValue) -> syncPlaybackControls());
         syncPlaybackControls();
 
-        return createGrid(
-                row(playBox),
-                row("Current time", timeSlider, createValueLabel(timeSlider, "%.0f ms")));
+        return createGrid(row("Current time", timeSlider, createValueLabel(timeSlider, "%.0f ms")));
     }
 
     private Node buildTimingGrid() {
@@ -219,12 +213,50 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
     // ==================== Preview helpers ====================
 
     private Timeline createPlayTimeline() {
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(TICK_MILLIS), event -> {
-            double next = playbackMillis.get() + TICK_MILLIS;
-            setPlaybackMillis(next >= TRACK_MILLIS ? 0.0 : next);
-        }));
+        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(TICK_MILLIS), event -> advancePlayback()));
         timeline.setCycleCount(Animation.INDEFINITE);
         return timeline;
+    }
+
+    // The seek bar owns the time while it is dragged; playback stops at the end of the track.
+    private void advancePlayback() {
+        if (seekBar.isSeeking()) {
+            return;
+        }
+        double next = playbackMillis.get() + TICK_MILLIS;
+        if (next >= TRACK_MILLIS) {
+            setPlaybackMillis(TRACK_MILLIS);
+            playTimeline.stop();
+        } else {
+            setPlaybackMillis(next);
+        }
+    }
+
+    private Button createPlayButton() {
+        Region icon = new Region();
+        icon.getStyleClass().add("icon");
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        Button button = new Button("Play", icon);
+        button.getStyleClass().add("play-button");
+        button.setOnAction(event -> togglePlayback());
+        playTimeline.statusProperty().addListener((obs, oldStatus, status) -> {
+            boolean playing = status == Animation.Status.RUNNING;
+            button.setText(playing ? "Pause" : "Play");
+            button.pseudoClassStateChanged(PLAYING, playing);
+        });
+        return button;
+    }
+
+    private void togglePlayback() {
+        if (playTimeline.getStatus() == Animation.Status.RUNNING) {
+            playTimeline.pause();
+            return;
+        }
+        if (playbackMillis.get() >= TRACK_MILLIS) {
+            setPlaybackMillis(0.0);
+        }
+        playTimeline.play();
     }
 
     private RXSeekBar createSeekBar() {
