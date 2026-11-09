@@ -917,8 +917,15 @@ public class RXTileViewSkinTest {
                     RXTileCell<?> last = row.get(row.size() - 1);
                     assertSame(contentLayer, last.getParent(), "cells live in the clipped content layer");
                     double edge = last.getLayoutX() + last.getWidth();
-                    assertTrue(edge <= clip.getX() + clip.getWidth() + 1e-9, mode + " at width " + width
-                            + ": last cell edge " + edge + " > clip " + (clip.getX() + clip.getWidth()));
+                    double clipRight = clip.getX() + clip.getWidth();
+                    assertTrue(edge <= clipRight + 1e-9, mode + " at width " + width
+                            + ": last cell edge " + edge + " > clip " + clipRight);
+                    if (mode == ItemsJustify.STRETCH) {
+                        // An uncapped stretch fills the row edge to edge.
+                        assertEquals(0.0, row.get(0).getLayoutX(), 1e-9, "STRETCH first cell x at width " + width);
+                        assertTrue(edge >= clipRight - 1.0, "STRETCH fills the row at width " + width
+                                + ": last cell edge " + edge + " < clip " + clipRight);
+                    }
                 }
             }
         });

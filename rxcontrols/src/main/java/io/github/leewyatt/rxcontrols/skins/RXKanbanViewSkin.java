@@ -879,11 +879,13 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         double startX = 0.0;
         double extraGap = 0.0;
         boolean overflow = false;
+        boolean capped = false;
         if (sumWeight > 0.0) {
             double fill = (contentWidth - baseGap * sumGapWeight) / sumWeight;
             if (fill >= pref) {
                 if (justify == ItemsJustify.STRETCH) {
-                    baseWidth = (maxCap > 0.0 && fill > maxCap) ? maxCap : Math.max(0.0, fill);
+                    capped = maxCap > 0.0 && fill > maxCap;
+                    baseWidth = capped ? maxCap : Math.max(0.0, fill);
                 }
             } else {
                 // Shrink to fit, no thinner than minColumnWidth; below that, scroll.
@@ -896,8 +898,14 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             baseWidth = overflow ? snapSizeX(baseWidth) : snapFloorX(baseWidth);
             double slack = Math.max(0.0, contentWidth - (baseWidth * sumWeight + baseGap * sumGapWeight));
             if (justify == ItemsJustify.STRETCH) {
-                // An exact fill has no slack; a capped stretch centers the filled block.
-                startX = slack / 2.0;
+                if (capped) {
+                    // A capped stretch centers the filled block.
+                    startX = slack / 2.0;
+                } else if (sumGapWeight > 0.0) {
+                    // The floored width leaves a few spare pixels; they go into the gaps,
+                    // so the columns stay equal and still fill the board edge to edge.
+                    extraGap = slack / sumGapWeight;
+                }
             } else {
                 switch (justify) {
                     case CENTER -> startX = slack / 2.0;

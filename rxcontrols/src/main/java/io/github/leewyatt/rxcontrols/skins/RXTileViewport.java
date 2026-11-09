@@ -581,10 +581,12 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
             } else {
                 // Floored, not ceiled (snapSizeX): ceiling each of cols cells overruns
                 // the content by up to a pixel per column, and the viewport clip then
-                // cuts the last column. The spare pixels are centered.
+                // cuts the last column. The few spare pixels go into the gaps, so the
+                // cells stay equal and the row still fills edge to edge.
                 cellWidth = snapFloorX(Math.max(0.0, ideal));
-                double used = cols * cellWidth + (cols - 1) * hgap;
-                startX = Math.max(0.0, (contentWidth - used) / 2.0);
+                double spare = Math.max(0.0, contentWidth - (cols * cellWidth + (cols - 1) * hgap));
+                effectiveGap = hgap + (cols > 1 ? spare / (cols - 1) : 0.0);
+                startX = 0.0;
             }
         } else {
             cellWidth = baseWidth;

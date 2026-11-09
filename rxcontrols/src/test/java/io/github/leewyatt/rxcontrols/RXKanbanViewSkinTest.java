@@ -1129,9 +1129,14 @@ public class RXKanbanViewSkinTest {
             for (int width = 500; width <= 1000; width++) {
                 pump(host(board, width, 400));
                 Region c = boxOf(board, "C");
-                assertTrue(c.getLayoutX() + c.getWidth() <= contentWidth(board) + 1e-9,
+                double edge = c.getLayoutX() + c.getWidth();
+                assertTrue(edge <= contentWidth(board) + 1e-9,
                         "last column stays inside the board at width " + width + ": "
-                                + (c.getLayoutX() + c.getWidth()) + " > " + contentWidth(board));
+                                + edge + " > " + contentWidth(board));
+                // An uncapped stretch fills the board edge to edge.
+                assertEquals(0.0, boxOf(board, "A").getLayoutX(), 1e-9, "first column x at width " + width);
+                assertTrue(edge >= contentWidth(board) - 1.0, "columns fill the board at width " + width
+                        + ": " + edge + " < " + contentWidth(board));
             }
         });
     }
