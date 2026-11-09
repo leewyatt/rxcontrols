@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import javafx.application.Application;
@@ -29,6 +30,8 @@ public class RXKanbanViewDemo extends Application {
                 column("TODO", "Wire up API", "Draft docs", "Design icons", "Review PR #42"),
                 column("DOING", "Kanban DnD", "Settle animation"),
                 column("DONE", "Column model", "Virtualized viewport", "Board scroll")));
+
+        board.setColumnsJustify(ItemsJustify.CENTER);
 
         BorderPane root = new BorderPane(board);
         root.setPadding(new Insets(8.0));
