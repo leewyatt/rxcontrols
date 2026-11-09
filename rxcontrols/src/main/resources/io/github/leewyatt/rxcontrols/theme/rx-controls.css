@@ -3138,11 +3138,7 @@
 }
 
 .rx-kanban-view > .columns > .column:drop-target {
-    -fx-background-color: -rx-primary-bg;
-    -fx-border-color: -rx-primary;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
-    -fx-border-insets: -1;
+    -fx-background-color: -rx-primary, -rx-primary-bg;
 }
 
 .rx-kanban-view > .columns > .column:dragging {
@@ -3157,7 +3153,7 @@
 .rx-kanban-view > .columns > .column > .header {
     -fx-background-color: -rx-outline-variant,
         ladder(-rx-surface, derive(-rx-surface-variant, 4%) 45%, derive(-rx-surface-variant, -4%) 46%);
-    -fx-background-insets: 0, 0 0 1 0;
+    -fx-background-insets: 1 1 0 1, 1;
     -fx-background-radius: 7 7 0 0;
     -fx-padding: 0.5em 0.75em;
     -fx-alignment: center-left;

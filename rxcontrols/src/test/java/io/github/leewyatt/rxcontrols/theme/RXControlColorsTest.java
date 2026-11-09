@@ -586,7 +586,7 @@ public class RXControlColorsTest {
         String headerExpression = dark ? "derive(-rx-surface-variant, 4%)" : "derive(-rx-surface-variant, -4%)";
         Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-fx-box-border",
                 boardExpression, "-rx-surface-variant", "-rx-outline-variant", headerExpression,
-                "-rx-primary-bg", "-rx-focus"));
+                "-rx-primary", "-rx-primary-bg", "-rx-focus"));
         Map<String, String> actual = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
@@ -603,6 +603,15 @@ public class RXControlColorsTest {
             sampleLayers("board", board, actual);
             sampleLayers("column", (Region) board.lookup(".column"), actual);
             sampleLayers("header", (Region) board.lookup(".column > .header"), actual);
+
+            Region columnNode = (Region) board.lookup(".column");
+            Insets columnInsets = columnNode.getInsets();
+            columnNode.pseudoClassStateChanged(PseudoClass.getPseudoClass("drop-target"), true);
+            root.applyCss();
+            sampleLayers("dropTarget", columnNode, actual);
+            actual.put("dropTargetShift", String.valueOf(!columnNode.getInsets().equals(columnInsets)));
+            columnNode.pseudoClassStateChanged(PseudoClass.getPseudoClass("drop-target"), false);
+            root.applyCss();
 
             Region cell = (Region) board.lookup(".rx-kanban-card-cell");
             Insets restingInsets = cell.getInsets();
@@ -623,8 +632,14 @@ public class RXControlColorsTest {
                 actual.get("board"), "board frame and surface under " + host);
         assertEquals(line + " | " + expected.get("-rx-surface-variant") + " " + new Insets(1),
                 actual.get("column"), "column hairline and surface under " + host);
-        assertEquals(line + " | " + expected.get(headerExpression) + " " + new Insets(0, 0, 1, 0),
+        // The header band is inset on three sides so the column hairline stays visible around it.
+        assertEquals(line + " | " + expected.get(headerExpression) + " " + new Insets(1),
                 actual.get("header"), "header divider and band under " + host);
+        // The drop-target ring is the column's own outer layer: an outset border is cut by the columns clip.
+        assertEquals(expected.get("-rx-primary") + " | " + expected.get("-rx-primary-bg") + " " + new Insets(1),
+                actual.get("dropTarget"), "drop-target ring and tint under " + host);
+        assertEquals("false", actual.get("dropTargetStroke"), "drop-target column has no border under " + host);
+        assertEquals("false", actual.get("dropTargetShift"), "drop-target keeps the column insets under " + host);
         assertNotEquals(expected.get(boardExpression), expected.get("-rx-surface-variant"),
                 "columns differ from the board under " + host);
         assertNotEquals(expected.get("-rx-surface-variant"), expected.get(headerExpression),

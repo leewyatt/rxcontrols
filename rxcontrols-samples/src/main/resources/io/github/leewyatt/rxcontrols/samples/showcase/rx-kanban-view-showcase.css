@@ -17,8 +17,6 @@
 .kanban-showcase-board > .columns > .column:drop-target {
     -fx-background-color: -rx-primary-bg;
     -fx-border-color: -rx-primary;
-    -fx-border-width: 1.5px;
-    -fx-border-insets: -1px;
     -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 20, 0, 0, 8);
 }
 
