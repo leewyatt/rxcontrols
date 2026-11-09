@@ -15,6 +15,8 @@ import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.RXKanbanColumn;
+import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -36,6 +38,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Labeled;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -529,6 +532,125 @@ public class RXControlColorsTest {
      *
      * @throws Exception if the FX action fails
      */
+    @Test
+    public void kanbanCardIsARaisedSurface() throws Exception {
+        assertKanbanCard("default Modena", Application.STYLESHEET_MODENA, scene -> { }, "-fx-control-inner-background");
+        assertKanbanCard("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette,
+                "derive(-rx-surface-variant, 8%)");
+        assertKanbanCard("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                "-fx-control-inner-background");
+        assertKanbanCard("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                "derive(-rx-surface-variant, 8%)");
+    }
+
+    private static void assertKanbanCard(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            String surfaceExpression) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(surfaceExpression, "-rx-surface-variant"));
+        Map<String, String> card = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("TODO");
+            column.getCards().add("card");
+            RXKanbanView<String> board = new RXKanbanView<>();
+            board.getColumns().add(column);
+            StackPane root = new StackPane(board);
+            themer.accept(new Scene(root, 400, 300));
+            for (int i = 0; i < 4; i++) {
+                root.applyCss();
+                root.layout();
+            }
+            Region cell = (Region) board.lookup(".rx-kanban-card-cell");
+            card.put("fill", ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill()));
+        });
+        String surface = expected.get(surfaceExpression);
+        String columnSurface = expected.get("-rx-surface-variant");
+        assertEquals(surface, card.get("fill"), "kanban card surface under " + host);
+        assertTrue(relativeLuminance(Color.web(surface)) > relativeLuminance(Color.web(columnSurface)),
+                "kanban card is lighter than its column under " + host);
+    }
+
+    @Test
+    public void kanbanBoardColumnsAndHeadersAreDistinctLayers() throws Exception {
+        assertKanbanLayers("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertKanbanLayers("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertKanbanLayers("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+        assertKanbanLayers("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                true);
+    }
+
+    private static void assertKanbanLayers(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        String boardExpression = dark ? "-rx-surface" : "-fx-control-inner-background";
+        String headerExpression = dark ? "derive(-rx-surface-variant, 4%)" : "derive(-rx-surface-variant, -4%)";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-fx-box-border",
+                boardExpression, "-rx-surface-variant", "-rx-outline-variant", headerExpression,
+                "-rx-primary-bg", "-rx-focus"));
+        Map<String, String> actual = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("TODO");
+            column.getCards().add("card");
+            RXKanbanView<String> board = new RXKanbanView<>();
+            board.getColumns().add(column);
+            StackPane root = new StackPane(board);
+            themer.accept(new Scene(root, 400, 300));
+            for (int i = 0; i < 4; i++) {
+                root.applyCss();
+                root.layout();
+            }
+            sampleLayers("board", board, actual);
+            sampleLayers("column", (Region) board.lookup(".column"), actual);
+            sampleLayers("header", (Region) board.lookup(".column > .header"), actual);
+
+            Region cell = (Region) board.lookup(".rx-kanban-card-cell");
+            Insets restingInsets = cell.getInsets();
+            cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("selected"), true);
+            root.applyCss();
+            actual.put("selectedFill", ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill()));
+            cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            root.applyCss();
+            sampleLayers("selectedFocused", cell, actual);
+            BorderStroke ring = cell.getBorder().getStrokes().get(0);
+            actual.put("ringStrokes", String.valueOf(cell.getBorder().getStrokes().size()));
+            actual.put("ring", ThemeColorSamples.hex(ring.getTopStroke()) + " width " + ring.getWidths().getTop()
+                    + " insets " + ring.getInsets().getLeft());
+            actual.put("contentShift", String.valueOf(!cell.getInsets().equals(restingInsets)));
+        });
+        String line = expected.get("-rx-outline-variant");
+        assertEquals(expected.get("-fx-box-border") + " | " + expected.get(boardExpression) + " " + new Insets(1),
+                actual.get("board"), "board frame and surface under " + host);
+        assertEquals(line + " | " + expected.get("-rx-surface-variant") + " " + new Insets(1),
+                actual.get("column"), "column hairline and surface under " + host);
+        assertEquals(line + " | " + expected.get(headerExpression) + " " + new Insets(0, 0, 1, 0),
+                actual.get("header"), "header divider and band under " + host);
+        assertNotEquals(expected.get(boardExpression), expected.get("-rx-surface-variant"),
+                "columns differ from the board under " + host);
+        assertNotEquals(expected.get("-rx-surface-variant"), expected.get(headerExpression),
+                "headers differ from the column body under " + host);
+        // Hairlines are background layers: a border stroke would count toward the insets.
+        assertEquals("false", actual.get("columnStroke"), "column has no border under " + host);
+        assertEquals("false", actual.get("headerStroke"), "header has no border under " + host);
+        assertEquals(expected.get("-rx-primary-bg"), actual.get("selectedFill"), "selected card tint under " + host);
+        // The focus ring lies inside the card: the column content clip cuts anything outside.
+        assertEquals("1", actual.get("ringStrokes"), "selected focused card has one border under " + host);
+        assertEquals(expected.get("-rx-focus") + " width 1.0 insets 0.0", actual.get("ring"),
+                "focus ring border under " + host);
+        assertEquals(expected.get("-rx-focus") + " | " + expected.get("-rx-primary-bg") + " " + new Insets(2),
+                actual.get("selectedFocused"), "focus ring inner pixel and tint under " + host);
+        assertEquals("false", actual.get("contentShift"), "focus does not move the card content under " + host);
+    }
+
+    // "<lower layer> | <top layer> <top layer insets>"
+    private static void sampleLayers(String key, Region region, Map<String, String> into) {
+        List<BackgroundFill> fills = region.getBackground().getFills();
+        BackgroundFill top = fills.get(fills.size() - 1);
+        into.put(key, ThemeColorSamples.hex(fills.get(0).getFill()) + " | " + ThemeColorSamples.hex(top.getFill())
+                + " " + top.getInsets());
+        into.put(key + "Stroke", String.valueOf(region.getBorder() != null && !region.getBorder().getStrokes().isEmpty()));
+    }
+
     @Test
     public void dialogCardIsARaisedSurface() throws Exception {
         assertDialogCard("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);

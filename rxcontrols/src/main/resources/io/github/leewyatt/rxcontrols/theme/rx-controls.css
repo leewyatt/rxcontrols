@@ -3111,8 +3111,14 @@
  * RXKanbanView                                                                *
  *                                                                             *
  ******************************************************************************/
+/* Three layers, like a Modena ListView / TableView: on a light host the board is the
+   white content surface inside a box border, columns are a light gray with a hairline,
+   and column headers are a step darker (lighter on a dark host) with a divider. The
+   hairlines are background layers rather than borders, because border widths count
+   toward the insets and would resize columns and headers. */
 .rx-kanban-view {
-    -fx-background-color: -rx-surface;
+    -fx-background-color: -fx-box-border, ladder(-rx-surface, -rx-surface 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 1;
     -fx-padding: 0.667em;
 }
 
@@ -3121,8 +3127,9 @@
 }
 
 .rx-kanban-view > .columns > .column {
-    -fx-background-color: -rx-surface-variant;
-    -fx-background-radius: 8;
+    -fx-background-color: -rx-outline-variant, -rx-surface-variant;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
 }
 
 .rx-kanban-view > .columns > .column:drop-target {
@@ -3143,6 +3150,10 @@
 }
 
 .rx-kanban-view > .columns > .column > .header {
+    -fx-background-color: -rx-outline-variant,
+        ladder(-rx-surface, derive(-rx-surface-variant, 4%) 45%, derive(-rx-surface-variant, -4%) 46%);
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-background-radius: 7 7 0 0;
     -fx-padding: 0.5em 0.75em;
     -fx-alignment: center-left;
     -fx-spacing: 0.5em;
@@ -3167,8 +3178,10 @@
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
+/* Cards sit above their column (-rx-surface-variant): the content surface on a light
+   host, one step lighter than the column on a dark one. */
 .rx-kanban-card-cell {
-    -fx-background-color: -rx-surface;
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%);
     -fx-background-radius: 6;
     -fx-border-color: -rx-outline-variant;
     -fx-border-radius: 6;
@@ -3181,22 +3194,25 @@
     -rx-ripple-state-overlay-enabled: true;
 }
 
+/* Selection is a tint and focus a single ring, so a selected card under the keyboard
+   cursor shows one border instead of two. The 2px ring stays inside the card (the
+   recolored 1px border plus a focus-colored background layer under a 2px-inset
+   surface): cards span the column's clipped content area, so anything drawn outside
+   them is cut off at the sides, and a wider border would shift the card content. */
 .rx-kanban-card-cell:selected {
-    -fx-border-color: -rx-selection;
-    -fx-border-width: 2;
-    -fx-border-insets: -1;
+    -fx-background-color: -rx-primary-bg;
 }
 
 .rx-kanban-card-cell:focused {
     -fx-border-color: -rx-focus;
-    -fx-border-width: 2;
-    -fx-border-insets: -1;
+    -fx-background-color: -rx-focus,
+        ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 6, 4;
 }
 
 .rx-kanban-card-cell:selected:focused {
-    -fx-border-color: -rx-selection, -rx-focus;
-    -fx-border-width: 2, 1;
-    -fx-border-insets: -1, 1;
+    -fx-background-color: -rx-focus, -rx-primary-bg;
 }
 
 /*******************************************************************************
