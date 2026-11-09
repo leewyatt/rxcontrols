@@ -69,15 +69,19 @@ public class RXDefaultStyleTest {
     private static final String LIGHT_REGION = "light-region";
 
     private static final double WCAG_AA_CONTRAST = 4.5;
+    private static final double NON_TEXT_CONTRAST = 3.0;
+
+    /** {@code -fx-accent} of the dark test palette. */
+    private static final Color DARK_ACCENT = Color.web("#7c86ff");
 
     /** Every role token resolved under default Modena; the default look must not change. */
     private static final Map<String, Color> DEFAULTS = new LinkedHashMap<>();
 
     static {
-        DEFAULTS.put("primary", Color.web("#616dff"));
-        DEFAULTS.put("primary-hover", Color.web("#6b77ff"));
-        DEFAULTS.put("primary-active", Color.web("#5763e5"));
-        DEFAULTS.put("primary-bg", Color.web("#ccd1ff"));
+        DEFAULTS.put("primary", Color.web("#0096c9"));
+        DEFAULTS.put("primary-hover", Color.web("#0d9dcc"));
+        DEFAULTS.put("primary-active", Color.web("#0088b5"));
+        DEFAULTS.put("primary-bg", Color.web("#d7f0f8"));
         DEFAULTS.put("on-primary", Color.web("#ffffff"));
         DEFAULTS.put("success", Color.web("#67c23a"));
         DEFAULTS.put("warning", Color.web("#e6a23c"));
@@ -105,7 +109,8 @@ public class RXDefaultStyleTest {
     private static final Map<String, String> DARK_REFERENCES = new LinkedHashMap<>();
 
     static {
-        DARK_REFERENCES.put("primary-bg", "derive(#616dff, -60%)");
+        DARK_REFERENCES.put("primary", "-fx-accent");
+        DARK_REFERENCES.put("primary-bg", "derive(-fx-accent, -60%)");
         DARK_REFERENCES.put("surface", "-fx-background");
         DARK_REFERENCES.put("surface-variant", "derive(-fx-background, 8%)");
         DARK_REFERENCES.put("on-surface", "-fx-text-background-color");
@@ -223,19 +228,37 @@ public class RXDefaultStyleTest {
     }
 
     /**
-     * The brand and semantic colors do not follow the palette.
+     * The on-primary and semantic colors do not follow the palette.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void brandAndSemanticColorsStayOnADarkPalette() throws Exception {
-        List<String> fixed = List.of("primary", "on-primary", "success", "warning", "danger", "info",
+    public void onPrimaryAndSemanticColorsStayOnADarkPalette() throws Exception {
+        List<String> fixed = List.of("on-primary", "success", "warning", "danger", "info",
                 "selection", "elevation-umbra-color");
         Map<String, Region> probes = roleProbes(fixed);
         runOnFx(() -> applyCss(scene(new StackPane(probes.values().toArray(new Node[0])), true)));
 
         fixed.forEach(token ->
                 assertSameColor(DEFAULTS.get(token), background(probes.get(token)), "-rx-" + token + " is fixed"));
+    }
+
+    /**
+     * The primary color stands out from the surface as a non-text control color on
+     * default Modena and on a dark palette.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void primaryStandsOutFromTheSurfaceOnLightAndDarkPalettes() throws Exception {
+        List<String> tokens = List.of("primary", "surface");
+        for (boolean dark : new boolean[]{false, true}) {
+            Map<String, Region> probes = roleProbes(tokens);
+            runOnFx(() -> applyCss(scene(new StackPane(probes.values().toArray(new Node[0])), dark)));
+            double ratio = contrastRatio(background(probes.get("primary")), background(probes.get("surface")));
+            assertTrue(ratio >= NON_TEXT_CONTRAST, "primary on surface, " + (dark ? "dark palette" : "default Modena")
+                    + ": " + String.format("%.2f", ratio) + ":1");
+        }
     }
 
     // ==================== Container palette ====================
@@ -355,7 +378,7 @@ public class RXDefaultStyleTest {
             successDot.set(background(lookupRegion(timeline, ".dot")));
         });
 
-        assertEquals(DEFAULTS.get("primary"), fill.get(), "RXFillButton fill keeps -rx-primary");
+        assertEquals(DARK_ACCENT, fill.get(), "RXFillButton fill takes the palette accent");
         assertEquals(Color.WHITE, ripple.get(), "RXButton ripple follows -rx-state-overlay-color");
         assertEquals(DEFAULTS.get("success"), successDot.get(), "timeline success dot keeps -rx-success");
         assertNoCssWarnings();

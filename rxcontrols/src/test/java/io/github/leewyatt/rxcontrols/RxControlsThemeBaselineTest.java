@@ -205,7 +205,7 @@ public class RxControlsThemeBaselineTest {
 
     /**
      * Samples the headline brand path: an {@code RXFillButton} resolves
-     * {@code -rx-fill -> -rx-primary -> #616dff}, and an {@code RXButton}
+     * {@code -rx-fill -> -rx-primary -> #0096c9}, and an {@code RXButton}
      * resolves its ripple fill through {@code -rx-state-overlay-color -> black}.
      *
      * @throws Exception if the FX action fails
@@ -231,8 +231,8 @@ public class RxControlsThemeBaselineTest {
             rippleRef.set(plain.getRippleFill());
         });
 
-        assertEquals(Color.web("#616dff"), fillRef.get(),
-                "RXFillButton fill should resolve -rx-fill -> -rx-primary -> #616dff");
+        assertEquals(Color.web("#0096c9").toString(), fillRef.get().toString(),
+                "RXFillButton fill should resolve -rx-fill -> -rx-primary -> #0096c9");
         assertEquals(Color.BLACK, rippleRef.get(),
                 "RXButton ripple fill should resolve -rx-ripple-fill -> "
                         + "-rx-state-overlay-color -> black");

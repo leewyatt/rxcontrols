@@ -118,7 +118,7 @@ public class RXLineButtonShowcase extends RXShowcaseApplication {
         animationBox.valueProperty().addListener((obs, oldV, newV) ->
                 button.setLineAnimation(ANIMATIONS.get(newV)));
 
-        ColorPicker colorPicker = new ColorPicker(Color.web("#616dff"));
+        ColorPicker colorPicker = new ColorPicker(Color.web("#0096c9"));
         colorPicker.setMaxWidth(Double.MAX_VALUE);
         colorPicker.setOnAction(event -> updateLineColor(colorPicker.getValue()));
 

@@ -532,7 +532,7 @@ public class RXAtlantaFXThemeBridgeTest {
             }
         });
         assertEquals(ACCENT_EMPHASIS, bridged.get(), "bridged fill follows AtlantaFX");
-        assertEquals(Color.web("#616dff"), modena.get(), "unbridged fill is the default brand color");
+        assertEquals(Color.web("#0096c9").toString(), modena.get().toString(), "unbridged fill is the default brand color");
     }
 
     /**

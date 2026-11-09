@@ -107,7 +107,7 @@ public class RXSliderTest {
     public void rippleFillResolvesThroughSliderThumbToken() throws Exception {
         runOnFx(() -> {
             RXSlider slider = scenedSlider(200.0, 30.0);
-            assertEquals(Color.web("#616dff"), slider.getRippleFill());
+            assertEquals(Color.web("#0096c9").toString(), slider.getRippleFill().toString());
         });
     }
 

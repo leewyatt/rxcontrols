@@ -117,7 +117,7 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
         modeBox.valueProperty().addListener((obs, oldV, newV) ->
                 button.setFillAnimation(ANIMATIONS.get(newV)));
 
-        ColorPicker fillPicker = new ColorPicker(Color.web("#616dff"));
+        ColorPicker fillPicker = new ColorPicker(Color.web("#0096c9"));
         fillPicker.setMaxWidth(Double.MAX_VALUE);
         fillPicker.setOnAction(event -> updateFillColor(fillPicker.getValue()));
 
@@ -198,7 +198,7 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    private Color lastFill = Color.web("#616dff");
+    private Color lastFill = Color.web("#0096c9");
     private double lastRadius = 4.0;
 
     private void updateFillColor(Color color) {

@@ -32,12 +32,17 @@
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
 .rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
-    /* brand / primary */
-    -rx-primary: #616dff;
+    /* brand / primary: the Modena accent, so RX controls match the native selection
+       and follow an application that recolors -fx-accent. Like Modena's own selected
+       rows, white text on #0096c9 is 3.38:1, below WCAG AA for body text; override
+       -rx-primary with a darker color where AA text contrast is required. */
+    -rx-primary: -fx-accent;
     -rx-primary-hover: derive(-rx-primary, 8%);
     -rx-primary-active: derive(-rx-primary, -10%);
-    /* a tint behind on-surface text: lightened on a light host, darkened on a dark one */
-    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 45%, derive(-rx-primary, 85%) 46%);
+    /* a tint behind on-surface text: lightened on a light host, darkened on a dark one.
+       derive() damps a brightening step on a darker base, so the light side derives
+       twice to stay pale for any primary. */
+    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 45%, derive(derive(-rx-primary, 70%), 70%) 46%);
     -rx-on-primary: white;
     /* semantic */
     -rx-success: #67c23a;
@@ -3247,7 +3252,9 @@
     -fx-background-color: transparent;
     -fx-background-radius: 4;
     -fx-padding: 6 8 6 8;
-    -fx-text-fill: ladder(-rx-surface, derive(-rx-primary, -30%) 45%, derive(-rx-primary, 30%) 46%);
+    /* The bar is an inverse surface, so the action needs the opposite primary step;
+       the dark bar derives twice because one brightening step is capped on a dark base. */
+    -fx-text-fill: ladder(-rx-surface, derive(-rx-primary, -40%) 45%, derive(derive(-rx-primary, 40%), 40%) 46%);
     -fx-font-weight: bold;
 }
 

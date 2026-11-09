@@ -385,7 +385,6 @@ final class ThemeGalleryCards {
         indicator.setProgressStrokeWidth(8.0);
         indicator.setTrackStrokeWidth(8.0);
         indicator.setStrokeLineCap(StrokeLineCap.ROUND);
-        indicator.setProgressStroke(Color.web("#616dff"));
         indicator.setTextFactory(progress -> Math.round(progress * 100.0) + "%");
         return indicator;
     }
@@ -495,7 +494,7 @@ final class ThemeGalleryCards {
         button.setGraphic(icon);
         button.setFillAnimation(FillAnimation.CENTER_OUT);
         button.setFillCornerRadius(new CornerRadii(6.0));
-        button.setStyle("-rx-fill: #616dff; -fx-background-radius: 6px; -fx-border-radius: 6px;");
+        button.setStyle("-fx-background-radius: 6px; -fx-border-radius: 6px;");
         button.setAlignment(Pos.CENTER);
         button.setMaxWidth(Double.MAX_VALUE);
         return button;

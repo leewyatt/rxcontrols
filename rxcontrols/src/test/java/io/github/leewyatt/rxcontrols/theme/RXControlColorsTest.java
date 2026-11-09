@@ -84,7 +84,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("cascader.cell.hover", "#ebebebff");
         DEFAULT_MODENA.put("segmented.selected", "#ffffffff");
         DEFAULT_MODENA.put("segmented.unselected", "#000000a6");
-        DEFAULT_MODENA.put("segmented.indicator", "#616dffff");
+        DEFAULT_MODENA.put("segmented.indicator", "#0096c9ff");
         DEFAULT_MODENA.put("seek.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("seek.secondary", "#00000040");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
@@ -103,7 +103,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
         DEFAULT_MODENA.put("snackbar.message", "#ffffffde");
-        DEFAULT_MODENA.put("snackbar.action", "#8791ffff");
+        DEFAULT_MODENA.put("snackbar.action", "#83d0e7ff");
         DEFAULT_MODENA.put("snackbar.close-icon", "#ffffffb2");
         DEFAULT_MODENA.put("snackbar.info.bar", "#909399ff");
         DEFAULT_MODENA.put("snackbar.info.message", "#ffffffff");
@@ -116,11 +116,11 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("digit.unlit", "null");
         DEFAULT_MODENA.put("fill-button.filling-armed.text", "#ffffffff");
         DEFAULT_MODENA.put("sidebar.background", "#ecececff");
-        DEFAULT_MODENA.put("sidebar.selected", "#ccd1ffff");
+        DEFAULT_MODENA.put("sidebar.selected", "#d7f0f8ff");
         DEFAULT_MODENA.put("sidebar.selected.text", "#333333ff");
-        DEFAULT_MODENA.put("timeline.dot", "#616dffff");
-        DEFAULT_MODENA.put("timeline.primary-dot", "#616dffff");
-        DEFAULT_MODENA.put("timeline.hollow-dot.border", "#616dffff");
+        DEFAULT_MODENA.put("timeline.dot", "#0096c9ff");
+        DEFAULT_MODENA.put("timeline.primary-dot", "#0096c9ff");
+        DEFAULT_MODENA.put("timeline.hollow-dot.border", "#0096c9ff");
         DEFAULT_MODENA.put("list-view.background", "#c9c9c9ff #f4f4f4ff");
         DEFAULT_MODENA.put("tile-view.background", "#c9c9c9ff #f4f4f4ff");
         DEFAULT_MODENA.put("masonry-view.background", "#c9c9c9ff #f4f4f4ff");
@@ -151,7 +151,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
         PRIMER_LIGHT.put("snackbar.message", "#ffffffde");
-        PRIMER_LIGHT.put("snackbar.action", "#3787e2ff");
+        PRIMER_LIGHT.put("snackbar.action", "#85b8eeff");
         PRIMER_LIGHT.put("snackbar.close-icon", "#ffffffb2");
         PRIMER_LIGHT.put("snackbar.info.bar", "#6e7781ff");
         PRIMER_LIGHT.put("snackbar.info.message", "#ffffffff");
@@ -201,7 +201,7 @@ public class RXControlColorsTest {
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
         PRIMER_DARK.put("snackbar.bar", "#e0e0e0ff");
         PRIMER_DARK.put("snackbar.message", "#000000de");
-        PRIMER_DARK.put("snackbar.action", "#164fa4ff");
+        PRIMER_DARK.put("snackbar.action", "#13448dff");
         PRIMER_DARK.put("snackbar.close-icon", "#00000099");
         PRIMER_DARK.put("snackbar.info.bar", "#6e7681ff");
         PRIMER_DARK.put("snackbar.info.message", "#ffffffff");
@@ -332,7 +332,7 @@ public class RXControlColorsTest {
         assertEquals("#ffffff59", samples.get("carousel-navigator.track"), "carousel navigator stays translucent white");
         assertEquals(roles.get("on-surface"), samples.get("digit.lit"), "lit digit segment");
         assertEquals("null", samples.get("digit.unlit"), "unlit digit segment is not drawn");
-        assertEquals("#ffffffff", samples.get("fill-button.filling-armed.text"), "filling fill button text");
+        assertEquals(roles.get("on-primary"), samples.get("fill-button.filling-armed.text"), "filling fill button text");
         assertEquals(roles.get("primary"), samples.get("timeline.dot"), "default timeline dot");
         assertEquals(roles.get("primary"), samples.get("timeline.primary-dot"), "primary timeline dot");
         assertEquals(roles.get("primary"), samples.get("timeline.hollow-dot.border"), "hollow timeline dot outline");

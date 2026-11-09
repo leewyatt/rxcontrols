@@ -153,10 +153,10 @@
     </tr>
     </thead>
     <tbody>
-    <tr><td>-rx-primary</td><td>Paint</td><td>#616dff</td><td>Brand / primary accent (fixed)</td></tr>
+    <tr><td>-rx-primary</td><td>Paint</td><td>-fx-accent</td><td>Brand / primary accent; follows the Modena accent (#0096c9). White text on it is 3.38:1, below WCAG AA for body text</td></tr>
     <tr><td>-rx-primary-hover</td><td>Paint</td><td>derive(-rx-primary, 8%)</td><td>Primary, hover state</td></tr>
     <tr><td>-rx-primary-active</td><td>Paint</td><td>derive(-rx-primary, -10%)</td><td>Primary, pressed / active state</td></tr>
-    <tr><td>-rx-primary-bg</td><td>Paint</td><td>ladder(derive(-rx-primary, 85%) | derive(-rx-primary, -60%))</td><td>Primary tint behind on-surface text (soft / selected background)</td></tr>
+    <tr><td>-rx-primary-bg</td><td>Paint</td><td>ladder(derive(derive(-rx-primary, 70%), 70%) | derive(-rx-primary, -60%))</td><td>Primary tint behind on-surface text (soft / selected background)</td></tr>
     <tr><td>-rx-on-primary</td><td>Paint</td><td>white</td><td>Foreground on a primary fill</td></tr>
     <tr><td>-rx-success</td><td>Paint</td><td>#67c23a</td><td>Success / positive (fixed)</td></tr>
     <tr><td>-rx-warning</td><td>Paint</td><td>#e6a23c</td><td>Warning (fixed)</td></tr>
@@ -914,7 +914,7 @@ ripple-layer — Region<br/><br/>
     <tr>
         <td>-rx-fill</td>
         <td>Paint (looked-up color)</td>
-        <td>#616dff</td>
+        <td>-rx-primary</td>
     </tr>
     <tr>
         <td>-rx-fill-animation</td>
@@ -1170,7 +1170,7 @@ ripple-layer — Region<br/><br/>
     <tr>
         <td>-rx-line-color</td>
         <td>Paint (looked-up color)</td>
-        <td>#616dff</td>
+        <td>-rx-primary</td>
     </tr>
     <tr>
         <td>-rx-line-animation</td>
@@ -1757,7 +1757,7 @@ top, middle, bottom, upper-left, upper-right, lower-left, lower-right)<br/>
     <tr>
         <td>-rx-dot-fill</td>
         <td>Paint (default-status dot)</td>
-        <td>-rx-primary (#616dff)</td>
+        <td>-rx-primary</td>
     </tr>
     <tr>
         <td>-rx-line-fill</td>
